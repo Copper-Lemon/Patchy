@@ -4,7 +4,7 @@ How to cut and publish a Patchy release. Read this in full before bumping a vers
 
 ## Version bump checklist
 
-Desktop packages also carry automatic selection: ONNX Runtime plus about 270 MB of models in `ai-models/` ([ai-selection.md](ai-selection.md)). Every build host runs `scripts\setup-ai-deps.ps1` (Windows) or `bash scripts/setup-ai-deps.sh` (mac/Linux) once per pinned version; `build-release.bat` configures with `-DPATCHY_REQUIRE_AI_SELECTION=ON` and refuses to package without them, the Flatpak fetches the same pinned files itself, and `packaging/package-selftest.js` runs both models from the unpacked package.
+Desktop packages also carry automatic selection: ONNX Runtime plus about 160 MB of int8 models in `ai-models/` (about 100 MB compressed) ([ai-selection.md](ai-selection.md)). Every build host runs `scripts\setup-ai-deps.ps1` (Windows) or `bash scripts/setup-ai-deps.sh` (mac/Linux) once per pinned version; `build-release.bat` configures with `-DPATCHY_REQUIRE_AI_SELECTION=ON` and refuses to package without them, the Flatpak fetches the same pinned files itself, and `packaging/package-selftest.js` runs both models from the unpacked package.
 
 Desktop packages include `patchy-mcp` and the assembled `patchy-control` skill; the Windows package also carries the two legacy plug-in hosts `patchy-8bf-host32.exe` and `patchy-8bf-host64.exe` (docs/plugins.md), which `build-release.bat` requires, stages and signs like the app.
 Staging and resource paths are specified in [ai-control.md](ai-control.md). Each

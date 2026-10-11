@@ -22,16 +22,18 @@ $OrtPackages = @{
   'win-x64'   = 'c6ba983baf5681af108599675d2a89c2d145512d02de28aed0bff177cd0ba949'
   'win-arm64' = 'e53db8a50b23ae35be901cc93428baf997dc8d420333b097b2eae53d3ea9f2d3'
 }
+# The int8 models Patchy ships: converted from the pinned upstream fp32 files by
+# scripts/ai/quantize_models.py (byte-reproducible) and hosted on the ai-models-1 release.
 $Models = @(
-  @{ Name = 'mobile_sam_image_encoder.onnx'
-     Url = 'https://huggingface.co/Acly/MobileSAM/resolve/main/mobile_sam_image_encoder.onnx'
-     Sha256 = '580f5fb648ea1062c0aabc26217aed56921985f03f0cbbd852bba81d760cc749' },
-  @{ Name = 'sam_mask_decoder_multi.onnx'
-     Url = 'https://huggingface.co/Acly/MobileSAM/resolve/main/sam_mask_decoder_multi.onnx'
-     Sha256 = '8976b90a87ba50a6a72217a5ff994f7d25ce16f2229fcc1ed259e1294c622ffe' },
-  @{ Name = 'birefnet_lite_general_1024.onnx'
-     Url = 'https://github.com/ZhengPeng7/BiRefNet/releases/download/v1/BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx'
-     Sha256 = '5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333' }
+  @{ Name = 'mobile_sam_image_encoder_int8.onnx'
+     Url = 'https://github.com/SethRobinson/Patchy/releases/download/ai-models-1/mobile_sam_image_encoder_int8.onnx'
+     Sha256 = '6af3f249f7a5a6a8a3ef988b6814015e8c3a300977c135d1f9572ed2f2930cd7' },
+  @{ Name = 'sam_mask_decoder_multi_int8.onnx'
+     Url = 'https://github.com/SethRobinson/Patchy/releases/download/ai-models-1/sam_mask_decoder_multi_int8.onnx'
+     Sha256 = 'aa1410bec8f050b6017fba29ca07f16317029a8f74a98e5998aeed46680c10a6' },
+  @{ Name = 'birefnet_lite_general_1024_int8.onnx'
+     Url = 'https://github.com/SethRobinson/Patchy/releases/download/ai-models-1/birefnet_lite_general_1024_int8.onnx'
+     Sha256 = '0374fa9286b28506399d1ef44c5bd975e61deb2c0d5c6655b18f0815e27fed5e' }
 )
 
 if (-not $DepsDir) {

@@ -11,9 +11,9 @@ option(PATCHY_REQUIRE_AI_SELECTION "Fail the configure when automatic selection 
 # Keep in sync with scripts/setup-ai-deps.ps1 and scripts/setup-ai-deps.sh.
 set(PATCHY_ONNXRUNTIME_VERSION "1.30.0")
 set(PATCHY_AI_MODEL_FILES
-  mobile_sam_image_encoder.onnx
-  sam_mask_decoder_multi.onnx
-  birefnet_lite_general_1024.onnx
+  mobile_sam_image_encoder_int8.onnx
+  sam_mask_decoder_multi_int8.onnx
+  birefnet_lite_general_1024_int8.onnx
 )
 
 set(PATCHY_AI_DEPS_CANDIDATES "${PROJECT_SOURCE_DIR}/.deps")
@@ -56,7 +56,7 @@ if(NOT PATCHY_ONNXRUNTIME_DIR)
 endif()
 if(NOT PATCHY_AI_MODELS_DIR)
   foreach(candidate IN LISTS PATCHY_AI_DEPS_CANDIDATES)
-    if(EXISTS "${candidate}/ai-models/birefnet_lite_general_1024.onnx")
+    if(EXISTS "${candidate}/ai-models/birefnet_lite_general_1024_int8.onnx")
       set(PATCHY_AI_MODELS_DIR "${candidate}/ai-models")
       break()
     endif()

@@ -11,10 +11,12 @@ set -euo pipefail
 
 # Keep in sync with scripts/setup-ai-deps.ps1 and cmake/patchy_ai.cmake.
 ORT_VERSION="1.30.0"
+# The int8 models Patchy ships: converted from the pinned upstream fp32 files by
+# scripts/ai/quantize_models.py (byte-reproducible) and hosted on the ai-models-1 release.
 MODELS=(
-  "mobile_sam_image_encoder.onnx|https://huggingface.co/Acly/MobileSAM/resolve/main/mobile_sam_image_encoder.onnx|580f5fb648ea1062c0aabc26217aed56921985f03f0cbbd852bba81d760cc749"
-  "sam_mask_decoder_multi.onnx|https://huggingface.co/Acly/MobileSAM/resolve/main/sam_mask_decoder_multi.onnx|8976b90a87ba50a6a72217a5ff994f7d25ce16f2229fcc1ed259e1294c622ffe"
-  "birefnet_lite_general_1024.onnx|https://github.com/ZhengPeng7/BiRefNet/releases/download/v1/BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx|5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333"
+  "mobile_sam_image_encoder_int8.onnx|https://github.com/SethRobinson/Patchy/releases/download/ai-models-1/mobile_sam_image_encoder_int8.onnx|6af3f249f7a5a6a8a3ef988b6814015e8c3a300977c135d1f9572ed2f2930cd7"
+  "sam_mask_decoder_multi_int8.onnx|https://github.com/SethRobinson/Patchy/releases/download/ai-models-1/sam_mask_decoder_multi_int8.onnx|aa1410bec8f050b6017fba29ca07f16317029a8f74a98e5998aeed46680c10a6"
+  "birefnet_lite_general_1024_int8.onnx|https://github.com/SethRobinson/Patchy/releases/download/ai-models-1/birefnet_lite_general_1024_int8.onnx|0374fa9286b28506399d1ef44c5bd975e61deb2c0d5c6655b18f0815e27fed5e"
 )
 
 case "$(uname -s)-$(uname -m)" in

@@ -36,10 +36,11 @@
 namespace patchy::ai {
 namespace {
 
-// Pinned by scripts/setup-ai-deps.* (docs/ai-selection.md lists provenance and licenses).
-constexpr const char* kSamEncoderFile = "mobile_sam_image_encoder.onnx";
-constexpr const char* kSamDecoderFile = "sam_mask_decoder_multi.onnx";
-constexpr const char* kSubjectModelFile = "birefnet_lite_general_1024.onnx";
+// Pinned by scripts/setup-ai-deps.* (docs/ai-selection.md lists provenance and licenses): the
+// int8 conversions made by scripts/ai/quantize_models.py.
+constexpr const char* kSamEncoderFile = "mobile_sam_image_encoder_int8.onnx";
+constexpr const char* kSamDecoderFile = "sam_mask_decoder_multi_int8.onnx";
+constexpr const char* kSubjectModelFile = "birefnet_lite_general_1024_int8.onnx";
 
 // The multimask decoder returns four masks: index 0 is SAM's single-mask output (used for
 // box prompts), 1-3 are the three alternatives a single point can mean.

@@ -274,7 +274,7 @@ void ai_models_load_from_unicode_directory() {
   }
   const auto staged = patchy::ai::model_directory();
   const auto dir = patchy::test::unicode_artifact_dir(patchy::test::kUnicodeCombinedStem);
-  for (const char* file : {"mobile_sam_image_encoder.onnx", "sam_mask_decoder_multi.onnx"}) {
+  for (const char* file : {"mobile_sam_image_encoder_int8.onnx", "sam_mask_decoder_multi_int8.onnx"}) {
     std::filesystem::copy_file(staged / file, dir / file);
   }
   patchy::ai::release_models();
