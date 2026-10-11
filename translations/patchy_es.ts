@@ -10764,10 +10764,6 @@ RGB: %2, %3, %4</translation>
         <translation>La Selección de objetos no está disponible en esta compilación</translation>
     </message>
     <message>
-        <source>Select a pixel layer before using Object Selection</source>
-        <translation>Seleccione una capa de píxeles antes de usar la Selección de objetos</translation>
-    </message>
-    <message>
         <source>Object Selection failed: %1</source>
         <translation>Error de la Selección de objetos: %1</translation>
     </message>
@@ -10790,6 +10786,14 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Select Object</source>
         <translation>Seleccionar objeto</translation>
+    </message>
+    <message>
+        <source>Select a layer with visible content, or turn on Sample All Layers</source>
+        <translation>Seleccione una capa con contenido visible o active Muestrear todas las capas</translation>
+    </message>
+    <message>
+        <source>Object Selection could not read the document</source>
+        <translation>La Selección de objetos no pudo leer el documento</translation>
     </message>
 </context>
 <context>
@@ -20752,10 +20756,6 @@ Convertido en imágenes: %1.</translation>
         <translation>Salga de la Máscara rápida antes de usar la selección automática.</translation>
     </message>
     <message>
-        <source>objectSelect with sampleAllLayers false needs an active pixel layer.</source>
-        <translation>objectSelect con sampleAllLayers false necesita una capa de píxeles activa.</translation>
-    </message>
-    <message>
         <source>Automatic selection could not read the document.</source>
         <translation>La selección automática no pudo leer el documento.</translation>
     </message>
@@ -20786,6 +20786,14 @@ Convertido en imágenes: %1.</translation>
     <message>
         <source>Invalid selectBackground option: %1.</source>
         <translation>Opción de selectBackground no válida: %1.</translation>
+    </message>
+    <message>
+        <source>sampleAllLayers false needs an active layer.</source>
+        <translation>sampleAllLayers false necesita una capa activa.</translation>
+    </message>
+    <message>
+        <source>Invalid removeBackground option: %1.</source>
+        <translation>Opción de removeBackground no válida: %1.</translation>
     </message>
 </context>
 <context>

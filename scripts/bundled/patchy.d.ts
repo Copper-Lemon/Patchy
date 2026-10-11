@@ -432,7 +432,7 @@ interface PatchyLayer {
    * already hides). Pixel, adjustment, or group layers. The selection is unchanged. Throws
    * when doc.selection.automaticSelectionAvailable is false.
    */
-  removeBackground(): void;
+  removeBackground(options?: {sampleAllLayers?: boolean}): void;
   removeObject(options?: {
     method?: "contentAware" | "nearestEdge";
     attempt?: number;
@@ -542,10 +542,10 @@ interface PatchySelection {
    * (default "replace"); `feather` (px, default 0) and `antialias` (default true) shape it.
    */
   selectSubject(options?: {operation?: "replace" | "add" | "subtract" | "intersect"; feather?: number;
-    antialias?: boolean}): void;
+    antialias?: boolean; sampleAllLayers?: boolean}): void;
   /** Select > Select Background: everything selectSubject would not select. Same options. */
   selectBackground(options?: {operation?: "replace" | "add" | "subtract" | "intersect"; feather?: number;
-    antialias?: boolean}): void;
+    antialias?: boolean; sampleAllLayers?: boolean}): void;
   /**
    * The Object Selection tool: selects the object inside `rect`, or the object under
    * `point` (document pixels). Exactly one of rect or point. `operation` is "replace"

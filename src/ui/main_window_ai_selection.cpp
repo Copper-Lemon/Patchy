@@ -118,9 +118,15 @@ std::optional<patchy::ai::AiMask> MainWindow::compute_subject_matte(const QStrin
   if (canvas_->quick_mask_active()) {
     return fail(tr("%1 is unavailable in Quick Mask mode").arg(command));
   }
-  const auto composite = canvas_->merged_image_for_analysis();
+  // Quick Select's bar has its own Sample All Layers; everywhere else (menu, right-click,
+  // the Object Selection bar) the Object Selection tool's checkbox decides.
+  const bool sample_all_layers = current_tool_ == CanvasTool::QuickSelect
+                                     ? canvas_->quick_select_sample_all_layers()
+                                     : canvas_->object_select_sample_all_layers();
+  QString source_error;
+  const auto composite = canvas_->automatic_selection_source(sample_all_layers, &source_error);
   if (composite.isNull()) {
-    return fail(tr("%1 could not read the document").arg(command));
+    return fail(source_error.isEmpty() ? tr("%1 could not read the document").arg(command) : source_error);
   }
   auto pixels = pixels_from_image_rgba(composite);
 

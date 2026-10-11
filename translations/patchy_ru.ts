@@ -10794,10 +10794,6 @@ RGB: %2, %3, %4</translation>
         <translation>Выделение объектов недоступно в этой сборке</translation>
     </message>
     <message>
-        <source>Select a pixel layer before using Object Selection</source>
-        <translation>Перед использованием выделения объектов выберите растровый слой</translation>
-    </message>
-    <message>
         <source>Object Selection failed: %1</source>
         <translation>Ошибка выделения объектов: %1</translation>
     </message>
@@ -10820,6 +10816,14 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Select Object</source>
         <translation>Выделить объект</translation>
+    </message>
+    <message>
+        <source>Select a layer with visible content, or turn on Sample All Layers</source>
+        <translation>Выберите слой с видимым содержимым или включите «Образец со всех слоёв»</translation>
+    </message>
+    <message>
+        <source>Object Selection could not read the document</source>
+        <translation>Выделению объектов не удалось прочитать документ</translation>
     </message>
 </context>
 <context>
@@ -20810,10 +20814,6 @@ Y: %2
         <translation>Выйдите из быстрой маски, прежде чем использовать автоматическое выделение.</translation>
     </message>
     <message>
-        <source>objectSelect with sampleAllLayers false needs an active pixel layer.</source>
-        <translation>objectSelect с sampleAllLayers false требует активного растрового слоя.</translation>
-    </message>
-    <message>
         <source>Automatic selection could not read the document.</source>
         <translation>Автоматическому выделению не удалось прочитать документ.</translation>
     </message>
@@ -20844,6 +20844,14 @@ Y: %2
     <message>
         <source>Invalid selectBackground option: %1.</source>
         <translation>Недопустимый параметр selectBackground: %1.</translation>
+    </message>
+    <message>
+        <source>sampleAllLayers false needs an active layer.</source>
+        <translation>Для sampleAllLayers false нужен активный слой.</translation>
+    </message>
+    <message>
+        <source>Invalid removeBackground option: %1.</source>
+        <translation>Недопустимый параметр removeBackground: %1.</translation>
     </message>
 </context>
 <context>

@@ -145,7 +145,7 @@ public:
   // patches, source, sourceCount}.
   Q_INVOKABLE QJSValue removeObject(const QJSValue& options = QJSValue());
   // Layer > Layer Mask > Remove Background (script_ai_selection.cpp).
-  Q_INVOKABLE void removeBackground();
+  Q_INVOKABLE void removeBackground(const QJSValue& options = QJSValue());
   Q_INVOKABLE QJSValue getPixels();
   Q_INVOKABLE void setPixels(const QJSValue& imageData);
   // Trace Image to Shapes: returns the new group layer (inserted above this

@@ -632,9 +632,10 @@ public:
   // Select Object (selection right-click menu): the selection's bounding box as one Object
   // Selection box prompt; the object found replaces the selection. False on failure.
   bool select_object_in_selection();
-  // The merged document as RGBA8888, rendered under the processing overlay when large
-  // (render_document_image_with_processing); what Select Subject analyzes.
-  [[nodiscard]] QImage merged_image_for_analysis();
+  // What automatic selection analyzes (docs/ai-selection.md): the merged document with
+  // `sample_all_layers`, otherwise the active layer rendered alone
+  // (automatic_selection_layer_image). Null with `error` set when there is nothing to sample.
+  [[nodiscard]] QImage automatic_selection_source(bool sample_all_layers, QString* error);
   void set_quick_select_enhance_edge(bool enabled) noexcept;
   [[nodiscard]] bool quick_select_enhance_edge() const noexcept;
   // Magnetic Lasso options (Photoshop parity): Width = edge search diameter in document px,
@@ -2558,6 +2559,7 @@ private:
   std::optional<ObjectSelectEmbeddingKey> object_select_embedding_key_;
   std::shared_future<std::shared_ptr<const patchy::ai::SamEmbedding>> object_select_embedding_;
   std::uint64_t object_select_source_hash_{0};
+  QString object_select_source_error_;
   bool object_select_embedding_unverified_{false};
   int object_select_encodes_started_{0};
   // For the "Analyzing image... N%" estimate: the last encode's duration on this machine.

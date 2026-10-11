@@ -10734,10 +10734,6 @@ Mixed selection</source>
         <translation>このビルドではオブジェクト選択を使用できません</translation>
     </message>
     <message>
-        <source>Select a pixel layer before using Object Selection</source>
-        <translation>オブジェクト選択を使う前にピクセルレイヤーを選択してください</translation>
-    </message>
-    <message>
         <source>Object Selection failed: %1</source>
         <translation>オブジェクト選択に失敗しました: %1</translation>
     </message>
@@ -10760,6 +10756,14 @@ Mixed selection</source>
     <message>
         <source>Select Object</source>
         <translation>オブジェクトを選択</translation>
+    </message>
+    <message>
+        <source>Select a layer with visible content, or turn on Sample All Layers</source>
+        <translation>表示内容のあるレイヤーを選択するか、「すべてのレイヤーを対象」をオンにしてください</translation>
+    </message>
+    <message>
+        <source>Object Selection could not read the document</source>
+        <translation>オブジェクト選択でドキュメントを読み取れませんでした</translation>
     </message>
 </context>
 <context>
@@ -20694,10 +20698,6 @@ Baked into images: %1.</source>
         <translation>自動選択を使う前にクイックマスクを終了してください。</translation>
     </message>
     <message>
-        <source>objectSelect with sampleAllLayers false needs an active pixel layer.</source>
-        <translation>sampleAllLayers が false の objectSelect にはアクティブなピクセルレイヤーが必要です。</translation>
-    </message>
-    <message>
         <source>Automatic selection could not read the document.</source>
         <translation>自動選択でドキュメントを読み取れませんでした。</translation>
     </message>
@@ -20728,6 +20728,14 @@ Baked into images: %1.</source>
     <message>
         <source>Invalid selectBackground option: %1.</source>
         <translation>selectBackground のオプションが無効です: %1。</translation>
+    </message>
+    <message>
+        <source>sampleAllLayers false needs an active layer.</source>
+        <translation>sampleAllLayers が false の場合はアクティブなレイヤーが必要です。</translation>
+    </message>
+    <message>
+        <source>Invalid removeBackground option: %1.</source>
+        <translation>removeBackground のオプションが無効です: %1。</translation>
     </message>
 </context>
 <context>

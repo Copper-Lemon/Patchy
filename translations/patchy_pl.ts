@@ -10794,10 +10794,6 @@ RGB: %2, %3, %4</translation>
         <translation>Zaznaczanie obiektu nie jest dostępne w tej wersji</translation>
     </message>
     <message>
-        <source>Select a pixel layer before using Object Selection</source>
-        <translation>Przed użyciem zaznaczania obiektu wybierz warstwę pikseli</translation>
-    </message>
-    <message>
         <source>Object Selection failed: %1</source>
         <translation>Zaznaczanie obiektu nie powiodło się: %1</translation>
     </message>
@@ -10820,6 +10816,14 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Select Object</source>
         <translation>Zaznacz obiekt</translation>
+    </message>
+    <message>
+        <source>Select a layer with visible content, or turn on Sample All Layers</source>
+        <translation>Wybierz warstwę z widoczną zawartością lub włącz Próbkuj wszystkie warstwy</translation>
+    </message>
+    <message>
+        <source>Object Selection could not read the document</source>
+        <translation>Zaznaczanie obiektu nie mogło odczytać dokumentu</translation>
     </message>
 </context>
 <context>
@@ -20810,10 +20814,6 @@ Y: %2
         <translation>Przed użyciem automatycznego zaznaczania wyjdź z szybkiej maski.</translation>
     </message>
     <message>
-        <source>objectSelect with sampleAllLayers false needs an active pixel layer.</source>
-        <translation>objectSelect z sampleAllLayers false wymaga aktywnej warstwy pikseli.</translation>
-    </message>
-    <message>
         <source>Automatic selection could not read the document.</source>
         <translation>Automatyczne zaznaczanie nie mogło odczytać dokumentu.</translation>
     </message>
@@ -20844,6 +20844,14 @@ Y: %2
     <message>
         <source>Invalid selectBackground option: %1.</source>
         <translation>Nieprawidłowa opcja selectBackground: %1.</translation>
+    </message>
+    <message>
+        <source>sampleAllLayers false needs an active layer.</source>
+        <translation>sampleAllLayers false wymaga aktywnej warstwy.</translation>
+    </message>
+    <message>
+        <source>Invalid removeBackground option: %1.</source>
+        <translation>Nieprawidłowa opcja removeBackground: %1.</translation>
     </message>
 </context>
 <context>

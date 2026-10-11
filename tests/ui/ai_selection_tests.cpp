@@ -391,6 +391,144 @@ void ui_select_object_in_marquee_selection_finds_the_object() {
   CHECK(canvas->selected_document_region().contains(QPoint(75, 45)));
 }
 
+// Runs a short script to completion and reports whether it ended without an error.
+bool run_test_script(patchy::ui::MainWindow& window, const QString& source) {
+  auto& host = window.script_engine_host();
+  patchy::ui::ScriptEngineHost::RunOptions options;
+  options.name = QStringLiteral("automatic-selection-sampling");
+  (void)host.run_source(source, std::move(options));
+  QElapsedTimer timer;
+  timer.start();
+  while (host.run_active() && timer.elapsed() < 120000) {
+    QApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 20);
+  }
+  QApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 20);
+  if (host.last_run_had_error()) {
+    for (const auto& line : host.message_backlog()) {
+      std::printf("  %s\n", line.toUtf8().constData());
+    }
+  }
+  return !host.run_active() && !host.last_run_had_error();
+}
+
+// Seth's case: a vector shape layer over a photo, Sample All Layers off, a loose box drag.
+// The tool must analyze the shape layer alone, never a stale all-layers analysis.
+void ui_object_select_samples_the_active_shape_layer_alone() {
+  if (!automatic_selection_or_skip("ui_object_select_samples_the_active_shape_layer_alone")) {
+    return;
+  }
+  const QPoint center(150, 120);
+  patchy::ui::MainWindow window;
+  show_window(window);
+  window.add_document_session(disc_document(300, 240, center, 55), QStringLiteral("Shape layer"));
+  QApplication::processEvents();
+  auto* canvas = require_canvas(window);
+  require_action(window, "toolObjectSelectionAction")->trigger();
+  QApplication::processEvents();
+  canvas->set_selection_feather_radius(0);
+  const auto widget_point = [canvas](QPoint document_point) {
+    return canvas->widget_position_for_document_point(document_point);
+  };
+  // An all-layers analysis first, so a stale embedding exists.
+  send_mouse(*canvas, QEvent::MouseButtonPress, widget_point(center), Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*canvas, QEvent::MouseButtonRelease, widget_point(center), Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(canvas->object_select_encodes_started() == 1);
+  CHECK(canvas->selected_document_region().contains(center));
+
+  CHECK(run_test_script(window, QStringLiteral(
+      "app.activeDocument.addShape('Rectangle 1', {type: 'rectangle', x: 10, y: 10, width: 80, height: 60},"
+      " {fill: '#ffcc33'});")));
+  auto* sample_all = window.findChild<QCheckBox*>(QStringLiteral("objectSelectSampleAllLayersCheck"));
+  CHECK(sample_all != nullptr);
+  sample_all->setChecked(false);
+  QApplication::processEvents();
+
+  send_mouse(*canvas, QEvent::MouseButtonPress, widget_point(QPoint(2, 2)), Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*canvas, QEvent::MouseMove, widget_point(QPoint(70, 60)), Qt::NoButton, Qt::LeftButton);
+  send_mouse(*canvas, QEvent::MouseMove, widget_point(QPoint(135, 105)), Qt::NoButton, Qt::LeftButton);
+  send_mouse(*canvas, QEvent::MouseButtonRelease, widget_point(QPoint(135, 105)), Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(canvas->object_select_encodes_started() == 2);  // the shape layer was analyzed anew
+  const auto region = canvas->selected_document_region();
+  CHECK(region.contains(QPoint(50, 40)));      // inside the rectangle
+  CHECK(!region.contains(QPoint(120, 95)));    // the photo inside the box stays out
+  CHECK(!region.contains(center));             // and so does the earlier disc selection
+  const auto bounds = region.boundingRect();
+  CHECK(bounds.left() >= 6 && bounds.top() >= 6 && bounds.right() <= 94 && bounds.bottom() <= 74);
+}
+
+void ui_select_subject_follows_sample_all_layers() {
+  if (!automatic_selection_or_skip("ui_select_subject_follows_sample_all_layers")) {
+    return;
+  }
+  const QPoint center(150, 120);
+  auto document = disc_document(300, 240, center, 55);
+  patchy::PixelBuffer top(300, 240, patchy::PixelFormat::rgba8());
+  top.clear(0);
+  for (int y = 20; y < 90; ++y) {
+    for (int x = 215; x < 285; ++x) {
+      auto* px = top.pixel(x, y);
+      px[0] = 40;
+      px[1] = 170;
+      px[2] = 60;
+      px[3] = 255;
+    }
+  }
+  document.add_pixel_layer("Square", std::move(top));
+  patchy::ui::MainWindow window;
+  show_window(window);
+  window.add_document_session(std::move(document), QStringLiteral("Sampling"));
+  QApplication::processEvents();
+  auto* canvas = require_canvas(window);
+  canvas->set_object_select_sample_all_layers(false);
+  require_action(window, "selectSubjectAction")->trigger();
+  QApplication::processEvents();
+  auto region = canvas->selected_document_region();
+  CHECK(region.contains(QPoint(250, 55)));  // the active layer's square
+  CHECK(!region.contains(center));          // the disc on the layer below is not sampled
+
+  CHECK(run_test_script(window, QStringLiteral(R"JS(
+    var d = app.activeDocument;
+    d.selection.deselect();
+    d.selection.selectSubject({sampleAllLayers: false});
+    var b = d.selection.bounds;
+    if (!b || b.x < 200 || b.y > 30 || b.x + b.width < 280) throw Error('layer-only subject ' + JSON.stringify(b));
+  )JS")));
+
+  canvas->set_object_select_sample_all_layers(true);
+  require_action(window, "selectSubjectAction")->trigger();
+  QApplication::processEvents();
+  CHECK(canvas->selected_document_region().contains(center));
+}
+
+void ui_automatic_selection_refuses_an_empty_layer_without_sample_all() {
+  if (!automatic_selection_or_skip("ui_automatic_selection_refuses_an_empty_layer_without_sample_all")) {
+    return;
+  }
+  auto document = disc_document(200, 160, QPoint(100, 80), 40);
+  patchy::PixelBuffer empty(200, 160, patchy::PixelFormat::rgba8());
+  empty.clear(0);
+  document.add_pixel_layer("Empty", std::move(empty));
+  patchy::ui::MainWindow window;
+  show_window(window);
+  window.add_document_session(std::move(document), QStringLiteral("Empty layer"));
+  QApplication::processEvents();
+  auto* canvas = require_canvas(window);
+  canvas->set_object_select_sample_all_layers(false);
+  require_action(window, "selectSubjectAction")->trigger();
+  QApplication::processEvents();
+  CHECK(!canvas->has_selection());
+  require_action(window, "toolObjectSelectionAction")->trigger();
+  QApplication::processEvents();
+  const auto point = canvas->widget_position_for_document_point(QPoint(100, 80));
+  send_mouse(*canvas, QEvent::MouseButtonPress, point, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*canvas, QEvent::MouseButtonRelease, point, Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(!canvas->has_selection());
+  CHECK(canvas->object_select_encodes_started() == 0);
+}
+
 void ui_script_select_background_and_remove_background() {
   if (!automatic_selection_or_skip("ui_script_select_background_and_remove_background")) {
     return;
@@ -447,5 +585,10 @@ std::vector<patchy::test::TestCase> ai_selection_ui_tests() {
       {"ui_script_select_background_and_remove_background", ui_script_select_background_and_remove_background},
       {"ui_select_object_in_marquee_selection_finds_the_object",
        ui_select_object_in_marquee_selection_finds_the_object},
+      {"ui_object_select_samples_the_active_shape_layer_alone",
+       ui_object_select_samples_the_active_shape_layer_alone},
+      {"ui_select_subject_follows_sample_all_layers", ui_select_subject_follows_sample_all_layers},
+      {"ui_automatic_selection_refuses_an_empty_layer_without_sample_all",
+       ui_automatic_selection_refuses_an_empty_layer_without_sample_all},
   };
 }

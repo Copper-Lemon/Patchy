@@ -10754,10 +10754,6 @@ RGB: %2, %3, %4</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Select a pixel layer before using Object Selection</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Object Selection failed: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -10779,6 +10775,14 @@ RGB: %2, %3, %4</source>
     </message>
     <message>
         <source>Select Object</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select a layer with visible content, or turn on Sample All Layers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Object Selection could not read the document</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -20703,10 +20707,6 @@ Baked into images: %1.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>objectSelect with sampleAllLayers false needs an active pixel layer.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Automatic selection could not read the document.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -20736,6 +20736,14 @@ Baked into images: %1.</source>
     </message>
     <message>
         <source>Invalid selectBackground option: %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>sampleAllLayers false needs an active layer.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid removeBackground option: %1.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

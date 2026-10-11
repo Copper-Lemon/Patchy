@@ -308,7 +308,7 @@ public:
   };
   QString automatic_select(std::int64_t session_id, const AutomaticSelectionRequest& request);
   // layer.removeBackground(): the subject matte as `layer_id`'s mask. Error text, empty on success.
-  QString remove_background(std::int64_t session_id, LayerId layer_id);
+  QString remove_background(std::int64_t session_id, LayerId layer_id, bool sample_all_layers);
 
   // Palette-mode write constraint for script pixel writes (setPixels/fill are
   // tool-like writes and snap; filters deliberately stay advisory, matching the

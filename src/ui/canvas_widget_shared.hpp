@@ -125,6 +125,12 @@ QImage feather_blur_mask(QImage mask, int feather_radius);
 // and the retouch tools' source snapshots (Clone, Healing, Spot Healing,
 // Patch).
 QImage active_layer_sample_image(const Layer& layer, QSize document_size);
+// What automatic selection analyzes with Sample All Layers off (docs/ai-selection.md): the
+// layer rendered on its own, whatever its kind (pixel, shape, text, Smart Object, or a group
+// with its contents), with its opacity, mask and effects. Every other layer is hidden except
+// its ancestor groups. Null with `error` set when the layer is missing, hidden, or renders
+// nothing (an adjustment layer on its own). RGBA8888, document-sized.
+QImage automatic_selection_layer_image(const Document& document, LayerId layer_id, QString* error);
 
 // Procedural round-brush coverage falloff (smoothstep edge over the softness
 // band); shared by the brush TU's stamp shapes and the spot-healing footprint

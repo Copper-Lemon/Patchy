@@ -54,18 +54,21 @@ QString ScriptEngineHost::automatic_select(std::int64_t session_id, const Automa
     return tr("Exit Quick Mask before using automatic selection.");
   }
   const QSize size(document->width(), document->height());
-  QImage source;
   const bool subject_model = request.kind == AutomaticSelectionRequest::Kind::Subject ||
                              request.kind == AutomaticSelectionRequest::Kind::Background;
-  if (subject_model || request.sample_all_layers) {
+  QImage source;
+  if (request.sample_all_layers) {
     source = qimage_from_document(*document, true).convertToFormat(QImage::Format_RGBA8888);
   } else {
     const auto active = document->active_layer_id();
-    const auto* layer = active.has_value() ? document->find_layer(*active) : nullptr;
-    if (layer == nullptr || layer->kind() != LayerKind::Pixel) {
-      return tr("objectSelect with sampleAllLayers false needs an active pixel layer.");
+    if (!active.has_value()) {
+      return tr("sampleAllLayers false needs an active layer.");
     }
-    source = active_layer_sample_image(*layer, size);
+    QString error;
+    source = automatic_selection_layer_image(*document, *active, &error);
+    if (source.isNull()) {
+      return error;
+    }
   }
   if (source.isNull()) {
     return tr("Automatic selection could not read the document.");
@@ -126,7 +129,7 @@ QString ScriptEngineHost::automatic_select(std::int64_t session_id, const Automa
   return {};
 }
 
-QString ScriptEngineHost::remove_background(std::int64_t session_id, LayerId layer_id) {
+QString ScriptEngineHost::remove_background(std::int64_t session_id, LayerId layer_id, bool sample_all_layers) {
   configure_automatic_selection_models();
   if (!patchy::ai::segmentation_available()) {
     return tr("Automatic selection is not available in this build (%1).")
@@ -143,10 +146,19 @@ QString ScriptEngineHost::remove_background(std::int64_t session_id, LayerId lay
   if (layer->kind() != LayerKind::Pixel && layer->kind() != LayerKind::Adjustment && layer->kind() != LayerKind::Group) {
     return tr("removeBackground needs a pixel, adjustment, or group layer.");
   }
+  QImage source;
+  if (sample_all_layers) {
+    source = qimage_from_document(*document, true).convertToFormat(QImage::Format_RGBA8888);
+  } else {
+    QString error;
+    source = automatic_selection_layer_image(*document, layer_id, &error);
+    if (source.isNull()) {
+      return error;
+    }
+  }
   patchy::ai::AiMask matte;
   try {
-    matte = patchy::ai::subject_matte(
-        pixels_from_image_rgba(qimage_from_document(*document, true).convertToFormat(QImage::Format_RGBA8888)));
+    matte = patchy::ai::subject_matte(pixels_from_image_rgba(source));
   } catch (const std::exception& error) {
     return tr("Automatic selection failed: %1").arg(QString::fromUtf8(error.what()));
   }
@@ -166,9 +178,18 @@ QString ScriptEngineHost::remove_background(std::int64_t session_id, LayerId lay
   return {};
 }
 
-void ScriptLayerObject::removeBackground() {
+void ScriptLayerObject::removeBackground(const QJSValue& options) {
   const ScriptApiCall api_call(host_);
-  if (const auto error = host_.remove_background(session_id_, layer_id_); !error.isEmpty()) {
+  bool sample_all_layers = true;
+  try {
+    const auto args = script_vector::object(options, true);
+    script_vector::keys(args, {QStringLiteral("sampleAllLayers")});
+    sample_all_layers = script_vector::boolean(args, QStringLiteral("sampleAllLayers"), true);
+  } catch (const std::exception& error) {
+    host_.throw_js_error(ScriptEngineHost::tr("Invalid removeBackground option: %1.").arg(QString::fromUtf8(error.what())));
+    return;
+  }
+  if (const auto error = host_.remove_background(session_id_, layer_id_, sample_all_layers); !error.isEmpty()) {
     host_.throw_js_error(error);
   }
 }
@@ -192,9 +213,11 @@ void ScriptSelectionObject::run_subject_selection(const QJSValue& options, bool 
   ScriptEngineHost::AutomaticSelectionRequest request;
   try {
     const auto args = script_vector::object(options, true);
-    script_vector::keys(args, {QStringLiteral("operation"), QStringLiteral("feather"), QStringLiteral("antialias")});
+    script_vector::keys(args, {QStringLiteral("operation"), QStringLiteral("feather"), QStringLiteral("antialias"),
+                               QStringLiteral("sampleAllLayers")});
     request.kind = background ? ScriptEngineHost::AutomaticSelectionRequest::Kind::Background
                               : ScriptEngineHost::AutomaticSelectionRequest::Kind::Subject;
+    request.sample_all_layers = script_vector::boolean(args, QStringLiteral("sampleAllLayers"), true);
     request.operation = operation_index(script_vector::string(args, QStringLiteral("operation"), QStringLiteral("replace")), true);
     request.feather = script_vector::number(args, QStringLiteral("feather"), 0, 0, kMaxScriptAutomaticFeather);
     request.antialias = script_vector::boolean(args, QStringLiteral("antialias"), true);

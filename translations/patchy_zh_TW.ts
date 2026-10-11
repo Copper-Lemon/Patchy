@@ -10734,10 +10734,6 @@ RGB：%2, %3, %4</translation>
         <translation>此版本無法使用物件選取</translation>
     </message>
     <message>
-        <source>Select a pixel layer before using Object Selection</source>
-        <translation>使用物件選取前請先選取像素圖層</translation>
-    </message>
-    <message>
         <source>Object Selection failed: %1</source>
         <translation>物件選取失敗：%1</translation>
     </message>
@@ -10760,6 +10756,14 @@ RGB：%2, %3, %4</translation>
     <message>
         <source>Select Object</source>
         <translation>選取物件</translation>
+    </message>
+    <message>
+        <source>Select a layer with visible content, or turn on Sample All Layers</source>
+        <translation>請選取有可見內容的圖層，或開啟「取樣全部圖層」</translation>
+    </message>
+    <message>
+        <source>Object Selection could not read the document</source>
+        <translation>物件選取無法讀取文件</translation>
     </message>
 </context>
 <context>
@@ -20694,10 +20698,6 @@ Baked into images: %1.</source>
         <translation>使用自動選取前請先結束快速遮色片。</translation>
     </message>
     <message>
-        <source>objectSelect with sampleAllLayers false needs an active pixel layer.</source>
-        <translation>sampleAllLayers 為 false 的 objectSelect 需要作用中的像素圖層。</translation>
-    </message>
-    <message>
         <source>Automatic selection could not read the document.</source>
         <translation>自動選取無法讀取文件。</translation>
     </message>
@@ -20728,6 +20728,14 @@ Baked into images: %1.</source>
     <message>
         <source>Invalid selectBackground option: %1.</source>
         <translation>無效的 selectBackground 選項：%1。</translation>
+    </message>
+    <message>
+        <source>sampleAllLayers false needs an active layer.</source>
+        <translation>sampleAllLayers 為 false 時需要作用中的圖層。</translation>
+    </message>
+    <message>
+        <source>Invalid removeBackground option: %1.</source>
+        <translation>無效的 removeBackground 選項：%1。</translation>
     </message>
 </context>
 <context>

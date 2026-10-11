@@ -10,9 +10,11 @@
 #include "ui/canvas_widget_shared.hpp"
 
 #include "ai/segmentation_engine.hpp"
+#include "core/layer_tree.hpp"
 #include "ui/background_workers.hpp"
 #include "ui/image_document_io.hpp"
 
+#include <QCoreApplication>
 #include <QPainter>
 #include <QPen>
 
@@ -55,7 +57,80 @@ QImage grayscale_image_from_mask(const patchy::ai::AiMask& mask) {
   return image;
 }
 
+void collect_tree_ids(const std::vector<Layer>& layers, std::vector<LayerId>& ids) {
+  for (const auto& layer : layers) {
+    ids.push_back(layer.id());
+    collect_layer_descendant_ids(layer, ids);
+  }
+}
+
 }  // namespace
+
+QImage automatic_selection_layer_image(const Document& document, LayerId layer_id, QString* error) {
+  const auto fail = [error](const char* message) {
+    if (error != nullptr) {
+      *error = QCoreApplication::translate("patchy::ui::CanvasWidget", message);
+    }
+    return QImage();
+  };
+  const auto* layer = find_layer_in_tree(document.layers(), layer_id);
+  if (layer == nullptr || !layer->visible()) {
+    return fail(QT_TRANSLATE_NOOP("patchy::ui::CanvasWidget",
+                                  "Select a layer with visible content, or turn on Sample All Layers"));
+  }
+  std::vector<LayerId> keep{layer_id};
+  if (!collect_layer_ancestor_groups(document.layers(), layer_id, keep)) {
+    return fail(QT_TRANSLATE_NOOP("patchy::ui::CanvasWidget",
+                                  "Select a layer with visible content, or turn on Sample All Layers"));
+  }
+  collect_layer_descendant_ids(*layer, keep);
+  std::vector<LayerId> all;
+  collect_tree_ids(document.layers(), all);
+  std::vector<LayerId> hidden;
+  for (const auto id : all) {
+    if (std::find(keep.begin(), keep.end(), id) == keep.end()) {
+      hidden.push_back(id);
+    }
+  }
+  auto image = qimage_from_document_rect_with_hidden_layers(document, QRect(0, 0, document.width(), document.height()),
+                                                            true, hidden)
+                   .convertToFormat(QImage::Format_RGBA8888);
+  bool any_visible = false;
+  for (int y = 0; y < image.height() && !any_visible; ++y) {
+    const auto* row = image.constScanLine(y);
+    for (int x = 0; x < image.width(); ++x) {
+      if (row[static_cast<std::size_t>(x) * 4U + 3U] != 0U) {
+        any_visible = true;
+        break;
+      }
+    }
+  }
+  if (!any_visible) {
+    return fail(QT_TRANSLATE_NOOP("patchy::ui::CanvasWidget",
+                                  "Select a layer with visible content, or turn on Sample All Layers"));
+  }
+  return image;
+}
+
+QImage CanvasWidget::automatic_selection_source(bool sample_all_layers, QString* error) {
+  if (document_ == nullptr) {
+    return {};
+  }
+  if (sample_all_layers) {
+    wait_for_move_commit_job();  // exact pixels: a deferred Move commit may still be rendering
+    ensure_render_cache();
+    return render_cache_;
+  }
+  select_only_layer_if_none_active();
+  const auto active = std::as_const(*document_).active_layer_id();
+  if (!active.has_value()) {
+    if (error != nullptr) {
+      *error = tr("Select a layer with visible content, or turn on Sample All Layers");
+    }
+    return {};
+  }
+  return automatic_selection_layer_image(*document_, *active, error);
+}
 
 void CanvasWidget::set_object_select_sample_all_layers(bool enabled) noexcept {
   if (object_select_sample_all_layers_ != enabled) {
@@ -89,32 +164,25 @@ void CanvasWidget::ensure_object_select_embedding() {
   }
   ObjectSelectEmbeddingKey key;
   key.sample_all_layers = object_select_sample_all_layers_;
+  if (!object_select_sample_all_layers_) {
+    select_only_layer_if_none_active();
+    key.layer = std::as_const(*document_).active_layer_id().value_or(0);
+  }
   const auto cached = [this, &key] {
     return object_select_embedding_key_ == key && object_select_embedding_.valid();
   };
-  QImage source;
-  if (object_select_sample_all_layers_) {
-    if (cached() && !object_select_embedding_unverified_) {
-      return;
-    }
-    wait_for_move_commit_job();  // exact pixels: a deferred Move commit may still be rendering
-    ensure_render_cache();
-    source = render_cache_;
-  } else {
-    select_only_layer_if_none_active();
-    const auto* layer = active_pixel_layer();
-    if (layer == nullptr) {
-      return;
-    }
-    key.layer = layer->id();
-    if (cached() && !object_select_embedding_unverified_) {
-      return;
-    }
-    source = active_layer_sample_image(*layer, QSize(document_->width(), document_->height()));
-  }
-  if (source.isNull()) {
+  if (cached() && !object_select_embedding_unverified_) {
     return;
   }
+  QString error;
+  const auto source = automatic_selection_source(object_select_sample_all_layers_, &error);
+  if (source.isNull()) {
+    // Never fall back to an embedding of something else (a stale all-layers analysis).
+    invalidate_object_select_embedding();
+    object_select_source_error_ = error;
+    return;
+  }
+  object_select_source_error_.clear();
   const auto signature = source_signature(source);
   if (cached() && signature == object_select_source_hash_) {
     object_select_embedding_unverified_ = false;
@@ -148,12 +216,11 @@ void CanvasWidget::begin_object_select(QPoint widget_position, QPoint document_p
     report_status_error(tr("Object Selection is not available in this build"));
     return;
   }
-  if (!object_select_sample_all_layers_) {
-    select_only_layer_if_none_active();
-    if (active_pixel_layer() == nullptr) {
-      report_status_error(tr("Select a pixel layer before using Object Selection"));
-      return;
-    }
+  ensure_object_select_embedding();
+  if (!object_select_embedding_.valid()) {
+    report_status_error(object_select_source_error_.isEmpty() ? tr("Object Selection could not read the document")
+                                                              : object_select_source_error_);
+    return;
   }
   auto operation = selection_operation(modifiers);
   if (operation == SelectionMode::Intersect) {
@@ -166,7 +233,6 @@ void CanvasWidget::begin_object_select(QPoint widget_position, QPoint document_p
   object_select_release_widget_ = widget_position;
   object_select_press_ = document_point;
   object_select_current_ = document_point;
-  ensure_object_select_embedding();
 }
 
 void CanvasWidget::extend_object_select(QPoint document_point) {
@@ -281,15 +347,12 @@ bool CanvasWidget::select_object_in_selection() {
   }
   ensure_object_select_embedding();
   if (!object_select_embedding_.valid()) {
-    report_status_error(tr("Select a pixel layer before using Object Selection"));
+    report_status_error(object_select_source_error_.isEmpty() ? tr("Object Selection could not read the document")
+                                                              : object_select_source_error_);
     return false;
   }
   // The selection's bounding box is the one box prompt; the object replaces the selection.
   return solve_object_select(false, QPoint(), box, SelectionMode::Replace, tr("Select Object"));
-}
-
-QImage CanvasWidget::merged_image_for_analysis() {
-  return render_document_image_with_processing();
 }
 
 void CanvasWidget::apply_automatic_selection_mask(QRect bounds, QImage alpha, SelectionMode operation,

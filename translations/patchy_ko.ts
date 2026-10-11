@@ -10734,10 +10734,6 @@ RGB: %2, %3, %4</translation>
         <translation>이 빌드에서는 개체 선택을 사용할 수 없습니다</translation>
     </message>
     <message>
-        <source>Select a pixel layer before using Object Selection</source>
-        <translation>개체 선택을 사용하기 전에 픽셀 레이어를 선택하세요</translation>
-    </message>
-    <message>
         <source>Object Selection failed: %1</source>
         <translation>개체 선택 실패: %1</translation>
     </message>
@@ -10760,6 +10756,14 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Select Object</source>
         <translation>개체 선택</translation>
+    </message>
+    <message>
+        <source>Select a layer with visible content, or turn on Sample All Layers</source>
+        <translation>보이는 내용이 있는 레이어를 선택하거나 모든 레이어 샘플링을 켜세요</translation>
+    </message>
+    <message>
+        <source>Object Selection could not read the document</source>
+        <translation>개체 선택이 문서를 읽지 못했습니다</translation>
     </message>
 </context>
 <context>
@@ -20694,10 +20698,6 @@ Y: %2
         <translation>자동 선택을 사용하기 전에 빠른 마스크를 종료하세요.</translation>
     </message>
     <message>
-        <source>objectSelect with sampleAllLayers false needs an active pixel layer.</source>
-        <translation>sampleAllLayers가 false인 objectSelect에는 활성 픽셀 레이어가 필요합니다.</translation>
-    </message>
-    <message>
         <source>Automatic selection could not read the document.</source>
         <translation>자동 선택이 문서를 읽지 못했습니다.</translation>
     </message>
@@ -20728,6 +20728,14 @@ Y: %2
     <message>
         <source>Invalid selectBackground option: %1.</source>
         <translation>잘못된 selectBackground 옵션: %1.</translation>
+    </message>
+    <message>
+        <source>sampleAllLayers false needs an active layer.</source>
+        <translation>sampleAllLayers가 false이면 활성 레이어가 필요합니다.</translation>
+    </message>
+    <message>
+        <source>Invalid removeBackground option: %1.</source>
+        <translation>잘못된 removeBackground 옵션: %1.</translation>
     </message>
 </context>
 <context>

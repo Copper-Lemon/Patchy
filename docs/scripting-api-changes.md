@@ -7,6 +7,12 @@ attachment, palettes, vector automation, brushes, Slow mode and Pause) are in
 [scripting-api-changes-through-2026-09-11.md](scripting-api-changes-through-2026-09-11.md).
 Every entry below is API 1.
 
+2026-10-11 (additive): `sampleAllLayers` (default `true`) on `doc.selection.selectSubject`,
+`selectBackground` and `layer.removeBackground(options?)`; `false` analyzes the active layer
+rendered alone (any layer kind). `objectSelect({sampleAllLayers: false})` now accepts shape,
+text and other non-pixel layers the same way instead of requiring a pixel layer. Pinned by
+`ui_select_subject_follows_sample_all_layers`.
+
 2026-10-11 (additive): `doc.selection.selectBackground({operation, feather, antialias})`
 (Select > Select Background, the inverse of `selectSubject`) and `layer.removeBackground()`
 (Layer > Layer Mask > Remove Background: the subject matte as the layer's mask, multiplied into
