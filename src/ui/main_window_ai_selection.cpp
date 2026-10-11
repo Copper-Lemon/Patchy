@@ -13,6 +13,7 @@
 #include "core/rect_utils.hpp"
 #include "ui/background_workers.hpp"
 #include "ui/canvas_widget.hpp"
+#include "ui/canvas_widget_shared.hpp"
 #include "ui/app_settings.hpp"
 #include "ui/dialog_utils.hpp"
 #include "ui/image_document_io.hpp"
@@ -192,6 +193,9 @@ std::optional<patchy::ai::AiMask> MainWindow::compute_subject_matte(const QStrin
   } catch (const patchy::ai::InferenceCancelled&) {
     return fail(tr("%1 cancelled").arg(command));
   } catch (const std::exception& failure) {
+    if (patchy::ai::is_out_of_memory(failure)) {
+      return fail(automatic_selection_out_of_memory_message(command));
+    }
     return fail(tr("%1 failed: %2").arg(command, QString::fromUtf8(failure.what())));
   }
   if (canvas == nullptr || canvas != canvas_) {

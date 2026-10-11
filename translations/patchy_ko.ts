@@ -11405,6 +11405,10 @@ RGB: %2, %3, %4</translation>
         <source>Object Selection could not read the document</source>
         <translation>개체 선택이 문서를 읽지 못했습니다</translation>
     </message>
+    <message>
+        <source>%1 ran out of memory. Close other programs or documents to free some memory, then try again.</source>
+        <translation>%1: 메모리가 부족합니다. 다른 프로그램이나 문서를 닫아 메모리를 확보한 다음 다시 시도하세요.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21432,6 +21436,10 @@ Y: %2
     <message>
         <source>stripMetadata: unknown option %1.</source>
         <translation>stripMetadata: 알 수 없는 옵션 %1.</translation>
+    </message>
+    <message>
+        <source>Automatic selection</source>
+        <translation>자동 선택</translation>
     </message>
 </context>
 <context>

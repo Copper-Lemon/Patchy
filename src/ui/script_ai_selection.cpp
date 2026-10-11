@@ -37,6 +37,13 @@ int operation_index(const QString& operation, bool allow_intersect) {
   return static_cast<int>(index);
 }
 
+QString automatic_selection_failure(const std::exception& error) {
+  if (patchy::ai::is_out_of_memory(error)) {
+    return automatic_selection_out_of_memory_message(ScriptEngineHost::tr("Automatic selection"));
+  }
+  return ScriptEngineHost::tr("Automatic selection failed: %1").arg(QString::fromUtf8(error.what()));
+}
+
 }  // namespace
 
 QString ScriptEngineHost::automatic_select(std::int64_t session_id, const AutomaticSelectionRequest& request) {
@@ -89,7 +96,7 @@ QString ScriptEngineHost::automatic_select(std::int64_t session_id, const Automa
       }
     }
   } catch (const std::exception& error) {
-    return tr("Automatic selection failed: %1").arg(QString::fromUtf8(error.what()));
+    return automatic_selection_failure(error);
   }
 
   PixelBuffer coverage(size.width(), size.height(), PixelFormat::gray8());
@@ -160,7 +167,7 @@ QString ScriptEngineHost::remove_background(std::int64_t session_id, LayerId lay
   try {
     matte = patchy::ai::subject_matte(pixels_from_image_rgba(source));
   } catch (const std::exception& error) {
-    return tr("Automatic selection failed: %1").arg(QString::fromUtf8(error.what()));
+    return automatic_selection_failure(error);
   }
   if (matte.empty()) {
     return tr("removeBackground found no subject.");

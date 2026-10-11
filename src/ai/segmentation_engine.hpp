@@ -22,6 +22,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace patchy::ai {
@@ -31,6 +32,22 @@ class InferenceCancelled final : public std::runtime_error {
 public:
   InferenceCancelled();
 };
+
+// Thrown by an inference call when an allocation failed, inside ONNX Runtime or while
+// loading a model. Select Subject's model peaks at several GB, so this is a real outcome on
+// a busy machine; nothing is left half-done, and the same call can succeed once memory is
+// free.
+class InferenceOutOfMemory final : public std::runtime_error {
+public:
+  InferenceOutOfMemory();
+};
+
+// True when an ONNX Runtime error message reports a failed allocation (it reports a
+// std::bad_alloc thrown inside a kernel as text, such as "... Status Message: bad allocation").
+[[nodiscard]] bool is_out_of_memory_message(std::string_view message) noexcept;
+// True for InferenceOutOfMemory and std::bad_alloc: what callers turn into the
+// out-of-memory message instead of a raw diagnostic.
+[[nodiscard]] bool is_out_of_memory(const std::exception& error) noexcept;
 
 // Cancels a running inference from any thread. One object serves one call at a time.
 class InferenceCancel {

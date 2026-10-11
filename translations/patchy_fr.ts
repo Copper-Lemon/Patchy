@@ -11435,6 +11435,10 @@ RVB : %2, %3, %4</translation>
         <source>Object Selection could not read the document</source>
         <translation>La Sélection d&apos;objet n&apos;a pas pu lire le document</translation>
     </message>
+    <message>
+        <source>%1 ran out of memory. Close other programs or documents to free some memory, then try again.</source>
+        <translation>%1 : mémoire insuffisante. Fermez d&apos;autres programmes ou documents pour libérer de la mémoire, puis réessayez.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21490,6 +21494,10 @@ Convertis en images : %1.</translation>
     <message>
         <source>stripMetadata: unknown option %1.</source>
         <translation>stripMetadata : option inconnue %1.</translation>
+    </message>
+    <message>
+        <source>Automatic selection</source>
+        <translation>Sélection automatique</translation>
     </message>
 </context>
 <context>

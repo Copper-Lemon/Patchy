@@ -19,6 +19,8 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <new>
+#include <stdexcept>
 #include <thread>
 #include <vector>
 
@@ -284,6 +286,27 @@ void ai_select_subject_finds_the_disc() {
   CHECK(iou >= 0.85);
 }
 
+// ONNX Runtime reports a std::bad_alloc thrown inside a kernel only as status text; those
+// failures must reach users as the out-of-memory message, not the raw diagnostic.
+void ai_out_of_memory_failures_are_recognized() {
+  // Captured from a real Select Subject run on Windows with 6 GB free.
+  CHECK(patchy::ai::is_out_of_memory_message(
+      "Non-zero status code returned while running Sum node. "
+      "Name:'/decoder/decoder_block1/dec_att/aspp_deforms.2/atrous_conv/Sum' Status Message: bad allocation"));
+  CHECK(patchy::ai::is_out_of_memory_message("Status Message: std::bad_alloc"));
+  CHECK(patchy::ai::is_out_of_memory_message("Failed to allocate memory for requested buffer of size 1073741824"));
+  CHECK(patchy::ai::is_out_of_memory_message("CPU allocator: Out of memory"));
+  CHECK(!patchy::ai::is_out_of_memory_message(""));
+  CHECK(!patchy::ai::is_out_of_memory_message("automatic selection was cancelled"));
+  CHECK(!patchy::ai::is_out_of_memory_message("Got invalid dimensions for input: input_image"));
+  CHECK(!patchy::ai::is_out_of_memory_message("Load model from x.onnx failed: Protobuf parsing failed."));
+
+  CHECK(patchy::ai::is_out_of_memory(patchy::ai::InferenceOutOfMemory()));
+  CHECK(patchy::ai::is_out_of_memory(std::bad_alloc()));
+  CHECK(!patchy::ai::is_out_of_memory(patchy::ai::InferenceCancelled()));
+  CHECK(!patchy::ai::is_out_of_memory(std::runtime_error("automatic selection failed: bad allocation")));
+}
+
 void ai_cancel_stops_inference_without_a_result() {
   if (!point_engine_at_build_models()) {
     std::printf("[SKIP] ai_cancel_stops_inference_without_a_result (build without automatic selection)\n");
@@ -361,6 +384,7 @@ std::vector<patchy::test::TestCase> ai_selection_tests() {
       {"ai_object_selection_loose_box_skips_background_if_available",
        ai_object_selection_loose_box_skips_background_if_available},
       {"ai_select_subject_finds_the_disc", ai_select_subject_finds_the_disc},
+      {"ai_out_of_memory_failures_are_recognized", ai_out_of_memory_failures_are_recognized},
       {"ai_cancel_stops_inference_without_a_result", ai_cancel_stops_inference_without_a_result},
       {"ai_models_load_from_unicode_directory", ai_models_load_from_unicode_directory},
   };

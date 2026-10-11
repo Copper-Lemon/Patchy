@@ -11425,6 +11425,10 @@ RGB: %2, %3, %4</source>
         <source>Object Selection could not read the document</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>%1 ran out of memory. Close other programs or documents to free some memory, then try again.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21440,6 +21444,10 @@ Baked into images: %1.</source>
     </message>
     <message>
         <source>stripMetadata: unknown option %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Automatic selection</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

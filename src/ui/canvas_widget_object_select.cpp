@@ -112,6 +112,13 @@ QImage automatic_selection_layer_image(const Document& document, LayerId layer_i
   return image;
 }
 
+QString automatic_selection_out_of_memory_message(const QString& command) {
+  return QCoreApplication::translate(
+             "patchy::ui::CanvasWidget",
+             "%1 ran out of memory. Close other programs or documents to free some memory, then try again.")
+      .arg(command);
+}
+
 QImage CanvasWidget::automatic_selection_source(bool sample_all_layers, QString* error) {
   if (document_ == nullptr) {
     return {};
@@ -309,13 +316,14 @@ bool CanvasWidget::solve_object_select(bool is_click, QPoint point, QRect box, S
       mask = patchy::ai::sam_select_box(*embedding, Rect{box.x(), box.y(), box.width(), box.height()});
     }
   } catch (const std::exception& error) {
-    failure = QString::fromUtf8(error.what());
+    failure = patchy::ai::is_out_of_memory(error) ? automatic_selection_out_of_memory_message(tr("Object Selection"))
+                                                  : tr("Object Selection failed: %1").arg(QString::fromUtf8(error.what()));
     invalidate_object_select_embedding();
   }
   end_processing_operation();
 
   if (!failure.isEmpty()) {
-    report_status_error(tr("Object Selection failed: %1").arg(failure));
+    report_status_error(failure);
     update();
     return false;
   }

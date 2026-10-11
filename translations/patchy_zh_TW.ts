@@ -11405,6 +11405,10 @@ RGB：%2, %3, %4</translation>
         <source>Object Selection could not read the document</source>
         <translation>物件選取無法讀取文件</translation>
     </message>
+    <message>
+        <source>%1 ran out of memory. Close other programs or documents to free some memory, then try again.</source>
+        <translation>%1：記憶體不足。請關閉其他程式或文件以釋放記憶體，然後再試一次。</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21432,6 +21436,10 @@ Baked into images: %1.</source>
     <message>
         <source>stripMetadata: unknown option %1.</source>
         <translation>stripMetadata：不明的選項 %1。</translation>
+    </message>
+    <message>
+        <source>Automatic selection</source>
+        <translation>自動選取</translation>
     </message>
 </context>
 <context>

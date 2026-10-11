@@ -2,6 +2,10 @@
 
 #include "ai/segmentation_engine.hpp"
 
+#include <algorithm>
+#include <array>
+#include <cctype>
+#include <new>
 #include <utility>
 
 namespace patchy::ai {
@@ -20,6 +24,27 @@ std::filesystem::path& model_directory_storage() {
 }  // namespace
 
 InferenceCancelled::InferenceCancelled() : std::runtime_error("automatic selection was cancelled") {}
+
+InferenceOutOfMemory::InferenceOutOfMemory() : std::runtime_error("automatic selection ran out of memory") {}
+
+bool is_out_of_memory_message(std::string_view message) noexcept {
+  // std::bad_alloc::what() is "bad allocation" with MSVC and "std::bad_alloc" with libstdc++
+  // and libc++; ONNX Runtime's allocators say "Failed to allocate memory".
+  static constexpr std::array<std::string_view, 4> kMarkers{"bad allocation", "bad_alloc", "failed to allocate memory",
+                                                            "out of memory"};
+  // Compared in place: copying the message could itself fail when memory is short.
+  const auto same_letter = [](char text, char marker) {
+    return std::tolower(static_cast<unsigned char>(text)) == static_cast<unsigned char>(marker);
+  };
+  return std::any_of(kMarkers.begin(), kMarkers.end(), [&](std::string_view marker) {
+    return std::search(message.begin(), message.end(), marker.begin(), marker.end(), same_letter) != message.end();
+  });
+}
+
+bool is_out_of_memory(const std::exception& error) noexcept {
+  return dynamic_cast<const InferenceOutOfMemory*>(&error) != nullptr ||
+         dynamic_cast<const std::bad_alloc*>(&error) != nullptr;
+}
 
 void InferenceCancel::request() {
   requested_.store(true, std::memory_order_release);

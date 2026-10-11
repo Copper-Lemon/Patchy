@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <new>
 #include <optional>
 #include <vector>
 
@@ -173,7 +174,12 @@ std::unique_ptr<Ort::Session> open_session(Ort::Env& env, const char* file) {
   try {
     return std::make_unique<Ort::Session>(env, path.c_str(), session_options());
   } catch (const Ort::Exception& error) {
+    if (is_out_of_memory_message(error.what())) {
+      throw InferenceOutOfMemory();
+    }
     throw std::runtime_error(std::string("automatic selection could not load ") + file + ": " + error.what());
+  } catch (const std::bad_alloc&) {
+    throw InferenceOutOfMemory();
   }
 }
 
@@ -208,7 +214,15 @@ std::vector<Ort::Value> run(Ort::Session& session, const char* const* input_name
         throw InferenceCancelled();
       }
     }
+    if (is_out_of_memory_message(error.what())) {
+      throw InferenceOutOfMemory();
+    }
     throw std::runtime_error(std::string("automatic selection failed: ") + error.what());
+  } catch (const std::bad_alloc&) {
+    if (cancel != nullptr) {
+      cancel->detach();
+    }
+    throw InferenceOutOfMemory();
   }
 }
 

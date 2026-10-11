@@ -11435,6 +11435,10 @@ RGB: %2, %3, %4</translation>
         <source>Object Selection could not read the document</source>
         <translation>La Selezione oggetto non è riuscita a leggere il documento</translation>
     </message>
+    <message>
+        <source>%1 ran out of memory. Close other programs or documents to free some memory, then try again.</source>
+        <translation>%1: memoria insufficiente. Chiudi altri programmi o documenti per liberare memoria, quindi riprova.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21490,6 +21494,10 @@ Convertiti in immagini: %1.</translation>
     <message>
         <source>stripMetadata: unknown option %1.</source>
         <translation>stripMetadata: opzione sconosciuta %1.</translation>
+    </message>
+    <message>
+        <source>Automatic selection</source>
+        <translation>Selezione automatica</translation>
     </message>
 </context>
 <context>

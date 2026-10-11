@@ -61,6 +61,7 @@ At run time `configure_automatic_selection_models()` (main_window_ai_selection.c
 - Point prompt: one positive point plus SAM's padding point (label -1), the alternative (outputs 1-3) with the highest predicted IoU. Box prompt: two corners (labels 2, 3), the output with the highest predicted IoU among all four, clipped to the box (SAM masks can spill past it). MobileSAM's single-mask output (0), the textbook choice for a box, degrades on a loose box: on a photo of a boy in front of a fridge it took the fridge too at predicted IoU 0.66 while output 3 was the boy at 0.96 (Photoshop's tool handled the same box). A tight box makes all four agree. `ai_object_selection_loose_box_skips_background_if_available` pins it on a local fixture.
 - Sessions: `ORT_ENABLE_ALL`, CPU arena disabled (activation memory returns after each run), ONNX Runtime's default thread pool (physical cores; measured fastest) unless `PATCHY_RENDER_THREADS` is set. Encoder and decoder stay loaded; the subject session stays loaded after a run and `MainWindow` frees it after 3 minutes idle (`release_subject_model`; the timer is stopped while a run is in flight).
 - Cancellation: `InferenceCancel::request()` terminates the running ONNX Runtime call (`RunOptions::SetTerminate`); the call throws `InferenceCancelled`.
+- Out of memory: ONNX Runtime reports a `std::bad_alloc` inside a kernel only as status text ("... Status Message: bad allocation"). `run()` and `open_session()` turn those (`is_out_of_memory_message`) and a direct `std::bad_alloc` into `InferenceOutOfMemory`; every caller checks `is_out_of_memory()` and shows `automatic_selection_out_of_memory_message(command)` (close other programs or documents, try again) instead of the raw diagnostic. The session stays usable; a retry with more free memory succeeds.
 - Model outputs are CPU-dependent float math, so this module is exempt from the byte-determinism rule: tests compare masks by IoU, never bytes.
 
 ## UI behavior that is load-bearing
@@ -83,12 +84,13 @@ fp32 numbers come from an idle box; the int8 rows from an fp32/int8 run alternat
 | SAM decode per click or box (warm) | 30 to 100 ms; the first call loads the decoder (about 400 ms) | same |
 | BiRefNet_lite run, warm | about 4.8 s idle (barely scales with threads); 5.9 s loaded | 5.6 s loaded |
 | BiRefNet_lite session load | about 2 to 3 s idle | same as fp32 |
+| BiRefNet_lite peak memory (2316x3088 photo, 24 threads) | | about 6.2 GB process working set; failed with "bad allocation" when 6.3 GB was free (October 2026) |
 
 Published numbers for a 6-core Ryzen 5600X: MobileSAM encode 0.8 s, BiRefNet_lite 7 s (ONNX Runtime). About 60% of BiRefNet's time is Transpose/Sum/Mul/GatherND, the export's spelling of deformable convolution and Swin window shuffles.
 
 ## Tests
 
-- Core (`patchy_core_tests ai_`): transform and preprocessing math, logit mappings, upsample/crop, IoU, then real runs on a self-authored synthetic scene (shaded disc on mottled noise): box and point IoU >= 0.9, Select Subject IoU >= 0.85, cancel before and during a run, model load from a Unicode folder. In a build without the engine the model tests print `[SKIP]`; in a build with it, missing models fail.
+- Core (`patchy_core_tests ai_`): transform and preprocessing math, logit mappings, upsample/crop, IoU, then real runs on a self-authored synthetic scene (shaded disc on mottled noise): box and point IoU >= 0.9, Select Subject IoU >= 0.85, cancel before and during a run, out-of-memory recognition (`ai_out_of_memory_failures_are_recognized`), model load from a Unicode folder. In a build without the engine the model tests print `[SKIP]`; in a build with it, missing models fail.
 - UI (`PATCHY_UI_TEST_FILTER=object_select`, `select_subject`, `select_background`, `remove_background`, `context_menu_offers_subject`): no selection change before release, one undo entry, booleans, embedding reuse, the options bar and menu, and the script API.
 
 ## Platform packaging

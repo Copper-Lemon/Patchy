@@ -131,6 +131,10 @@ QImage active_layer_sample_image(const Layer& layer, QSize document_size);
 // its ancestor groups. Null with `error` set when the layer is missing, hidden, or renders
 // nothing (an adjustment layer on its own). RGBA8888, document-sized.
 QImage automatic_selection_layer_image(const Document& document, LayerId layer_id, QString* error);
+// The status/script message for an automatic selection command (`command`, translated)
+// whose model ran out of memory (patchy::ai::is_out_of_memory), in place of the raw
+// ONNX Runtime diagnostic.
+QString automatic_selection_out_of_memory_message(const QString& command);
 
 // Procedural round-brush coverage falloff (smoothstep edge over the softness
 // band); shared by the brush TU's stamp shapes and the spot-healing footprint

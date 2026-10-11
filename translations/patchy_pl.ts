@@ -11465,6 +11465,10 @@ RGB: %2, %3, %4</translation>
         <source>Object Selection could not read the document</source>
         <translation>Zaznaczanie obiektu nie mogło odczytać dokumentu</translation>
     </message>
+    <message>
+        <source>%1 ran out of memory. Close other programs or documents to free some memory, then try again.</source>
+        <translation>%1: za mało pamięci. Zamknij inne programy lub dokumenty, aby zwolnić pamięć, i spróbuj ponownie.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21548,6 +21552,10 @@ Y: %2
     <message>
         <source>stripMetadata: unknown option %1.</source>
         <translation>stripMetadata: nieznana opcja %1.</translation>
+    </message>
+    <message>
+        <source>Automatic selection</source>
+        <translation>Automatyczne zaznaczanie</translation>
     </message>
 </context>
 <context>
