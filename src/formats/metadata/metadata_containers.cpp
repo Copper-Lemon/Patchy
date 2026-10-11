@@ -28,7 +28,6 @@ constexpr std::uintmax_t kFullReadCap = 512ULL * 1024ULL * 1024ULL;
 constexpr std::size_t kPartialReadBytes = 64U * 1024U * 1024U;
 constexpr std::size_t kMaxStructureRows = 2000;
 constexpr std::size_t kMaxInflatedText = 16U * 1024U * 1024U;
-constexpr int kMaxBoxDepth = 12;
 
 using Bytes = std::vector<std::uint8_t>;
 using Span = std::span<const std::uint8_t>;
