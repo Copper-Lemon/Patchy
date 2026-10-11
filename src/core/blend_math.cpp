@@ -1,9 +1,13 @@
 #include "core/blend_math.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
+#include <memory>
+#include <mutex>
 #include <utility>
+#include <vector>
 
 namespace patchy {
 
@@ -316,48 +320,133 @@ std::uint64_t splitmix64(std::uint64_t value) {
   return value ^ (value >> 31U);
 }
 
-double unit_hash(std::uint64_t value) {
-  return static_cast<double>(splitmix64(value) >> 11U) *
-         (1.0 / 9007199254740992.0);
+// Clean-room noise gradient model, fitted black-box to the rendered output of
+// 16-bit Photoshop 2026 noise Gradient Fills; no Photoshop code was inspected
+// or disassembled (docs/gradients.md "Noise gradients"). Each
+// channel is 0.5 plus 51 sinusoids at 0.12 * 1.18^k cycles per gradient, the
+// lowest first. Component k has amplitude p^k * (0.5 - u) and phase 2 * pi * u'
+// from the Park-Miller minimal standard generator seeded with RndS: per
+// component, four amplitude draws (R, G, B, transparency) then four phase draws.
+// The roughness (Smth, 0..4096) sets p = (0.2 + 0.7 * roughness)^0.15. Restrict
+// Colors (VctC) pulls the offset from mid gray back to length 0.5. Values
+// are clamped, then mapped into the Mnm/Mxm range. Photoshop point-samples a
+// 4096-entry table, so the whole table is built once per setting and cached.
+constexpr int kNoiseTableSize = 4096;
+constexpr int kNoiseComponents = 51;
+constexpr int kNoiseChannels = 4;
+
+struct NoiseGradientTable {
+  GradientNoiseSettings settings;
+  std::vector<std::array<float, kNoiseChannels>> samples;
+};
+
+std::shared_ptr<const NoiseGradientTable> build_noise_gradient_table(
+    const GradientNoiseSettings &noise) {
+  constexpr std::uint64_t modulus = 2147483647ULL;
+  std::array<double, kNoiseComponents * 2 * kNoiseChannels> draws{};
+  std::uint64_t state = noise.seed % modulus;
+  for (auto &draw : draws) {
+    state = state * 16807ULL % modulus;
+    draw = static_cast<double>(state) / static_cast<double>(modulus);
+  }
+  constexpr double two_pi = 6.283185307179586476925286766559;
+  const auto roughness = std::clamp(static_cast<double>(noise.roughness) / 4096.0, 0.0, 1.0);
+  const auto persistence = std::pow(0.2 + 0.7 * roughness, 0.15);
+
+  auto table = std::make_shared<NoiseGradientTable>();
+  table->settings = noise;
+  std::vector<std::array<double, kNoiseChannels>> sums(
+      kNoiseTableSize, std::array<double, kNoiseChannels>{0.5, 0.5, 0.5, 0.5});
+  auto amplitude = 1.0;
+  auto frequency = 0.12;
+  for (int component = 0; component < kNoiseComponents; ++component) {
+    // Advance each sinusoid by rotation; one step is one table entry.
+    const auto step = two_pi * frequency / kNoiseTableSize;
+    const auto step_cos = std::cos(step);
+    const auto step_sin = std::sin(step);
+    for (int channel = 0; channel < kNoiseChannels; ++channel) {
+      const auto base = static_cast<std::size_t>(component * 2 * kNoiseChannels + channel);
+      const auto weight = amplitude * (0.5 - draws[base]);
+      const auto phase = two_pi * draws[base + kNoiseChannels];
+      auto sine = std::sin(phase);
+      auto cosine = std::cos(phase);
+      for (auto &sum : sums) {
+        sum[static_cast<std::size_t>(channel)] += weight * sine;
+        const auto next_sine = sine * step_cos + cosine * step_sin;
+        cosine = cosine * step_cos - sine * step_sin;
+        sine = next_sine;
+      }
+    }
+    amplitude *= persistence;
+    frequency *= 1.18;
+  }
+
+  table->samples.resize(kNoiseTableSize);
+  for (std::size_t index = 0; index < sums.size(); ++index) {
+    auto values = sums[index];
+    if (noise.restrict_colors) {
+      // The offset is the model's own channels (H, S, B for HSB), plus the
+      // transparency channel when Add Transparency is on.
+      const std::size_t restricted = noise.add_transparency ? 4U : 3U;
+      auto length_squared = 0.0;
+      for (std::size_t channel = 0; channel < restricted; ++channel) {
+        const auto offset = values[channel] - 0.5;
+        length_squared += offset * offset;
+      }
+      if (length_squared > 0.25) {
+        const auto scale = 0.5 / std::sqrt(length_squared);
+        for (std::size_t channel = 0; channel < restricted; ++channel) {
+          values[channel] = 0.5 + (values[channel] - 0.5) * scale;
+        }
+      }
+    }
+    for (std::size_t channel = 0; channel < kNoiseChannels; ++channel) {
+      const auto minimum = noise.minimum[channel] / 100.0;
+      const auto maximum = noise.maximum[channel] / 100.0;
+      const auto value = std::clamp(values[channel], 0.0, 1.0);
+      table->samples[index][channel] =
+          static_cast<float>(std::clamp(minimum + (maximum - minimum) * value, 0.0, 1.0));
+    }
+  }
+  return table;
 }
 
-double smooth_noise(std::uint32_t seed, int channel, double coordinate,
-                    double roughness) {
-  const auto cell = static_cast<std::int64_t>(std::floor(coordinate));
-  const auto fraction = coordinate - static_cast<double>(cell);
-  const auto smooth = fraction * fraction * (3.0 - 2.0 * fraction);
-  const auto sample = [&](std::int64_t index) {
-    return unit_hash(
-        static_cast<std::uint64_t>(index) ^
-        (static_cast<std::uint64_t>(seed) << 1U) ^
-        (static_cast<std::uint64_t>(channel + 1) * 0xd6e8feb86659fd93ULL));
-  };
-  const auto base = sample(cell) + (sample(cell + 1) - sample(cell)) * smooth;
-  // High roughness retains more local variation; low roughness trends toward a
-  // broad neutral ramp without introducing platform RNG differences.
-  return 0.5 + (base - 0.5) * std::clamp(roughness, 0.0, 1.0);
+std::shared_ptr<const NoiseGradientTable> noise_gradient_table(const GradientNoiseSettings &noise) {
+  thread_local std::shared_ptr<const NoiseGradientTable> last;
+  if (last != nullptr && last->settings == noise) {
+    return last;
+  }
+  static std::mutex mutex;
+  static std::vector<std::shared_ptr<const NoiseGradientTable>> cache;
+  {
+    const std::lock_guard lock(mutex);
+    for (const auto &entry : cache) {
+      if (entry->settings == noise) {
+        last = entry;
+        return last;
+      }
+    }
+  }
+  auto table = build_noise_gradient_table(noise);
+  {
+    const std::lock_guard lock(mutex);
+    constexpr std::size_t kCacheLimit = 16;
+    if (cache.size() >= kCacheLimit) {
+      cache.erase(cache.begin());
+    }
+    cache.push_back(table);
+  }
+  last = std::move(table);
+  return last;
 }
 
 double gradient_noise_channel(const GradientNoiseSettings &noise, int channel,
                               double position) {
-  const auto roughness = static_cast<double>(noise.roughness) / 4096.0;
-  double total = 0.0;
-  double weight = 0.0;
-  auto amplitude = 1.0;
-  auto frequency = 4.0 + roughness * 60.0;
-  for (int octave = 0; octave < 4; ++octave) {
-    total += smooth_noise(noise.seed + static_cast<std::uint32_t>(octave * 977),
-                          channel, position * frequency, roughness) *
-             amplitude;
-    weight += amplitude;
-    amplitude *= 0.5;
-    frequency *= 2.0;
-  }
-  const auto value = total / std::max(0.0001, weight);
-  const auto index = static_cast<std::size_t>(std::clamp(channel, 0, 3));
-  const auto minimum = noise.minimum[index] / 100.0;
-  const auto maximum = noise.maximum[index] / 100.0;
-  return std::clamp(minimum + (maximum - minimum) * value, 0.0, 1.0);
+  const auto table = noise_gradient_table(noise);
+  const auto scaled = std::floor(std::clamp(position, 0.0, 1.0) * kNoiseTableSize);
+  const auto index = static_cast<std::size_t>(
+      std::clamp(static_cast<int>(scaled), 0, kNoiseTableSize - 1));
+  return table->samples[index][static_cast<std::size_t>(std::clamp(channel, 0, 3))];
 }
 
 }  // namespace

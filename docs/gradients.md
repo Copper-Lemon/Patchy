@@ -16,8 +16,8 @@ previews still interpolate the converted RGB stops.
 - Classic applies the stored smoothness as cubic interpolation after destination-stop midpoint remapping.
 - Perceptual interpolates in OKLab.
 - Linear interpolates in linear-light RGB.
-- Noise and dither use fixed integer hashing. Do not replace this with a standard-library random distribution because output must remain identical across toolchains.
-- Noise color generation remains an approximation of Photoshop. Preserving `RndS` and `Smth` keeps the native saved gradient editable and correct in Photoshop, but does not guarantee the same Patchy preview. The `effect-stroke-gradient.psd` noise stroke remains a known rendering mismatch; its baseline placement is independent of that color mismatch.
+- Dither uses fixed integer hashing and noise uses a clean-room model of Photoshop's noise output (below). Never substitute a standard-library random distribution: output must stay identical across toolchains.
+- Noise gradients render Photoshop's colors for a given `RndS`/`Smth`; see "Noise gradients".
 - Deep layers: the Gradient tool paints float colors through `EditOptions::deep_primary` (no banding), and gradient fill layers render a deep raster (`deep_gradient_fill_raster`, linear-light interpolation at 32 bits); see [high-bit-depth.md](high-bit-depth.md).
 
 `gradient_position` is the shared point-mapped-style geometry function; Shape Burst does not go through it (the stroke renderer derives its position from the band's Euclidean distance field, `stroke_alpha_mask`'s optional plane). Linear and Reflected spans use the layer rectangle projected onto the selected angle, so 90-degree gradients span the layer height rather than its width. For `Align with Layer`, Gradient Overlay and gradient Stroke use the source's nonzero-alpha bounds; PSD channel padding must not compress the visible range. The local alpha bounds are cached by the layer's globally unique pixel revision because finding them is an O(width * height) scan. Transient render pixel overrides bypass that cache. `gradient_color`, `gradient_stop_opacity`, and `gradient_color_dithered` are shared by layer effects and preset thumbnails.
@@ -56,6 +56,18 @@ Gradient Fill layers and gradient-filled shapes (`GradientSpanBasis::CenterChord
 A fill layer without a vector mask aligns to the layer's bounds, which in Photoshop are its user mask's visible samples when the mask hides the rest of the canvas (default color 0): psd-tools' 32-bit `gradient-fill.psd` ramps over the mask's rows 6..100, not the 150-pixel canvas (`fill_layer_mask_bounds` in src/core/vector_raster.cpp, pinned by `gradient_fill_layer_aligns_to_its_mask_bounds`; at 32 bits the result matches Photoshop within 2 levels).
 
 Not modeled: Angle and Diamond (they keep center sampling), and offsets on very small canvases (no candidate rule fit a 16x8 probe). This geometry is what took `photoshop-shape-gradient.psd` from mean error 1.22 to 0.29 against Photoshop and fixed psd-tools' `colormodes/4x4_*` files.
+
+## Noise gradients
+
+A clean-room, black-box model (October 2026): fitted only to the rendered output of 16-bit 4096x2 noise Gradient Fills that a licensed Photoshop 2026 drew over COM, with no Photoshop code inspected, decompiled, or disassembled (see [legal-constraints.md](legal-constraints.md)). The generator family and its constants were identified by matching that output against public algorithms. `build_noise_gradient_table` (src/core/blend_math.cpp) implements it and `noise_gradient_matches_photoshop_samples` pins Photoshop's bytes. Patchy matches within half an 8-bit level up to 50% roughness and about one level at 100%.
+
+- Random stream: Park-Miller minimal standard (`state = state * 16807 mod 2^31-1`, `u = state / (2^31-1)`), seeded with `RndS` (seed 0 stays 0). Seed `k*s` gives draws `k * u(s) mod 1`; that relation is how the stream was identified.
+- Each channel (R, G, B, transparency) is `0.5 + sum_k p^k * (0.5 - a_k) * sin(2*pi*(0.12 * 1.18^k * t + b_k))` for k = 0..50, lowest frequency first, `t` in [0, 1). Per component the stream yields four amplitude draws `a` (channel order) then four phase draws `b`.
+- Roughness: `p = (0.2 + 0.7 * Smth/4096)^0.15` (fit error 7e-6 over 65 levels).
+- Restrict Colors (`VctC`): when the offset from mid gray, taken in the color model's own channels (H, S, B for HSB) plus the transparency channel when Add Transparency is on, is longer than 0.5, scale it to 0.5. Then each channel clamps to [0, 1] (hue clamps, it does not wrap) and maps into `Mnm`/`Mxm` (clamping happens before the range mapping). Without transparency the RGB-only rule is off by up to 82 levels on transparent noise; the 4D rule matches within 0.25.
+- Photoshop point-samples a 4096-entry table (a 256-pixel fill reads every 16th entry); Patchy caches the table per setting and samples `floor(t * 4096)`.
+- HSB converts with the standard hexcone formula (within 2 levels). Photoshop's Lab channels are L = 100v and a, b = 255v - 128, but Photoshop's color-managed conversion of out-of-gamut Lab differs from both an analytic CIELab to sRGB conversion and Patchy's OKLab-shaped stand-in (8 to 17 levels mean error either way), so the Lab conversion stays an approximation.
+- Residual: a small extra term at 0.12 * 1.18^m cycles per pixel with harmonics (under 0.001) is not modeled.
 
 ## Noise gradients in PSD fill layers
 
