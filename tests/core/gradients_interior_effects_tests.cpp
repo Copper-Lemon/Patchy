@@ -210,6 +210,79 @@ void grd_v5_round_trips_solid_dynamic_noise_and_hierarchy() {
   CHECK(recovered->gradients.size() == source.size());
 }
 
+// Samples of 4096-pixel Photoshop 2026 noise Gradient Fills (16-bit, rounded to
+// bytes) at table indices 0, 333, 1024, 2048, 2730, 3500 and 4095.
+void noise_gradient_matches_photoshop_samples() {
+  struct Case {
+    std::uint32_t seed;
+    std::uint16_t roughness;
+    bool restrict_colors;
+    std::array<std::array<int, 3>, 7> expected;
+  };
+  const std::array<Case, 3> cases{{
+      {2126732U, 2048U, true,
+       {{{108, 181, 241}, {68, 159, 236}, {45, 176, 211}, {21, 83, 181}, {40, 39, 110}, {21, 109, 59},
+         {123, 117, 74}}}},
+      {1U, 1024U, false,
+       {{{63, 0, 52}, {64, 0, 51}, {29, 13, 83}, {6, 4, 78}, {56, 0, 153}, {5, 0, 217}, {0, 28, 181}}}},
+      {5U, 0U, false,
+       {{{135, 67, 0}, {135, 61, 0}, {118, 49, 0}, {96, 37, 0}, {88, 33, 0}, {74, 42, 0}, {70, 45, 0}}}},
+  }};
+  constexpr std::array<int, 7> indices{0, 333, 1024, 2048, 2730, 3500, 4095};
+  for (const auto& sample : cases) {
+    patchy::LayerStyleGradient gradient;
+    gradient.form = patchy::GradientDefinitionForm::Noise;
+    gradient.noise.seed = sample.seed;
+    gradient.noise.roughness = sample.roughness;
+    gradient.noise.restrict_colors = sample.restrict_colors;
+    for (std::size_t i = 0; i < indices.size(); ++i) {
+      const auto color = patchy::gradient_color(gradient, static_cast<float>(indices[i]) / 4096.0F);
+      const auto& expected = sample.expected[i];
+      CHECK(std::abs(color.red - expected[0]) <= 1);
+      CHECK(std::abs(color.green - expected[1]) <= 1);
+      CHECK(std::abs(color.blue - expected[2]) <= 1);
+    }
+  }
+
+  // Add Transparency with Restrict Colors restricts the R, G, B, alpha vector.
+  // Photoshop's alpha and color come from the same fill over black and white.
+  patchy::LayerStyleGradient transparent;
+  transparent.form = patchy::GradientDefinitionForm::Noise;
+  transparent.noise.seed = 2126732U;
+  transparent.noise.roughness = 2048U;
+  transparent.noise.restrict_colors = true;
+  transparent.noise.add_transparency = true;
+  constexpr std::array<int, 7> expected_alpha{146, 119, 84, 20, 23, 16, 9};
+  constexpr std::array<std::array<int, 3>, 3> expected_color{{{108, 181, 240}, {68, 159, 235}, {49, 173, 206}}};
+  for (std::size_t i = 0; i < indices.size(); ++i) {
+    const auto position = static_cast<float>(indices[i]) / 4096.0F;
+    const auto alpha = patchy::gradient_stop_opacity(transparent, position) * 255.0F;
+    CHECK(std::abs(alpha - static_cast<float>(expected_alpha[i])) <= 1.0F);
+    if (i < expected_color.size()) {
+      const auto color = patchy::gradient_color(transparent, position);
+      CHECK(std::abs(color.red - expected_color[i][0]) <= 1);
+      CHECK(std::abs(color.green - expected_color[i][1]) <= 1);
+      CHECK(std::abs(color.blue - expected_color[i][2]) <= 1);
+    }
+  }
+
+  // HSB restricts in H, S, B before converting; hue clamps instead of wrapping.
+  patchy::LayerStyleGradient hsb;
+  hsb.form = patchy::GradientDefinitionForm::Noise;
+  hsb.noise.seed = 7U;
+  hsb.noise.roughness = 2048U;
+  hsb.noise.restrict_colors = true;
+  hsb.noise.color_model = patchy::GradientNoiseColorModel::HSB;
+  constexpr std::array<std::array<int, 3>, 7> expected_hsb{
+      {{96, 96, 100}, {76, 73, 80}, {141, 106, 122}, {116, 20, 93}, {1, 101, 142}, {63, 103, 9}, {118, 70, 28}}};
+  for (std::size_t i = 0; i < indices.size(); ++i) {
+    const auto color = patchy::gradient_color(hsb, static_cast<float>(indices[i]) / 4096.0F);
+    CHECK(std::abs(color.red - expected_hsb[i][0]) <= 2);
+    CHECK(std::abs(color.green - expected_hsb[i][1]) <= 2);
+    CHECK(std::abs(color.blue - expected_hsb[i][2]) <= 2);
+  }
+}
+
 void gradient_methods_noise_dither_and_geometry_are_deterministic() {
   const auto same_color = [](patchy::RgbColor lhs, patchy::RgbColor rhs) {
     return lhs.red == rhs.red && lhs.green == rhs.green && lhs.blue == rhs.blue;
@@ -1004,6 +1077,7 @@ std::vector<patchy::test::TestCase> gradients_interior_effects_tests() {
       {"gradient_presets_have_stable_ids_and_recipes", gradient_presets_have_stable_ids_and_recipes},
       {"grd_v5_round_trips_solid_dynamic_noise_and_hierarchy",
        grd_v5_round_trips_solid_dynamic_noise_and_hierarchy},
+      {"noise_gradient_matches_photoshop_samples", noise_gradient_matches_photoshop_samples},
       {"gradient_methods_noise_dither_and_geometry_are_deterministic",
        gradient_methods_noise_dither_and_geometry_are_deterministic},
       {"gradient_linear_geometry_uses_angle_projected_layer_span",
