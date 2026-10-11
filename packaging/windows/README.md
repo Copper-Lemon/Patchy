@@ -25,7 +25,7 @@ build\package\PatchyWindowsInstaller.exe
 
 `PatchyWindowsNoInstaller.zip` contains a top-level `Patchy` folder. Users can drag that folder to the desktop or another writable location and run `patchy.exe` from there.
 
-`PatchyWindowsInstaller.exe` is built with Windows IExpress from the zip payload plus installer-only helper executables. It opens a small per-user setup wizard, installs to `%LOCALAPPDATA%\Programs\Patchy`, creates a Start Menu shortcut, offers a default-checked desktop shortcut, registers a Windows uninstall entry under the current user, and offers to launch Patchy when setup finishes.
+`PatchyWindowsInstaller.exe` is built with Windows IExpress from the zip payload plus installer-only helper executables. It opens a small per-user setup wizard, installs to `%LOCALAPPDATA%\Programs\Patchy` by default or to a folder the user chooses, creates a Start Menu shortcut, offers a default-checked desktop shortcut, registers a Windows uninstall entry under the current user, and offers to launch Patchy when setup finishes.
 
 The wizard heading shows `Install Patchy <version>` using the version passed by the packaged launcher. The legal notice, installation status, progress bar, and bottom buttons occupy separate rows with space between them.
 
@@ -45,6 +45,16 @@ The package is intentionally limited to the files needed by end users:
 The zip does not include build files, tests, test fixtures, Qt translations for languages Patchy does not ship, Qt generic input plugins, installer-only helpers such as `InstallPatchy.exe` and `UninstallPatchy.exe`, the Visual C++ Redistributable installer, or developer packaging notes.
 
 The installer copies a signed `UninstallPatchy.exe` into the installed app folder and records it in `PatchyInstallManifest.txt`. The uninstaller uses that manifest to remove only files installed by the package. If a user saves documents into the install directory, those files are left in place and the install directory remains until the user removes them.
+
+## Install location
+
+The wizard's install folder box is editable and has a Browse button (issue 85). It starts at the folder of the registered install (`InstallLocation` under `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\Patchy`, when `patchy.exe` is still there), else `%LOCALAPPDATA%\Programs\Patchy`. `InstallPatchy.ps1 -InstallDir <folder>` sets the exact folder, for the wizard and for quiet installs.
+
+- Browse adds a `Patchy` folder inside the chosen one unless it is already named `Patchy` or already holds a Patchy install (`D:\Apps` becomes `D:\Apps\Patchy`). Typed text is used as-is.
+- `Test-PatchyInstallLocation` accepts only a new folder, an empty one, or an earlier Patchy install (`patchy.exe` or `PatchyInstallManifest.txt` present). It refuses relative paths, drive and share roots, the Windows folder, files, and folders holding other files. This is a safety rule, not a preference: installing and uninstalling remove every empty folder under the install root, and the uninstaller then removes the root itself.
+- Setup stays per-user: no elevation and nothing in HKLM. Before copying it creates the folder and writes a scratch file. A folder the user cannot write to, such as Program Files, is refused with a message, and folders the probe created are removed again.
+- Installing to a different folder than the registered one moves the install: once the new copy, shortcuts and registration succeed, the old folder's manifest files are removed (`Remove-PatchyInstalledFiles`), and then the folder if that leaves it empty. Nested old and new folders are left alone.
+- The refusal messages are in `$PatchyInstallerText` in every shipped language. `UninstallPatchy.exe` needs no location of its own: it treats its own folder as the install root.
 
 ## Open with
 
@@ -74,6 +84,7 @@ After signing, `build-release.bat` runs `scripts\release\verify-windows-package.
 - unpacks the installer with IExpress's extract-only switches (`/Q /C /T:<folder>`) and checks that its payload is complete, carries the same zip as the portable download, and names the expected version;
 - runs the unpacked `InstallPatchy.ps1` with the launcher's arguments plus `-SmokeTest`, which builds the whole wizard, shows it invisibly, and closes it. A wizard that cannot open fails here (issue 55);
 - runs it again with `-OpenWithCheckRoot <scratch key>`, which writes the "Open with" registration under that key instead of the real Classes tree, and checks the name, the command, the type list, and that an extension gets the ProgID in `OpenWithProgids` with no default value;
+- runs it with `-LocationCheckRoot <scratch folder>`, which checks the install folder rules and the Browse rule on cases built inside that folder;
 - unpacks the zip and compares it with `PatchyInstallManifest.txt`;
 - checks the unpacked executable's display name, product name, original filename,
   and file/product versions against the package version;

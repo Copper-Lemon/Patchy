@@ -178,6 +178,14 @@ try {
     }
 }
 
+# 3c. The install folder rules (new, empty, or an earlier install; never a drive root,
+#     the Windows folder, or a folder of other files), checked inside a scratch folder.
+$locationArgs = "-NoLogo -NoProfile -ExecutionPolicy Bypass -File " + (Quote (Join-Path $payloadDir "InstallPatchy.ps1")) +
+    " -PayloadZip " + (Quote $payloadZip) + " -LocationCheckRoot " + (Quote (Join-Path $WorkDir "location-check"))
+$location = Invoke-Bounded -FilePath $powershellExe -Arguments $locationArgs -TimeoutSeconds 60 -WorkingDirectory $payloadDir
+$locationOk = (-not $location.TimedOut) -and ($location.ExitCode -eq 0) -and ($location.Output -match "location check passed")
+Write-Step $locationOk "installer install-folder rules" $(if ($location.TimedOut) { "timed out" } elseif (-not $locationOk) { "exit code " + $location.ExitCode + "; " + $location.Output } else { "" })
+
 # 4. Unpack the zip and compare it with its own manifest, before anything runs in it.
 Expand-Archive -LiteralPath $Zip -DestinationPath $appParent -Force
 $manifestPath = Join-Path $appDir "PatchyInstallManifest.txt"

@@ -7,6 +7,10 @@ param(
 
     [switch]$Quiet,
 
+    # The exact install folder. Without it, setup offers the folder of the existing
+    # install, or %LOCALAPPDATA%\Programs\Patchy.
+    [string]$InstallDir = "",
+
     # Packaging check: load the wizard logo from the Patchy.ico beside the payload and exit.
     [switch]$CheckLogo,
 
@@ -17,7 +21,12 @@ param(
     # Packaging check: write the "Open with" registration under this scratch registry key
     # instead of HKCU:\Software\Classes and exit without installing. Used by
     # scripts\release\verify-windows-package.ps1.
-    [string]$OpenWithCheckRoot = ""
+    [string]$OpenWithCheckRoot = "",
+
+    # Packaging check: run the install folder rules against cases built inside this
+    # scratch folder and exit without installing. Used by
+    # scripts\release\verify-windows-package.ps1.
+    [string]$LocationCheckRoot = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -37,72 +46,108 @@ $PatchyInstallerText = @{
         RunningPatchyQuietMessage = "Patchy is currently running. Close Patchy and run setup again."
         FileInUseQuietMessage = "Patchy could not be updated because installed files are in use. Close Patchy and run setup again."
         InstallationCanceled = "Installation canceled."
+        InstallFolderInvalid = "Choose a full folder path for Patchy, such as D:\Apps\Patchy. A drive root or the Windows folder cannot be used."
+        InstallFolderNotEmpty = "The folder {0} already contains other files. Choose an empty folder or a new folder name, so that uninstalling Patchy never removes anything that is not its own."
+        InstallFolderNotWritable = "Setup cannot write to {0}. This installer does not use administrator rights, so choose a folder you can write to, such as one in your user folder or on another drive."
     }
     ja = @{
         RunningPatchyRetryMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy \u306F\u73FE\u5728\u5B9F\u884C\u4E2D\u3067\u3059\u3002\u4F5C\u696D\u3092\u4FDD\u5B58\u3057\u3066 Patchy \u3092\u9589\u3058\u3066\u304B\u3089\u3001[\u518D\u8A66\u884C] \u3092\u30AF\u30EA\u30C3\u30AF\u3057\u3066\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3092\u7D9A\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002"
         RunningPatchyQuietMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy \u306F\u73FE\u5728\u5B9F\u884C\u4E2D\u3067\u3059\u3002Patchy \u3092\u9589\u3058\u3066\u304B\u3089\u30BB\u30C3\u30C8\u30A2\u30C3\u30D7\u3092\u3082\u3046\u4E00\u5EA6\u5B9F\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002"
         FileInUseQuietMessage = ConvertFrom-PatchyUnicodeEscapes "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E08\u307F\u306E\u30D5\u30A1\u30A4\u30EB\u304C\u4F7F\u7528\u4E2D\u306E\u305F\u3081\u3001Patchy \u3092\u66F4\u65B0\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002Patchy \u3092\u9589\u3058\u3066\u304B\u3089\u30BB\u30C3\u30C8\u30A2\u30C3\u30D7\u3092\u3082\u3046\u4E00\u5EA6\u5B9F\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002"
         InstallationCanceled = ConvertFrom-PatchyUnicodeEscapes "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u306F\u30AD\u30E3\u30F3\u30BB\u30EB\u3055\u308C\u307E\u3057\u305F\u3002"
+        InstallFolderInvalid = ConvertFrom-PatchyUnicodeEscapes "Patchy \u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u5148\u3068\u3057\u3066\u3001D:\Apps\Patchy \u306E\u3088\u3046\u306A\u5B8C\u5168\u306A\u30D5\u30A9\u30EB\u30C0\u30FC \u30D1\u30B9\u3092\u6307\u5B9A\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u30C9\u30E9\u30A4\u30D6\u306E\u30EB\u30FC\u30C8\u3084 Windows \u30D5\u30A9\u30EB\u30C0\u30FC\u306F\u4F7F\u7528\u3067\u304D\u307E\u305B\u3093\u3002"
+        InstallFolderNotEmpty = ConvertFrom-PatchyUnicodeEscapes "\u30D5\u30A9\u30EB\u30C0\u30FC {0} \u306B\u306F\u65E2\u306B\u4ED6\u306E\u30D5\u30A1\u30A4\u30EB\u304C\u3042\u308A\u307E\u3059\u3002Patchy \u306E\u30A2\u30F3\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3067 Patchy \u4EE5\u5916\u306E\u30D5\u30A1\u30A4\u30EB\u304C\u524A\u9664\u3055\u308C\u306A\u3044\u3088\u3046\u3001\u7A7A\u306E\u30D5\u30A9\u30EB\u30C0\u30FC\u304B\u65B0\u3057\u3044\u30D5\u30A9\u30EB\u30C0\u30FC\u540D\u3092\u6307\u5B9A\u3057\u3066\u304F\u3060\u3055\u3044\u3002"
+        InstallFolderNotWritable = ConvertFrom-PatchyUnicodeEscapes "{0} \u306B\u66F8\u304D\u8FBC\u3081\u307E\u305B\u3093\u3002\u3053\u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30E9\u30FC\u306F\u7BA1\u7406\u8005\u6A29\u9650\u3092\u4F7F\u7528\u3057\u306A\u3044\u305F\u3081\u3001\u30E6\u30FC\u30B6\u30FC \u30D5\u30A9\u30EB\u30C0\u30FC\u5185\u3084\u5225\u306E\u30C9\u30E9\u30A4\u30D6\u306A\u3069\u3001\u66F8\u304D\u8FBC\u307F\u53EF\u80FD\u306A\u30D5\u30A9\u30EB\u30C0\u30FC\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044\u3002"
     }
     de = @{
         RunningPatchyRetryMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy wird derzeit ausgef\u00FChrt. Speichern Sie Ihre Arbeit, schlie\u00DFen Sie Patchy und klicken Sie dann auf \u201EWiederholen\u201C, um die Installation fortzusetzen."
         RunningPatchyQuietMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy wird derzeit ausgef\u00FChrt. Schlie\u00DFen Sie Patchy und f\u00FChren Sie das Setup erneut aus."
         FileInUseQuietMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy konnte nicht aktualisiert werden, weil installierte Dateien gerade verwendet werden. Schlie\u00DFen Sie Patchy und f\u00FChren Sie das Setup erneut aus."
         InstallationCanceled = ConvertFrom-PatchyUnicodeEscapes "Installation abgebrochen."
+        InstallFolderInvalid = ConvertFrom-PatchyUnicodeEscapes "W\u00E4hlen Sie einen vollst\u00E4ndigen Ordnerpfad f\u00FCr Patchy, zum Beispiel D:\Apps\Patchy. Ein Laufwerksstamm oder der Windows-Ordner kann nicht verwendet werden."
+        InstallFolderNotEmpty = ConvertFrom-PatchyUnicodeEscapes "Der Ordner {0} enth\u00E4lt bereits andere Dateien. W\u00E4hlen Sie einen leeren Ordner oder einen neuen Ordnernamen, damit beim Deinstallieren von Patchy nur dessen eigene Dateien entfernt werden."
+        InstallFolderNotWritable = ConvertFrom-PatchyUnicodeEscapes "Setup kann nicht in {0} schreiben. Dieses Installationsprogramm verwendet keine Administratorrechte. W\u00E4hlen Sie daher einen Ordner, in den Sie schreiben k\u00F6nnen, zum Beispiel in Ihrem Benutzerordner oder auf einem anderen Laufwerk."
     }
     es = @{
         RunningPatchyRetryMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy se est\u00E1 ejecutando. Guarde su trabajo, cierre Patchy y haga clic en Reintentar para continuar con la instalaci\u00F3n."
         RunningPatchyQuietMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy se est\u00E1 ejecutando. Cierre Patchy y vuelva a ejecutar el instalador."
         FileInUseQuietMessage = ConvertFrom-PatchyUnicodeEscapes "No se pudo actualizar Patchy porque los archivos instalados est\u00E1n en uso. Cierre Patchy y vuelva a ejecutar el instalador."
         InstallationCanceled = ConvertFrom-PatchyUnicodeEscapes "Instalaci\u00F3n cancelada."
+        InstallFolderInvalid = ConvertFrom-PatchyUnicodeEscapes "Elija una ruta de carpeta completa para Patchy, como D:\Apps\Patchy. No se puede usar la ra\u00EDz de una unidad ni la carpeta de Windows."
+        InstallFolderNotEmpty = ConvertFrom-PatchyUnicodeEscapes "La carpeta {0} ya contiene otros archivos. Elija una carpeta vac\u00EDa o un nombre de carpeta nuevo, para que al desinstalar Patchy nunca se eliminen archivos que no sean suyos."
+        InstallFolderNotWritable = ConvertFrom-PatchyUnicodeEscapes "El instalador no puede escribir en {0}. Este instalador no usa permisos de administrador, as\u00ED que elija una carpeta en la que pueda escribir, como una dentro de su carpeta de usuario o en otra unidad."
     }
     fr = @{
         RunningPatchyRetryMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy est en cours d'ex\u00E9cution. Enregistrez votre travail, fermez Patchy, puis cliquez sur R\u00E9essayer pour poursuivre l'installation."
         RunningPatchyQuietMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy est en cours d'ex\u00E9cution. Fermez Patchy, puis relancez le programme d'installation."
         FileInUseQuietMessage = ConvertFrom-PatchyUnicodeEscapes "Impossible de mettre \u00E0 jour Patchy, car des fichiers install\u00E9s sont en cours d'utilisation. Fermez Patchy, puis relancez le programme d'installation."
         InstallationCanceled = ConvertFrom-PatchyUnicodeEscapes "Installation annul\u00E9e."
+        InstallFolderInvalid = ConvertFrom-PatchyUnicodeEscapes "Choisissez un chemin de dossier complet pour Patchy, par exemple D:\Apps\Patchy. La racine d'un lecteur ou le dossier Windows ne peuvent pas \u00EAtre utilis\u00E9s."
+        InstallFolderNotEmpty = ConvertFrom-PatchyUnicodeEscapes "Le dossier {0} contient d\u00E9j\u00E0 d'autres fichiers. Choisissez un dossier vide ou un nouveau nom de dossier, afin que la d\u00E9sinstallation de Patchy ne supprime jamais de fichiers qui ne lui appartiennent pas."
+        InstallFolderNotWritable = ConvertFrom-PatchyUnicodeEscapes "Le programme d'installation ne peut pas \u00E9crire dans {0}. Il n'utilise pas les droits d'administrateur : choisissez un dossier dans lequel vous pouvez \u00E9crire, par exemple dans votre dossier utilisateur ou sur un autre lecteur."
     }
     it = @{
         RunningPatchyRetryMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy \u00E8 in esecuzione. Salva il lavoro, chiudi Patchy e fai clic su Riprova per continuare l'installazione."
         RunningPatchyQuietMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy \u00E8 in esecuzione. Chiudi Patchy ed esegui di nuovo il programma di installazione."
         FileInUseQuietMessage = ConvertFrom-PatchyUnicodeEscapes "Impossibile aggiornare Patchy perch\u00E9 i file installati sono in uso. Chiudi Patchy ed esegui di nuovo il programma di installazione."
         InstallationCanceled = ConvertFrom-PatchyUnicodeEscapes "Installazione annullata."
+        InstallFolderInvalid = ConvertFrom-PatchyUnicodeEscapes "Scegli un percorso di cartella completo per Patchy, ad esempio D:\Apps\Patchy. Non \u00E8 possibile usare la radice di un'unit\u00E0 o la cartella di Windows."
+        InstallFolderNotEmpty = ConvertFrom-PatchyUnicodeEscapes "La cartella {0} contiene gi\u00E0 altri file. Scegli una cartella vuota o un nuovo nome di cartella, cos\u00EC la disinstallazione di Patchy non rimuover\u00E0 mai file che non gli appartengono."
+        InstallFolderNotWritable = ConvertFrom-PatchyUnicodeEscapes "Il programma di installazione non pu\u00F2 scrivere in {0}. Non usa i diritti di amministratore, quindi scegli una cartella in cui puoi scrivere, ad esempio nella tua cartella utente o su un'altra unit\u00E0."
     }
     ko = @{
         RunningPatchyRetryMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy\uAC00 \uC2E4\uD589 \uC911\uC785\uB2C8\uB2E4. \uC791\uC5C5\uC744 \uC800\uC7A5\uD558\uACE0 Patchy\uB97C \uB2EB\uC740 \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uB97C \uD074\uB9AD\uD558\uC5EC \uC124\uCE58\uB97C \uACC4\uC18D\uD558\uC138\uC694."
         RunningPatchyQuietMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy\uAC00 \uC2E4\uD589 \uC911\uC785\uB2C8\uB2E4. Patchy\uB97C \uB2EB\uACE0 \uC124\uCE58 \uD504\uB85C\uADF8\uB7A8\uC744 \uB2E4\uC2DC \uC2E4\uD589\uD558\uC138\uC694."
         FileInUseQuietMessage = ConvertFrom-PatchyUnicodeEscapes "\uC124\uCE58\uB41C \uD30C\uC77C\uC774 \uC0AC\uC6A9 \uC911\uC774\uC5B4\uC11C Patchy\uB97C \uC5C5\uB370\uC774\uD2B8\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. Patchy\uB97C \uB2EB\uACE0 \uC124\uCE58 \uD504\uB85C\uADF8\uB7A8\uC744 \uB2E4\uC2DC \uC2E4\uD589\uD558\uC138\uC694."
         InstallationCanceled = ConvertFrom-PatchyUnicodeEscapes "\uC124\uCE58\uAC00 \uCDE8\uC18C\uB418\uC5C8\uC2B5\uB2C8\uB2E4."
+        InstallFolderInvalid = ConvertFrom-PatchyUnicodeEscapes "Patchy\uB97C \uC124\uCE58\uD560 \uC804\uCCB4 \uD3F4\uB354 \uACBD\uB85C\uB97C \uC9C0\uC815\uD558\uC138\uC694(\uC608: D:\Apps\Patchy). \uB4DC\uB77C\uC774\uBE0C \uB8E8\uD2B8\uB098 Windows \uD3F4\uB354\uB294 \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
+        InstallFolderNotEmpty = ConvertFrom-PatchyUnicodeEscapes "{0} \uD3F4\uB354\uC5D0 \uC774\uBBF8 \uB2E4\uB978 \uD30C\uC77C\uC774 \uC788\uC2B5\uB2C8\uB2E4. Patchy\uB97C \uC81C\uAC70\uD560 \uB54C Patchy\uC758 \uD30C\uC77C\uC774 \uC544\uB2CC \uD56D\uBAA9\uC774 \uC0AD\uC81C\uB418\uC9C0 \uC54A\uB3C4\uB85D \uBE48 \uD3F4\uB354\uB098 \uC0C8 \uD3F4\uB354 \uC774\uB984\uC744 \uC120\uD0DD\uD558\uC138\uC694."
+        InstallFolderNotWritable = ConvertFrom-PatchyUnicodeEscapes "{0}\uC5D0 \uC4F8 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. \uC774 \uC124\uCE58 \uD504\uB85C\uADF8\uB7A8\uC740 \uAD00\uB9AC\uC790 \uAD8C\uD55C\uC744 \uC0AC\uC6A9\uD558\uC9C0 \uC54A\uC73C\uBBC0\uB85C \uC0AC\uC6A9\uC790 \uD3F4\uB354\uB098 \uB2E4\uB978 \uB4DC\uB77C\uC774\uBE0C\uCC98\uB7FC \uC4F0\uAE30 \uAD8C\uD55C\uC774 \uC788\uB294 \uD3F4\uB354\uB97C \uC120\uD0DD\uD558\uC138\uC694."
     }
     pl = @{
         RunningPatchyRetryMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy jest uruchomiony. Zapisz swoj\u0105 prac\u0119, zamknij Patchy, a nast\u0119pnie kliknij Pon\u00F3w pr\u00F3b\u0119, aby kontynuowa\u0107 instalacj\u0119."
         RunningPatchyQuietMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy jest uruchomiony. Zamknij Patchy i ponownie uruchom instalator."
         FileInUseQuietMessage = ConvertFrom-PatchyUnicodeEscapes "Nie mo\u017Cna zaktualizowa\u0107 Patchy, poniewa\u017C zainstalowane pliki s\u0105 u\u017Cywane. Zamknij Patchy i ponownie uruchom instalator."
         InstallationCanceled = ConvertFrom-PatchyUnicodeEscapes "Instalacja zosta\u0142a anulowana."
+        InstallFolderInvalid = ConvertFrom-PatchyUnicodeEscapes "Wybierz pe\u0142n\u0105 \u015Bcie\u017Ck\u0119 folderu dla Patchy, na przyk\u0142ad D:\Apps\Patchy. Nie mo\u017Cna u\u017Cy\u0107 katalogu g\u0142\u00F3wnego dysku ani folderu Windows."
+        InstallFolderNotEmpty = ConvertFrom-PatchyUnicodeEscapes "Folder {0} zawiera ju\u017C inne pliki. Wybierz pusty folder lub now\u0105 nazw\u0119 folderu, aby odinstalowanie Patchy nigdy nie usun\u0119\u0142o plik\u00F3w, kt\u00F3re do niego nie nale\u017C\u0105."
+        InstallFolderNotWritable = ConvertFrom-PatchyUnicodeEscapes "Instalator nie mo\u017Ce zapisywa\u0107 w {0}. Ten instalator nie u\u017Cywa uprawnie\u0144 administratora, wi\u0119c wybierz folder, w kt\u00F3rym mo\u017Cesz zapisywa\u0107, na przyk\u0142ad w folderze u\u017Cytkownika lub na innym dysku."
     }
     pt_BR = @{
         RunningPatchyRetryMessage = ConvertFrom-PatchyUnicodeEscapes "O Patchy est\u00E1 em execu\u00E7\u00E3o. Salve seu trabalho, feche o Patchy e clique em Repetir para continuar a instala\u00E7\u00E3o."
         RunningPatchyQuietMessage = ConvertFrom-PatchyUnicodeEscapes "O Patchy est\u00E1 em execu\u00E7\u00E3o. Feche o Patchy e execute o instalador novamente."
         FileInUseQuietMessage = ConvertFrom-PatchyUnicodeEscapes "N\u00E3o foi poss\u00EDvel atualizar o Patchy porque os arquivos instalados est\u00E3o em uso. Feche o Patchy e execute o instalador novamente."
         InstallationCanceled = ConvertFrom-PatchyUnicodeEscapes "Instala\u00E7\u00E3o cancelada."
+        InstallFolderInvalid = ConvertFrom-PatchyUnicodeEscapes "Escolha um caminho de pasta completo para o Patchy, como D:\Apps\Patchy. N\u00E3o \u00E9 poss\u00EDvel usar a raiz de uma unidade nem a pasta do Windows."
+        InstallFolderNotEmpty = ConvertFrom-PatchyUnicodeEscapes "A pasta {0} j\u00E1 cont\u00E9m outros arquivos. Escolha uma pasta vazia ou um novo nome de pasta, para que a desinstala\u00E7\u00E3o do Patchy nunca remova arquivos que n\u00E3o sejam dele."
+        InstallFolderNotWritable = ConvertFrom-PatchyUnicodeEscapes "O instalador n\u00E3o pode gravar em {0}. Este instalador n\u00E3o usa direitos de administrador, ent\u00E3o escolha uma pasta na qual voc\u00EA possa gravar, como uma dentro da sua pasta de usu\u00E1rio ou em outra unidade."
     }
     ru = @{
         RunningPatchyRetryMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy \u0443\u0436\u0435 \u0437\u0430\u043F\u0443\u0449\u0435\u043D. \u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u0435 \u0440\u0430\u0431\u043E\u0442\u0443, \u0437\u0430\u043A\u0440\u043E\u0439\u0442\u0435 Patchy \u0438 \u043D\u0430\u0436\u043C\u0438\u0442\u0435 \u00AB\u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u044C\u00BB, \u0447\u0442\u043E\u0431\u044B \u043F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0443."
         RunningPatchyQuietMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy \u0443\u0436\u0435 \u0437\u0430\u043F\u0443\u0449\u0435\u043D. \u0417\u0430\u043A\u0440\u043E\u0439\u0442\u0435 Patchy \u0438 \u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u0435 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0443 \u0441\u043D\u043E\u0432\u0430."
         FileInUseQuietMessage = ConvertFrom-PatchyUnicodeEscapes "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043E\u0431\u043D\u043E\u0432\u0438\u0442\u044C Patchy, \u043F\u043E\u0441\u043A\u043E\u043B\u044C\u043A\u0443 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u044B\u0435 \u0444\u0430\u0439\u043B\u044B \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u044E\u0442\u0441\u044F. \u0417\u0430\u043A\u0440\u043E\u0439\u0442\u0435 Patchy \u0438 \u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u0435 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0443 \u0441\u043D\u043E\u0432\u0430."
         InstallationCanceled = ConvertFrom-PatchyUnicodeEscapes "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430 \u043E\u0442\u043C\u0435\u043D\u0435\u043D\u0430."
+        InstallFolderInvalid = ConvertFrom-PatchyUnicodeEscapes "\u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u043F\u043E\u043B\u043D\u044B\u0439 \u043F\u0443\u0442\u044C \u043A \u043F\u0430\u043F\u043A\u0435 \u0434\u043B\u044F Patchy, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440 D:\Apps\Patchy. \u041A\u043E\u0440\u0435\u043D\u044C \u0434\u0438\u0441\u043A\u0430 \u0438 \u043F\u0430\u043F\u043A\u0443 Windows \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C \u043D\u0435\u043B\u044C\u0437\u044F."
+        InstallFolderNotEmpty = ConvertFrom-PatchyUnicodeEscapes "\u041F\u0430\u043F\u043A\u0430 {0} \u0443\u0436\u0435 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u0442 \u0434\u0440\u0443\u0433\u0438\u0435 \u0444\u0430\u0439\u043B\u044B. \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043F\u0443\u0441\u0442\u0443\u044E \u043F\u0430\u043F\u043A\u0443 \u0438\u043B\u0438 \u043D\u043E\u0432\u043E\u0435 \u0438\u043C\u044F \u043F\u0430\u043F\u043A\u0438, \u0447\u0442\u043E\u0431\u044B \u043F\u0440\u0438 \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u0438 Patchy \u043D\u0435 \u0443\u0434\u0430\u043B\u044F\u043B\u0438\u0441\u044C \u0447\u0443\u0436\u0438\u0435 \u0444\u0430\u0439\u043B\u044B."
+        InstallFolderNotWritable = ConvertFrom-PatchyUnicodeEscapes "\u041F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u0430 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0438 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u0437\u0430\u043F\u0438\u0441\u044B\u0432\u0430\u0442\u044C \u0432 {0}. \u041E\u043D\u0430 \u043D\u0435 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u0442 \u043F\u0440\u0430\u0432\u0430 \u0430\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440\u0430, \u043F\u043E\u044D\u0442\u043E\u043C\u0443 \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043F\u0430\u043F\u043A\u0443, \u0432 \u043A\u043E\u0442\u043E\u0440\u0443\u044E \u0443 \u0432\u0430\u0441 \u0435\u0441\u0442\u044C \u043F\u0440\u0430\u0432\u043E \u0437\u0430\u043F\u0438\u0441\u0438, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440 \u0432 \u043F\u0430\u043F\u043A\u0435 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F \u0438\u043B\u0438 \u043D\u0430 \u0434\u0440\u0443\u0433\u043E\u043C \u0434\u0438\u0441\u043A\u0435."
     }
     zh_CN = @{
         RunningPatchyRetryMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy \u6B63\u5728\u8FD0\u884C\u3002\u8BF7\u4FDD\u5B58\u60A8\u7684\u5DE5\u4F5C\uFF0C\u5173\u95ED Patchy\uFF0C\u7136\u540E\u5355\u51FB\u201C\u91CD\u8BD5\u201D\u7EE7\u7EED\u5B89\u88C5\u3002"
         RunningPatchyQuietMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy \u6B63\u5728\u8FD0\u884C\u3002\u8BF7\u5173\u95ED Patchy\uFF0C\u7136\u540E\u91CD\u65B0\u8FD0\u884C\u5B89\u88C5\u7A0B\u5E8F\u3002"
         FileInUseQuietMessage = ConvertFrom-PatchyUnicodeEscapes "\u65E0\u6CD5\u66F4\u65B0 Patchy\uFF0C\u56E0\u4E3A\u5DF2\u5B89\u88C5\u7684\u6587\u4EF6\u6B63\u5728\u4F7F\u7528\u4E2D\u3002\u8BF7\u5173\u95ED Patchy\uFF0C\u7136\u540E\u91CD\u65B0\u8FD0\u884C\u5B89\u88C5\u7A0B\u5E8F\u3002"
         InstallationCanceled = ConvertFrom-PatchyUnicodeEscapes "\u5B89\u88C5\u5DF2\u53D6\u6D88\u3002"
+        InstallFolderInvalid = ConvertFrom-PatchyUnicodeEscapes "\u8BF7\u4E3A Patchy \u9009\u62E9\u5B8C\u6574\u7684\u6587\u4EF6\u5939\u8DEF\u5F84\uFF0C\u4F8B\u5982 D:\Apps\Patchy\u3002\u4E0D\u80FD\u4F7F\u7528\u9A71\u52A8\u5668\u6839\u76EE\u5F55\u6216 Windows \u6587\u4EF6\u5939\u3002"
+        InstallFolderNotEmpty = ConvertFrom-PatchyUnicodeEscapes "\u6587\u4EF6\u5939 {0} \u4E2D\u5DF2\u6709\u5176\u4ED6\u6587\u4EF6\u3002\u8BF7\u9009\u62E9\u7A7A\u6587\u4EF6\u5939\u6216\u65B0\u7684\u6587\u4EF6\u5939\u540D\u79F0\uFF0C\u4EE5\u786E\u4FDD\u5378\u8F7D Patchy \u65F6\u4E0D\u4F1A\u5220\u9664\u4E0D\u5C5E\u4E8E\u5B83\u7684\u6587\u4EF6\u3002"
+        InstallFolderNotWritable = ConvertFrom-PatchyUnicodeEscapes "\u5B89\u88C5\u7A0B\u5E8F\u65E0\u6CD5\u5199\u5165 {0}\u3002\u6B64\u5B89\u88C5\u7A0B\u5E8F\u4E0D\u4F7F\u7528\u7BA1\u7406\u5458\u6743\u9650\uFF0C\u8BF7\u9009\u62E9\u60A8\u6709\u5199\u5165\u6743\u9650\u7684\u6587\u4EF6\u5939\uFF0C\u4F8B\u5982\u7528\u6237\u6587\u4EF6\u5939\u4E2D\u7684\u6587\u4EF6\u5939\u6216\u5176\u4ED6\u9A71\u52A8\u5668\u3002"
     }
     zh_TW = @{
         RunningPatchyRetryMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy \u6B63\u5728\u57F7\u884C\u4E2D\u3002\u8ACB\u5132\u5B58\u60A8\u7684\u5DE5\u4F5C\uFF0C\u95DC\u9589 Patchy\uFF0C\u7136\u5F8C\u6309\u4E00\u4E0B\u300C\u91CD\u8A66\u300D\u4EE5\u7E7C\u7E8C\u5B89\u88DD\u3002"
         RunningPatchyQuietMessage = ConvertFrom-PatchyUnicodeEscapes "Patchy \u6B63\u5728\u57F7\u884C\u4E2D\u3002\u8ACB\u95DC\u9589 Patchy\uFF0C\u7136\u5F8C\u91CD\u65B0\u57F7\u884C\u5B89\u88DD\u7A0B\u5F0F\u3002"
         FileInUseQuietMessage = ConvertFrom-PatchyUnicodeEscapes "\u7121\u6CD5\u66F4\u65B0 Patchy\uFF0C\u56E0\u70BA\u5DF2\u5B89\u88DD\u7684\u6A94\u6848\u6B63\u5728\u4F7F\u7528\u4E2D\u3002\u8ACB\u95DC\u9589 Patchy\uFF0C\u7136\u5F8C\u91CD\u65B0\u57F7\u884C\u5B89\u88DD\u7A0B\u5F0F\u3002"
         InstallationCanceled = ConvertFrom-PatchyUnicodeEscapes "\u5B89\u88DD\u5DF2\u53D6\u6D88\u3002"
+        InstallFolderInvalid = ConvertFrom-PatchyUnicodeEscapes "\u8ACB\u70BA Patchy \u9078\u64C7\u5B8C\u6574\u7684\u8CC7\u6599\u593E\u8DEF\u5F91\uFF0C\u4F8B\u5982 D:\Apps\Patchy\u3002\u4E0D\u80FD\u4F7F\u7528\u78C1\u789F\u6A5F\u6839\u76EE\u9304\u6216 Windows \u8CC7\u6599\u593E\u3002"
+        InstallFolderNotEmpty = ConvertFrom-PatchyUnicodeEscapes "\u8CC7\u6599\u593E {0} \u4E2D\u5DF2\u6709\u5176\u4ED6\u6A94\u6848\u3002\u8ACB\u9078\u64C7\u7A7A\u7684\u8CC7\u6599\u593E\u6216\u65B0\u7684\u8CC7\u6599\u593E\u540D\u7A31\uFF0C\u4EE5\u78BA\u4FDD\u89E3\u9664\u5B89\u88DD Patchy \u6642\u4E0D\u6703\u522A\u9664\u4E0D\u5C6C\u65BC\u5B83\u7684\u6A94\u6848\u3002"
+        InstallFolderNotWritable = ConvertFrom-PatchyUnicodeEscapes "\u5B89\u88DD\u7A0B\u5F0F\u7121\u6CD5\u5BEB\u5165 {0}\u3002\u6B64\u5B89\u88DD\u7A0B\u5F0F\u4E0D\u4F7F\u7528\u7CFB\u7D71\u7BA1\u7406\u54E1\u6B0A\u9650\uFF0C\u8ACB\u9078\u64C7\u60A8\u6709\u5BEB\u5165\u6B0A\u9650\u7684\u8CC7\u6599\u593E\uFF0C\u4F8B\u5982\u4F7F\u7528\u8005\u8CC7\u6599\u593E\u4E2D\u7684\u8CC7\u6599\u593E\u6216\u5176\u4ED6\u78C1\u789F\u6A5F\u3002"
     }
 }
 
@@ -144,21 +189,6 @@ function Get-PatchyInstallerText {
         return $PatchyInstallerText[$language][$Key]
     }
     return $PatchyInstallerText["en"][$Key]
-}
-
-function Test-PathInsideRoot {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Path,
-
-        [Parameter(Mandatory = $true)]
-        [string]$Root
-    )
-
-    $fullPath = [IO.Path]::GetFullPath($Path)
-    $fullRoot = [IO.Path]::GetFullPath($Root)
-    return $fullPath.StartsWith($fullRoot + [IO.Path]::DirectorySeparatorChar,
-        [StringComparison]::OrdinalIgnoreCase)
 }
 
 function Test-PathAtOrInsideRoot {
@@ -415,6 +445,161 @@ function Add-PatchyInstalledRelativePath {
     }
 }
 
+# Expands and normalizes a typed install folder. Returns $null for anything that is not
+# a fully qualified drive or UNC folder path (relative, drive-relative, invalid names).
+function ConvertTo-PatchyInstallRoot {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return $null
+    }
+    $expanded = [Environment]::ExpandEnvironmentVariables($Path.Trim().Trim('"').Trim())
+    if ($expanded -notmatch '^([A-Za-z]:[\\/]|[\\/]{2}[^\\/?.][^\\/]*[\\/]+[^\\/]+)') {
+        return $null
+    }
+    try {
+        $fullPath = [IO.Path]::GetFullPath($expanded)
+    } catch {
+        return $null
+    }
+    $pathRoot = [IO.Path]::GetPathRoot($fullPath)
+    if ($fullPath.Substring($pathRoot.Length) -match '[<>:"|?*\x00-\x1F]') {
+        return $null
+    }
+    $trimChars = [char[]]@([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+    if ($fullPath.TrimEnd($trimChars).Length -le $pathRoot.TrimEnd($trimChars).Length) {
+        # A drive or share root keeps its separator ("C:\").
+        return $pathRoot
+    }
+    return $fullPath.TrimEnd($trimChars)
+}
+
+function Test-PatchyInstallFolder {
+    param([Parameter(Mandatory = $true)][string]$Folder)
+
+    return (Test-Path -LiteralPath (Join-Path $Folder "patchy.exe") -PathType Leaf) -or
+        (Test-Path -LiteralPath (Join-Path $Folder $ManifestFileName) -PathType Leaf)
+}
+
+# Returns $null when setup may install into $Path, or the message that says why not.
+# Installing and uninstalling remove every empty folder under the install root, and the
+# uninstaller then removes the root itself, so only a new folder, an empty one, or an
+# earlier Patchy install is accepted: never a drive root, the Windows folder, or a
+# folder of someone else's files such as the Desktop.
+function Test-PatchyInstallLocation {
+    param([string]$Path)
+
+    $root = ConvertTo-PatchyInstallRoot -Path $Path
+    if (-not $root -or $root -eq [IO.Path]::GetPathRoot($root)) {
+        return Get-PatchyInstallerText "InstallFolderInvalid"
+    }
+    $windowsDirectory = [Environment]::GetFolderPath([Environment+SpecialFolder]::Windows)
+    if ($windowsDirectory -and (Test-PathAtOrInsideRoot -Path $root -Root $windowsDirectory)) {
+        return Get-PatchyInstallerText "InstallFolderInvalid"
+    }
+    if (Test-Path -LiteralPath $root -PathType Leaf) {
+        return Get-PatchyInstallerText "InstallFolderInvalid"
+    }
+    if (Test-Path -LiteralPath $root -PathType Container) {
+        $firstEntry = @(Get-ChildItem -LiteralPath $root -Force -ErrorAction SilentlyContinue | Select-Object -First 1)
+        if ($firstEntry.Count -gt 0 -and -not (Test-PatchyInstallFolder -Folder $root)) {
+            return (Get-PatchyInstallerText "InstallFolderNotEmpty") -f $root
+        }
+    }
+    return $null
+}
+
+# Creates the install folder and writes a scratch file in it. Returns $null when that
+# works, or the message to show. Folders it created for a failed probe are removed again.
+function Test-PatchyInstallFolderWritable {
+    param([Parameter(Mandatory = $true)][string]$InstallRoot)
+
+    $created = @()
+    $folder = $InstallRoot
+    while ($folder -and -not (Test-Path -LiteralPath $folder)) {
+        $created += $folder
+        $folder = Split-Path -Parent $folder
+    }
+    try {
+        [void][IO.Directory]::CreateDirectory($InstallRoot)
+        $probe = Join-Path $InstallRoot ("patchy-setup-" + [guid]::NewGuid().ToString("N") + ".tmp")
+        [IO.File]::WriteAllText($probe, "")
+        [IO.File]::Delete($probe)
+        return $null
+    } catch {
+        foreach ($createdFolder in $created) {
+            if ((Test-Path -LiteralPath $createdFolder -PathType Container) -and
+                -not (Get-ChildItem -LiteralPath $createdFolder -Force -ErrorAction SilentlyContinue)) {
+                Remove-Item -LiteralPath $createdFolder -Force -ErrorAction SilentlyContinue
+            }
+        }
+        return (Get-PatchyInstallerText "InstallFolderNotWritable") -f $InstallRoot
+    }
+}
+
+# The folder the Browse button fills in: a chosen folder gets a Patchy folder inside it,
+# unless it is already named Patchy or already holds a Patchy install.
+function Resolve-PatchyBrowsedFolder {
+    param([Parameter(Mandatory = $true)][string]$Folder)
+
+    $root = ConvertTo-PatchyInstallRoot -Path $Folder
+    if (-not $root) {
+        return $Folder
+    }
+    if ($root -ne [IO.Path]::GetPathRoot($root) -and
+        ((Split-Path -Leaf $root) -eq "Patchy" -or (Test-PatchyInstallFolder -Folder $root))) {
+        return $root
+    }
+    return Join-Path $root "Patchy"
+}
+
+# The nearest existing folder at or above $Path, where the Browse dialog starts.
+function Get-PatchyExistingAncestor {
+    param([string]$Path)
+
+    $folder = ConvertTo-PatchyInstallRoot -Path $Path
+    while ($folder -and -not (Test-Path -LiteralPath $folder -PathType Container)) {
+        $folder = Split-Path -Parent $folder
+    }
+    return $folder
+}
+
+# The folder of the install the uninstall entry names, when patchy.exe is still there.
+function Get-PatchyRegisteredInstallRoot {
+    param([Parameter(Mandatory = $true)][string]$UninstallKey)
+
+    try {
+        $location = (Get-ItemProperty -LiteralPath $UninstallKey -Name "InstallLocation" -ErrorAction Stop).InstallLocation
+    } catch {
+        return $null
+    }
+    $root = ConvertTo-PatchyInstallRoot -Path $location
+    if ($root -and (Test-Path -LiteralPath (Join-Path $root "patchy.exe") -PathType Leaf)) {
+        return $root
+    }
+    return $null
+}
+
+# -InstallDir, else the folder of the existing install (an upgrade stays where the user
+# put Patchy), else %LOCALAPPDATA%\Programs\Patchy.
+function Get-PatchyDefaultInstallRoot {
+    param(
+        [string]$InstallDir,
+
+        [Parameter(Mandatory = $true)]
+        [string]$UninstallKey
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($InstallDir)) {
+        return $InstallDir
+    }
+    $registered = Get-PatchyRegisteredInstallRoot -UninstallKey $UninstallKey
+    if ($registered) {
+        return $registered
+    }
+    return Join-Path (Join-Path $env:LOCALAPPDATA "Programs") "Patchy"
+}
+
 # Extensions Patchy is offered for in Explorer's "Open with" list. Keep in step with
 # file_format_entries() in src/ui/main_window_files.cpp and the camera raw list in
 # src/formats/raw_document_io.cpp. PDF is left out on purpose.
@@ -519,9 +704,6 @@ function Invoke-PatchyInstall {
         [string]$PayloadZip,
 
         [Parameter(Mandatory = $true)]
-        [string]$InstallParent,
-
-        [Parameter(Mandatory = $true)]
         [string]$InstallRoot,
 
         [Parameter(Mandatory = $true)]
@@ -553,12 +735,28 @@ function Invoke-PatchyInstall {
             throw "Installer payload was not found: $PayloadZip"
         }
 
-        if (-not (Test-PathInsideRoot -Path $InstallRoot -Root $InstallParent)) {
-            throw "Refusing to install outside the per-user Programs directory: $InstallRoot"
+        $locationProblem = Test-PatchyInstallLocation -Path $InstallRoot
+        if ($locationProblem) {
+            throw $locationProblem
+        }
+        $InstallRoot = ConvertTo-PatchyInstallRoot -Path $InstallRoot
+
+        # An install registered in another folder moves here: its files go once this
+        # install has succeeded. Nested folders are left alone rather than untangled.
+        $previousRoot = Get-PatchyRegisteredInstallRoot -UninstallKey $UninstallKey
+        if ($previousRoot -and ((Test-PathAtOrInsideRoot -Path $previousRoot -Root $InstallRoot) -or
+                (Test-PathAtOrInsideRoot -Path $InstallRoot -Root $previousRoot))) {
+            $previousRoot = $null
         }
 
-        New-Item -ItemType Directory -Path $InstallParent -Force | Out-Null
         Confirm-PatchyClosedForInstall -InstallRoot $InstallRoot -Quiet $Quiet -Owner $Owner
+        if ($previousRoot) {
+            Confirm-PatchyClosedForInstall -InstallRoot $previousRoot -Quiet $Quiet -Owner $Owner
+        }
+        $writeProblem = Test-PatchyInstallFolderWritable -InstallRoot $InstallRoot
+        if ($writeProblem) {
+            throw $writeProblem
+        }
         New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
 
         Expand-Archive -LiteralPath $PayloadZip -DestinationPath $tempRoot -Force
@@ -569,7 +767,7 @@ function Invoke-PatchyInstall {
         }
 
         Remove-PatchyInstalledFiles -InstallRoot $InstallRoot
-        New-Item -ItemType Directory -Path $InstallRoot -Force | Out-Null
+        [void][IO.Directory]::CreateDirectory($InstallRoot)
         Get-ChildItem -LiteralPath $sourceRoot -Force | ForEach-Object {
             Copy-Item -LiteralPath $_.FullName -Destination $InstallRoot -Recurse -Force
         }
@@ -624,6 +822,17 @@ function Invoke-PatchyInstall {
             Write-Warning "Could not add Patchy to the Open with list: $($_.Exception.Message)"
         }
 
+        if ($previousRoot) {
+            try {
+                Remove-PatchyInstalledFiles -InstallRoot $previousRoot
+                if (-not (Get-ChildItem -LiteralPath $previousRoot -Force -ErrorAction SilentlyContinue)) {
+                    Remove-Item -LiteralPath $previousRoot -Force -ErrorAction SilentlyContinue
+                }
+            } catch {
+                Write-Warning "Could not remove the earlier install in ${previousRoot}: $($_.Exception.Message)"
+            }
+        }
+
         return $installedExe
     } finally {
         if (Test-Path -LiteralPath $tempRoot) {
@@ -636,9 +845,6 @@ function Invoke-PatchyInstallWithRetry {
     param(
         [Parameter(Mandatory = $true)]
         [string]$PayloadZip,
-
-        [Parameter(Mandatory = $true)]
-        [string]$InstallParent,
 
         [Parameter(Mandatory = $true)]
         [string]$InstallRoot,
@@ -669,7 +875,6 @@ function Invoke-PatchyInstallWithRetry {
         try {
             return Invoke-PatchyInstall `
                 -PayloadZip $PayloadZip `
-                -InstallParent $InstallParent `
                 -InstallRoot $InstallRoot `
                 -StartMenuDirectory $StartMenuDirectory `
                 -StartMenuShortcut $StartMenuShortcut `
@@ -743,9 +948,6 @@ function Show-PatchyInstallerWizard {
     param(
         [Parameter(Mandatory = $true)]
         [string]$PayloadZip,
-
-        [Parameter(Mandatory = $true)]
-        [string]$InstallParent,
 
         [Parameter(Mandatory = $true)]
         [string]$InstallRoot,
@@ -857,11 +1059,17 @@ function Show-PatchyInstallerWizard {
 
     $pathBox = New-Object System.Windows.Forms.TextBox
     $pathBox.Text = $InstallRoot
-    $pathBox.ReadOnly = $true
     $pathBox.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
     $pathBox.Location = New-Object System.Drawing.Point $contentLeft, 156
-    $pathBox.Size = New-Object System.Drawing.Size 344, 24
+    $pathBox.Size = New-Object System.Drawing.Size 252, 24
     $form.Controls.Add($pathBox)
+
+    $browseButton = New-Object System.Windows.Forms.Button
+    $browseButton.Text = "Browse..."
+    $browseButton.Size = New-Object System.Drawing.Size 86, ($pathBox.Height + 2)
+    $browseButton.Location = New-Object System.Drawing.Point ($pathBox.Right + 6), ($pathBox.Top - 1)
+    $browseButton.UseVisualStyleBackColor = $true
+    $form.Controls.Add($browseButton)
 
     $desktopShortcutCheck = New-Object System.Windows.Forms.CheckBox
     $desktopShortcutCheck.Text = "Create a desktop shortcut"
@@ -929,8 +1137,24 @@ function Show-PatchyInstallerWizard {
             return
         }
 
+        $locationProblem = Test-PatchyInstallLocation -Path $pathBox.Text
+        if ($locationProblem) {
+            [System.Windows.Forms.MessageBox]::Show(
+                $form,
+                $locationProblem,
+                "Patchy Setup",
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Warning
+            ) | Out-Null
+            $pathBox.Focus() | Out-Null
+            $pathBox.SelectAll()
+            return
+        }
+
         $installButton.Enabled = $false
         $cancelButton.Enabled = $false
+        $pathBox.Enabled = $false
+        $browseButton.Enabled = $false
         $progress.Visible = $true
         $status.Text = "Installing Patchy..."
         $form.UseWaitCursor = $true
@@ -940,8 +1164,7 @@ function Show-PatchyInstallerWizard {
         try {
             $state.InstalledExe = Invoke-PatchyInstallWithRetry `
                 -PayloadZip $PayloadZip `
-                -InstallParent $InstallParent `
-                -InstallRoot $InstallRoot `
+                -InstallRoot $pathBox.Text `
                 -StartMenuDirectory $StartMenuDirectory `
                 -StartMenuShortcut $StartMenuShortcut `
                 -DesktopShortcut $DesktopShortcut `
@@ -956,6 +1179,7 @@ function Show-PatchyInstallerWizard {
             $body.Text = "Setup finished installing Patchy on this computer."
             $pathLabel.Visible = $false
             $pathBox.Visible = $false
+            $browseButton.Visible = $false
             $desktopShortcutCheck.Visible = $false
             $status.Text = ""
             $launchCheck.Visible = $true
@@ -978,6 +1202,25 @@ function Show-PatchyInstallerWizard {
             $progress.Visible = $false
             $form.UseWaitCursor = $false
             $installButton.Enabled = $true
+            $pathBox.Enabled = $true
+            $browseButton.Enabled = $true
+        }
+    })
+
+    $browseButton.Add_Click({
+        $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
+        $dialog.Description = "Choose where to install Patchy. Setup installs into a Patchy folder inside the folder you choose."
+        $dialog.ShowNewFolderButton = $true
+        $startFolder = Get-PatchyExistingAncestor -Path $pathBox.Text
+        if ($startFolder) {
+            $dialog.SelectedPath = $startFolder
+        }
+        try {
+            if ($dialog.ShowDialog($form) -eq [System.Windows.Forms.DialogResult]::OK -and $dialog.SelectedPath) {
+                $pathBox.Text = Resolve-PatchyBrowsedFolder -Folder $dialog.SelectedPath
+            }
+        } finally {
+            $dialog.Dispose()
         }
     })
 
@@ -1010,12 +1253,11 @@ function Show-PatchyInstallerWizard {
     return [pscustomobject]$state
 }
 
-$installParent = Join-Path $env:LOCALAPPDATA "Programs"
-$installRoot = Join-Path $installParent "Patchy"
 $startMenuDirectory = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
 $startMenuShortcut = Join-Path $startMenuDirectory "Patchy.lnk"
 $desktopShortcut = Join-Path ([System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::DesktopDirectory)) "Patchy.lnk"
 $uninstallKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Patchy"
+$installRoot = Get-PatchyDefaultInstallRoot -InstallDir $InstallDir -UninstallKey $uninstallKey
 
 if ($CheckLogo) {
     # build-release.bat runs this in Windows PowerShell 5.1, the host the installer uses.
@@ -1043,6 +1285,81 @@ if ($OpenWithCheckRoot) {
     }
 }
 
+if ($LocationCheckRoot) {
+    # Builds its cases inside the scratch folder; nothing is installed or registered.
+    $failures = @()
+    try {
+        $checkRoot = ConvertTo-PatchyInstallRoot -Path $LocationCheckRoot
+        if (-not $checkRoot -or $checkRoot -eq [IO.Path]::GetPathRoot($checkRoot)) {
+            throw "Location check needs a full scratch folder path."
+        }
+        $emptyFolder = Join-Path $checkRoot "empty"
+        $foreignFolder = Join-Path $checkRoot "foreign"
+        $previousFolder = Join-Path $checkRoot "tools"
+        $fileTarget = Join-Path $checkRoot "file.txt"
+        $newFolder = Join-Path $checkRoot "new\Patchy"
+        foreach ($folder in @($emptyFolder, $foreignFolder, $previousFolder)) {
+            [void][IO.Directory]::CreateDirectory($folder)
+        }
+        [IO.File]::WriteAllText((Join-Path $foreignFolder "notes.txt"), "not Patchy")
+        [IO.File]::WriteAllText((Join-Path $previousFolder $ManifestFileName), "patchy.exe")
+        [IO.File]::WriteAllText($fileTarget, "")
+
+        $windowsDirectory = [Environment]::GetFolderPath([Environment+SpecialFolder]::Windows)
+        $cases = @(
+            @{ Path = $newFolder; Accepted = $true },
+            @{ Path = $emptyFolder + "\"; Accepted = $true },
+            @{ Path = $previousFolder; Accepted = $true },
+            @{ Path = $foreignFolder; Accepted = $false },
+            @{ Path = $fileTarget; Accepted = $false },
+            @{ Path = [IO.Path]::GetPathRoot($checkRoot); Accepted = $false },
+            @{ Path = "Patchy"; Accepted = $false },
+            @{ Path = "C:Patchy"; Accepted = $false },
+            @{ Path = ""; Accepted = $false },
+            @{ Path = (Join-Path $checkRoot "bad|name"); Accepted = $false },
+            @{ Path = (Join-Path $windowsDirectory "Patchy"); Accepted = $false }
+        )
+        foreach ($case in $cases) {
+            $problem = Test-PatchyInstallLocation -Path $case.Path
+            if (($problem -eq $null) -ne $case.Accepted) {
+                $failures += "'$($case.Path)' accepted=$($problem -eq $null): $problem"
+            }
+        }
+        $foreignProblem = Test-PatchyInstallLocation -Path $foreignFolder
+        if ($foreignProblem -and -not $foreignProblem.Contains($foreignFolder)) {
+            $failures += "the not-empty message does not name the folder: $foreignProblem"
+        }
+
+        $writeProblem = Test-PatchyInstallFolderWritable -InstallRoot $newFolder
+        if ($writeProblem) {
+            $failures += "write probe failed in a new folder: $writeProblem"
+        } elseif (@(Get-ChildItem -LiteralPath $newFolder -Force).Count -ne 0) {
+            $failures += "write probe left files in $newFolder"
+        }
+
+        $browseCases = @(
+            @{ Folder = (Join-Path $checkRoot "apps"); Expected = (Join-Path $checkRoot "apps\Patchy") },
+            @{ Folder = (Join-Path $checkRoot "apps\Patchy"); Expected = (Join-Path $checkRoot "apps\Patchy") },
+            @{ Folder = $previousFolder; Expected = $previousFolder },
+            @{ Folder = [IO.Path]::GetPathRoot($checkRoot); Expected = (Join-Path ([IO.Path]::GetPathRoot($checkRoot)) "Patchy") }
+        )
+        foreach ($case in $browseCases) {
+            $resolved = Resolve-PatchyBrowsedFolder -Folder $case.Folder
+            if ($resolved -ne $case.Expected) {
+                $failures += "Browse '$($case.Folder)' gave '$resolved', expected '$($case.Expected)'"
+            }
+        }
+    } catch {
+        $failures += $_.Exception.Message
+    }
+    if ($failures.Count -gt 0) {
+        Write-Host ("Install location check FAILED: " + ($failures -join "; "))
+        exit 1
+    }
+    Write-Host "Install location check passed."
+    exit 0
+}
+
 if ($SmokeTest) {
     # Handled before the quiet branch below so a smoke test can never install, and
     # without the message box the real error path shows (it would wait for a click).
@@ -1053,7 +1370,6 @@ if ($SmokeTest) {
     try {
         $smoke = Show-PatchyInstallerWizard `
             -PayloadZip $PayloadZip `
-            -InstallParent $installParent `
             -InstallRoot $installRoot `
             -StartMenuDirectory $startMenuDirectory `
             -StartMenuShortcut $startMenuShortcut `
@@ -1074,7 +1390,6 @@ try {
     if ($Quiet -or -not [Environment]::UserInteractive) {
         $installedExe = Invoke-PatchyInstallWithRetry `
             -PayloadZip $PayloadZip `
-            -InstallParent $installParent `
             -InstallRoot $installRoot `
             -StartMenuDirectory $startMenuDirectory `
             -StartMenuShortcut $startMenuShortcut `
@@ -1083,13 +1398,12 @@ try {
             -UninstallKey $uninstallKey `
             -Version $Version `
             -Quiet $true
-        Write-Host "Patchy installed to $installRoot"
+        Write-Host "Patchy installed to $(Split-Path -Parent $installedExe)"
         exit 0
     }
 
     $result = Show-PatchyInstallerWizard `
         -PayloadZip $PayloadZip `
-        -InstallParent $installParent `
         -InstallRoot $installRoot `
         -StartMenuDirectory $startMenuDirectory `
         -StartMenuShortcut $startMenuShortcut `
@@ -1098,9 +1412,10 @@ try {
         -Version $Version
 
     if ($result.Completed) {
-        Write-Host "Patchy installed to $installRoot"
+        $installedRoot = Split-Path -Parent $result.InstalledExe
+        Write-Host "Patchy installed to $installedRoot"
         if ($result.Launch -and (Test-Path -LiteralPath $result.InstalledExe -PathType Leaf)) {
-            Start-Process -FilePath $result.InstalledExe -WorkingDirectory $installRoot
+            Start-Process -FilePath $result.InstalledExe -WorkingDirectory $installedRoot
         }
     }
 

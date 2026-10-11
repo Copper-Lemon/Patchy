@@ -41,8 +41,10 @@ The [packaged setup document](../agent-kit/patchy-control/references/setup.md) i
 what the assistant reads (locally from the skill's `references` folder, or the
 GitHub copy the blurb also names). It carries the per-platform paths, per-client
 steps, and verification. The Windows installer installs to
-`%LOCALAPPDATA%\Programs\Patchy`, never Program Files; keep every example on
-that path. Register the connector and install the skill separately. Putting a
+`%LOCALAPPDATA%\Programs\Patchy` by default, never Program Files; keep every
+example on that path. A user may choose another folder, which the uninstall
+entry records as `InstallLocation`, and Help > Set up AI Control always pastes
+the real paths. Register the connector and install the skill separately. Putting a
 skill in a repository does not install it in a client.
 
 For a Windows source build, the same dialog works from `build/release/patchy.exe`:

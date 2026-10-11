@@ -56,8 +56,11 @@ table below.
 | Source build | `build/<preset>/patchy-mcp` (`.exe` on Windows) | `build/<preset>/ai/patchy-control` |
 
 `%LOCALAPPDATA%` is normally `C:\Users\<name>\AppData\Local`. In PowerShell the
-installer path is `"$env:LOCALAPPDATA\Programs\Patchy\patchy-mcp.exe"`. Always
-use the absolute path, quoted, because user folders often contain spaces.
+installer path is `"$env:LOCALAPPDATA\Programs\Patchy\patchy-mcp.exe"`. That is
+the installer's default folder; if Patchy is not there, the user chose another
+one, and `(Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Patchy').InstallLocation`
+names it. Always use the absolute path, quoted, because user folders often
+contain spaces.
 
 The connector needs no Python or Node runtime. New installations use no arguments.
 Reuse an existing matching entry, including its mode. Tasks can use that connector
