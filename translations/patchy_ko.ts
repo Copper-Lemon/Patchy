@@ -21441,6 +21441,10 @@ Y: %2
         <source>Automatic selection</source>
         <translation>자동 선택</translation>
     </message>
+    <message>
+        <source>Select Subject is not included in this build of Patchy; check doc.selection.subjectSelectionAvailable.</source>
+        <translation>이 Patchy 빌드에는 &apos;피사체 선택&apos;이 포함되어 있지 않습니다. doc.selection.subjectSelectionAvailable를 확인하세요.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ScriptSaveOptions</name>

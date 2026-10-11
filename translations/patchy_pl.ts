@@ -21557,6 +21557,10 @@ Y: %2
         <source>Automatic selection</source>
         <translation>Automatyczne zaznaczanie</translation>
     </message>
+    <message>
+        <source>Select Subject is not included in this build of Patchy; check doc.selection.subjectSelectionAvailable.</source>
+        <translation>„Zaznacz motyw” nie jest dostępne w tej kompilacji Patchy; sprawdź doc.selection.subjectSelectionAvailable.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ScriptSaveOptions</name>

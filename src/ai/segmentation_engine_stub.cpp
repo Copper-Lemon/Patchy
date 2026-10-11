@@ -20,6 +20,10 @@ std::string segmentation_unavailable_reason() {
   return "this build of Patchy does not include automatic selection";
 }
 
+bool subject_selection_available() {
+  return false;
+}
+
 std::shared_ptr<const SamEmbedding> sam_encode(const PixelBuffer&, InferenceCancel*) {
   throw_unavailable();
 }

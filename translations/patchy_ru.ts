@@ -21557,6 +21557,10 @@ Y: %2
         <source>Automatic selection</source>
         <translation>Автоматическое выделение</translation>
     </message>
+    <message>
+        <source>Select Subject is not included in this build of Patchy; check doc.selection.subjectSelectionAvailable.</source>
+        <translation>«Выделить предмет» не входит в эту сборку Patchy; проверьте doc.selection.subjectSelectionAvailable.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ScriptSaveOptions</name>

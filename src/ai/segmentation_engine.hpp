@@ -73,10 +73,16 @@ private:
 void set_model_directory(const std::filesystem::path& directory);
 [[nodiscard]] std::filesystem::path model_directory();
 
-// True when this build has ONNX Runtime and every model file is present.
+// True when this build has ONNX Runtime and the Object Selection model files are present.
 [[nodiscard]] bool segmentation_available();
 // English diagnostic for logs and script errors when unavailable; empty when available.
 [[nodiscard]] std::string segmentation_unavailable_reason();
+
+// True when this build ships Select Subject's model and it is present. Select Subject,
+// Select Background and Remove Background need it; Object Selection needs only
+// segmentation_available(). Off unless CMake's PATCHY_ENABLE_SELECT_SUBJECT is on: the
+// model is held back pending patent review (US 12051225, docs/legal-constraints.md).
+[[nodiscard]] bool subject_selection_available();
 
 // The MobileSAM image embedding of one image. Computing it is the expensive step
 // (about 0.2-0.8 s on a desktop CPU); each prompt afterwards is a fast decoder run.
@@ -99,7 +105,8 @@ struct SamEmbedding {
 [[nodiscard]] AiMask sam_select_box(const SamEmbedding& embedding, Rect box);
 
 // The main subject's soft matte at document resolution: one BiRefNet pass over the whole
-// image (stretched to 1024 square), upsampled once.
+// image (stretched to 1024 square), upsampled once. Throws std::runtime_error when
+// subject_selection_available() is false.
 [[nodiscard]] AiMask subject_matte(const PixelBuffer& rgba8, InferenceCancel* cancel = nullptr);
 
 // Frees the loaded sessions (they reload on next use). The subject model is the large one

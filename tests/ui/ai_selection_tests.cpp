@@ -39,6 +39,17 @@ bool automatic_selection_or_skip(const char* test_name) {
   return false;
 }
 
+// Select Subject, Select Background and Remove Background need the subject model, which
+// builds leave out while PATCHY_ENABLE_SELECT_SUBJECT is off (docs/ai-selection.md).
+bool subject_selection_or_skip(const char* test_name) {
+  patchy::ui::configure_automatic_selection_models();
+  if (patchy::ai::subject_selection_available()) {
+    return true;
+  }
+  std::printf("[SKIP] %s (build without the Select Subject model)\n", test_name);
+  return false;
+}
+
 // A self-authored scene: a shaded red disc (the one object) on mottled green noise.
 patchy::Document disc_document(int width, int height, QPoint center, int radius) {
   patchy::Document document(width, height, patchy::PixelFormat::rgba8());
@@ -174,16 +185,17 @@ void ui_object_select_tool_and_options_are_listed() {
   auto* sample_all = window.findChild<QCheckBox*>(QStringLiteral("objectSelectSampleAllLayersCheck"));
   auto* subject_button = window.findChild<QPushButton*>(QStringLiteral("selectSubjectButton"));
   CHECK(sample_all != nullptr && sample_all->isVisibleTo(&window));
-  CHECK(subject_button != nullptr && subject_button->isVisibleTo(&window));
+  const bool subject = patchy::ai::subject_selection_available();
+  CHECK(subject_button != nullptr && subject_button->isVisibleTo(&window) == subject);
   sample_all->setChecked(false);
   CHECK(!require_canvas(window)->object_select_sample_all_layers());
   sample_all->setChecked(true);
   auto* subject_action = require_action(window, "selectSubjectAction");
-  CHECK(subject_action->isVisible());
+  CHECK(subject_action->isVisible() == subject);
 }
 
 void ui_select_subject_menu_selects_the_subject() {
-  if (!automatic_selection_or_skip("ui_select_subject_menu_selects_the_subject")) {
+  if (!subject_selection_or_skip("ui_select_subject_menu_selects_the_subject")) {
     return;
   }
   const QPoint center(150, 120);
@@ -231,10 +243,16 @@ void ui_script_automatic_selection_selects_objects() {
     if (!d.selection.exists) throw Error('point');
     d.selection.objectSelect({point: {x: 150, y: 120}, operation: 'subtract', antialias: false});
     if (d.selection.exists) throw Error('subtract ' + JSON.stringify(d.selection.bounds));
-    d.selection.selectSubject();
-    b = d.selection.bounds;
-    if (!b || b.x > 105 || b.y > 75 || b.x + b.width < 195) throw Error('subject ' + JSON.stringify(b));
     var threw = false;
+    if (d.selection.subjectSelectionAvailable) {
+      d.selection.selectSubject();
+      b = d.selection.bounds;
+      if (!b || b.x > 105 || b.y > 75 || b.x + b.width < 195) throw Error('subject ' + JSON.stringify(b));
+    } else {
+      try { d.selection.selectSubject(); } catch (e) { threw = String(e).indexOf('not included') >= 0; }
+      if (!threw) throw Error('selectSubject did not report the missing model');
+      threw = false;
+    }
     try { d.selection.objectSelect({rect: {x: 0, y: 0, width: 5, height: 5}, point: {x: 1, y: 1}}); }
     catch (e) { threw = true; }
     if (!threw) throw Error('box plus point accepted');
@@ -258,7 +276,7 @@ void ui_script_automatic_selection_selects_objects() {
 }
 
 void ui_select_background_selects_everything_but_the_subject() {
-  if (!automatic_selection_or_skip("ui_select_background_selects_everything_but_the_subject")) {
+  if (!subject_selection_or_skip("ui_select_background_selects_everything_but_the_subject")) {
     return;
   }
   const QPoint center(150, 120);
@@ -280,7 +298,7 @@ void ui_select_background_selects_everything_but_the_subject() {
 }
 
 void ui_remove_background_masks_the_layer_in_one_undo_step() {
-  if (!automatic_selection_or_skip("ui_remove_background_masks_the_layer_in_one_undo_step")) {
+  if (!subject_selection_or_skip("ui_remove_background_masks_the_layer_in_one_undo_step")) {
     return;
   }
   const QPoint center(150, 120);
@@ -310,7 +328,7 @@ void ui_remove_background_masks_the_layer_in_one_undo_step() {
 }
 
 void ui_selection_tool_context_menu_offers_subject_commands() {
-  if (!automatic_selection_or_skip("ui_selection_tool_context_menu_offers_subject_commands")) {
+  if (!subject_selection_or_skip("ui_selection_tool_context_menu_offers_subject_commands")) {
     return;
   }
   patchy::ui::MainWindow window;
@@ -465,7 +483,7 @@ void ui_object_select_samples_the_active_shape_layer_alone() {
 }
 
 void ui_select_subject_follows_sample_all_layers() {
-  if (!automatic_selection_or_skip("ui_select_subject_follows_sample_all_layers")) {
+  if (!subject_selection_or_skip("ui_select_subject_follows_sample_all_layers")) {
     return;
   }
   const QPoint center(150, 120);
@@ -522,9 +540,11 @@ void ui_automatic_selection_refuses_an_empty_layer_without_sample_all() {
   QApplication::processEvents();
   auto* canvas = require_canvas(window);
   canvas->set_object_select_sample_all_layers(false);
-  require_action(window, "selectSubjectAction")->trigger();
-  QApplication::processEvents();
-  CHECK(!canvas->has_selection());
+  if (patchy::ai::subject_selection_available()) {
+    require_action(window, "selectSubjectAction")->trigger();
+    QApplication::processEvents();
+    CHECK(!canvas->has_selection());
+  }
   require_action(window, "toolObjectSelectionAction")->trigger();
   QApplication::processEvents();
   const auto point = canvas->widget_position_for_document_point(QPoint(100, 80));
@@ -536,7 +556,7 @@ void ui_automatic_selection_refuses_an_empty_layer_without_sample_all() {
 }
 
 void ui_script_select_background_and_remove_background() {
-  if (!automatic_selection_or_skip("ui_script_select_background_and_remove_background")) {
+  if (!subject_selection_or_skip("ui_script_select_background_and_remove_background")) {
     return;
   }
   patchy::ui::MainWindow window;
@@ -575,6 +595,80 @@ void ui_script_select_background_and_remove_background() {
   CHECK(layer.mask().has_value());
 }
 
+// While the subject model is held back, Object Selection still ships but the three subject
+// commands are absent everywhere: menus, options bar, the selection-tool right-click menu
+// and the script calls.
+void ui_select_subject_is_left_out_without_the_subject_model() {
+  if (!automatic_selection_or_skip("ui_select_subject_is_left_out_without_the_subject_model")) {
+    return;
+  }
+  if (patchy::ai::subject_selection_available()) {
+    std::printf("[SKIP] ui_select_subject_is_left_out_without_the_subject_model (build includes Select Subject)\n");
+    return;
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+  window.add_document_session(disc_document(300, 240, QPoint(150, 120), 55), QStringLiteral("No subject"));
+  QApplication::processEvents();
+  for (const char* name : {"selectSubjectAction", "selectBackgroundAction", "layerRemoveBackgroundAction"}) {
+    CHECK(!require_action(window, name)->isVisible());
+  }
+  CHECK(require_action(window, "toolObjectSelectionAction")->isVisible());
+  require_action(window, "toolObjectSelectionAction")->trigger();
+  QApplication::processEvents();
+  for (const auto* name : {"selectSubjectButton", "removeBackgroundButton"}) {
+    auto* button = window.findChild<QPushButton*>(QString::fromLatin1(name));
+    CHECK(button != nullptr && !button->isVisibleTo(&window));
+  }
+  auto* canvas = require_canvas(window);
+  const auto point = canvas->widget_position_for_document_point(QPoint(20, 20));
+  send_mouse(*canvas, QEvent::MouseButtonPress, point, Qt::RightButton, Qt::RightButton);
+  send_mouse(*canvas, QEvent::MouseButtonRelease, point, Qt::RightButton, Qt::NoButton);
+  QApplication::processEvents();
+  for (auto* menu : canvas->findChildren<QMenu*>(QStringLiteral("canvasContextMenu"))) {
+    if (menu->isVisible()) {
+      for (auto* action : menu->actions()) {
+        CHECK(action->objectName() != QStringLiteral("selectSubjectAction"));
+      }
+      menu->close();
+    }
+  }
+  QApplication::processEvents();
+
+  auto& host = window.script_engine_host();
+  patchy::ui::ScriptEngineHost::RunOptions options;
+  options.name = QStringLiteral("no-subject");
+  (void)host.run_source(QStringLiteral(R"JS(
+    var d = app.activeDocument;
+    if (!d.selection.automaticSelectionAvailable) throw Error('object selection unavailable');
+    if (d.selection.subjectSelectionAvailable) throw Error('subject reported available');
+    var calls = [function () { d.selection.selectSubject(); }, function () { d.selection.selectBackground(); },
+                 function () { d.activeLayer.removeBackground(); }];
+    calls.forEach(function (call, index) {
+      var message = '';
+      try { call(); } catch (e) { message = String(e); }
+      if (message.indexOf('not included') < 0) throw Error('call ' + index + ': ' + message);
+    });
+    if (d.selection.exists) throw Error('selection changed');
+    d.selection.objectSelect({point: {x: 150, y: 120}});
+    if (!d.selection.exists) throw Error('objectSelect');
+  )JS"), std::move(options));
+  QElapsedTimer timer;
+  timer.start();
+  while (host.run_active() && timer.elapsed() < 120000) {
+    QApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 20);
+  }
+  QApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 20);
+  CHECK(!host.run_active());
+  if (host.last_run_had_error()) {
+    for (const auto& line : host.message_backlog()) {
+      std::printf("  %s\n", line.toUtf8().constData());
+    }
+  }
+  CHECK(!host.last_run_had_error());
+  CHECK(!std::as_const(patchy::ui::MainWindowTestAccess::document(window)).layers().front().mask().has_value());
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> ai_selection_ui_tests() {
@@ -589,6 +683,8 @@ std::vector<patchy::test::TestCase> ai_selection_ui_tests() {
       {"ui_selection_tool_context_menu_offers_subject_commands",
        ui_selection_tool_context_menu_offers_subject_commands},
       {"ui_script_select_background_and_remove_background", ui_script_select_background_and_remove_background},
+      {"ui_select_subject_is_left_out_without_the_subject_model",
+       ui_select_subject_is_left_out_without_the_subject_model},
       {"ui_select_object_in_marquee_selection_finds_the_object",
        ui_select_object_in_marquee_selection_finds_the_object},
       {"ui_object_select_samples_the_active_shape_layer_alone",

@@ -662,10 +662,11 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   connect(deselect_layers_action, &QAction::triggered, this, [this] { deselect_all_layers(); });
   register_document_action(deselect_layers_action);
   // Select Subject / Select Background / Remove Background: automatic selection of the main
-  // subject (main_window_ai_selection.cpp). Builds without the models (wasm, a dev tree
-  // without scripts/setup-ai-deps) leave them out.
+  // subject (main_window_ai_selection.cpp). Builds without the subject model leave them out:
+  // wasm, a dev tree without scripts/setup-ai-deps, and every build while
+  // PATCHY_ENABLE_SELECT_SUBJECT is off (held back pending patent review).
   configure_automatic_selection_models();
-  const bool automatic_selection = patchy::ai::segmentation_available();
+  const bool automatic_selection = patchy::ai::subject_selection_available();
   select_subject_action_ = new QAction(tr("Select S&ubject"), this);
   select_subject_action_->setObjectName(QStringLiteral("selectSubjectAction"));
   bind_action_text(select_subject_action_, QT_TR_NOOP("Select S&ubject"));

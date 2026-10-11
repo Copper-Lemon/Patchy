@@ -7,14 +7,20 @@
 
 option(PATCHY_ENABLE_AI_SELECTION "Build automatic selection (ONNX Runtime and bundled models)" ON)
 option(PATCHY_REQUIRE_AI_SELECTION "Fail the configure when automatic selection cannot be built" OFF)
+# Select Subject, Select Background and Remove Background (the BiRefNet model) are held back
+# pending patent review (US 12051225; docs/legal-constraints.md). Off: the model is neither
+# required, staged nor packaged, and the commands are left out. Object Selection is unaffected.
+option(PATCHY_ENABLE_SELECT_SUBJECT "Ship Select Subject, Select Background and Remove Background" OFF)
 
 # Keep in sync with scripts/setup-ai-deps.ps1 and scripts/setup-ai-deps.sh.
 set(PATCHY_ONNXRUNTIME_VERSION "1.30.0")
 set(PATCHY_AI_MODEL_FILES
   mobile_sam_image_encoder_int8.onnx
   sam_mask_decoder_multi_int8.onnx
-  birefnet_lite_general_1024_int8.onnx
 )
+if(PATCHY_ENABLE_SELECT_SUBJECT)
+  list(APPEND PATCHY_AI_MODEL_FILES birefnet_lite_general_1024_int8.onnx)
+endif()
 
 set(PATCHY_AI_DEPS_CANDIDATES "${PROJECT_SOURCE_DIR}/.deps")
 find_package(Git QUIET)
@@ -56,7 +62,7 @@ if(NOT PATCHY_ONNXRUNTIME_DIR)
 endif()
 if(NOT PATCHY_AI_MODELS_DIR)
   foreach(candidate IN LISTS PATCHY_AI_DEPS_CANDIDATES)
-    if(EXISTS "${candidate}/ai-models/birefnet_lite_general_1024_int8.onnx")
+    if(EXISTS "${candidate}/ai-models/mobile_sam_image_encoder_int8.onnx")
       set(PATCHY_AI_MODELS_DIR "${candidate}/ai-models")
       break()
     endif()
@@ -125,11 +131,18 @@ if(PATCHY_AI_MISSING STREQUAL "")
   endif()
   target_sources(patchy_ai PRIVATE src/ai/segmentation_engine_onnx.cpp)
   target_include_directories(patchy_ai SYSTEM PRIVATE "${PATCHY_ONNXRUNTIME_DIR}/include")
+  if(PATCHY_ENABLE_SELECT_SUBJECT)
+    set(PATCHY_SELECT_SUBJECT_VALUE 1)
+  else()
+    set(PATCHY_SELECT_SUBJECT_VALUE 0)
+  endif()
   set_source_files_properties(src/ai/segmentation_engine_onnx.cpp PROPERTIES
-    COMPILE_DEFINITIONS "PATCHY_ONNXRUNTIME_LIBRARY=\"${PATCHY_ONNXRUNTIME_LIBRARY_NAME}\"")
+    COMPILE_DEFINITIONS
+    "PATCHY_ONNXRUNTIME_LIBRARY=\"${PATCHY_ONNXRUNTIME_LIBRARY_NAME}\";PATCHY_SELECT_SUBJECT=${PATCHY_SELECT_SUBJECT_VALUE}")
   target_link_libraries(patchy_ai PRIVATE ${CMAKE_DL_LIBS})
   target_compile_definitions(patchy_ai PUBLIC PATCHY_HAVE_AI_SELECTION=1)
-  message(STATUS "Automatic selection: ONNX Runtime at ${PATCHY_ONNXRUNTIME_DIR}, models at ${PATCHY_AI_MODELS_DIR}")
+  message(STATUS "Automatic selection: ONNX Runtime at ${PATCHY_ONNXRUNTIME_DIR}, models at ${PATCHY_AI_MODELS_DIR}, "
+                 "Select Subject ${PATCHY_ENABLE_SELECT_SUBJECT}")
 else()
   target_sources(patchy_ai PRIVATE src/ai/segmentation_engine_stub.cpp)
   if(PATCHY_REQUIRE_AI_SELECTION)

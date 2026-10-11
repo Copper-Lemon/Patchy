@@ -21450,6 +21450,10 @@ Baked into images: %1.</source>
         <source>Automatic selection</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Select Subject is not included in this build of Patchy; check doc.selection.subjectSelectionAvailable.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ScriptSaveOptions</name>

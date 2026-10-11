@@ -17,6 +17,8 @@ Photoshop-style automatic selection that runs on the CPU only, so it works on ev
 
 Builds without the models or ONNX Runtime (every wasm build for now, or a dev tree that never ran the setup script) compile the stub: the menu item, the tool and the button are left out, and scripts get `automaticSelectionAvailable == false` and a clear error from the calls.
 
+**Select Subject is held back.** CMake's `PATCHY_ENABLE_SELECT_SUBJECT` (default OFF) gates the BiRefNet model pending patent review of Adobe US 12051225 claim 16 ([patent-research-selection.md](patent-research-selection.md)). Off, the model is neither required, staged nor packaged (the staging step rebuilds `<build>/ai-models` from the list, so a stale copy disappears), `subject_selection_available()` is false (also compiled in as `PATCHY_SELECT_SUBJECT`, so a stray file cannot re-enable it), Select Subject, Select Background, Remove Background, their options-bar buttons and the selection-tool right-click entries are hidden, and the script calls throw while `doc.selection.subjectSelectionAvailable` reads false. Object Selection and Select Object need only `segmentation_available()` and ship. The setup scripts still download all three models so a dev tree can turn the option on; the Flatpak manifest leaves BiRefNet out. Turning it back on: the option, the Flatpak source entry, and the legal record.
+
 ## Models and runtime
 
 Patchy ships int8 conversions of the upstream models, pinned in `scripts/setup-ai-deps.ps1` / `.sh`, `cmake/patchy_ai.cmake` and the Flatpak manifest (keep all four in sync). The files are assets of the GitHub release **`ai-models-1`** (`https://github.com/SethRobinson/Patchy/releases/download/ai-models-1/<file>`), a release that must never be marked Latest (the README and `latest_version.json` download through `/releases/latest/`) and whose assets are never replaced: a new model set gets a new tag (`ai-models-2`) and new pins. Nothing is committed to git.
@@ -39,14 +41,14 @@ Compared with fp32 on real photos (a 3000x1820 photo, the Vermeer IFF fixture, t
 | Variant | Size (deflate) | IoU vs fp32 | Speed |
 |---|---|---|---|
 | MobileSAM fp32 | 44.7 MB (36.7) | reference | encode 410 to 450 ms, decode 75 ms |
-| **MobileSAM int8, MatMul/Gemm (shipped)** | **19.2 MB (12.4)** | **0.9935 to 0.9998**, mean alpha diff under 1/255 | encode about 10 to 15% faster, decode same |
+| **MobileSAM int8, MatMul/Gemm (chosen)** | **19.2 MB (12.4)** | **0.9935 to 0.9998**, mean alpha diff under 1/255 | encode about 10 to 15% faster, decode same |
 | MobileSAM int8 including Conv | 16.2 MB | as low as 0.02 (clicks select the wrong region) | encode 3x slower |
 | BiRefNet fp32 | 224 MB (165) | reference | 5.5 to 6.1 s |
-| **BiRefNet int8, MatMul/Gemm (shipped)** | **143 MB (88)** | **0.997 to 0.9999** | about 5 to 7% faster |
+| **BiRefNet int8, MatMul/Gemm (chosen)** | **143 MB (88)** | **0.997 to 0.9999** | about 5 to 7% faster |
 | BiRefNet int8 including Conv | 93 MB (39) | 0.997 to 0.9997 | 2.3x slower (ConvInteger is slow on CPU) |
 | BiRefNet static QDQ int8 (MinMax calibration) | 94 MB (41) | 0.94 on the Vermeer (bleeds into the background) | no faster, 8 s load |
 
-Differences in the shipped variants are sub-pixel edge shifts. Not measured: Apple Silicon and pre-VNNI x86 speed (results stay correct; the speedup may differ). About 43 MB of BiRefNet is float Constant nodes (Swin position tables) that dynamic quantization does not touch.
+Differences in the chosen variants are sub-pixel edge shifts. Not measured: Apple Silicon and pre-VNNI x86 speed (results stay correct; the speedup may differ). About 43 MB of BiRefNet is float Constant nodes (Swin position tables) that dynamic quantization does not touch.
 
 `setup-ai-deps` provisions `<main checkout>/.deps/onnxruntime/<ver>/<platform>/` and `.deps/ai-models/`; worktrees find the main checkout through `git rev-parse --git-common-dir`, and CMake searches both `.deps` folders. Packagers pass `PATCHY_ONNXRUNTIME_DIR` and `PATCHY_AI_MODELS_DIR`. `PATCHY_ENABLE_AI_SELECTION` (default ON) and `PATCHY_REQUIRE_AI_SELECTION` (default OFF; release builds turn it on so a missing model is a configure error) control the build. `patchy_ai_runtime` is the copy-once target staging `ai-models/` and the runtime libraries into the build directory; `patchy_copy_ai_runtime(target)` attaches it.
 
@@ -77,7 +79,7 @@ At run time `configure_automatic_selection_models()` (main_window_ai_selection.c
 
 fp32 numbers come from an idle box; the int8 rows from an fp32/int8 run alternated under the same background load, so compare within a row pair, not across the table.
 
-| Step | fp32 | int8 (shipped) |
+| Step | fp32 | int8 (chosen) |
 |---|---|---|
 | MobileSAM encode, 1024x768, session warm | about 200 ms idle (330 ms at 6 threads); 394 ms loaded | 320 ms loaded |
 | MobileSAM session load | about 290 ms | about 290 ms |
@@ -91,7 +93,7 @@ Published numbers for a 6-core Ryzen 5600X: MobileSAM encode 0.8 s, BiRefNet_lit
 ## Tests
 
 - Core (`patchy_core_tests ai_`): transform and preprocessing math, logit mappings, upsample/crop, IoU, then real runs on a self-authored synthetic scene (shaded disc on mottled noise): box and point IoU >= 0.9, Select Subject IoU >= 0.85, cancel before and during a run, out-of-memory recognition (`ai_out_of_memory_failures_are_recognized`), model load from a Unicode folder. In a build without the engine the model tests print `[SKIP]`; in a build with it, missing models fail.
-- UI (`PATCHY_UI_TEST_FILTER=object_select`, `select_subject`, `select_background`, `remove_background`, `context_menu_offers_subject`): no selection change before release, one undo entry, booleans, embedding reuse, the options bar and menu, and the script API.
+- UI (`PATCHY_UI_TEST_FILTER=object_select`, `select_subject`, `select_background`, `remove_background`, `context_menu_offers_subject`): no selection change before release, one undo entry, booleans, embedding reuse, the options bar and menu, and the script API. The subject tests skip without the subject model; `ui_select_subject_is_left_out_without_the_subject_model` then checks every surface hides or refuses it while Object Selection still works. Core `ai_select_subject_finds_the_disc` checks the refusal, and the mid-run cancel test cancels the encoder instead.
 
 ## Platform packaging
 

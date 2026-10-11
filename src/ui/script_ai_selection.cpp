@@ -1,4 +1,4 @@
-// doc.selection.selectSubject / objectSelect / automaticSelectionAvailable
+// doc.selection.selectSubject / objectSelect / automaticSelectionAvailable / subjectSelectionAvailable
 // (docs/ai-selection.md, docs/scripting.md). Each call is one network solve from one
 // prompt, combined with the selection by plain boolean, the same boundary as the
 // interactive commands (src/ai/segmentation_engine.hpp).
@@ -44,6 +44,13 @@ QString automatic_selection_failure(const std::exception& error) {
   return ScriptEngineHost::tr("Automatic selection failed: %1").arg(QString::fromUtf8(error.what()));
 }
 
+// selectSubject, selectBackground and removeBackground in a build without the subject model
+// (held back pending patent review; docs/ai-selection.md).
+QString subject_selection_unavailable_message() {
+  return ScriptEngineHost::tr(
+      "Select Subject is not included in this build of Patchy; check doc.selection.subjectSelectionAvailable.");
+}
+
 }  // namespace
 
 QString ScriptEngineHost::automatic_select(std::int64_t session_id, const AutomaticSelectionRequest& request) {
@@ -51,6 +58,11 @@ QString ScriptEngineHost::automatic_select(std::int64_t session_id, const Automa
   if (!patchy::ai::segmentation_available()) {
     return tr("Automatic selection is not available in this build (%1).")
         .arg(QString::fromStdString(patchy::ai::segmentation_unavailable_reason()));
+  }
+  const bool subject_model = request.kind == AutomaticSelectionRequest::Kind::Subject ||
+                             request.kind == AutomaticSelectionRequest::Kind::Background;
+  if (subject_model && !patchy::ai::subject_selection_available()) {
+    return subject_selection_unavailable_message();
   }
   auto* canvas = session_canvas(session_id);
   const auto* document = session_document_const(session_id);
@@ -61,8 +73,6 @@ QString ScriptEngineHost::automatic_select(std::int64_t session_id, const Automa
     return tr("Exit Quick Mask before using automatic selection.");
   }
   const QSize size(document->width(), document->height());
-  const bool subject_model = request.kind == AutomaticSelectionRequest::Kind::Subject ||
-                             request.kind == AutomaticSelectionRequest::Kind::Background;
   QImage source;
   if (request.sample_all_layers) {
     source = qimage_from_document(*document, true).convertToFormat(QImage::Format_RGBA8888);
@@ -142,6 +152,9 @@ QString ScriptEngineHost::remove_background(std::int64_t session_id, LayerId lay
     return tr("Automatic selection is not available in this build (%1).")
         .arg(QString::fromStdString(patchy::ai::segmentation_unavailable_reason()));
   }
+  if (!patchy::ai::subject_selection_available()) {
+    return subject_selection_unavailable_message();
+  }
   const auto* document = session_document_const(session_id);
   if (document == nullptr) {
     return tr("The document is no longer open.");
@@ -205,6 +218,12 @@ bool ScriptSelectionObject::automatic_selection_available() const {
   const ScriptApiCall api_call(host_);
   configure_automatic_selection_models();
   return patchy::ai::segmentation_available();
+}
+
+bool ScriptSelectionObject::subject_selection_available() const {
+  const ScriptApiCall api_call(host_);
+  configure_automatic_selection_models();
+  return patchy::ai::subject_selection_available();
 }
 
 void ScriptSelectionObject::selectSubject(const QJSValue& options) {

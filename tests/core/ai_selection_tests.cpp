@@ -21,6 +21,7 @@
 #include <iterator>
 #include <new>
 #include <stdexcept>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -276,6 +277,18 @@ void ai_select_subject_finds_the_disc() {
     std::printf("[SKIP] ai_select_subject_finds_the_disc (build without automatic selection)\n");
     return;
   }
+  if (!patchy::ai::subject_selection_available()) {
+    // Held back pending patent review (PATCHY_ENABLE_SELECT_SUBJECT off): the call refuses.
+    bool refused = false;
+    try {
+      (void)patchy::ai::subject_matte(solid_rgba(64, 64, 200, 40, 35, 255));
+    } catch (const std::runtime_error& error) {
+      refused = std::string(error.what()).find("Select Subject") != std::string::npos;
+    }
+    CHECK(refused);
+    std::printf("[SKIP] ai_select_subject_finds_the_disc (build without the Select Subject model)\n");
+    return;
+  }
   AiMask disc;
   const auto scene = disc_scene(900, 700, disc);
   const auto start = std::chrono::steady_clock::now();
@@ -324,16 +337,23 @@ void ai_cancel_stops_inference_without_a_result() {
   }
   CHECK(cancelled);
 
-  // A request mid-run terminates the subject model well before its multi-second run ends.
+  // A request mid-run terminates the run well before it ends: the subject model's multi-second
+  // run when the build includes it, otherwise the encoder (200 ms or more; a request that lands
+  // before ONNX Runtime attaches still terminates at once).
+  const bool subject = patchy::ai::subject_selection_available();
   patchy::ai::InferenceCancel midway;
-  std::thread canceller([&midway] {
-    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+  std::thread canceller([&midway, subject] {
+    std::this_thread::sleep_for(std::chrono::milliseconds(subject ? 1500 : 50));
     midway.request();
   });
   cancelled = false;
   const auto start = std::chrono::steady_clock::now();
   try {
-    (void)patchy::ai::subject_matte(scene, &midway);
+    if (subject) {
+      (void)patchy::ai::subject_matte(scene, &midway);
+    } else {
+      (void)patchy::ai::sam_encode(scene, &midway);
+    }
   } catch (const patchy::ai::InferenceCancelled&) {
     cancelled = true;
   }

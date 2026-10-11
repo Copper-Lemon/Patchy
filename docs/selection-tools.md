@@ -50,7 +50,7 @@ The Quick Select tool (`CanvasTool::QuickSelect`, Shift+W cycles to it from the 
 
 ## Object Selection and Select Subject
 
-The third Wand-flyout tool and Select > Subject are ML-based and live in [ai-selection.md](ai-selection.md) with their own legal bullet; they share only the combine modes, Feather and Anti-alias plumbing with the tools here.
+The third Wand-flyout tool and Select > Subject are ML-based and live in [ai-selection.md](ai-selection.md) with their own legal bullet; they share only the combine modes, Feather and Anti-alias plumbing with the tools here. Select Subject is currently held back from builds (see ai-selection.md).
 
 ## Magnetic Lasso: live-wire boundary tracing, patents all expired
 

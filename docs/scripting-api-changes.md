@@ -7,6 +7,13 @@ attachment, palettes, vector automation, brushes, Slow mode and Pause) are in
 [scripting-api-changes-through-2026-09-11.md](scripting-api-changes-through-2026-09-11.md).
 Every entry below is API 1.
 
+2026-10-12 (additive, behavioral): `doc.selection.subjectSelectionAvailable`. Builds with
+CMake's `PATCHY_ENABLE_SELECT_SUBJECT` off (the default; the subject model is held back pending
+patent review) report it false, and `selectSubject`, `selectBackground` and
+`layer.removeBackground` throw "Select Subject is not included in this build of Patchy";
+`objectSelect` and `automaticSelectionAvailable` are unchanged. Pinned by
+`ui_select_subject_is_left_out_without_the_subject_model`.
+
 2026-10-11 (additive): File Info. `doc.fileInfo` (Description and IPTC fields), `doc.xmp`,
 `doc.setFileInfo(fields)`, `doc.metadataEntries()`, `doc.stripMetadata({keepColorProfile})`,
 `doc.removeLocation()`, `doc.removeEditHistory()`, and the `metadata` save option (`"all"`,

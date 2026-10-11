@@ -175,6 +175,7 @@ class ScriptSelectionObject : public QObject {
   Q_PROPERTY(bool exists READ exists)
   Q_PROPERTY(QJSValue bounds READ bounds)
   Q_PROPERTY(bool automaticSelectionAvailable READ automatic_selection_available)
+  Q_PROPERTY(bool subjectSelectionAvailable READ subject_selection_available)
 
 public:
   ScriptSelectionObject(ScriptEngineHost& host, std::int64_t session_id);
@@ -189,6 +190,8 @@ public:
   Q_INVOKABLE QJSValue toPath(const QJSValue& options = QJSValue()) const;
   // Automatic selection (script_ai_selection.cpp, docs/ai-selection.md).
   [[nodiscard]] bool automatic_selection_available() const;
+  // selectSubject, selectBackground and layer.removeBackground (the subject model).
+  [[nodiscard]] bool subject_selection_available() const;
   Q_INVOKABLE void selectSubject(const QJSValue& options = QJSValue());
   Q_INVOKABLE void selectBackground(const QJSValue& options = QJSValue());
   Q_INVOKABLE void objectSelect(const QJSValue& options);

@@ -458,10 +458,10 @@ void ui_selection_context_menu_offers_remove_object() {
     QApplication::processEvents();
   }
 
-  // Off the selection a selection tool offers only the automatic-selection section, and
-  // nothing at all in a build without the models (docs/ai-selection.md).
+  // Off the selection a selection tool offers only the subject commands, and nothing at all
+  // in a build without the subject model (docs/ai-selection.md).
   patchy::ui::configure_automatic_selection_models();
-  if (auto* outside = right_click_move_canvas(*canvas, QPoint(300, 300)); patchy::ai::segmentation_available()) {
+  if (auto* outside = right_click_move_canvas(*canvas, QPoint(300, 300)); patchy::ai::subject_selection_available()) {
     CHECK(outside != nullptr);
     if (outside != nullptr) {
       CHECK(!menu_has_remove(*outside));

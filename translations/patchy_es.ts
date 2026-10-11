@@ -21499,6 +21499,10 @@ Convertido en imágenes: %1.</translation>
         <source>Automatic selection</source>
         <translation>Selección automática</translation>
     </message>
+    <message>
+        <source>Select Subject is not included in this build of Patchy; check doc.selection.subjectSelectionAvailable.</source>
+        <translation>«Seleccionar sujeto» no está incluido en esta versión de Patchy; compruebe doc.selection.subjectSelectionAvailable.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ScriptSaveOptions</name>

@@ -430,7 +430,7 @@ interface PatchyLayer {
    * Layer > Layer Mask > Remove Background: runs Select Subject on the merged document and
    * sets this layer's mask to the subject (an existing mask is multiplied, keeping what it
    * already hides). Pixel, adjustment, or group layers. The selection is unchanged. Throws
-   * when doc.selection.automaticSelectionAvailable is false.
+   * when doc.selection.subjectSelectionAvailable is false.
    */
   removeBackground(options?: {sampleAllLayers?: boolean}): void;
   removeObject(options?: {
@@ -537,9 +537,16 @@ interface PatchySelection {
    */
   readonly automaticSelectionAvailable: boolean;
   /**
+   * True when this build includes Select Subject's model. Current builds leave it out
+   * (held back pending patent review), so this is false and selectSubject, selectBackground
+   * and layer.removeBackground throw. objectSelect needs only automaticSelectionAvailable.
+   */
+  readonly subjectSelectionAvailable: boolean;
+  /**
    * Select > Subject: selects the main subject with the bundled model, one pass over the
    * merged document on the CPU (several seconds). The soft matte combines by `operation`
    * (default "replace"); `feather` (px, default 0) and `antialias` (default true) shape it.
+   * Throws when subjectSelectionAvailable is false.
    */
   selectSubject(options?: {operation?: "replace" | "add" | "subtract" | "intersect"; feather?: number;
     antialias?: boolean; sampleAllLayers?: boolean}): void;

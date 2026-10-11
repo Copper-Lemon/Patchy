@@ -21499,6 +21499,10 @@ In Bilder umgewandelt: %1.</translation>
         <source>Automatic selection</source>
         <translation>Automatische Auswahl</translation>
     </message>
+    <message>
+        <source>Select Subject is not included in this build of Patchy; check doc.selection.subjectSelectionAvailable.</source>
+        <translation>„Motiv auswählen“ ist in diesem Build von Patchy nicht enthalten; prüfen Sie doc.selection.subjectSelectionAvailable.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ScriptSaveOptions</name>

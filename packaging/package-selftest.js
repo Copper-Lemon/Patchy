@@ -132,8 +132,12 @@ check(scene.selection.automaticSelectionAvailable,
 scene.selection.objectSelect({point: {x: 48, y: 36}});
 check(scene.selection.exists, "Object Selection selected nothing");
 scene.selection.deselect();
-scene.selection.selectSubject();
-check(scene.selection.exists, "Select Subject selected nothing");
+// Select Subject ships only when PATCHY_ENABLE_SELECT_SUBJECT is on (held back pending patent
+// review, docs/ai-selection.md).
+if (scene.selection.subjectSelectionAvailable) {
+  scene.selection.selectSubject();
+  check(scene.selection.exists, "Select Subject selected nothing");
+}
 scene.close();
 console.log("automatic selection ok");
 

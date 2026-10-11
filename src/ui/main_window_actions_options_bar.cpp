@@ -2404,8 +2404,9 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   bind_widget_text(select_subject_button_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Select Subject"));
   bind_tooltip(select_subject_button_,
                QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Select the main subject of the image automatically"));
+  // Both buttons run the subject model, which builds can leave out (subject_selection_available).
   configure_automatic_selection_models();
-  if (patchy::ai::segmentation_available()) {
+  if (patchy::ai::subject_selection_available()) {
     add_option_widget(select_subject_button_, {CanvasTool::QuickSelect, CanvasTool::ObjectSelect});
   } else {
     select_subject_button_->hide();
@@ -2415,7 +2416,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   bind_widget_text(remove_background_button_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Remove Background"));
   bind_tooltip(remove_background_button_,
                QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Hide the background with a layer mask on the active layer"));
-  if (patchy::ai::segmentation_available()) {
+  if (patchy::ai::subject_selection_available()) {
     add_option_widget(remove_background_button_, {CanvasTool::ObjectSelect});
   } else {
     remove_background_button_->hide();

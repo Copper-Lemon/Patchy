@@ -143,7 +143,7 @@ for %%F in (onnxruntime.dll onnxruntime_providers_shared.dll) do (
   )
   copy /Y "%BUILD_DIR%\%%F" "%STAGE_DIR%\" >nul || goto fail
 )
-if not exist "%BUILD_DIR%\ai-models\birefnet_lite_general_1024_int8.onnx" (
+if not exist "%BUILD_DIR%\ai-models\mobile_sam_image_encoder_int8.onnx" (
   echo The automatic selection models were not staged in "%BUILD_DIR%\ai-models"; run scripts\setup-ai-deps.ps1.
   goto fail
 )

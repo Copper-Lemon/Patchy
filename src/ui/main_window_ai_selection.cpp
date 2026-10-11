@@ -113,7 +113,7 @@ std::optional<patchy::ai::AiMask> MainWindow::compute_subject_matte(const QStrin
   if (canvas_ == nullptr) {
     return fail(tr("Open a document before using %1").arg(command));
   }
-  if (!patchy::ai::segmentation_available()) {
+  if (!patchy::ai::subject_selection_available()) {
     return fail(tr("%1 is not available in this build").arg(command));
   }
   if (canvas_->quick_mask_active()) {

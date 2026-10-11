@@ -21441,6 +21441,10 @@ Baked into images: %1.</source>
         <source>Automatic selection</source>
         <translation>自動選取</translation>
     </message>
+    <message>
+        <source>Select Subject is not included in this build of Patchy; check doc.selection.subjectSelectionAvailable.</source>
+        <translation>此版本的 Patchy 不包含「選取主體」；請檢查 doc.selection.subjectSelectionAvailable。</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ScriptSaveOptions</name>

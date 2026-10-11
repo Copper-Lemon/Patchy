@@ -185,7 +185,7 @@ Adobe DNG SDK fragments. The license texts are included at
 
 ## ONNX Runtime (desktop builds)
 
-Automatic selection (Select > Subject, the Object Selection tool) runs on ONNX
+Automatic selection (the Object Selection tool, and Select > Subject in builds that include it) runs on ONNX
 Runtime 1.30.0's CPU execution provider, dynamically linked
 (`onnxruntime.dll` / `libonnxruntime`). Copyright (c) Microsoft Corporation,
 MIT License. Its license and `ThirdPartyNotices.txt` ship in `ai-models/` as
@@ -204,7 +204,8 @@ modification notice are in `ai-models/MODEL-LICENSES.txt`, from `third_party/ai-
   License 2.0) with the Segment Anything mask decoder (Meta Platforms, Inc.,
   https://github.com/facebookresearch/segment-anything, Apache License 2.0).
   ONNX export by Acly (https://huggingface.co/Acly/MobileSAM, MIT License).
-- `birefnet_lite_general_1024_int8.onnx`: BiRefNet_lite general (Peng Zheng et al.,
+- `birefnet_lite_general_1024_int8.onnx` (only in builds that include Select Subject;
+  current releases do not): BiRefNet_lite general (Peng Zheng et al.,
   https://github.com/ZhengPeng7/BiRefNet, MIT License), from the project's own ONNX
   export.
 

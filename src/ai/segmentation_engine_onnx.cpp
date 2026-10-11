@@ -308,13 +308,23 @@ std::string segmentation_unavailable_reason() {
   if (directory.empty()) {
     return "the automatic selection models folder is not set";
   }
-  for (const auto* file : {kSamEncoderFile, kSamDecoderFile, kSubjectModelFile}) {
+  for (const auto* file : {kSamEncoderFile, kSamDecoderFile}) {
     std::error_code error;
     if (!std::filesystem::is_regular_file(model_path(file), error)) {
       return std::string("the automatic selection model ") + file + " is missing";
     }
   }
   return {};
+}
+
+bool subject_selection_available() {
+  // PATCHY_SELECT_SUBJECT comes from CMake's PATCHY_ENABLE_SELECT_SUBJECT. Checked here as
+  // well as in the staging step, so a model file left in a build tree never re-enables it.
+  if (PATCHY_SELECT_SUBJECT == 0 || !segmentation_available()) {
+    return false;
+  }
+  std::error_code error;
+  return std::filesystem::is_regular_file(model_path(kSubjectModelFile), error);
 }
 
 std::shared_ptr<const SamEmbedding> sam_encode(const PixelBuffer& rgba8, InferenceCancel* cancel) {
@@ -357,6 +367,9 @@ AiMask sam_select_box(const SamEmbedding& embedding, Rect box) {
 }
 
 AiMask subject_matte(const PixelBuffer& rgba8, InferenceCancel* cancel) {
+  if (!subject_selection_available()) {
+    throw std::runtime_error("this build of Patchy does not include Select Subject");
+  }
   Ort::Session* session = nullptr;
   {
     auto& state = ort_state();
