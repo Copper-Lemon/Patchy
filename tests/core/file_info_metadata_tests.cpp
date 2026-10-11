@@ -6,11 +6,14 @@
 #include "formats/metadata/iptc_iim.hpp"
 #include "formats/metadata/jumbf.hpp"
 #include "formats/metadata/metadata_containers.hpp"
+#include "formats/metadata/metadata_edit.hpp"
+#include "formats/metadata/metadata_inject.hpp"
 #include "formats/metadata/metadata_view.hpp"
 #include "formats/metadata/tiff_ifd.hpp"
 #include "formats/metadata/xmp.hpp"
 #include "formats/miniz/miniz.h"
 #include "formats/pdf_crypt.hpp"
+#include "formats/stb/stb_image.h"
 #include "psd/psd_document_io.hpp"
 
 #include "test_groups.hpp"
@@ -957,6 +960,257 @@ void psd_round_trips_file_info_resources() {
   CHECK(!clean.file_info().has_metadata());
 }
 
+patchy::DocumentFileInfo sample_info() {
+  return md::extract_file_info(sample_jpeg());
+}
+
+// A decodable 2x2 RGB PNG (stb_image verifies the injected files still decode).
+Bytes minimal_png() {
+  Bytes out;
+  append(out, std::string_view("\x89PNG\r\n\x1A\n", 8));
+  Bytes ihdr;
+  put_be32(ihdr, 2);
+  put_be32(ihdr, 2);
+  ihdr.insert(ihdr.end(), {8, 2, 0, 0, 0});
+  append(out, png_chunk("IHDR", ihdr));
+  const Bytes raw{0, 255, 0, 0, 0, 255, 0, 0, 0, 0, 255, 255, 255, 255};
+  append(out, png_chunk("IDAT", zlib(raw)));
+  append(out, png_chunk("IEND", {}));
+  return out;
+}
+
+void edit_fields_follow_mwg_and_mirror_legacy_blocks() {
+  auto info = sample_info();
+  const auto before = md::read_fields(info);
+  CHECK(before.title == "Sunset & Sea");
+  CHECK(before.authors == std::vector<std::string>({"Ann Example"}));
+  CHECK(before.keywords == std::vector<std::string>({"beach", "sunset"}));
+  CHECK(before.author_title == "Photographer");
+  // City only exists in the legacy IPTC block.
+  CHECK(before.city == "Seattle");
+  CHECK(before.copyright_status == md::CopyrightStatus::Copyrighted);
+
+  auto after = before;
+  after.title = "Harbor";
+  after.authors = {"Bea Example", "Cy Example"};
+  after.keywords = {"harbor"};
+  after.city = "Tacoma";
+  after.copyright_notice = "(c) 2026 Bea";
+  after.contact_email = "bea@example.com";
+  after.rating = 4;
+  CHECK(md::apply_fields(info, before, after));
+  CHECK(!md::apply_fields(info, after, after));
+  const auto reread = md::read_fields(info);
+  CHECK(reread.title == "Harbor");
+  CHECK(reread.authors == after.authors);
+  CHECK(reread.keywords == after.keywords);
+  CHECK(reread.city == "Tacoma");
+  CHECK(reread.contact_email == "bea@example.com");
+  CHECK(reread.rating == 4);
+  // The unknown namespace survived the rewrite.
+  CHECK(md::parse_xmp(*info.xmp)->struct_field("http://example.com/foo/", "Custom", "http://example.com/foo/",
+                                               "inner") == "kept");
+  // Mirrors: IIM keywords/by-line/city rewritten with a fresh digest, EXIF Artist and Copyright.
+  const auto iim = md::parse_iim(*info.iptc);
+  CHECK(iim->values(2, md::iim::kKeywords) == std::vector<std::string>({"harbor"}));
+  CHECK(iim->values(2, md::iim::kByline) == after.authors);
+  CHECK(iim->value(2, md::iim::kCity) == "Tacoma");
+  CHECK(info.iptc_digest && *info.iptc_digest == md::iim_digest(*info.iptc));
+  const auto exif = md::parse_tiff(*info.exif);
+  CHECK(exif->string_value(*exif->find(md::IfdKind::Ifd0)->find(md::exif_tag::kArtist)) == "Bea Example; Cy Example");
+  CHECK(exif->string_value(*exif->find(md::IfdKind::Ifd0)->find(md::exif_tag::kCopyright)) == "(c) 2026 Bea");
+  // A value shown from EXIF alone reaches XMP on the next edit (MWG: XMP is always written),
+  // which is where Photoshop reads a PSD's or PNG's author.
+  {
+    patchy::DocumentFileInfo exif_only;
+    exif_only.exif = patchy::make_metadata_bytes(md::write_tiff(sample_exif_stream(false)));
+    auto edit_before = md::read_fields(exif_only);
+    CHECK(edit_before.authors == std::vector<std::string>({"Ann Example"}));
+    auto edit_after = edit_before;
+    edit_after.title = "New";
+    CHECK(md::apply_fields(exif_only, edit_before, edit_after));
+    CHECK(md::parse_xmp(*exif_only.xmp)->items(md::xmp_ns::kDc, "creator") ==
+          std::vector<std::string>({"Ann Example"}));
+  }
+  // A digest mismatch means another program edited the IIM: its values win.
+  info.iptc_digest = std::array<std::uint8_t, 16>{};
+  auto stale = md::parse_xmp(*info.xmp);
+  stale->set_simple(md::xmp_ns::kPhotoshop, "City", "Elsewhere");
+  info.xmp = patchy::make_metadata_bytes(bytes_of(md::serialize_xmp(*stale)));
+  CHECK(md::read_fields(info).city == "Tacoma");
+}
+
+void strip_and_targeted_removals() {
+  patchy::Document document(2, 2, patchy::PixelFormat::rgb8());
+  document.file_info() = sample_info();
+  document.color_state().embedded_icc_profile = fake_icc("Kept");
+  document.file_info().png_color_chunks.push_back(patchy::FileInfoChunk{{'g', 'A', 'M', 'A'}, {0, 0, 177, 143}});
+
+  auto located = document.file_info();
+  CHECK(md::remove_location(located));
+  CHECK(!md::summarize_camera(located).has_location());
+  CHECK(md::parse_tiff(*located.exif)->find(md::IfdKind::Gps) == nullptr);
+  CHECK(!md::remove_location(located));
+
+  auto history = document.file_info();
+  CHECK(md::remove_edit_history(history));
+  const auto summary = md::summarize_edit_history(history);
+  CHECK(summary.events.empty() && summary.ancestor_count == 0 && summary.text_layers.empty());
+  CHECK(md::parse_xmp(*history.xmp)->text(md::xmp_ns::kDc, "title") == "Sunset & Sea");
+
+  auto kept = document;
+  md::strip_metadata(kept, true);
+  CHECK(!kept.file_info().has_metadata());
+  CHECK(kept.color_state().embedded_icc_profile == fake_icc("Kept"));
+  CHECK(kept.file_info().png_color_chunks.size() == 1);
+  const auto remaining = md::describe_file_info(kept.file_info(), kept.color_state().embedded_icc_profile);
+  CHECK(std::all_of(remaining.begin(), remaining.end(), [](const md::MetadataEntry& entry) {
+    return entry.group == "ICC profile" || entry.group == "PNG color";
+  }));
+  auto dropped = document;
+  md::strip_metadata(dropped, false);
+  CHECK(dropped.color_state().embedded_icc_profile.empty());
+  CHECK(dropped.file_info().png_color_chunks.empty());
+  const auto save = md::prepare_save_metadata(kept, md::MetadataPolicy::All, 2, 2);
+  CHECK(save.exif.empty() && save.xmp.empty() && save.iptc.empty() && save.text.empty());
+  CHECK(save.icc == fake_icc("Kept"));
+}
+
+void orientation_bakes_and_saves_as_normal() {
+  auto info = sample_info();
+  CHECK(md::bake_orientation(info) == "Rotate 90 CW");
+  CHECK(md::summarize_camera(info).orientation == "Horizontal (normal)");
+  CHECK(md::bake_orientation(info).empty());
+}
+
+void save_metadata_applies_rules_and_policies() {
+  patchy::Document document(40, 30, patchy::PixelFormat::rgb8());
+  document.print_settings().horizontal_ppi = 150.0;
+  document.print_settings().vertical_ppi = 150.0;
+  auto stream = sample_exif_stream(false);
+  stream.set_long(md::IfdKind::Exif, md::exif_tag::kPixelXDimension, 4000);
+  stream.set_long(md::IfdKind::Exif, md::exif_tag::kPixelYDimension, 3000);
+  stream.set_rational(md::IfdKind::Ifd0, md::exif_tag::kXResolution, 72, 1);
+  stream.set_ascii(md::IfdKind::Ifd0, md::exif_tag::kCopyright, "(c) Ann");
+  document.file_info() = sample_info();
+  document.file_info().exif = patchy::make_metadata_bytes(md::write_tiff(stream));
+  document.file_info().text.push_back(patchy::FileInfoText{patchy::FileInfoTextKind::PngText, "parameters", "p", {}});
+  document.file_info().text.push_back(patchy::FileInfoText{patchy::FileInfoTextKind::PdfInfo, "Title", "t", {}});
+
+  const auto all = md::prepare_save_metadata(document, md::MetadataPolicy::All, 40, 30);
+  const auto exif = md::parse_tiff(all.exif);
+  CHECK(exif.has_value());
+  CHECK(exif->thumbnail.empty() && exif->find(md::IfdKind::Ifd1) == nullptr);
+  CHECK(exif->unsigned_value(*exif->find(md::IfdKind::Ifd0)->find(md::exif_tag::kOrientation)) == 1U);
+  CHECK(exif->unsigned_value(*exif->find(md::IfdKind::Exif)->find(md::exif_tag::kPixelXDimension)) == 40U);
+  CHECK(exif->real_value(*exif->find(md::IfdKind::Ifd0)->find(md::exif_tag::kXResolution)) == 150.0);
+  CHECK(exif->find(md::IfdKind::Gps) != nullptr);
+  CHECK(!all.xmp.empty() && !all.iptc.empty());
+  CHECK(all.text.size() == 2);  // the comment and the PNG text, never the PDF /Info entry
+
+  const auto copyright = md::prepare_save_metadata(document, md::MetadataPolicy::CopyrightAndContact, 40, 30);
+  const auto reduced = md::parse_tiff(copyright.exif);
+  CHECK(reduced->find(md::IfdKind::Gps) == nullptr && reduced->find(md::IfdKind::Exif) == nullptr);
+  CHECK(reduced->find(md::IfdKind::Ifd0)->find(md::exif_tag::kArtist) != nullptr);
+  CHECK(reduced->find(md::IfdKind::Ifd0)->find(md::exif_tag::kMake) == nullptr);
+  const auto reduced_xmp = md::parse_xmp(bytes_of(copyright.xmp));
+  CHECK(reduced_xmp->find(md::xmp_ns::kDc, "creator") != nullptr);
+  CHECK(reduced_xmp->find(md::xmp_ns::kDc, "title") == nullptr);
+  CHECK(reduced_xmp->find(md::xmp_ns::kXmpMM, "History") == nullptr);
+  CHECK(md::parse_iim(copyright.iptc)->values(2, md::iim::kCity).empty());
+  CHECK(copyright.text.empty());
+
+  const auto none = md::prepare_save_metadata(document, md::MetadataPolicy::None, 40, 30);
+  CHECK(none.exif.empty() && none.xmp.empty() && none.iptc.empty() && none.text.empty());
+}
+
+md::SaveMetadata full_save_metadata(std::size_t xmp_padding = 0) {
+  patchy::Document document(2, 2, patchy::PixelFormat::rgb8());
+  document.file_info() = sample_info();
+  if (xmp_padding > 0) {
+    // A packet past JPEG's 65502-byte APP1 limit forces Extended XMP.
+    auto packet = md::parse_xmp(*document.file_info().xmp);
+    std::vector<std::string> ancestors;
+    for (std::size_t i = 0; i < xmp_padding; ++i) {
+      ancestors.push_back("xmp.did:" + std::to_string(1000000 + i));
+    }
+    packet->set_array(md::xmp_ns::kPhotoshop, "DocumentAncestors", md::XmpValue::Kind::Bag, ancestors);
+    document.file_info().xmp = patchy::make_metadata_bytes(bytes_of(md::serialize_xmp(*packet)));
+  }
+  document.color_state().embedded_icc_profile = fake_icc("Injected");
+  return md::prepare_save_metadata(document, md::MetadataPolicy::All, 2, 2);
+}
+
+void inject_round_trips_through_every_container() {
+  const auto metadata = full_save_metadata();
+  CHECK(md::inject_metadata(minimal_png(), "png", md::SaveMetadata{}) == minimal_png());
+  {
+    const auto png = md::inject_metadata(minimal_png(), "png", metadata);
+    int width = 0;
+    int height = 0;
+    int channels = 0;
+    auto* pixels = stbi_load_from_memory(png.data(), static_cast<int>(png.size()), &width, &height, &channels, 3);
+    CHECK(pixels != nullptr && width == 2 && pixels[0] == 255 && pixels[1] == 0);
+    stbi_image_free(pixels);
+    const auto info = md::extract_file_info(png);
+    CHECK(info.exif && md::parse_tiff(*info.exif));
+    CHECK(md::read_fields(info).title == "Sunset & Sea");
+    CHECK(info.source_icc && *info.source_icc == fake_icc("Injected"));
+    CHECK(info.text.size() == 1 && info.text[0].key == "Comment" && info.text[0].value == "hello comment");
+    // A second injection replaces, never duplicates.
+    const auto twice = md::extract_file_info(md::inject_metadata(png, "png", metadata));
+    CHECK(twice.text.size() == 1);
+  }
+  {
+    // Strip the source JPEG's own metadata segments, then inject.
+    Bytes plain{0xFF, 0xD8};
+    append(plain, jpeg_segment(0xE0, Bytes{'J', 'F', 'I', 'F', 0, 1, 2, 1, 0, 72, 0, 72, 0, 0}));
+    append(plain, jpeg_segment(0xDA, Bytes{1, 1, 0, 0, 63, 0}));
+    plain.insert(plain.end(), {0x12, 0x34, 0xFF, 0xD9});
+    const auto jpeg = md::inject_metadata(plain, "jpg", metadata);
+    CHECK(jpeg[2] == 0xFF && jpeg[3] == 0xE0);  // JFIF stays first
+    const auto info = md::extract_file_info(jpeg);
+    CHECK(info.exif && info.xmp && info.iptc && info.source_icc);
+    CHECK(info.iptc_digest && *info.iptc_digest == md::iim_digest(*info.iptc));
+    CHECK(info.text.size() == 1 && info.text[0].value == "hello comment");
+    CHECK(md::read_fields(info).city == "Seattle");
+    const auto big = full_save_metadata(4000);
+    CHECK(big.xmp.size() > 65502);
+    const auto extended = md::extract_file_info(md::inject_metadata(plain, "jpg", big));
+    const auto packet = md::parse_xmp(*extended.xmp);
+    CHECK(packet->items(md::xmp_ns::kPhotoshop, "DocumentAncestors").size() == 4000);
+    CHECK(packet->text(md::xmp_ns::kDc, "title") == "Sunset & Sea");
+  }
+  {
+    md::TiffStream tiff;
+    tiff.big_endian = true;  // the EXIF block is little-endian: values must be re-encoded
+    tiff.set_long(md::IfdKind::Ifd0, 256, 2);
+    tiff.set_long(md::IfdKind::Ifd0, 257, 2);
+    const auto injected = md::inject_metadata(md::write_tiff(tiff), "tif", metadata);
+    const auto info = md::extract_file_info(injected);
+    CHECK(info.xmp && info.source_icc && info.iptc);
+    const auto exif = md::parse_tiff(*info.exif);
+    CHECK(exif->string_value(*exif->find(md::IfdKind::Ifd0)->find(md::exif_tag::kMake)) == "PatchyCam");
+    CHECK(md::format_exif_value(*exif, md::IfdKind::Exif,
+                                *exif->find(md::IfdKind::Exif)->find(md::exif_tag::kExposureTime)) == "1/250 s");
+    CHECK(md::summarize_camera(info).has_location());
+    const auto file = md::parse_tiff(injected);
+    CHECK(file->unsigned_value(*file->find(md::IfdKind::Ifd0)->find(256)) == 2U);
+  }
+  {
+    Bytes gif;
+    append(gif, "GIF87a");
+    gif.insert(gif.end(), {1, 0, 1, 0, 0, 0, 0, 0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 2, 0x4C, 0x01, 0, 0x3B});
+    const auto injected = md::inject_metadata(gif, "gif", metadata);
+    CHECK(injected[4] == '9');
+    const auto info = md::extract_file_info(injected);
+    CHECK(info.text.size() == 1 && info.text[0].value == "hello comment");
+    CHECK(md::read_fields(info).title == "Sunset & Sea");
+    CHECK(std::any_of(info.structure.begin(), info.structure.end(),
+                      [](const auto& segment) { return segment.name == "Image 1"; }));
+  }
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> file_info_metadata_tests() {
@@ -979,5 +1233,10 @@ std::vector<patchy::test::TestCase> file_info_metadata_tests() {
       {"metadata_container_scanners_survive_mutation", container_scanners_survive_mutation},
       {"metadata_extract_file_info_from_unicode_paths", extract_file_info_from_unicode_paths},
       {"metadata_psd_round_trips_file_info_resources", psd_round_trips_file_info_resources},
+      {"metadata_edit_fields_follow_mwg_and_mirror_legacy_blocks", edit_fields_follow_mwg_and_mirror_legacy_blocks},
+      {"metadata_strip_and_targeted_removals", strip_and_targeted_removals},
+      {"metadata_orientation_bakes_and_saves_as_normal", orientation_bakes_and_saves_as_normal},
+      {"metadata_save_metadata_applies_rules_and_policies", save_metadata_applies_rules_and_policies},
+      {"metadata_inject_round_trips_through_every_container", inject_round_trips_through_every_container},
   };
 }

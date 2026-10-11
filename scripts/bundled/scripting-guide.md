@@ -393,7 +393,21 @@ doc.exportAs("page.pdf", {imageQuality: "high", editableLayers: true});
 | `.pdf` | the `app.exportPdf` keys: `imageQuality`, `lossless`, `editableLayers`, `keepOriginalImageData`, `missingFontsAsImages` |
 | `.gif` | `animate` (visible top-level layers become frames, top first), `frameDelayMs` |
 
+`.jpg`, `.png`, `.tif`, `.webp` and `.gif` also take `metadata` (`"all"`, the default; `"copyright"`; `"none"`): the File Info metadata written with the image. The color profile and resolution are always written.
+
 Keys you leave out follow your Save Options defaults and the document (a document opened from a .dds keeps that file's format under `"auto"`). The object is strict: a key that does not apply to the extension, an unknown key, a wrong type or an out-of-range value throws and nothing is written, so a typo never saves with defaults. A scripted save never changes your Save Options defaults. Formats without options (`.psd`, `.png`, `.tif`, ...) accept no keys.
+
+### File Info (metadata)
+
+`doc.fileInfo` holds the File > File Info fields (title, authors, description, keywords, copyright, IPTC location and contact fields). `doc.setFileInfo({...})` changes any of them; `doc.metadataEntries()` lists every EXIF, XMP, IPTC, ICC and text item with a privacy class; `doc.xmp` is the XMP packet. `doc.stripMetadata()` removes everything but the color profile (`{keepColorProfile: false}` removes that too), and `doc.removeLocation()` / `doc.removeEditHistory()` remove parts. Changes reach the file on the next save.
+
+```js
+const doc = app.activeDocument;
+doc.setFileInfo({title: "Harbor at dawn", authors: ["Ann Example"], keywords: ["harbor", "dawn"],
+                 copyrightStatus: "copyrighted", copyrightNotice: "(c) 2026 Ann Example"});
+if (doc.metadataEntries().some(e => e.privacy === "location")) doc.removeLocation();
+doc.exportAs("web.jpg", {quality: 85, metadata: "copyright"});
+```
 
 ### Animated WebP
 

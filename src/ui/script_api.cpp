@@ -10,6 +10,8 @@
 #include "core/document_depth.hpp"
 #include "core/pixel_depth.hpp"
 #include "ui/image_document_io.hpp"
+#include "formats/metadata/metadata_edit.hpp"
+#include "formats/metadata/metadata_view.hpp"
 #include "formats/animation_timing.hpp"
 #include "formats/webp_animation_io.hpp"
 
@@ -1637,6 +1639,317 @@ int ScriptDocumentObject::bit_depth() const {
   }
   const auto depth = document->color_state().bit_depth;
   return depth == BitDepth::Float32 ? 32 : depth == BitDepth::UInt16 ? 16 : 8;
+}
+
+namespace {
+
+// fileInfo keys (permanent scripting identifiers) and their FileInfoFields members.
+struct ScriptTextField {
+  const char* key;
+  std::string metadata::FileInfoFields::*member;
+};
+struct ScriptListField {
+  const char* key;
+  std::vector<std::string> metadata::FileInfoFields::*member;
+};
+
+const std::array<ScriptTextField, 18> kScriptTextFields{{
+    {"title", &metadata::FileInfoFields::title},
+    {"authorTitle", &metadata::FileInfoFields::author_title},
+    {"description", &metadata::FileInfoFields::description},
+    {"descriptionWriter", &metadata::FileInfoFields::description_writer},
+    {"copyrightNotice", &metadata::FileInfoFields::copyright_notice},
+    {"copyrightUrl", &metadata::FileInfoFields::copyright_url},
+    {"headline", &metadata::FileInfoFields::headline},
+    {"dateCreated", &metadata::FileInfoFields::date_created},
+    {"city", &metadata::FileInfoFields::city},
+    {"state", &metadata::FileInfoFields::state},
+    {"country", &metadata::FileInfoFields::country},
+    {"countryCode", &metadata::FileInfoFields::country_code},
+    {"sublocation", &metadata::FileInfoFields::sublocation},
+    {"credit", &metadata::FileInfoFields::credit},
+    {"source", &metadata::FileInfoFields::source},
+    {"instructions", &metadata::FileInfoFields::instructions},
+    {"jobIdentifier", &metadata::FileInfoFields::transmission_reference},
+    {"usageTerms", &metadata::FileInfoFields::usage_terms},
+}};
+const std::array<ScriptTextField, 8> kScriptContactFields{{
+    {"address", &metadata::FileInfoFields::contact_address},
+    {"city", &metadata::FileInfoFields::contact_city},
+    {"region", &metadata::FileInfoFields::contact_region},
+    {"postalCode", &metadata::FileInfoFields::contact_postal_code},
+    {"country", &metadata::FileInfoFields::contact_country},
+    {"phone", &metadata::FileInfoFields::contact_phone},
+    {"email", &metadata::FileInfoFields::contact_email},
+    {"url", &metadata::FileInfoFields::contact_url},
+}};
+const std::array<ScriptListField, 4> kScriptListFields{{
+    {"authors", &metadata::FileInfoFields::authors},
+    {"keywords", &metadata::FileInfoFields::keywords},
+    {"scene", &metadata::FileInfoFields::scene},
+    {"subjectCode", &metadata::FileInfoFields::subject_code},
+}};
+
+QString copyright_status_token(metadata::CopyrightStatus status) {
+  switch (status) {
+    case metadata::CopyrightStatus::Copyrighted:
+      return QStringLiteral("copyrighted");
+    case metadata::CopyrightStatus::PublicDomain:
+      return QStringLiteral("publicDomain");
+    case metadata::CopyrightStatus::Unknown:
+      break;
+  }
+  return QStringLiteral("unknown");
+}
+
+QJSValue string_array(QJSEngine& engine, const std::vector<std::string>& values) {
+  auto array = engine.newArray(static_cast<quint32>(values.size()));
+  for (quint32 i = 0; i < static_cast<quint32>(values.size()); ++i) {
+    array.setProperty(i, QString::fromStdString(values[i]));
+  }
+  return array;
+}
+
+}  // namespace
+
+QJSValue ScriptDocumentObject::file_info() const {
+  const ScriptApiCall api_call(host_);
+  const auto* document = read_document();
+  if (document == nullptr) {
+    return QJSValue(QJSValue::NullValue);
+  }
+  const auto fields = metadata::read_fields(document->file_info());
+  auto& engine = *host_.engine();
+  auto result = engine.newObject();
+  for (const auto& field : kScriptTextFields) {
+    result.setProperty(QString::fromLatin1(field.key), QString::fromStdString(fields.*field.member));
+  }
+  for (const auto& field : kScriptListFields) {
+    result.setProperty(QString::fromLatin1(field.key), string_array(engine, fields.*field.member));
+  }
+  auto contact = engine.newObject();
+  for (const auto& field : kScriptContactFields) {
+    contact.setProperty(QString::fromLatin1(field.key), QString::fromStdString(fields.*field.member));
+  }
+  result.setProperty(QStringLiteral("contact"), contact);
+  result.setProperty(QStringLiteral("rating"), fields.rating);
+  result.setProperty(QStringLiteral("copyrightStatus"), copyright_status_token(fields.copyright_status));
+  result.setProperty(QStringLiteral("intellectualGenre"), QString::fromStdString(fields.intellectual_genre));
+  result.setProperty(QStringLiteral("created"), QString::fromStdString(fields.created));
+  result.setProperty(QStringLiteral("modified"), QString::fromStdString(fields.modified));
+  result.setProperty(QStringLiteral("creatorTool"), QString::fromStdString(fields.creator_tool));
+  result.setProperty(QStringLiteral("sourceFormat"), QString::fromStdString(document->file_info().source_format));
+  return result;
+}
+
+QString ScriptDocumentObject::xmp() const {
+  const ScriptApiCall api_call(host_);
+  const auto* document = read_document();
+  if (document == nullptr || !document->file_info().xmp) {
+    return {};
+  }
+  const auto& bytes = *document->file_info().xmp;
+  return QString::fromUtf8(reinterpret_cast<const char*>(bytes.data()), static_cast<qsizetype>(bytes.size()));
+}
+
+void ScriptDocumentObject::setFileInfo(const QJSValue& values) {
+  const ScriptApiCall api_call(host_);
+  if (!values.isObject() || values.isArray()) {
+    host_.throw_js_error(ScriptEngineHost::tr("setFileInfo needs an object such as {title: \"Harbor\"}."));
+    return;
+  }
+  const auto* current = read_document();
+  if (current == nullptr) {
+    return;
+  }
+  const auto before = metadata::read_fields(current->file_info());
+  auto after = before;
+  const auto fail = [this](const QString& key, const QString& expected) {
+    host_.throw_js_error(ScriptEngineHost::tr("setFileInfo: %1 must be %2.").arg(key, expected));
+  };
+  QJSValueIterator it(values);
+  while (it.hasNext()) {
+    it.next();
+    const auto key = it.name();
+    const auto value = it.value();
+    const auto latin = key.toLatin1();
+    bool handled = false;
+    for (const auto& field : kScriptTextFields) {
+      if (latin == field.key) {
+        if (!value.isString()) {
+          fail(key, ScriptEngineHost::tr("a string"));
+          return;
+        }
+        after.*field.member = value.toString().trimmed().toStdString();
+        handled = true;
+      }
+    }
+    for (const auto& field : kScriptListFields) {
+      if (latin == field.key) {
+        if (!value.isArray()) {
+          fail(key, ScriptEngineHost::tr("an array of strings"));
+          return;
+        }
+        std::vector<std::string> list;
+        const auto length = value.property(QStringLiteral("length")).toUInt();
+        for (quint32 i = 0; i < length; ++i) {
+          const auto item = value.property(i);
+          if (!item.isString()) {
+            fail(key, ScriptEngineHost::tr("an array of strings"));
+            return;
+          }
+          if (const auto text = item.toString().trimmed(); !text.isEmpty()) {
+            list.push_back(text.toStdString());
+          }
+        }
+        after.*field.member = std::move(list);
+        handled = true;
+      }
+    }
+    if (handled) {
+      continue;
+    }
+    if (key == QStringLiteral("intellectualGenre") && value.isString()) {
+      after.intellectual_genre = value.toString().trimmed().toStdString();
+    } else if (key == QStringLiteral("rating")) {
+      if (!value.isNumber() || value.toNumber() != std::floor(value.toNumber()) || value.toNumber() < -1 ||
+          value.toNumber() > 5) {
+        fail(key, ScriptEngineHost::tr("a whole number from -1 to 5"));
+        return;
+      }
+      after.rating = value.toInt();
+    } else if (key == QStringLiteral("copyrightStatus")) {
+      const auto token = value.toString();
+      if (!value.isString() || (token != QStringLiteral("unknown") && token != QStringLiteral("copyrighted") &&
+                                token != QStringLiteral("publicDomain"))) {
+        fail(key, QStringLiteral("\"unknown\", \"copyrighted\" or \"publicDomain\""));
+        return;
+      }
+      after.copyright_status = token == QStringLiteral("copyrighted")    ? metadata::CopyrightStatus::Copyrighted
+                               : token == QStringLiteral("publicDomain") ? metadata::CopyrightStatus::PublicDomain
+                                                                         : metadata::CopyrightStatus::Unknown;
+    } else if (key == QStringLiteral("contact") && value.isObject() && !value.isArray()) {
+      QJSValueIterator contact(value);
+      while (contact.hasNext()) {
+        contact.next();
+        const auto contact_key = contact.name().toLatin1();
+        bool known = false;
+        for (const auto& field : kScriptContactFields) {
+          if (contact_key == field.key) {
+            if (!contact.value().isString()) {
+              fail(QStringLiteral("contact.") + contact.name(), ScriptEngineHost::tr("a string"));
+              return;
+            }
+            after.*field.member = contact.value().toString().trimmed().toStdString();
+            known = true;
+          }
+        }
+        if (!known) {
+          host_.throw_js_error(ScriptEngineHost::tr("setFileInfo: unknown option %1.")
+                                   .arg(QStringLiteral("contact.") + contact.name()));
+          return;
+        }
+      }
+    } else {
+      host_.throw_js_error(ScriptEngineHost::tr("setFileInfo: unknown option %1.").arg(key));
+      return;
+    }
+  }
+  if (after == before) {
+    return;
+  }
+  auto* document = write_document();
+  if (document == nullptr) {
+    return;
+  }
+  metadata::apply_fields(document->file_info(), before, after);
+}
+
+QJSValue ScriptDocumentObject::metadataEntries() const {
+  const ScriptApiCall api_call(host_);
+  const auto* document = read_document();
+  auto& engine = *host_.engine();
+  if (document == nullptr) {
+    return engine.newArray(0);
+  }
+  const auto entries =
+      metadata::describe_file_info(document->file_info(), document->color_state().embedded_icc_profile);
+  auto array = engine.newArray(static_cast<quint32>(entries.size()));
+  for (quint32 i = 0; i < static_cast<quint32>(entries.size()); ++i) {
+    const auto& entry = entries[i];
+    auto row = engine.newObject();
+    row.setProperty(QStringLiteral("group"), QString::fromStdString(entry.group));
+    row.setProperty(QStringLiteral("name"), QString::fromStdString(entry.name));
+    row.setProperty(QStringLiteral("value"), QString::fromStdString(entry.value));
+    row.setProperty(QStringLiteral("source"), QString::fromStdString(entry.source));
+    row.setProperty(QStringLiteral("privacy"),
+                    QString::fromLatin1(metadata::privacy_class_id(entry.privacy).data(),
+                                        static_cast<qsizetype>(metadata::privacy_class_id(entry.privacy).size())));
+    array.setProperty(i, row);
+  }
+  return array;
+}
+
+void ScriptDocumentObject::stripMetadata(const QJSValue& options) {
+  const ScriptApiCall api_call(host_);
+  bool keep_color_profile = true;
+  if (!options.isUndefined()) {
+    if (!options.isObject() || options.isArray()) {
+      host_.throw_js_error(ScriptEngineHost::tr("stripMetadata options must be an object such as "
+                                                "{keepColorProfile: false}."));
+      return;
+    }
+    QJSValueIterator it(options);
+    while (it.hasNext()) {
+      it.next();
+      if (it.name() != QStringLiteral("keepColorProfile") || !it.value().isBool()) {
+        host_.throw_js_error(ScriptEngineHost::tr("stripMetadata: unknown option %1.").arg(it.name()));
+        return;
+      }
+      keep_color_profile = it.value().toBool();
+    }
+  }
+  auto* document = write_document();
+  if (document == nullptr) {
+    return;
+  }
+  metadata::strip_metadata(*document, keep_color_profile);
+}
+
+bool ScriptDocumentObject::removeLocation() {
+  const ScriptApiCall api_call(host_);
+  const auto* current = read_document();
+  if (current == nullptr) {
+    return false;
+  }
+  auto probe = current->file_info();
+  if (!metadata::remove_location(probe)) {
+    return false;
+  }
+  auto* document = write_document();
+  if (document == nullptr) {
+    return false;
+  }
+  document->file_info() = std::move(probe);
+  return true;
+}
+
+bool ScriptDocumentObject::removeEditHistory() {
+  const ScriptApiCall api_call(host_);
+  const auto* current = read_document();
+  if (current == nullptr) {
+    return false;
+  }
+  auto probe = current->file_info();
+  if (!metadata::remove_edit_history(probe)) {
+    return false;
+  }
+  auto* document = write_document();
+  if (document == nullptr) {
+    return false;
+  }
+  document->file_info() = std::move(probe);
+  return true;
 }
 
 double ScriptDocumentObject::resolution() const {

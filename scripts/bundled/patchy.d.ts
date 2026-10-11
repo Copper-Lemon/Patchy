@@ -604,6 +604,62 @@ interface PatchySaveOptions {
    *  instead of one flattened image; frameDelayMs is the default per-frame delay. */
   animate?: boolean;
   frameDelayMs?: number;
+  /** .jpg/.jpeg, .png, .tif/.tiff, .webp, .gif: the File Info metadata to embed. "all"
+   *  (the default for saveAs and exportAs) writes everything; "copyright" keeps the author,
+   *  copyright and creator contact fields; "none" writes no metadata. The color profile
+   *  and resolution are always written. */
+  metadata?: "all" | "copyright" | "none";
+}
+
+/** File > File Info fields (doc.fileInfo, doc.setFileInfo). Strings are empty and arrays
+ *  empty when absent. Read from XMP first, then legacy IPTC and EXIF. */
+interface PatchyFileInfo {
+  title: string;
+  authors: string[];
+  authorTitle: string;
+  description: string;
+  /** 0 = none, 1..5 stars, -1 = rejected. */
+  rating: number;
+  descriptionWriter: string;
+  keywords: string[];
+  copyrightStatus: "unknown" | "copyrighted" | "publicDomain";
+  copyrightNotice: string;
+  copyrightUrl: string;
+  headline: string;
+  dateCreated: string;
+  sublocation: string;
+  city: string;
+  state: string;
+  country: string;
+  countryCode: string;
+  credit: string;
+  source: string;
+  instructions: string;
+  jobIdentifier: string;
+  usageTerms: string;
+  intellectualGenre: string;
+  scene: string[];
+  subjectCode: string[];
+  contact: {address: string; city: string; region: string; postalCode: string; country: string;
+    phone: string; email: string; url: string};
+  /** Read only: XMP or EXIF dates and the creating application. */
+  readonly created: string;
+  readonly modified: string;
+  readonly creatorTool: string;
+  /** Read only: the format the document was opened from ("JPEG", "PSD", ...). */
+  readonly sourceFormat: string;
+}
+
+/** One row of File Info's All Metadata list. */
+interface PatchyMetadataEntry {
+  /** Container: "EXIF IFD0", "EXIF GPS", "XMP dc", "IPTC-IIM", "PNG text", "ICC profile", ... */
+  group: string;
+  /** Specification identifier: "Make", "dc:title", "By-line". */
+  name: string;
+  value: string;
+  source: string;
+  privacy: "none" | "location" | "deviceIdentity" | "personal" | "hiddenImage" | "editHistory" |
+    "machineInfo" | "timestamp" | "aiPrompt" | "provenance";
 }
 
 interface PatchyDocument {
@@ -662,6 +718,10 @@ interface PatchyDocument {
   readonly path: string;
   /** Pixels per inch. */
   readonly resolution: number;
+  /** File > File Info fields. Change them with setFileInfo. */
+  readonly fileInfo: PatchyFileInfo;
+  /** The XMP packet as text, empty when the document has none. */
+  readonly xmp: string;
   /** Bits per channel: 8, 16 or 32 (32 is floating point, linear light). */
   readonly bitDepth: 8 | 16 | 32;
   /** Top-level layers, bottom to top; groups expose .children. */
@@ -785,6 +845,21 @@ interface PatchyDocument {
   distributeLayers(mode: "left" | "hcenter" | "right" | "top" | "vcenter" | "bottom" | "hspacing" | "vspacing",
     options?: {layers?: PatchyLayer[]}): number;
   flatten(): void;
+  /** File > File Info: sets the given fields (any subset of fileInfo's writable keys, and
+   *  `contact` partially). Unknown or read-only keys and wrong types throw. Changes reach
+   *  the file on the next save; one undo step per script run. */
+  setFileInfo(fields: Partial<Omit<PatchyFileInfo, "created" | "modified" | "creatorTool" | "sourceFormat" |
+    "contact">> & {contact?: Partial<PatchyFileInfo["contact"]>}): void;
+  /** Every metadata item the document holds (File Info's All Metadata list). */
+  metadataEntries(): PatchyMetadataEntry[];
+  /** File > Strip All Metadata. The color profile stays unless keepColorProfile is false;
+   *  the resolution always stays. */
+  stripMetadata(options?: {keepColorProfile?: boolean}): void;
+  /** Removes GPS from EXIF and XMP. Returns false when there was none. */
+  removeLocation(): boolean;
+  /** Removes XMP edit history, document ancestors, the text-layer cache and Camera Raw
+   *  settings. Returns false when there was none. */
+  removeEditHistory(): boolean;
   /** Image > Image Size. `options.method` is the resampling method (default "automatic":
    *  Bicubic Sharper for a reduction, Bicubic Smoother for an enlargement); an unknown id
    *  throws. Text layers and smart objects re-render from their sources afterwards. */

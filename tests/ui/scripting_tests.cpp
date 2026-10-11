@@ -6,6 +6,8 @@
 // holds, the editor dialog / script canvas window render, and the @cli
 // command-line example and scripting-guide viewer surfaces work.
 
+#include "formats/metadata/metadata_containers.hpp"
+#include "formats/metadata/metadata_edit.hpp"
 #include "core/document.hpp"
 #include "core/document_depth.hpp"
 #include "ui/image_document_io.hpp"
@@ -4680,8 +4682,43 @@ void ui_script_import_files_as_layers() {
   CHECK(layers[layers.size() - 3].name() == "a");
 }
 
+void ui_script_file_info_reads_edits_and_strips() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  QDir().mkpath(QStringLiteral("test-artifacts/file-info"));
+  const auto png = QDir(QStringLiteral("test-artifacts/file-info")).absoluteFilePath(QStringLiteral("script.png"));
+  const auto bare = QDir(QStringLiteral("test-artifacts/file-info")).absoluteFilePath(QStringLiteral("script-none.png"));
+  CHECK(run_script(window, QStringLiteral(R"JS(
+var d = app.newDocument(8, 8);
+d.setFileInfo({title: "Harbor", authors: ["Ann Example"], keywords: ["harbor", "dawn"],
+               copyrightStatus: "copyrighted", rating: 3, contact: {email: "ann@example.com"}});
+var info = d.fileInfo;
+if (info.title !== "Harbor" || info.keywords.length !== 2 || info.rating !== 3) throw new Error("fields");
+if (info.copyrightStatus !== "copyrighted" || info.contact.email !== "ann@example.com") throw new Error("status");
+if (d.xmp.indexOf("Harbor") < 0) throw new Error("xmp");
+if (!d.metadataEntries().some(function (e) { return e.group === "XMP dc" && e.name === "dc:title"; }))
+  throw new Error("entries");
+function throws(f) { try { f(); } catch (e) { return true; } return false; }
+if (!throws(function () { d.setFileInfo({bogus: 1}); })) throw new Error("unknown key");
+if (!throws(function () { d.setFileInfo({created: "2026"}); })) throw new Error("read-only key");
+if (!throws(function () { d.setFileInfo({rating: 9}); })) throw new Error("rating range");
+if (!throws(function () { d.exportAs("%2", {metadata: "some"}); })) throw new Error("token");
+d.saveAs("%1");
+d.exportAs("%2", {metadata: "none"});
+if (d.removeLocation()) throw new Error("no location to remove");
+d.stripMetadata();
+if (d.fileInfo.title !== "" || d.xmp !== "") throw new Error("strip");
+)JS").arg(png, bare)));
+  const auto saved = patchy::metadata::extract_file_info_from_path(patchy::ui::to_filesystem_path(png));
+  CHECK(patchy::metadata::read_fields(saved).title == "Harbor");
+  const auto none = patchy::metadata::extract_file_info_from_path(patchy::ui::to_filesystem_path(bare));
+  CHECK(none.xmp == nullptr);
+  CHECK(!patchy::ui::MainWindowTestAccess::document(window).file_info().has_metadata());
+}
+
 std::vector<patchy::test::TestCase> scripting_tests() {
   return {
+      {"ui_script_file_info_reads_edits_and_strips", ui_script_file_info_reads_edits_and_strips},
       {"ui_script_import_files_as_layers", ui_script_import_files_as_layers},
       {"ui_script_export_pdf_writes_pages", ui_script_export_pdf_writes_pages},
       {"ui_script_layer_move_to_rounds_like_photoshop", ui_script_layer_move_to_rounds_like_photoshop},

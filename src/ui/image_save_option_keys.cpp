@@ -170,4 +170,29 @@ bmp::BmpPaletteMode bmp_palette_mode_from_key(const QString& key, bmp::BmpPalett
   return fallback;
 }
 
+QString metadata_policy_key(metadata::MetadataPolicy policy) {
+  switch (policy) {
+    case metadata::MetadataPolicy::All:
+      return QStringLiteral("all");
+    case metadata::MetadataPolicy::CopyrightAndContact:
+      return QStringLiteral("copyright");
+    case metadata::MetadataPolicy::None:
+      return QStringLiteral("none");
+  }
+  return QStringLiteral("all");
+}
+
+std::optional<metadata::MetadataPolicy> metadata_policy_from_key(const QString& key) {
+  if (key == QStringLiteral("all")) {
+    return metadata::MetadataPolicy::All;
+  }
+  if (key == QStringLiteral("copyright")) {
+    return metadata::MetadataPolicy::CopyrightAndContact;
+  }
+  if (key == QStringLiteral("none")) {
+    return metadata::MetadataPolicy::None;
+  }
+  return std::nullopt;
+}
+
 }  // namespace patchy::ui

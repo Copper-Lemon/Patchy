@@ -1,5 +1,6 @@
 #pragma once
 
+#include "formats/metadata/metadata_edit.hpp"
 #include "core/document.hpp"
 #include "formats/bmp_document_io.hpp"
 #include "formats/dds_document_io.hpp"
@@ -32,6 +33,10 @@ enum class IcoResample {
 };
 
 struct ImageSaveOptions {
+  // File Info metadata written with the image (docs/file-info.md). Save and Save As
+  // write all of it; the Export section offers the choice and persists it as
+  // saveOptions/exportMetadata (metadata_policy_key tokens); scripts pass `metadata`.
+  metadata::MetadataPolicy metadata_policy{metadata::MetadataPolicy::All};
   int jpeg_quality{95};
   bmp::BmpEncoding bmp_encoding{bmp::BmpEncoding::Rgba32};
   bmp::BmpPaletteMode bmp_palette_mode{bmp::BmpPaletteMode::Exact};

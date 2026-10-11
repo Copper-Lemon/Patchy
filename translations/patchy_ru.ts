@@ -9245,6 +9245,634 @@ RGB: %2, %3, %4</translation>
         <source>Patchy converted the pixels to sRGB when it opened the file, so this profile is shown for reference only and is not written to saves.</source>
         <translation>Patchy преобразовал пиксели в sRGB при открытии файла, поэтому этот профиль показан только для справки и не записывается при сохранении.</translation>
     </message>
+    <message>
+        <source>This document carries information you may not want to share: %1. Strip All Metadata removes it.</source>
+        <translation>Этот документ содержит сведения, которыми вы, возможно, не хотите делиться: %1. Команда «Удалить все метаданные» удаляет их.</translation>
+    </message>
+    <message>
+        <source>GPS location</source>
+        <translation>местоположение GPS</translation>
+    </message>
+    <message>
+        <source>camera serial numbers or owner</source>
+        <translation>серийные номера камеры или ее владелец</translation>
+    </message>
+    <message>
+        <source>names and contact details</source>
+        <translation>имена и контактные данные</translation>
+    </message>
+    <message>
+        <source>embedded thumbnails or extra images</source>
+        <translation>встроенные миниатюры или дополнительные изображения</translation>
+    </message>
+    <message>
+        <source>edit history</source>
+        <translation>история правок</translation>
+    </message>
+    <message>
+        <source>software and file paths</source>
+        <translation>программы и пути к файлам</translation>
+    </message>
+    <message>
+        <source>dates and times</source>
+        <translation>даты и время</translation>
+    </message>
+    <message>
+        <source>AI generation prompts</source>
+        <translation>промпты для генерации с помощью ИИ</translation>
+    </message>
+    <message>
+        <source>Content Credentials</source>
+        <translation>Учетные данные контента</translation>
+    </message>
+    <message>
+        <source>Strip All Metadata</source>
+        <translation>Удалить все метаданные</translation>
+    </message>
+    <message>
+        <source>Remove all metadata from this document?</source>
+        <translation>Удалить все метаданные из этого документа?</translation>
+    </message>
+    <message>
+        <source>This removes EXIF (including GPS and camera serial numbers), XMP, IPTC, comments, text such as AI prompts, embedded thumbnails and Content Credentials. The resolution is kept. You can undo it, and the file changes the next time you save it.</source>
+        <translation>Будут удалены EXIF (включая GPS и серийные номера камеры), XMP, IPTC, комментарии, текст, например промпты ИИ, встроенные миниатюры и учетные данные контента. Разрешение сохраняется. Это действие можно отменить, а файл изменится при следующем сохранении.</translation>
+    </message>
+    <message>
+        <source>Strip Metadata</source>
+        <translation>Удалить метаданные</translation>
+    </message>
+    <message>
+        <source>Also remove the color profile (colors may look different in color-managed apps)</source>
+        <translation>Также удалить цветовой профиль (в приложениях с управлением цветом цвета могут выглядеть иначе)</translation>
+    </message>
+    <message>
+        <source>File Info: %1</source>
+        <translation>Сведения о файле: %1</translation>
+    </message>
+    <message>
+        <source>Document Title:</source>
+        <translation>Заголовок документа:</translation>
+    </message>
+    <message>
+        <source>Author:</source>
+        <translation>Автор:</translation>
+    </message>
+    <message>
+        <source>Separate several names with semicolons</source>
+        <translation>Разделяйте несколько имен точкой с запятой</translation>
+    </message>
+    <message>
+        <source>Author Title:</source>
+        <translation>Должность автора:</translation>
+    </message>
+    <message>
+        <source>Description:</source>
+        <translation>Описание:</translation>
+    </message>
+    <message>
+        <source>Rejected</source>
+        <translation>Отклонено</translation>
+    </message>
+    <message>
+        <source>Rating:</source>
+        <translation>Рейтинг:</translation>
+    </message>
+    <message>
+        <source>Description Writer:</source>
+        <translation>Автор описания:</translation>
+    </message>
+    <message>
+        <source>Keywords:</source>
+        <translation>Ключевые слова:</translation>
+    </message>
+    <message>
+        <source>Separate keywords with semicolons or commas</source>
+        <translation>Разделяйте ключевые слова точкой с запятой или запятыми</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>Неизвестно</translation>
+    </message>
+    <message>
+        <source>Copyrighted</source>
+        <translation>Защищено авторским правом</translation>
+    </message>
+    <message>
+        <source>Public Domain</source>
+        <translation>Общественное достояние</translation>
+    </message>
+    <message>
+        <source>Copyright Status:</source>
+        <translation>Статус авторского права:</translation>
+    </message>
+    <message>
+        <source>Copyright Notice:</source>
+        <translation>Уведомление об авторском праве:</translation>
+    </message>
+    <message>
+        <source>Copyright Info URL:</source>
+        <translation>URL сведений об авторском праве:</translation>
+    </message>
+    <message>
+        <source>Created:</source>
+        <translation>Создан:</translation>
+    </message>
+    <message>
+        <source>Modified:</source>
+        <translation>Изменен:</translation>
+    </message>
+    <message>
+        <source>Application:</source>
+        <translation>Приложение:</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <translation>Описание</translation>
+    </message>
+    <message>
+        <source>Headline:</source>
+        <translation>Заголовок:</translation>
+    </message>
+    <message>
+        <source>Date Created:</source>
+        <translation>Дата создания:</translation>
+    </message>
+    <message>
+        <source>Sublocation:</source>
+        <translation>Уточнение места:</translation>
+    </message>
+    <message>
+        <source>City:</source>
+        <translation>Город:</translation>
+    </message>
+    <message>
+        <source>State/Province:</source>
+        <translation>Регион/область:</translation>
+    </message>
+    <message>
+        <source>Country:</source>
+        <translation>Страна:</translation>
+    </message>
+    <message>
+        <source>ISO Country Code:</source>
+        <translation>Код страны ISO:</translation>
+    </message>
+    <message>
+        <source>Credit Line:</source>
+        <translation>Указание авторства:</translation>
+    </message>
+    <message>
+        <source>Source:</source>
+        <translation>Источник:</translation>
+    </message>
+    <message>
+        <source>Instructions:</source>
+        <translation>Инструкции:</translation>
+    </message>
+    <message>
+        <source>Job Identifier:</source>
+        <translation>Идентификатор задания:</translation>
+    </message>
+    <message>
+        <source>Rights Usage Terms:</source>
+        <translation>Условия использования:</translation>
+    </message>
+    <message>
+        <source>Intellectual Genre:</source>
+        <translation>Интеллектуальный жанр:</translation>
+    </message>
+    <message>
+        <source>IPTC Scene Codes:</source>
+        <translation>Коды сцен IPTC:</translation>
+    </message>
+    <message>
+        <source>IPTC Subject Codes:</source>
+        <translation>Коды тем IPTC:</translation>
+    </message>
+    <message>
+        <source>Creator Contact Info</source>
+        <translation>Контактные данные автора</translation>
+    </message>
+    <message>
+        <source>Address:</source>
+        <translation>Адрес:</translation>
+    </message>
+    <message>
+        <source>Postal Code:</source>
+        <translation>Почтовый индекс:</translation>
+    </message>
+    <message>
+        <source>Phone:</source>
+        <translation>Телефон:</translation>
+    </message>
+    <message>
+        <source>Email:</source>
+        <translation>Эл. почта:</translation>
+    </message>
+    <message>
+        <source>Website:</source>
+        <translation>Веб-сайт:</translation>
+    </message>
+    <message>
+        <source>IPTC</source>
+        <translation>IPTC</translation>
+    </message>
+    <message>
+        <source>Camera Data</source>
+        <translation>Данные камеры</translation>
+    </message>
+    <message>
+        <source>Color and Image</source>
+        <translation>Цвет и изображение</translation>
+    </message>
+    <message>
+        <source>History and Provenance</source>
+        <translation>История и происхождение</translation>
+    </message>
+    <message>
+        <source>AI Generation</source>
+        <translation>Генерация ИИ</translation>
+    </message>
+    <message>
+        <source>Embedded Thumbnails</source>
+        <translation>Встроенные миниатюры</translation>
+    </message>
+    <message>
+        <source>File</source>
+        <translation>Файл</translation>
+    </message>
+    <message>
+        <source>Filter</source>
+        <translation>Фильтр</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation>Значение</translation>
+    </message>
+    <message>
+        <source>Privacy</source>
+        <translation>Конфиденциальность</translation>
+    </message>
+    <message>
+        <source>Copy All</source>
+        <translation>Копировать все</translation>
+    </message>
+    <message>
+        <source>All Metadata</source>
+        <translation>Все метаданные</translation>
+    </message>
+    <message>
+        <source>Copy XMP</source>
+        <translation>Копировать XMP</translation>
+    </message>
+    <message>
+        <source>Raw XMP</source>
+        <translation>Исходный XMP</translation>
+    </message>
+    <message>
+        <source>Strip All Metadata...</source>
+        <translation>Удалить все метаданные...</translation>
+    </message>
+    <message>
+        <source>Camera</source>
+        <translation>Камера</translation>
+    </message>
+    <message>
+        <source>Make:</source>
+        <translation>Производитель:</translation>
+    </message>
+    <message>
+        <source>Model:</source>
+        <translation>Модель:</translation>
+    </message>
+    <message>
+        <source>Lens:</source>
+        <translation>Объектив:</translation>
+    </message>
+    <message>
+        <source>Body serial number:</source>
+        <translation>Серийный номер корпуса:</translation>
+    </message>
+    <message>
+        <source>Lens serial number:</source>
+        <translation>Серийный номер объектива:</translation>
+    </message>
+    <message>
+        <source>Camera owner:</source>
+        <translation>Владелец камеры:</translation>
+    </message>
+    <message>
+        <source>Exposure time:</source>
+        <translation>Выдержка:</translation>
+    </message>
+    <message>
+        <source>F-number:</source>
+        <translation>Диафрагменное число:</translation>
+    </message>
+    <message>
+        <source>ISO:</source>
+        <translation>ISO:</translation>
+    </message>
+    <message>
+        <source>Focal length:</source>
+        <translation>Фокусное расстояние:</translation>
+    </message>
+    <message>
+        <source>35 mm equivalent:</source>
+        <translation>Эквивалент 35 мм:</translation>
+    </message>
+    <message>
+        <source>Exposure bias:</source>
+        <translation>Экспокоррекция:</translation>
+    </message>
+    <message>
+        <source>Exposure program:</source>
+        <translation>Программа экспозиции:</translation>
+    </message>
+    <message>
+        <source>Metering:</source>
+        <translation>Замер экспозиции:</translation>
+    </message>
+    <message>
+        <source>Flash:</source>
+        <translation>Вспышка:</translation>
+    </message>
+    <message>
+        <source>White balance:</source>
+        <translation>Баланс белого:</translation>
+    </message>
+    <message>
+        <source>Dates</source>
+        <translation>Даты</translation>
+    </message>
+    <message>
+        <source>Taken:</source>
+        <translation>Снято:</translation>
+    </message>
+    <message>
+        <source>Digitized:</source>
+        <translation>Оцифровано:</translation>
+    </message>
+    <message>
+        <source>Time zone offset:</source>
+        <translation>Смещение часового пояса:</translation>
+    </message>
+    <message>
+        <source>Orientation:</source>
+        <translation>Ориентация:</translation>
+    </message>
+    <message>
+        <source>Software:</source>
+        <translation>Программа:</translation>
+    </message>
+    <message>
+        <source>The file also carries a maker note: the camera maker&apos;s private data, which often includes serial numbers.</source>
+        <translation>Файл также содержит заметку производителя: закрытые данные производителя камеры, которые часто включают серийные номера.</translation>
+    </message>
+    <message>
+        <source>Latitude:</source>
+        <translation>Широта:</translation>
+    </message>
+    <message>
+        <source>Longitude:</source>
+        <translation>Долгота:</translation>
+    </message>
+    <message>
+        <source>Altitude:</source>
+        <translation>Высота:</translation>
+    </message>
+    <message>
+        <source>%1 m</source>
+        <translation>%1 м</translation>
+    </message>
+    <message>
+        <source>Direction:</source>
+        <translation>Направление:</translation>
+    </message>
+    <message>
+        <source>GPS time:</source>
+        <translation>Время GPS:</translation>
+    </message>
+    <message>
+        <source>No GPS location.</source>
+        <translation>Нет местоположения GPS.</translation>
+    </message>
+    <message>
+        <source>Remove Location</source>
+        <translation>Удалить местоположение</translation>
+    </message>
+    <message>
+        <source>Source format:</source>
+        <translation>Исходный формат:</translation>
+    </message>
+    <message>
+        <source>Bit depth:</source>
+        <translation>Разрядность:</translation>
+    </message>
+    <message>
+        <source>32 bits per channel</source>
+        <translation>32 бита на канал</translation>
+    </message>
+    <message>
+        <source>16 bits per channel</source>
+        <translation>16 бит на канал</translation>
+    </message>
+    <message>
+        <source>8 bits per channel</source>
+        <translation>8 бит на канал</translation>
+    </message>
+    <message>
+        <source>%1 pixels/inch</source>
+        <translation>%1 пикселей/дюйм</translation>
+    </message>
+    <message>
+        <source>Embedded color profile</source>
+        <translation>Встроенный цветовой профиль</translation>
+    </message>
+    <message>
+        <source>Color profile</source>
+        <translation>Цветовой профиль</translation>
+    </message>
+    <message>
+        <source>Copyright:</source>
+        <translation>Авторское право:</translation>
+    </message>
+    <message>
+        <source>Device class:</source>
+        <translation>Класс устройства:</translation>
+    </message>
+    <message>
+        <source>Color space:</source>
+        <translation>Цветовое пространство:</translation>
+    </message>
+    <message>
+        <source>Connection space:</source>
+        <translation>Пространство связи профилей:</translation>
+    </message>
+    <message>
+        <source>Version:</source>
+        <translation>Версия:</translation>
+    </message>
+    <message>
+        <source>No embedded color profile. Applications assume sRGB.</source>
+        <translation>Нет встроенного цветового профиля. Приложения считают, что используется sRGB.</translation>
+    </message>
+    <message>
+        <source>PNG color chunks</source>
+        <translation>Цветовые блоки PNG</translation>
+    </message>
+    <message>
+        <source>Document identity</source>
+        <translation>Идентификация документа</translation>
+    </message>
+    <message>
+        <source>Document ID:</source>
+        <translation>ID документа:</translation>
+    </message>
+    <message>
+        <source>Instance ID:</source>
+        <translation>ID экземпляра:</translation>
+    </message>
+    <message>
+        <source>Original document ID:</source>
+        <translation>ID исходного документа:</translation>
+    </message>
+    <message>
+        <source>Derived from:</source>
+        <translation>Основан на:</translation>
+    </message>
+    <message>
+        <source>History</source>
+        <translation>История</translation>
+    </message>
+    <message>
+        <source>Action</source>
+        <translation>Действие</translation>
+    </message>
+    <message>
+        <source>When</source>
+        <translation>Когда</translation>
+    </message>
+    <message>
+        <source>Software</source>
+        <translation>Программа</translation>
+    </message>
+    <message>
+        <source>Changed</source>
+        <translation>Изменено</translation>
+    </message>
+    <message>
+        <source>Document ancestors:</source>
+        <translation>Документы-предки:</translation>
+    </message>
+    <message>
+        <source>Photoshop records every document pasted or placed into this one. The list only grows and links this file to others.</source>
+        <translation>Photoshop записывает каждый документ, вставленный или помещенный в этот. Список только растет и связывает этот файл с другими.</translation>
+    </message>
+    <message>
+        <source>Cached text layer contents</source>
+        <translation>Кэшированное содержимое текстовых слоев</translation>
+    </message>
+    <message>
+        <source>This copy of the text can include layers that were later hidden or deleted.</source>
+        <translation>Эта копия текста может включать слои, которые позже были скрыты или удалены.</translation>
+    </message>
+    <message>
+        <source>Camera Raw:</source>
+        <translation>Camera Raw:</translation>
+    </message>
+    <message>
+        <source>Development settings are stored.</source>
+        <translation>Сохранены параметры проявки.</translation>
+    </message>
+    <message>
+        <source>Content Credentials (C2PA)</source>
+        <translation>Учетные данные контента (C2PA)</translation>
+    </message>
+    <message>
+        <source>Manifest:</source>
+        <translation>Манифест:</translation>
+    </message>
+    <message>
+        <source>Content Credentials are not written when Patchy saves: edits invalidate their signature.</source>
+        <translation>Patchy не записывает учетные данные контента при сохранении: изменения делают их подпись недействительной.</translation>
+    </message>
+    <message>
+        <source>No edit history or provenance records.</source>
+        <translation>Нет истории правок или записей о происхождении.</translation>
+    </message>
+    <message>
+        <source>Remove Edit History</source>
+        <translation>Удалить историю правок</translation>
+    </message>
+    <message>
+        <source>Generator:</source>
+        <translation>Генератор:</translation>
+    </message>
+    <message>
+        <source>Digital source type:</source>
+        <translation>Тип цифрового источника:</translation>
+    </message>
+    <message>
+        <source>Prompt</source>
+        <translation>Промпт</translation>
+    </message>
+    <message>
+        <source>Negative prompt</source>
+        <translation>Негативный промпт</translation>
+    </message>
+    <message>
+        <source>Workflow</source>
+        <translation>Рабочий процесс</translation>
+    </message>
+    <message>
+        <source>Thumbnails are written by the camera or editor that saved the file. They are not updated by every edit, so they can show content that was cropped out or painted over.</source>
+        <translation>Миниатюры записывает камера или редактор, сохранивший файл. Они обновляются не при каждой правке, поэтому могут показывать обрезанное или закрашенное содержимое.</translation>
+    </message>
+    <message>
+        <source>(cannot display)</source>
+        <translation>(невозможно отобразить)</translation>
+    </message>
+    <message>
+        <source>Location:</source>
+        <translation>Расположение:</translation>
+    </message>
+    <message>
+        <source>Not saved yet</source>
+        <translation>Еще не сохранен</translation>
+    </message>
+    <message>
+        <source>Size on disk:</source>
+        <translation>Размер на диске:</translation>
+    </message>
+    <message>
+        <source>Layout of the file as it was opened</source>
+        <translation>Структура файла на момент открытия</translation>
+    </message>
+    <message>
+        <source>Block</source>
+        <translation>Блок</translation>
+    </message>
+    <message>
+        <source>Offset</source>
+        <translation>Смещение</translation>
+    </message>
+    <message>
+        <source>No XMP metadata.</source>
+        <translation>Нет метаданных XMP.</translation>
+    </message>
+    <message>
+        <source>Metadata:</source>
+        <translation>Метаданные:</translation>
+    </message>
+    <message>
+        <source>Copyright and Contact Info</source>
+        <translation>Авторское право и контакты</translation>
+    </message>
+    <message>
+        <source>File Info metadata to include. The color profile and resolution are always kept.</source>
+        <translation>Какие метаданные из сведений о файле включать. Цветовой профиль и разрешение сохраняются всегда.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -19305,6 +19933,30 @@ Y: %2
         <source>Finding the subject... %1%</source>
         <translation>Поиск предмета... %1%</translation>
     </message>
+    <message>
+        <source>File &amp;Info...</source>
+        <translation>&amp;Сведения о файле...</translation>
+    </message>
+    <message>
+        <source>Strip All Metadata...</source>
+        <translation>Удалить все метаданные...</translation>
+    </message>
+    <message>
+        <source>File Info</source>
+        <translation>Сведения о файле</translation>
+    </message>
+    <message>
+        <source>File info updated; it is written the next time you save.</source>
+        <translation>Сведения о файле обновлены; они будут записаны при следующем сохранении.</translation>
+    </message>
+    <message>
+        <source>Strip metadata</source>
+        <translation>Удаление метаданных</translation>
+    </message>
+    <message>
+        <source>Metadata removed; the file changes the next time you save.</source>
+        <translation>Метаданные удалены; файл изменится при следующем сохранении.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20864,6 +21516,38 @@ Y: %2
     <message>
         <source>Invalid removeBackground option: %1.</source>
         <translation>Недопустимый параметр removeBackground: %1.</translation>
+    </message>
+    <message>
+        <source>setFileInfo needs an object such as {title: &quot;Harbor&quot;}.</source>
+        <translation>setFileInfo ожидает объект, например {title: &quot;Harbor&quot;}.</translation>
+    </message>
+    <message>
+        <source>setFileInfo: %1 must be %2.</source>
+        <translation>setFileInfo: %1 должно быть %2.</translation>
+    </message>
+    <message>
+        <source>a string</source>
+        <translation>строкой</translation>
+    </message>
+    <message>
+        <source>an array of strings</source>
+        <translation>массивом строк</translation>
+    </message>
+    <message>
+        <source>a whole number from -1 to 5</source>
+        <translation>целым числом от -1 до 5</translation>
+    </message>
+    <message>
+        <source>setFileInfo: unknown option %1.</source>
+        <translation>setFileInfo: неизвестный параметр %1.</translation>
+    </message>
+    <message>
+        <source>stripMetadata options must be an object such as {keepColorProfile: false}.</source>
+        <translation>Параметры stripMetadata должны быть объектом, например {keepColorProfile: false}.</translation>
+    </message>
+    <message>
+        <source>stripMetadata: unknown option %1.</source>
+        <translation>stripMetadata: неизвестный параметр %1.</translation>
     </message>
 </context>
 <context>

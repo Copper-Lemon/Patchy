@@ -10,6 +10,7 @@
 #include <QString>
 
 #include <array>
+#include <optional>
 
 namespace patchy::ui {
 
@@ -44,5 +45,8 @@ inline constexpr std::array<int, 7> kIcoSizeChoices = {16, 24, 32, 48, 64, 128, 
 [[nodiscard]] bmp::BmpEncoding bmp_encoding_from_key(const QString& key, bmp::BmpEncoding fallback);
 [[nodiscard]] QString bmp_palette_mode_key(bmp::BmpPaletteMode mode);
 [[nodiscard]] bmp::BmpPaletteMode bmp_palette_mode_from_key(const QString& key, bmp::BmpPaletteMode fallback);
+// File Info metadata policy: "all", "copyright", "none" (docs/file-info.md).
+[[nodiscard]] QString metadata_policy_key(metadata::MetadataPolicy policy);
+[[nodiscard]] std::optional<metadata::MetadataPolicy> metadata_policy_from_key(const QString& key);
 
 }  // namespace patchy::ui

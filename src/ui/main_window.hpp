@@ -585,6 +585,9 @@ private:
   void create_clipboard_document(const QImage& image, QString history_label);
   void create_new_document();
   void resize_image_dialog();
+  // File > File Info and File > Strip All Metadata (docs/file-info.md).
+  void show_file_info_dialog();
+  void strip_all_metadata();
   // Image Size for the dialog, doc.resizeImage and MCP: `method` is a core ResampleMethod
   // (Automatic resolves inside resize_image_and_layers).
   bool resize_document_image(DocumentSession& target, int width, int height, ResampleMethod method,

@@ -28,6 +28,7 @@
 #include "formats/heif_document_io.hpp"
 #include "formats/jxr_document_io.hpp"
 #include "formats/metadata/metadata_containers.hpp"
+#include "formats/metadata/metadata_edit.hpp"
 #include "formats/raw_document_io.hpp"
 #include "formats/dds_document_io.hpp"
 #include "formats/rttex_document_io.hpp"
@@ -1004,7 +1005,8 @@ bool has_visible_top_level_layer(const Document& document) {
 // File Info (docs/file-info.md): PSD/PSB metadata was lifted by the PSD reader; every
 // other format is scanned here from the file bytes. The source RGB profile becomes the
 // document's embedded profile only when the pixels are still in the file's color space.
-void capture_file_info(Document& opened, const QString& path, bool pixels_in_source_space) {
+void capture_file_info(Document& opened, const QString& path, bool pixels_in_source_space,
+                       bool orientation_applied) {
   const QFileInfo file(path);
   auto& info = opened.file_info();
   if (info.source_format == "PSD" || info.source_format == "PSB") {
@@ -1014,6 +1016,15 @@ void capture_file_info(Document& opened, const QString& path, bool pixels_in_sou
   info = metadata::extract_file_info_from_path(to_filesystem_path(path));
   if (info.source_format.empty()) {
     info.source_format = file.suffix().toUpper().toStdString();
+  }
+  if (orientation_applied) {
+    if (const auto original = metadata::bake_orientation(info); !original.empty()) {
+      FileInfoObserved note;
+      note.container = "EXIF";
+      note.label = "Orientation applied when the file was opened";
+      note.summary = original;
+      info.observed.push_back(std::move(note));
+    }
   }
   if (!info.source_icc) {
     return;
@@ -1043,6 +1054,10 @@ OpenDocumentResult load_document_from_path(QString path) {
   // still describes them and is kept for saves (docs/file-info.md). Decoders that
   // convert to sRGB (WIC HEIF/JPEG XR, LibRaw, the HEIF Qt fallback) leave it false.
   bool pixels_in_source_space = false;
+  // True when the decoder rotated or mirrored the pixels by the file's orientation tag
+  // (Qt's autoTransform, the WIC HEIF reader, LibRaw); the tag is then written back as
+  // "normal" so saves do not apply it twice.
+  bool orientation_applied = false;
   const auto load_via_qt = [&] {
     pixels_in_source_space = true;
     if (extension == QStringLiteral("webp")) {
@@ -1071,6 +1086,7 @@ OpenDocumentResult load_document_from_path(QString path) {
     if (image.isNull()) {
       throw std::runtime_error(reader.errorString().toStdString());
     }
+    orientation_applied = reader.transformation() != QImageIOHandler::TransformationNone;
     // Animated GIFs import every frame as a layer, frame 1 on TOP and all layers visible,
     // each frame's delay stamped as a trailing seconds token ("Frame 3 0.4s") that the
     // animated GIF export parses back, so a straight open-then-save round-trips. qgif
@@ -1192,6 +1208,7 @@ OpenDocumentResult load_document_from_path(QString path) {
     const auto settings = load_raw_develop_settings(path);
     auto result = raw::read_camera_raw(read_all_file_bytes(path), settings.params);
     opened = std::move(result.document);
+    orientation_applied = true;
     if (!settings.notice.isEmpty()) import_notices.push_back(settings.notice);
   } else if (const auto* handler = builtin_format_registry().find_by_extension(extension.toStdString());
              handler != nullptr) {
@@ -1218,6 +1235,7 @@ OpenDocumentResult load_document_from_path(QString path) {
         decode_pending_svg_images(opened.layers(), import_notices);
       }
       pixels_in_source_space = handler->identifier == "patchy.formats.bmp";
+      orientation_applied = heif::is_heif_extension(extension.toStdString());
     } catch (const std::exception& registry_error) {
       // Nonstandard files that a Qt plugin still understands (e.g. OS/2 BMPs) keep opening
       // through the Qt fallback; when Qt cannot read them either, report the registry
@@ -1230,6 +1248,7 @@ OpenDocumentResult load_document_from_path(QString path) {
       if (image.isNull()) {
         throw std::runtime_error(registry_error.what());
       }
+      orientation_applied = reader.transformation() != QImageIOHandler::TransformationNone;
       const bool heif_family = heif::is_heif_extension(extension.toStdString());
       if (heif_family && image.colorSpace().isValid() && image.colorSpace() != QColorSpace::SRgb) {
         // kimg_heif attaches the file's color space (iPhone = Display P3) without
@@ -1269,7 +1288,7 @@ OpenDocumentResult load_document_from_path(QString path) {
   if (!opened.metadata().values.contains("psd.version") && !is_svg_extension(extension)) {
     promote_flat_alpha_to_layer_mask(opened);
   }
-  capture_file_info(opened, path, pixels_in_source_space);
+  capture_file_info(opened, path, pixels_in_source_space, orientation_applied);
   if (const auto default_layer_id = default_non_group_layer_id(opened.layers()); default_layer_id.has_value()) {
     opened.set_active_layer(*default_layer_id);
   } else {

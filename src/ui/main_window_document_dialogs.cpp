@@ -8,6 +8,8 @@
 
 #include "ui/main_window.hpp"
 #include "ui/main_window_shared.hpp"
+#include "ui/file_info_dialog.hpp"
+#include "formats/metadata/metadata_edit.hpp"
 #include "ui/background_workers.hpp"
 
 #include "core/blend_math.hpp"
@@ -1505,6 +1507,38 @@ bool MainWindow::resize_document_image(DocumentSession& target, int width, int h
   // leaves them. Here rather than in the dialog so the script and MCP resize match.
   rerender_smart_object_previews(target);
   return true;
+}
+
+void MainWindow::show_file_info_dialog() {
+  finish_active_text_editor();
+  if (!has_active_document()) {
+    return;
+  }
+  auto edit = request_file_info_edit(this, std::as_const(document()), session().path);
+  if (!edit.has_value()) {
+    return;
+  }
+  push_undo_snapshot(tr("File Info"));
+  auto& doc = document();
+  doc.file_info() = std::move(edit->info);
+  if (edit->drop_color_profile) {
+    doc.color_state().embedded_icc_profile.clear();
+  }
+  statusBar()->showMessage(tr("File info updated; it is written the next time you save."));
+}
+
+void MainWindow::strip_all_metadata() {
+  finish_active_text_editor();
+  if (!has_active_document()) {
+    return;
+  }
+  const auto keep_profile = confirm_strip_metadata(this);
+  if (!keep_profile.has_value()) {
+    return;
+  }
+  push_undo_snapshot(tr("Strip metadata"));
+  metadata::strip_metadata(document(), *keep_profile);
+  statusBar()->showMessage(tr("Metadata removed; the file changes the next time you save."));
 }
 
 void MainWindow::resize_image_dialog() {

@@ -7,6 +7,13 @@ attachment, palettes, vector automation, brushes, Slow mode and Pause) are in
 [scripting-api-changes-through-2026-09-11.md](scripting-api-changes-through-2026-09-11.md).
 Every entry below is API 1.
 
+2026-10-11 (additive): File Info. `doc.fileInfo` (Description and IPTC fields), `doc.xmp`,
+`doc.setFileInfo(fields)`, `doc.metadataEntries()`, `doc.stripMetadata({keepColorProfile})`,
+`doc.removeLocation()`, `doc.removeEditHistory()`, and the `metadata` save option (`"all"`,
+`"copyright"`, `"none"`) for `.jpg`, `.png`, `.tif`, `.webp` and `.gif` in `saveAs` and
+`exportAs`. Saves now write the document's metadata. See [file-info.md](file-info.md).
+Pinned by `ui_script_file_info_reads_edits_and_strips`.
+
 2026-10-11 (additive): `sampleAllLayers` (default `true`) on `doc.selection.selectSubject`,
 `selectBackground` and `layer.removeBackground(options?)`; `false` analyzes the active layer
 rendered alone (any layer kind). `objectSelect({sampleAllLayers: false})` now accepts shape,

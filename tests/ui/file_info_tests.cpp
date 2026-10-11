@@ -1,0 +1,268 @@
+// File > File Info end to end (docs/file-info.md): metadata captured when a file opens,
+// the dialog viewing and editing it, undo, Strip All Metadata, and what each save and
+// export policy writes back.
+
+#include "formats/metadata/exif_tags.hpp"
+#include "formats/metadata/metadata_containers.hpp"
+#include "formats/metadata/metadata_edit.hpp"
+#include "formats/metadata/metadata_inject.hpp"
+#include "formats/metadata/metadata_view.hpp"
+#include "formats/metadata/tiff_ifd.hpp"
+#include "formats/metadata/xmp.hpp"
+#include "psd/psd_document_io.hpp"
+#include "ui/file_info_dialog.hpp"
+#include "ui/image_document_io.hpp"
+#include "ui/main_window.hpp"
+#include "ui/qt_paths.hpp"
+
+#include <QAbstractButton>
+#include <QApplication>
+#include <QBuffer>
+#include <QColorSpace>
+#include <QDialog>
+#include <QDir>
+#include <QFile>
+#include <QImage>
+#include <QImageWriter>
+#include <QLabel>
+#include <QLineEdit>
+#include <QListWidget>
+#include <QMessageBox>
+#include <QTimer>
+#include <QTreeWidget>
+
+#include "test_harness.hpp"
+#include "ui_test_access.hpp"
+#include "ui_test_groups.hpp"
+#include "ui_test_support.hpp"
+
+namespace {
+
+using namespace patchy::test::ui;
+using patchy::ui::MainWindowTestAccess;
+namespace md = patchy::metadata;
+
+std::vector<std::uint8_t> srgb_profile() {
+  const auto icc = QColorSpace(QColorSpace::SRgb).iccProfile();
+  return {reinterpret_cast<const std::uint8_t*>(icc.constData()),
+          reinterpret_cast<const std::uint8_t*>(icc.constData()) + icc.size()};
+}
+
+QString artifact_dir() {
+  const auto dir = QStringLiteral("test-artifacts/file-info");
+  QDir().mkpath(dir);
+  return dir;
+}
+
+// A 16x8 JPEG tagged "rotate 90 CW", with GPS, a camera serial, XMP and an sRGB profile.
+QString write_tagged_jpeg() {
+  QImage image(16, 8, QImage::Format_RGB32);
+  image.fill(QColor(200, 40, 40));
+  QBuffer buffer;
+  buffer.open(QIODevice::WriteOnly);
+  QImageWriter writer(&buffer, "jpg");
+  CHECK(writer.write(image));
+  const auto& encoded = buffer.data();
+  std::vector<std::uint8_t> bytes(reinterpret_cast<const std::uint8_t*>(encoded.constData()),
+                                  reinterpret_cast<const std::uint8_t*>(encoded.constData()) + encoded.size());
+
+  md::TiffStream exif;
+  exif.set_ascii(md::IfdKind::Ifd0, md::exif_tag::kMake, "PatchyCam");
+  exif.set_ascii(md::IfdKind::Ifd0, md::exif_tag::kArtist, "Ann Example");
+  exif.set_short(md::IfdKind::Ifd0, md::exif_tag::kOrientation, 6);
+  exif.set_ascii(md::IfdKind::Exif, md::exif_tag::kBodySerialNumber, "SN123");
+  exif.set_ascii(md::IfdKind::Gps, md::exif_tag::kGpsLatitudeRef, "N");
+  exif.set_rational(md::IfdKind::Gps, md::exif_tag::kGpsLatitude, 47, 1);
+  exif.set_ascii(md::IfdKind::Gps, md::exif_tag::kGpsLongitudeRef, "W");
+  exif.set_rational(md::IfdKind::Gps, md::exif_tag::kGpsLongitude, 122, 1);
+  md::XmpPacket xmp;
+  xmp.set_lang_alt(md::xmp_ns::kDc, "title", "Original title");
+  xmp.set_array(md::xmp_ns::kDc, "creator", md::XmpValue::Kind::Seq, {"Ann Example"});
+  xmp.set_lang_alt(md::xmp_ns::kDc, "rights", "(c) Ann");
+
+  md::SaveMetadata metadata;
+  metadata.exif = md::write_tiff(exif);
+  metadata.xmp = md::serialize_xmp(xmp);
+  metadata.icc = srgb_profile();
+  bytes = md::inject_metadata(std::move(bytes), "jpg", metadata);
+
+  const auto path = artifact_dir() + QStringLiteral("/tagged.jpg");
+  QFile file(path);
+  CHECK(file.open(QIODevice::WriteOnly));
+  file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<qint64>(bytes.size()));
+  file.close();
+  return path;
+}
+
+std::string title_of(const patchy::DocumentFileInfo& info) {
+  return md::read_fields(info).title;
+}
+
+void ui_file_info_opens_views_edits_and_undoes() {
+  const auto path = write_tagged_jpeg();
+  patchy::ui::MainWindow window;
+  show_window(window);
+  MainWindowTestAccess::open_document_path(window, path);
+  QApplication::processEvents();
+  auto& document = MainWindowTestAccess::document(window);
+  // Qt applied the EXIF orientation, so the stored tag now reads "normal".
+  CHECK(document.width() == 8 && document.height() == 16);
+  const auto& info = document.file_info();
+  CHECK(info.source_format == "JPEG");
+  CHECK(md::summarize_camera(info).orientation == "Horizontal (normal)");
+  CHECK(std::any_of(info.observed.begin(), info.observed.end(),
+                    [](const auto& item) { return item.summary == "Rotate 90 CW"; }));
+  CHECK(document.color_state().embedded_icc_profile == srgb_profile());
+  CHECK(title_of(info) == "Original title");
+
+  bool inspected = false;
+  QTimer::singleShot(0, [&inspected] {
+    auto* dialog = find_top_level_dialog(QStringLiteral("patchyFileInfoDialog"));
+    CHECK(dialog != nullptr);
+    auto* banner = dialog->findChild<QLabel*>(QStringLiteral("fileInfoPrivacyBanner"));
+    CHECK(banner != nullptr && !banner->isHidden());
+    CHECK(banner->text().contains(patchy::ui::privacy_class_label(patchy::MetadataPrivacy::Location)));
+    CHECK(banner->text().contains(patchy::ui::privacy_class_label(patchy::MetadataPrivacy::DeviceIdentity)));
+    auto* tree = dialog->findChild<QTreeWidget*>(QStringLiteral("fileInfoAllMetadataTree"));
+    CHECK(tree != nullptr && tree->topLevelItemCount() >= 4);
+    auto* title = dialog->findChild<QLineEdit*>(QStringLiteral("fileInfoTitleEdit"));
+    CHECK(title != nullptr && title->text() == QStringLiteral("Original title"));
+    auto* authors = dialog->findChild<QLineEdit*>(QStringLiteral("fileInfoAuthorEdit"));
+    CHECK(authors != nullptr && authors->text() == QStringLiteral("Ann Example"));
+    title->setText(QStringLiteral("Edited title"));
+    dialog->grab().save(QStringLiteral("test-artifacts/ui_file_info_dialog.png"));
+    // Visual QA captures of the read-only pages.
+    auto* categories = dialog->findChild<QListWidget*>(QStringLiteral("fileInfoCategoryList"));
+    CHECK(categories != nullptr);
+    for (int row = 0; row < categories->count(); ++row) {
+      const auto page = categories->item(row)->data(Qt::UserRole).toString();
+      if (page == QStringLiteral("fileInfoCameraPage") || page == QStringLiteral("fileInfoAllMetadataPage") ||
+          page == QStringLiteral("fileInfoColorPage")) {
+        categories->setCurrentRow(row);
+        QApplication::processEvents();
+        dialog->grab().save(QStringLiteral("test-artifacts/ui_file_info_%1.png").arg(page));
+      }
+    }
+    inspected = true;
+    dialog->accept();
+  });
+  require_action(window, "fileInfoAction")->trigger();
+  QApplication::processEvents();
+  CHECK(inspected);
+  CHECK(title_of(MainWindowTestAccess::document(window).file_info()) == "Edited title");
+  MainWindowTestAccess::undo(window);
+  QApplication::processEvents();
+  CHECK(title_of(MainWindowTestAccess::document(window).file_info()) == "Original title");
+}
+
+void ui_file_info_saves_metadata_in_every_carrier() {
+  const auto path = write_tagged_jpeg();
+  patchy::ui::MainWindow window;
+  show_window(window);
+  MainWindowTestAccess::open_document_path(window, path);
+  QApplication::processEvents();
+  auto& info = MainWindowTestAccess::document(window).file_info();
+  auto fields = md::read_fields(info);
+  const auto before = fields;
+  fields.title = "Saved title";
+  fields.keywords = {"one", "two"};
+  CHECK(md::apply_fields(info, before, fields));
+
+  for (const auto* extension : {"jpg", "png", "tif", "webp", "gif"}) {
+    const auto target = artifact_dir() + QStringLiteral("/saved.") + QString::fromLatin1(extension);
+    CHECK(MainWindowTestAccess::save_document_to_path(window, target, patchy::ui::ImageSaveOptions{}));
+    const auto saved = md::extract_file_info_from_path(patchy::ui::to_filesystem_path(target));
+    CHECK(title_of(saved) == "Saved title");
+    CHECK(md::read_fields(saved).keywords == std::vector<std::string>({"one", "two"}));
+    if (std::string_view(extension) != "gif") {
+      CHECK(saved.exif != nullptr);
+      const auto camera = md::summarize_camera(saved);
+      CHECK(camera.orientation == "Horizontal (normal)");
+      CHECK(camera.has_location());
+      CHECK(saved.source_icc != nullptr && *saved.source_icc == srgb_profile());
+    }
+    // The written file still opens as an image.
+    CHECK(!QImage(target).isNull());
+  }
+  // PDF: the fields become the document information dictionary.
+  const auto pdf_path = artifact_dir() + QStringLiteral("/saved.pdf");
+  CHECK(MainWindowTestAccess::save_document_to_path(window, pdf_path, patchy::ui::ImageSaveOptions{}));
+  const auto pdf = md::extract_file_info_from_path(patchy::ui::to_filesystem_path(pdf_path));
+  const auto pdf_title = std::find_if(pdf.text.begin(), pdf.text.end(), [](const auto& text) {
+    return text.kind == patchy::FileInfoTextKind::PdfInfo && text.key == "Title";
+  });
+  CHECK(pdf_title != pdf.text.end() && pdf_title->value == "Saved title");
+  const auto psd_path = artifact_dir() + QStringLiteral("/saved.psd");
+  CHECK(MainWindowTestAccess::save_document_to_path(window, psd_path));
+  const auto psd = patchy::psd::DocumentIo::read_file(patchy::ui::to_filesystem_path(psd_path));
+  CHECK(title_of(psd.file_info()) == "Saved title");
+  CHECK(md::summarize_camera(psd.file_info()).has_location());
+}
+
+void ui_file_info_strip_and_export_policies() {
+  const auto path = write_tagged_jpeg();
+  patchy::ui::MainWindow window;
+  show_window(window);
+  MainWindowTestAccess::open_document_path(window, path);
+  QApplication::processEvents();
+
+  // Export policies, before the strip.
+  const auto exported = [&](patchy::metadata::MetadataPolicy policy, const QString& name) {
+    patchy::ui::ImageSaveOptions options;
+    options.metadata_policy = policy;
+    const auto target = artifact_dir() + QLatin1Char('/') + name;
+    CHECK(MainWindowTestAccess::save_document_to_path(window, target, options));
+    return md::extract_file_info_from_path(patchy::ui::to_filesystem_path(target));
+  };
+  const auto none = exported(md::MetadataPolicy::None, QStringLiteral("export-none.jpg"));
+  CHECK(none.exif == nullptr && none.xmp == nullptr);
+  CHECK(none.source_icc != nullptr);  // the color profile always stays
+  const auto copyright = exported(md::MetadataPolicy::CopyrightAndContact, QStringLiteral("export-copyright.jpg"));
+  CHECK(!md::summarize_camera(copyright).has_location());
+  CHECK(md::summarize_camera(copyright).body_serial.empty());
+  const auto copyright_fields = md::read_fields(copyright);
+  CHECK(copyright_fields.authors == std::vector<std::string>({"Ann Example"}));
+  CHECK(copyright_fields.copyright_notice == "(c) Ann");
+  CHECK(copyright_fields.title.empty());
+
+  bool confirmed = false;
+  QTimer::singleShot(0, [&confirmed] {
+    for (auto* widget : QApplication::topLevelWidgets()) {
+      auto* box = qobject_cast<QMessageBox*>(widget);
+      if (box == nullptr || box->objectName() != QStringLiteral("fileInfoStripConfirm")) {
+        continue;
+      }
+      for (auto* button : box->buttons()) {
+        if (box->buttonRole(button) == QMessageBox::AcceptRole) {
+          confirmed = true;
+          button->click();
+          return;
+        }
+      }
+    }
+  });
+  require_action(window, "fileStripMetadataAction")->trigger();
+  QApplication::processEvents();
+  CHECK(confirmed);
+  auto& document = MainWindowTestAccess::document(window);
+  CHECK(!document.file_info().has_metadata());
+  CHECK(document.color_state().embedded_icc_profile == srgb_profile());
+  const auto target = artifact_dir() + QStringLiteral("/stripped.jpg");
+  CHECK(MainWindowTestAccess::save_document_to_path(window, target, patchy::ui::ImageSaveOptions{}));
+  const auto stripped = md::extract_file_info_from_path(patchy::ui::to_filesystem_path(target));
+  CHECK(stripped.exif == nullptr && stripped.xmp == nullptr && stripped.iptc == nullptr);
+  CHECK(stripped.source_icc != nullptr);
+  MainWindowTestAccess::undo(window);
+  QApplication::processEvents();
+  CHECK(MainWindowTestAccess::document(window).file_info().has_metadata());
+}
+
+}  // namespace
+
+std::vector<patchy::test::TestCase> file_info_tests() {
+  return {
+      {"ui_file_info_opens_views_edits_and_undoes", ui_file_info_opens_views_edits_and_undoes},
+      {"ui_file_info_saves_metadata_in_every_carrier", ui_file_info_saves_metadata_in_every_carrier},
+      {"ui_file_info_strip_and_export_policies", ui_file_info_strip_and_export_policies},
+  };
+}

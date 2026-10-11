@@ -211,6 +211,55 @@ void ImageWriter::add_page(const ImagePage& page) {
   }
 }
 
+namespace {
+
+// A PDF text string for /Info: UTF-16BE with a byte-order mark, written as a hex string so
+// no character needs escaping (ISO 32000-1 7.9.2.2).
+std::string utf16_hex_string(const std::string& utf8) {
+  static constexpr char kHex[] = "0123456789ABCDEF";
+  std::string out = "<FEFF";
+  const auto unit = [&out](std::uint32_t value) {
+    for (int shift = 12; shift >= 0; shift -= 4) {
+      out.push_back(kHex[(value >> shift) & 0xF]);
+    }
+  };
+  for (std::size_t i = 0; i < utf8.size();) {
+    const auto c = static_cast<unsigned char>(utf8[i]);
+    std::uint32_t code = 0xFFFD;
+    std::size_t length = 1;
+    if (c < 0x80) {
+      code = c;
+    } else if ((c & 0xE0) == 0xC0 && i + 1 < utf8.size()) {
+      code = ((c & 0x1FU) << 6) | (static_cast<unsigned char>(utf8[i + 1]) & 0x3FU);
+      length = 2;
+    } else if ((c & 0xF0) == 0xE0 && i + 2 < utf8.size()) {
+      code = ((c & 0x0FU) << 12) | ((static_cast<unsigned char>(utf8[i + 1]) & 0x3FU) << 6) |
+             (static_cast<unsigned char>(utf8[i + 2]) & 0x3FU);
+      length = 3;
+    } else if ((c & 0xF8) == 0xF0 && i + 3 < utf8.size()) {
+      code = ((c & 0x07U) << 18) | ((static_cast<unsigned char>(utf8[i + 1]) & 0x3FU) << 12) |
+             ((static_cast<unsigned char>(utf8[i + 2]) & 0x3FU) << 6) |
+             (static_cast<unsigned char>(utf8[i + 3]) & 0x3FU);
+      length = 4;
+    }
+    i += length;
+    if (code >= 0x10000U) {
+      code -= 0x10000U;
+      unit(0xD800U + (code >> 10));
+      unit(0xDC00U + (code & 0x3FFU));
+    } else {
+      unit(code);
+    }
+  }
+  return out + ">";
+}
+
+}  // namespace
+
+void ImageWriter::set_document_info(std::vector<std::pair<std::string, std::string>> entries) {
+  document_info_ = std::move(entries);
+}
+
 void ImageWriter::finish() {
   if (!open_ || finished_) {
     // A caller bug (the writer was finished or aborted), reported like any write failure.
@@ -228,7 +277,13 @@ void ImageWriter::finish() {
   begin_reserved_object(kCatalogObject);
   write("<< /Type /Catalog /Pages " + std::to_string(kPagesObject) + " 0 R >>\nendobj\n");
   const auto info_object = begin_object();
-  write("<< /Creator (Patchy) /Producer (Patchy) >>\nendobj\n");
+  std::string info = "<< /Creator (Patchy) /Producer (Patchy)";
+  for (const auto& [key, value] : document_info_) {
+    if (!value.empty() && !key.empty()) {
+      info += " /" + key + " " + utf16_hex_string(value);
+    }
+  }
+  write(info + " >>\nendobj\n");
 
   if (position_ > kMaximumOffset) {
     throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "The PDF would be too large to write (over 9 GB)."));

@@ -9185,6 +9185,634 @@ RGB: %2, %3, %4</translation>
         <source>Patchy converted the pixels to sRGB when it opened the file, so this profile is shown for reference only and is not written to saves.</source>
         <translation>Patchy가 파일을 열 때 픽셀을 sRGB로 변환했으므로 이 프로필은 참고용으로만 표시되며 저장할 때 기록되지 않습니다.</translation>
     </message>
+    <message>
+        <source>This document carries information you may not want to share: %1. Strip All Metadata removes it.</source>
+        <translation>이 문서에는 공유하고 싶지 않을 수 있는 정보가 포함되어 있습니다: %1. &apos;모든 메타데이터 제거&apos;로 제거할 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>GPS location</source>
+        <translation>GPS 위치</translation>
+    </message>
+    <message>
+        <source>camera serial numbers or owner</source>
+        <translation>카메라 일련번호 또는 소유자</translation>
+    </message>
+    <message>
+        <source>names and contact details</source>
+        <translation>이름 및 연락처 정보</translation>
+    </message>
+    <message>
+        <source>embedded thumbnails or extra images</source>
+        <translation>포함된 축소판 또는 추가 이미지</translation>
+    </message>
+    <message>
+        <source>edit history</source>
+        <translation>편집 내역</translation>
+    </message>
+    <message>
+        <source>software and file paths</source>
+        <translation>소프트웨어 및 파일 경로</translation>
+    </message>
+    <message>
+        <source>dates and times</source>
+        <translation>날짜 및 시간</translation>
+    </message>
+    <message>
+        <source>AI generation prompts</source>
+        <translation>AI 생성 프롬프트</translation>
+    </message>
+    <message>
+        <source>Content Credentials</source>
+        <translation>콘텐츠 자격 증명</translation>
+    </message>
+    <message>
+        <source>Strip All Metadata</source>
+        <translation>모든 메타데이터 제거</translation>
+    </message>
+    <message>
+        <source>Remove all metadata from this document?</source>
+        <translation>이 문서에서 모든 메타데이터를 제거하시겠습니까?</translation>
+    </message>
+    <message>
+        <source>This removes EXIF (including GPS and camera serial numbers), XMP, IPTC, comments, text such as AI prompts, embedded thumbnails and Content Credentials. The resolution is kept. You can undo it, and the file changes the next time you save it.</source>
+        <translation>EXIF(GPS 및 카메라 일련번호 포함), XMP, IPTC, 주석, AI 프롬프트 같은 텍스트, 포함된 축소판 및 콘텐츠 자격 증명을 제거합니다. 해상도는 유지됩니다. 실행 취소할 수 있으며, 파일은 다음에 저장할 때 변경됩니다.</translation>
+    </message>
+    <message>
+        <source>Strip Metadata</source>
+        <translation>메타데이터 제거</translation>
+    </message>
+    <message>
+        <source>Also remove the color profile (colors may look different in color-managed apps)</source>
+        <translation>색상 프로필도 제거(색상 관리 앱에서는 색이 다르게 보일 수 있음)</translation>
+    </message>
+    <message>
+        <source>File Info: %1</source>
+        <translation>파일 정보: %1</translation>
+    </message>
+    <message>
+        <source>Document Title:</source>
+        <translation>문서 제목:</translation>
+    </message>
+    <message>
+        <source>Author:</source>
+        <translation>작성자:</translation>
+    </message>
+    <message>
+        <source>Separate several names with semicolons</source>
+        <translation>여러 이름은 세미콜론으로 구분합니다</translation>
+    </message>
+    <message>
+        <source>Author Title:</source>
+        <translation>작성자 직위:</translation>
+    </message>
+    <message>
+        <source>Description:</source>
+        <translation>설명:</translation>
+    </message>
+    <message>
+        <source>Rejected</source>
+        <translation>거부됨</translation>
+    </message>
+    <message>
+        <source>Rating:</source>
+        <translation>등급:</translation>
+    </message>
+    <message>
+        <source>Description Writer:</source>
+        <translation>설명 작성자:</translation>
+    </message>
+    <message>
+        <source>Keywords:</source>
+        <translation>키워드:</translation>
+    </message>
+    <message>
+        <source>Separate keywords with semicolons or commas</source>
+        <translation>키워드는 세미콜론 또는 쉼표로 구분합니다</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>알 수 없음</translation>
+    </message>
+    <message>
+        <source>Copyrighted</source>
+        <translation>저작권 있음</translation>
+    </message>
+    <message>
+        <source>Public Domain</source>
+        <translation>공개 도메인</translation>
+    </message>
+    <message>
+        <source>Copyright Status:</source>
+        <translation>저작권 상태:</translation>
+    </message>
+    <message>
+        <source>Copyright Notice:</source>
+        <translation>저작권 고지:</translation>
+    </message>
+    <message>
+        <source>Copyright Info URL:</source>
+        <translation>저작권 정보 URL:</translation>
+    </message>
+    <message>
+        <source>Created:</source>
+        <translation>만든 날짜:</translation>
+    </message>
+    <message>
+        <source>Modified:</source>
+        <translation>수정한 날짜:</translation>
+    </message>
+    <message>
+        <source>Application:</source>
+        <translation>응용 프로그램:</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <translation>설명</translation>
+    </message>
+    <message>
+        <source>Headline:</source>
+        <translation>헤드라인:</translation>
+    </message>
+    <message>
+        <source>Date Created:</source>
+        <translation>작성 날짜:</translation>
+    </message>
+    <message>
+        <source>Sublocation:</source>
+        <translation>세부 위치:</translation>
+    </message>
+    <message>
+        <source>City:</source>
+        <translation>도시:</translation>
+    </message>
+    <message>
+        <source>State/Province:</source>
+        <translation>시/도:</translation>
+    </message>
+    <message>
+        <source>Country:</source>
+        <translation>국가:</translation>
+    </message>
+    <message>
+        <source>ISO Country Code:</source>
+        <translation>ISO 국가 코드:</translation>
+    </message>
+    <message>
+        <source>Credit Line:</source>
+        <translation>크레딧:</translation>
+    </message>
+    <message>
+        <source>Source:</source>
+        <translation>출처:</translation>
+    </message>
+    <message>
+        <source>Instructions:</source>
+        <translation>지침:</translation>
+    </message>
+    <message>
+        <source>Job Identifier:</source>
+        <translation>작업 식별자:</translation>
+    </message>
+    <message>
+        <source>Rights Usage Terms:</source>
+        <translation>권한 사용 조건:</translation>
+    </message>
+    <message>
+        <source>Intellectual Genre:</source>
+        <translation>지적 장르:</translation>
+    </message>
+    <message>
+        <source>IPTC Scene Codes:</source>
+        <translation>IPTC 장면 코드:</translation>
+    </message>
+    <message>
+        <source>IPTC Subject Codes:</source>
+        <translation>IPTC 주제 코드:</translation>
+    </message>
+    <message>
+        <source>Creator Contact Info</source>
+        <translation>작성자 연락처 정보</translation>
+    </message>
+    <message>
+        <source>Address:</source>
+        <translation>주소:</translation>
+    </message>
+    <message>
+        <source>Postal Code:</source>
+        <translation>우편 번호:</translation>
+    </message>
+    <message>
+        <source>Phone:</source>
+        <translation>전화:</translation>
+    </message>
+    <message>
+        <source>Email:</source>
+        <translation>이메일:</translation>
+    </message>
+    <message>
+        <source>Website:</source>
+        <translation>웹 사이트:</translation>
+    </message>
+    <message>
+        <source>IPTC</source>
+        <translation>IPTC</translation>
+    </message>
+    <message>
+        <source>Camera Data</source>
+        <translation>카메라 데이터</translation>
+    </message>
+    <message>
+        <source>Color and Image</source>
+        <translation>색상 및 이미지</translation>
+    </message>
+    <message>
+        <source>History and Provenance</source>
+        <translation>내역 및 출처</translation>
+    </message>
+    <message>
+        <source>AI Generation</source>
+        <translation>AI 생성</translation>
+    </message>
+    <message>
+        <source>Embedded Thumbnails</source>
+        <translation>포함된 축소판</translation>
+    </message>
+    <message>
+        <source>File</source>
+        <translation>파일</translation>
+    </message>
+    <message>
+        <source>Filter</source>
+        <translation>필터</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation>값</translation>
+    </message>
+    <message>
+        <source>Privacy</source>
+        <translation>개인 정보</translation>
+    </message>
+    <message>
+        <source>Copy All</source>
+        <translation>모두 복사</translation>
+    </message>
+    <message>
+        <source>All Metadata</source>
+        <translation>모든 메타데이터</translation>
+    </message>
+    <message>
+        <source>Copy XMP</source>
+        <translation>XMP 복사</translation>
+    </message>
+    <message>
+        <source>Raw XMP</source>
+        <translation>원시 XMP</translation>
+    </message>
+    <message>
+        <source>Strip All Metadata...</source>
+        <translation>모든 메타데이터 제거...</translation>
+    </message>
+    <message>
+        <source>Camera</source>
+        <translation>카메라</translation>
+    </message>
+    <message>
+        <source>Make:</source>
+        <translation>제조업체:</translation>
+    </message>
+    <message>
+        <source>Model:</source>
+        <translation>모델:</translation>
+    </message>
+    <message>
+        <source>Lens:</source>
+        <translation>렌즈:</translation>
+    </message>
+    <message>
+        <source>Body serial number:</source>
+        <translation>본체 일련번호:</translation>
+    </message>
+    <message>
+        <source>Lens serial number:</source>
+        <translation>렌즈 일련번호:</translation>
+    </message>
+    <message>
+        <source>Camera owner:</source>
+        <translation>카메라 소유자:</translation>
+    </message>
+    <message>
+        <source>Exposure time:</source>
+        <translation>노출 시간:</translation>
+    </message>
+    <message>
+        <source>F-number:</source>
+        <translation>F 값:</translation>
+    </message>
+    <message>
+        <source>ISO:</source>
+        <translation>ISO:</translation>
+    </message>
+    <message>
+        <source>Focal length:</source>
+        <translation>초점 거리:</translation>
+    </message>
+    <message>
+        <source>35 mm equivalent:</source>
+        <translation>35mm 환산:</translation>
+    </message>
+    <message>
+        <source>Exposure bias:</source>
+        <translation>노출 보정:</translation>
+    </message>
+    <message>
+        <source>Exposure program:</source>
+        <translation>노출 프로그램:</translation>
+    </message>
+    <message>
+        <source>Metering:</source>
+        <translation>측광 방식:</translation>
+    </message>
+    <message>
+        <source>Flash:</source>
+        <translation>플래시:</translation>
+    </message>
+    <message>
+        <source>White balance:</source>
+        <translation>화이트 밸런스:</translation>
+    </message>
+    <message>
+        <source>Dates</source>
+        <translation>날짜</translation>
+    </message>
+    <message>
+        <source>Taken:</source>
+        <translation>촬영 날짜:</translation>
+    </message>
+    <message>
+        <source>Digitized:</source>
+        <translation>디지털화 날짜:</translation>
+    </message>
+    <message>
+        <source>Time zone offset:</source>
+        <translation>표준 시간대 오프셋:</translation>
+    </message>
+    <message>
+        <source>Orientation:</source>
+        <translation>방향:</translation>
+    </message>
+    <message>
+        <source>Software:</source>
+        <translation>소프트웨어:</translation>
+    </message>
+    <message>
+        <source>The file also carries a maker note: the camera maker&apos;s private data, which often includes serial numbers.</source>
+        <translation>이 파일에는 제조업체 노트도 포함되어 있습니다. 이는 카메라 제조업체의 비공개 데이터로, 일련번호가 포함된 경우가 많습니다.</translation>
+    </message>
+    <message>
+        <source>Latitude:</source>
+        <translation>위도:</translation>
+    </message>
+    <message>
+        <source>Longitude:</source>
+        <translation>경도:</translation>
+    </message>
+    <message>
+        <source>Altitude:</source>
+        <translation>고도:</translation>
+    </message>
+    <message>
+        <source>%1 m</source>
+        <translation>%1m</translation>
+    </message>
+    <message>
+        <source>Direction:</source>
+        <translation>방향:</translation>
+    </message>
+    <message>
+        <source>GPS time:</source>
+        <translation>GPS 시간:</translation>
+    </message>
+    <message>
+        <source>No GPS location.</source>
+        <translation>GPS 위치가 없습니다.</translation>
+    </message>
+    <message>
+        <source>Remove Location</source>
+        <translation>위치 제거</translation>
+    </message>
+    <message>
+        <source>Source format:</source>
+        <translation>원본 형식:</translation>
+    </message>
+    <message>
+        <source>Bit depth:</source>
+        <translation>비트 심도:</translation>
+    </message>
+    <message>
+        <source>32 bits per channel</source>
+        <translation>채널당 32비트</translation>
+    </message>
+    <message>
+        <source>16 bits per channel</source>
+        <translation>채널당 16비트</translation>
+    </message>
+    <message>
+        <source>8 bits per channel</source>
+        <translation>채널당 8비트</translation>
+    </message>
+    <message>
+        <source>%1 pixels/inch</source>
+        <translation>%1픽셀/인치</translation>
+    </message>
+    <message>
+        <source>Embedded color profile</source>
+        <translation>포함된 색상 프로필</translation>
+    </message>
+    <message>
+        <source>Color profile</source>
+        <translation>색상 프로필</translation>
+    </message>
+    <message>
+        <source>Copyright:</source>
+        <translation>저작권:</translation>
+    </message>
+    <message>
+        <source>Device class:</source>
+        <translation>장치 클래스:</translation>
+    </message>
+    <message>
+        <source>Color space:</source>
+        <translation>색 공간:</translation>
+    </message>
+    <message>
+        <source>Connection space:</source>
+        <translation>프로필 연결 공간:</translation>
+    </message>
+    <message>
+        <source>Version:</source>
+        <translation>버전:</translation>
+    </message>
+    <message>
+        <source>No embedded color profile. Applications assume sRGB.</source>
+        <translation>포함된 색상 프로필이 없습니다. 응용 프로그램은 sRGB로 간주합니다.</translation>
+    </message>
+    <message>
+        <source>PNG color chunks</source>
+        <translation>PNG 색상 청크</translation>
+    </message>
+    <message>
+        <source>Document identity</source>
+        <translation>문서 식별 정보</translation>
+    </message>
+    <message>
+        <source>Document ID:</source>
+        <translation>문서 ID:</translation>
+    </message>
+    <message>
+        <source>Instance ID:</source>
+        <translation>인스턴스 ID:</translation>
+    </message>
+    <message>
+        <source>Original document ID:</source>
+        <translation>원본 문서 ID:</translation>
+    </message>
+    <message>
+        <source>Derived from:</source>
+        <translation>파생 원본:</translation>
+    </message>
+    <message>
+        <source>History</source>
+        <translation>작업 내역</translation>
+    </message>
+    <message>
+        <source>Action</source>
+        <translation>작업</translation>
+    </message>
+    <message>
+        <source>When</source>
+        <translation>시간</translation>
+    </message>
+    <message>
+        <source>Software</source>
+        <translation>소프트웨어</translation>
+    </message>
+    <message>
+        <source>Changed</source>
+        <translation>변경 내용</translation>
+    </message>
+    <message>
+        <source>Document ancestors:</source>
+        <translation>상위 문서:</translation>
+    </message>
+    <message>
+        <source>Photoshop records every document pasted or placed into this one. The list only grows and links this file to others.</source>
+        <translation>Photoshop은 이 문서에 붙여넣거나 가져온 모든 문서를 기록합니다. 이 목록은 늘어나기만 하며 이 파일을 다른 파일과 연결합니다.</translation>
+    </message>
+    <message>
+        <source>Cached text layer contents</source>
+        <translation>캐시된 텍스트 레이어 내용</translation>
+    </message>
+    <message>
+        <source>This copy of the text can include layers that were later hidden or deleted.</source>
+        <translation>이 텍스트 사본에는 나중에 숨기거나 삭제한 레이어가 포함될 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>Camera Raw:</source>
+        <translation>Camera Raw:</translation>
+    </message>
+    <message>
+        <source>Development settings are stored.</source>
+        <translation>현상 설정이 저장되어 있습니다.</translation>
+    </message>
+    <message>
+        <source>Content Credentials (C2PA)</source>
+        <translation>콘텐츠 자격 증명(C2PA)</translation>
+    </message>
+    <message>
+        <source>Manifest:</source>
+        <translation>매니페스트:</translation>
+    </message>
+    <message>
+        <source>Content Credentials are not written when Patchy saves: edits invalidate their signature.</source>
+        <translation>Patchy에서 저장할 때 콘텐츠 자격 증명은 기록되지 않습니다. 편집하면 서명이 무효화되기 때문입니다.</translation>
+    </message>
+    <message>
+        <source>No edit history or provenance records.</source>
+        <translation>편집 내역 또는 출처 기록이 없습니다.</translation>
+    </message>
+    <message>
+        <source>Remove Edit History</source>
+        <translation>편집 내역 제거</translation>
+    </message>
+    <message>
+        <source>Generator:</source>
+        <translation>생성기:</translation>
+    </message>
+    <message>
+        <source>Digital source type:</source>
+        <translation>디지털 소스 유형:</translation>
+    </message>
+    <message>
+        <source>Prompt</source>
+        <translation>프롬프트</translation>
+    </message>
+    <message>
+        <source>Negative prompt</source>
+        <translation>네거티브 프롬프트</translation>
+    </message>
+    <message>
+        <source>Workflow</source>
+        <translation>워크플로</translation>
+    </message>
+    <message>
+        <source>Thumbnails are written by the camera or editor that saved the file. They are not updated by every edit, so they can show content that was cropped out or painted over.</source>
+        <translation>축소판은 파일을 저장한 카메라나 편집기가 기록합니다. 편집할 때마다 업데이트되지는 않으므로 잘라냈거나 덧칠한 내용이 표시될 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>(cannot display)</source>
+        <translation>(표시할 수 없음)</translation>
+    </message>
+    <message>
+        <source>Location:</source>
+        <translation>위치:</translation>
+    </message>
+    <message>
+        <source>Not saved yet</source>
+        <translation>아직 저장되지 않음</translation>
+    </message>
+    <message>
+        <source>Size on disk:</source>
+        <translation>디스크 크기:</translation>
+    </message>
+    <message>
+        <source>Layout of the file as it was opened</source>
+        <translation>열 때의 파일 구조</translation>
+    </message>
+    <message>
+        <source>Block</source>
+        <translation>블록</translation>
+    </message>
+    <message>
+        <source>Offset</source>
+        <translation>오프셋</translation>
+    </message>
+    <message>
+        <source>No XMP metadata.</source>
+        <translation>XMP 메타데이터가 없습니다.</translation>
+    </message>
+    <message>
+        <source>Metadata:</source>
+        <translation>메타데이터:</translation>
+    </message>
+    <message>
+        <source>Copyright and Contact Info</source>
+        <translation>저작권 및 연락처 정보</translation>
+    </message>
+    <message>
+        <source>File Info metadata to include. The color profile and resolution are always kept.</source>
+        <translation>포함할 파일 정보 메타데이터입니다. 색상 프로필과 해상도는 항상 유지됩니다.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -19191,6 +19819,30 @@ Y: %2
         <source>Finding the subject... %1%</source>
         <translation>피사체 찾는 중... %1%</translation>
     </message>
+    <message>
+        <source>File &amp;Info...</source>
+        <translation>파일 정보(&amp;I)...</translation>
+    </message>
+    <message>
+        <source>Strip All Metadata...</source>
+        <translation>모든 메타데이터 제거...</translation>
+    </message>
+    <message>
+        <source>File Info</source>
+        <translation>파일 정보</translation>
+    </message>
+    <message>
+        <source>File info updated; it is written the next time you save.</source>
+        <translation>파일 정보가 업데이트되었습니다. 다음에 저장할 때 기록됩니다.</translation>
+    </message>
+    <message>
+        <source>Strip metadata</source>
+        <translation>메타데이터 제거</translation>
+    </message>
+    <message>
+        <source>Metadata removed; the file changes the next time you save.</source>
+        <translation>메타데이터가 제거되었습니다. 파일은 다음에 저장할 때 변경됩니다.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20748,6 +21400,38 @@ Y: %2
     <message>
         <source>Invalid removeBackground option: %1.</source>
         <translation>잘못된 removeBackground 옵션: %1.</translation>
+    </message>
+    <message>
+        <source>setFileInfo needs an object such as {title: &quot;Harbor&quot;}.</source>
+        <translation>setFileInfo에는 {title: &quot;Harbor&quot;} 같은 객체가 필요합니다.</translation>
+    </message>
+    <message>
+        <source>setFileInfo: %1 must be %2.</source>
+        <translation>setFileInfo: %1은(는) %2여야 합니다.</translation>
+    </message>
+    <message>
+        <source>a string</source>
+        <translation>문자열</translation>
+    </message>
+    <message>
+        <source>an array of strings</source>
+        <translation>문자열 배열</translation>
+    </message>
+    <message>
+        <source>a whole number from -1 to 5</source>
+        <translation>-1에서 5 사이의 정수</translation>
+    </message>
+    <message>
+        <source>setFileInfo: unknown option %1.</source>
+        <translation>setFileInfo: 알 수 없는 옵션 %1.</translation>
+    </message>
+    <message>
+        <source>stripMetadata options must be an object such as {keepColorProfile: false}.</source>
+        <translation>stripMetadata 옵션은 {keepColorProfile: false} 같은 객체여야 합니다.</translation>
+    </message>
+    <message>
+        <source>stripMetadata: unknown option %1.</source>
+        <translation>stripMetadata: 알 수 없는 옵션 %1.</translation>
     </message>
 </context>
 <context>

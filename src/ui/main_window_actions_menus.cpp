@@ -466,6 +466,21 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   register_hotkey(export_animated_webp_action, "file.export_animated_webp");
   connect(export_animated_webp_action, &QAction::triggered, this, [this] { export_animated_webp(); });
   register_document_action(export_animated_webp_action);
+  // File Info sits above Print, as in Photoshop (docs/file-info.md).
+  auto* file_info_action = file_menu->addAction(tr("File &Info..."));
+  bind_action_text(file_info_action, QT_TR_NOOP("File &Info..."));
+  file_info_action->setObjectName(QStringLiteral("fileInfoAction"));
+  file_info_action->setMenuRole(QAction::NoRole);
+  register_hotkey(file_info_action, "file.file_info", QKeySequence(Qt::CTRL | Qt::ALT | Qt::SHIFT | Qt::Key_I));
+  connect(file_info_action, &QAction::triggered, this, [this] { show_file_info_dialog(); });
+  register_document_action(file_info_action);
+  auto* strip_metadata_action = file_menu->addAction(tr("Strip All Metadata..."));
+  bind_action_text(strip_metadata_action, QT_TR_NOOP("Strip All Metadata..."));
+  strip_metadata_action->setObjectName(QStringLiteral("fileStripMetadataAction"));
+  strip_metadata_action->setMenuRole(QAction::NoRole);
+  register_hotkey(strip_metadata_action, "file.strip_metadata");
+  connect(strip_metadata_action, &QAction::triggered, this, [this] { strip_all_metadata(); });
+  register_document_action(strip_metadata_action);
   auto* page_setup_action = file_menu->addAction(tr("Page Set&up..."));
   auto* print_action = file_menu->addAction(tr("&Print..."));
 #ifdef Q_OS_WASM

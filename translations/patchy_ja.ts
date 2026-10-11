@@ -9185,6 +9185,634 @@ Mixed selection</source>
         <source>Patchy converted the pixels to sRGB when it opened the file, so this profile is shown for reference only and is not written to saves.</source>
         <translation>Patchy はファイルを開いたときにピクセルを sRGB に変換したため、このプロファイルは参考として表示されるだけで、保存時には書き込まれません。</translation>
     </message>
+    <message>
+        <source>This document carries information you may not want to share: %1. Strip All Metadata removes it.</source>
+        <translation>このドキュメントには、共有したくない可能性のある情報が含まれています: %1。「すべてのメタデータを削除」で削除できます。</translation>
+    </message>
+    <message>
+        <source>GPS location</source>
+        <translation>GPS 位置情報</translation>
+    </message>
+    <message>
+        <source>camera serial numbers or owner</source>
+        <translation>カメラのシリアル番号または所有者</translation>
+    </message>
+    <message>
+        <source>names and contact details</source>
+        <translation>名前と連絡先</translation>
+    </message>
+    <message>
+        <source>embedded thumbnails or extra images</source>
+        <translation>埋め込みサムネイルまたは追加の画像</translation>
+    </message>
+    <message>
+        <source>edit history</source>
+        <translation>編集履歴</translation>
+    </message>
+    <message>
+        <source>software and file paths</source>
+        <translation>ソフトウェアとファイルパス</translation>
+    </message>
+    <message>
+        <source>dates and times</source>
+        <translation>日付と時刻</translation>
+    </message>
+    <message>
+        <source>AI generation prompts</source>
+        <translation>AI 生成プロンプト</translation>
+    </message>
+    <message>
+        <source>Content Credentials</source>
+        <translation>コンテンツ認証情報</translation>
+    </message>
+    <message>
+        <source>Strip All Metadata</source>
+        <translation>すべてのメタデータを削除</translation>
+    </message>
+    <message>
+        <source>Remove all metadata from this document?</source>
+        <translation>このドキュメントからすべてのメタデータを削除しますか?</translation>
+    </message>
+    <message>
+        <source>This removes EXIF (including GPS and camera serial numbers), XMP, IPTC, comments, text such as AI prompts, embedded thumbnails and Content Credentials. The resolution is kept. You can undo it, and the file changes the next time you save it.</source>
+        <translation>EXIF (GPS とカメラのシリアル番号を含む)、XMP、IPTC、コメント、AI プロンプトなどのテキスト、埋め込みサムネイル、コンテンツ認証情報を削除します。解像度は維持されます。この操作は取り消すことができ、ファイルは次回保存したときに変更されます。</translation>
+    </message>
+    <message>
+        <source>Strip Metadata</source>
+        <translation>メタデータを削除</translation>
+    </message>
+    <message>
+        <source>Also remove the color profile (colors may look different in color-managed apps)</source>
+        <translation>カラープロファイルも削除する (カラーマネジメント対応アプリでは色が異なって見える場合があります)</translation>
+    </message>
+    <message>
+        <source>File Info: %1</source>
+        <translation>ファイル情報: %1</translation>
+    </message>
+    <message>
+        <source>Document Title:</source>
+        <translation>ドキュメントのタイトル:</translation>
+    </message>
+    <message>
+        <source>Author:</source>
+        <translation>作成者:</translation>
+    </message>
+    <message>
+        <source>Separate several names with semicolons</source>
+        <translation>複数の名前はセミコロンで区切ります</translation>
+    </message>
+    <message>
+        <source>Author Title:</source>
+        <translation>作成者の役職:</translation>
+    </message>
+    <message>
+        <source>Description:</source>
+        <translation>説明:</translation>
+    </message>
+    <message>
+        <source>Rejected</source>
+        <translation>却下</translation>
+    </message>
+    <message>
+        <source>Rating:</source>
+        <translation>レーティング:</translation>
+    </message>
+    <message>
+        <source>Description Writer:</source>
+        <translation>説明の作成者:</translation>
+    </message>
+    <message>
+        <source>Keywords:</source>
+        <translation>キーワード:</translation>
+    </message>
+    <message>
+        <source>Separate keywords with semicolons or commas</source>
+        <translation>キーワードはセミコロンまたはカンマで区切ります</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>不明</translation>
+    </message>
+    <message>
+        <source>Copyrighted</source>
+        <translation>著作権あり</translation>
+    </message>
+    <message>
+        <source>Public Domain</source>
+        <translation>パブリックドメイン</translation>
+    </message>
+    <message>
+        <source>Copyright Status:</source>
+        <translation>著作権の状態:</translation>
+    </message>
+    <message>
+        <source>Copyright Notice:</source>
+        <translation>著作権表示:</translation>
+    </message>
+    <message>
+        <source>Copyright Info URL:</source>
+        <translation>著作権情報の URL:</translation>
+    </message>
+    <message>
+        <source>Created:</source>
+        <translation>作成日:</translation>
+    </message>
+    <message>
+        <source>Modified:</source>
+        <translation>変更日:</translation>
+    </message>
+    <message>
+        <source>Application:</source>
+        <translation>アプリケーション:</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <translation>説明</translation>
+    </message>
+    <message>
+        <source>Headline:</source>
+        <translation>見出し:</translation>
+    </message>
+    <message>
+        <source>Date Created:</source>
+        <translation>作成日:</translation>
+    </message>
+    <message>
+        <source>Sublocation:</source>
+        <translation>詳細な場所:</translation>
+    </message>
+    <message>
+        <source>City:</source>
+        <translation>市区町村:</translation>
+    </message>
+    <message>
+        <source>State/Province:</source>
+        <translation>都道府県:</translation>
+    </message>
+    <message>
+        <source>Country:</source>
+        <translation>国:</translation>
+    </message>
+    <message>
+        <source>ISO Country Code:</source>
+        <translation>ISO 国コード:</translation>
+    </message>
+    <message>
+        <source>Credit Line:</source>
+        <translation>クレジット:</translation>
+    </message>
+    <message>
+        <source>Source:</source>
+        <translation>ソース:</translation>
+    </message>
+    <message>
+        <source>Instructions:</source>
+        <translation>指示:</translation>
+    </message>
+    <message>
+        <source>Job Identifier:</source>
+        <translation>ジョブ識別子:</translation>
+    </message>
+    <message>
+        <source>Rights Usage Terms:</source>
+        <translation>権利使用条件:</translation>
+    </message>
+    <message>
+        <source>Intellectual Genre:</source>
+        <translation>知的ジャンル:</translation>
+    </message>
+    <message>
+        <source>IPTC Scene Codes:</source>
+        <translation>IPTC シーンコード:</translation>
+    </message>
+    <message>
+        <source>IPTC Subject Codes:</source>
+        <translation>IPTC サブジェクトコード:</translation>
+    </message>
+    <message>
+        <source>Creator Contact Info</source>
+        <translation>作成者の連絡先情報</translation>
+    </message>
+    <message>
+        <source>Address:</source>
+        <translation>住所:</translation>
+    </message>
+    <message>
+        <source>Postal Code:</source>
+        <translation>郵便番号:</translation>
+    </message>
+    <message>
+        <source>Phone:</source>
+        <translation>電話:</translation>
+    </message>
+    <message>
+        <source>Email:</source>
+        <translation>メール:</translation>
+    </message>
+    <message>
+        <source>Website:</source>
+        <translation>Web サイト:</translation>
+    </message>
+    <message>
+        <source>IPTC</source>
+        <translation>IPTC</translation>
+    </message>
+    <message>
+        <source>Camera Data</source>
+        <translation>カメラデータ</translation>
+    </message>
+    <message>
+        <source>Color and Image</source>
+        <translation>カラーと画像</translation>
+    </message>
+    <message>
+        <source>History and Provenance</source>
+        <translation>履歴と来歴</translation>
+    </message>
+    <message>
+        <source>AI Generation</source>
+        <translation>AI 生成</translation>
+    </message>
+    <message>
+        <source>Embedded Thumbnails</source>
+        <translation>埋め込みサムネイル</translation>
+    </message>
+    <message>
+        <source>File</source>
+        <translation>ファイル</translation>
+    </message>
+    <message>
+        <source>Filter</source>
+        <translation>フィルター</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation>値</translation>
+    </message>
+    <message>
+        <source>Privacy</source>
+        <translation>プライバシー</translation>
+    </message>
+    <message>
+        <source>Copy All</source>
+        <translation>すべてコピー</translation>
+    </message>
+    <message>
+        <source>All Metadata</source>
+        <translation>すべてのメタデータ</translation>
+    </message>
+    <message>
+        <source>Copy XMP</source>
+        <translation>XMP をコピー</translation>
+    </message>
+    <message>
+        <source>Raw XMP</source>
+        <translation>未加工の XMP</translation>
+    </message>
+    <message>
+        <source>Strip All Metadata...</source>
+        <translation>すべてのメタデータを削除...</translation>
+    </message>
+    <message>
+        <source>Camera</source>
+        <translation>カメラ</translation>
+    </message>
+    <message>
+        <source>Make:</source>
+        <translation>メーカー:</translation>
+    </message>
+    <message>
+        <source>Model:</source>
+        <translation>モデル:</translation>
+    </message>
+    <message>
+        <source>Lens:</source>
+        <translation>レンズ:</translation>
+    </message>
+    <message>
+        <source>Body serial number:</source>
+        <translation>ボディのシリアル番号:</translation>
+    </message>
+    <message>
+        <source>Lens serial number:</source>
+        <translation>レンズのシリアル番号:</translation>
+    </message>
+    <message>
+        <source>Camera owner:</source>
+        <translation>カメラの所有者:</translation>
+    </message>
+    <message>
+        <source>Exposure time:</source>
+        <translation>露出時間:</translation>
+    </message>
+    <message>
+        <source>F-number:</source>
+        <translation>F 値:</translation>
+    </message>
+    <message>
+        <source>ISO:</source>
+        <translation>ISO:</translation>
+    </message>
+    <message>
+        <source>Focal length:</source>
+        <translation>焦点距離:</translation>
+    </message>
+    <message>
+        <source>35 mm equivalent:</source>
+        <translation>35 mm 換算:</translation>
+    </message>
+    <message>
+        <source>Exposure bias:</source>
+        <translation>露出補正:</translation>
+    </message>
+    <message>
+        <source>Exposure program:</source>
+        <translation>露出プログラム:</translation>
+    </message>
+    <message>
+        <source>Metering:</source>
+        <translation>測光方式:</translation>
+    </message>
+    <message>
+        <source>Flash:</source>
+        <translation>フラッシュ:</translation>
+    </message>
+    <message>
+        <source>White balance:</source>
+        <translation>ホワイトバランス:</translation>
+    </message>
+    <message>
+        <source>Dates</source>
+        <translation>日付</translation>
+    </message>
+    <message>
+        <source>Taken:</source>
+        <translation>撮影日時:</translation>
+    </message>
+    <message>
+        <source>Digitized:</source>
+        <translation>デジタル化日時:</translation>
+    </message>
+    <message>
+        <source>Time zone offset:</source>
+        <translation>タイムゾーンのオフセット:</translation>
+    </message>
+    <message>
+        <source>Orientation:</source>
+        <translation>方向:</translation>
+    </message>
+    <message>
+        <source>Software:</source>
+        <translation>ソフトウェア:</translation>
+    </message>
+    <message>
+        <source>The file also carries a maker note: the camera maker&apos;s private data, which often includes serial numbers.</source>
+        <translation>このファイルにはメーカーノートも含まれています。これはカメラメーカー独自のデータで、シリアル番号が含まれていることがよくあります。</translation>
+    </message>
+    <message>
+        <source>Latitude:</source>
+        <translation>緯度:</translation>
+    </message>
+    <message>
+        <source>Longitude:</source>
+        <translation>経度:</translation>
+    </message>
+    <message>
+        <source>Altitude:</source>
+        <translation>高度:</translation>
+    </message>
+    <message>
+        <source>%1 m</source>
+        <translation>%1 m</translation>
+    </message>
+    <message>
+        <source>Direction:</source>
+        <translation>方向:</translation>
+    </message>
+    <message>
+        <source>GPS time:</source>
+        <translation>GPS 時刻:</translation>
+    </message>
+    <message>
+        <source>No GPS location.</source>
+        <translation>GPS 位置情報はありません。</translation>
+    </message>
+    <message>
+        <source>Remove Location</source>
+        <translation>位置情報を削除</translation>
+    </message>
+    <message>
+        <source>Source format:</source>
+        <translation>元の形式:</translation>
+    </message>
+    <message>
+        <source>Bit depth:</source>
+        <translation>ビット深度:</translation>
+    </message>
+    <message>
+        <source>32 bits per channel</source>
+        <translation>32 ビット/チャンネル</translation>
+    </message>
+    <message>
+        <source>16 bits per channel</source>
+        <translation>16 ビット/チャンネル</translation>
+    </message>
+    <message>
+        <source>8 bits per channel</source>
+        <translation>8 ビット/チャンネル</translation>
+    </message>
+    <message>
+        <source>%1 pixels/inch</source>
+        <translation>%1 ピクセル/インチ</translation>
+    </message>
+    <message>
+        <source>Embedded color profile</source>
+        <translation>埋め込みカラープロファイル</translation>
+    </message>
+    <message>
+        <source>Color profile</source>
+        <translation>カラープロファイル</translation>
+    </message>
+    <message>
+        <source>Copyright:</source>
+        <translation>著作権:</translation>
+    </message>
+    <message>
+        <source>Device class:</source>
+        <translation>デバイスクラス:</translation>
+    </message>
+    <message>
+        <source>Color space:</source>
+        <translation>カラースペース:</translation>
+    </message>
+    <message>
+        <source>Connection space:</source>
+        <translation>プロファイル接続スペース:</translation>
+    </message>
+    <message>
+        <source>Version:</source>
+        <translation>バージョン:</translation>
+    </message>
+    <message>
+        <source>No embedded color profile. Applications assume sRGB.</source>
+        <translation>埋め込みカラープロファイルはありません。アプリケーションは sRGB とみなします。</translation>
+    </message>
+    <message>
+        <source>PNG color chunks</source>
+        <translation>PNG カラーチャンク</translation>
+    </message>
+    <message>
+        <source>Document identity</source>
+        <translation>ドキュメントの識別情報</translation>
+    </message>
+    <message>
+        <source>Document ID:</source>
+        <translation>ドキュメント ID:</translation>
+    </message>
+    <message>
+        <source>Instance ID:</source>
+        <translation>インスタンス ID:</translation>
+    </message>
+    <message>
+        <source>Original document ID:</source>
+        <translation>元のドキュメント ID:</translation>
+    </message>
+    <message>
+        <source>Derived from:</source>
+        <translation>派生元:</translation>
+    </message>
+    <message>
+        <source>History</source>
+        <translation>履歴</translation>
+    </message>
+    <message>
+        <source>Action</source>
+        <translation>操作</translation>
+    </message>
+    <message>
+        <source>When</source>
+        <translation>日時</translation>
+    </message>
+    <message>
+        <source>Software</source>
+        <translation>ソフトウェア</translation>
+    </message>
+    <message>
+        <source>Changed</source>
+        <translation>変更内容</translation>
+    </message>
+    <message>
+        <source>Document ancestors:</source>
+        <translation>祖先ドキュメント:</translation>
+    </message>
+    <message>
+        <source>Photoshop records every document pasted or placed into this one. The list only grows and links this file to others.</source>
+        <translation>Photoshop は、このドキュメントにペーストまたは配置されたすべてのドキュメントを記録します。このリストは増える一方で、このファイルを他のファイルと結び付けます。</translation>
+    </message>
+    <message>
+        <source>Cached text layer contents</source>
+        <translation>キャッシュされたテキストレイヤーの内容</translation>
+    </message>
+    <message>
+        <source>This copy of the text can include layers that were later hidden or deleted.</source>
+        <translation>このテキストのコピーには、後で非表示または削除されたレイヤーが含まれている場合があります。</translation>
+    </message>
+    <message>
+        <source>Camera Raw:</source>
+        <translation>Camera Raw:</translation>
+    </message>
+    <message>
+        <source>Development settings are stored.</source>
+        <translation>現像設定が保存されています。</translation>
+    </message>
+    <message>
+        <source>Content Credentials (C2PA)</source>
+        <translation>コンテンツ認証情報 (C2PA)</translation>
+    </message>
+    <message>
+        <source>Manifest:</source>
+        <translation>マニフェスト:</translation>
+    </message>
+    <message>
+        <source>Content Credentials are not written when Patchy saves: edits invalidate their signature.</source>
+        <translation>Patchy で保存するとき、コンテンツ認証情報は書き込まれません。編集によって署名が無効になるためです。</translation>
+    </message>
+    <message>
+        <source>No edit history or provenance records.</source>
+        <translation>編集履歴や来歴の記録はありません。</translation>
+    </message>
+    <message>
+        <source>Remove Edit History</source>
+        <translation>編集履歴を削除</translation>
+    </message>
+    <message>
+        <source>Generator:</source>
+        <translation>生成元:</translation>
+    </message>
+    <message>
+        <source>Digital source type:</source>
+        <translation>デジタルソースの種類:</translation>
+    </message>
+    <message>
+        <source>Prompt</source>
+        <translation>プロンプト</translation>
+    </message>
+    <message>
+        <source>Negative prompt</source>
+        <translation>ネガティブプロンプト</translation>
+    </message>
+    <message>
+        <source>Workflow</source>
+        <translation>ワークフロー</translation>
+    </message>
+    <message>
+        <source>Thumbnails are written by the camera or editor that saved the file. They are not updated by every edit, so they can show content that was cropped out or painted over.</source>
+        <translation>サムネイルは、ファイルを保存したカメラまたは編集ソフトによって書き込まれます。編集のたびに更新されるわけではないため、切り抜かれた部分や塗りつぶされた内容が表示されることがあります。</translation>
+    </message>
+    <message>
+        <source>(cannot display)</source>
+        <translation>(表示できません)</translation>
+    </message>
+    <message>
+        <source>Location:</source>
+        <translation>場所:</translation>
+    </message>
+    <message>
+        <source>Not saved yet</source>
+        <translation>未保存</translation>
+    </message>
+    <message>
+        <source>Size on disk:</source>
+        <translation>ディスク上のサイズ:</translation>
+    </message>
+    <message>
+        <source>Layout of the file as it was opened</source>
+        <translation>開いた時点のファイル構造</translation>
+    </message>
+    <message>
+        <source>Block</source>
+        <translation>ブロック</translation>
+    </message>
+    <message>
+        <source>Offset</source>
+        <translation>オフセット</translation>
+    </message>
+    <message>
+        <source>No XMP metadata.</source>
+        <translation>XMP メタデータはありません。</translation>
+    </message>
+    <message>
+        <source>Metadata:</source>
+        <translation>メタデータ:</translation>
+    </message>
+    <message>
+        <source>Copyright and Contact Info</source>
+        <translation>著作権と連絡先情報</translation>
+    </message>
+    <message>
+        <source>File Info metadata to include. The color profile and resolution are always kept.</source>
+        <translation>含めるファイル情報のメタデータです。カラープロファイルと解像度は常に保持されます。</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -19191,6 +19819,30 @@ Baked into images: %1.</source>
         <source>Finding the subject... %1%</source>
         <translation>被写体を検出中... %1%</translation>
     </message>
+    <message>
+        <source>File &amp;Info...</source>
+        <translation>ファイル情報(&amp;I)...</translation>
+    </message>
+    <message>
+        <source>Strip All Metadata...</source>
+        <translation>すべてのメタデータを削除...</translation>
+    </message>
+    <message>
+        <source>File Info</source>
+        <translation>ファイル情報</translation>
+    </message>
+    <message>
+        <source>File info updated; it is written the next time you save.</source>
+        <translation>ファイル情報を更新しました。次回保存したときに書き込まれます。</translation>
+    </message>
+    <message>
+        <source>Strip metadata</source>
+        <translation>メタデータの削除</translation>
+    </message>
+    <message>
+        <source>Metadata removed; the file changes the next time you save.</source>
+        <translation>メタデータを削除しました。ファイルは次回保存したときに変更されます。</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20748,6 +21400,38 @@ Baked into images: %1.</source>
     <message>
         <source>Invalid removeBackground option: %1.</source>
         <translation>removeBackground のオプションが無効です: %1。</translation>
+    </message>
+    <message>
+        <source>setFileInfo needs an object such as {title: &quot;Harbor&quot;}.</source>
+        <translation>setFileInfo には {title: &quot;Harbor&quot;} のようなオブジェクトを指定してください。</translation>
+    </message>
+    <message>
+        <source>setFileInfo: %1 must be %2.</source>
+        <translation>setFileInfo: %1 は %2 である必要があります。</translation>
+    </message>
+    <message>
+        <source>a string</source>
+        <translation>文字列</translation>
+    </message>
+    <message>
+        <source>an array of strings</source>
+        <translation>文字列の配列</translation>
+    </message>
+    <message>
+        <source>a whole number from -1 to 5</source>
+        <translation>-1 から 5 の整数</translation>
+    </message>
+    <message>
+        <source>setFileInfo: unknown option %1.</source>
+        <translation>setFileInfo: 不明なオプション %1。</translation>
+    </message>
+    <message>
+        <source>stripMetadata options must be an object such as {keepColorProfile: false}.</source>
+        <translation>stripMetadata のオプションは {keepColorProfile: false} のようなオブジェクトで指定してください。</translation>
+    </message>
+    <message>
+        <source>stripMetadata: unknown option %1.</source>
+        <translation>stripMetadata: 不明なオプション %1。</translation>
     </message>
 </context>
 <context>

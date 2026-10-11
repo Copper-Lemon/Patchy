@@ -218,6 +218,8 @@ class ScriptDocumentObject : public QObject {
   Q_PROPERTY(QJSValue paths READ paths)
   Q_PROPERTY(QJSValue workPath READ work_path)
   Q_PROPERTY(QJSValue clippingPath READ clipping_path WRITE set_clipping_path)
+  Q_PROPERTY(QJSValue fileInfo READ file_info)
+  Q_PROPERTY(QString xmp READ xmp)
 
 public:
   ScriptDocumentObject(ScriptEngineHost& host, std::int64_t session_id);
@@ -283,6 +285,16 @@ public:
   Q_INVOKABLE int alignLayers(const QString& edge, const QJSValue& options = QJSValue());
   Q_INVOKABLE int distributeLayers(const QString& mode, const QJSValue& options = QJSValue());
   Q_INVOKABLE void flatten();
+  // File Info (docs/file-info.md): partial update of the Description/IPTC fields
+  // (fileInfo's keys; unknown or read-only keys throw), every metadata row, Strip All
+  // Metadata ({keepColorProfile} defaults to true) and the targeted removals.
+  Q_INVOKABLE void setFileInfo(const QJSValue& fields);
+  Q_INVOKABLE QJSValue metadataEntries() const;
+  Q_INVOKABLE void stripMetadata(const QJSValue& options = QJSValue());
+  Q_INVOKABLE bool removeLocation();
+  Q_INVOKABLE bool removeEditHistory();
+  [[nodiscard]] QJSValue file_info() const;
+  [[nodiscard]] QString xmp() const;
   // `options.method`: a resample id (core/resample.hpp), default "automatic".
   Q_INVOKABLE void resizeImage(int width, int height, const QJSValue& options = QJSValue());
   Q_INVOKABLE void resizeCanvas(int width, int height);

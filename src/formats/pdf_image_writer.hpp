@@ -81,6 +81,9 @@ public:
   // Throws std::runtime_error on a bad page, a write failure, or a file that has
   // outgrown the classic cross-reference table's ten-digit offsets.
   void add_page(const ImagePage& page);
+  // Extra /Info entries (key without the slash, UTF-8 value), such as Title and Author from
+  // File Info (docs/file-info.md). Empty values are skipped; Creator and Producer stay Patchy.
+  void set_document_info(std::vector<std::pair<std::string, std::string>> entries);
   // Writes the page tree, catalog, cross-reference table, and trailer, then renames the
   // finished file over `path`. At least one page must have been added.
   void finish();
@@ -96,6 +99,7 @@ private:
                           std::uint32_t icc_object);
   std::uint32_t icc_profile_object(const ImageStream& image);
   void write(std::string_view text);
+  std::vector<std::pair<std::string, std::string>> document_info_;
   void write(const std::vector<std::uint8_t>& bytes);
 
   // Declared before file_ so the stream closes before the temporary is removed.

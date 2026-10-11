@@ -9205,6 +9205,634 @@ RGB: %2, %3, %4</source>
         <source>Patchy converted the pixels to sRGB when it opened the file, so this profile is shown for reference only and is not written to saves.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>This document carries information you may not want to share: %1. Strip All Metadata removes it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>GPS location</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>camera serial numbers or owner</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>names and contact details</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>embedded thumbnails or extra images</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>edit history</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>software and file paths</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>dates and times</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>AI generation prompts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Content Credentials</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Strip All Metadata</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove all metadata from this document?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This removes EXIF (including GPS and camera serial numbers), XMP, IPTC, comments, text such as AI prompts, embedded thumbnails and Content Credentials. The resolution is kept. You can undo it, and the file changes the next time you save it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Strip Metadata</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Also remove the color profile (colors may look different in color-managed apps)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File Info: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Document Title:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Author:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Separate several names with semicolons</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Author Title:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Description:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rejected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rating:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Description Writer:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keywords:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Separate keywords with semicolons or commas</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copyrighted</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Public Domain</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copyright Status:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copyright Notice:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copyright Info URL:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Created:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Modified:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Application:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Headline:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Date Created:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Sublocation:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>City:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>State/Province:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Country:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>ISO Country Code:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Credit Line:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Source:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Instructions:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Job Identifier:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rights Usage Terms:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Intellectual Genre:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>IPTC Scene Codes:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>IPTC Subject Codes:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Creator Contact Info</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Address:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Postal Code:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Phone:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Email:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Website:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>IPTC</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Camera Data</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Color and Image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>History and Provenance</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>AI Generation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Embedded Thumbnails</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Filter</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Privacy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy All</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>All Metadata</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy XMP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Raw XMP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Strip All Metadata...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Camera</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Make:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Model:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lens:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Body serial number:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lens serial number:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Camera owner:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Exposure time:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>F-number:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>ISO:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Focal length:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>35 mm equivalent:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Exposure bias:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Exposure program:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Metering:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Flash:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>White balance:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Dates</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Taken:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Digitized:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Time zone offset:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Orientation:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Software:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The file also carries a maker note: the camera maker&apos;s private data, which often includes serial numbers.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Latitude:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Longitude:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Altitude:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 m</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Direction:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>GPS time:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No GPS location.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove Location</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Source format:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Bit depth:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>32 bits per channel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>16 bits per channel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>8 bits per channel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 pixels/inch</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Embedded color profile</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Color profile</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copyright:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Device class:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Color space:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Connection space:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Version:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No embedded color profile. Applications assume sRGB.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>PNG color chunks</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Document identity</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Document ID:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Instance ID:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Original document ID:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Derived from:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>History</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Action</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>When</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Software</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Changed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Document ancestors:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Photoshop records every document pasted or placed into this one. The list only grows and links this file to others.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cached text layer contents</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This copy of the text can include layers that were later hidden or deleted.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Camera Raw:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Development settings are stored.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Content Credentials (C2PA)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Manifest:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Content Credentials are not written when Patchy saves: edits invalidate their signature.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No edit history or provenance records.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove Edit History</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Generator:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Digital source type:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Prompt</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Negative prompt</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Workflow</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Thumbnails are written by the camera or editor that saved the file. They are not updated by every edit, so they can show content that was cropped out or painted over.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>(cannot display)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Location:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Not saved yet</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Size on disk:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Layout of the file as it was opened</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Block</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Offset</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No XMP metadata.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Metadata:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copyright and Contact Info</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File Info metadata to include. The color profile and resolution are always kept.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -19199,6 +19827,30 @@ Baked into images: %1.</source>
         <source>Finding the subject... %1%</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>File &amp;Info...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Strip All Metadata...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File Info</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File info updated; it is written the next time you save.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Strip metadata</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Metadata removed; the file changes the next time you save.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20756,6 +21408,38 @@ Baked into images: %1.</source>
     </message>
     <message>
         <source>Invalid removeBackground option: %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>setFileInfo needs an object such as {title: &quot;Harbor&quot;}.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>setFileInfo: %1 must be %2.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>a string</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>an array of strings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>a whole number from -1 to 5</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>setFileInfo: unknown option %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>stripMetadata options must be an object such as {keepColorProfile: false}.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>stripMetadata: unknown option %1.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

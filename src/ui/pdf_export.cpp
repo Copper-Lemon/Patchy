@@ -1,5 +1,6 @@
 #include "ui/pdf_export.hpp"
 
+#include "formats/metadata/metadata_edit.hpp"
 #include "core/layer.hpp"
 #include "core/layer_metadata.hpp"
 #include "core/vector_shape.hpp"
@@ -68,6 +69,9 @@ QPageSize document_page_size(const Document& document) {
 void configure_document_page(QPdfWriter& writer, const Document& document) {
   const double horizontal_ppi = print_detail::document_horizontal_ppi(document);
   writer.setCreator(QStringLiteral("Patchy"));
+  if (const auto title = metadata::read_fields(document.file_info()).title; !title.empty()) {
+    writer.setTitle(QString::fromStdString(title));
+  }
   writer.setPageSize(document_page_size(document));
   writer.setPageMargins(QMarginsF(0.0, 0.0, 0.0, 0.0));
   // The device resolution only sets the painter's logical grid; keeping it at the
@@ -155,6 +159,20 @@ QSizeF document_page_points(const Document& document) {
 bool write_image_pages(std::span<const Document* const> pages, const QString& path, const PdfExportOptions& options,
                        const PdfPageProgress& progress) {
   pdf::ImageWriter writer(to_filesystem_path(path));
+  if (!pages.empty()) {
+    // File Info fields become the PDF's /Info (docs/file-info.md).
+    const auto fields = metadata::read_fields(pages.front()->file_info());
+    std::string authors;
+    for (const auto& author : fields.authors) {
+      authors += (authors.empty() ? "" : "; ") + author;
+    }
+    std::string keywords;
+    for (const auto& keyword : fields.keywords) {
+      keywords += (keywords.empty() ? "" : "; ") + keyword;
+    }
+    writer.set_document_info({{"Title", fields.title}, {"Author", authors}, {"Subject", fields.description},
+                              {"Keywords", keywords}});
+  }
   const int workers = kBackgroundWorkRunsInline ? 1 : max_blocking_fanout_workers(hardware_worker_threads());
   const std::size_t window = workers >= 2 ? static_cast<std::size_t>(std::min(workers, 4)) : 1U;
   std::deque<std::future<pdf::ImagePage>> pending;

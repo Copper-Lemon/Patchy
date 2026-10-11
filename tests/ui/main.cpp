@@ -342,6 +342,7 @@ int main(int argc, char* argv[]) {
            unicode_path_tests,
            legacy_plugin_tests,
            history_panel_tests,
+           file_info_tests,
            composite_render_tests,
            readme_screenshot_tests,
        }) {

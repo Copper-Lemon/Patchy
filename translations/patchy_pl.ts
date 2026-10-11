@@ -9245,6 +9245,634 @@ RGB: %2, %3, %4</translation>
         <source>Patchy converted the pixels to sRGB when it opened the file, so this profile is shown for reference only and is not written to saves.</source>
         <translation>Patchy przekonwertował piksele do sRGB podczas otwierania pliku, więc ten profil jest wyświetlany tylko informacyjnie i nie jest zapisywany.</translation>
     </message>
+    <message>
+        <source>This document carries information you may not want to share: %1. Strip All Metadata removes it.</source>
+        <translation>Ten dokument zawiera informacje, których możesz nie chcieć udostępniać: %1. Polecenie Usuń wszystkie metadane je usuwa.</translation>
+    </message>
+    <message>
+        <source>GPS location</source>
+        <translation>lokalizacja GPS</translation>
+    </message>
+    <message>
+        <source>camera serial numbers or owner</source>
+        <translation>numery seryjne lub właściciel aparatu</translation>
+    </message>
+    <message>
+        <source>names and contact details</source>
+        <translation>imiona, nazwiska i dane kontaktowe</translation>
+    </message>
+    <message>
+        <source>embedded thumbnails or extra images</source>
+        <translation>osadzone miniatury lub dodatkowe obrazy</translation>
+    </message>
+    <message>
+        <source>edit history</source>
+        <translation>historia edycji</translation>
+    </message>
+    <message>
+        <source>software and file paths</source>
+        <translation>oprogramowanie i ścieżki plików</translation>
+    </message>
+    <message>
+        <source>dates and times</source>
+        <translation>daty i godziny</translation>
+    </message>
+    <message>
+        <source>AI generation prompts</source>
+        <translation>prompty generowania AI</translation>
+    </message>
+    <message>
+        <source>Content Credentials</source>
+        <translation>Poświadczenia treści</translation>
+    </message>
+    <message>
+        <source>Strip All Metadata</source>
+        <translation>Usuń wszystkie metadane</translation>
+    </message>
+    <message>
+        <source>Remove all metadata from this document?</source>
+        <translation>Usunąć wszystkie metadane z tego dokumentu?</translation>
+    </message>
+    <message>
+        <source>This removes EXIF (including GPS and camera serial numbers), XMP, IPTC, comments, text such as AI prompts, embedded thumbnails and Content Credentials. The resolution is kept. You can undo it, and the file changes the next time you save it.</source>
+        <translation>Usuwa EXIF (w tym GPS i numery seryjne aparatu), XMP, IPTC, komentarze, teksty takie jak prompty AI, osadzone miniatury i Poświadczenia treści. Rozdzielczość zostaje zachowana. Można to cofnąć, a plik zmieni się przy następnym zapisie.</translation>
+    </message>
+    <message>
+        <source>Strip Metadata</source>
+        <translation>Usuń metadane</translation>
+    </message>
+    <message>
+        <source>Also remove the color profile (colors may look different in color-managed apps)</source>
+        <translation>Usuń także profil kolorów (kolory mogą wyglądać inaczej w aplikacjach z zarządzaniem kolorami)</translation>
+    </message>
+    <message>
+        <source>File Info: %1</source>
+        <translation>Informacje o pliku: %1</translation>
+    </message>
+    <message>
+        <source>Document Title:</source>
+        <translation>Tytuł dokumentu:</translation>
+    </message>
+    <message>
+        <source>Author:</source>
+        <translation>Autor:</translation>
+    </message>
+    <message>
+        <source>Separate several names with semicolons</source>
+        <translation>Oddziel kilka nazwisk średnikami</translation>
+    </message>
+    <message>
+        <source>Author Title:</source>
+        <translation>Stanowisko autora:</translation>
+    </message>
+    <message>
+        <source>Description:</source>
+        <translation>Opis:</translation>
+    </message>
+    <message>
+        <source>Rejected</source>
+        <translation>Odrzucony</translation>
+    </message>
+    <message>
+        <source>Rating:</source>
+        <translation>Ocena:</translation>
+    </message>
+    <message>
+        <source>Description Writer:</source>
+        <translation>Autor opisu:</translation>
+    </message>
+    <message>
+        <source>Keywords:</source>
+        <translation>Słowa kluczowe:</translation>
+    </message>
+    <message>
+        <source>Separate keywords with semicolons or commas</source>
+        <translation>Oddziel słowa kluczowe średnikami lub przecinkami</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>Nieznany</translation>
+    </message>
+    <message>
+        <source>Copyrighted</source>
+        <translation>Chronione prawem autorskim</translation>
+    </message>
+    <message>
+        <source>Public Domain</source>
+        <translation>Domena publiczna</translation>
+    </message>
+    <message>
+        <source>Copyright Status:</source>
+        <translation>Stan praw autorskich:</translation>
+    </message>
+    <message>
+        <source>Copyright Notice:</source>
+        <translation>Informacja o prawach autorskich:</translation>
+    </message>
+    <message>
+        <source>Copyright Info URL:</source>
+        <translation>URL informacji o prawach autorskich:</translation>
+    </message>
+    <message>
+        <source>Created:</source>
+        <translation>Utworzono:</translation>
+    </message>
+    <message>
+        <source>Modified:</source>
+        <translation>Zmodyfikowano:</translation>
+    </message>
+    <message>
+        <source>Application:</source>
+        <translation>Aplikacja:</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <translation>Opis</translation>
+    </message>
+    <message>
+        <source>Headline:</source>
+        <translation>Nagłówek:</translation>
+    </message>
+    <message>
+        <source>Date Created:</source>
+        <translation>Data utworzenia:</translation>
+    </message>
+    <message>
+        <source>Sublocation:</source>
+        <translation>Miejsce szczegółowe:</translation>
+    </message>
+    <message>
+        <source>City:</source>
+        <translation>Miasto:</translation>
+    </message>
+    <message>
+        <source>State/Province:</source>
+        <translation>Województwo/Region:</translation>
+    </message>
+    <message>
+        <source>Country:</source>
+        <translation>Kraj:</translation>
+    </message>
+    <message>
+        <source>ISO Country Code:</source>
+        <translation>Kod kraju ISO:</translation>
+    </message>
+    <message>
+        <source>Credit Line:</source>
+        <translation>Wiersz autorstwa:</translation>
+    </message>
+    <message>
+        <source>Source:</source>
+        <translation>Źródło:</translation>
+    </message>
+    <message>
+        <source>Instructions:</source>
+        <translation>Instrukcje:</translation>
+    </message>
+    <message>
+        <source>Job Identifier:</source>
+        <translation>Identyfikator zlecenia:</translation>
+    </message>
+    <message>
+        <source>Rights Usage Terms:</source>
+        <translation>Warunki korzystania z praw:</translation>
+    </message>
+    <message>
+        <source>Intellectual Genre:</source>
+        <translation>Gatunek intelektualny:</translation>
+    </message>
+    <message>
+        <source>IPTC Scene Codes:</source>
+        <translation>Kody scen IPTC:</translation>
+    </message>
+    <message>
+        <source>IPTC Subject Codes:</source>
+        <translation>Kody tematów IPTC:</translation>
+    </message>
+    <message>
+        <source>Creator Contact Info</source>
+        <translation>Dane kontaktowe twórcy</translation>
+    </message>
+    <message>
+        <source>Address:</source>
+        <translation>Adres:</translation>
+    </message>
+    <message>
+        <source>Postal Code:</source>
+        <translation>Kod pocztowy:</translation>
+    </message>
+    <message>
+        <source>Phone:</source>
+        <translation>Telefon:</translation>
+    </message>
+    <message>
+        <source>Email:</source>
+        <translation>E-mail:</translation>
+    </message>
+    <message>
+        <source>Website:</source>
+        <translation>Witryna:</translation>
+    </message>
+    <message>
+        <source>IPTC</source>
+        <translation>IPTC</translation>
+    </message>
+    <message>
+        <source>Camera Data</source>
+        <translation>Dane aparatu</translation>
+    </message>
+    <message>
+        <source>Color and Image</source>
+        <translation>Kolor i obraz</translation>
+    </message>
+    <message>
+        <source>History and Provenance</source>
+        <translation>Historia i pochodzenie</translation>
+    </message>
+    <message>
+        <source>AI Generation</source>
+        <translation>Generowanie AI</translation>
+    </message>
+    <message>
+        <source>Embedded Thumbnails</source>
+        <translation>Osadzone miniatury</translation>
+    </message>
+    <message>
+        <source>File</source>
+        <translation>Plik</translation>
+    </message>
+    <message>
+        <source>Filter</source>
+        <translation>Filtruj</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation>Wartość</translation>
+    </message>
+    <message>
+        <source>Privacy</source>
+        <translation>Prywatność</translation>
+    </message>
+    <message>
+        <source>Copy All</source>
+        <translation>Kopiuj wszystko</translation>
+    </message>
+    <message>
+        <source>All Metadata</source>
+        <translation>Wszystkie metadane</translation>
+    </message>
+    <message>
+        <source>Copy XMP</source>
+        <translation>Kopiuj XMP</translation>
+    </message>
+    <message>
+        <source>Raw XMP</source>
+        <translation>Surowe XMP</translation>
+    </message>
+    <message>
+        <source>Strip All Metadata...</source>
+        <translation>Usuń wszystkie metadane...</translation>
+    </message>
+    <message>
+        <source>Camera</source>
+        <translation>Aparat</translation>
+    </message>
+    <message>
+        <source>Make:</source>
+        <translation>Producent:</translation>
+    </message>
+    <message>
+        <source>Model:</source>
+        <translation>Model:</translation>
+    </message>
+    <message>
+        <source>Lens:</source>
+        <translation>Obiektyw:</translation>
+    </message>
+    <message>
+        <source>Body serial number:</source>
+        <translation>Numer seryjny korpusu:</translation>
+    </message>
+    <message>
+        <source>Lens serial number:</source>
+        <translation>Numer seryjny obiektywu:</translation>
+    </message>
+    <message>
+        <source>Camera owner:</source>
+        <translation>Właściciel aparatu:</translation>
+    </message>
+    <message>
+        <source>Exposure time:</source>
+        <translation>Czas naświetlania:</translation>
+    </message>
+    <message>
+        <source>F-number:</source>
+        <translation>Liczba przysłony:</translation>
+    </message>
+    <message>
+        <source>ISO:</source>
+        <translation>ISO:</translation>
+    </message>
+    <message>
+        <source>Focal length:</source>
+        <translation>Ogniskowa:</translation>
+    </message>
+    <message>
+        <source>35 mm equivalent:</source>
+        <translation>Odpowiednik 35 mm:</translation>
+    </message>
+    <message>
+        <source>Exposure bias:</source>
+        <translation>Korekta ekspozycji:</translation>
+    </message>
+    <message>
+        <source>Exposure program:</source>
+        <translation>Program ekspozycji:</translation>
+    </message>
+    <message>
+        <source>Metering:</source>
+        <translation>Pomiar światła:</translation>
+    </message>
+    <message>
+        <source>Flash:</source>
+        <translation>Lampa błyskowa:</translation>
+    </message>
+    <message>
+        <source>White balance:</source>
+        <translation>Balans bieli:</translation>
+    </message>
+    <message>
+        <source>Dates</source>
+        <translation>Daty</translation>
+    </message>
+    <message>
+        <source>Taken:</source>
+        <translation>Wykonano:</translation>
+    </message>
+    <message>
+        <source>Digitized:</source>
+        <translation>Zdigitalizowano:</translation>
+    </message>
+    <message>
+        <source>Time zone offset:</source>
+        <translation>Przesunięcie strefy czasowej:</translation>
+    </message>
+    <message>
+        <source>Orientation:</source>
+        <translation>Orientacja:</translation>
+    </message>
+    <message>
+        <source>Software:</source>
+        <translation>Oprogramowanie:</translation>
+    </message>
+    <message>
+        <source>The file also carries a maker note: the camera maker&apos;s private data, which often includes serial numbers.</source>
+        <translation>Plik zawiera też notatkę producenta: prywatne dane producenta aparatu, które często obejmują numery seryjne.</translation>
+    </message>
+    <message>
+        <source>Latitude:</source>
+        <translation>Szerokość geograficzna:</translation>
+    </message>
+    <message>
+        <source>Longitude:</source>
+        <translation>Długość geograficzna:</translation>
+    </message>
+    <message>
+        <source>Altitude:</source>
+        <translation>Wysokość:</translation>
+    </message>
+    <message>
+        <source>%1 m</source>
+        <translation>%1 m</translation>
+    </message>
+    <message>
+        <source>Direction:</source>
+        <translation>Kierunek:</translation>
+    </message>
+    <message>
+        <source>GPS time:</source>
+        <translation>Czas GPS:</translation>
+    </message>
+    <message>
+        <source>No GPS location.</source>
+        <translation>Brak lokalizacji GPS.</translation>
+    </message>
+    <message>
+        <source>Remove Location</source>
+        <translation>Usuń lokalizację</translation>
+    </message>
+    <message>
+        <source>Source format:</source>
+        <translation>Format źródłowy:</translation>
+    </message>
+    <message>
+        <source>Bit depth:</source>
+        <translation>Głębia bitowa:</translation>
+    </message>
+    <message>
+        <source>32 bits per channel</source>
+        <translation>32 bity na kanał</translation>
+    </message>
+    <message>
+        <source>16 bits per channel</source>
+        <translation>16 bitów na kanał</translation>
+    </message>
+    <message>
+        <source>8 bits per channel</source>
+        <translation>8 bitów na kanał</translation>
+    </message>
+    <message>
+        <source>%1 pixels/inch</source>
+        <translation>%1 pikseli/cal</translation>
+    </message>
+    <message>
+        <source>Embedded color profile</source>
+        <translation>Osadzony profil kolorów</translation>
+    </message>
+    <message>
+        <source>Color profile</source>
+        <translation>Profil kolorów</translation>
+    </message>
+    <message>
+        <source>Copyright:</source>
+        <translation>Prawa autorskie:</translation>
+    </message>
+    <message>
+        <source>Device class:</source>
+        <translation>Klasa urządzenia:</translation>
+    </message>
+    <message>
+        <source>Color space:</source>
+        <translation>Przestrzeń kolorów:</translation>
+    </message>
+    <message>
+        <source>Connection space:</source>
+        <translation>Przestrzeń połączenia:</translation>
+    </message>
+    <message>
+        <source>Version:</source>
+        <translation>Wersja:</translation>
+    </message>
+    <message>
+        <source>No embedded color profile. Applications assume sRGB.</source>
+        <translation>Brak osadzonego profilu kolorów. Aplikacje przyjmują sRGB.</translation>
+    </message>
+    <message>
+        <source>PNG color chunks</source>
+        <translation>Bloki koloru PNG</translation>
+    </message>
+    <message>
+        <source>Document identity</source>
+        <translation>Tożsamość dokumentu</translation>
+    </message>
+    <message>
+        <source>Document ID:</source>
+        <translation>ID dokumentu:</translation>
+    </message>
+    <message>
+        <source>Instance ID:</source>
+        <translation>ID instancji:</translation>
+    </message>
+    <message>
+        <source>Original document ID:</source>
+        <translation>ID dokumentu oryginalnego:</translation>
+    </message>
+    <message>
+        <source>Derived from:</source>
+        <translation>Pochodzi z:</translation>
+    </message>
+    <message>
+        <source>History</source>
+        <translation>Historia</translation>
+    </message>
+    <message>
+        <source>Action</source>
+        <translation>Czynność</translation>
+    </message>
+    <message>
+        <source>When</source>
+        <translation>Kiedy</translation>
+    </message>
+    <message>
+        <source>Software</source>
+        <translation>Oprogramowanie</translation>
+    </message>
+    <message>
+        <source>Changed</source>
+        <translation>Zmiany</translation>
+    </message>
+    <message>
+        <source>Document ancestors:</source>
+        <translation>Dokumenty nadrzędne:</translation>
+    </message>
+    <message>
+        <source>Photoshop records every document pasted or placed into this one. The list only grows and links this file to others.</source>
+        <translation>Photoshop zapisuje każdy dokument wklejony lub umieszczony w tym dokumencie. Lista tylko rośnie i łączy ten plik z innymi.</translation>
+    </message>
+    <message>
+        <source>Cached text layer contents</source>
+        <translation>Zapisana w pamięci podręcznej treść warstw tekstowych</translation>
+    </message>
+    <message>
+        <source>This copy of the text can include layers that were later hidden or deleted.</source>
+        <translation>Ta kopia tekstu może obejmować warstwy, które później ukryto lub usunięto.</translation>
+    </message>
+    <message>
+        <source>Camera Raw:</source>
+        <translation>Camera Raw:</translation>
+    </message>
+    <message>
+        <source>Development settings are stored.</source>
+        <translation>Zapisano ustawienia wywoływania.</translation>
+    </message>
+    <message>
+        <source>Content Credentials (C2PA)</source>
+        <translation>Poświadczenia treści (C2PA)</translation>
+    </message>
+    <message>
+        <source>Manifest:</source>
+        <translation>Manifest:</translation>
+    </message>
+    <message>
+        <source>Content Credentials are not written when Patchy saves: edits invalidate their signature.</source>
+        <translation>Poświadczenia treści nie są zapisywane przez Patchy: edycje unieważniają ich podpis.</translation>
+    </message>
+    <message>
+        <source>No edit history or provenance records.</source>
+        <translation>Brak historii edycji i zapisów pochodzenia.</translation>
+    </message>
+    <message>
+        <source>Remove Edit History</source>
+        <translation>Usuń historię edycji</translation>
+    </message>
+    <message>
+        <source>Generator:</source>
+        <translation>Generator:</translation>
+    </message>
+    <message>
+        <source>Digital source type:</source>
+        <translation>Typ źródła cyfrowego:</translation>
+    </message>
+    <message>
+        <source>Prompt</source>
+        <translation>Prompt</translation>
+    </message>
+    <message>
+        <source>Negative prompt</source>
+        <translation>Prompt negatywny</translation>
+    </message>
+    <message>
+        <source>Workflow</source>
+        <translation>Przepływ pracy</translation>
+    </message>
+    <message>
+        <source>Thumbnails are written by the camera or editor that saved the file. They are not updated by every edit, so they can show content that was cropped out or painted over.</source>
+        <translation>Miniatury zapisuje aparat lub edytor, który zapisał plik. Nie są aktualizowane przy każdej edycji, więc mogą pokazywać treść wykadrowaną lub zamalowaną.</translation>
+    </message>
+    <message>
+        <source>(cannot display)</source>
+        <translation>(nie można wyświetlić)</translation>
+    </message>
+    <message>
+        <source>Location:</source>
+        <translation>Lokalizacja:</translation>
+    </message>
+    <message>
+        <source>Not saved yet</source>
+        <translation>Jeszcze nie zapisano</translation>
+    </message>
+    <message>
+        <source>Size on disk:</source>
+        <translation>Rozmiar na dysku:</translation>
+    </message>
+    <message>
+        <source>Layout of the file as it was opened</source>
+        <translation>Układ pliku w chwili otwarcia</translation>
+    </message>
+    <message>
+        <source>Block</source>
+        <translation>Blok</translation>
+    </message>
+    <message>
+        <source>Offset</source>
+        <translation>Przesunięcie</translation>
+    </message>
+    <message>
+        <source>No XMP metadata.</source>
+        <translation>Brak metadanych XMP.</translation>
+    </message>
+    <message>
+        <source>Metadata:</source>
+        <translation>Metadane:</translation>
+    </message>
+    <message>
+        <source>Copyright and Contact Info</source>
+        <translation>Prawa autorskie i dane kontaktowe</translation>
+    </message>
+    <message>
+        <source>File Info metadata to include. The color profile and resolution are always kept.</source>
+        <translation>Metadane z Informacji o pliku do dołączenia. Profil kolorów i rozdzielczość są zawsze zachowywane.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -19305,6 +19933,30 @@ Y: %2
         <source>Finding the subject... %1%</source>
         <translation>Wyszukiwanie motywu... %1%</translation>
     </message>
+    <message>
+        <source>File &amp;Info...</source>
+        <translation>&amp;Informacje o pliku...</translation>
+    </message>
+    <message>
+        <source>Strip All Metadata...</source>
+        <translation>Usuń wszystkie metadane...</translation>
+    </message>
+    <message>
+        <source>File Info</source>
+        <translation>Informacje o pliku</translation>
+    </message>
+    <message>
+        <source>File info updated; it is written the next time you save.</source>
+        <translation>Zaktualizowano informacje o pliku; zostaną zapisane przy następnym zapisie.</translation>
+    </message>
+    <message>
+        <source>Strip metadata</source>
+        <translation>Usuń metadane</translation>
+    </message>
+    <message>
+        <source>Metadata removed; the file changes the next time you save.</source>
+        <translation>Usunięto metadane; plik zmieni się przy następnym zapisie.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20864,6 +21516,38 @@ Y: %2
     <message>
         <source>Invalid removeBackground option: %1.</source>
         <translation>Nieprawidłowa opcja removeBackground: %1.</translation>
+    </message>
+    <message>
+        <source>setFileInfo needs an object such as {title: &quot;Harbor&quot;}.</source>
+        <translation>setFileInfo wymaga obiektu, takiego jak {title: &quot;Harbor&quot;}.</translation>
+    </message>
+    <message>
+        <source>setFileInfo: %1 must be %2.</source>
+        <translation>setFileInfo: %1 musi być %2.</translation>
+    </message>
+    <message>
+        <source>a string</source>
+        <translation>ciągiem znaków</translation>
+    </message>
+    <message>
+        <source>an array of strings</source>
+        <translation>tablicą ciągów znaków</translation>
+    </message>
+    <message>
+        <source>a whole number from -1 to 5</source>
+        <translation>liczbą całkowitą od -1 do 5</translation>
+    </message>
+    <message>
+        <source>setFileInfo: unknown option %1.</source>
+        <translation>setFileInfo: nieznana opcja %1.</translation>
+    </message>
+    <message>
+        <source>stripMetadata options must be an object such as {keepColorProfile: false}.</source>
+        <translation>Opcje stripMetadata muszą być obiektem, takim jak {keepColorProfile: false}.</translation>
+    </message>
+    <message>
+        <source>stripMetadata: unknown option %1.</source>
+        <translation>stripMetadata: nieznana opcja %1.</translation>
     </message>
 </context>
 <context>

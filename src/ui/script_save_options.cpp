@@ -195,6 +195,18 @@ bool apply_key(KeyReader& reader, const QString& extension, const QString& key, 
                ImageSaveOptions& options) {
   const bool ico = is_ico_extension(extension);
   const bool cur = is_cur_extension(extension);
+  // File Info metadata (docs/file-info.md), for every format that carries it.
+  if (key == QStringLiteral("metadata") &&
+      (is_jpeg_extension(extension) || is_webp_extension(extension) || extension == QStringLiteral("png") ||
+       extension == QStringLiteral("tif") || extension == QStringLiteral("tiff") ||
+       extension == QStringLiteral("gif"))) {
+    reader.read_token(key, value, {QStringLiteral("all"), QStringLiteral("copyright"), QStringLiteral("none")},
+                      [&](const QString& token) {
+                        options.metadata_policy =
+                            metadata_policy_from_key(token).value_or(metadata::MetadataPolicy::All);
+                      });
+    return true;
+  }
   if (is_jpeg_extension(extension)) {
     if (key == QStringLiteral("quality")) {
       reader.read_int(key, value, 0, 100, options.jpeg_quality);

@@ -293,6 +293,7 @@ struct ExportSectionWidgets {
   QPushButton* background_swatch{nullptr};
   QCheckBox* trim_check{nullptr};
   QCheckBox* reveal_check{nullptr};
+  QComboBox* metadata_combo{nullptr};  // null for formats that carry no metadata
   bool resize_offered{false};              // false without a document size: the row is hidden
   bool transparency_choice_offered{true};  // false for JPEG: the fill is forced, never persisted
 };
@@ -546,6 +547,34 @@ ExportSectionWidgets add_export_options_section(QVBoxLayout* content, QDialog& d
   section_layout->addWidget(transparency_group);
   content->addWidget(section);
 
+  // File Info metadata (docs/file-info.md), for the formats that can carry it. Export
+  // defaults to None; Save and Save As always keep everything.
+  const auto lower_extension = normalized_save_extension(extension);
+  if (is_jpeg_extension(lower_extension) || is_webp_extension(lower_extension) ||
+      lower_extension == QStringLiteral("png") || lower_extension == QStringLiteral("tif") ||
+      lower_extension == QStringLiteral("tiff") || lower_extension == QStringLiteral("gif")) {
+    auto* metadata_row = new QWidget(&dialog);
+    auto* metadata_layout = new QHBoxLayout(metadata_row);
+    metadata_layout->setContentsMargins(0, 0, 0, 0);
+    metadata_layout->addWidget(new QLabel(QObject::tr("Metadata:"), metadata_row));
+    auto* metadata_combo = new QComboBox(metadata_row);
+    metadata_combo->setObjectName(QStringLiteral("exportMetadataCombo"));
+    metadata_combo->addItem(QObject::tr("None"), metadata_policy_key(metadata::MetadataPolicy::None));
+    metadata_combo->addItem(QObject::tr("Copyright and Contact Info"),
+                            metadata_policy_key(metadata::MetadataPolicy::CopyrightAndContact));
+    metadata_combo->addItem(QObject::tr("All"), metadata_policy_key(metadata::MetadataPolicy::All));
+    metadata_combo->setToolTip(
+        QObject::tr("File Info metadata to include. The color profile and resolution are always kept."));
+    const auto stored = settings.value(QStringLiteral("saveOptions/exportMetadata"),
+                                       metadata_policy_key(metadata::MetadataPolicy::None))
+                            .toString();
+    metadata_combo->setCurrentIndex(std::max(0, metadata_combo->findData(stored)));
+    metadata_layout->addWidget(metadata_combo);
+    metadata_layout->addStretch(1);
+    content->addWidget(metadata_row);
+    widgets.metadata_combo = metadata_combo;
+  }
+
   auto* reveal_check = new QCheckBox(reveal_check_label(), &dialog);
   reveal_check->setObjectName(QStringLiteral("exportRevealCheck"));
   reveal_check->setChecked(
@@ -593,6 +622,11 @@ void apply_export_section(ImageSaveOptions& options, const ExportSectionWidgets&
     options.export_trim_transparent = widgets.trim_check->isChecked();
     settings.setValue(QStringLiteral("saveOptions/exportTrim"), options.export_trim_transparent);
   }
+  if (widgets.metadata_combo != nullptr) {
+    const auto key = widgets.metadata_combo->currentData().toString();
+    options.metadata_policy = metadata_policy_from_key(key).value_or(metadata::MetadataPolicy::None);
+    settings.setValue(QStringLiteral("saveOptions/exportMetadata"), key);
+  }
 #ifndef Q_OS_WASM
   options.export_reveal_in_file_explorer = widgets.reveal_check->isChecked();
   settings.setValue(QStringLiteral("saveOptions/exportRevealInFileExplorer"),
@@ -609,6 +643,7 @@ void reset_export_options(ImageSaveOptions& options) {
   options.export_height = 0;
   options.export_fill_transparent = false;
   options.export_reveal_in_file_explorer = false;
+  options.metadata_policy = metadata::MetadataPolicy::All;
 }
 
 // Export forms outgrow the branch resize() sizes; the layout decides from a sensible width.

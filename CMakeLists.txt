@@ -531,6 +531,8 @@ add_library(patchy_formats
   src/formats/metadata/iptc_iim.cpp
   src/formats/metadata/jumbf.cpp
   src/formats/metadata/metadata_containers.cpp
+  src/formats/metadata/metadata_edit.cpp
+  src/formats/metadata/metadata_inject.cpp
   src/formats/metadata/metadata_view.cpp
   src/formats/metadata/tiff_ifd.cpp
   src/formats/metadata/xmp.cpp
@@ -1039,6 +1041,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/curved_slider.hpp
       src/ui/curved_slider.cpp
       src/ui/dialog_utils.cpp
+      src/ui/file_info_dialog.hpp
+      src/ui/file_info_dialog.cpp
       src/ui/document_float_window.hpp
       src/ui/document_float_window.cpp
       src/ui/edit_conversions.cpp
@@ -1956,6 +1960,7 @@ if(PATCHY_BUILD_TESTS)
       tests/ui/unicode_path_tests.cpp
       tests/ui/legacy_plugin_tests.cpp
       tests/ui/history_panel_tests.cpp
+      tests/ui/file_info_tests.cpp
       tests/ui/composite_render_tests.cpp
       tests/ui/readme_screenshot_tests.cpp
       tests/ui/readme_screenshot_tests_classic.cpp

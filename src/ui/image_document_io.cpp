@@ -1,4 +1,5 @@
 #include "ui/image_document_io.hpp"
+#include "formats/metadata/metadata_inject.hpp"
 #include "ui/memory_info.hpp"
 #include "ui/qt_paths.hpp"
 
@@ -63,6 +64,7 @@
 #include <optional>
 #include <span>
 #include <stdexcept>
+#include <set>
 #include <string>
 #include <thread>
 #include <unordered_map>
@@ -2536,7 +2538,57 @@ namespace {
 // writers use support/atomic_file_write.hpp for the same reason). The format is
 // the lowercase extension, exactly what QImageWriter(path) derives from a suffix.
 // `quality` < 0 keeps the plugin default.
-void write_qimage_atomically(const QImage& image, const QString& path, const std::string& format, int quality) {
+void write_bytes_with_save_file(const QString& path, std::span<const std::uint8_t> bytes) {
+  QSaveFile file(path);
+  if (!file.open(QIODevice::WriteOnly)) {
+    throw std::runtime_error(file.errorString().toStdString());
+  }
+  if (file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<qint64>(bytes.size())) !=
+      static_cast<qint64>(bytes.size())) {
+    file.cancelWriting();
+    throw std::runtime_error(file.errorString().toStdString());
+  }
+  if (!file.commit()) {
+    throw std::runtime_error(file.errorString().toStdString());
+  }
+}
+
+// The metadata a flat writer embeds (docs/file-info.md), or nullopt when there is none
+// (the encoder's bytes are then written untouched) or the format has no container for it.
+std::optional<metadata::SaveMetadata> save_metadata_for(const Document& document, const ImageSaveOptions& options,
+                                                        std::string_view format, int width, int height) {
+  static const std::set<std::string_view> kCarriers{"jpg", "jpeg", "jpe", "jfif", "png", "tif", "tiff", "webp", "gif"};
+  if (!kCarriers.contains(format)) {
+    return std::nullopt;
+  }
+  auto metadata = metadata::prepare_save_metadata(document, options.metadata_policy, width, height);
+  if (metadata.empty()) {
+    return std::nullopt;
+  }
+  return metadata;
+}
+
+void write_qimage_atomically(const QImage& image, const QString& path, const std::string& format, int quality,
+                             const std::optional<metadata::SaveMetadata>& metadata = std::nullopt) {
+  if (metadata.has_value()) {
+    // Encode in memory, splice the metadata in, then commit the result atomically.
+    QBuffer buffer;
+    buffer.open(QIODevice::WriteOnly);
+    QImageWriter writer(&buffer, QByteArray::fromStdString(format));
+    if (quality >= 0) {
+      writer.setQuality(quality);
+    }
+    if (!writer.write(image)) {
+      throw std::runtime_error(writer.errorString().toStdString());
+    }
+    const auto& encoded = buffer.data();
+    auto bytes = metadata::inject_metadata(
+        std::vector<std::uint8_t>(reinterpret_cast<const std::uint8_t*>(encoded.constData()),
+                                  reinterpret_cast<const std::uint8_t*>(encoded.constData()) + encoded.size()),
+        format, *metadata);
+    write_bytes_with_save_file(path, bytes);
+    return;
+  }
   QSaveFile file(path);
   if (!file.open(QIODevice::WriteOnly)) {
     throw std::runtime_error(file.errorString().toStdString());
@@ -2552,6 +2604,13 @@ void write_qimage_atomically(const QImage& image, const QString& path, const std
   if (!file.commit()) {
     throw std::runtime_error(file.errorString().toStdString());
   }
+}
+
+// Encodes `image`, then embeds the document's metadata when the format carries any.
+void write_flat_qimage(const Document& document, const ImageSaveOptions& options, const QImage& image,
+                       const QString& path, const std::string& format, int quality) {
+  write_qimage_atomically(image, path, format, quality,
+                          save_metadata_for(document, options, format, image.width(), image.height()));
 }
 
 // The native flat writers, the animated GIF/WebP writers and the export-transform
@@ -2656,7 +2715,11 @@ void write_flat_image_file(const Document& document, const QString& path, const 
     return;
   }
   if (lower == "gif") {
-    gif::write_file(document, to_filesystem_path(path));
+    auto bytes = gif::write(document);
+    if (const auto metadata = save_metadata_for(document, options, lower, document.width(), document.height())) {
+      bytes = metadata::inject_metadata(std::move(bytes), lower, *metadata);
+    }
+    write_bytes_with_save_file(path, bytes);
     return;
   }
   if (lower == "pcx") {
@@ -2698,20 +2761,20 @@ void write_flat_image_file(const Document& document, const QString& path, const 
   // (converting to RGB mode first restores plain RGBA PNG export).
   if (extension.compare(QStringLiteral("png"), Qt::CaseInsensitive) == 0 &&
       document.palette_editing().has_value() && !document.palette_editing()->palette.colors.empty()) {
-    write_qimage_atomically(indexed_png8_image(document), path, lower, -1);
+    write_flat_qimage(document, options, indexed_png8_image(document), path, lower, -1);
     return;
   }
 
   // 32-bit documents keep their floats in TIFF; 16 and 32-bit documents keep 16 bits in
   // PNG (and 16-bit TIFF).
   if ((lower == "tif" || lower == "tiff") && document.color_state().bit_depth == BitDepth::Float32) {
-    write_qimage_atomically(float_export_qimage(document, image_format_preserves_alpha(extension_bytes)), path,
-                            lower, -1);
+    write_flat_qimage(document, options, float_export_qimage(document, image_format_preserves_alpha(extension_bytes)),
+                      path, lower, -1);
     return;
   }
   if ((lower == "png" || lower == "tif" || lower == "tiff") && document.color_state().bit_depth != BitDepth::UInt8) {
-    write_qimage_atomically(deep_export_qimage(document, image_format_preserves_alpha(extension_bytes)), path, lower,
-                            -1);
+    write_flat_qimage(document, options, deep_export_qimage(document, image_format_preserves_alpha(extension_bytes)),
+                      path, lower, -1);
     return;
   }
   int quality = -1;
@@ -2721,8 +2784,8 @@ void write_flat_image_file(const Document& document, const QString& path, const 
     // Qt's WebP plugin encodes losslessly at quality 100 and lossy below it.
     quality = options.webp_lossless ? 100 : std::clamp(options.webp_quality, 0, 100);
   }
-  write_qimage_atomically(flat_export_qimage(document, image_format_preserves_alpha(extension_bytes)), path, lower,
-                          quality);
+  write_flat_qimage(document, options, flat_export_qimage(document, image_format_preserves_alpha(extension_bytes)),
+                    path, lower, quality);
 }
 
 static void write_animated_layers(const Document& document, const QString& path, const ImageSaveOptions& options,
@@ -2815,10 +2878,18 @@ static void write_animated_layers(const Document& document, const QString& path,
     frame.delay_cs = gif::parse_layer_name_delay_cs(layer.name()).value_or(default_delay_cs);
     frames.push_back(std::move(frame));
   }
+  const auto metadata = save_metadata_for(document, options, as_webp ? "webp" : "gif", frame_width, frame_height);
   if (as_webp) {
-    write_file_bytes_atomically(to_filesystem_path(path), webp_encoder->finish(),
+    auto bytes = webp_encoder->finish();
+    if (metadata) {
+      bytes = metadata::inject_metadata(std::move(bytes), "webp", *metadata);
+    }
+    write_file_bytes_atomically(to_filesystem_path(path), bytes,
         PATCHY_TRANSLATE_NOOP("QObject", "Could not open WebP file for writing"),
         PATCHY_TRANSLATE_NOOP("QObject", "Could not write WebP file"));
+  } else if (metadata) {
+    write_bytes_with_save_file(
+        path, metadata::inject_metadata(gif::encode_animation(frame_width, frame_height, frames), "gif", *metadata));
   } else {
     gif::write_animation_file(frame_width, frame_height, frames, to_filesystem_path(path));
   }

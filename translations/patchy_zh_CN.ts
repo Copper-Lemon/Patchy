@@ -9185,6 +9185,634 @@ RGB：%2, %3, %4</translation>
         <source>Patchy converted the pixels to sRGB when it opened the file, so this profile is shown for reference only and is not written to saves.</source>
         <translation>Patchy 在打开文件时已将像素转换为 sRGB，因此此配置文件仅供参考，保存时不会写入。</translation>
     </message>
+    <message>
+        <source>This document carries information you may not want to share: %1. Strip All Metadata removes it.</source>
+        <translation>此文档包含您可能不想分享的信息：%1。“清除所有元数据”可将其移除。</translation>
+    </message>
+    <message>
+        <source>GPS location</source>
+        <translation>GPS 位置</translation>
+    </message>
+    <message>
+        <source>camera serial numbers or owner</source>
+        <translation>相机序列号或所有者</translation>
+    </message>
+    <message>
+        <source>names and contact details</source>
+        <translation>姓名和联系方式</translation>
+    </message>
+    <message>
+        <source>embedded thumbnails or extra images</source>
+        <translation>嵌入的缩览图或额外图像</translation>
+    </message>
+    <message>
+        <source>edit history</source>
+        <translation>编辑历史记录</translation>
+    </message>
+    <message>
+        <source>software and file paths</source>
+        <translation>软件和文件路径</translation>
+    </message>
+    <message>
+        <source>dates and times</source>
+        <translation>日期和时间</translation>
+    </message>
+    <message>
+        <source>AI generation prompts</source>
+        <translation>AI 生成提示词</translation>
+    </message>
+    <message>
+        <source>Content Credentials</source>
+        <translation>内容凭证</translation>
+    </message>
+    <message>
+        <source>Strip All Metadata</source>
+        <translation>清除所有元数据</translation>
+    </message>
+    <message>
+        <source>Remove all metadata from this document?</source>
+        <translation>要从此文档中移除所有元数据吗？</translation>
+    </message>
+    <message>
+        <source>This removes EXIF (including GPS and camera serial numbers), XMP, IPTC, comments, text such as AI prompts, embedded thumbnails and Content Credentials. The resolution is kept. You can undo it, and the file changes the next time you save it.</source>
+        <translation>这将移除 EXIF（包括 GPS 和相机序列号）、XMP、IPTC、注释、AI 提示词等文本、嵌入的缩览图和内容凭证。分辨率会保留。您可以还原此操作，文件将在下次保存时更改。</translation>
+    </message>
+    <message>
+        <source>Strip Metadata</source>
+        <translation>清除元数据</translation>
+    </message>
+    <message>
+        <source>Also remove the color profile (colors may look different in color-managed apps)</source>
+        <translation>同时移除颜色配置文件（在支持色彩管理的应用程序中，颜色可能看起来不同）</translation>
+    </message>
+    <message>
+        <source>File Info: %1</source>
+        <translation>文件简介: %1</translation>
+    </message>
+    <message>
+        <source>Document Title:</source>
+        <translation>文档标题:</translation>
+    </message>
+    <message>
+        <source>Author:</source>
+        <translation>作者:</translation>
+    </message>
+    <message>
+        <source>Separate several names with semicolons</source>
+        <translation>多个名称请用分号分隔</translation>
+    </message>
+    <message>
+        <source>Author Title:</source>
+        <translation>作者职务:</translation>
+    </message>
+    <message>
+        <source>Description:</source>
+        <translation>说明:</translation>
+    </message>
+    <message>
+        <source>Rejected</source>
+        <translation>拒绝</translation>
+    </message>
+    <message>
+        <source>Rating:</source>
+        <translation>评级:</translation>
+    </message>
+    <message>
+        <source>Description Writer:</source>
+        <translation>说明撰写者:</translation>
+    </message>
+    <message>
+        <source>Keywords:</source>
+        <translation>关键字:</translation>
+    </message>
+    <message>
+        <source>Separate keywords with semicolons or commas</source>
+        <translation>关键字请用分号或逗号分隔</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>未知</translation>
+    </message>
+    <message>
+        <source>Copyrighted</source>
+        <translation>受版权保护</translation>
+    </message>
+    <message>
+        <source>Public Domain</source>
+        <translation>公共领域</translation>
+    </message>
+    <message>
+        <source>Copyright Status:</source>
+        <translation>版权状态:</translation>
+    </message>
+    <message>
+        <source>Copyright Notice:</source>
+        <translation>版权公告:</translation>
+    </message>
+    <message>
+        <source>Copyright Info URL:</source>
+        <translation>版权信息 URL:</translation>
+    </message>
+    <message>
+        <source>Created:</source>
+        <translation>创建时间:</translation>
+    </message>
+    <message>
+        <source>Modified:</source>
+        <translation>修改时间:</translation>
+    </message>
+    <message>
+        <source>Application:</source>
+        <translation>应用程序:</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <translation>说明</translation>
+    </message>
+    <message>
+        <source>Headline:</source>
+        <translation>标题:</translation>
+    </message>
+    <message>
+        <source>Date Created:</source>
+        <translation>创建日期:</translation>
+    </message>
+    <message>
+        <source>Sublocation:</source>
+        <translation>子位置:</translation>
+    </message>
+    <message>
+        <source>City:</source>
+        <translation>城市:</translation>
+    </message>
+    <message>
+        <source>State/Province:</source>
+        <translation>州/省:</translation>
+    </message>
+    <message>
+        <source>Country:</source>
+        <translation>国家/地区:</translation>
+    </message>
+    <message>
+        <source>ISO Country Code:</source>
+        <translation>ISO 国家/地区代码:</translation>
+    </message>
+    <message>
+        <source>Credit Line:</source>
+        <translation>署名行:</translation>
+    </message>
+    <message>
+        <source>Source:</source>
+        <translation>来源:</translation>
+    </message>
+    <message>
+        <source>Instructions:</source>
+        <translation>指示:</translation>
+    </message>
+    <message>
+        <source>Job Identifier:</source>
+        <translation>作业标识符:</translation>
+    </message>
+    <message>
+        <source>Rights Usage Terms:</source>
+        <translation>权利使用条款:</translation>
+    </message>
+    <message>
+        <source>Intellectual Genre:</source>
+        <translation>知识类型:</translation>
+    </message>
+    <message>
+        <source>IPTC Scene Codes:</source>
+        <translation>IPTC 场景代码:</translation>
+    </message>
+    <message>
+        <source>IPTC Subject Codes:</source>
+        <translation>IPTC 主题代码:</translation>
+    </message>
+    <message>
+        <source>Creator Contact Info</source>
+        <translation>创建者联系信息</translation>
+    </message>
+    <message>
+        <source>Address:</source>
+        <translation>地址:</translation>
+    </message>
+    <message>
+        <source>Postal Code:</source>
+        <translation>邮政编码:</translation>
+    </message>
+    <message>
+        <source>Phone:</source>
+        <translation>电话:</translation>
+    </message>
+    <message>
+        <source>Email:</source>
+        <translation>电子邮件:</translation>
+    </message>
+    <message>
+        <source>Website:</source>
+        <translation>网站:</translation>
+    </message>
+    <message>
+        <source>IPTC</source>
+        <translation>IPTC</translation>
+    </message>
+    <message>
+        <source>Camera Data</source>
+        <translation>相机数据</translation>
+    </message>
+    <message>
+        <source>Color and Image</source>
+        <translation>颜色和图像</translation>
+    </message>
+    <message>
+        <source>History and Provenance</source>
+        <translation>历史记录和来源</translation>
+    </message>
+    <message>
+        <source>AI Generation</source>
+        <translation>AI 生成</translation>
+    </message>
+    <message>
+        <source>Embedded Thumbnails</source>
+        <translation>嵌入的缩览图</translation>
+    </message>
+    <message>
+        <source>File</source>
+        <translation>文件</translation>
+    </message>
+    <message>
+        <source>Filter</source>
+        <translation>筛选</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <translation>值</translation>
+    </message>
+    <message>
+        <source>Privacy</source>
+        <translation>隐私</translation>
+    </message>
+    <message>
+        <source>Copy All</source>
+        <translation>全部复制</translation>
+    </message>
+    <message>
+        <source>All Metadata</source>
+        <translation>所有元数据</translation>
+    </message>
+    <message>
+        <source>Copy XMP</source>
+        <translation>复制 XMP</translation>
+    </message>
+    <message>
+        <source>Raw XMP</source>
+        <translation>原始 XMP</translation>
+    </message>
+    <message>
+        <source>Strip All Metadata...</source>
+        <translation>清除所有元数据...</translation>
+    </message>
+    <message>
+        <source>Camera</source>
+        <translation>相机</translation>
+    </message>
+    <message>
+        <source>Make:</source>
+        <translation>制造商:</translation>
+    </message>
+    <message>
+        <source>Model:</source>
+        <translation>型号:</translation>
+    </message>
+    <message>
+        <source>Lens:</source>
+        <translation>镜头:</translation>
+    </message>
+    <message>
+        <source>Body serial number:</source>
+        <translation>机身序列号:</translation>
+    </message>
+    <message>
+        <source>Lens serial number:</source>
+        <translation>镜头序列号:</translation>
+    </message>
+    <message>
+        <source>Camera owner:</source>
+        <translation>相机所有者:</translation>
+    </message>
+    <message>
+        <source>Exposure time:</source>
+        <translation>曝光时间:</translation>
+    </message>
+    <message>
+        <source>F-number:</source>
+        <translation>光圈值:</translation>
+    </message>
+    <message>
+        <source>ISO:</source>
+        <translation>ISO:</translation>
+    </message>
+    <message>
+        <source>Focal length:</source>
+        <translation>焦距:</translation>
+    </message>
+    <message>
+        <source>35 mm equivalent:</source>
+        <translation>35 mm 等效焦距:</translation>
+    </message>
+    <message>
+        <source>Exposure bias:</source>
+        <translation>曝光补偿:</translation>
+    </message>
+    <message>
+        <source>Exposure program:</source>
+        <translation>曝光程序:</translation>
+    </message>
+    <message>
+        <source>Metering:</source>
+        <translation>测光模式:</translation>
+    </message>
+    <message>
+        <source>Flash:</source>
+        <translation>闪光灯:</translation>
+    </message>
+    <message>
+        <source>White balance:</source>
+        <translation>白平衡:</translation>
+    </message>
+    <message>
+        <source>Dates</source>
+        <translation>日期</translation>
+    </message>
+    <message>
+        <source>Taken:</source>
+        <translation>拍摄时间:</translation>
+    </message>
+    <message>
+        <source>Digitized:</source>
+        <translation>数字化时间:</translation>
+    </message>
+    <message>
+        <source>Time zone offset:</source>
+        <translation>时区偏移:</translation>
+    </message>
+    <message>
+        <source>Orientation:</source>
+        <translation>取向:</translation>
+    </message>
+    <message>
+        <source>Software:</source>
+        <translation>软件:</translation>
+    </message>
+    <message>
+        <source>The file also carries a maker note: the camera maker&apos;s private data, which often includes serial numbers.</source>
+        <translation>该文件还包含制造商注释：即相机制造商的私有数据，其中通常包括序列号。</translation>
+    </message>
+    <message>
+        <source>Latitude:</source>
+        <translation>纬度:</translation>
+    </message>
+    <message>
+        <source>Longitude:</source>
+        <translation>经度:</translation>
+    </message>
+    <message>
+        <source>Altitude:</source>
+        <translation>海拔:</translation>
+    </message>
+    <message>
+        <source>%1 m</source>
+        <translation>%1 米</translation>
+    </message>
+    <message>
+        <source>Direction:</source>
+        <translation>方向:</translation>
+    </message>
+    <message>
+        <source>GPS time:</source>
+        <translation>GPS 时间:</translation>
+    </message>
+    <message>
+        <source>No GPS location.</source>
+        <translation>没有 GPS 位置。</translation>
+    </message>
+    <message>
+        <source>Remove Location</source>
+        <translation>移除位置</translation>
+    </message>
+    <message>
+        <source>Source format:</source>
+        <translation>源格式:</translation>
+    </message>
+    <message>
+        <source>Bit depth:</source>
+        <translation>位深度:</translation>
+    </message>
+    <message>
+        <source>32 bits per channel</source>
+        <translation>每通道 32 位</translation>
+    </message>
+    <message>
+        <source>16 bits per channel</source>
+        <translation>每通道 16 位</translation>
+    </message>
+    <message>
+        <source>8 bits per channel</source>
+        <translation>每通道 8 位</translation>
+    </message>
+    <message>
+        <source>%1 pixels/inch</source>
+        <translation>%1 像素/英寸</translation>
+    </message>
+    <message>
+        <source>Embedded color profile</source>
+        <translation>嵌入的颜色配置文件</translation>
+    </message>
+    <message>
+        <source>Color profile</source>
+        <translation>颜色配置文件</translation>
+    </message>
+    <message>
+        <source>Copyright:</source>
+        <translation>版权:</translation>
+    </message>
+    <message>
+        <source>Device class:</source>
+        <translation>设备类别:</translation>
+    </message>
+    <message>
+        <source>Color space:</source>
+        <translation>颜色空间:</translation>
+    </message>
+    <message>
+        <source>Connection space:</source>
+        <translation>连接空间:</translation>
+    </message>
+    <message>
+        <source>Version:</source>
+        <translation>版本:</translation>
+    </message>
+    <message>
+        <source>No embedded color profile. Applications assume sRGB.</source>
+        <translation>没有嵌入的颜色配置文件。应用程序将假定为 sRGB。</translation>
+    </message>
+    <message>
+        <source>PNG color chunks</source>
+        <translation>PNG 颜色块</translation>
+    </message>
+    <message>
+        <source>Document identity</source>
+        <translation>文档标识</translation>
+    </message>
+    <message>
+        <source>Document ID:</source>
+        <translation>文档 ID:</translation>
+    </message>
+    <message>
+        <source>Instance ID:</source>
+        <translation>实例 ID:</translation>
+    </message>
+    <message>
+        <source>Original document ID:</source>
+        <translation>原始文档 ID:</translation>
+    </message>
+    <message>
+        <source>Derived from:</source>
+        <translation>派生自:</translation>
+    </message>
+    <message>
+        <source>History</source>
+        <translation>历史记录</translation>
+    </message>
+    <message>
+        <source>Action</source>
+        <translation>操作</translation>
+    </message>
+    <message>
+        <source>When</source>
+        <translation>时间</translation>
+    </message>
+    <message>
+        <source>Software</source>
+        <translation>软件</translation>
+    </message>
+    <message>
+        <source>Changed</source>
+        <translation>更改内容</translation>
+    </message>
+    <message>
+        <source>Document ancestors:</source>
+        <translation>文档祖先:</translation>
+    </message>
+    <message>
+        <source>Photoshop records every document pasted or placed into this one. The list only grows and links this file to others.</source>
+        <translation>Photoshop 会记录粘贴或置入此文档的每个文档。此列表只会增长，并会将此文件与其他文件关联起来。</translation>
+    </message>
+    <message>
+        <source>Cached text layer contents</source>
+        <translation>缓存的文字图层内容</translation>
+    </message>
+    <message>
+        <source>This copy of the text can include layers that were later hidden or deleted.</source>
+        <translation>此文本副本可能包含后来被隐藏或删除的图层。</translation>
+    </message>
+    <message>
+        <source>Camera Raw:</source>
+        <translation>Camera Raw:</translation>
+    </message>
+    <message>
+        <source>Development settings are stored.</source>
+        <translation>已存储显影设置。</translation>
+    </message>
+    <message>
+        <source>Content Credentials (C2PA)</source>
+        <translation>内容凭证 (C2PA)</translation>
+    </message>
+    <message>
+        <source>Manifest:</source>
+        <translation>清单:</translation>
+    </message>
+    <message>
+        <source>Content Credentials are not written when Patchy saves: edits invalidate their signature.</source>
+        <translation>Patchy 保存时不会写入内容凭证：编辑会使其签名失效。</translation>
+    </message>
+    <message>
+        <source>No edit history or provenance records.</source>
+        <translation>没有编辑历史记录或来源记录。</translation>
+    </message>
+    <message>
+        <source>Remove Edit History</source>
+        <translation>移除编辑历史记录</translation>
+    </message>
+    <message>
+        <source>Generator:</source>
+        <translation>生成器:</translation>
+    </message>
+    <message>
+        <source>Digital source type:</source>
+        <translation>数字来源类型:</translation>
+    </message>
+    <message>
+        <source>Prompt</source>
+        <translation>提示词</translation>
+    </message>
+    <message>
+        <source>Negative prompt</source>
+        <translation>反向提示词</translation>
+    </message>
+    <message>
+        <source>Workflow</source>
+        <translation>工作流</translation>
+    </message>
+    <message>
+        <source>Thumbnails are written by the camera or editor that saved the file. They are not updated by every edit, so they can show content that was cropped out or painted over.</source>
+        <translation>缩览图由保存该文件的相机或编辑器写入。缩览图不会随每次编辑而更新，因此可能显示已被裁剪掉或涂盖的内容。</translation>
+    </message>
+    <message>
+        <source>(cannot display)</source>
+        <translation>（无法显示）</translation>
+    </message>
+    <message>
+        <source>Location:</source>
+        <translation>位置:</translation>
+    </message>
+    <message>
+        <source>Not saved yet</source>
+        <translation>尚未保存</translation>
+    </message>
+    <message>
+        <source>Size on disk:</source>
+        <translation>占用磁盘空间:</translation>
+    </message>
+    <message>
+        <source>Layout of the file as it was opened</source>
+        <translation>打开时的文件结构</translation>
+    </message>
+    <message>
+        <source>Block</source>
+        <translation>块</translation>
+    </message>
+    <message>
+        <source>Offset</source>
+        <translation>偏移</translation>
+    </message>
+    <message>
+        <source>No XMP metadata.</source>
+        <translation>没有 XMP 元数据。</translation>
+    </message>
+    <message>
+        <source>Metadata:</source>
+        <translation>元数据:</translation>
+    </message>
+    <message>
+        <source>Copyright and Contact Info</source>
+        <translation>版权和联系信息</translation>
+    </message>
+    <message>
+        <source>File Info metadata to include. The color profile and resolution are always kept.</source>
+        <translation>要包含的文件简介元数据。颜色配置文件和分辨率始终会保留。</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -19191,6 +19819,30 @@ Baked into images: %1.</source>
         <source>Finding the subject... %1%</source>
         <translation>正在查找主体... %1%</translation>
     </message>
+    <message>
+        <source>File &amp;Info...</source>
+        <translation>文件简介(&amp;I)...</translation>
+    </message>
+    <message>
+        <source>Strip All Metadata...</source>
+        <translation>清除所有元数据...</translation>
+    </message>
+    <message>
+        <source>File Info</source>
+        <translation>文件简介</translation>
+    </message>
+    <message>
+        <source>File info updated; it is written the next time you save.</source>
+        <translation>文件简介已更新，将在下次保存时写入。</translation>
+    </message>
+    <message>
+        <source>Strip metadata</source>
+        <translation>清除元数据</translation>
+    </message>
+    <message>
+        <source>Metadata removed; the file changes the next time you save.</source>
+        <translation>元数据已移除，文件将在下次保存时更改。</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20748,6 +21400,38 @@ Baked into images: %1.</source>
     <message>
         <source>Invalid removeBackground option: %1.</source>
         <translation>无效的 removeBackground 选项：%1。</translation>
+    </message>
+    <message>
+        <source>setFileInfo needs an object such as {title: &quot;Harbor&quot;}.</source>
+        <translation>setFileInfo 需要一个对象，例如 {title: &quot;Harbor&quot;}。</translation>
+    </message>
+    <message>
+        <source>setFileInfo: %1 must be %2.</source>
+        <translation>setFileInfo：%1 必须是%2。</translation>
+    </message>
+    <message>
+        <source>a string</source>
+        <translation>字符串</translation>
+    </message>
+    <message>
+        <source>an array of strings</source>
+        <translation>字符串数组</translation>
+    </message>
+    <message>
+        <source>a whole number from -1 to 5</source>
+        <translation>-1 到 5 的整数</translation>
+    </message>
+    <message>
+        <source>setFileInfo: unknown option %1.</source>
+        <translation>setFileInfo：未知选项 %1。</translation>
+    </message>
+    <message>
+        <source>stripMetadata options must be an object such as {keepColorProfile: false}.</source>
+        <translation>stripMetadata 选项必须是一个对象，例如 {keepColorProfile: false}。</translation>
+    </message>
+    <message>
+        <source>stripMetadata: unknown option %1.</source>
+        <translation>stripMetadata：未知选项 %1。</translation>
     </message>
 </context>
 <context>

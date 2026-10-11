@@ -135,7 +135,10 @@ object names, hotkey ids, file-format tokens, log and console output, the AI set
 the wasm loader page, the stress-test harness report, and the layer name `"Background"`
 (the core treats a pixel layer literally named "Background" as the background; the
 default names "Paint Layer", "Pasted Layer", "Imported Image", "Sprite Sheet" and "Frame"
-are translated).
+are translated). File Info's All Metadata and Raw XMP pages show specification identifiers,
+container descriptions and decoded values (`ExposureTime`, `dc:title`, "APP1 Exif")
+untranslated, as ExifTool does; its curated pages translate every label
+([file-info.md](file-info.md)).
 
 Unit suffixes go through `pixel_suffix()`, `inch_suffix()`, `percent_suffix()`,
 `degree_suffix()` or `measurement_unit_suffix()` in `src/ui/measurement_units.hpp`; no
