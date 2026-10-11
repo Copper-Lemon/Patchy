@@ -84,6 +84,14 @@ DocumentPrintSettings& Document::print_settings() noexcept {
   return print_settings_;
 }
 
+const DocumentFileInfo& Document::file_info() const noexcept {
+  return file_info_;
+}
+
+DocumentFileInfo& Document::file_info() noexcept {
+  return file_info_;
+}
+
 const std::optional<DocumentIndexedPalette>& Document::indexed_palette() const noexcept {
   return indexed_palette_;
 }

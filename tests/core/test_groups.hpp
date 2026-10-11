@@ -57,3 +57,4 @@ std::vector<patchy::test::TestCase> psd_deep_io_tests();
 std::vector<patchy::test::TestCase> deep_compositor_tests();
 std::vector<patchy::test::TestCase> deep_filter_tests();
 std::vector<patchy::test::TestCase> ai_selection_tests();
+std::vector<patchy::test::TestCase> file_info_metadata_tests();

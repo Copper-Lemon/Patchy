@@ -9173,6 +9173,18 @@ RGB：%2, %3, %4</translation>
         <source>Object Selection</source>
         <translation>对象选择</translation>
     </message>
+    <message>
+        <source>Patchy converted this document to RGB, so this profile is shown for reference only and is not written to RGB saves.</source>
+        <translation>Patchy 已将此文档转换为 RGB，因此此配置文件仅供参考，以 RGB 保存时不会写入。</translation>
+    </message>
+    <message>
+        <source>This profile does not describe RGB data, so Patchy shows it for reference only and does not write it to saves.</source>
+        <translation>此配置文件描述的不是 RGB 数据，因此 Patchy 仅将其作为参考显示，保存时不会写入。</translation>
+    </message>
+    <message>
+        <source>Patchy converted the pixels to sRGB when it opened the file, so this profile is shown for reference only and is not written to saves.</source>
+        <translation>Patchy 在打开文件时已将像素转换为 sRGB，因此此配置文件仅供参考，保存时不会写入。</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

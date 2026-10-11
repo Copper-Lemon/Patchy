@@ -1978,6 +1978,7 @@ Document DocumentIo::read(std::span<const std::uint8_t> bytes, ReadOptions optio
     };
     seal(seal, document.layers());
   }
+  lift_file_info_resources(document, header.color_mode, header.large_document);
   return document;
 }
 

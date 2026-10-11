@@ -44,8 +44,16 @@ struct XmlNode {
   [[nodiscard]] std::string all_text() const;
 };
 
+struct XmlParseOptions {
+  // Keep xmlns / xmlns:prefix declarations as ordinary attributes (after resolution
+  // has used them). XMP needs them: its properties are keyed by namespace URI, and
+  // foreign prefixes otherwise reach the caller with no way to look the URI up.
+  bool keep_namespace_declarations{false};
+};
+
 // Parses the file's root element. Throws std::runtime_error with a
 // plain-English message (and 1-based line number) on malformed input.
 [[nodiscard]] XmlNode parse_xml(std::span<const std::uint8_t> bytes);
+[[nodiscard]] XmlNode parse_xml(std::span<const std::uint8_t> bytes, const XmlParseOptions& options);
 
 }  // namespace patchy::svg

@@ -27,6 +27,7 @@
 #include "formats/bmp_document_io.hpp"
 #include "formats/heif_document_io.hpp"
 #include "formats/jxr_document_io.hpp"
+#include "formats/metadata/metadata_containers.hpp"
 #include "formats/raw_document_io.hpp"
 #include "formats/dds_document_io.hpp"
 #include "formats/rttex_document_io.hpp"
@@ -1000,13 +1001,50 @@ bool has_visible_top_level_layer(const Document& document) {
   return std::any_of(layers.begin(), layers.end(), [](const Layer& layer) { return layer.visible(); });
 }
 
+// File Info (docs/file-info.md): PSD/PSB metadata was lifted by the PSD reader; every
+// other format is scanned here from the file bytes. The source RGB profile becomes the
+// document's embedded profile only when the pixels are still in the file's color space.
+void capture_file_info(Document& opened, const QString& path, bool pixels_in_source_space) {
+  const QFileInfo file(path);
+  auto& info = opened.file_info();
+  if (info.source_format == "PSD" || info.source_format == "PSB") {
+    info.source_file_size = static_cast<std::uint64_t>(std::max<qint64>(0, file.size()));
+    return;
+  }
+  info = metadata::extract_file_info_from_path(to_filesystem_path(path));
+  if (info.source_format.empty()) {
+    info.source_format = file.suffix().toUpper().toStdString();
+  }
+  if (!info.source_icc) {
+    return;
+  }
+  const auto& profile = *info.source_icc;
+  if (!metadata::icc_profile_is_rgb(profile)) {
+    info.source_icc_note = QT_TRANSLATE_NOOP(
+        "QObject", "This profile does not describe RGB data, so Patchy shows it for reference only and does not "
+                   "write it to saves.");
+  } else if (!pixels_in_source_space) {
+    info.source_icc_note = QT_TRANSLATE_NOOP(
+        "QObject", "Patchy converted the pixels to sRGB when it opened the file, so this profile is shown for "
+                   "reference only and is not written to saves.");
+  } else if (opened.color_state().embedded_icc_profile.empty()) {
+    opened.color_state().embedded_icc_profile = profile;
+  }
+}
+
 OpenDocumentResult load_document_from_path(QString path) {
   const auto info = QFileInfo(path);
   const auto extension = info.suffix().toLower();
   Document opened;
   QStringList import_notices;
   bool force_import_notices_popup = false;
+  // True when the decoder handed over the file's pixel values untouched (Qt's
+  // PNG/JPEG/TIFF/WebP/GIF readers, Patchy's BMP reader): the file's RGB profile then
+  // still describes them and is kept for saves (docs/file-info.md). Decoders that
+  // convert to sRGB (WIC HEIF/JPEG XR, LibRaw, the HEIF Qt fallback) leave it false.
+  bool pixels_in_source_space = false;
   const auto load_via_qt = [&] {
+    pixels_in_source_space = true;
     if (extension == QStringLiteral("webp")) {
       const auto bytes = read_all_file_bytes(path);
       int index = 0;
@@ -1179,6 +1217,7 @@ OpenDocumentResult load_document_from_path(QString path) {
       if (is_svg_extension(extension)) {
         decode_pending_svg_images(opened.layers(), import_notices);
       }
+      pixels_in_source_space = handler->identifier == "patchy.formats.bmp";
     } catch (const std::exception& registry_error) {
       // Nonstandard files that a Qt plugin still understands (e.g. OS/2 BMPs) keep opening
       // through the Qt fallback; when Qt cannot read them either, report the registry
@@ -1230,6 +1269,7 @@ OpenDocumentResult load_document_from_path(QString path) {
   if (!opened.metadata().values.contains("psd.version") && !is_svg_extension(extension)) {
     promote_flat_alpha_to_layer_mask(opened);
   }
+  capture_file_info(opened, path, pixels_in_source_space);
   if (const auto default_layer_id = default_non_group_layer_id(opened.layers()); default_layer_id.has_value()) {
     opened.set_active_layer(*default_layer_id);
   } else {

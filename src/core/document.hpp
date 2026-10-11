@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/document_channel.hpp"
+#include "core/document_file_info.hpp"
 #include "core/document_path.hpp"
 #include "core/layer.hpp"
 #include "core/palette.hpp"
@@ -127,6 +128,9 @@ public:
   [[nodiscard]] DocumentMetadata& metadata() noexcept;
   [[nodiscard]] const DocumentPrintSettings& print_settings() const noexcept;
   [[nodiscard]] DocumentPrintSettings& print_settings() noexcept;
+  // File > File Info metadata (EXIF, XMP, IPTC, comments; docs/file-info.md).
+  [[nodiscard]] const DocumentFileInfo& file_info() const noexcept;
+  [[nodiscard]] DocumentFileInfo& file_info() noexcept;
   [[nodiscard]] const std::optional<DocumentIndexedPalette>& indexed_palette() const noexcept;
   [[nodiscard]] std::optional<DocumentIndexedPalette>& indexed_palette() noexcept;
   [[nodiscard]] const std::optional<DocumentPaletteEditing>& palette_editing() const noexcept;
@@ -182,6 +186,7 @@ private:
   DocumentColorState color_state_{};
   DocumentMetadata metadata_{};
   DocumentPrintSettings print_settings_{};
+  DocumentFileInfo file_info_{};
   std::optional<DocumentIndexedPalette> indexed_palette_{};
   std::optional<DocumentPaletteEditing> palette_editing_{};
   DocumentGridSettings grid_settings_{};

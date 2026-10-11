@@ -9173,6 +9173,18 @@ RGB: %2, %3, %4</translation>
         <source>Object Selection</source>
         <translation>개체 선택</translation>
     </message>
+    <message>
+        <source>Patchy converted this document to RGB, so this profile is shown for reference only and is not written to RGB saves.</source>
+        <translation>Patchy가 이 문서를 RGB로 변환했으므로 이 프로필은 참고용으로만 표시되며 RGB로 저장할 때 기록되지 않습니다.</translation>
+    </message>
+    <message>
+        <source>This profile does not describe RGB data, so Patchy shows it for reference only and does not write it to saves.</source>
+        <translation>이 프로필은 RGB 데이터를 설명하지 않으므로 Patchy는 참고용으로만 표시하며 저장할 때 기록하지 않습니다.</translation>
+    </message>
+    <message>
+        <source>Patchy converted the pixels to sRGB when it opened the file, so this profile is shown for reference only and is not written to saves.</source>
+        <translation>Patchy가 파일을 열 때 픽셀을 sRGB로 변환했으므로 이 프로필은 참고용으로만 표시되며 저장할 때 기록되지 않습니다.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

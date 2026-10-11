@@ -2342,6 +2342,10 @@ void composite_over_background(PixelBuffer& rgba, QColor background) {
                                                 std::vector<std::string>* notices) {
   const auto finish = [&document](Document& stand_in) {
     stand_in.print_settings() = document.print_settings();
+    // The writers read metadata and the kept color profile from the document they get
+    // (docs/file-info.md); the export policy filters the metadata later.
+    stand_in.file_info() = document.file_info();
+    stand_in.color_state().embedded_icc_profile = document.color_state().embedded_icc_profile;
     stand_in.palette_editing() = document.palette_editing();
     stand_in.indexed_palette() = document.indexed_palette();
   };

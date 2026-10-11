@@ -9203,6 +9203,18 @@ RGB: %2, %3, %4</translation>
         <source>Object Selection</source>
         <translation>Seleção de objeto</translation>
     </message>
+    <message>
+        <source>Patchy converted this document to RGB, so this profile is shown for reference only and is not written to RGB saves.</source>
+        <translation>O Patchy converteu este documento para RGB, então este perfil é mostrado apenas como referência e não é gravado ao salvar em RGB.</translation>
+    </message>
+    <message>
+        <source>This profile does not describe RGB data, so Patchy shows it for reference only and does not write it to saves.</source>
+        <translation>Este perfil não descreve dados RGB, então o Patchy o mostra apenas como referência e não o grava ao salvar.</translation>
+    </message>
+    <message>
+        <source>Patchy converted the pixels to sRGB when it opened the file, so this profile is shown for reference only and is not written to saves.</source>
+        <translation>O Patchy converteu os pixels para sRGB ao abrir o arquivo, então este perfil é mostrado apenas como referência e não é gravado ao salvar.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

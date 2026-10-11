@@ -9173,6 +9173,18 @@ Mixed selection</source>
         <source>Object Selection</source>
         <translation>オブジェクト選択</translation>
     </message>
+    <message>
+        <source>Patchy converted this document to RGB, so this profile is shown for reference only and is not written to RGB saves.</source>
+        <translation>Patchy はこのドキュメントを RGB に変換したため、このプロファイルは参考として表示されるだけで、RGB での保存時には書き込まれません。</translation>
+    </message>
+    <message>
+        <source>This profile does not describe RGB data, so Patchy shows it for reference only and does not write it to saves.</source>
+        <translation>このプロファイルは RGB データを表していないため、Patchy は参考として表示するだけで、保存時には書き込みません。</translation>
+    </message>
+    <message>
+        <source>Patchy converted the pixels to sRGB when it opened the file, so this profile is shown for reference only and is not written to saves.</source>
+        <translation>Patchy はファイルを開いたときにピクセルを sRGB に変換したため、このプロファイルは参考として表示されるだけで、保存時には書き込まれません。</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

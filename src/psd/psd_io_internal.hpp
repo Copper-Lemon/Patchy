@@ -91,6 +91,14 @@ constexpr std::uint32_t kPatchyCompoundVectorsMagic = 0x50746356U;  // 'PtcV'
 constexpr std::uint16_t kImageResourcePatchyLongShadows = 4212;
 constexpr std::uint32_t kPatchyLongShadowsMagic = 0x50746353U;  // 'PtcS'
 constexpr std::uint16_t kPatchyLongShadowFlagContinuous = 0x0001U;
+// Plug-in image resource: 'PtcM', u16 version 1, u16 reserved 0, u32 count, then
+// count entries {u8 FileInfoTextKind, then key, value and language as u32 UTF-8 byte
+// length + bytes}. Carries File Info text that has no Photoshop resource (PNG text
+// chunks such as generator prompts, JPEG/GIF comments) through a PSD round trip and
+// crash recovery (docs/file-info.md). Photoshop keeps unknown plug-in resources but
+// may drop them when it re-saves.
+constexpr std::uint16_t kImageResourcePatchyFileInfoText = 4213;
+constexpr std::uint32_t kPatchyFileInfoTextMagic = 0x5074634DU;  // 'PtcM'
 constexpr float kDefaultGlobalLightAngle = 120.0F;
 constexpr float kDefaultGlobalLightAltitude = 30.0F;
 constexpr std::int32_t kDefaultGridCycle32 = 576;
@@ -805,6 +813,11 @@ void apply_compound_vector_resource(Document& document, std::span<const std::uin
 // shadows already parsed from lfx2, matched by unique 'lyid' and index. Any
 // malformed field rejects the whole record.
 void apply_long_shadow_resource(Document& document, std::span<const std::uint8_t> payload);
+// File Info (docs/file-info.md): moves the metadata-only resources (XMP, EXIF, IPTC,
+// caption digest, copyright flag/URL, thumbnails, version/print/auto-save info,
+// Patchy's 4213 text) out of metadata().raw_psd_image_resources into file_info(), so
+// File Info edits them and image_resources_for_document writes them back from there.
+void lift_file_info_resources(Document& document, std::uint16_t source_color_mode, bool large_document);
 std::vector<std::uint8_t> image_resources_for_document(const Document& document,
                                                        std::span<const CompositeChannelInfo> channels,
                                                        std::uint16_t output_mode = kColorModeRgb);

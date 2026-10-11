@@ -1505,13 +1505,20 @@ void psd_xmp_dates_repair_basic_timezones_without_discarding_metadata() {
     for (const bool flat : {false, true}) {
       const auto bytes = flat ? psd::DocumentIo::write_flat_rgb8(document, options)
                               : psd::DocumentIo::write_layered_rgb8(document, options);
+      // The writer repaired the dates; the reader lifts XMP and IPTC into File Info
+      // (docs/file-info.md), and a second save writes the same bytes back.
       const auto read = psd::DocumentIo::read(bytes);
-      const auto& saved_resources = read.metadata().raw_psd_image_resources;
-      const auto xmp = psd::find_image_resource_payload(saved_resources, 1060);
-      CHECK(xmp.has_value());
+      const auto& xmp = read.file_info().xmp;
+      CHECK(xmp != nullptr);
       CHECK(std::string(xmp->begin(), xmp->end()) == expected);
-      CHECK(psd::find_image_resource_payload(saved_resources, 1028).value() == iptc);
-      CHECK(psd::image_resources_for_document(read, {}) == saved_resources);
+      CHECK(read.file_info().iptc != nullptr && *read.file_info().iptc == iptc);
+      const auto resaved = psd::image_resources_for_document(read, {});
+      CHECK(psd::find_image_resource_payload(resaved, 1060).value() == *xmp);
+      CHECK(psd::find_image_resource_payload(resaved, 1028).value() == iptc);
+      const auto read_again = psd::DocumentIo::read(flat ? psd::DocumentIo::write_flat_rgb8(read, options)
+                                                         : psd::DocumentIo::write_layered_rgb8(read, options));
+      CHECK(*read_again.file_info().xmp == *xmp);
+      CHECK(read_again.metadata().raw_psd_image_resources == read.metadata().raw_psd_image_resources);
     }
   }
   CHECK(document.metadata().raw_psd_image_resources == resources.bytes());

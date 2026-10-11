@@ -955,6 +955,165 @@ void apply_compound_vector_resource(Document& document, std::span<const std::uin
   }
 }
 
+namespace {
+
+// Metadata-only resources File Info owns (docs/file-info.md). Everything else in the
+// resource section stays in raw_psd_image_resources.
+constexpr std::uint16_t kResourceIptc = 1028;
+constexpr std::uint16_t kResourceCopyrightFlag = 1034;
+constexpr std::uint16_t kResourceCopyrightUrl = 1035;
+constexpr std::uint16_t kResourceExif = 1058;
+constexpr std::uint16_t kResourceXmp = 1060;
+constexpr std::uint16_t kResourceCaptionDigest = 1061;
+// Kept verbatim in DocumentFileInfo::psd_resources: thumbnails, workflow URL, version
+// info, EXIF data 3, Mac/Windows print records, auto-save path/format, Lightroom.
+constexpr std::array<std::uint16_t, 10> kOpaqueFileInfoResources{1033, 1036, 1051, 1057, 1059,
+                                                                  1084, 1085, 1086, 1087, 8000};
+
+bool is_file_info_resource(std::uint16_t id) noexcept {
+  return id == kResourceIptc || id == kResourceCopyrightFlag || id == kResourceCopyrightUrl || id == kResourceExif ||
+         id == kResourceXmp || id == kResourceCaptionDigest || id == kImageResourcePatchyFileInfoText ||
+         std::find(kOpaqueFileInfoResources.begin(), kOpaqueFileInfoResources.end(), id) !=
+             kOpaqueFileInfoResources.end();
+}
+
+void write_sized_string(BigEndianWriter& writer, const std::string& text) {
+  writer.write_u32(checked_u32(text.size(), "File Info text length"));
+  writer.write_bytes(std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size()));
+}
+
+std::string read_sized_string(BigEndianReader& reader) {
+  const auto length = reader.read_u32();
+  const auto span = reader.read_span(length);
+  return std::string(span.begin(), span.end());
+}
+
+std::vector<std::uint8_t> file_info_text_resource(const std::vector<FileInfoText>& texts) {
+  BigEndianWriter entries;
+  std::uint32_t count = 0;
+  for (const auto& text : texts) {
+    // PDF /Info and SVG title/desc describe the source file only; they are not carried.
+    if (text.kind == FileInfoTextKind::PdfInfo || text.kind == FileInfoTextKind::SvgText) {
+      continue;
+    }
+    entries.write_u8(static_cast<std::uint8_t>(text.kind));
+    write_sized_string(entries, text.key);
+    write_sized_string(entries, text.value);
+    write_sized_string(entries, text.language);
+    ++count;
+  }
+  if (count == 0) {
+    return {};
+  }
+  BigEndianWriter payload;
+  payload.write_u32(kPatchyFileInfoTextMagic);
+  payload.write_u16(1);
+  payload.write_u16(0);
+  payload.write_u32(count);
+  payload.write_bytes(entries.bytes());
+  return payload.bytes();
+}
+
+// A malformed or unknown-version payload yields nothing (and is dropped on save, the
+// same as Photoshop dropping a plug-in resource it cannot read).
+std::vector<FileInfoText> file_info_text_from_resource(std::span<const std::uint8_t> payload) {
+  std::vector<FileInfoText> texts;
+  try {
+    BigEndianReader reader(payload);
+    if (reader.read_u32() != kPatchyFileInfoTextMagic || reader.read_u16() != 1) {
+      return {};
+    }
+    (void)reader.read_u16();
+    const auto count = reader.read_u32();
+    for (std::uint32_t i = 0; i < count; ++i) {
+      FileInfoText text;
+      const auto kind = reader.read_u8();
+      if (kind > static_cast<std::uint8_t>(FileInfoTextKind::Comment)) {
+        return {};
+      }
+      text.kind = static_cast<FileInfoTextKind>(kind);
+      text.key = read_sized_string(reader);
+      text.value = read_sized_string(reader);
+      text.language = read_sized_string(reader);
+      texts.push_back(std::move(text));
+    }
+  } catch (const std::exception&) {
+    return {};
+  }
+  return texts;
+}
+
+}  // namespace
+
+void lift_file_info_resources(Document& document, std::uint16_t source_color_mode, bool large_document) {
+  auto& raw = document.metadata().raw_psd_image_resources;
+  auto parsed = read_image_resources(raw);
+  auto& info = document.file_info();
+  info = DocumentFileInfo{};
+  info.source_format = large_document ? "PSB" : "PSD";
+  if (!parsed.has_value()) {
+    return;
+  }
+  bool lifted_any = false;
+  for (auto& resource : *parsed) {
+    info.structure.push_back(FileInfoSegment{"8BIM " + std::to_string(resource.id), 0, resource.payload.size()});
+    if (resource.id == kImageResourceIccProfile && source_color_mode != kColorModeRgb &&
+        resource.payload.size() >= 128) {
+      info.source_icc = make_metadata_bytes(resource.payload);
+      info.source_icc_note = PATCHY_TRANSLATE_NOOP(
+          "QObject",
+          "Patchy converted this document to RGB, so this profile is shown for reference only and is not written "
+          "to RGB saves.");
+    }
+    if (!is_file_info_resource(resource.id)) {
+      continue;
+    }
+    lifted_any = true;
+    auto& payload = resource.payload;
+    switch (resource.id) {
+      case kResourceIptc:
+        info.iptc = make_metadata_bytes(std::move(payload));
+        break;
+      case kResourceCaptionDigest:
+        if (payload.size() == 16) {
+          std::array<std::uint8_t, 16> digest{};
+          std::copy(payload.begin(), payload.end(), digest.begin());
+          info.iptc_digest = digest;
+        }
+        break;
+      case kResourceCopyrightFlag:
+        if (!payload.empty()) {
+          info.copyright_flag = payload[0] != 0;
+        }
+        break;
+      case kResourceCopyrightUrl: {
+        std::string url(payload.begin(), payload.end());
+        while (!url.empty() && url.back() == '\0') {
+          url.pop_back();
+        }
+        info.copyright_url = std::move(url);
+        break;
+      }
+      case kResourceExif:
+        info.exif = make_metadata_bytes(std::move(payload));
+        break;
+      case kResourceXmp:
+        info.xmp = make_metadata_bytes(std::move(payload));
+        break;
+      case kImageResourcePatchyFileInfoText:
+        info.text = file_info_text_from_resource(payload);
+        break;
+      default:
+        info.psd_resources.emplace_back(resource.id, make_metadata_bytes(std::move(payload)));
+        break;
+    }
+  }
+  if (lifted_any) {
+    std::erase_if(*parsed, [](const ImageResource& resource) { return is_file_info_resource(resource.id); });
+    raw = write_image_resources(*parsed);
+  }
+}
+
 std::vector<std::uint8_t> image_resources_for_document(const Document& document,
                                                        std::span<const CompositeChannelInfo> channels,
                                                        std::uint16_t output_mode) {
@@ -963,8 +1122,49 @@ std::vector<std::uint8_t> image_resources_for_document(const Document& document,
   if (!parsed.has_value()) {
     parsed = std::vector<ImageResource>{};
   }
-  for (auto& resource : *parsed) {
-    if (resource.id == 1060) repair_xmp_date_timezones(resource.payload);
+  // File Info owns the metadata resources once the reader lifted them
+  // (lift_file_info_resources). A blob that still carries some was never lifted (a
+  // document assembled by other code): it stays the source of truth, written as before.
+  const bool blob_owns_file_info = std::any_of(parsed->begin(), parsed->end(), [](const ImageResource& resource) {
+    return is_file_info_resource(resource.id);
+  });
+  if (blob_owns_file_info) {
+    for (auto& resource : *parsed) {
+      if (resource.id == kResourceXmp) {
+        repair_xmp_date_timezones(resource.payload);
+      }
+    }
+  }
+  const auto& info = blob_owns_file_info ? DocumentFileInfo{} : document.file_info();
+  if (info.iptc && !info.iptc->empty()) {
+    upsert_image_resource(*parsed, kResourceIptc, *info.iptc);
+    if (info.iptc_digest) {
+      upsert_image_resource(*parsed, kResourceCaptionDigest,
+                            std::vector<std::uint8_t>(info.iptc_digest->begin(), info.iptc_digest->end()));
+    }
+  }
+  if (info.copyright_flag) {
+    upsert_image_resource(*parsed, kResourceCopyrightFlag, {static_cast<std::uint8_t>(*info.copyright_flag ? 1 : 0)});
+  }
+  if (!info.copyright_url.empty()) {
+    upsert_image_resource(*parsed, kResourceCopyrightUrl,
+                          std::vector<std::uint8_t>(info.copyright_url.begin(), info.copyright_url.end()));
+  }
+  if (info.exif && !info.exif->empty()) {
+    upsert_image_resource(*parsed, kResourceExif, *info.exif);
+  }
+  if (info.xmp && !info.xmp->empty()) {
+    auto xmp = *info.xmp;
+    repair_xmp_date_timezones(xmp);
+    upsert_image_resource(*parsed, kResourceXmp, std::move(xmp));
+  }
+  for (const auto& [id, payload] : info.psd_resources) {
+    if (payload && is_file_info_resource(id)) {
+      upsert_image_resource(*parsed, id, *payload);
+    }
+  }
+  if (auto text = file_info_text_resource(info.text); !text.empty()) {
+    upsert_image_resource(*parsed, kImageResourcePatchyFileInfoText, std::move(text));
   }
   if (const auto color_mode = document.metadata().values.find("psd.color_mode");
       output_mode == kColorModeRgb && color_mode != document.metadata().values.end() && color_mode->second != "RGB") {

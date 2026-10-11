@@ -527,6 +527,13 @@ add_library(patchy_formats
   src/formats/image_density_probe.cpp
   src/formats/ilbm_document_io.cpp
   src/formats/jxr_document_io.cpp
+  src/formats/metadata/exif_tags.cpp
+  src/formats/metadata/iptc_iim.cpp
+  src/formats/metadata/jumbf.cpp
+  src/formats/metadata/metadata_containers.cpp
+  src/formats/metadata/metadata_view.cpp
+  src/formats/metadata/tiff_ifd.cpp
+  src/formats/metadata/xmp.cpp
   src/formats/palette_io.cpp
   src/formats/pcx_document_io.cpp
   src/formats/pdf_content.cpp
@@ -1805,6 +1812,7 @@ if(PATCHY_BUILD_TESTS)
     tests/core/pipl_tests.cpp
     tests/core/layer_alignment_tests.cpp
     tests/core/layer_metadata_tests.cpp
+    tests/core/file_info_metadata_tests.cpp
     tests/core/palette_tests.cpp
     tests/core/pat_asl_abr_tests.cpp
     tests/core/pattern_styles_fixtures_tests.cpp

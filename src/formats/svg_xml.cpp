@@ -142,6 +142,7 @@ struct Parser {
   std::size_t node_count{0};
   // Internal-DTD general entities, raw replacement text (decoded at use).
   std::map<std::string, std::string, std::less<>> entities;
+  bool keep_namespace_declarations{false};
 
   [[noreturn]] void fail(std::string message, std::size_t at) const {
     std::size_t line = 1;
@@ -584,6 +585,9 @@ XmlNode parse_element(Parser& parser, const NamespaceScope* parent_scope, std::s
   node.attributes.reserve(raw_attributes.size());
   for (auto& attribute : raw_attributes) {
     if (attribute.name == "xmlns" || attribute.name.starts_with("xmlns:")) {
+      if (parser.keep_namespace_declarations) {
+        node.attributes.emplace_back(std::string(attribute.name), std::move(attribute.value));
+      }
       continue;
     }
     node.attributes.emplace_back(resolve_attribute_name(attribute.name, scope), std::move(attribute.value));
@@ -622,9 +626,14 @@ std::string XmlNode::all_text() const {
 }
 
 XmlNode parse_xml(std::span<const std::uint8_t> bytes) {
+  return parse_xml(bytes, XmlParseOptions{});
+}
+
+XmlNode parse_xml(std::span<const std::uint8_t> bytes, const XmlParseOptions& options) {
   const std::string text = decode_input_bytes(bytes);
   Parser parser;
   parser.input = text;
+  parser.keep_namespace_declarations = options.keep_namespace_declarations;
   while (true) {
     parser.skip_whitespace();
     if (parser.at_end()) {

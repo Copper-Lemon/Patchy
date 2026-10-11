@@ -187,6 +187,7 @@ int main(int argc, char** argv) {
            deep_compositor_tests,
            deep_filter_tests,
            ai_selection_tests,
+           file_info_metadata_tests,
        }) {
     auto group = registration();
     tests.insert(tests.end(), std::make_move_iterator(group.begin()),

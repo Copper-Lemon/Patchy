@@ -9233,6 +9233,18 @@ RGB: %2, %3, %4</translation>
         <source>Object Selection</source>
         <translation>Выделение объектов</translation>
     </message>
+    <message>
+        <source>Patchy converted this document to RGB, so this profile is shown for reference only and is not written to RGB saves.</source>
+        <translation>Patchy преобразовал этот документ в RGB, поэтому этот профиль показан только для справки и не записывается при сохранении в RGB.</translation>
+    </message>
+    <message>
+        <source>This profile does not describe RGB data, so Patchy shows it for reference only and does not write it to saves.</source>
+        <translation>Этот профиль не описывает данные RGB, поэтому Patchy показывает его только для справки и не записывает при сохранении.</translation>
+    </message>
+    <message>
+        <source>Patchy converted the pixels to sRGB when it opened the file, so this profile is shown for reference only and is not written to saves.</source>
+        <translation>Patchy преобразовал пиксели в sRGB при открытии файла, поэтому этот профиль показан только для справки и не записывается при сохранении.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

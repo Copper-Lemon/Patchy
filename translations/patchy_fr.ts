@@ -9203,6 +9203,18 @@ RVB : %2, %3, %4</translation>
         <source>Object Selection</source>
         <translation>Sélection d&apos;objet</translation>
     </message>
+    <message>
+        <source>Patchy converted this document to RGB, so this profile is shown for reference only and is not written to RGB saves.</source>
+        <translation>Patchy a converti ce document en RVB ; ce profil est donc affiché à titre indicatif et n&apos;est pas écrit dans les enregistrements RVB.</translation>
+    </message>
+    <message>
+        <source>This profile does not describe RGB data, so Patchy shows it for reference only and does not write it to saves.</source>
+        <translation>Ce profil ne décrit pas de données RVB ; Patchy l&apos;affiche donc à titre indicatif et ne l&apos;écrit pas lors de l&apos;enregistrement.</translation>
+    </message>
+    <message>
+        <source>Patchy converted the pixels to sRGB when it opened the file, so this profile is shown for reference only and is not written to saves.</source>
+        <translation>Patchy a converti les pixels en sRGB à l&apos;ouverture du fichier ; ce profil est donc affiché à titre indicatif et n&apos;est pas écrit lors de l&apos;enregistrement.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
