@@ -146,6 +146,15 @@ void text_engine_syntax_parses_and_authors_tokens() {
   CHECK(serialize_engine_data(dict, false) == " << /0 2 /1 [ .8 1.0 ] >>");
   CHECK(!parse_engine_data("<< /0 (unterminated", false).has_value());
   CHECK(!parse_engine_data("<< /0 1", false).has_value());
+  // CS5-era blocks end in NUL padding counted in the block length; only a NUL-only tail is accepted.
+  const auto padded = source + std::string("\0\0", 2);
+  const auto padded_root = parse_engine_data(padded, /*bare_root=*/true);
+  CHECK(padded_root.has_value());
+  if (padded_root.has_value()) {
+    CHECK(serialize_engine_data(*padded_root, /*bare_root=*/true) == padded);
+    CHECK(padded_root->at_path({"98", "0"})->integer() == 14);
+  }
+  CHECK(!parse_engine_data(std::string("/0 1 \0 /1 2", 11), /*bare_root=*/true).has_value());
 }
 
 // A Patchy-born document gets a block from the Photoshop 2026 template: one object per type
@@ -381,6 +390,28 @@ void text_engine_area_frames_reject_unrecognized_geometry() {
   CHECK(engine.object_geometry(0).kind == TextFrameGeometry::Kind::Unsupported);
 }
 
+// GitHub issue #86: a NUL-padded CS5 block failed to parse, so every type layer came in protected.
+void text_engine_nul_padded_block_keeps_frames_editable() {
+  using namespace patchy::psd;
+  auto engine = TextEngineBlock::from_template();
+  TextEngineInputs input;
+  input.text = "Box\r";
+  input.boxed = true;
+  engine.append_object(input);
+  input.text = "Point\r";
+  input.boxed = false;
+  engine.append_object(input);
+  auto bytes = engine.serialize();
+  bytes.push_back(0);
+  bytes.push_back(0);
+  CHECK(TextEngineBlock::parse(bytes).has_value());
+  const auto frames = read_text_frame_geometries(bytes);
+  CHECK(frames.size() == 2);
+  if (frames.size() != 2) return;
+  CHECK(frames[0].kind == TextFrameGeometry::Kind::Box);
+  CHECK(frames[1].kind == TextFrameGeometry::Kind::Point);
+}
+
 void text_engine_named_frames_keep_point_and_box_editable() {
   using namespace patchy::psd;
   const std::string source = R"ED(
@@ -459,6 +490,7 @@ void text_engine_area_overflow_and_protected_rasters() {
 std::vector<patchy::test::TestCase> text_engine_block_tests() {
   return {
       {"text_engine_area_frames_preserve_native_contours", text_engine_area_frames_preserve_native_contours},
+      {"text_engine_nul_padded_block_keeps_frames_editable", text_engine_nul_padded_block_keeps_frames_editable},
       {"text_engine_named_frames_keep_point_and_box_editable", text_engine_named_frames_keep_point_and_box_editable},
       {"text_engine_area_frames_reject_unrecognized_geometry", text_engine_area_frames_reject_unrecognized_geometry},
       {"text_engine_area_overflow_and_protected_rasters", text_engine_area_overflow_and_protected_rasters},

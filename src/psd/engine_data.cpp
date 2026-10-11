@@ -36,6 +36,11 @@ class Tokenizer {
     while (pos < source_.size() && is_engine_space(source_[pos])) {
       ++pos;
     }
+    // CS5-era Txt2 blocks count NUL padding after the final `>>` in the block length; a
+    // NUL-only tail is trailing whitespace (kept in close_ws so the block round-trips).
+    if (source_.find_first_not_of('\0', pos) == std::string_view::npos) {
+      pos = source_.size();
+    }
     out.ws.assign(source_.substr(ws_start, pos - ws_start));
     out.text.clear();
     if (pos >= source_.size()) {

@@ -108,6 +108,8 @@ def tokenize(s):
         w0 = pos
         while pos < n and s[pos] in WS:
             pos += 1
+        if pos < n and s[pos] == 0 and not s[pos:].strip(b'\x00'):  # CS5-era NUL padding in the block length
+            pos = n
         ws = bytes(s[w0:pos])
         if pos >= n:
             yield ws, b''

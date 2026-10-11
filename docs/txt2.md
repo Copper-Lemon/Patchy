@@ -60,6 +60,9 @@ escaped, `/name` enums, `true`/`false`, `/nil`, integers and floats. Differences
 - Numbers use Photoshop's short spelling: `.583`, `.8`, `1.0`, `0.0`, `-20.5957`,
   `216.52031` (at most 5 decimals, trailing zeros stripped, `.0` kept, no leading `0`
   before the point).
+- CS5-era blocks can end in NUL padding counted in the block length (issue #86). The
+  tokenizer accepts a NUL-only tail as trailing whitespace and keeps it in the root
+  `close_ws`; a NUL anywhere else still fails the parse, which protects every type layer.
 
 A lexeme-preserving tokenizer round-trips every Photoshop-authored block byte-exact (22 of
 22 fixtures with a document-level block; the pinball poster's only Txt2 is inside an
