@@ -77,8 +77,8 @@ struct SamEmbedding {
 // multimask output with the highest predicted IoU.
 [[nodiscard]] AiMask sam_select_point(const SamEmbedding& embedding, double x, double y);
 
-// One box (document coordinates) -> the object inside it: one decoder run, the single-mask
-// output.
+// One box (document coordinates) -> the object inside it: one decoder run, the output
+// (single-mask or alternative) with the highest predicted IoU, clipped to the box.
 [[nodiscard]] AiMask sam_select_box(const SamEmbedding& embedding, Rect box);
 
 // The main subject's soft matte at document resolution: one BiRefNet pass over the whole

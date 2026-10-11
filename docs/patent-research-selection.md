@@ -21,7 +21,7 @@ Claim-level record behind the "Automatic selection" bullet in [legal-constraints
 ## Assessment of the shipped design
 
 - Select Subject: one BiRefNet pass over the whole image, sigmoid matte upsampled once, combined by plain boolean. Clear of the iterative-salient, detector, query and routing claims.
-- Object Selection: one decoder run per release from one box (labels 2, 3) or one positive point (label 1 plus SAM's padding point, label -1). Clear of US 10192129 (no distance map; doctrine-of-equivalents risk arguable), US 11314982 (no negative indicator), US 11568627 (one modality), US 11676279 (no mask feedback). Picking the best of SAM's three point alternatives by predicted IoU chooses among outputs of one decoder run, not among algorithms; believed clear, unreviewed by counsel.
+- Object Selection: one decoder run per release from one box (labels 2, 3) or one positive point (label 1 plus SAM's padding point, label -1). Clear of US 10192129 (no distance map; doctrine-of-equivalents risk arguable), US 11314982 (no negative indicator), US 11568627 (one modality), US 11676279 (no mask feedback). Picking the output with the highest predicted IoU (among the three alternatives for a point, among all four for a box) chooses among outputs of one decoder run for one prompt, not among algorithms or models; believed clear, unreviewed by counsel.
 - The image encoder runs on the first press with no prompt and nothing displayed; the hover-preview application needs preliminary masks shown on hover, which never exist here.
 
 ## Prior art notes

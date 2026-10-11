@@ -17,7 +17,10 @@ constexpr float kImageNetStd[3] = {0.229F, 0.224F, 0.225F};
 
 // Coverage rounds to zero below these logits, so samples under them cannot light any
 // document pixel (bilinear interpolation never exceeds its largest corner).
-constexpr float kSamEdgeRampSlope = 64.0F;
+// Coverage per logit unit around SAM's 0 boundary: full transition within +-0.5 logit, about
+// a pixel at real edges. A shallower 64 left wide areas SAM was merely unsure about (logits -2
+// to 0) partly selected, which showed as dotted marching-ant holes and background slivers.
+constexpr float kSamEdgeRampSlope = 256.0F;
 constexpr float kSamVisibleLogit = -127.0F / kSamEdgeRampSlope;
 constexpr float kSigmoidVisibleLogit = -6.25F;
 
@@ -209,6 +212,46 @@ AiMask document_mask_from_logits(const float* logits, std::int32_t model_width, 
     std::memcpy(mask.alpha.row(j).data(), source.data() + min_x, static_cast<std::size_t>(mask.bounds.width));
   }
   return mask;
+}
+
+AiMask clip_mask_to_rect(const AiMask& mask, Rect rect) {
+  if (mask.empty()) {
+    return mask;
+  }
+  const auto left = std::max(mask.bounds.x, rect.x);
+  const auto top = std::max(mask.bounds.y, rect.y);
+  const auto right = std::min(mask.bounds.x + mask.bounds.width, rect.x + rect.width);
+  const auto bottom = std::min(mask.bounds.y + mask.bounds.height, rect.y + rect.height);
+  AiMask clipped;
+  if (left >= right || top >= bottom) {
+    return clipped;
+  }
+  std::int32_t min_x = right;
+  std::int32_t min_y = bottom;
+  std::int32_t max_x = -1;
+  std::int32_t max_y = -1;
+  for (auto y = top; y < bottom; ++y) {
+    const auto row = mask.alpha.row(y - mask.bounds.y);
+    for (auto x = left; x < right; ++x) {
+      if (row[static_cast<std::size_t>(x - mask.bounds.x)] != 0U) {
+        min_x = std::min(min_x, x);
+        max_x = std::max(max_x, x);
+        min_y = std::min(min_y, y);
+        max_y = std::max(max_y, y);
+      }
+    }
+  }
+  if (max_x < 0) {
+    return clipped;
+  }
+  clipped.bounds = Rect{min_x, min_y, max_x - min_x + 1, max_y - min_y + 1};
+  clipped.alpha = PixelBuffer(clipped.bounds.width, clipped.bounds.height, PixelFormat::gray8());
+  for (std::int32_t y = 0; y < clipped.bounds.height; ++y) {
+    const auto source = mask.alpha.row(clipped.bounds.y + y - mask.bounds.y);
+    std::memcpy(clipped.alpha.row(y).data(), source.data() + (clipped.bounds.x - mask.bounds.x),
+                static_cast<std::size_t>(clipped.bounds.width));
+  }
+  return clipped;
 }
 
 double mask_iou(const AiMask& a, const AiMask& b) noexcept {

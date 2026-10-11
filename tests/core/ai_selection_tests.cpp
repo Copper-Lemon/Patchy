@@ -5,6 +5,8 @@
 #include "ai/ai_selection_math.hpp"
 #include "ai/segmentation_engine.hpp"
 
+#include "formats/stb/stb_image.h"
+#include "local_psd_fixtures.hpp"
 #include "test_harness.hpp"
 #include "unicode_path_names.hpp"
 
@@ -13,7 +15,10 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <thread>
 #include <vector>
 
@@ -173,6 +178,17 @@ void ai_document_mask_from_logits_upsamples_and_crops() {
   CHECK(patchy::ai::document_mask_from_logits(cold.data(), 4, 4, 400, 400, LogitMapping::Sigmoid).empty());
 }
 
+void ai_clip_mask_to_rect_crops_and_clears() {
+  AiMask mask;
+  mask.bounds = Rect{10, 10, 20, 20};
+  mask.alpha = PixelBuffer(20, 20, PixelFormat::gray8());
+  mask.alpha.clear(200);
+  const auto clipped = patchy::ai::clip_mask_to_rect(mask, Rect{0, 15, 25, 100});
+  CHECK(clipped.bounds.x == 10 && clipped.bounds.y == 15 && clipped.bounds.width == 15 && clipped.bounds.height == 15);
+  CHECK(clipped.alpha.width() == 15 && clipped.alpha.pixel(14, 14)[0] == 200U);
+  CHECK(patchy::ai::clip_mask_to_rect(mask, Rect{100, 100, 5, 5}).empty());
+}
+
 void ai_mask_iou_counts_threshold_overlap() {
   AiMask a;
   a.bounds = Rect{0, 0, 10, 10};
@@ -215,6 +231,42 @@ void ai_object_selection_box_and_point_find_the_disc() {
   const auto point_iou = patchy::ai::mask_iou(pointed, disc);
   std::printf("  point IoU %.3f\n", point_iou);
   CHECK(point_iou >= 0.9);
+}
+
+// A loose box around a boy in front of a fridge (local photo, never committed): MobileSAM's
+// single-mask output took the fridge too, so boxes pick the decoder output with the highest
+// predicted IoU. The box and check points are in the photo's 2816x1880 pixels.
+void ai_object_selection_loose_box_skips_background_if_available() {
+  const auto path = patchy::test::local_format_fixture_path("photos", "P1010437.JPG");
+  std::error_code missing;
+  if (!std::filesystem::is_regular_file(path, missing)) {
+    std::printf("[SKIP] ai_object_selection_loose_box_skips_background_if_available (no local fixture)\n");
+    return;
+  }
+  if (!point_engine_at_build_models()) {
+    std::printf("[SKIP] ai_object_selection_loose_box_skips_background_if_available (build without automatic selection)\n");
+    return;
+  }
+  std::ifstream file(path, std::ios::binary);
+  const std::vector<unsigned char> bytes((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+  int width = 0;
+  int height = 0;
+  int channels = 0;
+  unsigned char* decoded =
+      stbi_load_from_memory(bytes.data(), static_cast<int>(bytes.size()), &width, &height, &channels, 4);
+  CHECK(decoded != nullptr && width == 2816 && height == 1880);
+  PixelBuffer photo(width, height, PixelFormat::rgba8());
+  std::memcpy(photo.data().data(), decoded, photo.byte_size());
+  stbi_image_free(decoded);
+
+  const auto embedding = patchy::ai::sam_encode(photo);
+  const auto mask = patchy::ai::sam_select_box(*embedding, Rect{760, 120, 1290, 1760});
+  const auto covered = [&mask](std::int32_t x, std::int32_t y) {
+    return mask.bounds.contains(x, y) && mask.alpha.pixel(x - mask.bounds.x, y - mask.bounds.y)[0] >= 128U;
+  };
+  CHECK(covered(1450, 1150));  // the boy's chest
+  CHECK(covered(1400, 560));   // his face
+  CHECK(!covered(1900, 800));  // the fridge door behind him
 }
 
 void ai_select_subject_finds_the_disc() {
@@ -303,8 +355,11 @@ std::vector<patchy::test::TestCase> ai_selection_tests() {
       {"ai_subject_input_is_imagenet_normalized_nchw", ai_subject_input_is_imagenet_normalized_nchw},
       {"ai_logit_coverage_mappings", ai_logit_coverage_mappings},
       {"ai_document_mask_from_logits_upsamples_and_crops", ai_document_mask_from_logits_upsamples_and_crops},
+      {"ai_clip_mask_to_rect_crops_and_clears", ai_clip_mask_to_rect_crops_and_clears},
       {"ai_mask_iou_counts_threshold_overlap", ai_mask_iou_counts_threshold_overlap},
       {"ai_object_selection_box_and_point_find_the_disc", ai_object_selection_box_and_point_find_the_disc},
+      {"ai_object_selection_loose_box_skips_background_if_available",
+       ai_object_selection_loose_box_skips_background_if_available},
       {"ai_select_subject_finds_the_disc", ai_select_subject_finds_the_disc},
       {"ai_cancel_stops_inference_without_a_result", ai_cancel_stops_inference_without_a_result},
       {"ai_models_load_from_unicode_directory", ai_models_load_from_unicode_directory},

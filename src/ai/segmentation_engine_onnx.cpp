@@ -42,8 +42,12 @@ constexpr const char* kSamEncoderFile = "mobile_sam_image_encoder_int8.onnx";
 constexpr const char* kSamDecoderFile = "sam_mask_decoder_multi_int8.onnx";
 constexpr const char* kSubjectModelFile = "birefnet_lite_general_1024_int8.onnx";
 
-// The multimask decoder returns four masks: index 0 is SAM's single-mask output (used for
-// box prompts), 1-3 are the three alternatives a single point can mean.
+// The multimask decoder returns four masks with predicted IoUs: index 0 is SAM's
+// single-mask output, 1-3 the three alternatives a prompt can mean. A point picks among
+// 1-3 (SAM's own rule for an ambiguous single point). A box picks among all four: MobileSAM's
+// single-mask output degrades on a loose box (it pulled in a whole fridge behind a boy at
+// predicted IoU 0.66 while alternative 3 was the boy at 0.96), so the decoder's own
+// confidence decides. Either way it is one choice among the outputs of one run.
 constexpr std::int64_t kDecoderMaskCount = 4;
 constexpr std::int64_t kDecoderLowResSize = 256;
 
@@ -217,7 +221,7 @@ Ort::MemoryInfo cpu_memory() {
 // has_mask_input 0 on every call: a previous mask is never fed back (patent boundary in
 // segmentation_engine.hpp).
 AiMask decode(const SamEmbedding& embedding, std::array<float, 4> coords, std::array<float, 2> labels,
-              bool pick_best_alternative) {
+              std::int64_t first_candidate) {
   if (embedding.values.size() != kSamEmbeddingValues) {
     throw std::invalid_argument("automatic selection: malformed image embedding");
   }
@@ -264,13 +268,10 @@ AiMask decode(const SamEmbedding& embedding, std::array<float, 4> coords, std::a
     throw std::runtime_error("automatic selection: unexpected decoder output shape");
   }
   const float* scores = outputs[1].GetTensorData<float>();
-  std::int64_t chosen = 0;
-  if (pick_best_alternative) {
-    chosen = 1;
-    for (std::int64_t index = 2; index < kDecoderMaskCount; ++index) {
-      if (scores[index] > scores[chosen]) {
-        chosen = index;
-      }
+  std::int64_t chosen = first_candidate;
+  for (std::int64_t index = first_candidate + 1; index < kDecoderMaskCount; ++index) {
+    if (scores[index] > scores[chosen]) {
+      chosen = index;
     }
   }
   const auto plane = static_cast<std::size_t>(transform.scaled_width) * static_cast<std::size_t>(transform.scaled_height);
@@ -330,14 +331,15 @@ AiMask sam_select_point(const SamEmbedding& embedding, double x, double y) {
   const auto point = to_sam_point(embedding.transform, x, y);
   // Label 1 is the one positive point; label -1 is SAM's required padding point when no
   // box is given. Never a 0 (negative) label.
-  return decode(embedding, {point.x, point.y, 0.0F, 0.0F}, {1.0F, -1.0F}, true);
+  return decode(embedding, {point.x, point.y, 0.0F, 0.0F}, {1.0F, -1.0F}, 1);
 }
 
 AiMask sam_select_box(const SamEmbedding& embedding, Rect box) {
   const auto top_left = to_sam_point(embedding.transform, box.x, box.y);
   const auto bottom_right = to_sam_point(embedding.transform, box.x + box.width, box.y + box.height);
-  // Labels 2 and 3 are the box corners; no point rides along.
-  return decode(embedding, {top_left.x, top_left.y, bottom_right.x, bottom_right.y}, {2.0F, 3.0F}, false);
+  // Labels 2 and 3 are the box corners; no point rides along. The result stays inside the box.
+  return clip_mask_to_rect(
+      decode(embedding, {top_left.x, top_left.y, bottom_right.x, bottom_right.y}, {2.0F, 3.0F}, 0), box);
 }
 
 AiMask subject_matte(const PixelBuffer& rgba8, InferenceCancel* cancel) {

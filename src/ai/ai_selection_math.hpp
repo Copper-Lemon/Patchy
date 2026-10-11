@@ -70,6 +70,10 @@ enum class LogitMapping {
                                                std::int32_t model_height, std::int32_t document_width,
                                                std::int32_t document_height, LogitMapping mapping);
 
+// Clears coverage outside `rect` (document coordinates) and crops to what remains. A box
+// prompt means "the object inside this box"; SAM's masks can spill past the box edges.
+[[nodiscard]] AiMask clip_mask_to_rect(const AiMask& mask, Rect rect);
+
 // Intersection over union of two masks at the 50% threshold, in document space. Two empty
 // masks score 1.
 [[nodiscard]] double mask_iou(const AiMask& a, const AiMask& b) noexcept;
