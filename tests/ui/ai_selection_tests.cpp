@@ -334,6 +334,11 @@ void ui_selection_tool_context_menu_offers_subject_commands() {
   QStringList names;
   for (auto* action : menu->actions()) {
     names << action->objectName();
+    if (action->objectName() == QStringLiteral("selectSubjectAction") ||
+        action->objectName() == QStringLiteral("selectBackgroundAction") ||
+        action->objectName() == QStringLiteral("layerRemoveBackgroundAction")) {
+      CHECK(action->icon().isNull());  // no letter-placeholder glyph beside the text
+    }
   }
   CHECK(names.contains(QStringLiteral("selectSubjectAction")));
   CHECK(names.contains(QStringLiteral("selectBackgroundAction")));
@@ -381,6 +386,7 @@ void ui_select_object_in_marquee_selection_finds_the_object() {
   }
   QApplication::processEvents();
   CHECK(select_object != nullptr);
+  CHECK(select_object->icon().isNull());
   select_object->trigger();
   QApplication::processEvents();
   const auto region = canvas->selected_document_region();

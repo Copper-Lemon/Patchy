@@ -669,7 +669,6 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   select_subject_action_ = new QAction(tr("Select S&ubject"), this);
   select_subject_action_->setObjectName(QStringLiteral("selectSubjectAction"));
   bind_action_text(select_subject_action_, QT_TR_NOOP("Select S&ubject"));
-  select_subject_action_->setIcon(simple_icon(QStringLiteral("SUB")));
   register_hotkey(select_subject_action_, "select.subject");
   connect(select_subject_action_, &QAction::triggered, this,
           [this] { select_subject(CanvasWidget::SelectionMode::Replace); });
@@ -677,7 +676,6 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   select_background_action_ = new QAction(tr("Select &Background"), this);
   select_background_action_->setObjectName(QStringLiteral("selectBackgroundAction"));
   bind_action_text(select_background_action_, QT_TR_NOOP("Select &Background"));
-  select_background_action_->setIcon(simple_icon(QStringLiteral("BG")));
   register_hotkey(select_background_action_, "select.background");
   connect(select_background_action_, &QAction::triggered, this,
           [this] { select_background(CanvasWidget::SelectionMode::Replace); });
@@ -685,7 +683,6 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   remove_background_action_ = new QAction(tr("Remove Bac&kground"), this);
   remove_background_action_->setObjectName(QStringLiteral("layerRemoveBackgroundAction"));
   bind_action_text(remove_background_action_, QT_TR_NOOP("Remove Bac&kground"));
-  remove_background_action_->setIcon(simple_icon(QStringLiteral("RB")));
   register_hotkey(remove_background_action_, "layer.remove_background");
   connect(remove_background_action_, &QAction::triggered, this, [this] { remove_background(); });
   remove_background_action_->setVisible(automatic_selection);
@@ -694,7 +691,6 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   select_object_action_ = new QAction(tr("Select &Object"), this);
   select_object_action_->setObjectName(QStringLiteral("selectObjectInSelectionAction"));
   bind_action_text(select_object_action_, QT_TR_NOOP("Select &Object"));
-  select_object_action_->setIcon(simple_icon(QStringLiteral("OBJ")));
   register_hotkey(select_object_action_, "select.object_in_selection");
   connect(select_object_action_, &QAction::triggered, this, [this] {
     if (canvas_ != nullptr && canvas_->select_object_in_selection()) {
