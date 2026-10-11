@@ -96,10 +96,11 @@ PixelBuffer disc_scene(std::int32_t width, std::int32_t height, AiMask& disc) {
 }
 
 // The build's staged models (patchy_copy_ai_runtime puts them beside the test binary,
-// which runs from the build directory).
+// which runs from the build directory). A stub build has no models to point at, and
+// under Node (the wasm suite) current_path() throws because getcwd fails.
 bool point_engine_at_build_models() {
-  patchy::ai::set_model_directory(std::filesystem::current_path() / "ai-models");
 #if defined(PATCHY_HAVE_AI_SELECTION)
+  patchy::ai::set_model_directory(std::filesystem::current_path() / "ai-models");
   // A build with ONNX Runtime stages the models; their absence is a real failure.
   if (!patchy::ai::segmentation_available()) {
     std::printf("automatic selection unavailable: %s\n", patchy::ai::segmentation_unavailable_reason().c_str());

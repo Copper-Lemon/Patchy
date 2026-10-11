@@ -16,7 +16,7 @@ For bug reports and feature requests, please [open an issue](https://github.com/
 
 ## Download
 
-**Latest release: 1.08** · October 10, 2026 · [Release notes](#whats-new) · [All releases](https://github.com/SethRobinson/Patchy/releases)
+**Latest release: 1.09** · October 12, 2026 · [Release notes](#whats-new) · [All releases](https://github.com/SethRobinson/Patchy/releases)
 
 Windows releases are code signed by Seth A. Robinson; the macOS app is signed and
 notarized (Robinson Technologies Corporation); the Linux Flatpak repository is GPG
@@ -26,11 +26,11 @@ checksums.
 
 | Platform                  | Package                        | Download                                                                                                                             |
 | ------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Windows 10/11 (64-bit)    | Installer                      | [PatchyWindowsInstaller.exe](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyWindowsInstaller.exe) (65 MB)     |
-| Windows 10/11 (64-bit)    | ZIP file (no installer)    | [PatchyWindowsNoInstaller.zip](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyWindowsNoInstaller.zip) (65 MB) |
-| macOS 12+ (Apple Silicon) | DMG - drag to Applications     | [PatchyMacOS.dmg](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyMacOS.dmg) (70 MB)                           |
+| Windows 10/11 (64-bit)    | Installer                      | [PatchyWindowsInstaller.exe](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyWindowsInstaller.exe) (87 MB)     |
+| Windows 10/11 (64-bit)    | ZIP file (no installer)    | [PatchyWindowsNoInstaller.zip](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyWindowsNoInstaller.zip) (87 MB) |
+| macOS 12+ (Apple Silicon) | DMG - drag to Applications     | [PatchyMacOS.dmg](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyMacOS.dmg) (99 MB)                           |
 | Linux (x86_64)            | Flatpak, from our repository   | The [command below](#linux), or [com.rtsoft.patchy.flatpakref](https://rtsoft.com/flatpak/com.rtsoft.patchy.flatpakref)            |
-| Linux (x86_64)            | Flatpak bundle (single file)   | [PatchyLinux.flatpak](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyLinux.flatpak) (35 MB)                   |
+| Linux (x86_64)            | Flatpak bundle (single file)   | [PatchyLinux.flatpak](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyLinux.flatpak) (57 MB)                   |
 | Any modern browser        | Nothing to install             | [patchyimageeditor.com](https://www.patchyimageeditor.com) or [rtsoft.com/patchy](https://www.rtsoft.com/patchy/)                    |
 
 ### Linux
@@ -126,6 +126,15 @@ and Affinity import has format-specific limitations. See [current compatibility]
 
 ## What's New
 
+### 1.09 - October 12, 2026
+
+- Object Selection tool (desktop): drag a box or click an object and Patchy selects it, using a small model that runs on the CPU. It honors Sample All Layers, and a run that runs out of memory says so instead of failing silently. The models ship with the download; the web build does not have it yet
+- File > File Info: view, edit and strip image metadata. EXIF, XMP, IPTC, ICC profiles and text chunks are read from every format, kept on save, and Export can keep all metadata, only the copyright, or none. Scripts get `fileInfo` and `stripMetadata`
+- Windows installer: choose the install folder, and move an existing install to a new one ([issue 85](https://github.com/SethRobinson/Patchy/issues/85))
+- macOS: arrow-key nudges with the Move tool work on a physical keyboard, and the hover outline follows the nudged layer ([issue 84](https://github.com/SethRobinson/Patchy/issues/84))
+- PSD compatibility: CMYK layers composite in their own ink channels, CMYK, grayscale and 16-bit saves keep their native color space, and knockout transparency, aligned vector stroke edges, grayscale Smart Objects, duotone inks and noise gradients render closer to Photoshop
+- Saves and automatic document recovery hold up better against crashes and power loss, and PDF exports replace the old file only once the new one is complete
+
 ### 1.08 - October 10, 2026
 
 - 16-bit and 32-bit editing: PSD, PSB, PNG and TIFF files open and save at their bit depth, and Image > Mode switches a document between 8, 16 and 32 bits per channel. Painting, retouching, transforms, layer operations, adjustment layers, HDR Toning, the Filter Gallery and 8BF plug-ins (16-bit) work at depth, with Photoshop's 32-bit blend mode rules. New documents still start at 8 bits, and the browser build stops at 16 bits
@@ -136,14 +145,6 @@ and Affinity import has format-specific limitations. See [current compatibility]
 - Scripting: You can now right click a script and assign it a hotkey, it's really simple. (Hotkey dialog works too) So it's now possible to script a missing feature via script and assign it a hotkey to make it feel like a native feature.  I added a "Save as DDS" script to demonstrate this, this could be useful if you wanted specific save options but didn't want to deal with the dialog each time.
 - Web build: Safari now gets the same multithreaded build as other browsers, the latest Safari fixed its bugs so everything works fine on it now
 - We now properly save thumbnail/preview images inside of psd/psb files, this speeds up thumbnail generation in File Explorer and other places
-
-### 1.07 - October 7, 2026
-
-- Free Transform: Bicubic Smoother, Bicubic Sharper and Bicubic Automatic interpolation, the same choices as Image Size, which now honors and remembers the chosen resampling method and previews with it
-- Crop tool: the layer options are now Delete Cropped Pixels (on by default, like Photoshop) and Delete Off-Canvas Layers. Image > Crop and Crop to Selection (Advanced) use the Crop tool's box while the tool is active, and the advanced dialog starts with the layer crop checked
-- Pressing Alt mid-drag draws a marquee or crop box from the center, and on Windows Alt+Space mid-drag slides the box instead of opening the window menu ([issue 78](https://github.com/SethRobinson/Patchy/issues/78))
-- The Shape Appearance dialog opens sized to all of its rows, without a scrollbar
-- Web build: copying an image to the clipboard works again in Chromium browsers
 
 [Older releases](RELEASE-HISTORY.md)
 
@@ -205,6 +206,6 @@ Also, note that certain features are crippled or not included due to Adobe paten
 
 Created by Seth A. Robinson - [Homepage](https://www.rtsoft.com/) | [Blog](https://www.codedojo.com/) | [Twitter](https://twitter.com/rtsoft) | [Bluesky](https://bsky.app/profile/rtsoft.com) | [Mastodon](https://mastodon.gamedev.place/@rtsoft)
 
-Incredible people who donated suggestions, bug reports, and code: [mcapogna](https://github.com/mcapogna), [csbun](https://github.com/csbun), [ifloppy](https://github.com/ifloppy), [lucastucious](https://github.com/lucastucious), [c-sanchez](https://github.com/c-sanchez), [egofree71](https://github.com/egofree71), [PorkingMane](https://github.com/PorkingMane), [alexanderadam](https://github.com/alexanderadam), [danielmigueltejedor](https://github.com/danielmigueltejedor), [ProShi](https://github.com/ProShi), [Kevdoy](https://github.com/Kevdoy), [popkc3](https://github.com/popkc3), [WinterTreat](https://github.com/WinterTreat), [jackpini](https://github.com/jackpini), [fivetenth](https://github.com/fivetenth), [revae](https://github.com/revae), [RDR77](https://github.com/RDR77), and [Oppa-YA](https://github.com/Oppa-YA)
+Incredible people who donated suggestions, bug reports, and code: [mcapogna](https://github.com/mcapogna), [csbun](https://github.com/csbun), [ifloppy](https://github.com/ifloppy), [lucastucious](https://github.com/lucastucious), [c-sanchez](https://github.com/c-sanchez), [egofree71](https://github.com/egofree71), [PorkingMane](https://github.com/PorkingMane), [alexanderadam](https://github.com/alexanderadam), [danielmigueltejedor](https://github.com/danielmigueltejedor), [ProShi](https://github.com/ProShi), [Kevdoy](https://github.com/Kevdoy), [popkc3](https://github.com/popkc3), [WinterTreat](https://github.com/WinterTreat), [jackpini](https://github.com/jackpini), [fivetenth](https://github.com/fivetenth), [revae](https://github.com/revae), [RDR77](https://github.com/RDR77), [Oppa-YA](https://github.com/Oppa-YA), and [YuFu-Onship](https://github.com/YuFu-Onship)
 
 Photo "akiko_cycling_okinawa" (seen in the screenshots) by Seth A. Robinson

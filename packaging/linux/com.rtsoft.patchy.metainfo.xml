@@ -132,6 +132,17 @@
     <control>tablet</control>
   </supports>
   <releases>
+    <release version="1.09" date="2026-10-12">
+      <description>
+        <ul>
+          <li>Object Selection tool: drag a box or click an object to select it, using a model that runs on the CPU</li>
+          <li>File &gt; File Info: view, edit and strip image metadata, kept on save</li>
+          <li>Move tool arrow-key nudges work with a physical keyboard on every platform</li>
+          <li>PSD compatibility: native CMYK compositing, native color spaces kept in CMYK, grayscale and 16-bit saves, and closer knockout, stroke, duotone and noise gradient rendering</li>
+          <li>Saves and document recovery hold up better against crashes and power loss</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.08" date="2026-10-10">
       <description>
         <ul>

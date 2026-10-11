@@ -35,6 +35,7 @@ QString contributors_link_html(const QString& link_color) {
       {"revae", "https://github.com/revae"},
       {"RDR77", "https://github.com/RDR77"},
       {"Oppa-YA", "https://github.com/Oppa-YA"},
+      {"YuFu-Onship", "https://github.com/YuFu-Onship"},
   };
 
   QStringList links;

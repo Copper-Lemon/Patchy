@@ -3,6 +3,14 @@
 Older Patchy release notes are collected here. The two most recent releases
 remain in [README.md](README.md#whats-new).
 
+## 1.07 - October 7, 2026
+
+- Free Transform: Bicubic Smoother, Bicubic Sharper and Bicubic Automatic interpolation, the same choices as Image Size, which now honors and remembers the chosen resampling method and previews with it
+- Crop tool: the layer options are now Delete Cropped Pixels (on by default, like Photoshop) and Delete Off-Canvas Layers. Image > Crop and Crop to Selection (Advanced) use the Crop tool's box while the tool is active, and the advanced dialog starts with the layer crop checked
+- Pressing Alt mid-drag draws a marquee or crop box from the center, and on Windows Alt+Space mid-drag slides the box instead of opening the window menu ([issue 78](https://github.com/SethRobinson/Patchy/issues/78))
+- The Shape Appearance dialog opens sized to all of its rows, without a scrollbar
+- Web build: copying an image to the clipboard works again in Chromium browsers
+
 ## 1.06 - October 6, 2026
 
 - Crop tool: it frames the canvas when selected, adopts the current selection, and has a Style menu with a Size mode for typing an exact Width and Height. Alt resizes the box about its center and Space slides it during a handle drag ([issue 66](https://github.com/SethRobinson/Patchy/issues/66))
