@@ -3312,6 +3312,10 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event) {
     }
   }
 
+  // macOS physical arrow keys can carry KeypadModifier even outside the
+  // numeric keypad (remote input may omit it). It is not a command modifier.
+  const auto arrow_modifiers = event->modifiers() & ~Qt::KeypadModifier;
+
   if (transforming_layer_) {
     if (event->key() == Qt::Key_Escape) {
       cancel_free_transform();
@@ -3327,8 +3331,8 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event) {
     // Move-handle drag does — never the destructive layer nudge below. Shift = 10px.
     // Auto-repeat is allowed (holding an arrow scrolls the box); the move is pending
     // inside the transform, so there is no per-keystroke undo to spam.
-    if (event->modifiers() == Qt::NoModifier || event->modifiers() == Qt::ShiftModifier) {
-      const auto step = event->modifiers() == Qt::ShiftModifier ? 10 : 1;
+    if (arrow_modifiers == Qt::NoModifier || arrow_modifiers == Qt::ShiftModifier) {
+      const auto step = arrow_modifiers == Qt::ShiftModifier ? 10 : 1;
       QPoint delta;
       switch (event->key()) {
         case Qt::Key_Left:
@@ -3376,8 +3380,8 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event) {
     // Arrow keys nudge the pending crop rect (Shift = 10px); the move is
     // pending inside the session, so auto-repeat spams no undo steps.
     if (crop_session_active_ &&
-        (event->modifiers() == Qt::NoModifier || event->modifiers() == Qt::ShiftModifier)) {
-      const auto step = event->modifiers() == Qt::ShiftModifier ? 10 : 1;
+        (arrow_modifiers == Qt::NoModifier || arrow_modifiers == Qt::ShiftModifier)) {
+      const auto step = arrow_modifiers == Qt::ShiftModifier ? 10 : 1;
       QPoint delta;
       switch (event->key()) {
         case Qt::Key_Left:
@@ -3480,8 +3484,8 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event) {
       (tool_ == CanvasTool::Marquee || tool_ == CanvasTool::EllipticalMarquee ||
        tool_ == CanvasTool::Lasso || tool_ == CanvasTool::MagneticLasso ||
        tool_ == CanvasTool::MagicWand) &&
-      (event->modifiers() == Qt::NoModifier || event->modifiers() == Qt::ShiftModifier)) {
-    const auto step = event->modifiers() == Qt::ShiftModifier ? 10 : 1;
+      (arrow_modifiers == Qt::NoModifier || arrow_modifiers == Qt::ShiftModifier)) {
+    const auto step = arrow_modifiers == Qt::ShiftModifier ? 10 : 1;
     QPoint delta;
     switch (event->key()) {
       case Qt::Key_Left:
@@ -3506,8 +3510,8 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event) {
     }
   }
 
-  if (!event->isAutoRepeat() && (event->modifiers() == Qt::NoModifier || event->modifiers() == Qt::ShiftModifier)) {
-    const auto step = event->modifiers() == Qt::ShiftModifier ? 10 : 1;
+  if (!event->isAutoRepeat() && (arrow_modifiers == Qt::NoModifier || arrow_modifiers == Qt::ShiftModifier)) {
+    const auto step = arrow_modifiers == Qt::ShiftModifier ? 10 : 1;
     QPoint delta;
     switch (event->key()) {
       case Qt::Key_Left:
@@ -3542,6 +3546,11 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event) {
         document_changed_effect_bounds(dirty);
       }
       end_processing_operation();
+      // The pointer has not moved, but the layer beneath it has. Refresh the
+      // cached hover bounds and repaint both outlines, including the pasteboard.
+      if (underMouse()) {
+        update_move_hover_outline(last_mouse_position_, event->modifiers());
+      }
       event->accept();
       return;
     } else if (!delta.isNull() && active_layer_locks_position()) {

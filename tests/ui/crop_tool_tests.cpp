@@ -483,6 +483,13 @@ void ui_crop_handles_resize_move_and_nudge() {
   CHECK(rect.has_value());
   CHECK(*rect == QRect(101, 120, 160, 120));
 
+  send_key(*canvas, Qt::Key_Left, Qt::KeypadModifier);
+  send_key(*canvas, Qt::Key_Up, Qt::KeypadModifier | Qt::ShiftModifier);
+  CHECK(canvas->crop_session_rect() == QRect(100, 110, 160, 120));
+  send_key(*canvas, Qt::Key_Right, Qt::KeypadModifier);
+  send_key(*canvas, Qt::Key_Down, Qt::KeypadModifier | Qt::ShiftModifier);
+  CHECK(canvas->crop_session_rect() == rect);
+
   // Hovering off the box hints the rotate gesture with the custom bitmap
   // cursor; the handles keep their resize cursors.
   const auto outside = canvas->widget_position_for_document_point(QPoint(500, 500));

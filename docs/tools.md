@@ -54,6 +54,22 @@ Corner handles scale proportionally on their own and Shift releases the lock, ma
 - **Move-tool double-click does nothing special** (Seth's decision): it neither starts nor commits Free Transform, because a hand that slips between the clicks drags the box (Photoshop commits on a double-click inside the box). During a session `mouseDoubleClickEvent` hands the event straight to `QWidget::mouseDoubleClickEvent`, which replays it as a second press, so it behaves like two single clicks and never reaches the text-editor or shape-appearance branches. The one exception runs first: a double-click inside the box of a transforming text layer finishes the transform and opens the text editor. A motionless press inside the box must not nudge it: `update_free_transform_preview` rounds the Move drag START to whole pixels like the snapped end (else a half-pixel pan at 100% shifts the box by 1 px), and `free_transform_snap_exclude_ids` keeps the session's own layers (whose pixels stay put until commit) out of the snap targets (`ui_move_double_click_leaves_free_transform_alone`).
 - Coverage: `ui_transform_shift_frees_aspect_ratio_by_default`, `ui_transform_proportional_corner_follows_diagonal_projection`, `ui_transform_shift_aspect_preference_restores_legacy`, `ui_transform_shift_aspect_preference_defaults_to_off`, `ui_transform_shift_aspect_preference_persists_and_reaches_canvas`, `ui_transform_fields_accept_unit_tokens`, `ui_transform_rotate_drag_pivots_on_reference_point`, `ui_transform_alt_drag_scales_about_reference_point`, `ui_transform_handle_drag_on_rotated_box_uses_local_axes`, `ui_transform_drag_readout_shows_values`, `ui_move_drag_readout_reports_reference_and_delta`, `ui_transform_readout_preference_hides_hud`, plus the `unit_spin_box` group. The path session keeps its own center pivot and has no modifier test yet.
 
+## Arrow-key nudging
+
+Canvas arrow nudges ignore `Qt::KeypadModifier` before checking for plain or
+Shift input. Physical macOS arrow keys can carry that flag while remote input
+may omit it; both move by 1 px, or 10 px with Shift. Ctrl, Alt and Meta still block
+ordinary nudges. This applies to layers, pending Free Transform and Crop boxes,
+and selection outlines (`ui_layer_and_free_transform_nudges_accept_keypad_modifier`,
+`ui_crop_handles_resize_move_and_nudge`, `ui_selection_arrow_keys_nudge`).
+
+Layer nudges refresh the Move hover outline at the stationary pointer after the
+document update. The outline follows the new bounds, disappears if the layer
+moves away from the pointer, and returns when it moves back beneath it. A pointer
+outside the canvas widget does not regain a hover outline. The refresh uses the
+existing old/new outline repaint regions, including the pasteboard
+(`ui_move_nudge_refreshes_stationary_hover_outline`).
+
 ## Move tool alignment
 
 Visible alignment snapping (magenta guides while a Move drag snaps to another layer, the selection, or the canvas), the options-bar Snap checkbox, and the Layer > Arrange > Align / Distribute commands with their Move options-bar buttons live in [alignment.md](alignment.md), with the legal boundary in [legal-constraints.md](legal-constraints.md).
