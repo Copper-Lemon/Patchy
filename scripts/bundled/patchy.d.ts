@@ -524,6 +524,27 @@ interface PatchySelection {
   /** Clips to the canvas; a disjoint rectangle clears the selection. */
   selectRect(x: number, y: number, width: number, height: number): void;
   selectEllipse(x: number, y: number, width: number, height: number): void;
+  /**
+   * True when this build ships automatic selection (desktop builds with the bundled models;
+   * false on the web build). selectSubject and objectSelect throw when it is false.
+   */
+  readonly automaticSelectionAvailable: boolean;
+  /**
+   * Select > Subject: selects the main subject with the bundled model, one pass over the
+   * merged document on the CPU (several seconds). The soft matte combines by `operation`
+   * (default "replace"); `feather` (px, default 0) and `antialias` (default true) shape it.
+   */
+  selectSubject(options?: {operation?: "replace" | "add" | "subtract" | "intersect"; feather?: number;
+    antialias?: boolean}): void;
+  /**
+   * The Object Selection tool: selects the object inside `rect`, or the object under
+   * `point` (document pixels). Exactly one of rect or point. `operation` is "replace"
+   * (default), "add" or "subtract"; `sampleAllLayers` (default true) analyzes the merged
+   * document instead of the active pixel layer.
+   */
+  objectSelect(options: {rect?: PatchyRect; point?: {x: number; y: number};
+    operation?: "replace" | "add" | "subtract"; sampleAllLayers?: boolean; feather?: number;
+    antialias?: boolean}): void;
 }
 
 /**

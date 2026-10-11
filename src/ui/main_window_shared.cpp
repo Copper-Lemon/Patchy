@@ -601,6 +601,8 @@ QString tool_name(CanvasTool tool) {
       return QObject::tr("Magic Wand");
     case CanvasTool::QuickSelect:
       return QObject::tr("Quick Select");
+    case CanvasTool::ObjectSelect:
+      return QObject::tr("Object Selection");
     case CanvasTool::Brush:
       return QObject::tr("Brush");
     case CanvasTool::MixerBrush:

@@ -7,6 +7,13 @@ attachment, palettes, vector automation, brushes, Slow mode and Pause) are in
 [scripting-api-changes-through-2026-09-11.md](scripting-api-changes-through-2026-09-11.md).
 Every entry below is API 1.
 
+2026-10-11 (additive): automatic selection on `doc.selection`:
+`selectSubject({operation, feather, antialias})` (Select > Subject),
+`objectSelect({rect} | {point}, operation, sampleAllLayers, feather, antialias)` (the Object
+Selection tool; exactly one of `rect` or `point`; `operation` has no `"intersect"`), and
+`automaticSelectionAvailable`. Both calls throw when the build has no automatic selection.
+See [ai-selection.md](ai-selection.md). Pinned by `ui_script_automatic_selection_selects_objects`.
+
 2026-10-10 (behavioral correction): `patchy.io.writeTextFile(path, text)` writes through
 a sibling temporary and a replacing rename (QSaveFile), so a failed write leaves the
 previous file intact instead of a truncated one, and a write that cannot be committed

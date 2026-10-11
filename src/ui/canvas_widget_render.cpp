@@ -336,6 +336,7 @@ void CanvasWidget::end_processing_operation() {
 
 void CanvasWidget::notify_document_changed(DocumentChangeReason reason) {
   invalidate_vector_preview();
+  mark_object_select_embedding_unverified();
   if (document_changed_reason_callback_) {
     document_changed_reason_callback_(reason);
   } else if (document_changed_callback_) {
@@ -1029,6 +1030,7 @@ void CanvasWidget::paintEvent(QPaintEvent* event) {
   draw_marquee_resize_handles(painter);
   draw_patch_tool_drag_outline(painter);
   draw_quick_select_stroke_overlay(painter);
+  draw_object_select_overlay(painter);
   draw_spot_heal_stroke_overlay(painter);
   draw_pen_overlay(painter);
   draw_path_edit_overlay(painter);

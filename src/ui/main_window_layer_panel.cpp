@@ -4122,6 +4122,12 @@ void MainWindow::refresh_document_info() {
                    .arg(canvas_->quick_select_size())
                    .arg(canvas_->quick_select_sample_all_layers() ? tr("sample all layers") : tr("active layer"))
                    .arg(canvas_->quick_select_enhance_edge() ? tr("enhance edge") : tr("raw edge"));
+    } else if (current_tool_ == CanvasTool::ObjectSelect) {
+      lines << (canvas_->object_select_sample_all_layers() ? tr("Object Selection: sample all layers")
+                                                           : tr("Object Selection: active layer"));
+      lines << tr("Selection: feather %1 px, %2")
+                   .arg(current_selection_feather_radius_)
+                   .arg(current_selection_antialias_ ? tr("anti-aliased") : tr("hard edge"));
     } else if (current_tool_ == CanvasTool::MagneticLasso) {
       lines << tr("Width: %1 px | Contrast: %2% | Frequency: %3")
                    .arg(canvas_->magnetic_lasso_width())

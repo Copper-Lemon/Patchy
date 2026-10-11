@@ -82,7 +82,7 @@ for %%E in (patchy.exe patchy-mcp.exe patchy-8bf-host32.exe patchy-8bf-host64.ex
 )
 
 echo Configuring release build...
-"%CMAKE_EXE%" --preset release -DPATCHY_BUILD_APP=ON -DCMAKE_PREFIX_PATH="%QT_PREFIX%"
+"%CMAKE_EXE%" --preset release -DPATCHY_BUILD_APP=ON -DPATCHY_REQUIRE_AI_SELECTION=ON -DCMAKE_PREFIX_PATH="%QT_PREFIX%"
 if not "!ERRORLEVEL!"=="0" goto fail
 
 echo Building release preset...
@@ -134,6 +134,20 @@ mkdir "%STAGE_DIR%\plugins" || goto fail
 copy /Y "%REPO%\packaging\plugins\README.txt" "%STAGE_DIR%\plugins\README.txt" >nul || goto fail
 xcopy /E /I /Y "%BUILD_DIR%\ai" "%STAGE_DIR%\ai" >nul || goto fail
 xcopy /E /I /Y "%BUILD_DIR%\scripts" "%STAGE_DIR%\scripts" >nul || goto fail
+rem Automatic selection (docs/ai-selection.md): ONNX Runtime beside patchy.exe and the models
+rem with their license texts in ai-models\. The configure above requires them.
+for %%F in (onnxruntime.dll onnxruntime_providers_shared.dll) do (
+  if not exist "%BUILD_DIR%\%%F" (
+    echo ONNX Runtime was not staged at "%BUILD_DIR%\%%F"; run scripts\setup-ai-deps.ps1.
+    goto fail
+  )
+  copy /Y "%BUILD_DIR%\%%F" "%STAGE_DIR%\" >nul || goto fail
+)
+if not exist "%BUILD_DIR%\ai-models\birefnet_lite_general_1024.onnx" (
+  echo The automatic selection models were not staged in "%BUILD_DIR%\ai-models"; run scripts\setup-ai-deps.ps1.
+  goto fail
+)
+xcopy /E /I /Y "%BUILD_DIR%\ai-models" "%STAGE_DIR%\ai-models" >nul || goto fail
 "%WINDEPLOYQT%" --release ^
   --dir "%STAGE_DIR%" ^
   --no-compiler-runtime ^

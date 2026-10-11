@@ -27,6 +27,19 @@ Run the standard local test script:
 powershell -ExecutionPolicy Bypass -File scripts/run-tests.ps1
 ```
 
+### Automatic selection dependencies
+
+Select > Subject and the Object Selection tool need ONNX Runtime and the pinned models
+([ai-selection.md](ai-selection.md)). Provision them once into the main checkout's `.deps`
+(worktrees find it there):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\setup-ai-deps.ps1
+```
+
+On macOS and Linux run `bash scripts/setup-ai-deps.sh`. Without them the build still
+succeeds and the feature is left out of the app.
+
 ### macOS and Linux
 
 Install Qt 6.8.3 into `.deps/Qt` (for example `pip install aqtinstall && aqt install-qt

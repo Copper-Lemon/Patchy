@@ -172,6 +172,7 @@ class ScriptSelectionObject : public QObject {
   Q_OBJECT
   Q_PROPERTY(bool exists READ exists)
   Q_PROPERTY(QJSValue bounds READ bounds)
+  Q_PROPERTY(bool automaticSelectionAvailable READ automatic_selection_available)
 
 public:
   ScriptSelectionObject(ScriptEngineHost& host, std::int64_t session_id);
@@ -184,6 +185,10 @@ public:
   Q_INVOKABLE void selectEllipse(int x, int y, int width, int height);
   Q_INVOKABLE void fromPath(const QJSValue& path, const QJSValue& options = QJSValue());
   Q_INVOKABLE QJSValue toPath(const QJSValue& options = QJSValue()) const;
+  // Automatic selection (script_ai_selection.cpp, docs/ai-selection.md).
+  [[nodiscard]] bool automatic_selection_available() const;
+  Q_INVOKABLE void selectSubject(const QJSValue& options = QJSValue());
+  Q_INVOKABLE void objectSelect(const QJSValue& options);
 
 private:
   ScriptEngineHost& host_;

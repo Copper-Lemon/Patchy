@@ -9169,6 +9169,10 @@ RGB: %2, %3, %4</translation>
         <source>Patchy edits this file in RGB. Unchanged supported layers can be saved in the original color mode. Content edits or unsupported layers require RGB saving, which can change gradients and adjustments.</source>
         <translation>Patchy는 이 파일을 RGB로 편집합니다. 지원되는 레이어가 변경되지 않았다면 원래 색상 모드로 저장할 수 있습니다. 내용을 편집하거나 지원되지 않는 레이어가 있으면 RGB로 저장해야 하므로 그레이디언트와 조정이 달라질 수 있습니다.</translation>
     </message>
+    <message>
+        <source>Object Selection</source>
+        <translation>개체 선택</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10724,6 +10728,30 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Crop box reset to the canvas</source>
         <translation>자르기 상자를 캔버스로 재설정했습니다</translation>
+    </message>
+    <message>
+        <source>Object Selection is not available in this build</source>
+        <translation>이 빌드에서는 개체 선택을 사용할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>Select a pixel layer before using Object Selection</source>
+        <translation>개체 선택을 사용하기 전에 픽셀 레이어를 선택하세요</translation>
+    </message>
+    <message>
+        <source>Analyzing image...</source>
+        <translation>이미지 분석 중...</translation>
+    </message>
+    <message>
+        <source>Object Selection failed: %1</source>
+        <translation>개체 선택 실패: %1</translation>
+    </message>
+    <message>
+        <source>Object Selection found no object there</source>
+        <translation>개체 선택이 그 위치에서 개체를 찾지 못했습니다</translation>
+    </message>
+    <message>
+        <source>Object Selection</source>
+        <translation>개체 선택</translation>
     </message>
 </context>
 <context>
@@ -19039,6 +19067,66 @@ Y: %2
             <numerusform>복구된 문서 %n개를 이 세션의 복구 폴더로 이동할 수 없습니다. 복사본은 %1에 남아 있습니다</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Select Subject</source>
+        <translation>피사체 선택</translation>
+    </message>
+    <message>
+        <source>S&amp;ubject</source>
+        <translation>피사체(&amp;U)</translation>
+    </message>
+    <message>
+        <source>Select the main subject of the image automatically</source>
+        <translation>이미지의 주 피사체를 자동으로 선택합니다</translation>
+    </message>
+    <message>
+        <source>Object Selection</source>
+        <translation>개체 선택</translation>
+    </message>
+    <message>
+        <source>Open a document before using Select Subject</source>
+        <translation>피사체 선택을 사용하기 전에 문서를 여세요</translation>
+    </message>
+    <message>
+        <source>Select Subject is not available in this build</source>
+        <translation>이 빌드에서는 피사체 선택을 사용할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>Select Subject is unavailable in Quick Mask mode</source>
+        <translation>빠른 마스크 모드에서는 피사체 선택을 사용할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>Select Subject could not read the document</source>
+        <translation>피사체 선택이 문서를 읽지 못했습니다</translation>
+    </message>
+    <message>
+        <source>Selecting the subject...</source>
+        <translation>피사체 선택 중...</translation>
+    </message>
+    <message>
+        <source>Select Subject cancelled</source>
+        <translation>피사체 선택이 취소되었습니다</translation>
+    </message>
+    <message>
+        <source>Select Subject failed: %1</source>
+        <translation>피사체 선택 실패: %1</translation>
+    </message>
+    <message>
+        <source>Select Subject found no subject</source>
+        <translation>피사체 선택이 피사체를 찾지 못했습니다</translation>
+    </message>
+    <message>
+        <source>Selected the subject</source>
+        <translation>피사체를 선택했습니다</translation>
+    </message>
+    <message>
+        <source>Object Selection: sample all layers</source>
+        <translation>개체 선택: 모든 레이어 샘플링</translation>
+    </message>
+    <message>
+        <source>Object Selection: active layer</source>
+        <translation>개체 선택: 활성 레이어</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20548,6 +20636,38 @@ Y: %2
     <message>
         <source>Could not write %1: %2</source>
         <translation>%1에 쓸 수 없습니다: %2</translation>
+    </message>
+    <message>
+        <source>Automatic selection is not available in this build (%1).</source>
+        <translation>이 빌드에서는 자동 선택을 사용할 수 없습니다(%1).</translation>
+    </message>
+    <message>
+        <source>Exit Quick Mask before using automatic selection.</source>
+        <translation>자동 선택을 사용하기 전에 빠른 마스크를 종료하세요.</translation>
+    </message>
+    <message>
+        <source>objectSelect with sampleAllLayers false needs an active pixel layer.</source>
+        <translation>sampleAllLayers가 false인 objectSelect에는 활성 픽셀 레이어가 필요합니다.</translation>
+    </message>
+    <message>
+        <source>Automatic selection could not read the document.</source>
+        <translation>자동 선택이 문서를 읽지 못했습니다.</translation>
+    </message>
+    <message>
+        <source>Automatic selection failed: %1</source>
+        <translation>자동 선택 실패: %1</translation>
+    </message>
+    <message>
+        <source>The script was interrupted.</source>
+        <translation>스크립트가 중단되었습니다.</translation>
+    </message>
+    <message>
+        <source>Invalid selectSubject option: %1.</source>
+        <translation>잘못된 selectSubject 옵션: %1.</translation>
+    </message>
+    <message>
+        <source>Invalid objectSelect option: %1.</source>
+        <translation>잘못된 objectSelect 옵션: %1.</translation>
     </message>
 </context>
 <context>

@@ -1,7 +1,7 @@
 // @name Package self-test
 // @description Run against an UNPACKED release package to prove its support files work:
-// @description image codecs, bundled fonts, scripts, translations, the AI kit and, on
-// @description Windows, both legacy plug-in hosts. Throws on the first failure.
+// @description image codecs, bundled fonts, scripts, translations, the AI kit, automatic
+// @description selection and, on Windows, both legacy plug-in hosts. Throws on the first failure.
 // @cli --headless --script-arg work=<scratch folder> --script-arg version=<expected>
 //
 // Used by scripts/release/verify-windows-package.ps1. Arguments:
@@ -121,6 +121,21 @@ if (pluginsFolder && patchy.args.plugins) {
   check(Object.keys(seen).length >= 2,
     "expected a 32-bit and a 64-bit plug-in to run, ran: " + JSON.stringify(seen));
 }
+
+// --- automatic selection: ONNX Runtime and every bundled model load and run ------------
+var scene = app.newDocument(96, 72);
+var subject = scene.addLayer("subject");
+subject.fill("#3C8F45");
+subject.fillRect(30, 20, 36, 32, "#D23A2C");
+check(scene.selection.automaticSelectionAvailable,
+  "automatic selection is unavailable (ONNX Runtime or the ai-models folder is missing)");
+scene.selection.objectSelect({point: {x: 48, y: 36}});
+check(scene.selection.exists, "Object Selection selected nothing");
+scene.selection.deselect();
+scene.selection.selectSubject();
+check(scene.selection.exists, "Select Subject selected nothing");
+scene.close();
+console.log("automatic selection ok");
 
 source.close();
 console.log("package self-test passed");

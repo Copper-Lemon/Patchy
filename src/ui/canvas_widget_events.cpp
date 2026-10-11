@@ -175,7 +175,8 @@ bool CanvasWidget::eventFilter(QObject* watched, QEvent* event) {
   // document tab reacts); setting the cursor while the pointer is elsewhere is
   // harmless since it only shows once the pointer is back over the canvas.
   if ((event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease) && isVisible() &&
-      !selecting_ && !lassoing_ && !magnetic_lassoing_ && !quick_selecting_ && !moving_selection_ &&
+      !selecting_ && !lassoing_ && !magnetic_lassoing_ && !quick_selecting_ && !object_selecting_ &&
+      !moving_selection_ &&
       !spacebar_panning_ && !panning_ && !dragging_transform_) {
     auto* key_event = static_cast<QKeyEvent*>(event);
     if (!key_event->isAutoRepeat() &&
@@ -699,6 +700,7 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
       case CanvasTool::MagneticLasso:
       case CanvasTool::MagicWand:
       case CanvasTool::QuickSelect:
+      case CanvasTool::ObjectSelect:
       case CanvasTool::Clone:
       case CanvasTool::PatternStamp:
       case CanvasTool::Healing:
@@ -781,6 +783,7 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
                                          tool_ == CanvasTool::Lasso ||
                                          tool_ == CanvasTool::MagneticLasso ||
                                          tool_ == CanvasTool::QuickSelect ||
+                                         tool_ == CanvasTool::ObjectSelect ||
                                          tool_ == CanvasTool::PatchTool ||
                                          tool_ == CanvasTool::Crop ||
                                          tool_ == CanvasTool::Zoom ||
@@ -1225,6 +1228,15 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
     begin_quick_select_stroke(document_point);
     emit_info_for_widget_position(event->pos());
     update();
+    return;
+  }
+
+  if (tool_ == CanvasTool::ObjectSelect) {
+    if (event->button() == Qt::LeftButton) {
+      begin_object_select(event->pos(), document_point, event->modifiers());
+      emit_info_for_widget_position(event->pos());
+      update();
+    }
     return;
   }
 
@@ -1961,6 +1973,10 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
     clear_move_hover_outline();
     extend_quick_select_stroke(document_point);
     emit_info_for_widget_position(event->pos());
+  } else if (object_selecting_) {
+    clear_move_hover_outline();
+    extend_object_select(document_point);
+    emit_info_for_widget_position(event->pos());
   } else if (spot_healing_stroke_active_) {
     clear_move_hover_outline();
     const auto constrained_point = axis_constrained_stroke_point(document_point, event->modifiers());
@@ -2691,6 +2707,14 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
     return;
   }
 
+  if (object_selecting_) {
+    extend_object_select(document_position(event->pos()));
+    finish_object_select(event->pos());
+    emit_info_for_widget_position(event->pos());
+    update();
+    return;
+  }
+
   if (spot_healing_stroke_active_) {
     const auto document_point = document_position(event->pos());
     const auto constrained_point = axis_constrained_stroke_point(document_point, event->modifiers());
@@ -2947,7 +2971,7 @@ void CanvasWidget::mouseDoubleClickEvent(QMouseEvent* event) {
       (tool_ == CanvasTool::Move || tool_ == CanvasTool::Marquee ||
        tool_ == CanvasTool::EllipticalMarquee || tool_ == CanvasTool::Lasso ||
        tool_ == CanvasTool::MagneticLasso || tool_ == CanvasTool::MagicWand ||
-       tool_ == CanvasTool::QuickSelect || tool_ == CanvasTool::Clone ||
+       tool_ == CanvasTool::QuickSelect || tool_ == CanvasTool::ObjectSelect || tool_ == CanvasTool::Clone ||
        tool_ == CanvasTool::Healing ||
        tool_ == CanvasTool::Smudge || is_local_adjustment_tool(tool_) || tool_ == CanvasTool::Text)) {
     report_status_error(tr("This tool is unavailable in Quick Mask mode"));
@@ -2958,7 +2982,7 @@ void CanvasWidget::mouseDoubleClickEvent(QMouseEvent* event) {
       (tool_ == CanvasTool::Move || tool_ == CanvasTool::Marquee ||
        tool_ == CanvasTool::EllipticalMarquee || tool_ == CanvasTool::Lasso ||
        tool_ == CanvasTool::MagneticLasso || tool_ == CanvasTool::MagicWand ||
-       tool_ == CanvasTool::QuickSelect || tool_ == CanvasTool::Clone ||
+       tool_ == CanvasTool::QuickSelect || tool_ == CanvasTool::ObjectSelect || tool_ == CanvasTool::Clone ||
        tool_ == CanvasTool::Healing ||
        tool_ == CanvasTool::Smudge || is_local_adjustment_tool(tool_) || tool_ == CanvasTool::Text)) {
     report_status_error(tr("This tool is unavailable while editing a Smart Filter mask"));
@@ -3507,8 +3531,8 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event) {
     const bool gesture_active = move_layer_selection_gesture_.has_value() || painting_ || moving_layer_ ||
                                 move_drag_pending_ || drawing_shape_ ||
                                 dragging_transform_ || selecting_ || lassoing_ || magnetic_lassoing_ ||
-                                moving_selection_ || quick_selecting_ || spot_healing_stroke_active_ ||
-                                patch_tool_dragging_;
+                                moving_selection_ || quick_selecting_ || object_selecting_ ||
+                                spot_healing_stroke_active_ || patch_tool_dragging_;
     const auto movable_ids = gesture_active ? std::vector<LayerId>{} : movable_layer_ids();
     if (!delta.isNull() && !movable_ids.empty()) {
       begin_processing_operation();
@@ -3695,6 +3719,7 @@ void CanvasWidget::cancel_pointer_gestures() {
     restore_selection_before_edit();
   }
   selecting_ = lassoing_ = quick_selecting_ = moving_selection_ = false;
+  cancel_object_select();
   marquee_resize_handle_ = TransformHandle::None;
   quick_select_seed_mask_ = QImage();
   quick_select_seed_bounds_ = {};

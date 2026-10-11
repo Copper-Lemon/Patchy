@@ -88,64 +88,90 @@ PixelBuffer path_selection_coverage(const VectorPath& path, int width, int heigh
   return full;
 }
 
-PixelBuffer make_path_selection_coverage(const VectorPath& path, int width, int height,
-    double feather, bool antialias, int operation_index, const PixelBuffer* existing) {
-  auto coverage = path_selection_coverage(path, width, height);
-  if (feather > 0.0) {
-    // Triple box blur approximating a gaussian (the vector-mask feather rule:
-    // box radius is about half the feather value).
-    const auto radius = std::max(1, static_cast<int>(std::lround(feather * 0.5)));
-    PixelBuffer scratch(width, height, PixelFormat::gray8());
-    for (int pass = 0; pass < 3; ++pass) {
-      // Horizontal then vertical box.
-      for (int y = 0; y < height; ++y) {
-        int sum = 0;
-        int count = 0;
-        for (int x = -radius; x <= radius; ++x) {
-          if (x >= 0 && x < width) {
-            sum += *coverage.pixel(x, y);
-            ++count;
-          }
-        }
-        for (int x = 0; x < width; ++x) {
-          *scratch.pixel(x, y) = static_cast<std::uint8_t>(sum / std::max(1, count));
-          const auto add_x = x + radius + 1;
-          const auto remove_x = x - radius;
-          if (add_x < width) {
-            sum += *coverage.pixel(add_x, y);
-            ++count;
-          }
-          if (remove_x >= 0) {
-            sum -= *coverage.pixel(remove_x, y);
-            --count;
-          }
+void feather_selection_coverage(PixelBuffer& coverage, double feather) {
+  if (feather <= 0.0) {
+    return;
+  }
+  const auto width = coverage.width();
+  const auto height = coverage.height();
+  // Triple box blur approximating a gaussian (the vector-mask feather rule:
+  // box radius is about half the feather value).
+  const auto radius = std::max(1, static_cast<int>(std::lround(feather * 0.5)));
+  PixelBuffer scratch(width, height, PixelFormat::gray8());
+  for (int pass = 0; pass < 3; ++pass) {
+    // Horizontal then vertical box.
+    for (int y = 0; y < height; ++y) {
+      int sum = 0;
+      int count = 0;
+      for (int x = -radius; x <= radius; ++x) {
+        if (x >= 0 && x < width) {
+          sum += *coverage.pixel(x, y);
+          ++count;
         }
       }
       for (int x = 0; x < width; ++x) {
-        int sum = 0;
-        int count = 0;
-        for (int y = -radius; y <= radius; ++y) {
-          if (y >= 0 && y < height) {
-            sum += *scratch.pixel(x, y);
-            ++count;
-          }
+        *scratch.pixel(x, y) = static_cast<std::uint8_t>(sum / std::max(1, count));
+        const auto add_x = x + radius + 1;
+        const auto remove_x = x - radius;
+        if (add_x < width) {
+          sum += *coverage.pixel(add_x, y);
+          ++count;
         }
-        for (int y = 0; y < height; ++y) {
-          *coverage.pixel(x, y) = static_cast<std::uint8_t>(sum / std::max(1, count));
-          const auto add_y = y + radius + 1;
-          const auto remove_y = y - radius;
-          if (add_y < height) {
-            sum += *scratch.pixel(x, add_y);
-            ++count;
-          }
-          if (remove_y >= 0) {
-            sum -= *scratch.pixel(x, remove_y);
-            --count;
-          }
+        if (remove_x >= 0) {
+          sum -= *coverage.pixel(remove_x, y);
+          --count;
+        }
+      }
+    }
+    for (int x = 0; x < width; ++x) {
+      int sum = 0;
+      int count = 0;
+      for (int y = -radius; y <= radius; ++y) {
+        if (y >= 0 && y < height) {
+          sum += *scratch.pixel(x, y);
+          ++count;
+        }
+      }
+      for (int y = 0; y < height; ++y) {
+        *coverage.pixel(x, y) = static_cast<std::uint8_t>(sum / std::max(1, count));
+        const auto add_y = y + radius + 1;
+        const auto remove_y = y - radius;
+        if (add_y < height) {
+          sum += *scratch.pixel(x, add_y);
+          ++count;
+        }
+        if (remove_y >= 0) {
+          sum -= *scratch.pixel(x, remove_y);
+          --count;
         }
       }
     }
   }
+}
+
+void combine_selection_coverage(PixelBuffer& coverage, int operation_index, const PixelBuffer& existing) {
+  if (operation_index == 0) {
+    return;
+  }
+  for (int y = 0; y < coverage.height(); ++y) {
+    for (int x = 0; x < coverage.width(); ++x) {
+      auto* value = coverage.pixel(x, y);
+      const auto current = *existing.pixel(x, y);
+      if (operation_index == 1) {
+        *value = std::max(*value, current);
+      } else if (operation_index == 2) {
+        *value = static_cast<std::uint8_t>((current * (255 - *value)) / 255);
+      } else {
+        *value = static_cast<std::uint8_t>((current * *value) / 255);
+      }
+    }
+  }
+}
+
+PixelBuffer make_path_selection_coverage(const VectorPath& path, int width, int height,
+    double feather, bool antialias, int operation_index, const PixelBuffer* existing) {
+  auto coverage = path_selection_coverage(path, width, height);
+  feather_selection_coverage(coverage, feather);
   if (!antialias) {
     for (int y = 0; y < coverage.height(); ++y) {
       for (int x = 0; x < coverage.width(); ++x) {
@@ -154,20 +180,8 @@ PixelBuffer make_path_selection_coverage(const VectorPath& path, int width, int 
       }
     }
   }
-  if (operation_index != 0 && existing != nullptr) {
-    for (int y = 0; y < coverage.height(); ++y) {
-      for (int x = 0; x < coverage.width(); ++x) {
-        auto* value = coverage.pixel(x, y);
-        const auto current = *existing->pixel(x, y);
-        if (operation_index == 1) {
-          *value = std::max(*value, current);
-        } else if (operation_index == 2) {
-          *value = static_cast<std::uint8_t>((current * (255 - *value)) / 255);
-        } else {
-          *value = static_cast<std::uint8_t>((current * *value) / 255);
-        }
-      }
-    }
+  if (existing != nullptr) {
+    combine_selection_coverage(coverage, operation_index, *existing);
   }
   return coverage;
 }

@@ -554,6 +554,7 @@ void MainWindow::activate_document_canvas(CanvasWidget* canvas, const std::funct
     canvas_->set_quick_select_size(current_quick_select_size_);
     canvas_->set_quick_select_sample_all_layers(current_quick_select_sample_all_layers_);
     canvas_->set_quick_select_enhance_edge(current_quick_select_enhance_edge_);
+    canvas_->set_object_select_sample_all_layers(current_object_select_sample_all_layers_);
     canvas_->set_transform_interpolation(current_transform_interpolation_);
     canvas_->set_vector_tool_mode(current_vector_tool_mode_);
     canvas_->set_pen_auto_add_delete(current_pen_auto_add_delete_);

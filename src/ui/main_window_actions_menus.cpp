@@ -9,6 +9,8 @@
 #include "ui/main_window_shared.hpp"
 #include "ui/main_window_actions_internal.hpp"
 
+#include "ai/segmentation_engine.hpp"
+
 #include "core/blend_math.hpp"
 #include "core/layer_metadata.hpp"
 #include "core/smart_object.hpp"
@@ -644,6 +646,17 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   register_hotkey(deselect_layers_action, "select.deselect_layers");
   connect(deselect_layers_action, &QAction::triggered, this, [this] { deselect_all_layers(); });
   register_document_action(deselect_layers_action);
+  // Select > Subject: automatic selection of the main subject (main_window_ai_selection.cpp).
+  // Builds without the models (wasm, a dev tree without scripts/setup-ai-deps) leave it out.
+  select_subject_action_ = new QAction(tr("S&ubject"), this);
+  select_subject_action_->setObjectName(QStringLiteral("selectSubjectAction"));
+  bind_action_text(select_subject_action_, QT_TR_NOOP("S&ubject"));
+  select_subject_action_->setIcon(simple_icon(QStringLiteral("SUB")));
+  register_hotkey(select_subject_action_, "select.subject");
+  connect(select_subject_action_, &QAction::triggered, this,
+          [this] { select_subject(CanvasWidget::SelectionMode::Replace); });
+  configure_automatic_selection_models();
+  select_subject_action_->setVisible(patchy::ai::segmentation_available());
   quick_mask_action_ = new QAction(tr("Edit in &Quick Mask Mode"), this);
   quick_mask_action_->setObjectName(QStringLiteral("selectQuickMaskAction"));
   quick_mask_action_->setCheckable(true);
@@ -753,14 +766,14 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
                        quick_mask_action_,
                        grow_selection_action, similar_selection_action, expand_selection_action,
                        contract_selection_action, border_selection_action, layer_transparency_action,
-                       stroke_selection_action, remove_object_action}) {
+                       stroke_selection_action, remove_object_action, select_subject_action_}) {
     register_document_action(action);
   }
   for (auto* action : {select_all_action, clear_selection_action, reselect_action,
                        grow_selection_action, similar_selection_action,
                        expand_selection_action, contract_selection_action,
                        border_selection_action, layer_transparency_action,
-                       stroke_selection_action, remove_object_action}) {
+                       stroke_selection_action, remove_object_action, select_subject_action_}) {
     action->setProperty("patchy.quickMaskBlocked", true);
   }
   select_menu->addAction(select_all_action);
@@ -768,6 +781,8 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   select_menu->addAction(reselect_action);
   select_menu->addAction(inverse_selection_action);
   select_menu->addAction(deselect_layers_action);
+  select_menu->addSeparator();
+  select_menu->addAction(select_subject_action_);
   select_menu->addSeparator();
   select_menu->addAction(quick_mask_action_);
   select_menu->addSeparator();

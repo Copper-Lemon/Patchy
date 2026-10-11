@@ -1743,13 +1743,14 @@ struct SelectionEdgeSettingKeys {
   const char* anti_alias;
 };
 
-constexpr std::array<SelectionEdgeSettingKeys, 6> kSelectionEdgeSettingKeys{{
+constexpr std::array<SelectionEdgeSettingKeys, 7> kSelectionEdgeSettingKeys{{
     {CanvasTool::Marquee, "tools/marqueeFeather", "tools/marqueeAntiAlias"},
     {CanvasTool::EllipticalMarquee, "tools/ellipticalMarqueeFeather", "tools/ellipticalMarqueeAntiAlias"},
     {CanvasTool::Lasso, "tools/lassoFeather", "tools/lassoAntiAlias"},
     {CanvasTool::MagneticLasso, "tools/magneticLassoFeather", "tools/magneticLassoAntiAlias"},
     {CanvasTool::MagicWand, "tools/wandFeather", "tools/wandAntiAlias"},
     {CanvasTool::QuickSelect, "tools/quickSelectFeather", nullptr},
+    {CanvasTool::ObjectSelect, "tools/objectSelectFeather", "tools/objectSelectAntiAlias"},
 }};
 
 }  // namespace
@@ -1843,6 +1844,9 @@ void MainWindow::load_tool_settings() {
           .toBool());
   canvas_->set_quick_select_enhance_edge(
       settings.value(QStringLiteral("tools/quickSelectEnhanceEdge"), canvas_->quick_select_enhance_edge()).toBool());
+  canvas_->set_object_select_sample_all_layers(
+      settings.value(QStringLiteral("tools/objectSelectSampleAllLayers"), canvas_->object_select_sample_all_layers())
+          .toBool());
   canvas_->set_magnetic_lasso_width(
       settings.value(QStringLiteral("tools/magneticLassoWidth"), canvas_->magnetic_lasso_width()).toInt());
   canvas_->set_magnetic_lasso_edge_contrast(
@@ -2190,6 +2194,7 @@ void MainWindow::save_tool_settings() const {
   settings.setValue(QStringLiteral("tools/quickSelectSize"), canvas_->quick_select_size());
   settings.setValue(QStringLiteral("tools/quickSelectSampleAllLayers"), canvas_->quick_select_sample_all_layers());
   settings.setValue(QStringLiteral("tools/quickSelectEnhanceEdge"), canvas_->quick_select_enhance_edge());
+  settings.setValue(QStringLiteral("tools/objectSelectSampleAllLayers"), canvas_->object_select_sample_all_layers());
   settings.setValue(QStringLiteral("tools/magneticLassoWidth"), canvas_->magnetic_lasso_width());
   settings.setValue(QStringLiteral("tools/magneticLassoEdgeContrast"), canvas_->magnetic_lasso_edge_contrast());
   settings.setValue(QStringLiteral("tools/magneticLassoFrequency"), canvas_->magnetic_lasso_frequency());
@@ -2310,6 +2315,7 @@ void MainWindow::stash_active_brush_settings() {
   current_quick_select_size_ = canvas_->quick_select_size();
   current_quick_select_sample_all_layers_ = canvas_->quick_select_sample_all_layers();
   current_quick_select_enhance_edge_ = canvas_->quick_select_enhance_edge();
+  current_object_select_sample_all_layers_ = canvas_->object_select_sample_all_layers();
   current_transform_interpolation_ = canvas_->transform_interpolation();
   current_polygon_sides_ = canvas_->polygon_sides();
   current_polygon_star_inset_ = canvas_->polygon_star_inset();
@@ -2840,6 +2846,10 @@ void MainWindow::refresh_options_bar() {
     QSignalBlocker blocker(quick_select_sample_all_layers_check_);
     quick_select_sample_all_layers_check_->setChecked(canvas_->quick_select_sample_all_layers());
   }
+  if (object_select_sample_all_layers_check_ != nullptr && canvas_ != nullptr) {
+    QSignalBlocker blocker(object_select_sample_all_layers_check_);
+    object_select_sample_all_layers_check_->setChecked(canvas_->object_select_sample_all_layers());
+  }
   if (quick_select_enhance_edge_check_ != nullptr && canvas_ != nullptr) {
     QSignalBlocker blocker(quick_select_enhance_edge_check_);
     quick_select_enhance_edge_check_->setChecked(canvas_->quick_select_enhance_edge());
@@ -2916,7 +2926,7 @@ void MainWindow::apply_selection_modes_to_canvas(CanvasWidget* canvas) {
   }
   const std::array<CanvasTool, CanvasWidget::kSelectionToolCount> tools{
       CanvasTool::Marquee, CanvasTool::EllipticalMarquee, CanvasTool::Lasso, CanvasTool::MagneticLasso,
-      CanvasTool::MagicWand, CanvasTool::QuickSelect, CanvasTool::PatchTool};
+      CanvasTool::MagicWand, CanvasTool::QuickSelect, CanvasTool::PatchTool, CanvasTool::ObjectSelect};
   for (const auto tool : tools) {
     if (const auto index = CanvasWidget::selection_tool_index(tool); index >= 0) {
       canvas->set_selection_mode_for_tool(tool, selection_modes_[static_cast<std::size_t>(index)]);

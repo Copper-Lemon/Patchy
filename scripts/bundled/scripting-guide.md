@@ -512,6 +512,9 @@ Colors everywhere are CSS-style strings: `"#rrggbb"`, `"#aarrggbb"`, or named co
 | `doc.selection.exists` / `doc.selection.bounds` | Whether something is selected, and its box. |
 | `selectAll()` / `deselect()` | The classics. |
 | `selectRect(x, y, w, h)` / `selectEllipse(x, y, w, h)` | Shape selections (sides up to 30000). |
+| `selectSubject(options?)` | Select > Subject: the main subject from the bundled model, one pass over the merged document (several seconds on the CPU). Options: `operation` (`"replace"`, `"add"`, `"subtract"`, `"intersect"`), `feather`, `antialias`. |
+| `objectSelect(options)` | The Object Selection tool: `{rect: {x, y, width, height}}` selects the object in the box, `{point: {x, y}}` the object under the point (exactly one of the two). Also `operation` (`"replace"`, `"add"`, `"subtract"`), `sampleAllLayers` (default true), `feather`, `antialias`. |
+| `automaticSelectionAvailable` | False where the build has no automatic selection (the web build); the two calls above then throw. |
 
 ### Dialogs and UI (patchy.ui)
 

@@ -10,6 +10,8 @@
 #include "ui/main_window_shared.hpp"
 #include "ui/main_window_actions_internal.hpp"
 
+#include "ai/segmentation_engine.hpp"
+
 #include "core/blend_math.hpp"
 #include "core/layer_metadata.hpp"
 #include "core/smart_object.hpp"
@@ -1046,17 +1048,17 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   auto* selection_new = add_option_action(
       simple_icon(QStringLiteral("N")), QT_TR_NOOP("New Selection"),
       {CanvasTool::Marquee, CanvasTool::EllipticalMarquee, CanvasTool::Lasso, CanvasTool::MagneticLasso,
-       CanvasTool::MagicWand, CanvasTool::QuickSelect, CanvasTool::PatchTool});
+       CanvasTool::MagicWand, CanvasTool::QuickSelect, CanvasTool::PatchTool, CanvasTool::ObjectSelect});
   selection_new->setObjectName(QStringLiteral("selectionNewModeAction"));
   auto* selection_add = add_option_action(
       simple_icon(QStringLiteral("+")), QT_TR_NOOP("Add to Selection"),
       {CanvasTool::Marquee, CanvasTool::EllipticalMarquee, CanvasTool::Lasso, CanvasTool::MagneticLasso,
-       CanvasTool::MagicWand, CanvasTool::QuickSelect, CanvasTool::PatchTool});
+       CanvasTool::MagicWand, CanvasTool::QuickSelect, CanvasTool::PatchTool, CanvasTool::ObjectSelect});
   selection_add->setObjectName(QStringLiteral("selectionAddModeAction"));
   auto* selection_subtract = add_option_action(
       simple_icon(QStringLiteral("-")), QT_TR_NOOP("Subtract from Selection"),
       {CanvasTool::Marquee, CanvasTool::EllipticalMarquee, CanvasTool::Lasso, CanvasTool::MagneticLasso,
-       CanvasTool::MagicWand, CanvasTool::QuickSelect, CanvasTool::PatchTool});
+       CanvasTool::MagicWand, CanvasTool::QuickSelect, CanvasTool::PatchTool, CanvasTool::ObjectSelect});
   selection_subtract->setObjectName(QStringLiteral("selectionSubtractModeAction"));
   auto* selection_intersect = add_option_action(simple_icon(QStringLiteral("Ix")), QT_TR_NOOP("Intersect Selection"),
                                                 {CanvasTool::Marquee, CanvasTool::EllipticalMarquee, CanvasTool::Lasso,
@@ -1098,7 +1100,8 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   connect(selection_intersect, &QAction::triggered, this,
           [set_selection_mode] { set_selection_mode(CanvasWidget::SelectionMode::Intersect); });
   add_option_separator({CanvasTool::Marquee, CanvasTool::EllipticalMarquee, CanvasTool::Lasso,
-                        CanvasTool::MagneticLasso, CanvasTool::MagicWand, CanvasTool::QuickSelect});
+                        CanvasTool::MagneticLasso, CanvasTool::MagicWand, CanvasTool::QuickSelect,
+                        CanvasTool::ObjectSelect});
 
   auto* feather_group = new QWidget(toolbar);
   feather_group->setObjectName(QStringLiteral("selectionFeatherGroup"));
@@ -1118,14 +1121,15 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   configure_toolbar_spinbox(feather, 64);
   feather_layout->addWidget(feather);
   add_option_widget(feather_group, {CanvasTool::Marquee, CanvasTool::EllipticalMarquee, CanvasTool::Lasso,
-                                    CanvasTool::MagneticLasso, CanvasTool::MagicWand, CanvasTool::QuickSelect});
+                                    CanvasTool::MagneticLasso, CanvasTool::MagicWand, CanvasTool::QuickSelect,
+                                    CanvasTool::ObjectSelect});
   auto* anti_alias = new CheckGlyphBox(tr("Anti-alias"), toolbar);
   bind_widget_text(anti_alias, QT_TR_NOOP("Anti-alias"));
   anti_alias->setObjectName(QStringLiteral("selectionAntiAliasCheck"));
   anti_alias->setChecked(current_selection_antialias_);
   add_option_widget(anti_alias,
                     {CanvasTool::Marquee, CanvasTool::EllipticalMarquee, CanvasTool::Lasso,
-                     CanvasTool::MagneticLasso, CanvasTool::MagicWand});
+                     CanvasTool::MagneticLasso, CanvasTool::MagicWand, CanvasTool::ObjectSelect});
   const auto apply_selection_edge_settings = [this, feather, anti_alias] {
     current_selection_feather_radius_ = feather->value();
     current_selection_antialias_ = anti_alias->isChecked();
@@ -2378,6 +2382,41 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
       save_tool_settings();
       refresh_document_info();
     }
+  });
+
+  // Object Selection (docs/ai-selection.md): what the encoder samples, plus the Select
+  // Subject command, which Quick Select's bar also offers (Photoshop parity).
+  object_select_sample_all_layers_check_ = new CheckGlyphBox(tr("Sample All Layers"), toolbar);
+  object_select_sample_all_layers_check_->setObjectName(QStringLiteral("objectSelectSampleAllLayersCheck"));
+  object_select_sample_all_layers_check_->setChecked(canvas_defaults->object_select_sample_all_layers());
+  bind_tooltip(object_select_sample_all_layers_check_,
+               QT_TR_NOOP("Sample the merged document instead of the active layer"));
+  add_option_widget(object_select_sample_all_layers_check_, {CanvasTool::ObjectSelect});
+  connect(object_select_sample_all_layers_check_, &QCheckBox::toggled, this, [this](bool checked) {
+    if (canvas_ != nullptr) {
+      canvas_->set_object_select_sample_all_layers(checked);
+      save_tool_settings();
+      refresh_document_info();
+    }
+  });
+  select_subject_button_ = new QPushButton(tr("Select Subject"), toolbar);
+  select_subject_button_->setObjectName(QStringLiteral("selectSubjectButton"));
+  bind_widget_text(select_subject_button_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Select Subject"));
+  bind_tooltip(select_subject_button_,
+               QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Select the main subject of the image automatically"));
+  configure_automatic_selection_models();
+  if (patchy::ai::segmentation_available()) {
+    add_option_widget(select_subject_button_, {CanvasTool::QuickSelect, CanvasTool::ObjectSelect});
+  } else {
+    select_subject_button_->hide();
+  }
+  connect(select_subject_button_, &QPushButton::clicked, this, [this] {
+    // The tool's own combine mode applies, so Add grows an existing selection.
+    auto mode = canvas_ != nullptr ? canvas_->selection_mode() : CanvasWidget::SelectionMode::Replace;
+    if (mode == CanvasWidget::SelectionMode::Intersect) {
+      mode = CanvasWidget::SelectionMode::Add;
+    }
+    select_subject(mode);
   });
 
   add_option_label(QT_TR_NOOP("Width:"), {CanvasTool::MagneticLasso});

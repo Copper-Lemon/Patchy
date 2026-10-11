@@ -9169,6 +9169,10 @@ RGB：%2, %3, %4</translation>
         <source>Patchy edits this file in RGB. Unchanged supported layers can be saved in the original color mode. Content edits or unsupported layers require RGB saving, which can change gradients and adjustments.</source>
         <translation>Patchy 以 RGB 编辑此文件。未修改的受支持图层可以按原始颜色模式保存。内容编辑或不受支持的图层需要以 RGB 保存，这可能改变渐变和调整效果。</translation>
     </message>
+    <message>
+        <source>Object Selection</source>
+        <translation>对象选择</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10724,6 +10728,30 @@ RGB：%2, %3, %4</translation>
     <message>
         <source>Crop box reset to the canvas</source>
         <translation>裁剪框已重置为画布</translation>
+    </message>
+    <message>
+        <source>Object Selection is not available in this build</source>
+        <translation>此版本中无法使用对象选择</translation>
+    </message>
+    <message>
+        <source>Select a pixel layer before using Object Selection</source>
+        <translation>使用对象选择前请先选择一个像素图层</translation>
+    </message>
+    <message>
+        <source>Analyzing image...</source>
+        <translation>正在分析图像...</translation>
+    </message>
+    <message>
+        <source>Object Selection failed: %1</source>
+        <translation>对象选择失败：%1</translation>
+    </message>
+    <message>
+        <source>Object Selection found no object there</source>
+        <translation>对象选择在该处未找到对象</translation>
+    </message>
+    <message>
+        <source>Object Selection</source>
+        <translation>对象选择</translation>
     </message>
 </context>
 <context>
@@ -19039,6 +19067,66 @@ Baked into images: %1.</source>
             <numerusform>%n 个已恢复的文档无法移动到此会话的恢复文件夹；副本保留在 %1</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Select Subject</source>
+        <translation>选择主体</translation>
+    </message>
+    <message>
+        <source>S&amp;ubject</source>
+        <translation>主体(&amp;U)</translation>
+    </message>
+    <message>
+        <source>Select the main subject of the image automatically</source>
+        <translation>自动选择图像的主体</translation>
+    </message>
+    <message>
+        <source>Object Selection</source>
+        <translation>对象选择</translation>
+    </message>
+    <message>
+        <source>Open a document before using Select Subject</source>
+        <translation>使用选择主体前请先打开文档</translation>
+    </message>
+    <message>
+        <source>Select Subject is not available in this build</source>
+        <translation>此版本中无法使用选择主体</translation>
+    </message>
+    <message>
+        <source>Select Subject is unavailable in Quick Mask mode</source>
+        <translation>快速蒙版模式下无法使用选择主体</translation>
+    </message>
+    <message>
+        <source>Select Subject could not read the document</source>
+        <translation>选择主体无法读取文档</translation>
+    </message>
+    <message>
+        <source>Selecting the subject...</source>
+        <translation>正在选择主体...</translation>
+    </message>
+    <message>
+        <source>Select Subject cancelled</source>
+        <translation>已取消选择主体</translation>
+    </message>
+    <message>
+        <source>Select Subject failed: %1</source>
+        <translation>选择主体失败：%1</translation>
+    </message>
+    <message>
+        <source>Select Subject found no subject</source>
+        <translation>选择主体未找到主体</translation>
+    </message>
+    <message>
+        <source>Selected the subject</source>
+        <translation>已选择主体</translation>
+    </message>
+    <message>
+        <source>Object Selection: sample all layers</source>
+        <translation>对象选择：对所有图层取样</translation>
+    </message>
+    <message>
+        <source>Object Selection: active layer</source>
+        <translation>对象选择：当前图层</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20548,6 +20636,38 @@ Baked into images: %1.</source>
     <message>
         <source>Could not write %1: %2</source>
         <translation>无法写入 %1：%2</translation>
+    </message>
+    <message>
+        <source>Automatic selection is not available in this build (%1).</source>
+        <translation>此版本中无法使用自动选择（%1）。</translation>
+    </message>
+    <message>
+        <source>Exit Quick Mask before using automatic selection.</source>
+        <translation>使用自动选择前请先退出快速蒙版。</translation>
+    </message>
+    <message>
+        <source>objectSelect with sampleAllLayers false needs an active pixel layer.</source>
+        <translation>sampleAllLayers 为 false 的 objectSelect 需要一个活动像素图层。</translation>
+    </message>
+    <message>
+        <source>Automatic selection could not read the document.</source>
+        <translation>自动选择无法读取文档。</translation>
+    </message>
+    <message>
+        <source>Automatic selection failed: %1</source>
+        <translation>自动选择失败：%1</translation>
+    </message>
+    <message>
+        <source>The script was interrupted.</source>
+        <translation>脚本已中断。</translation>
+    </message>
+    <message>
+        <source>Invalid selectSubject option: %1.</source>
+        <translation>无效的 selectSubject 选项：%1。</translation>
+    </message>
+    <message>
+        <source>Invalid objectSelect option: %1.</source>
+        <translation>无效的 objectSelect 选项：%1。</translation>
     </message>
 </context>
 <context>

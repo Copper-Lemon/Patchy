@@ -117,6 +117,11 @@ void run_filter_compute_with_progress(QProgressDialog& progress,
                                       std::function<void()> tick_processing,
                                       const std::function<void(FilterProgress&)>& compute);
 
+// Points the automatic-selection engine at the bundled models ("ai-models" beside the
+// executable, the macOS bundle's Resources, or the Linux share directory) unless a folder
+// was already set. Idempotent; call before checking patchy::ai::segmentation_available().
+void configure_automatic_selection_models();
+
 // Rasterize the canvas selection into an 8-bit coverage mask covering
 // selection_rect (document coordinates); 255 = fully selected.
 [[nodiscard]] PixelBuffer selection_mask_pixels(const CanvasWidget& canvas, QRect selection_rect);

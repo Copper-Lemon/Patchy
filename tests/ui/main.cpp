@@ -323,6 +323,7 @@ int main(int argc, char* argv[]) {
            folder_open_export_tests,
            image_adjustments_curves_tests,
            selection_engines_tests,
+           ai_selection_ui_tests,
            misc_visuals_outline_stress_tests,
            float_window_tests,
            vector_shape_tool_tests,

@@ -9229,6 +9229,10 @@ RGB: %2, %3, %4</translation>
         <source>Patchy edits this file in RGB. Unchanged supported layers can be saved in the original color mode. Content edits or unsupported layers require RGB saving, which can change gradients and adjustments.</source>
         <translation>Patchy редактирует этот файл в RGB. Неизменённые поддерживаемые слои можно сохранить в исходном цветовом режиме. Изменения содержимого или неподдерживаемые слои требуют сохранения в RGB, что может изменить градиенты и корректировки.</translation>
     </message>
+    <message>
+        <source>Object Selection</source>
+        <translation>Выделение объектов</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10784,6 +10788,30 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Crop box reset to the canvas</source>
         <translation>Рамка кадрирования сброшена к холсту</translation>
+    </message>
+    <message>
+        <source>Object Selection is not available in this build</source>
+        <translation>Выделение объектов недоступно в этой сборке</translation>
+    </message>
+    <message>
+        <source>Select a pixel layer before using Object Selection</source>
+        <translation>Перед использованием выделения объектов выберите растровый слой</translation>
+    </message>
+    <message>
+        <source>Analyzing image...</source>
+        <translation>Анализ изображения...</translation>
+    </message>
+    <message>
+        <source>Object Selection failed: %1</source>
+        <translation>Ошибка выделения объектов: %1</translation>
+    </message>
+    <message>
+        <source>Object Selection found no object there</source>
+        <translation>Выделение объектов не нашло там объекта</translation>
+    </message>
+    <message>
+        <source>Object Selection</source>
+        <translation>Выделение объектов</translation>
     </message>
 </context>
 <context>
@@ -19153,6 +19181,66 @@ Y: %2
             <numerusform>Не удалось переместить %n восстановленных документов в папку восстановления этого сеанса; копии остаются в %1</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Select Subject</source>
+        <translation>Выделить предмет</translation>
+    </message>
+    <message>
+        <source>S&amp;ubject</source>
+        <translation>Пре&amp;дмет</translation>
+    </message>
+    <message>
+        <source>Select the main subject of the image automatically</source>
+        <translation>Автоматически выделить основной предмет изображения</translation>
+    </message>
+    <message>
+        <source>Object Selection</source>
+        <translation>Выделение объектов</translation>
+    </message>
+    <message>
+        <source>Open a document before using Select Subject</source>
+        <translation>Откройте документ, прежде чем использовать «Выделить предмет»</translation>
+    </message>
+    <message>
+        <source>Select Subject is not available in this build</source>
+        <translation>«Выделить предмет» недоступно в этой сборке</translation>
+    </message>
+    <message>
+        <source>Select Subject is unavailable in Quick Mask mode</source>
+        <translation>«Выделить предмет» недоступно в режиме быстрой маски</translation>
+    </message>
+    <message>
+        <source>Select Subject could not read the document</source>
+        <translation>«Выделить предмет» не удалось прочитать документ</translation>
+    </message>
+    <message>
+        <source>Selecting the subject...</source>
+        <translation>Выделение предмета...</translation>
+    </message>
+    <message>
+        <source>Select Subject cancelled</source>
+        <translation>«Выделить предмет» отменено</translation>
+    </message>
+    <message>
+        <source>Select Subject failed: %1</source>
+        <translation>Ошибка «Выделить предмет»: %1</translation>
+    </message>
+    <message>
+        <source>Select Subject found no subject</source>
+        <translation>«Выделить предмет» не нашло предмета</translation>
+    </message>
+    <message>
+        <source>Selected the subject</source>
+        <translation>Предмет выделен</translation>
+    </message>
+    <message>
+        <source>Object Selection: sample all layers</source>
+        <translation>Выделение объектов: образец со всех слоёв</translation>
+    </message>
+    <message>
+        <source>Object Selection: active layer</source>
+        <translation>Выделение объектов: активный слой</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20664,6 +20752,38 @@ Y: %2
     <message>
         <source>Could not write %1: %2</source>
         <translation>Не удалось записать %1: %2</translation>
+    </message>
+    <message>
+        <source>Automatic selection is not available in this build (%1).</source>
+        <translation>Автоматическое выделение недоступно в этой сборке (%1).</translation>
+    </message>
+    <message>
+        <source>Exit Quick Mask before using automatic selection.</source>
+        <translation>Выйдите из быстрой маски, прежде чем использовать автоматическое выделение.</translation>
+    </message>
+    <message>
+        <source>objectSelect with sampleAllLayers false needs an active pixel layer.</source>
+        <translation>objectSelect с sampleAllLayers false требует активного растрового слоя.</translation>
+    </message>
+    <message>
+        <source>Automatic selection could not read the document.</source>
+        <translation>Автоматическому выделению не удалось прочитать документ.</translation>
+    </message>
+    <message>
+        <source>Automatic selection failed: %1</source>
+        <translation>Ошибка автоматического выделения: %1</translation>
+    </message>
+    <message>
+        <source>The script was interrupted.</source>
+        <translation>Скрипт был прерван.</translation>
+    </message>
+    <message>
+        <source>Invalid selectSubject option: %1.</source>
+        <translation>Недопустимый параметр selectSubject: %1.</translation>
+    </message>
+    <message>
+        <source>Invalid objectSelect option: %1.</source>
+        <translation>Недопустимый параметр objectSelect: %1.</translation>
     </message>
 </context>
 <context>

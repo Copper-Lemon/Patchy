@@ -9229,6 +9229,10 @@ RGB: %2, %3, %4</translation>
         <source>Patchy edits this file in RGB. Unchanged supported layers can be saved in the original color mode. Content edits or unsupported layers require RGB saving, which can change gradients and adjustments.</source>
         <translation>Patchy edytuje ten plik w RGB. Niezmienione obsługiwane warstwy można zapisać w oryginalnym trybie kolorów. Zmiany zawartości lub nieobsługiwane warstwy wymagają zapisu w RGB, co może zmienić gradienty i korekty.</translation>
     </message>
+    <message>
+        <source>Object Selection</source>
+        <translation>Zaznaczanie obiektu</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10784,6 +10788,30 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Crop box reset to the canvas</source>
         <translation>Ramka kadrowania przywrócona do obszaru roboczego</translation>
+    </message>
+    <message>
+        <source>Object Selection is not available in this build</source>
+        <translation>Zaznaczanie obiektu nie jest dostępne w tej wersji</translation>
+    </message>
+    <message>
+        <source>Select a pixel layer before using Object Selection</source>
+        <translation>Przed użyciem zaznaczania obiektu wybierz warstwę pikseli</translation>
+    </message>
+    <message>
+        <source>Analyzing image...</source>
+        <translation>Analizowanie obrazu...</translation>
+    </message>
+    <message>
+        <source>Object Selection failed: %1</source>
+        <translation>Zaznaczanie obiektu nie powiodło się: %1</translation>
+    </message>
+    <message>
+        <source>Object Selection found no object there</source>
+        <translation>Zaznaczanie obiektu nie znalazło tam żadnego obiektu</translation>
+    </message>
+    <message>
+        <source>Object Selection</source>
+        <translation>Zaznaczanie obiektu</translation>
     </message>
 </context>
 <context>
@@ -19153,6 +19181,66 @@ Y: %2
             <numerusform>Nie można przenieść %n odzyskanych dokumentów do folderu odzyskiwania tej sesji; kopie pozostają w %1</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Select Subject</source>
+        <translation>Zaznacz motyw</translation>
+    </message>
+    <message>
+        <source>S&amp;ubject</source>
+        <translation>Mot&amp;yw</translation>
+    </message>
+    <message>
+        <source>Select the main subject of the image automatically</source>
+        <translation>Automatycznie zaznacz główny motyw obrazu</translation>
+    </message>
+    <message>
+        <source>Object Selection</source>
+        <translation>Zaznaczanie obiektu</translation>
+    </message>
+    <message>
+        <source>Open a document before using Select Subject</source>
+        <translation>Otwórz dokument przed użyciem polecenia Zaznacz motyw</translation>
+    </message>
+    <message>
+        <source>Select Subject is not available in this build</source>
+        <translation>Polecenie Zaznacz motyw nie jest dostępne w tej wersji</translation>
+    </message>
+    <message>
+        <source>Select Subject is unavailable in Quick Mask mode</source>
+        <translation>Polecenie Zaznacz motyw jest niedostępne w trybie szybkiej maski</translation>
+    </message>
+    <message>
+        <source>Select Subject could not read the document</source>
+        <translation>Polecenie Zaznacz motyw nie mogło odczytać dokumentu</translation>
+    </message>
+    <message>
+        <source>Selecting the subject...</source>
+        <translation>Zaznaczanie motywu...</translation>
+    </message>
+    <message>
+        <source>Select Subject cancelled</source>
+        <translation>Anulowano polecenie Zaznacz motyw</translation>
+    </message>
+    <message>
+        <source>Select Subject failed: %1</source>
+        <translation>Polecenie Zaznacz motyw nie powiodło się: %1</translation>
+    </message>
+    <message>
+        <source>Select Subject found no subject</source>
+        <translation>Polecenie Zaznacz motyw nie znalazło motywu</translation>
+    </message>
+    <message>
+        <source>Selected the subject</source>
+        <translation>Zaznaczono motyw</translation>
+    </message>
+    <message>
+        <source>Object Selection: sample all layers</source>
+        <translation>Zaznaczanie obiektu: próbkuj wszystkie warstwy</translation>
+    </message>
+    <message>
+        <source>Object Selection: active layer</source>
+        <translation>Zaznaczanie obiektu: aktywna warstwa</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20664,6 +20752,38 @@ Y: %2
     <message>
         <source>Could not write %1: %2</source>
         <translation>Nie można zapisać %1: %2</translation>
+    </message>
+    <message>
+        <source>Automatic selection is not available in this build (%1).</source>
+        <translation>Automatyczne zaznaczanie nie jest dostępne w tej wersji (%1).</translation>
+    </message>
+    <message>
+        <source>Exit Quick Mask before using automatic selection.</source>
+        <translation>Przed użyciem automatycznego zaznaczania wyjdź z szybkiej maski.</translation>
+    </message>
+    <message>
+        <source>objectSelect with sampleAllLayers false needs an active pixel layer.</source>
+        <translation>objectSelect z sampleAllLayers false wymaga aktywnej warstwy pikseli.</translation>
+    </message>
+    <message>
+        <source>Automatic selection could not read the document.</source>
+        <translation>Automatyczne zaznaczanie nie mogło odczytać dokumentu.</translation>
+    </message>
+    <message>
+        <source>Automatic selection failed: %1</source>
+        <translation>Automatyczne zaznaczanie nie powiodło się: %1</translation>
+    </message>
+    <message>
+        <source>The script was interrupted.</source>
+        <translation>Skrypt został przerwany.</translation>
+    </message>
+    <message>
+        <source>Invalid selectSubject option: %1.</source>
+        <translation>Nieprawidłowa opcja selectSubject: %1.</translation>
+    </message>
+    <message>
+        <source>Invalid objectSelect option: %1.</source>
+        <translation>Nieprawidłowa opcja objectSelect: %1.</translation>
     </message>
 </context>
 <context>

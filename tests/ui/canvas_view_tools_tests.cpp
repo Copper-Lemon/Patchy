@@ -1,4 +1,6 @@
 #include "ui/canvas_widget.hpp"
+#include "ai/segmentation_engine.hpp"
+#include "ui/main_window_shared.hpp"
 #include "core/adjustment_layer.hpp"
 #include "core/contour_presets.hpp"
 #include "core/gradient_presets.hpp"
@@ -1758,7 +1760,7 @@ void ui_tool_palette_icons_render_sheet() {
     const char* action_name;
     const char* label;
   };
-  const std::vector<ToolIconEntry> tools = {
+  std::vector<ToolIconEntry> tools = {
       {"toolMoveAction", "Move"},
       {"toolMarqueeAction", "Marquee"},
       {"toolEllipticalMarqueeAction", "Elliptical Marquee"},
@@ -1766,6 +1768,7 @@ void ui_tool_palette_icons_render_sheet() {
       {"toolMagneticLassoAction", "Magnetic Lasso"},
       {"toolMagicWandAction", "Magic Wand"},
       {"toolQuickSelectAction", "Quick Select"},
+      {"toolObjectSelectionAction", "Object Selection"},
       {"toolCropAction", "Crop"},
       {"toolBrushAction", "Brush"},
       {"toolCloneAction", "Clone"},
@@ -1799,6 +1802,13 @@ void ui_tool_palette_icons_render_sheet() {
       {"toolHandAction", "Hand"},
       {"toolZoomAction", "Zoom"},
   };
+  // Object Selection exists only in builds with the automatic-selection models.
+  patchy::ui::configure_automatic_selection_models();
+  if (!patchy::ai::segmentation_available()) {
+    std::erase_if(tools, [](const ToolIconEntry& entry) {
+      return std::string_view(entry.action_name) == "toolObjectSelectionAction";
+    });
+  }
 
   // The real button backgrounds from the app stylesheet: palette, hover, checked.
   const std::array<QColor, 3> state_backgrounds = {QColor(0x53, 0x53, 0x53), QColor(0x4a, 0x4a, 0x4a),

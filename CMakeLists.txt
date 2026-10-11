@@ -183,6 +183,8 @@ add_library(patchy_core
 )
 patchy_configure_target(patchy_core)
 
+include(cmake/patchy_ai.cmake)
+
 add_library(patchy_render
   src/render/compositor.cpp
   src/render/native_cmyk.cpp
@@ -1014,6 +1016,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/layer_merge.cpp
       src/ui/canvas_widget_selection.cpp
       src/ui/canvas_widget_selection_engines.cpp
+      src/ui/canvas_widget_object_select.cpp
       src/ui/canvas_widget_spot_healing.cpp
       src/ui/canvas_widget_transform.cpp
       src/ui/canvas_widget_vector_tools.cpp
@@ -1104,6 +1107,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/network_mounts.cpp
       src/ui/main_window_history.cpp
       src/ui/main_window_layer_ops.cpp
+      src/ui/main_window_ai_selection.cpp
       src/ui/main_window_layer_panel.cpp
       src/ui/main_window_palette.cpp
       src/ui/main_window_plugins.cpp
@@ -1199,6 +1203,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/script_vector_paths.cpp
       src/ui/script_vector_masks.cpp
       src/ui/script_vector_host.cpp
+      src/ui/script_ai_selection.cpp
       src/ui/vector_operations.hpp
       src/ui/vector_operations.cpp
       src/ui/script_canvas_window.hpp
@@ -1324,6 +1329,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       Qt6::Network
       Qt6::Qml
       patchy_core
+      patchy_ai
       patchy_render
       patchy_psd
       patchy_plugins
@@ -1541,6 +1547,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       patchy_copy_qt_runtime(patchy-mcp)
       patchy_copy_bundled_fonts(patchy-mcp)
       patchy_copy_bundled_scripts(patchy-mcp)
+      patchy_copy_ai_runtime(patchy-mcp)
       add_dependencies(patchy-mcp patchy_agent_kit)
       if(WIN32)
         # MCP clients (the Codex app) keep a connector alive per thread, which locks
@@ -1570,6 +1577,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
     patchy_copy_qt_runtime(patchy)
     patchy_copy_bundled_fonts(patchy)
     patchy_copy_bundled_scripts(patchy)
+    patchy_copy_ai_runtime(patchy)
     if(NOT EMSCRIPTEN)
       # This small runner is a required build tool, independent of PATCHY_BUILD_TESTS.
       # It shares the actual checks with the UI suite and has private temporary settings.
@@ -1659,6 +1667,19 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       if(DEFINED PATCHY_SCRIPTS_STAMP)
         list(APPEND PATCHY_BUNDLE_RESOURCE_DEPS "${PATCHY_SCRIPTS_STAMP}")
       endif()
+      # Automatic selection: the models in Resources/ai-models and the ONNX Runtime dylib
+      # in Frameworks, where the engine loads it at run time (make-dmg.sh signs it with the
+      # bundle).
+      set(PATCHY_BUNDLE_AI_COMMANDS "")
+      if(PATCHY_AI_SELECTION_BUILT)
+        list(APPEND PATCHY_BUNDLE_RESOURCE_DEPS "${PATCHY_AI_RUNTIME_STAMP}")
+        set(PATCHY_BUNDLE_AI_COMMANDS
+          COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/ai-models"
+                  "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Resources/ai-models"
+          COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Frameworks"
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PATCHY_ONNXRUNTIME_RUNTIME_FILES}
+                  "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Frameworks/")
+      endif()
       add_custom_command(
         OUTPUT "${PATCHY_BUNDLE_RESOURCES_STAMP}"
         COMMAND ${CMAKE_COMMAND} -E rm -rf
@@ -1666,6 +1687,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
                 "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Resources/translations"
                 "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Resources/scripts"
                 "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Resources/ai"
+                "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Resources/ai-models"
         COMMAND ${CMAKE_COMMAND} -E copy_directory
                 "${CMAKE_BINARY_DIR}/fonts"
                 "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Resources/fonts"
@@ -1679,6 +1701,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
                 "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/MacOS/patchy-mcp"
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/ai"
                 "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Resources/ai"
+        ${PATCHY_BUNDLE_AI_COMMANDS}
         COMMAND ${CMAKE_COMMAND} -E touch "${PATCHY_BUNDLE_RESOURCES_STAMP}"
         DEPENDS ${PATCHY_BUNDLE_RESOURCE_DEPS}
         COMMENT "Staging fonts, translations, and scripts into the Patchy app bundle"
@@ -1717,6 +1740,16 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       endif()
       install(FILES ${PATCHY_QM_FILES}
               DESTINATION "${CMAKE_INSTALL_DATADIR}/patchy/translations")
+      if(PATCHY_AI_SELECTION_BUILT)
+        # The models and their license texts; the ONNX Runtime library itself comes from
+        # the packager (the Flatpak's onnxruntime module installs it into /app/lib).
+        install(FILES ${PATCHY_AI_MODEL_SOURCES} "${PATCHY_AI_LICENSE_FILE}"
+                DESTINATION "${CMAKE_INSTALL_DATADIR}/patchy/ai-models")
+        install(FILES "${PATCHY_ONNXRUNTIME_DIR}/LICENSE"
+                DESTINATION "${CMAKE_INSTALL_DATADIR}/patchy/ai-models" RENAME onnxruntime-LICENSE.txt)
+        install(FILES "${PATCHY_ONNXRUNTIME_DIR}/ThirdPartyNotices.txt"
+                DESTINATION "${CMAKE_INSTALL_DATADIR}/patchy/ai-models" RENAME onnxruntime-ThirdPartyNotices.txt)
+      endif()
       if(PATCHY_QT_BASE_QM_FILES)
         install(FILES ${PATCHY_QT_BASE_QM_FILES}
                 DESTINATION "${CMAKE_INSTALL_DATADIR}/patchy/translations")
@@ -1801,12 +1834,14 @@ if(PATCHY_BUILD_TESTS)
     tests/core/vector_raster_tests.cpp
     tests/core/vector_shape_tests.cpp
     tests/core/translation_marker_tests.cpp
+    tests/core/ai_selection_tests.cpp
   )
   # The split TUs live in tests/core/ but repeat the historical test_main.cpp
   # include block ("test_harness.hpp" etc.), so tests/ must be on the include path.
   target_include_directories(patchy_core_tests PRIVATE tests)
   target_link_libraries(patchy_core_tests PRIVATE
     patchy_core
+    patchy_ai
     patchy_render
     patchy_psd
     patchy_plugins
@@ -1820,6 +1855,7 @@ if(PATCHY_BUILD_TESTS)
     # The legacy host self-tests run the helper executables next to the binary.
     add_dependencies(patchy_core_tests patchy-8bf-host64 patchy_8bf_host32)
   endif()
+  patchy_copy_ai_runtime(patchy_core_tests)
   add_test(NAME patchy_core_tests COMMAND patchy_core_tests)
 
   if(PATCHY_BUILD_APP AND Qt6_FOUND)
@@ -1893,6 +1929,7 @@ if(PATCHY_BUILD_TESTS)
       tests/ui/folder_open_export_tests.cpp
       tests/ui/image_adjustments_curves_tests.cpp
       tests/ui/selection_engines_tests.cpp
+      tests/ui/ai_selection_tests.cpp
       tests/ui/misc_visuals_outline_stress_tests.cpp
       tests/ui/float_window_tests.cpp
       tests/ui/vector_shape_tool_tests.cpp
@@ -1937,6 +1974,7 @@ if(PATCHY_BUILD_TESTS)
     patchy_copy_qt_runtime(patchy_ui_visual_tests)
     patchy_copy_bundled_fonts(patchy_ui_visual_tests)
     patchy_copy_bundled_scripts(patchy_ui_visual_tests)
+    patchy_copy_ai_runtime(patchy_ui_visual_tests)
     add_test(NAME patchy_ui_visual_tests COMMAND patchy_ui_visual_tests)
     set_tests_properties(patchy_ui_visual_tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 

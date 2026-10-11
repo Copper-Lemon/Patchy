@@ -9189,6 +9189,10 @@ RGB: %2, %3, %4</source>
         <source>Patchy edits this file in RGB. Unchanged supported layers can be saved in the original color mode. Content edits or unsupported layers require RGB saving, which can change gradients and adjustments.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Object Selection</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10743,6 +10747,30 @@ RGB: %2, %3, %4</source>
     </message>
     <message>
         <source>Crop box reset to the canvas</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Object Selection is not available in this build</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select a pixel layer before using Object Selection</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Analyzing image...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Object Selection failed: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Object Selection found no object there</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Object Selection</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -19047,6 +19075,66 @@ Baked into images: %1.</source>
             <numerusform></numerusform>
         </translation>
     </message>
+    <message>
+        <source>Select Subject</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>S&amp;ubject</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select the main subject of the image automatically</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Object Selection</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open a document before using Select Subject</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select Subject is not available in this build</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select Subject is unavailable in Quick Mask mode</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select Subject could not read the document</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selecting the subject...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select Subject cancelled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select Subject failed: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select Subject found no subject</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selected the subject</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Object Selection: sample all layers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Object Selection: active layer</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20556,6 +20644,38 @@ Baked into images: %1.</source>
     </message>
     <message>
         <source>Could not write %1: %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Automatic selection is not available in this build (%1).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Exit Quick Mask before using automatic selection.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>objectSelect with sampleAllLayers false needs an active pixel layer.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Automatic selection could not read the document.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Automatic selection failed: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The script was interrupted.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid selectSubject option: %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid objectSelect option: %1.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

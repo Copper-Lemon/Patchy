@@ -1388,6 +1388,12 @@ private:
   // Duplicate to New Layer) that fills on a worker thread, previews into the
   // active layer, and pushes one history entry on OK.
   void remove_object_dialog();
+  // Select > Subject (main_window_ai_selection.cpp, docs/ai-selection.md): one BiRefNet
+  // pass over the merged document under a cancellable progress dialog, combined with the
+  // selection by `mode`. The run_ form reports failures through `error` instead of the
+  // status bar (the script API's path); both return false on failure or cancel.
+  void select_subject(CanvasWidget::SelectionMode mode);
+  bool run_select_subject(CanvasWidget::SelectionMode mode, QString* error);
   // Variation continuity: a dialog opened again on the same selection (a
   // hash of the selection region) continues after the last variation it
   // showed instead of repeating variation 1; another selection starts fresh.
@@ -1959,6 +1965,11 @@ private:
   QCheckBox* crop_delete_pixels_check_{nullptr};
   QCheckBox* crop_delete_layers_check_{nullptr};
   QPushButton* patch_remove_object_button_{nullptr};
+  QCheckBox* object_select_sample_all_layers_check_{nullptr};
+  QPushButton* select_subject_button_{nullptr};
+  QAction* select_subject_action_{nullptr};
+  // Frees the subject model a while after the last Select Subject (it reloads on use).
+  QTimer* subject_model_release_timer_{nullptr};
   QPushButton* crop_cancel_button_{nullptr};
   QCheckBox* clone_aligned_check_{nullptr};
   QCheckBox* retouch_sample_all_layers_check_{nullptr};
@@ -2284,7 +2295,7 @@ private:
       CanvasWidget::SelectionMode::Replace, CanvasWidget::SelectionMode::Replace,
       CanvasWidget::SelectionMode::Replace, CanvasWidget::SelectionMode::Replace,
       CanvasWidget::SelectionMode::Replace, CanvasWidget::SelectionMode::Replace,
-      CanvasWidget::SelectionMode::Replace};
+      CanvasWidget::SelectionMode::Replace, CanvasWidget::SelectionMode::Replace};
   CanvasWidget::MarqueeStyle current_marquee_style_{CanvasWidget::MarqueeStyle::Normal};
   int current_marquee_width_{1024};
   int current_marquee_height_{768};
@@ -2294,7 +2305,7 @@ private:
   // the active selection tool's slot, which is what the canvas and the options bar hold.
   std::array<int, CanvasWidget::kSelectionToolCount> selection_feather_by_tool_{};
   std::array<bool, CanvasWidget::kSelectionToolCount> selection_antialias_by_tool_{true, true, true, true,
-                                                                                    true, true, true};
+                                                                                    true, true, true, true};
   int current_selection_feather_radius_{0};
   bool current_selection_antialias_{true};
   double current_crop_ratio_w_{0.0};
@@ -2323,6 +2334,7 @@ private:
   int current_quick_select_size_{30};
   bool current_quick_select_sample_all_layers_{false};
   bool current_quick_select_enhance_edge_{false};
+  bool current_object_select_sample_all_layers_{true};
   CanvasWidget::TransformInterpolation current_transform_interpolation_{
       CanvasWidget::TransformInterpolation::Bicubic};
   int current_polygon_sides_{5};

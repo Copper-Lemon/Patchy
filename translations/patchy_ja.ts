@@ -9169,6 +9169,10 @@ Mixed selection</source>
         <source>Patchy edits this file in RGB. Unchanged supported layers can be saved in the original color mode. Content edits or unsupported layers require RGB saving, which can change gradients and adjustments.</source>
         <translation>PatchyはこのファイルをRGBで編集します。対応するレイヤーが変更されていなければ、元のカラーモードで保存できます。内容の編集や非対応のレイヤーがある場合はRGBでの保存が必要となり、グラデーションや色調補正が変わることがあります。</translation>
     </message>
+    <message>
+        <source>Object Selection</source>
+        <translation>オブジェクト選択</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10724,6 +10728,30 @@ Mixed selection</source>
     <message>
         <source>Crop box reset to the canvas</source>
         <translation>切り抜き枠をカンバスに戻しました</translation>
+    </message>
+    <message>
+        <source>Object Selection is not available in this build</source>
+        <translation>このビルドではオブジェクト選択を使用できません</translation>
+    </message>
+    <message>
+        <source>Select a pixel layer before using Object Selection</source>
+        <translation>オブジェクト選択を使う前にピクセルレイヤーを選択してください</translation>
+    </message>
+    <message>
+        <source>Analyzing image...</source>
+        <translation>画像を解析中...</translation>
+    </message>
+    <message>
+        <source>Object Selection failed: %1</source>
+        <translation>オブジェクト選択に失敗しました: %1</translation>
+    </message>
+    <message>
+        <source>Object Selection found no object there</source>
+        <translation>オブジェクト選択でその位置にオブジェクトが見つかりませんでした</translation>
+    </message>
+    <message>
+        <source>Object Selection</source>
+        <translation>オブジェクト選択</translation>
     </message>
 </context>
 <context>
@@ -19039,6 +19067,66 @@ Baked into images: %1.</source>
             <numerusform>%n 件の復元した書類をこのセッションの復元フォルダーに移動できませんでした。コピーは %1 に残っています</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Select Subject</source>
+        <translation>被写体を選択</translation>
+    </message>
+    <message>
+        <source>S&amp;ubject</source>
+        <translation>被写体(&amp;U)</translation>
+    </message>
+    <message>
+        <source>Select the main subject of the image automatically</source>
+        <translation>画像の主な被写体を自動的に選択します</translation>
+    </message>
+    <message>
+        <source>Object Selection</source>
+        <translation>オブジェクト選択</translation>
+    </message>
+    <message>
+        <source>Open a document before using Select Subject</source>
+        <translation>被写体を選択を使う前にドキュメントを開いてください</translation>
+    </message>
+    <message>
+        <source>Select Subject is not available in this build</source>
+        <translation>このビルドでは被写体を選択を使用できません</translation>
+    </message>
+    <message>
+        <source>Select Subject is unavailable in Quick Mask mode</source>
+        <translation>クイックマスクモードでは被写体を選択を使用できません</translation>
+    </message>
+    <message>
+        <source>Select Subject could not read the document</source>
+        <translation>被写体を選択でドキュメントを読み取れませんでした</translation>
+    </message>
+    <message>
+        <source>Selecting the subject...</source>
+        <translation>被写体を選択中...</translation>
+    </message>
+    <message>
+        <source>Select Subject cancelled</source>
+        <translation>被写体を選択をキャンセルしました</translation>
+    </message>
+    <message>
+        <source>Select Subject failed: %1</source>
+        <translation>被写体を選択に失敗しました: %1</translation>
+    </message>
+    <message>
+        <source>Select Subject found no subject</source>
+        <translation>被写体を選択で被写体が見つかりませんでした</translation>
+    </message>
+    <message>
+        <source>Selected the subject</source>
+        <translation>被写体を選択しました</translation>
+    </message>
+    <message>
+        <source>Object Selection: sample all layers</source>
+        <translation>オブジェクト選択: すべてのレイヤーを対象</translation>
+    </message>
+    <message>
+        <source>Object Selection: active layer</source>
+        <translation>オブジェクト選択: アクティブなレイヤー</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20548,6 +20636,38 @@ Baked into images: %1.</source>
     <message>
         <source>Could not write %1: %2</source>
         <translation>%1 に書き込めませんでした: %2</translation>
+    </message>
+    <message>
+        <source>Automatic selection is not available in this build (%1).</source>
+        <translation>このビルドでは自動選択を使用できません (%1)。</translation>
+    </message>
+    <message>
+        <source>Exit Quick Mask before using automatic selection.</source>
+        <translation>自動選択を使う前にクイックマスクを終了してください。</translation>
+    </message>
+    <message>
+        <source>objectSelect with sampleAllLayers false needs an active pixel layer.</source>
+        <translation>sampleAllLayers が false の objectSelect にはアクティブなピクセルレイヤーが必要です。</translation>
+    </message>
+    <message>
+        <source>Automatic selection could not read the document.</source>
+        <translation>自動選択でドキュメントを読み取れませんでした。</translation>
+    </message>
+    <message>
+        <source>Automatic selection failed: %1</source>
+        <translation>自動選択に失敗しました: %1</translation>
+    </message>
+    <message>
+        <source>The script was interrupted.</source>
+        <translation>スクリプトが中断されました。</translation>
+    </message>
+    <message>
+        <source>Invalid selectSubject option: %1.</source>
+        <translation>selectSubject のオプションが無効です: %1。</translation>
+    </message>
+    <message>
+        <source>Invalid objectSelect option: %1.</source>
+        <translation>objectSelect のオプションが無効です: %1。</translation>
     </message>
 </context>
 <context>

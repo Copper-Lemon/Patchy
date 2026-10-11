@@ -9199,6 +9199,10 @@ RGB: %2, %3, %4</translation>
         <source>Patchy edits this file in RGB. Unchanged supported layers can be saved in the original color mode. Content edits or unsupported layers require RGB saving, which can change gradients and adjustments.</source>
         <translation>Patchy bearbeitet diese Datei in RGB. Unveränderte unterstützte Ebenen können im ursprünglichen Farbmodus gespeichert werden. Inhaltsänderungen oder nicht unterstützte Ebenen erfordern das Speichern in RGB, wodurch sich Verläufe und Anpassungen ändern können.</translation>
     </message>
+    <message>
+        <source>Object Selection</source>
+        <translation>Objektauswahl</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10754,6 +10758,30 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Crop box reset to the canvas</source>
         <translation>Zuschneiderahmen auf die Arbeitsfläche zurückgesetzt</translation>
+    </message>
+    <message>
+        <source>Object Selection is not available in this build</source>
+        <translation>Die Objektauswahl ist in diesem Build nicht verfügbar</translation>
+    </message>
+    <message>
+        <source>Select a pixel layer before using Object Selection</source>
+        <translation>Wählen Sie eine Pixelebene aus, bevor Sie die Objektauswahl verwenden</translation>
+    </message>
+    <message>
+        <source>Analyzing image...</source>
+        <translation>Bild wird analysiert...</translation>
+    </message>
+    <message>
+        <source>Object Selection failed: %1</source>
+        <translation>Objektauswahl fehlgeschlagen: %1</translation>
+    </message>
+    <message>
+        <source>Object Selection found no object there</source>
+        <translation>Die Objektauswahl hat dort kein Objekt gefunden</translation>
+    </message>
+    <message>
+        <source>Object Selection</source>
+        <translation>Objektauswahl</translation>
     </message>
 </context>
 <context>
@@ -19096,6 +19124,66 @@ In Bilder umgewandelt: %1.</translation>
             <numerusform>%n wiederhergestellte Dokumente konnten nicht in den Wiederherstellungsordner dieser Sitzung verschoben werden; die Kopien bleiben in %1</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Select Subject</source>
+        <translation>Motiv auswählen</translation>
+    </message>
+    <message>
+        <source>S&amp;ubject</source>
+        <translation>Mot&amp;iv</translation>
+    </message>
+    <message>
+        <source>Select the main subject of the image automatically</source>
+        <translation>Das Hauptmotiv des Bildes automatisch auswählen</translation>
+    </message>
+    <message>
+        <source>Object Selection</source>
+        <translation>Objektauswahl</translation>
+    </message>
+    <message>
+        <source>Open a document before using Select Subject</source>
+        <translation>Öffnen Sie ein Dokument, bevor Sie „Motiv auswählen“ verwenden</translation>
+    </message>
+    <message>
+        <source>Select Subject is not available in this build</source>
+        <translation>„Motiv auswählen“ ist in diesem Build nicht verfügbar</translation>
+    </message>
+    <message>
+        <source>Select Subject is unavailable in Quick Mask mode</source>
+        <translation>„Motiv auswählen“ ist im Maskierungsmodus nicht verfügbar</translation>
+    </message>
+    <message>
+        <source>Select Subject could not read the document</source>
+        <translation>„Motiv auswählen“ konnte das Dokument nicht lesen</translation>
+    </message>
+    <message>
+        <source>Selecting the subject...</source>
+        <translation>Motiv wird ausgewählt...</translation>
+    </message>
+    <message>
+        <source>Select Subject cancelled</source>
+        <translation>„Motiv auswählen“ abgebrochen</translation>
+    </message>
+    <message>
+        <source>Select Subject failed: %1</source>
+        <translation>„Motiv auswählen“ fehlgeschlagen: %1</translation>
+    </message>
+    <message>
+        <source>Select Subject found no subject</source>
+        <translation>„Motiv auswählen“ hat kein Motiv gefunden</translation>
+    </message>
+    <message>
+        <source>Selected the subject</source>
+        <translation>Motiv ausgewählt</translation>
+    </message>
+    <message>
+        <source>Object Selection: sample all layers</source>
+        <translation>Objektauswahl: alle Ebenen aufnehmen</translation>
+    </message>
+    <message>
+        <source>Object Selection: active layer</source>
+        <translation>Objektauswahl: aktive Ebene</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20606,6 +20694,38 @@ In Bilder umgewandelt: %1.</translation>
     <message>
         <source>Could not write %1: %2</source>
         <translation>%1 konnte nicht geschrieben werden: %2</translation>
+    </message>
+    <message>
+        <source>Automatic selection is not available in this build (%1).</source>
+        <translation>Die automatische Auswahl ist in diesem Build nicht verfügbar (%1).</translation>
+    </message>
+    <message>
+        <source>Exit Quick Mask before using automatic selection.</source>
+        <translation>Beenden Sie den Maskierungsmodus, bevor Sie die automatische Auswahl verwenden.</translation>
+    </message>
+    <message>
+        <source>objectSelect with sampleAllLayers false needs an active pixel layer.</source>
+        <translation>objectSelect mit sampleAllLayers false benötigt eine aktive Pixelebene.</translation>
+    </message>
+    <message>
+        <source>Automatic selection could not read the document.</source>
+        <translation>Die automatische Auswahl konnte das Dokument nicht lesen.</translation>
+    </message>
+    <message>
+        <source>Automatic selection failed: %1</source>
+        <translation>Automatische Auswahl fehlgeschlagen: %1</translation>
+    </message>
+    <message>
+        <source>The script was interrupted.</source>
+        <translation>Das Skript wurde unterbrochen.</translation>
+    </message>
+    <message>
+        <source>Invalid selectSubject option: %1.</source>
+        <translation>Ungültige selectSubject-Option: %1.</translation>
+    </message>
+    <message>
+        <source>Invalid objectSelect option: %1.</source>
+        <translation>Ungültige objectSelect-Option: %1.</translation>
     </message>
 </context>
 <context>

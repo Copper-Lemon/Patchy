@@ -16,12 +16,35 @@ finish-args:
 cleanup:
   - /include
   - /lib/cmake
+  - /onnxruntime
 modules:
+  # Automatic selection (docs/ai-selection.md): the pinned ONNX Runtime CPU package. The
+  # headers and link library stay under /onnxruntime for the patchy build (cleaned up
+  # afterwards); the shared library goes to /app/lib, where the loader finds it. Keep the
+  # version and checksums in sync with scripts/setup-ai-deps.sh.
+  - name: onnxruntime
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/onnxruntime /app/lib
+      - cp -a include lib LICENSE ThirdPartyNotices.txt /app/onnxruntime/
+      - cp -a lib/libonnxruntime.so* /app/lib/
+    sources:
+      - type: archive
+        only-arches: [x86_64]
+        url: https://github.com/microsoft/onnxruntime/releases/download/v1.30.0/onnxruntime-linux-x64-1.30.0.tgz
+        sha256: a5ed5a3cac51fbb2e90da632ae43d19212faaa20e76484e62bcb7c23ddb3b3fd
+      - type: archive
+        only-arches: [aarch64]
+        url: https://github.com/microsoft/onnxruntime/releases/download/v1.30.0/onnxruntime-linux-aarch64-1.30.0.tgz
+        sha256: e16a27a8ed330bbc698df7330b0cf56e722f354e3bcc92118682c74ef3c3e3da
   - name: patchy
     buildsystem: cmake-ninja
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
       - -DPATCHY_BUILD_TESTS=OFF
+      - -DPATCHY_REQUIRE_AI_SELECTION=ON
+      - -DPATCHY_ONNXRUNTIME_DIR=/app/onnxruntime
+      - -DPATCHY_AI_MODELS_DIR=/run/build/patchy/ai-models-download
     sources:
       - type: dir
         path: ../../..
@@ -32,3 +55,17 @@ modules:
           - local-secrets
           - local-test-fixtures
           - test-artifacts
+      # The automatic selection models, pinned like scripts/setup-ai-deps.sh.
+      - type: file
+        url: https://huggingface.co/Acly/MobileSAM/resolve/main/mobile_sam_image_encoder.onnx
+        sha256: 580f5fb648ea1062c0aabc26217aed56921985f03f0cbbd852bba81d760cc749
+        dest: ai-models-download
+      - type: file
+        url: https://huggingface.co/Acly/MobileSAM/resolve/main/sam_mask_decoder_multi.onnx
+        sha256: 8976b90a87ba50a6a72217a5ff994f7d25ce16f2229fcc1ed259e1294c622ffe
+        dest: ai-models-download
+      - type: file
+        url: https://github.com/ZhengPeng7/BiRefNet/releases/download/v1/BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx
+        sha256: 5600024376f572a557870a5eb0afb1e5961636bef4e1e22132025467d0f03333
+        dest: ai-models-download
+        dest-filename: birefnet_lite_general_1024.onnx

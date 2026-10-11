@@ -11,6 +11,8 @@
 #include "ui/main_window_shared.hpp"
 #include "ui/main_window_actions_internal.hpp"
 
+#include "ai/segmentation_engine.hpp"
+
 #include "core/blend_math.hpp"
 #include "core/layer_metadata.hpp"
 #include "core/smart_object.hpp"
@@ -267,6 +269,8 @@ const char* tool_action_source(CanvasTool tool) {
       return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Magic Wand");
     case CanvasTool::QuickSelect:
       return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Quick Select");
+    case CanvasTool::ObjectSelect:
+      return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Object Selection");
     case CanvasTool::Brush:
       return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Brush");
     case CanvasTool::MixerBrush:
@@ -351,6 +355,8 @@ QString tool_hotkey_id(CanvasTool tool) {
       return QStringLiteral("tools.magic_wand");
     case CanvasTool::QuickSelect:
       return QStringLiteral("tools.quick_select");
+    case CanvasTool::ObjectSelect:
+      return QStringLiteral("tools.object_select");
     case CanvasTool::Brush:
       return QStringLiteral("tools.brush");
     case CanvasTool::MixerBrush:
@@ -700,6 +706,9 @@ QIcon tool_icon(CanvasTool tool) {
     case CanvasTool::QuickSelect:
       name = "tool-quick-select";
       break;
+    case CanvasTool::ObjectSelect:
+      name = "tool-object-select";
+      break;
     case CanvasTool::Brush:
       name = "tool-brush";
       break;
@@ -851,7 +860,7 @@ void MainWindow::build_tool_palette(ActionBuildContext& ctx) {
   // own; a user override that puts Shift+<letter> back on a member wins through
   // the registry's resolution and suppresses the cycle default.
   const auto configure_tool_flyout = [this](QToolBar* palette, QMenu* menu, QToolButton* button,
-                                            QAction* default_action, std::initializer_list<QAction*> actions,
+                                            QAction* default_action, const QList<QAction*>& actions,
                                             const char* cycle_source, const char* cycle_object_name,
                                             const char* cycle_id, QKeySequence cycle_shortcut) {
     button->setProperty("toolFlyout", true);
@@ -875,7 +884,7 @@ void MainWindow::build_tool_palette(ActionBuildContext& ctx) {
         button->setToolTip(action->toolTip());
       });
     }
-    const QList<QAction*> members(actions);
+    const QList<QAction*> members = actions;
     auto* cycle = new QAction(tr(cycle_source), this);
     bind_action_text(cycle, cycle_source);
     cycle->setObjectName(QString::fromLatin1(cycle_object_name));
@@ -933,10 +942,17 @@ void MainWindow::build_tool_palette(ActionBuildContext& ctx) {
       create_flyout_tool_action(wand_menu, tr("Magic Wand"), CanvasTool::MagicWand, QKeySequence(Qt::Key_W));
   auto* quick_select_action =
       create_flyout_tool_action(wand_menu, tr("Quick Select"), CanvasTool::QuickSelect, QKeySequence());
+  // Object Selection needs the bundled models (docs/ai-selection.md); builds without them
+  // leave it out of the flyout and the cycle.
+  configure_automatic_selection_models();
+  QList<QAction*> wand_actions{magic_wand_action, quick_select_action};
+  if (patchy::ai::segmentation_available()) {
+    wand_actions.push_back(
+        create_flyout_tool_action(wand_menu, tr("Object Selection"), CanvasTool::ObjectSelect, QKeySequence()));
+  }
   auto* wand_tool_button = new QToolButton(tool_palette);
   wand_tool_button->setObjectName(QStringLiteral("wandToolButton"));
-  configure_tool_flyout(tool_palette, wand_menu, wand_tool_button, magic_wand_action,
-                        {magic_wand_action, quick_select_action},
+  configure_tool_flyout(tool_palette, wand_menu, wand_tool_button, magic_wand_action, wand_actions,
                         QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Cycle Wand Tools"),
                         "toolCycleWandAction", "tools.cycle.wand", QKeySequence(Qt::SHIFT | Qt::Key_W));
   add_tool_action(tool_palette, tool_group, tr("Crop"), CanvasTool::Crop, QKeySequence(Qt::Key_C));

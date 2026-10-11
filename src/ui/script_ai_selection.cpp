@@ -1,0 +1,187 @@
+// doc.selection.selectSubject / objectSelect / automaticSelectionAvailable
+// (docs/ai-selection.md, docs/scripting.md). Each call is one network solve from one
+// prompt, combined with the selection by plain boolean, the same boundary as the
+// interactive commands (src/ai/segmentation_engine.hpp).
+
+#include "ui/script_api.hpp"
+#include "ui/script_vector.hpp"
+
+#include "ai/segmentation_engine.hpp"
+#include "ui/canvas_widget.hpp"
+#include "ui/canvas_widget_shared.hpp"
+#include "ui/image_document_io.hpp"
+#include "ui/main_window_shared.hpp"
+#include "ui/vector_operations.hpp"
+
+#include <QStringList>
+
+#include <cstring>
+#include <exception>
+
+namespace patchy::ui {
+namespace {
+
+constexpr double kMaxScriptAutomaticFeather = 1000.0;
+// The same 30000-pixel cap the other selection calls use.
+constexpr int kMaxScriptDimension = 30000;
+
+int operation_index(const QString& operation, bool allow_intersect) {
+  QStringList operations{QStringLiteral("replace"), QStringLiteral("add"), QStringLiteral("subtract")};
+  if (allow_intersect) {
+    operations << QStringLiteral("intersect");
+  }
+  const auto index = operations.indexOf(operation);
+  if (index < 0) {
+    script_vector::invalid(QStringLiteral("operation"));
+  }
+  return static_cast<int>(index);
+}
+
+}  // namespace
+
+QString ScriptEngineHost::automatic_select(std::int64_t session_id, const AutomaticSelectionRequest& request) {
+  configure_automatic_selection_models();
+  if (!patchy::ai::segmentation_available()) {
+    return tr("Automatic selection is not available in this build (%1).")
+        .arg(QString::fromStdString(patchy::ai::segmentation_unavailable_reason()));
+  }
+  auto* canvas = session_canvas(session_id);
+  const auto* document = session_document_const(session_id);
+  if (canvas == nullptr || document == nullptr) {
+    return tr("The document is no longer open.");
+  }
+  if (canvas->quick_mask_active()) {
+    return tr("Exit Quick Mask before using automatic selection.");
+  }
+  const QSize size(document->width(), document->height());
+  QImage source;
+  if (request.kind == AutomaticSelectionRequest::Kind::Subject || request.sample_all_layers) {
+    source = qimage_from_document(*document, true).convertToFormat(QImage::Format_RGBA8888);
+  } else {
+    const auto active = document->active_layer_id();
+    const auto* layer = active.has_value() ? document->find_layer(*active) : nullptr;
+    if (layer == nullptr || layer->kind() != LayerKind::Pixel) {
+      return tr("objectSelect with sampleAllLayers false needs an active pixel layer.");
+    }
+    source = active_layer_sample_image(*layer, size);
+  }
+  if (source.isNull()) {
+    return tr("Automatic selection could not read the document.");
+  }
+
+  patchy::ai::AiMask mask;
+  try {
+    const auto pixels = pixels_from_image_rgba(source);
+    if (request.kind == AutomaticSelectionRequest::Kind::Subject) {
+      mask = patchy::ai::subject_matte(pixels);
+    } else {
+      const auto embedding = patchy::ai::sam_encode(pixels);
+      if (request.kind == AutomaticSelectionRequest::Kind::Box) {
+        const auto box = request.box.intersected(QRect(QPoint(0, 0), size));
+        mask = patchy::ai::sam_select_box(*embedding, Rect{box.x(), box.y(), box.width(), box.height()});
+      } else {
+        mask = patchy::ai::sam_select_point(*embedding, request.point.x(), request.point.y());
+      }
+    }
+  } catch (const std::exception& error) {
+    return tr("Automatic selection failed: %1").arg(QString::fromUtf8(error.what()));
+  }
+
+  PixelBuffer coverage(size.width(), size.height(), PixelFormat::gray8());
+  coverage.clear(0);
+  for (int y = 0; y < mask.bounds.height; ++y) {
+    std::memcpy(coverage.row(mask.bounds.y + y).data() + mask.bounds.x, std::as_const(mask.alpha).row(y).data(),
+                static_cast<std::size_t>(mask.bounds.width));
+  }
+  feather_selection_coverage(coverage, request.feather);
+  if (!request.antialias) {
+    for (int y = 0; y < coverage.height(); ++y) {
+      for (auto& value : coverage.row(y)) {
+        value = value >= 128U ? 255U : 0U;
+      }
+    }
+  }
+  if (canvas->has_selection()) {
+    combine_selection_coverage(coverage, request.operation, selection_mask_pixels(*canvas, QRect(QPoint(0, 0), size)));
+  }
+  if (engine()->isInterrupted() || !prepare_mutation(session_id) || engine()->isInterrupted()) {
+    return tr("The script was interrupted.");
+  }
+  canvas = session_canvas(session_id);
+  if (canvas == nullptr) {
+    return tr("The document is no longer open.");
+  }
+  canvas->apply_grayscale_to_selection(coverage);
+  note_pixels_changed(session_id, {});
+  return {};
+}
+
+bool ScriptSelectionObject::automatic_selection_available() const {
+  const ScriptApiCall api_call(host_);
+  configure_automatic_selection_models();
+  return patchy::ai::segmentation_available();
+}
+
+void ScriptSelectionObject::selectSubject(const QJSValue& options) {
+  const ScriptApiCall api_call(host_);
+  ScriptEngineHost::AutomaticSelectionRequest request;
+  try {
+    const auto args = script_vector::object(options, true);
+    script_vector::keys(args, {QStringLiteral("operation"), QStringLiteral("feather"), QStringLiteral("antialias")});
+    request.kind = ScriptEngineHost::AutomaticSelectionRequest::Kind::Subject;
+    request.operation = operation_index(script_vector::string(args, QStringLiteral("operation"), QStringLiteral("replace")), true);
+    request.feather = script_vector::number(args, QStringLiteral("feather"), 0, 0, kMaxScriptAutomaticFeather);
+    request.antialias = script_vector::boolean(args, QStringLiteral("antialias"), true);
+  } catch (const std::exception& error) {
+    host_.throw_js_error(ScriptEngineHost::tr("Invalid selectSubject option: %1.").arg(QString::fromUtf8(error.what())));
+    return;
+  }
+  if (const auto error = host_.automatic_select(session_id_, request); !error.isEmpty()) {
+    host_.throw_js_error(error);
+  }
+}
+
+void ScriptSelectionObject::objectSelect(const QJSValue& options) {
+  const ScriptApiCall api_call(host_);
+  ScriptEngineHost::AutomaticSelectionRequest request;
+  try {
+    const auto args = script_vector::object(options);
+    script_vector::keys(args, {QStringLiteral("rect"), QStringLiteral("point"), QStringLiteral("operation"),
+                               QStringLiteral("sampleAllLayers"), QStringLiteral("feather"),
+                               QStringLiteral("antialias")});
+    const bool has_rect = args.contains(QStringLiteral("rect"));
+    const bool has_point = args.contains(QStringLiteral("point"));
+    // One prompt per solve: a box or a point, never both (docs/ai-selection.md).
+    if (has_rect == has_point) {
+      script_vector::invalid(QStringLiteral("rect or point (exactly one)"));
+    }
+    if (has_rect) {
+      const auto rect = script_vector::child_object(args, QStringLiteral("rect"));
+      script_vector::keys(rect, {QStringLiteral("x"), QStringLiteral("y"), QStringLiteral("width"), QStringLiteral("height")});
+      request.kind = ScriptEngineHost::AutomaticSelectionRequest::Kind::Box;
+      request.box = QRect(script_vector::integer(rect, QStringLiteral("x"), 0, -kMaxScriptDimension, kMaxScriptDimension),
+                          script_vector::integer(rect, QStringLiteral("y"), 0, -kMaxScriptDimension, kMaxScriptDimension),
+                          script_vector::integer(rect, QStringLiteral("width"), 0, 1, kMaxScriptDimension),
+                          script_vector::integer(rect, QStringLiteral("height"), 0, 1, kMaxScriptDimension));
+    } else {
+      const auto point = script_vector::child_object(args, QStringLiteral("point"));
+      script_vector::keys(point, {QStringLiteral("x"), QStringLiteral("y")});
+      request.kind = ScriptEngineHost::AutomaticSelectionRequest::Kind::Point;
+      request.point = QPointF(script_vector::required_number(point, QStringLiteral("x"), 0, kMaxScriptDimension),
+                              script_vector::required_number(point, QStringLiteral("y"), 0, kMaxScriptDimension));
+    }
+    request.operation =
+        operation_index(script_vector::string(args, QStringLiteral("operation"), QStringLiteral("replace")), false);
+    request.sample_all_layers = script_vector::boolean(args, QStringLiteral("sampleAllLayers"), true);
+    request.feather = script_vector::number(args, QStringLiteral("feather"), 0, 0, kMaxScriptAutomaticFeather);
+    request.antialias = script_vector::boolean(args, QStringLiteral("antialias"), true);
+  } catch (const std::exception& error) {
+    host_.throw_js_error(ScriptEngineHost::tr("Invalid objectSelect option: %1.").arg(QString::fromUtf8(error.what())));
+    return;
+  }
+  if (const auto error = host_.automatic_select(session_id_, request); !error.isEmpty()) {
+    host_.throw_js_error(error);
+  }
+}
+
+}  // namespace patchy::ui

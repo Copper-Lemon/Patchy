@@ -454,6 +454,8 @@ void MainWindow::bind_action_translations(ActionBuildContext& ctx) {
       {wand_sample_all_layers_check_, QT_TR_NOOP("Sample All Layers")},
       {quick_select_sample_all_layers_check_, QT_TR_NOOP("Sample All Layers")},
       {quick_select_enhance_edge_check_, QT_TR_NOOP("Enhance Edge")},
+      {object_select_sample_all_layers_check_, QT_TR_NOOP("Sample All Layers")},
+      {select_subject_button_, QT_TR_NOOP("Select Subject")},
       {ctx.fill_shapes, QT_TR_NOOP("Fill")},
       {text_color_button_, QT_TR_NOOP("T")},
       {text_align_left_button_, QT_TR_NOOP("L")},
@@ -517,6 +519,7 @@ void MainWindow::sync_tool_option_controls_from_canvas() {
   set_checked(wand_sample_all_layers_check_, canvas_->wand_sample_all_layers());
   set_checked(quick_select_sample_all_layers_check_, canvas_->quick_select_sample_all_layers());
   set_checked(quick_select_enhance_edge_check_, canvas_->quick_select_enhance_edge());
+  set_checked(object_select_sample_all_layers_check_, canvas_->object_select_sample_all_layers());
   set_spin_value(QStringLiteral("wandToleranceSpin"), canvas_->wand_tolerance());
   set_spin_value(QStringLiteral("fillToleranceSpin"), canvas_->fill_tolerance());
   set_spin_value(QStringLiteral("quickSelectSizeSpin"), canvas_->quick_select_size());

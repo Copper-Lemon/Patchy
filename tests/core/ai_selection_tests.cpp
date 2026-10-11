@@ -1,0 +1,312 @@
+// Automatic selection (docs/ai-selection.md): the pre/post-processing math everywhere, and
+// real MobileSAM / BiRefNet runs when the build includes ONNX Runtime. Model outputs are
+// CPU-dependent float math, so model checks compare masks by IoU, never by bytes.
+
+#include "ai/ai_selection_math.hpp"
+#include "ai/segmentation_engine.hpp"
+
+#include "test_harness.hpp"
+#include "unicode_path_names.hpp"
+
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <filesystem>
+#include <thread>
+#include <vector>
+
+namespace {
+
+using patchy::PixelBuffer;
+using patchy::PixelFormat;
+using patchy::Rect;
+using patchy::ai::AiMask;
+using patchy::ai::LogitMapping;
+
+std::uint64_t splitmix64(std::uint64_t& state) {
+  std::uint64_t z = (state += 0x9E3779B97F4A7C15ULL);
+  z = (z ^ (z >> 30U)) * 0xBF58476D1CE4E5B9ULL;
+  z = (z ^ (z >> 27U)) * 0x94D049BB133111EBULL;
+  return z ^ (z >> 31U);
+}
+
+PixelBuffer solid_rgba(std::int32_t width, std::int32_t height, std::uint8_t r, std::uint8_t g, std::uint8_t b,
+                       std::uint8_t a) {
+  PixelBuffer pixels(width, height, PixelFormat::rgba8());
+  for (std::int32_t y = 0; y < height; ++y) {
+    auto row = pixels.row(y);
+    for (std::int32_t x = 0; x < width; ++x) {
+      auto* px = row.data() + static_cast<std::size_t>(x) * 4U;
+      px[0] = r;
+      px[1] = g;
+      px[2] = b;
+      px[3] = a;
+    }
+  }
+  return pixels;
+}
+
+// A self-authored scene: a mottled green-grey background (deterministic noise) with a
+// shaded red disc, the one clear object. `disc` receives the disc's exact mask.
+PixelBuffer disc_scene(std::int32_t width, std::int32_t height, AiMask& disc) {
+  PixelBuffer pixels(width, height, PixelFormat::rgba8());
+  const double cx = width * 0.45;
+  const double cy = height * 0.55;
+  const double radius = std::min(width, height) * 0.22;
+  disc.bounds = Rect{static_cast<std::int32_t>(cx - radius) - 1, static_cast<std::int32_t>(cy - radius) - 1,
+                     static_cast<std::int32_t>(radius * 2) + 3, static_cast<std::int32_t>(radius * 2) + 3};
+  disc.alpha = PixelBuffer(disc.bounds.width, disc.bounds.height, PixelFormat::gray8());
+  std::uint64_t state = 7;
+  for (std::int32_t y = 0; y < height; ++y) {
+    auto row = pixels.row(y);
+    for (std::int32_t x = 0; x < width; ++x) {
+      auto* px = row.data() + static_cast<std::size_t>(x) * 4U;
+      const auto noise = static_cast<int>(splitmix64(state) % 25U);
+      const auto blotch = static_cast<int>(18.0 * std::sin(x * 0.05) * std::cos(y * 0.07));
+      const double dx = x + 0.5 - cx;
+      const double dy = y + 0.5 - cy;
+      const bool inside = dx * dx + dy * dy <= radius * radius;
+      if (inside) {
+        const double shade = 0.65 + 0.35 * std::max(0.0, -(dx + dy) / (radius * 1.5));
+        px[0] = static_cast<std::uint8_t>(std::clamp(200.0 * shade + noise * 0.3, 0.0, 255.0));
+        px[1] = static_cast<std::uint8_t>(std::clamp(40.0 * shade, 0.0, 255.0));
+        px[2] = static_cast<std::uint8_t>(std::clamp(35.0 * shade, 0.0, 255.0));
+      } else {
+        px[0] = static_cast<std::uint8_t>(std::clamp(95 + noise + blotch, 0, 255));
+        px[1] = static_cast<std::uint8_t>(std::clamp(120 + noise + blotch, 0, 255));
+        px[2] = static_cast<std::uint8_t>(std::clamp(90 + noise, 0, 255));
+      }
+      px[3] = 255;
+      if (disc.bounds.contains(x, y)) {
+        disc.alpha.pixel(x - disc.bounds.x, y - disc.bounds.y)[0] = inside ? 255U : 0U;
+      }
+    }
+  }
+  return pixels;
+}
+
+// The build's staged models (patchy_copy_ai_runtime puts them beside the test binary,
+// which runs from the build directory).
+bool point_engine_at_build_models() {
+  patchy::ai::set_model_directory(std::filesystem::current_path() / "ai-models");
+#if defined(PATCHY_HAVE_AI_SELECTION)
+  // A build with ONNX Runtime stages the models; their absence is a real failure.
+  if (!patchy::ai::segmentation_available()) {
+    std::printf("automatic selection unavailable: %s\n", patchy::ai::segmentation_unavailable_reason().c_str());
+  }
+  CHECK(patchy::ai::segmentation_available());
+  return true;
+#else
+  CHECK(!patchy::ai::segmentation_available());
+  return false;
+#endif
+}
+
+double milliseconds_since(std::chrono::steady_clock::time_point start) {
+  return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+}
+
+void ai_sam_transform_scales_longest_side() {
+  const auto wide = patchy::ai::sam_transform(4000, 3000);
+  CHECK(wide.scaled_width == 1024);
+  CHECK(wide.scaled_height == 768);
+  CHECK(std::abs(wide.scale - 0.256) < 1e-9);
+  const auto tall = patchy::ai::sam_transform(300, 600);
+  CHECK(tall.scaled_width == 512);
+  CHECK(tall.scaled_height == 1024);
+  const auto point = patchy::ai::to_sam_point(wide, 1000.0, 500.0);
+  CHECK(std::abs(point.x - 256.0F) < 1e-3F);
+  CHECK(std::abs(point.y - 128.0F) < 1e-3F);
+}
+
+void ai_encoder_input_composites_over_white_and_resizes() {
+  const auto transparent = solid_rgba(200, 100, 10, 20, 30, 0);
+  const auto transform = patchy::ai::sam_transform(200, 100);
+  const auto input = patchy::ai::sam_encoder_input(transparent, transform);
+  CHECK(input.size() == static_cast<std::size_t>(1024 * 512 * 3));
+  CHECK(std::all_of(input.begin(), input.end(), [](float v) { return std::abs(v - 255.0F) < 0.01F; }));
+
+  const auto opaque = solid_rgba(2048, 1024, 10, 20, 30, 255);
+  const auto reduced = patchy::ai::sam_encoder_input(opaque, patchy::ai::sam_transform(2048, 1024));
+  CHECK(reduced.size() == static_cast<std::size_t>(1024 * 512 * 3));
+  CHECK(std::abs(reduced[0] - 10.0F) < 0.01F && std::abs(reduced[1] - 20.0F) < 0.01F &&
+        std::abs(reduced[2] - 30.0F) < 0.01F);
+}
+
+void ai_subject_input_is_imagenet_normalized_nchw() {
+  const auto white = solid_rgba(64, 32, 255, 255, 255, 255);
+  const auto input = patchy::ai::subject_model_input(white);
+  const std::size_t plane = 1024U * 1024U;
+  CHECK(input.size() == plane * 3U);
+  CHECK(std::abs(input[0] - (1.0F - 0.485F) / 0.229F) < 1e-4F);
+  CHECK(std::abs(input[plane + 5] - (1.0F - 0.456F) / 0.224F) < 1e-4F);
+  CHECK(std::abs(input[2 * plane + plane - 1] - (1.0F - 0.406F) / 0.225F) < 1e-4F);
+}
+
+void ai_logit_coverage_mappings() {
+  CHECK(patchy::ai::logit_to_coverage(0.0F, LogitMapping::SamEdgeRamp) == 128U);
+  CHECK(patchy::ai::logit_to_coverage(5.0F, LogitMapping::SamEdgeRamp) == 255U);
+  CHECK(patchy::ai::logit_to_coverage(-5.0F, LogitMapping::SamEdgeRamp) == 0U);
+  CHECK(patchy::ai::logit_to_coverage(0.0F, LogitMapping::Sigmoid) == 128U);
+  CHECK(patchy::ai::logit_to_coverage(10.0F, LogitMapping::Sigmoid) == 255U);
+  CHECK(patchy::ai::logit_to_coverage(-10.0F, LogitMapping::Sigmoid) == 0U);
+  const auto soft = patchy::ai::logit_to_coverage(1.0F, LogitMapping::Sigmoid);
+  CHECK(soft > 180U && soft < 200U);
+}
+
+void ai_document_mask_from_logits_upsamples_and_crops() {
+  // A 4x4 grid with one hot 2x2 block in the middle maps onto a 400x400 document.
+  std::vector<float> logits(16, -20.0F);
+  logits[5] = logits[6] = logits[9] = logits[10] = 20.0F;
+  const auto mask =
+      patchy::ai::document_mask_from_logits(logits.data(), 4, 4, 400, 400, LogitMapping::SamEdgeRamp);
+  CHECK(!mask.empty());
+  CHECK(mask.alpha.width() == mask.bounds.width && mask.alpha.height() == mask.bounds.height);
+  // The hot block covers document 100..300; the ramp keeps the edge within a few pixels.
+  CHECK(std::abs(mask.bounds.x - 100) <= 25 && std::abs(mask.bounds.y - 100) <= 25);
+  CHECK(std::abs(mask.bounds.x + mask.bounds.width - 300) <= 25);
+  CHECK(mask.alpha.pixel(200 - mask.bounds.x, 200 - mask.bounds.y)[0] == 255U);
+
+  std::vector<float> cold(16, -20.0F);
+  CHECK(patchy::ai::document_mask_from_logits(cold.data(), 4, 4, 400, 400, LogitMapping::Sigmoid).empty());
+}
+
+void ai_mask_iou_counts_threshold_overlap() {
+  AiMask a;
+  a.bounds = Rect{0, 0, 10, 10};
+  a.alpha = PixelBuffer(10, 10, PixelFormat::gray8());
+  a.alpha.clear(255);
+  AiMask b;
+  b.bounds = Rect{5, 0, 10, 10};
+  b.alpha = PixelBuffer(10, 10, PixelFormat::gray8());
+  b.alpha.clear(200);
+  CHECK(std::abs(patchy::ai::mask_iou(a, b) - 50.0 / 150.0) < 1e-9);
+  CHECK(patchy::ai::mask_iou(a, a) == 1.0);
+  CHECK(patchy::ai::mask_iou(AiMask{}, AiMask{}) == 1.0);
+  CHECK(patchy::ai::mask_iou(a, AiMask{}) == 0.0);
+}
+
+void ai_object_selection_box_and_point_find_the_disc() {
+  if (!point_engine_at_build_models()) {
+    std::printf("[SKIP] ai_object_selection_box_and_point_find_the_disc (build without automatic selection)\n");
+    return;
+  }
+  AiMask disc;
+  const auto scene = disc_scene(1200, 900, disc);
+  auto start = std::chrono::steady_clock::now();
+  const auto embedding = patchy::ai::sam_encode(scene);
+  std::printf("  MobileSAM encode %.0f ms\n", milliseconds_since(start));
+  CHECK(embedding != nullptr && embedding->values.size() == patchy::ai::kSamEmbeddingValues);
+
+  const Rect box{disc.bounds.x - 20, disc.bounds.y - 20, disc.bounds.width + 40, disc.bounds.height + 40};
+  start = std::chrono::steady_clock::now();
+  const auto boxed = patchy::ai::sam_select_box(*embedding, box);
+  std::printf("  MobileSAM box decode %.0f ms\n", milliseconds_since(start));
+  const auto box_iou = patchy::ai::mask_iou(boxed, disc);
+  std::printf("  box IoU %.3f\n", box_iou);
+  CHECK(box_iou >= 0.9);
+
+  start = std::chrono::steady_clock::now();
+  const auto pointed = patchy::ai::sam_select_point(*embedding, disc.bounds.x + disc.bounds.width * 0.5,
+                                                    disc.bounds.y + disc.bounds.height * 0.5);
+  std::printf("  MobileSAM point decode %.0f ms\n", milliseconds_since(start));
+  const auto point_iou = patchy::ai::mask_iou(pointed, disc);
+  std::printf("  point IoU %.3f\n", point_iou);
+  CHECK(point_iou >= 0.9);
+}
+
+void ai_select_subject_finds_the_disc() {
+  if (!point_engine_at_build_models()) {
+    std::printf("[SKIP] ai_select_subject_finds_the_disc (build without automatic selection)\n");
+    return;
+  }
+  AiMask disc;
+  const auto scene = disc_scene(900, 700, disc);
+  const auto start = std::chrono::steady_clock::now();
+  const auto matte = patchy::ai::subject_matte(scene);
+  std::printf("  BiRefNet subject matte %.0f ms (load included)\n", milliseconds_since(start));
+  const auto iou = patchy::ai::mask_iou(matte, disc);
+  std::printf("  subject IoU %.3f\n", iou);
+  CHECK(iou >= 0.85);
+}
+
+void ai_cancel_stops_inference_without_a_result() {
+  if (!point_engine_at_build_models()) {
+    std::printf("[SKIP] ai_cancel_stops_inference_without_a_result (build without automatic selection)\n");
+    return;
+  }
+  AiMask disc;
+  const auto scene = disc_scene(640, 480, disc);
+  patchy::ai::InferenceCancel early;
+  early.request();
+  bool cancelled = false;
+  try {
+    (void)patchy::ai::sam_encode(scene, &early);
+  } catch (const patchy::ai::InferenceCancelled&) {
+    cancelled = true;
+  }
+  CHECK(cancelled);
+
+  // A request mid-run terminates the subject model well before its multi-second run ends.
+  patchy::ai::InferenceCancel midway;
+  std::thread canceller([&midway] {
+    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+    midway.request();
+  });
+  cancelled = false;
+  const auto start = std::chrono::steady_clock::now();
+  try {
+    (void)patchy::ai::subject_matte(scene, &midway);
+  } catch (const patchy::ai::InferenceCancelled&) {
+    cancelled = true;
+  }
+  canceller.join();
+  std::printf("  cancelled after %.0f ms\n", milliseconds_since(start));
+  CHECK(cancelled);
+}
+
+void ai_models_load_from_unicode_directory() {
+  if (!point_engine_at_build_models()) {
+    std::printf("[SKIP] ai_models_load_from_unicode_directory (build without automatic selection)\n");
+    return;
+  }
+  const auto staged = patchy::ai::model_directory();
+  const auto dir = patchy::test::unicode_artifact_dir(patchy::test::kUnicodeCombinedStem);
+  for (const char* file : {"mobile_sam_image_encoder.onnx", "sam_mask_decoder_multi.onnx"}) {
+    std::filesystem::copy_file(staged / file, dir / file);
+  }
+  patchy::ai::release_models();
+  patchy::ai::set_model_directory(dir);
+  AiMask disc;
+  const auto scene = disc_scene(320, 240, disc);
+  bool loaded = false;
+  try {
+    const auto embedding = patchy::ai::sam_encode(scene);
+    loaded = !patchy::ai::sam_select_point(*embedding, 144.0, 132.0).empty();
+  } catch (const std::exception& error) {
+    std::printf("  unicode model load failed: %s\n", error.what());
+  }
+  patchy::ai::release_models();
+  patchy::ai::set_model_directory(staged);
+  patchy::test::remove_test_scratch_tree(dir);
+  CHECK(loaded);
+}
+
+}  // namespace
+
+std::vector<patchy::test::TestCase> ai_selection_tests() {
+  return {
+      {"ai_sam_transform_scales_longest_side", ai_sam_transform_scales_longest_side},
+      {"ai_encoder_input_composites_over_white_and_resizes", ai_encoder_input_composites_over_white_and_resizes},
+      {"ai_subject_input_is_imagenet_normalized_nchw", ai_subject_input_is_imagenet_normalized_nchw},
+      {"ai_logit_coverage_mappings", ai_logit_coverage_mappings},
+      {"ai_document_mask_from_logits_upsamples_and_crops", ai_document_mask_from_logits_upsamples_and_crops},
+      {"ai_mask_iou_counts_threshold_overlap", ai_mask_iou_counts_threshold_overlap},
+      {"ai_object_selection_box_and_point_find_the_disc", ai_object_selection_box_and_point_find_the_disc},
+      {"ai_select_subject_finds_the_disc", ai_select_subject_finds_the_disc},
+      {"ai_cancel_stops_inference_without_a_result", ai_cancel_stops_inference_without_a_result},
+      {"ai_models_load_from_unicode_directory", ai_models_load_from_unicode_directory},
+  };
+}

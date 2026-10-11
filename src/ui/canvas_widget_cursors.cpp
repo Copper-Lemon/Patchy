@@ -285,6 +285,10 @@ bool CanvasWidget::apply_selection_cursor_for_mode(SelectionMode mode) {
       // Shift/Alt never makes the crosshair jump or change weight.
       setCursor(selection_tool_cursor(mode));
       return true;
+    case CanvasTool::ObjectSelect:
+      // No Intersect mode (like Quick Select): Shift+Alt shows the Add badge.
+      setCursor(selection_tool_cursor(mode == SelectionMode::Intersect ? SelectionMode::Add : mode));
+      return true;
     default:
       return false;
   }

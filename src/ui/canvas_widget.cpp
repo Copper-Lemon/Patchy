@@ -272,7 +272,8 @@ bool CanvasWidget::pointer_gesture_active() const noexcept {
   return move_layer_selection_gesture_.has_value() || painting_ || drawing_shape_ || dragging_text_rect_ ||
          move_drag_pending_ ||
          moving_layer_ || dragging_transform_ || dragging_warp_handle_ || selecting_ ||
-         lassoing_ || quick_selecting_ || spot_healing_stroke_active_ || patch_tool_dragging_ ||
+         lassoing_ || quick_selecting_ || object_selecting_ || spot_healing_stroke_active_ ||
+         patch_tool_dragging_ ||
          moving_selection_ || marquee_resize_handle_ != TransformHandle::None || dragging_guide_ ||
          crop_dragging_out_ || crop_rotating_ ||
          crop_drag_handle_ != TransformHandle::None || pen_handle_dragging_ ||
@@ -433,6 +434,9 @@ void CanvasWidget::set_document_internal(Document* document, bool preserve_frame
   smudge_state_ = {};
   mixer_brush_state_ = {};
   cancel_quick_select_stroke();
+  cancel_object_select();
+  // Undo and redo swap Document copies in here; the pixel signature decides on next use.
+  mark_object_select_embedding_unverified();
   cancel_spot_heal_stroke();
   cancel_patch_tool_drag();
   cancel_crop_session();
@@ -542,6 +546,7 @@ void CanvasWidget::set_edit_locked(bool locked) noexcept {
     lassoing_ = false;
     cancel_magnetic_lasso();
     cancel_quick_select_stroke();
+    cancel_object_select();
     cancel_spot_heal_stroke();
     cancel_patch_tool_drag();
     cancel_crop_session();

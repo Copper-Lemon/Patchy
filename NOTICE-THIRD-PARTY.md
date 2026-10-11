@@ -183,6 +183,30 @@ Adobe DNG SDK fragments. The license texts are included at
 `src/formats/libraw/LICENSE.CDDL`, `src/formats/libraw/LICENSE.LGPL`, and
 `src/formats/libraw/COPYRIGHT`.
 
+## ONNX Runtime (desktop builds)
+
+Automatic selection (Select > Subject, the Object Selection tool) runs on ONNX
+Runtime 1.30.0's CPU execution provider, dynamically linked
+(`onnxruntime.dll` / `libonnxruntime`). Copyright (c) Microsoft Corporation,
+MIT License. Its license and `ThirdPartyNotices.txt` ship in `ai-models/` as
+`onnxruntime-LICENSE.txt` and `onnxruntime-ThirdPartyNotices.txt`.
+Source: https://github.com/microsoft/onnxruntime
+
+## Automatic selection models (desktop builds)
+
+Shipped unmodified in `ai-models/` (provenance and checksums in
+`docs/ai-selection.md`; the license texts, including Apache License 2.0, are in
+`ai-models/MODEL-LICENSES.txt`, from `third_party/ai-models/`):
+
+- `mobile_sam_image_encoder.onnx`, `sam_mask_decoder_multi.onnx`: MobileSAM
+  (Chaoning Zhang et al., https://github.com/ChaoningZhang/MobileSAM, Apache
+  License 2.0) with the Segment Anything mask decoder (Meta Platforms, Inc.,
+  https://github.com/facebookresearch/segment-anything, Apache License 2.0).
+  ONNX export by Acly (https://huggingface.co/Acly/MobileSAM, MIT License).
+- `birefnet_lite_general_1024.onnx`: BiRefNet_lite general (Peng Zheng et al.,
+  https://github.com/ZhengPeng7/BiRefNet, MIT License), the project's own ONNX
+  export, renamed.
+
 ## Bundled photo-texture pattern presets (Poly Haven, CC0)
 
 The 20 photo-based pattern presets under the "Textures" folder (embedded as

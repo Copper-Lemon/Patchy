@@ -73,6 +73,10 @@ struct PathSubpath;
 struct VectorPath;
 }
 
+namespace patchy::ai {
+struct SamEmbedding;
+}
+
 namespace patchy::ui {
 
 inline constexpr int kMaxBrushSize = 1024;
@@ -121,7 +125,9 @@ enum class CanvasTool {
   // They share the Pen's handlers with a fixed edit action each.
   AddAnchor,
   DeleteAnchor,
-  ConvertPoint
+  ConvertPoint,
+  // October 2026 Object Selection (append-only: values ride persisted settings).
+  ObjectSelect
 };
 
 // Which tool produced a committed vector path; MainWindow picks the layer
@@ -275,7 +281,7 @@ public:
 
   // Tools whose combine mode (New/Add/Subtract/Intersect) is tracked separately,
   // so switching between e.g. Lasso and Marquee preserves each tool's own mode.
-  static constexpr std::size_t kSelectionToolCount = 7;
+  static constexpr std::size_t kSelectionToolCount = 8;
   [[nodiscard]] static int selection_tool_index(CanvasTool tool) noexcept;
 
   enum class LayerEditTarget {
@@ -614,6 +620,18 @@ public:
   [[nodiscard]] int quick_select_size() const noexcept;
   void set_quick_select_sample_all_layers(bool enabled) noexcept;
   [[nodiscard]] bool quick_select_sample_all_layers() const noexcept;
+  void set_object_select_sample_all_layers(bool enabled) noexcept;
+  [[nodiscard]] bool object_select_sample_all_layers() const noexcept;
+  // Encoder runs the Object Selection tool has started (tests check the embedding is reused).
+  [[nodiscard]] int object_select_encodes_started() const noexcept;
+  // Combines an automatic-selection coverage mask (document coordinates, Grayscale8) with
+  // the selection as one undo entry. `operation` is the plain boolean (Replace, Add,
+  // Subtract, Intersect); the current Feather applies, and Anti-alias off thresholds the
+  // mask at 50%. Used by Select > Subject, Object Selection and the script API.
+  void apply_automatic_selection_mask(QRect bounds, QImage alpha, SelectionMode operation, QString history_label);
+  // The merged document as RGBA8888, rendered under the processing overlay when large
+  // (render_document_image_with_processing); what Select Subject analyzes.
+  [[nodiscard]] QImage merged_image_for_analysis();
   void set_quick_select_enhance_edge(bool enabled) noexcept;
   [[nodiscard]] bool quick_select_enhance_edge() const noexcept;
   // Magnetic Lasso options (Photoshop parity): Width = edge search diameter in document px,
@@ -1892,6 +1910,23 @@ private:
   void cancel_quick_select_stroke();
   void stamp_quick_select_segment(QPoint from, QPoint to);
   void draw_quick_select_stroke_overlay(QPainter& painter) const;
+  // Object Selection gesture (canvas_widget_object_select.cpp, docs/ai-selection.md). The
+  // drag only draws a plain rectangle outline; the network solves ONCE on release from ONE
+  // prompt (the box, or the click point) and the result combines by plain selection
+  // boolean. See the patent boundary in src/ai/segmentation_engine.hpp.
+  void begin_object_select(QPoint widget_position, QPoint document_point, Qt::KeyboardModifiers modifiers);
+  void extend_object_select(QPoint document_point);
+  void finish_object_select(QPoint widget_position);
+  void cancel_object_select();
+  void draw_object_select_overlay(QPainter& painter) const;
+  // The MobileSAM embedding of the current object-selection source, computed on a tracked
+  // worker the first time the tool is pressed and reused until the document, the sampled
+  // layer, Sample All Layers, or the sampled pixels change. Document change notifications
+  // only mark it for verification: the next press hashes the source pixels and re-encodes
+  // only when they differ (a selection-only undo keeps the embedding).
+  void ensure_object_select_embedding();
+  void invalidate_object_select_embedding() noexcept;
+  void mark_object_select_embedding_unverified() noexcept;
   // Spot Healing stroke lifecycle (canvas_widget_spot_healing.cpp). The drag
   // only accumulates the soft brush footprint (mask + overlay polyline); the
   // heal is computed ONCE in finish_spot_heal_stroke() after the gesture ends,
@@ -2424,7 +2459,7 @@ private:
   // entry. Indexed by selection_tool_index().
   std::array<SelectionMode, kSelectionToolCount> selection_modes_per_tool_{
       SelectionMode::Replace, SelectionMode::Replace, SelectionMode::Replace, SelectionMode::Replace,
-      SelectionMode::Replace, SelectionMode::Replace, SelectionMode::Replace};
+      SelectionMode::Replace, SelectionMode::Replace, SelectionMode::Replace, SelectionMode::Replace};
   // Set when a marquee drag begins with Alt held and no existing selection: the
   // press point is the center and the rectangle grows symmetrically.
   bool marquee_from_center_{false};
@@ -2501,6 +2536,23 @@ private:
   QRect quick_select_seed_bounds_;
   QPolygonF quick_select_stroke_points_;
   QPoint quick_select_last_document_point_;
+  bool object_selecting_{false};
+  QPoint object_select_press_widget_{};
+  QPoint object_select_release_widget_{};
+  QPoint object_select_press_{};
+  QPoint object_select_current_{};
+  bool object_select_sample_all_layers_{true};
+  // What was sampled; the pixels themselves are checked by object_select_source_hash_.
+  struct ObjectSelectEmbeddingKey {
+    bool sample_all_layers{true};
+    LayerId layer{0};
+    bool operator==(const ObjectSelectEmbeddingKey&) const = default;
+  };
+  std::optional<ObjectSelectEmbeddingKey> object_select_embedding_key_;
+  std::shared_future<std::shared_ptr<const patchy::ai::SamEmbedding>> object_select_embedding_;
+  std::uint64_t object_select_source_hash_{0};
+  bool object_select_embedding_unverified_{false};
+  int object_select_encodes_started_{0};
   // Spot Healing stroke state (canvas_widget_spot_healing.cpp): doc-sized
   // Grayscale8 soft footprint accumulated during the drag, healed once on
   // release from the press-time source snapshot.
