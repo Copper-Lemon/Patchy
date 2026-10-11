@@ -2080,6 +2080,10 @@ void ui_selection_arrow_keys_nudge() {
   after = canvas->selected_document_rect();
   CHECK(after->left() == before->left() + 11);
 
+  send_key(*canvas, Qt::Key_Left, Qt::KeypadModifier);
+  send_key(*canvas, Qt::Key_Up, Qt::KeypadModifier | Qt::ShiftModifier);
+  CHECK(canvas->selected_document_rect()->topLeft() == before->topLeft() + QPoint(10, -9));
+
   // Holding an arrow (auto-repeat key presses) keeps nudging the selection.
   const auto left_before_hold = canvas->selected_document_rect()->left();
   for (int i = 0; i < 3; ++i) {

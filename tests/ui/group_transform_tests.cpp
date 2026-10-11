@@ -22,6 +22,7 @@
 
 #include <QApplication>
 #include <QColor>
+#include <QEnterEvent>
 #include <QImage>
 #include <QListWidget>
 #include <QPushButton>
@@ -714,6 +715,121 @@ void ui_move_passive_transform_controls_frame_folder_and_multi_selection() {
   CHECK(!canvas->transform_controls_state().has_value());
 }
 
+void ui_move_nudge_refreshes_stationary_hover_outline() {
+  for (const bool auto_select : {false, true}) {
+    patchy::Document document(180, 120, patchy::PixelFormat::rgba8());
+    auto& background = document.add_pixel_layer(
+        "Background", solid_pixels(180, 120, patchy::PixelFormat::rgba8(), QColor(Qt::white)));
+    patchy::set_layer_locks_position(background, true);
+    patchy::Layer target(document.allocate_layer_id(), "Nudge Target",
+                         solid_pixels(40, 30, patchy::PixelFormat::rgba8(), QColor(25, 25, 25)));
+    const auto target_id = target.id();
+    target.set_bounds(patchy::Rect{70, 40, 40, 30});
+    document.add_layer(std::move(target));
+    document.set_active_layer(target_id);
+
+    patchy::ui::CanvasWidget canvas;
+    canvas.resize(660, 480);
+    canvas.set_document(&document);
+    canvas.set_zoom(3.0);
+    canvas.set_tool(patchy::ui::CanvasTool::Move);
+    canvas.set_auto_select_layer(auto_select);
+    canvas.set_show_transform_controls(false);
+    canvas.show();
+    QApplication::processEvents();
+    const auto hover = canvas.widget_position_for_document_point(QPoint(90, 55));
+    QEnterEvent enter(hover, hover, canvas.mapToGlobal(hover));
+    QApplication::sendEvent(&canvas, &enter);
+    send_mouse(canvas, QEvent::MouseMove, hover, Qt::NoButton, Qt::NoButton);
+    CHECK(canvas.underMouse());
+
+    const QColor outline_color(95, 170, 255);
+    const auto left_edge_pixels = [&](int x) {
+      const QRect edge(canvas.widget_position_for_document_point(QPoint(x, 44)),
+                       canvas.widget_position_for_document_point(QPoint(x, 66)));
+      return count_pixels_close(canvas.grab().toImage(), edge.adjusted(-1, 0, 1, 0), outline_color, 18);
+    };
+    CHECK(left_edge_pixels(70) > 20);
+    send_key(canvas, Qt::Key_Right);
+    CHECK(left_edge_pixels(71) > 20);
+    CHECK(left_edge_pixels(70) == 0);
+    send_key(canvas, Qt::Key_Right, Qt::ShiftModifier);
+    CHECK(left_edge_pixels(81) > 20);
+    CHECK(left_edge_pixels(71) == 0);
+    save_widget_artifact("ui_move_nudge_hover_outline", canvas);
+
+    // Moving beyond the stationary pointer clears the hover; returning under
+    // it restores the outline without needing a mouse event.
+    send_key(canvas, Qt::Key_Right, Qt::ShiftModifier);
+    CHECK(left_edge_pixels(81) == 0);
+    CHECK(left_edge_pixels(91) == 0);
+    send_key(canvas, Qt::Key_Left, Qt::ShiftModifier);
+    CHECK(left_edge_pixels(81) > 20);
+    CHECK(std::as_const(document).find_layer(target_id)->bounds().x == 81);
+
+    // Keyboard focus can stay on the canvas after the pointer leaves it.
+    QEvent leave(QEvent::Leave);
+    QApplication::sendEvent(&canvas, &leave);
+    CHECK(!canvas.underMouse());
+    send_key(canvas, Qt::Key_Left);
+    CHECK(left_edge_pixels(80) == 0);
+    CHECK(left_edge_pixels(81) == 0);
+  }
+}
+
+void ui_layer_and_free_transform_nudges_accept_keypad_modifier() {
+  for (const bool transforming : {false, true}) {
+    for (const auto keypad : {Qt::NoModifier, Qt::KeypadModifier}) {
+      patchy::Document document(180, 120, patchy::PixelFormat::rgba8());
+      patchy::Layer target(document.allocate_layer_id(), "Nudge Target",
+                           solid_pixels(40, 30, patchy::PixelFormat::rgba8(), QColor(25, 25, 25)));
+      const auto target_id = target.id();
+      target.set_bounds(patchy::Rect{70, 40, 40, 30});
+      document.add_layer(std::move(target));
+      document.set_active_layer(target_id);
+      patchy::ui::CanvasWidget canvas;
+      canvas.resize(660, 480);
+      canvas.set_document(&document);
+      canvas.set_tool(patchy::ui::CanvasTool::Move);
+      canvas.set_show_transform_controls(true);
+      canvas.show();
+      QApplication::processEvents();
+      if (transforming) {
+        CHECK(canvas.begin_free_transform());
+      }
+      const auto before = canvas.transform_controls_state();
+      CHECK(before.has_value());
+      const auto check_offset = [&](QPoint offset) {
+        const auto state = canvas.transform_controls_state();
+        CHECK(state.has_value());
+        CHECK(state->reference_position == before->reference_position + QPointF(offset));
+        if (transforming) {
+          CHECK(std::as_const(document).find_layer(target_id)->bounds().x == 70);
+          CHECK(std::as_const(document).find_layer(target_id)->bounds().y == 40);
+        }
+      };
+      send_key(canvas, Qt::Key_Right, keypad);
+      check_offset(QPoint(1, 0));
+      send_key(canvas, Qt::Key_Down, keypad | Qt::ShiftModifier);
+      check_offset(QPoint(1, 10));
+      send_key(canvas, Qt::Key_Left, keypad);
+      check_offset(QPoint(0, 10));
+      send_key(canvas, Qt::Key_Up, keypad | Qt::ShiftModifier);
+      check_offset(QPoint());
+
+      // Only the keypad flag is incidental; actual command modifiers must
+      // continue to block an ordinary nudge.
+      for (const auto modifier : {Qt::ControlModifier, Qt::AltModifier, Qt::MetaModifier}) {
+        send_key(canvas, Qt::Key_Right, keypad | modifier);
+        check_offset(QPoint());
+      }
+      if (transforming) {
+        send_key(canvas, Qt::Key_Escape);
+      }
+    }
+  }
+}
+
 // A Move-tool double-click neither starts nor commits Free Transform (it once
 // did both; a hand that slipped between the clicks dragged the box). Each
 // double-click replays the full sequence Qt delivers (press, release,
@@ -1220,6 +1336,9 @@ std::vector<patchy::test::TestCase> group_transform_tests() {
        ui_move_passive_transform_controls_frame_folder_and_multi_selection},
       {"ui_move_double_click_leaves_free_transform_alone",
        ui_move_double_click_leaves_free_transform_alone},
+      {"ui_move_nudge_refreshes_stationary_hover_outline", ui_move_nudge_refreshes_stationary_hover_outline},
+      {"ui_layer_and_free_transform_nudges_accept_keypad_modifier",
+       ui_layer_and_free_transform_nudges_accept_keypad_modifier},
       {"ui_pinball_folder_free_transform_end_to_end", ui_pinball_folder_free_transform_end_to_end},
       {"ui_select_all_free_transform_transforms_retronight_poster",
        ui_select_all_free_transform_transforms_retronight_poster},
