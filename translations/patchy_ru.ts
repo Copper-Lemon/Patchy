@@ -10798,10 +10798,6 @@ RGB: %2, %3, %4</translation>
         <translation>Перед использованием выделения объектов выберите растровый слой</translation>
     </message>
     <message>
-        <source>Analyzing image...</source>
-        <translation>Анализ изображения...</translation>
-    </message>
-    <message>
         <source>Object Selection failed: %1</source>
         <translation>Ошибка выделения объектов: %1</translation>
     </message>
@@ -10812,6 +10808,18 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Object Selection</source>
         <translation>Выделение объектов</translation>
+    </message>
+    <message>
+        <source>Analyzing image... %1%</source>
+        <translation>Анализ изображения... %1%</translation>
+    </message>
+    <message>
+        <source>Select Object needs a selection around the object</source>
+        <translation>Для «Выделить объект» нужно выделение вокруг объекта</translation>
+    </message>
+    <message>
+        <source>Select Object</source>
+        <translation>Выделить объект</translation>
     </message>
 </context>
 <context>
@@ -19186,48 +19194,12 @@ Y: %2
         <translation>Выделить предмет</translation>
     </message>
     <message>
-        <source>S&amp;ubject</source>
-        <translation>Пре&amp;дмет</translation>
-    </message>
-    <message>
         <source>Select the main subject of the image automatically</source>
         <translation>Автоматически выделить основной предмет изображения</translation>
     </message>
     <message>
         <source>Object Selection</source>
         <translation>Выделение объектов</translation>
-    </message>
-    <message>
-        <source>Open a document before using Select Subject</source>
-        <translation>Откройте документ, прежде чем использовать «Выделить предмет»</translation>
-    </message>
-    <message>
-        <source>Select Subject is not available in this build</source>
-        <translation>«Выделить предмет» недоступно в этой сборке</translation>
-    </message>
-    <message>
-        <source>Select Subject is unavailable in Quick Mask mode</source>
-        <translation>«Выделить предмет» недоступно в режиме быстрой маски</translation>
-    </message>
-    <message>
-        <source>Select Subject could not read the document</source>
-        <translation>«Выделить предмет» не удалось прочитать документ</translation>
-    </message>
-    <message>
-        <source>Selecting the subject...</source>
-        <translation>Выделение предмета...</translation>
-    </message>
-    <message>
-        <source>Select Subject cancelled</source>
-        <translation>«Выделить предмет» отменено</translation>
-    </message>
-    <message>
-        <source>Select Subject failed: %1</source>
-        <translation>Ошибка «Выделить предмет»: %1</translation>
-    </message>
-    <message>
-        <source>Select Subject found no subject</source>
-        <translation>«Выделить предмет» не нашло предмета</translation>
     </message>
     <message>
         <source>Selected the subject</source>
@@ -19240,6 +19212,82 @@ Y: %2
     <message>
         <source>Object Selection: active layer</source>
         <translation>Выделение объектов: активный слой</translation>
+    </message>
+    <message>
+        <source>Remove Background</source>
+        <translation>Удалить фон</translation>
+    </message>
+    <message>
+        <source>Select S&amp;ubject</source>
+        <translation>Выделить пре&amp;дмет</translation>
+    </message>
+    <message>
+        <source>Select &amp;Background</source>
+        <translation>Выделить &amp;фон</translation>
+    </message>
+    <message>
+        <source>Remove Bac&amp;kground</source>
+        <translation>Удалить ф&amp;он</translation>
+    </message>
+    <message>
+        <source>Hide the background with a layer mask on the active layer</source>
+        <translation>Скрыть фон маской слоя на активном слое</translation>
+    </message>
+    <message>
+        <source>Open a document before using %1</source>
+        <translation>Откройте документ, прежде чем использовать «%1»</translation>
+    </message>
+    <message>
+        <source>%1 is not available in this build</source>
+        <translation>«%1» недоступно в этой сборке</translation>
+    </message>
+    <message>
+        <source>%1 is unavailable in Quick Mask mode</source>
+        <translation>«%1» недоступно в режиме быстрой маски</translation>
+    </message>
+    <message>
+        <source>%1 could not read the document</source>
+        <translation>«%1» не удалось прочитать документ</translation>
+    </message>
+    <message>
+        <source>Finding the subject...</source>
+        <translation>Поиск предмета...</translation>
+    </message>
+    <message>
+        <source>%1 cancelled</source>
+        <translation>«%1» отменено</translation>
+    </message>
+    <message>
+        <source>%1 failed: %2</source>
+        <translation>Ошибка «%1»: %2</translation>
+    </message>
+    <message>
+        <source>%1 found no subject</source>
+        <translation>«%1» не нашло предмета</translation>
+    </message>
+    <message>
+        <source>Select Background</source>
+        <translation>Выделить фон</translation>
+    </message>
+    <message>
+        <source>Selected the background</source>
+        <translation>Фон выделен</translation>
+    </message>
+    <message>
+        <source>Removed the background with a layer mask</source>
+        <translation>Фон удалён с помощью маски слоя</translation>
+    </message>
+    <message>
+        <source>Select &amp;Object</source>
+        <translation>Выделить &amp;объект</translation>
+    </message>
+    <message>
+        <source>Selected the object</source>
+        <translation>Объект выделен</translation>
+    </message>
+    <message>
+        <source>Finding the subject... %1%</source>
+        <translation>Поиск предмета... %1%</translation>
     </message>
 </context>
 <context>
@@ -20784,6 +20832,18 @@ Y: %2
     <message>
         <source>Invalid objectSelect option: %1.</source>
         <translation>Недопустимый параметр objectSelect: %1.</translation>
+    </message>
+    <message>
+        <source>removeBackground needs a pixel, adjustment, or group layer.</source>
+        <translation>removeBackground требует растрового, корректирующего слоя или группы.</translation>
+    </message>
+    <message>
+        <source>removeBackground found no subject.</source>
+        <translation>removeBackground не нашло предмета.</translation>
+    </message>
+    <message>
+        <source>Invalid selectBackground option: %1.</source>
+        <translation>Недопустимый параметр selectBackground: %1.</translation>
     </message>
 </context>
 <context>

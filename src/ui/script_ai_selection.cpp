@@ -55,7 +55,9 @@ QString ScriptEngineHost::automatic_select(std::int64_t session_id, const Automa
   }
   const QSize size(document->width(), document->height());
   QImage source;
-  if (request.kind == AutomaticSelectionRequest::Kind::Subject || request.sample_all_layers) {
+  const bool subject_model = request.kind == AutomaticSelectionRequest::Kind::Subject ||
+                             request.kind == AutomaticSelectionRequest::Kind::Background;
+  if (subject_model || request.sample_all_layers) {
     source = qimage_from_document(*document, true).convertToFormat(QImage::Format_RGBA8888);
   } else {
     const auto active = document->active_layer_id();
@@ -72,7 +74,7 @@ QString ScriptEngineHost::automatic_select(std::int64_t session_id, const Automa
   patchy::ai::AiMask mask;
   try {
     const auto pixels = pixels_from_image_rgba(source);
-    if (request.kind == AutomaticSelectionRequest::Kind::Subject) {
+    if (subject_model) {
       mask = patchy::ai::subject_matte(pixels);
     } else {
       const auto embedding = patchy::ai::sam_encode(pixels);
@@ -92,6 +94,14 @@ QString ScriptEngineHost::automatic_select(std::int64_t session_id, const Automa
   for (int y = 0; y < mask.bounds.height; ++y) {
     std::memcpy(coverage.row(mask.bounds.y + y).data() + mask.bounds.x, std::as_const(mask.alpha).row(y).data(),
                 static_cast<std::size_t>(mask.bounds.width));
+  }
+  if (request.kind == AutomaticSelectionRequest::Kind::Background) {
+    // Everything the subject matte does not cover (plain inversion of the one result).
+    for (int y = 0; y < coverage.height(); ++y) {
+      for (auto& value : coverage.row(y)) {
+        value = static_cast<std::uint8_t>(255U - value);
+      }
+    }
   }
   feather_selection_coverage(coverage, request.feather);
   if (!request.antialias) {
@@ -116,6 +126,53 @@ QString ScriptEngineHost::automatic_select(std::int64_t session_id, const Automa
   return {};
 }
 
+QString ScriptEngineHost::remove_background(std::int64_t session_id, LayerId layer_id) {
+  configure_automatic_selection_models();
+  if (!patchy::ai::segmentation_available()) {
+    return tr("Automatic selection is not available in this build (%1).")
+        .arg(QString::fromStdString(patchy::ai::segmentation_unavailable_reason()));
+  }
+  const auto* document = session_document_const(session_id);
+  if (document == nullptr) {
+    return tr("The document is no longer open.");
+  }
+  const auto* layer = document->find_layer(layer_id);
+  if (layer == nullptr) {
+    return tr("The layer no longer exists.");
+  }
+  if (layer->kind() != LayerKind::Pixel && layer->kind() != LayerKind::Adjustment && layer->kind() != LayerKind::Group) {
+    return tr("removeBackground needs a pixel, adjustment, or group layer.");
+  }
+  patchy::ai::AiMask matte;
+  try {
+    matte = patchy::ai::subject_matte(
+        pixels_from_image_rgba(qimage_from_document(*document, true).convertToFormat(QImage::Format_RGBA8888)));
+  } catch (const std::exception& error) {
+    return tr("Automatic selection failed: %1").arg(QString::fromUtf8(error.what()));
+  }
+  if (matte.empty()) {
+    return tr("removeBackground found no subject.");
+  }
+  if (engine()->isInterrupted() || !prepare_mutation(session_id) || engine()->isInterrupted()) {
+    return tr("The script was interrupted.");
+  }
+  auto* writable_document = session_document(session_id);
+  auto* writable_layer = writable_document != nullptr ? writable_document->find_layer(layer_id) : nullptr;
+  if (writable_layer == nullptr) {
+    return tr("The layer no longer exists.");
+  }
+  apply_subject_matte_to_layer_mask(*writable_document, *writable_layer, matte);
+  note_structure_changed(session_id);
+  return {};
+}
+
+void ScriptLayerObject::removeBackground() {
+  const ScriptApiCall api_call(host_);
+  if (const auto error = host_.remove_background(session_id_, layer_id_); !error.isEmpty()) {
+    host_.throw_js_error(error);
+  }
+}
+
 bool ScriptSelectionObject::automatic_selection_available() const {
   const ScriptApiCall api_call(host_);
   configure_automatic_selection_models();
@@ -123,17 +180,28 @@ bool ScriptSelectionObject::automatic_selection_available() const {
 }
 
 void ScriptSelectionObject::selectSubject(const QJSValue& options) {
+  run_subject_selection(options, false);
+}
+
+void ScriptSelectionObject::selectBackground(const QJSValue& options) {
+  run_subject_selection(options, true);
+}
+
+void ScriptSelectionObject::run_subject_selection(const QJSValue& options, bool background) {
   const ScriptApiCall api_call(host_);
   ScriptEngineHost::AutomaticSelectionRequest request;
   try {
     const auto args = script_vector::object(options, true);
     script_vector::keys(args, {QStringLiteral("operation"), QStringLiteral("feather"), QStringLiteral("antialias")});
-    request.kind = ScriptEngineHost::AutomaticSelectionRequest::Kind::Subject;
+    request.kind = background ? ScriptEngineHost::AutomaticSelectionRequest::Kind::Background
+                              : ScriptEngineHost::AutomaticSelectionRequest::Kind::Subject;
     request.operation = operation_index(script_vector::string(args, QStringLiteral("operation"), QStringLiteral("replace")), true);
     request.feather = script_vector::number(args, QStringLiteral("feather"), 0, 0, kMaxScriptAutomaticFeather);
     request.antialias = script_vector::boolean(args, QStringLiteral("antialias"), true);
   } catch (const std::exception& error) {
-    host_.throw_js_error(ScriptEngineHost::tr("Invalid selectSubject option: %1.").arg(QString::fromUtf8(error.what())));
+    const auto message = background ? ScriptEngineHost::tr("Invalid selectBackground option: %1.")
+                                    : ScriptEngineHost::tr("Invalid selectSubject option: %1.");
+    host_.throw_js_error(message.arg(QString::fromUtf8(error.what())));
     return;
   }
   if (const auto error = host_.automatic_select(session_id_, request); !error.isEmpty()) {

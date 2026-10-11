@@ -745,6 +745,10 @@ void CanvasWidget::set_selection_context_actions_callback(std::function<QList<QA
   selection_context_actions_callback_ = std::move(callback);
 }
 
+void CanvasWidget::set_selection_tool_context_actions_callback(std::function<QList<QAction*>()> callback) {
+  selection_tool_context_actions_callback_ = std::move(callback);
+}
+
 void CanvasWidget::set_shape_context_actions_callback(std::function<QList<QAction*>()> callback) {
   shape_context_actions_callback_ = std::move(callback);
 }

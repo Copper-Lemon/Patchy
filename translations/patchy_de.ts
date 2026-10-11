@@ -10768,10 +10768,6 @@ RGB: %2, %3, %4</translation>
         <translation>Wählen Sie eine Pixelebene aus, bevor Sie die Objektauswahl verwenden</translation>
     </message>
     <message>
-        <source>Analyzing image...</source>
-        <translation>Bild wird analysiert...</translation>
-    </message>
-    <message>
         <source>Object Selection failed: %1</source>
         <translation>Objektauswahl fehlgeschlagen: %1</translation>
     </message>
@@ -10782,6 +10778,18 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Object Selection</source>
         <translation>Objektauswahl</translation>
+    </message>
+    <message>
+        <source>Analyzing image... %1%</source>
+        <translation>Bild wird analysiert... %1%</translation>
+    </message>
+    <message>
+        <source>Select Object needs a selection around the object</source>
+        <translation>Objekt auswählen benötigt eine Auswahl um das Objekt</translation>
+    </message>
+    <message>
+        <source>Select Object</source>
+        <translation>Objekt auswählen</translation>
     </message>
 </context>
 <context>
@@ -19129,48 +19137,12 @@ In Bilder umgewandelt: %1.</translation>
         <translation>Motiv auswählen</translation>
     </message>
     <message>
-        <source>S&amp;ubject</source>
-        <translation>Mot&amp;iv</translation>
-    </message>
-    <message>
         <source>Select the main subject of the image automatically</source>
         <translation>Das Hauptmotiv des Bildes automatisch auswählen</translation>
     </message>
     <message>
         <source>Object Selection</source>
         <translation>Objektauswahl</translation>
-    </message>
-    <message>
-        <source>Open a document before using Select Subject</source>
-        <translation>Öffnen Sie ein Dokument, bevor Sie „Motiv auswählen“ verwenden</translation>
-    </message>
-    <message>
-        <source>Select Subject is not available in this build</source>
-        <translation>„Motiv auswählen“ ist in diesem Build nicht verfügbar</translation>
-    </message>
-    <message>
-        <source>Select Subject is unavailable in Quick Mask mode</source>
-        <translation>„Motiv auswählen“ ist im Maskierungsmodus nicht verfügbar</translation>
-    </message>
-    <message>
-        <source>Select Subject could not read the document</source>
-        <translation>„Motiv auswählen“ konnte das Dokument nicht lesen</translation>
-    </message>
-    <message>
-        <source>Selecting the subject...</source>
-        <translation>Motiv wird ausgewählt...</translation>
-    </message>
-    <message>
-        <source>Select Subject cancelled</source>
-        <translation>„Motiv auswählen“ abgebrochen</translation>
-    </message>
-    <message>
-        <source>Select Subject failed: %1</source>
-        <translation>„Motiv auswählen“ fehlgeschlagen: %1</translation>
-    </message>
-    <message>
-        <source>Select Subject found no subject</source>
-        <translation>„Motiv auswählen“ hat kein Motiv gefunden</translation>
     </message>
     <message>
         <source>Selected the subject</source>
@@ -19183,6 +19155,82 @@ In Bilder umgewandelt: %1.</translation>
     <message>
         <source>Object Selection: active layer</source>
         <translation>Objektauswahl: aktive Ebene</translation>
+    </message>
+    <message>
+        <source>Remove Background</source>
+        <translation>Hintergrund entfernen</translation>
+    </message>
+    <message>
+        <source>Select S&amp;ubject</source>
+        <translation>Mot&amp;iv auswählen</translation>
+    </message>
+    <message>
+        <source>Select &amp;Background</source>
+        <translation>&amp;Hintergrund auswählen</translation>
+    </message>
+    <message>
+        <source>Remove Bac&amp;kground</source>
+        <translation>Hintergrund ent&amp;fernen</translation>
+    </message>
+    <message>
+        <source>Hide the background with a layer mask on the active layer</source>
+        <translation>Den Hintergrund mit einer Ebenenmaske auf der aktiven Ebene ausblenden</translation>
+    </message>
+    <message>
+        <source>Open a document before using %1</source>
+        <translation>Öffnen Sie ein Dokument, bevor Sie %1 verwenden</translation>
+    </message>
+    <message>
+        <source>%1 is not available in this build</source>
+        <translation>%1 ist in diesem Build nicht verfügbar</translation>
+    </message>
+    <message>
+        <source>%1 is unavailable in Quick Mask mode</source>
+        <translation>%1 ist im Maskierungsmodus nicht verfügbar</translation>
+    </message>
+    <message>
+        <source>%1 could not read the document</source>
+        <translation>%1 konnte das Dokument nicht lesen</translation>
+    </message>
+    <message>
+        <source>Finding the subject...</source>
+        <translation>Motiv wird gesucht...</translation>
+    </message>
+    <message>
+        <source>%1 cancelled</source>
+        <translation>%1 abgebrochen</translation>
+    </message>
+    <message>
+        <source>%1 failed: %2</source>
+        <translation>%1 fehlgeschlagen: %2</translation>
+    </message>
+    <message>
+        <source>%1 found no subject</source>
+        <translation>%1 hat kein Motiv gefunden</translation>
+    </message>
+    <message>
+        <source>Select Background</source>
+        <translation>Hintergrund auswählen</translation>
+    </message>
+    <message>
+        <source>Selected the background</source>
+        <translation>Hintergrund ausgewählt</translation>
+    </message>
+    <message>
+        <source>Removed the background with a layer mask</source>
+        <translation>Hintergrund mit einer Ebenenmaske entfernt</translation>
+    </message>
+    <message>
+        <source>Select &amp;Object</source>
+        <translation>&amp;Objekt auswählen</translation>
+    </message>
+    <message>
+        <source>Selected the object</source>
+        <translation>Objekt ausgewählt</translation>
+    </message>
+    <message>
+        <source>Finding the subject... %1%</source>
+        <translation>Motiv wird gesucht... %1%</translation>
     </message>
 </context>
 <context>
@@ -20726,6 +20774,18 @@ In Bilder umgewandelt: %1.</translation>
     <message>
         <source>Invalid objectSelect option: %1.</source>
         <translation>Ungültige objectSelect-Option: %1.</translation>
+    </message>
+    <message>
+        <source>removeBackground needs a pixel, adjustment, or group layer.</source>
+        <translation>removeBackground benötigt eine Pixel-, Einstellungs- oder Gruppenebene.</translation>
+    </message>
+    <message>
+        <source>removeBackground found no subject.</source>
+        <translation>removeBackground hat kein Motiv gefunden.</translation>
+    </message>
+    <message>
+        <source>Invalid selectBackground option: %1.</source>
+        <translation>Ungültige selectBackground-Option: %1.</translation>
     </message>
 </context>
 <context>

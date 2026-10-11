@@ -2410,6 +2410,17 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   } else {
     select_subject_button_->hide();
   }
+  remove_background_button_ = new QPushButton(tr("Remove Background"), toolbar);
+  remove_background_button_->setObjectName(QStringLiteral("removeBackgroundButton"));
+  bind_widget_text(remove_background_button_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Remove Background"));
+  bind_tooltip(remove_background_button_,
+               QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Hide the background with a layer mask on the active layer"));
+  if (patchy::ai::segmentation_available()) {
+    add_option_widget(remove_background_button_, {CanvasTool::ObjectSelect});
+  } else {
+    remove_background_button_->hide();
+  }
+  connect(remove_background_button_, &QPushButton::clicked, this, [this] { remove_background(); });
   connect(select_subject_button_, &QPushButton::clicked, this, [this] {
     // The tool's own combine mode applies, so Add grows an existing selection.
     auto mode = canvas_ != nullptr ? canvas_->selection_mode() : CanvasWidget::SelectionMode::Replace;

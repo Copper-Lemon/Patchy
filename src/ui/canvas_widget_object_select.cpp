@@ -128,6 +128,8 @@ void CanvasWidget::ensure_object_select_embedding() {
   object_select_source_hash_ = signature;
   object_select_embedding_unverified_ = false;
   ++object_select_encodes_started_;
+  object_select_encode_started_.start();
+  object_select_encode_pending_ = true;
   run_tracked_background_worker([promise, source = std::move(source)] {
     try {
       promise->set_value(patchy::ai::sam_encode(pixels_from_image_rgba(source)));
@@ -204,20 +206,38 @@ void CanvasWidget::finish_object_select(QPoint widget_position) {
     return;
   }
 
+  solve_object_select(is_click, object_select_press_, box, selection_operation_, tr("Object Selection"));
+}
+
+// The one release-time (or command-time) decoder run: a click or a box, never both.
+bool CanvasWidget::solve_object_select(bool is_click, QPoint point, QRect box, SelectionMode operation,
+                                       QString history_label) {
   auto embedding_future = object_select_embedding_;
   begin_processing_operation();
-  set_processing_operation_message(tr("Analyzing image..."));
+  // The encoder reports no progress of its own; the percent is an estimate from the last
+  // encode on this machine, held below 100 until the embedding is actually ready.
+  const auto estimate_ms = std::max<qint64>(200, object_select_last_encode_ms_);
+  const auto started = object_select_encode_started_;
   wait_for_processing_operation(
-      [&embedding_future] {
-        return embedding_future.wait_for(std::chrono::milliseconds(16)) == std::future_status::ready;
+      [&] {
+        if (embedding_future.wait_for(std::chrono::milliseconds(16)) == std::future_status::ready) {
+          return true;
+        }
+        const auto elapsed = started.isValid() ? started.elapsed() : 0;
+        const auto percent = std::clamp<qint64>(elapsed * 100 / estimate_ms, 1, 95);
+        set_processing_operation_message(tr("Analyzing image... %1%").arg(percent));
+        return false;
       },
       true);
   patchy::ai::AiMask mask;
   QString failure;
   try {
     const auto embedding = embedding_future.get();
+    if (object_select_encode_started_.isValid() && object_select_encode_pending_) {
+      object_select_last_encode_ms_ = object_select_encode_started_.elapsed();
+      object_select_encode_pending_ = false;
+    }
     if (is_click) {
-      const auto point = object_select_press_;
       mask = patchy::ai::sam_select_point(*embedding, point.x() + 0.5, point.y() + 0.5);
     } else {
       mask = patchy::ai::sam_select_box(*embedding, Rect{box.x(), box.y(), box.width(), box.height()});
@@ -231,17 +251,41 @@ void CanvasWidget::finish_object_select(QPoint widget_position) {
   if (!failure.isEmpty()) {
     report_status_error(tr("Object Selection failed: %1").arg(failure));
     update();
-    return;
+    return false;
   }
   if (mask.empty()) {
     if (status_callback_) {
       status_callback_(tr("Object Selection found no object there"));
     }
     update();
-    return;
+    return false;
   }
   apply_automatic_selection_mask(QRect(mask.bounds.x, mask.bounds.y, mask.bounds.width, mask.bounds.height),
-                                 grayscale_image_from_mask(mask), selection_operation_, tr("Object Selection"));
+                                 grayscale_image_from_mask(mask), operation, std::move(history_label));
+  return true;
+}
+
+bool CanvasWidget::select_object_in_selection() {
+  if (document_ == nullptr || !has_selection()) {
+    report_status_error(tr("Select Object needs a selection around the object"));
+    return false;
+  }
+  if (!patchy::ai::segmentation_available()) {
+    report_status_error(tr("Object Selection is not available in this build"));
+    return false;
+  }
+  const auto box =
+      selected_document_region().boundingRect().intersected(QRect(0, 0, document_->width(), document_->height()));
+  if (box.isEmpty()) {
+    return false;
+  }
+  ensure_object_select_embedding();
+  if (!object_select_embedding_.valid()) {
+    report_status_error(tr("Select a pixel layer before using Object Selection"));
+    return false;
+  }
+  // The selection's bounding box is the one box prompt; the object replaces the selection.
+  return solve_object_select(false, QPoint(), box, SelectionMode::Replace, tr("Select Object"));
 }
 
 QImage CanvasWidget::merged_image_for_analysis() {

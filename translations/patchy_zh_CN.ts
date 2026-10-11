@@ -10738,10 +10738,6 @@ RGB：%2, %3, %4</translation>
         <translation>使用对象选择前请先选择一个像素图层</translation>
     </message>
     <message>
-        <source>Analyzing image...</source>
-        <translation>正在分析图像...</translation>
-    </message>
-    <message>
         <source>Object Selection failed: %1</source>
         <translation>对象选择失败：%1</translation>
     </message>
@@ -10752,6 +10748,18 @@ RGB：%2, %3, %4</translation>
     <message>
         <source>Object Selection</source>
         <translation>对象选择</translation>
+    </message>
+    <message>
+        <source>Analyzing image... %1%</source>
+        <translation>正在分析图像... %1%</translation>
+    </message>
+    <message>
+        <source>Select Object needs a selection around the object</source>
+        <translation>选择对象需要先在对象周围建立选区</translation>
+    </message>
+    <message>
+        <source>Select Object</source>
+        <translation>选择对象</translation>
     </message>
 </context>
 <context>
@@ -19072,48 +19080,12 @@ Baked into images: %1.</source>
         <translation>选择主体</translation>
     </message>
     <message>
-        <source>S&amp;ubject</source>
-        <translation>主体(&amp;U)</translation>
-    </message>
-    <message>
         <source>Select the main subject of the image automatically</source>
         <translation>自动选择图像的主体</translation>
     </message>
     <message>
         <source>Object Selection</source>
         <translation>对象选择</translation>
-    </message>
-    <message>
-        <source>Open a document before using Select Subject</source>
-        <translation>使用选择主体前请先打开文档</translation>
-    </message>
-    <message>
-        <source>Select Subject is not available in this build</source>
-        <translation>此版本中无法使用选择主体</translation>
-    </message>
-    <message>
-        <source>Select Subject is unavailable in Quick Mask mode</source>
-        <translation>快速蒙版模式下无法使用选择主体</translation>
-    </message>
-    <message>
-        <source>Select Subject could not read the document</source>
-        <translation>选择主体无法读取文档</translation>
-    </message>
-    <message>
-        <source>Selecting the subject...</source>
-        <translation>正在选择主体...</translation>
-    </message>
-    <message>
-        <source>Select Subject cancelled</source>
-        <translation>已取消选择主体</translation>
-    </message>
-    <message>
-        <source>Select Subject failed: %1</source>
-        <translation>选择主体失败：%1</translation>
-    </message>
-    <message>
-        <source>Select Subject found no subject</source>
-        <translation>选择主体未找到主体</translation>
     </message>
     <message>
         <source>Selected the subject</source>
@@ -19126,6 +19098,82 @@ Baked into images: %1.</source>
     <message>
         <source>Object Selection: active layer</source>
         <translation>对象选择：当前图层</translation>
+    </message>
+    <message>
+        <source>Remove Background</source>
+        <translation>移除背景</translation>
+    </message>
+    <message>
+        <source>Select S&amp;ubject</source>
+        <translation>选择主体(&amp;U)</translation>
+    </message>
+    <message>
+        <source>Select &amp;Background</source>
+        <translation>选择背景(&amp;B)</translation>
+    </message>
+    <message>
+        <source>Remove Bac&amp;kground</source>
+        <translation>移除背景(&amp;K)</translation>
+    </message>
+    <message>
+        <source>Hide the background with a layer mask on the active layer</source>
+        <translation>用活动图层上的图层蒙版隐藏背景</translation>
+    </message>
+    <message>
+        <source>Open a document before using %1</source>
+        <translation>使用%1前请先打开文档</translation>
+    </message>
+    <message>
+        <source>%1 is not available in this build</source>
+        <translation>此版本中无法使用%1</translation>
+    </message>
+    <message>
+        <source>%1 is unavailable in Quick Mask mode</source>
+        <translation>快速蒙版模式下无法使用%1</translation>
+    </message>
+    <message>
+        <source>%1 could not read the document</source>
+        <translation>%1无法读取文档</translation>
+    </message>
+    <message>
+        <source>Finding the subject...</source>
+        <translation>正在查找主体...</translation>
+    </message>
+    <message>
+        <source>%1 cancelled</source>
+        <translation>已取消%1</translation>
+    </message>
+    <message>
+        <source>%1 failed: %2</source>
+        <translation>%1失败：%2</translation>
+    </message>
+    <message>
+        <source>%1 found no subject</source>
+        <translation>%1未找到主体</translation>
+    </message>
+    <message>
+        <source>Select Background</source>
+        <translation>选择背景</translation>
+    </message>
+    <message>
+        <source>Selected the background</source>
+        <translation>已选择背景</translation>
+    </message>
+    <message>
+        <source>Removed the background with a layer mask</source>
+        <translation>已用图层蒙版移除背景</translation>
+    </message>
+    <message>
+        <source>Select &amp;Object</source>
+        <translation>选择对象(&amp;O)</translation>
+    </message>
+    <message>
+        <source>Selected the object</source>
+        <translation>已选择对象</translation>
+    </message>
+    <message>
+        <source>Finding the subject... %1%</source>
+        <translation>正在查找主体... %1%</translation>
     </message>
 </context>
 <context>
@@ -20668,6 +20716,18 @@ Baked into images: %1.</source>
     <message>
         <source>Invalid objectSelect option: %1.</source>
         <translation>无效的 objectSelect 选项：%1。</translation>
+    </message>
+    <message>
+        <source>removeBackground needs a pixel, adjustment, or group layer.</source>
+        <translation>removeBackground 需要像素图层、调整图层或组。</translation>
+    </message>
+    <message>
+        <source>removeBackground found no subject.</source>
+        <translation>removeBackground 未找到主体。</translation>
+    </message>
+    <message>
+        <source>Invalid selectBackground option: %1.</source>
+        <translation>无效的 selectBackground 选项：%1。</translation>
     </message>
 </context>
 <context>

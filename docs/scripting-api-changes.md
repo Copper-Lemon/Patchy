@@ -7,6 +7,12 @@ attachment, palettes, vector automation, brushes, Slow mode and Pause) are in
 [scripting-api-changes-through-2026-09-11.md](scripting-api-changes-through-2026-09-11.md).
 Every entry below is API 1.
 
+2026-10-11 (additive): `doc.selection.selectBackground({operation, feather, antialias})`
+(Select > Select Background, the inverse of `selectSubject`) and `layer.removeBackground()`
+(Layer > Layer Mask > Remove Background: the subject matte as the layer's mask, multiplied into
+an existing mask). Both throw when the build has no automatic selection. Pinned by
+`ui_script_select_background_and_remove_background`.
+
 2026-10-11 (additive): automatic selection on `doc.selection`:
 `selectSubject({operation, feather, antialias})` (Select > Subject),
 `objectSelect({rect} | {point}, operation, sampleAllLayers, feather, antialias)` (the Object

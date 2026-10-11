@@ -8,18 +8,23 @@
 #include "ui/script_engine.hpp"
 
 #include "ai/segmentation_engine.hpp"
+#include "core/pixel_depth.hpp"
 #include "test_harness.hpp"
+#include "ui_test_access.hpp"
 #include "ui_test_support.hpp"
 
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
 #include <QElapsedTimer>
+#include <QMenu>
+#include <QStringList>
 #include <QPushButton>
 
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <utility>
 
 namespace {
 
@@ -252,6 +257,180 @@ void ui_script_automatic_selection_selects_objects() {
   CHECK(!host.last_run_had_error());
 }
 
+void ui_select_background_selects_everything_but_the_subject() {
+  if (!automatic_selection_or_skip("ui_select_background_selects_everything_but_the_subject")) {
+    return;
+  }
+  const QPoint center(150, 120);
+  patchy::ui::MainWindow window;
+  show_window(window);
+  window.add_document_session(disc_document(300, 240, center, 55), QStringLiteral("Select Background"));
+  QApplication::processEvents();
+  auto* canvas = require_canvas(window);
+  require_action(window, "selectBackgroundAction")->trigger();
+  QApplication::processEvents();
+  CHECK(canvas->has_selection());
+  const auto region = canvas->selected_document_region();
+  CHECK(!region.contains(center));
+  CHECK(region.contains(QPoint(5, 5)));
+  CHECK(region.contains(QPoint(294, 234)));
+  require_action_by_text(window, QStringLiteral("Undo"))->trigger();
+  QApplication::processEvents();
+  CHECK(!canvas->has_selection());
+}
+
+void ui_remove_background_masks_the_layer_in_one_undo_step() {
+  if (!automatic_selection_or_skip("ui_remove_background_masks_the_layer_in_one_undo_step")) {
+    return;
+  }
+  const QPoint center(150, 120);
+  patchy::ui::MainWindow window;
+  show_window(window);
+  window.add_document_session(disc_document(300, 240, center, 55), QStringLiteral("Remove Background"));
+  QApplication::processEvents();
+  auto* canvas = require_canvas(window);
+  require_action(window, "layerRemoveBackgroundAction")->trigger();
+  QApplication::processEvents();
+  CHECK(!canvas->has_selection());  // the selection is untouched
+  const auto& layer = std::as_const(patchy::ui::MainWindowTestAccess::document(window)).layers().front();
+  CHECK(layer.mask().has_value());
+  const auto& mask = *layer.mask();
+  const auto mask_value = [&mask](QPoint point) {
+    if (!mask.bounds.contains(point.x(), point.y())) {
+      return static_cast<float>(mask.default_color) / 255.0F;
+    }
+    return patchy::coverage_at(mask.pixels, point.x() - mask.bounds.x, point.y() - mask.bounds.y);
+  };
+  CHECK(mask_value(center) > 0.9F);
+  CHECK(mask_value(QPoint(5, 5)) < 0.1F);
+  CHECK(mask_value(QPoint(294, 234)) < 0.1F);
+  require_action_by_text(window, QStringLiteral("Undo"))->trigger();
+  QApplication::processEvents();
+  CHECK(!std::as_const(patchy::ui::MainWindowTestAccess::document(window)).layers().front().mask().has_value());
+}
+
+void ui_selection_tool_context_menu_offers_subject_commands() {
+  if (!automatic_selection_or_skip("ui_selection_tool_context_menu_offers_subject_commands")) {
+    return;
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+  window.add_document_session(disc_document(300, 240, QPoint(150, 120), 55), QStringLiteral("Context menu"));
+  QApplication::processEvents();
+  auto* canvas = require_canvas(window);
+  require_action(window, "toolObjectSelectionAction")->trigger();
+  QApplication::processEvents();
+  const auto point = canvas->widget_position_for_document_point(QPoint(20, 20));
+  send_mouse(*canvas, QEvent::MouseButtonPress, point, Qt::RightButton, Qt::RightButton);
+  send_mouse(*canvas, QEvent::MouseButtonRelease, point, Qt::RightButton, Qt::NoButton);
+  QApplication::processEvents();
+  QMenu* menu = nullptr;
+  for (auto* candidate : canvas->findChildren<QMenu*>(QStringLiteral("canvasContextMenu"))) {
+    if (candidate->isVisible()) {
+      menu = candidate;
+    }
+  }
+  CHECK(menu != nullptr);
+  QStringList names;
+  for (auto* action : menu->actions()) {
+    names << action->objectName();
+  }
+  CHECK(names.contains(QStringLiteral("selectSubjectAction")));
+  CHECK(names.contains(QStringLiteral("selectBackgroundAction")));
+  CHECK(names.contains(QStringLiteral("layerRemoveBackgroundAction")));
+  menu->close();
+  QApplication::processEvents();
+}
+
+void ui_select_object_in_marquee_selection_finds_the_object() {
+  if (!automatic_selection_or_skip("ui_select_object_in_marquee_selection_finds_the_object")) {
+    return;
+  }
+  const QPoint center(150, 120);
+  patchy::ui::MainWindow window;
+  show_window(window);
+  window.add_document_session(disc_document(300, 240, center, 55), QStringLiteral("Select Object"));
+  QApplication::processEvents();
+  auto* canvas = require_canvas(window);
+  require_action_by_text(window, QStringLiteral("Marquee"))->trigger();
+  QApplication::processEvents();
+  const auto widget_point = [canvas](QPoint document_point) {
+    return canvas->widget_position_for_document_point(document_point);
+  };
+  send_mouse(*canvas, QEvent::MouseButtonPress, widget_point(QPoint(70, 40)), Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*canvas, QEvent::MouseMove, widget_point(QPoint(150, 120)), Qt::NoButton, Qt::LeftButton);
+  send_mouse(*canvas, QEvent::MouseMove, widget_point(QPoint(232, 205)), Qt::NoButton, Qt::LeftButton);
+  send_mouse(*canvas, QEvent::MouseButtonRelease, widget_point(QPoint(232, 205)), Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(canvas->selected_document_region().contains(QPoint(75, 45)));  // the marquee's corner
+
+  // The right-click menu inside the selection offers Select Object.
+  send_mouse(*canvas, QEvent::MouseButtonPress, widget_point(center), Qt::RightButton, Qt::RightButton);
+  send_mouse(*canvas, QEvent::MouseButtonRelease, widget_point(center), Qt::RightButton, Qt::NoButton);
+  QApplication::processEvents();
+  QAction* select_object = nullptr;
+  for (auto* menu : canvas->findChildren<QMenu*>(QStringLiteral("canvasContextMenu"))) {
+    if (menu->isVisible()) {
+      for (auto* action : menu->actions()) {
+        if (action->objectName() == QStringLiteral("selectObjectInSelectionAction")) {
+          select_object = action;
+        }
+      }
+      menu->close();
+    }
+  }
+  QApplication::processEvents();
+  CHECK(select_object != nullptr);
+  select_object->trigger();
+  QApplication::processEvents();
+  const auto region = canvas->selected_document_region();
+  CHECK(region.contains(center));
+  CHECK(!region.contains(QPoint(75, 45)));  // the object replaced the rectangle
+  require_action_by_text(window, QStringLiteral("Undo"))->trigger();
+  QApplication::processEvents();
+  CHECK(canvas->selected_document_region().contains(QPoint(75, 45)));
+}
+
+void ui_script_select_background_and_remove_background() {
+  if (!automatic_selection_or_skip("ui_script_select_background_and_remove_background")) {
+    return;
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+  window.add_document_session(disc_document(300, 240, QPoint(150, 120), 55), QStringLiteral("Script background"));
+  QApplication::processEvents();
+  auto& host = window.script_engine_host();
+  patchy::ui::ScriptEngineHost::RunOptions options;
+  options.name = QStringLiteral("subject-background");
+  (void)host.run_source(QStringLiteral(R"JS(
+    var d = app.activeDocument;
+    d.selection.selectBackground();
+    var b = d.selection.bounds;
+    if (!b || b.x !== 0 || b.y !== 0 || b.width !== 300 || b.height !== 240) throw Error('background ' + JSON.stringify(b));
+    var threw = false;
+    try { d.selection.selectBackground({inverse: true}); } catch (e) { threw = true; }
+    if (!threw) throw Error('unknown key accepted');
+    d.selection.deselect();
+    d.activeLayer.removeBackground();
+    if (d.selection.exists) throw Error('selection changed');
+  )JS"), std::move(options));
+  QElapsedTimer timer;
+  timer.start();
+  while (host.run_active() && timer.elapsed() < 120000) {
+    QApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 20);
+  }
+  QApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 20);
+  CHECK(!host.run_active());
+  if (host.last_run_had_error()) {
+    for (const auto& line : host.message_backlog()) {
+      std::printf("  %s\n", line.toUtf8().constData());
+    }
+  }
+  CHECK(!host.last_run_had_error());
+  const auto& layer = std::as_const(patchy::ui::MainWindowTestAccess::document(window)).layers().front();
+  CHECK(layer.mask().has_value());
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> ai_selection_ui_tests() {
@@ -260,5 +439,13 @@ std::vector<patchy::test::TestCase> ai_selection_ui_tests() {
       {"ui_object_select_tool_and_options_are_listed", ui_object_select_tool_and_options_are_listed},
       {"ui_select_subject_menu_selects_the_subject", ui_select_subject_menu_selects_the_subject},
       {"ui_script_automatic_selection_selects_objects", ui_script_automatic_selection_selects_objects},
+      {"ui_select_background_selects_everything_but_the_subject",
+       ui_select_background_selects_everything_but_the_subject},
+      {"ui_remove_background_masks_the_layer_in_one_undo_step", ui_remove_background_masks_the_layer_in_one_undo_step},
+      {"ui_selection_tool_context_menu_offers_subject_commands",
+       ui_selection_tool_context_menu_offers_subject_commands},
+      {"ui_script_select_background_and_remove_background", ui_script_select_background_and_remove_background},
+      {"ui_select_object_in_marquee_selection_finds_the_object",
+       ui_select_object_in_marquee_selection_finds_the_object},
   };
 }

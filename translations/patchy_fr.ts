@@ -10768,10 +10768,6 @@ RVB : %2, %3, %4</translation>
         <translation>Sélectionnez un calque de pixels avant d&apos;utiliser la Sélection d&apos;objet</translation>
     </message>
     <message>
-        <source>Analyzing image...</source>
-        <translation>Analyse de l&apos;image...</translation>
-    </message>
-    <message>
         <source>Object Selection failed: %1</source>
         <translation>Échec de la Sélection d&apos;objet : %1</translation>
     </message>
@@ -10782,6 +10778,18 @@ RVB : %2, %3, %4</translation>
     <message>
         <source>Object Selection</source>
         <translation>Sélection d&apos;objet</translation>
+    </message>
+    <message>
+        <source>Analyzing image... %1%</source>
+        <translation>Analyse de l&apos;image... %1%</translation>
+    </message>
+    <message>
+        <source>Select Object needs a selection around the object</source>
+        <translation>Sélectionner l&apos;objet nécessite une sélection autour de l&apos;objet</translation>
+    </message>
+    <message>
+        <source>Select Object</source>
+        <translation>Sélectionner l&apos;objet</translation>
     </message>
 </context>
 <context>
@@ -19129,48 +19137,12 @@ Convertis en images : %1.</translation>
         <translation>Sélectionner un sujet</translation>
     </message>
     <message>
-        <source>S&amp;ubject</source>
-        <translation>S&amp;ujet</translation>
-    </message>
-    <message>
         <source>Select the main subject of the image automatically</source>
         <translation>Sélectionner automatiquement le sujet principal de l&apos;image</translation>
     </message>
     <message>
         <source>Object Selection</source>
         <translation>Sélection d&apos;objet</translation>
-    </message>
-    <message>
-        <source>Open a document before using Select Subject</source>
-        <translation>Ouvrez un document avant d&apos;utiliser Sélectionner un sujet</translation>
-    </message>
-    <message>
-        <source>Select Subject is not available in this build</source>
-        <translation>Sélectionner un sujet n&apos;est pas disponible dans cette version</translation>
-    </message>
-    <message>
-        <source>Select Subject is unavailable in Quick Mask mode</source>
-        <translation>Sélectionner un sujet n&apos;est pas disponible en mode Masque</translation>
-    </message>
-    <message>
-        <source>Select Subject could not read the document</source>
-        <translation>Sélectionner un sujet n&apos;a pas pu lire le document</translation>
-    </message>
-    <message>
-        <source>Selecting the subject...</source>
-        <translation>Sélection du sujet...</translation>
-    </message>
-    <message>
-        <source>Select Subject cancelled</source>
-        <translation>Sélectionner un sujet annulé</translation>
-    </message>
-    <message>
-        <source>Select Subject failed: %1</source>
-        <translation>Échec de Sélectionner un sujet : %1</translation>
-    </message>
-    <message>
-        <source>Select Subject found no subject</source>
-        <translation>Sélectionner un sujet n&apos;a trouvé aucun sujet</translation>
     </message>
     <message>
         <source>Selected the subject</source>
@@ -19183,6 +19155,82 @@ Convertis en images : %1.</translation>
     <message>
         <source>Object Selection: active layer</source>
         <translation>Sélection d&apos;objet : calque actif</translation>
+    </message>
+    <message>
+        <source>Remove Background</source>
+        <translation>Supprimer l&apos;arrière-plan</translation>
+    </message>
+    <message>
+        <source>Select S&amp;ubject</source>
+        <translation>Sélectionner un s&amp;ujet</translation>
+    </message>
+    <message>
+        <source>Select &amp;Background</source>
+        <translation>Sélectionner l&apos;arrière-&amp;plan</translation>
+    </message>
+    <message>
+        <source>Remove Bac&amp;kground</source>
+        <translation>Supprimer l&apos;arrière-pla&amp;n</translation>
+    </message>
+    <message>
+        <source>Hide the background with a layer mask on the active layer</source>
+        <translation>Masquer l&apos;arrière-plan avec un masque de fusion sur le calque actif</translation>
+    </message>
+    <message>
+        <source>Open a document before using %1</source>
+        <translation>Ouvrez un document avant d&apos;utiliser %1</translation>
+    </message>
+    <message>
+        <source>%1 is not available in this build</source>
+        <translation>%1 n&apos;est pas disponible dans cette version</translation>
+    </message>
+    <message>
+        <source>%1 is unavailable in Quick Mask mode</source>
+        <translation>%1 n&apos;est pas disponible en mode Masque</translation>
+    </message>
+    <message>
+        <source>%1 could not read the document</source>
+        <translation>%1 n&apos;a pas pu lire le document</translation>
+    </message>
+    <message>
+        <source>Finding the subject...</source>
+        <translation>Recherche du sujet...</translation>
+    </message>
+    <message>
+        <source>%1 cancelled</source>
+        <translation>%1 annulé</translation>
+    </message>
+    <message>
+        <source>%1 failed: %2</source>
+        <translation>Échec de %1 : %2</translation>
+    </message>
+    <message>
+        <source>%1 found no subject</source>
+        <translation>%1 n&apos;a trouvé aucun sujet</translation>
+    </message>
+    <message>
+        <source>Select Background</source>
+        <translation>Sélectionner l&apos;arrière-plan</translation>
+    </message>
+    <message>
+        <source>Selected the background</source>
+        <translation>Arrière-plan sélectionné</translation>
+    </message>
+    <message>
+        <source>Removed the background with a layer mask</source>
+        <translation>Arrière-plan supprimé avec un masque de fusion</translation>
+    </message>
+    <message>
+        <source>Select &amp;Object</source>
+        <translation>Sélectionner l&apos;&amp;objet</translation>
+    </message>
+    <message>
+        <source>Selected the object</source>
+        <translation>Objet sélectionné</translation>
+    </message>
+    <message>
+        <source>Finding the subject... %1%</source>
+        <translation>Recherche du sujet... %1%</translation>
     </message>
 </context>
 <context>
@@ -20726,6 +20774,18 @@ Convertis en images : %1.</translation>
     <message>
         <source>Invalid objectSelect option: %1.</source>
         <translation>Option objectSelect non valide : %1.</translation>
+    </message>
+    <message>
+        <source>removeBackground needs a pixel, adjustment, or group layer.</source>
+        <translation>removeBackground nécessite un calque de pixels, de réglage ou de groupe.</translation>
+    </message>
+    <message>
+        <source>removeBackground found no subject.</source>
+        <translation>removeBackground n&apos;a trouvé aucun sujet.</translation>
+    </message>
+    <message>
+        <source>Invalid selectBackground option: %1.</source>
+        <translation>Option selectBackground non valide : %1.</translation>
     </message>
 </context>
 <context>

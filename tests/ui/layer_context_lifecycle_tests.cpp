@@ -1,4 +1,6 @@
 #include "ui/canvas_widget.hpp"
+#include "ai/segmentation_engine.hpp"
+#include "ui/main_window_shared.hpp"
 #include "core/adjustment_layer.hpp"
 #include "core/contour_presets.hpp"
 #include "core/gradient_presets.hpp"
@@ -456,7 +458,20 @@ void ui_selection_context_menu_offers_remove_object() {
     QApplication::processEvents();
   }
 
-  CHECK(right_click_move_canvas(*canvas, QPoint(300, 300)) == nullptr);
+  // Off the selection a selection tool offers only the automatic-selection section, and
+  // nothing at all in a build without the models (docs/ai-selection.md).
+  patchy::ui::configure_automatic_selection_models();
+  if (auto* outside = right_click_move_canvas(*canvas, QPoint(300, 300)); patchy::ai::segmentation_available()) {
+    CHECK(outside != nullptr);
+    if (outside != nullptr) {
+      CHECK(!menu_has_remove(*outside));
+      CHECK(outside->actions().front()->objectName() == QStringLiteral("selectSubjectAction"));
+      outside->close();
+      QApplication::processEvents();
+    }
+  } else {
+    CHECK(outside == nullptr);
+  }
 
   canvas->set_tool(patchy::ui::CanvasTool::Move);
   menu = right_click_move_canvas(*canvas, QPoint(50, 50));

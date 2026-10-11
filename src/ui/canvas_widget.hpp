@@ -629,6 +629,9 @@ public:
   // Subtract, Intersect); the current Feather applies, and Anti-alias off thresholds the
   // mask at 50%. Used by Select > Subject, Object Selection and the script API.
   void apply_automatic_selection_mask(QRect bounds, QImage alpha, SelectionMode operation, QString history_label);
+  // Select Object (selection right-click menu): the selection's bounding box as one Object
+  // Selection box prompt; the object found replaces the selection. False on failure.
+  bool select_object_in_selection();
   // The merged document as RGBA8888, rendered under the processing overlay when large
   // (render_document_image_with_processing); what Select Subject analyzes.
   [[nodiscard]] QImage merged_image_for_analysis();
@@ -1285,6 +1288,9 @@ public:
   // lands on the selection (Remove Object, Fill, Stroke, ...); a nullptr entry
   // is a separator. The actions stay owned by the host.
   void set_selection_context_actions_callback(std::function<QList<QAction*>()> callback);
+  // Offered while a selection tool is active and the click is not inside a selection
+  // (Select Subject, Select Background, Remove Background).
+  void set_selection_tool_context_actions_callback(std::function<QList<QAction*>()> callback);
   // The commands the host offers when a right-click lands on the active vector
   // shape layer (Shape Appearance, Free Transform, ...); same contract.
   void set_shape_context_actions_callback(std::function<QList<QAction*>()> callback);
@@ -1926,6 +1932,7 @@ private:
   // only when they differ (a selection-only undo keeps the embedding).
   void ensure_object_select_embedding();
   void invalidate_object_select_embedding() noexcept;
+  bool solve_object_select(bool is_click, QPoint point, QRect box, SelectionMode operation, QString history_label);
   void mark_object_select_embedding_unverified() noexcept;
   // Spot Healing stroke lifecycle (canvas_widget_spot_healing.cpp). The drag
   // only accumulates the soft brush footprint (mask + overlay polyline); the
@@ -2553,6 +2560,10 @@ private:
   std::uint64_t object_select_source_hash_{0};
   bool object_select_embedding_unverified_{false};
   int object_select_encodes_started_{0};
+  // For the "Analyzing image... N%" estimate: the last encode's duration on this machine.
+  QElapsedTimer object_select_encode_started_;
+  bool object_select_encode_pending_{false};
+  qint64 object_select_last_encode_ms_{800};
   // Spot Healing stroke state (canvas_widget_spot_healing.cpp): doc-sized
   // Grayscale8 soft footprint accumulated during the drag, healed once on
   // release from the press-time source snapshot.
@@ -3030,6 +3041,7 @@ private:
   std::function<bool(std::vector<LayerId>)> move_duplicate_requested_callback_;
   std::function<void(QString)> status_callback_;
   std::function<QList<QAction*>()> selection_context_actions_callback_;
+  std::function<QList<QAction*>()> selection_tool_context_actions_callback_;
   std::function<QList<QAction*>()> shape_context_actions_callback_;
   std::function<QList<QAction*>()> layer_context_actions_callback_;
   bool vector_preview_enabled_{false};

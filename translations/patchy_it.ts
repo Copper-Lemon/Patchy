@@ -10768,10 +10768,6 @@ RGB: %2, %3, %4</translation>
         <translation>Seleziona un livello pixel prima di usare la Selezione oggetto</translation>
     </message>
     <message>
-        <source>Analyzing image...</source>
-        <translation>Analisi dell&apos;immagine...</translation>
-    </message>
-    <message>
         <source>Object Selection failed: %1</source>
         <translation>Selezione oggetto non riuscita: %1</translation>
     </message>
@@ -10782,6 +10778,18 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Object Selection</source>
         <translation>Selezione oggetto</translation>
+    </message>
+    <message>
+        <source>Analyzing image... %1%</source>
+        <translation>Analisi dell&apos;immagine... %1%</translation>
+    </message>
+    <message>
+        <source>Select Object needs a selection around the object</source>
+        <translation>Seleziona oggetto richiede una selezione attorno all&apos;oggetto</translation>
+    </message>
+    <message>
+        <source>Select Object</source>
+        <translation>Seleziona oggetto</translation>
     </message>
 </context>
 <context>
@@ -19129,48 +19137,12 @@ Convertiti in immagini: %1.</translation>
         <translation>Seleziona soggetto</translation>
     </message>
     <message>
-        <source>S&amp;ubject</source>
-        <translation>Sogg&amp;etto</translation>
-    </message>
-    <message>
         <source>Select the main subject of the image automatically</source>
         <translation>Seleziona automaticamente il soggetto principale dell&apos;immagine</translation>
     </message>
     <message>
         <source>Object Selection</source>
         <translation>Selezione oggetto</translation>
-    </message>
-    <message>
-        <source>Open a document before using Select Subject</source>
-        <translation>Apri un documento prima di usare Seleziona soggetto</translation>
-    </message>
-    <message>
-        <source>Select Subject is not available in this build</source>
-        <translation>Seleziona soggetto non è disponibile in questa build</translation>
-    </message>
-    <message>
-        <source>Select Subject is unavailable in Quick Mask mode</source>
-        <translation>Seleziona soggetto non è disponibile in modalità Maschera veloce</translation>
-    </message>
-    <message>
-        <source>Select Subject could not read the document</source>
-        <translation>Seleziona soggetto non è riuscito a leggere il documento</translation>
-    </message>
-    <message>
-        <source>Selecting the subject...</source>
-        <translation>Selezione del soggetto...</translation>
-    </message>
-    <message>
-        <source>Select Subject cancelled</source>
-        <translation>Seleziona soggetto annullato</translation>
-    </message>
-    <message>
-        <source>Select Subject failed: %1</source>
-        <translation>Seleziona soggetto non riuscito: %1</translation>
-    </message>
-    <message>
-        <source>Select Subject found no subject</source>
-        <translation>Seleziona soggetto non ha trovato alcun soggetto</translation>
     </message>
     <message>
         <source>Selected the subject</source>
@@ -19183,6 +19155,82 @@ Convertiti in immagini: %1.</translation>
     <message>
         <source>Object Selection: active layer</source>
         <translation>Selezione oggetto: livello attivo</translation>
+    </message>
+    <message>
+        <source>Remove Background</source>
+        <translation>Rimuovi sfondo</translation>
+    </message>
+    <message>
+        <source>Select S&amp;ubject</source>
+        <translation>Seleziona sogg&amp;etto</translation>
+    </message>
+    <message>
+        <source>Select &amp;Background</source>
+        <translation>Seleziona s&amp;fondo</translation>
+    </message>
+    <message>
+        <source>Remove Bac&amp;kground</source>
+        <translation>Rimuovi sfon&amp;do</translation>
+    </message>
+    <message>
+        <source>Hide the background with a layer mask on the active layer</source>
+        <translation>Nascondi lo sfondo con una maschera di livello sul livello attivo</translation>
+    </message>
+    <message>
+        <source>Open a document before using %1</source>
+        <translation>Apri un documento prima di usare %1</translation>
+    </message>
+    <message>
+        <source>%1 is not available in this build</source>
+        <translation>%1 non è disponibile in questa build</translation>
+    </message>
+    <message>
+        <source>%1 is unavailable in Quick Mask mode</source>
+        <translation>%1 non è disponibile in modalità Maschera veloce</translation>
+    </message>
+    <message>
+        <source>%1 could not read the document</source>
+        <translation>%1 non è riuscito a leggere il documento</translation>
+    </message>
+    <message>
+        <source>Finding the subject...</source>
+        <translation>Ricerca del soggetto...</translation>
+    </message>
+    <message>
+        <source>%1 cancelled</source>
+        <translation>%1 annullato</translation>
+    </message>
+    <message>
+        <source>%1 failed: %2</source>
+        <translation>%1 non riuscito: %2</translation>
+    </message>
+    <message>
+        <source>%1 found no subject</source>
+        <translation>%1 non ha trovato alcun soggetto</translation>
+    </message>
+    <message>
+        <source>Select Background</source>
+        <translation>Seleziona sfondo</translation>
+    </message>
+    <message>
+        <source>Selected the background</source>
+        <translation>Sfondo selezionato</translation>
+    </message>
+    <message>
+        <source>Removed the background with a layer mask</source>
+        <translation>Sfondo rimosso con una maschera di livello</translation>
+    </message>
+    <message>
+        <source>Select &amp;Object</source>
+        <translation>Seleziona &amp;oggetto</translation>
+    </message>
+    <message>
+        <source>Selected the object</source>
+        <translation>Oggetto selezionato</translation>
+    </message>
+    <message>
+        <source>Finding the subject... %1%</source>
+        <translation>Ricerca del soggetto... %1%</translation>
     </message>
 </context>
 <context>
@@ -20726,6 +20774,18 @@ Convertiti in immagini: %1.</translation>
     <message>
         <source>Invalid objectSelect option: %1.</source>
         <translation>Opzione objectSelect non valida: %1.</translation>
+    </message>
+    <message>
+        <source>removeBackground needs a pixel, adjustment, or group layer.</source>
+        <translation>removeBackground richiede un livello pixel, di regolazione o di gruppo.</translation>
+    </message>
+    <message>
+        <source>removeBackground found no subject.</source>
+        <translation>removeBackground non ha trovato alcun soggetto.</translation>
+    </message>
+    <message>
+        <source>Invalid selectBackground option: %1.</source>
+        <translation>Opzione selectBackground non valida: %1.</translation>
     </message>
 </context>
 <context>

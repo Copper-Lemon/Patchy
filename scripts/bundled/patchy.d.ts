@@ -426,6 +426,13 @@ interface PatchyLayer {
    * 1-based source used plus the candidate count (nearest edge), and the
    * 0-based `attempt` that ran.
    */
+  /**
+   * Layer > Layer Mask > Remove Background: runs Select Subject on the merged document and
+   * sets this layer's mask to the subject (an existing mask is multiplied, keeping what it
+   * already hides). Pixel, adjustment, or group layers. The selection is unchanged. Throws
+   * when doc.selection.automaticSelectionAvailable is false.
+   */
+  removeBackground(): void;
   removeObject(options?: {
     method?: "contentAware" | "nearestEdge";
     attempt?: number;
@@ -535,6 +542,9 @@ interface PatchySelection {
    * (default "replace"); `feather` (px, default 0) and `antialias` (default true) shape it.
    */
   selectSubject(options?: {operation?: "replace" | "add" | "subtract" | "intersect"; feather?: number;
+    antialias?: boolean}): void;
+  /** Select > Select Background: everything selectSubject would not select. Same options. */
+  selectBackground(options?: {operation?: "replace" | "add" | "subtract" | "intersect"; feather?: number;
     antialias?: boolean}): void;
   /**
    * The Object Selection tool: selects the object inside `rect`, or the object under

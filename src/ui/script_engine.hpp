@@ -294,18 +294,21 @@ public:
   struct AutomaticSelectionRequest {
     enum class Kind {
       Subject,
+      Background,
       Box,
       Point
     };
     Kind kind{Kind::Subject};
     QRect box;
     QPointF point;
-    int operation{0};  // 0 replace, 1 add, 2 subtract, 3 intersect (Select Subject only)
+    int operation{0};  // 0 replace, 1 add, 2 subtract, 3 intersect (subject/background only)
     bool sample_all_layers{true};
     double feather{0.0};
     bool antialias{true};
   };
   QString automatic_select(std::int64_t session_id, const AutomaticSelectionRequest& request);
+  // layer.removeBackground(): the subject matte as `layer_id`'s mask. Error text, empty on success.
+  QString remove_background(std::int64_t session_id, LayerId layer_id);
 
   // Palette-mode write constraint for script pixel writes (setPixels/fill are
   // tool-like writes and snap; filters deliberately stay advisory, matching the

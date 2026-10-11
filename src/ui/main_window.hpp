@@ -93,6 +93,10 @@ namespace patchy {
 struct LayerDropRequest;
 }  // namespace patchy
 
+namespace patchy::ai {
+struct AiMask;
+}
+
 namespace patchy::ui {
 
 struct PdfImportedDocument;
@@ -1388,12 +1392,19 @@ private:
   // Duplicate to New Layer) that fills on a worker thread, previews into the
   // active layer, and pushes one history entry on OK.
   void remove_object_dialog();
-  // Select > Subject (main_window_ai_selection.cpp, docs/ai-selection.md): one BiRefNet
-  // pass over the merged document under a cancellable progress dialog, combined with the
-  // selection by `mode`. The run_ form reports failures through `error` instead of the
-  // status bar (the script API's path); both return false on failure or cancel.
+  // Select Subject, Select Background and Remove Background (main_window_ai_selection.cpp,
+  // docs/ai-selection.md): one BiRefNet pass over the merged document under a cancellable
+  // progress dialog (compute_subject_matte, which names `command` in its errors), then the
+  // matte combines with the selection by `mode`, inverted for the background, or becomes the
+  // active layer's mask (one undo step). The run_ forms report failures through `error`
+  // instead of the status bar; all return false on failure or cancel.
   void select_subject(CanvasWidget::SelectionMode mode);
   bool run_select_subject(CanvasWidget::SelectionMode mode, QString* error);
+  void select_background(CanvasWidget::SelectionMode mode);
+  bool run_select_background(CanvasWidget::SelectionMode mode, QString* error);
+  void remove_background();
+  bool run_remove_background(QString* error);
+  std::optional<patchy::ai::AiMask> compute_subject_matte(const QString& command, QString* error);
   // Variation continuity: a dialog opened again on the same selection (a
   // hash of the selection region) continues after the last variation it
   // showed instead of repeating variation 1; another selection starts fresh.
@@ -1967,7 +1978,14 @@ private:
   QPushButton* patch_remove_object_button_{nullptr};
   QCheckBox* object_select_sample_all_layers_check_{nullptr};
   QPushButton* select_subject_button_{nullptr};
+  QPushButton* remove_background_button_{nullptr};
   QAction* select_subject_action_{nullptr};
+  QAction* select_background_action_{nullptr};
+  QAction* select_object_action_{nullptr};
+  QAction* remove_background_action_{nullptr};
+  // Shown in the canvas right-click menu while a selection tool is active and the click is
+  // not inside a selection (CanvasWidget::set_selection_tool_context_actions_callback).
+  QList<QAction*> selection_tool_context_actions_;
   // Frees the subject model a while after the last Select Subject (it reloads on use).
   QTimer* subject_model_release_timer_{nullptr};
   QPushButton* crop_cancel_button_{nullptr};

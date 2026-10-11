@@ -10738,10 +10738,6 @@ RGB：%2, %3, %4</translation>
         <translation>使用物件選取前請先選取像素圖層</translation>
     </message>
     <message>
-        <source>Analyzing image...</source>
-        <translation>正在分析影像...</translation>
-    </message>
-    <message>
         <source>Object Selection failed: %1</source>
         <translation>物件選取失敗：%1</translation>
     </message>
@@ -10752,6 +10748,18 @@ RGB：%2, %3, %4</translation>
     <message>
         <source>Object Selection</source>
         <translation>物件選取</translation>
+    </message>
+    <message>
+        <source>Analyzing image... %1%</source>
+        <translation>正在分析影像... %1%</translation>
+    </message>
+    <message>
+        <source>Select Object needs a selection around the object</source>
+        <translation>選取物件需要先在物件周圍建立選取範圍</translation>
+    </message>
+    <message>
+        <source>Select Object</source>
+        <translation>選取物件</translation>
     </message>
 </context>
 <context>
@@ -19072,48 +19080,12 @@ Baked into images: %1.</source>
         <translation>選取主體</translation>
     </message>
     <message>
-        <source>S&amp;ubject</source>
-        <translation>主體(&amp;U)</translation>
-    </message>
-    <message>
         <source>Select the main subject of the image automatically</source>
         <translation>自動選取影像的主體</translation>
     </message>
     <message>
         <source>Object Selection</source>
         <translation>物件選取</translation>
-    </message>
-    <message>
-        <source>Open a document before using Select Subject</source>
-        <translation>使用選取主體前請先開啟文件</translation>
-    </message>
-    <message>
-        <source>Select Subject is not available in this build</source>
-        <translation>此版本無法使用選取主體</translation>
-    </message>
-    <message>
-        <source>Select Subject is unavailable in Quick Mask mode</source>
-        <translation>快速遮色片模式下無法使用選取主體</translation>
-    </message>
-    <message>
-        <source>Select Subject could not read the document</source>
-        <translation>選取主體無法讀取文件</translation>
-    </message>
-    <message>
-        <source>Selecting the subject...</source>
-        <translation>正在選取主體...</translation>
-    </message>
-    <message>
-        <source>Select Subject cancelled</source>
-        <translation>已取消選取主體</translation>
-    </message>
-    <message>
-        <source>Select Subject failed: %1</source>
-        <translation>選取主體失敗：%1</translation>
-    </message>
-    <message>
-        <source>Select Subject found no subject</source>
-        <translation>選取主體找不到主體</translation>
     </message>
     <message>
         <source>Selected the subject</source>
@@ -19126,6 +19098,82 @@ Baked into images: %1.</source>
     <message>
         <source>Object Selection: active layer</source>
         <translation>物件選取：作用中圖層</translation>
+    </message>
+    <message>
+        <source>Remove Background</source>
+        <translation>移除背景</translation>
+    </message>
+    <message>
+        <source>Select S&amp;ubject</source>
+        <translation>選取主體(&amp;U)</translation>
+    </message>
+    <message>
+        <source>Select &amp;Background</source>
+        <translation>選取背景(&amp;B)</translation>
+    </message>
+    <message>
+        <source>Remove Bac&amp;kground</source>
+        <translation>移除背景(&amp;K)</translation>
+    </message>
+    <message>
+        <source>Hide the background with a layer mask on the active layer</source>
+        <translation>以作用中圖層的圖層遮色片隱藏背景</translation>
+    </message>
+    <message>
+        <source>Open a document before using %1</source>
+        <translation>使用%1前請先開啟文件</translation>
+    </message>
+    <message>
+        <source>%1 is not available in this build</source>
+        <translation>此版本無法使用%1</translation>
+    </message>
+    <message>
+        <source>%1 is unavailable in Quick Mask mode</source>
+        <translation>快速遮色片模式下無法使用%1</translation>
+    </message>
+    <message>
+        <source>%1 could not read the document</source>
+        <translation>%1無法讀取文件</translation>
+    </message>
+    <message>
+        <source>Finding the subject...</source>
+        <translation>正在尋找主體...</translation>
+    </message>
+    <message>
+        <source>%1 cancelled</source>
+        <translation>已取消%1</translation>
+    </message>
+    <message>
+        <source>%1 failed: %2</source>
+        <translation>%1失敗：%2</translation>
+    </message>
+    <message>
+        <source>%1 found no subject</source>
+        <translation>%1找不到主體</translation>
+    </message>
+    <message>
+        <source>Select Background</source>
+        <translation>選取背景</translation>
+    </message>
+    <message>
+        <source>Selected the background</source>
+        <translation>已選取背景</translation>
+    </message>
+    <message>
+        <source>Removed the background with a layer mask</source>
+        <translation>已以圖層遮色片移除背景</translation>
+    </message>
+    <message>
+        <source>Select &amp;Object</source>
+        <translation>選取物件(&amp;O)</translation>
+    </message>
+    <message>
+        <source>Selected the object</source>
+        <translation>已選取物件</translation>
+    </message>
+    <message>
+        <source>Finding the subject... %1%</source>
+        <translation>正在尋找主體... %1%</translation>
     </message>
 </context>
 <context>
@@ -20668,6 +20716,18 @@ Baked into images: %1.</source>
     <message>
         <source>Invalid objectSelect option: %1.</source>
         <translation>無效的 objectSelect 選項：%1。</translation>
+    </message>
+    <message>
+        <source>removeBackground needs a pixel, adjustment, or group layer.</source>
+        <translation>removeBackground 需要像素圖層、調整圖層或群組。</translation>
+    </message>
+    <message>
+        <source>removeBackground found no subject.</source>
+        <translation>removeBackground 找不到主體。</translation>
+    </message>
+    <message>
+        <source>Invalid selectBackground option: %1.</source>
+        <translation>無效的 selectBackground 選項：%1。</translation>
     </message>
 </context>
 <context>

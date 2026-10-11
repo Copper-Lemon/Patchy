@@ -144,6 +144,8 @@ public:
   // document's active layer. Options {method, attempt}; returns {method,
   // patches, source, sourceCount}.
   Q_INVOKABLE QJSValue removeObject(const QJSValue& options = QJSValue());
+  // Layer > Layer Mask > Remove Background (script_ai_selection.cpp).
+  Q_INVOKABLE void removeBackground();
   Q_INVOKABLE QJSValue getPixels();
   Q_INVOKABLE void setPixels(const QJSValue& imageData);
   // Trace Image to Shapes: returns the new group layer (inserted above this
@@ -188,9 +190,12 @@ public:
   // Automatic selection (script_ai_selection.cpp, docs/ai-selection.md).
   [[nodiscard]] bool automatic_selection_available() const;
   Q_INVOKABLE void selectSubject(const QJSValue& options = QJSValue());
+  Q_INVOKABLE void selectBackground(const QJSValue& options = QJSValue());
   Q_INVOKABLE void objectSelect(const QJSValue& options);
 
 private:
+  void run_subject_selection(const QJSValue& options, bool background);
+
   ScriptEngineHost& host_;
   std::int64_t session_id_{0};
 };

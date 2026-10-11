@@ -6,7 +6,11 @@ Photoshop-style automatic selection that runs on the CPU only, so it works on ev
 
 | Piece | Where | Notes |
 |---|---|---|
-| Select > Subject (`select.subject`) | `src/ui/main_window_ai_selection.cpp` | BiRefNet_lite, one pass over the merged document at 1024x1024 (stretched), soft matte. Also the "Select Subject" options-bar button on Quick Select and Object Selection, which uses the tool's combine mode. |
+| Select > Select Subject (`select.subject`) | `src/ui/main_window_ai_selection.cpp` | BiRefNet_lite, one pass over the merged document at 1024x1024 (stretched), soft matte. Also the "Select Subject" options-bar button on Quick Select and Object Selection, which uses the tool's combine mode. |
+| Select > Select Background (`select.background`) | same | The same one pass, inverted (255 outside the matte). |
+| Layer > Layer Mask > Remove Background (`layer.remove_background`) | same | The same one pass as the active layer's mask (default 0 outside the matte); an existing mask's painted pixels are multiplied in and its density and feather kept (`apply_subject_matte_to_layer_mask`, shared with `layer.removeBackground()`). One undo step; the selection is untouched. Also a button on the Object Selection options bar. |
+| Select Object (`select.object_in_selection`) | `src/ui/canvas_widget_object_select.cpp` | Right-click inside a selection (after Remove Object): the selection's bounding box becomes one Object Selection box prompt and the object replaces the selection (`select_object_in_selection`). |
+| Canvas right-click | `src/ui/canvas_widget_move.cpp` | With a selection tool active and the click outside any selection, the menu offers the three commands above (`set_selection_tool_context_actions_callback`). |
 | Object Selection tool (`tools.object_select`, `CanvasTool::ObjectSelect`) | `src/ui/canvas_widget_object_select.cpp` | Third member of the Magic Wand flyout (Shift+W cycles). Drag a box, or click; solves on release. Shift adds, Alt subtracts, no Intersect (Shift+Alt is Add, like Quick Select). Options: New/Add/Subtract, Feather, Anti-alias, Sample All Layers, Select Subject. Settings keys `tools/objectSelectFeather`, `tools/objectSelectAntiAlias`, `tools/objectSelectSampleAllLayers`. |
 | Script API | `src/ui/script_ai_selection.cpp` | `doc.selection.selectSubject(opts)`, `doc.selection.objectSelect({rect} or {point}, ...)`, `doc.selection.automaticSelectionAvailable`. See patchy.d.ts. |
 | Engine | `src/ai/` (`patchy_ai` library, Qt-free) | `ai_selection_math.*` (pre/post-processing, always built), `segmentation_engine.hpp` API, `segmentation_engine_onnx.cpp` (the only ONNX Runtime TU), `segmentation_engine_stub.cpp` (builds without it), `segmentation_engine_common.cpp`. |
@@ -65,6 +69,7 @@ At run time `configure_automatic_selection_models()` (main_window_ai_selection.c
 - During a drag the canvas draws only the user's rectangle (black line plus white dashes). A release within 4 widget px of the press is a click. One undo entry per release ("Object Selection").
 - `CanvasWidget::apply_automatic_selection_mask` is the shared combine (Feather and Anti-alias of the active tool apply).
 - Select Subject runs on a worker under a window-modal, immediately shown progress dialog with Cancel; the dialog keeps the document from changing under the run.
+- Percentages are estimates: ONNX Runtime reports no progress inside a run. The subject commands scale elapsed time against the last run's duration on this machine (QSettings `automaticSelection/subjectRunMs`, averaged with each new run, model load included); Object Selection's "Analyzing image... N%" uses the last encode's duration. Both hold at 95% until the run really ends.
 
 ## Measured performance (dev box i9-12900KS, 24 threads, Windows)
 
@@ -83,7 +88,7 @@ Published numbers for a 6-core Ryzen 5600X: MobileSAM encode 0.8 s, BiRefNet_lit
 ## Tests
 
 - Core (`patchy_core_tests ai_`): transform and preprocessing math, logit mappings, upsample/crop, IoU, then real runs on a self-authored synthetic scene (shaded disc on mottled noise): box and point IoU >= 0.9, Select Subject IoU >= 0.85, cancel before and during a run, model load from a Unicode folder. In a build without the engine the model tests print `[SKIP]`; in a build with it, missing models fail.
-- UI (`PATCHY_UI_TEST_FILTER=object_select` and `select_subject`): no selection change before release, one undo entry, booleans, embedding reuse, the options bar and menu, and the script API.
+- UI (`PATCHY_UI_TEST_FILTER=object_select`, `select_subject`, `select_background`, `remove_background`, `context_menu_offers_subject`): no selection change before release, one undo entry, booleans, embedding reuse, the options bar and menu, and the script API.
 
 ## Platform packaging
 

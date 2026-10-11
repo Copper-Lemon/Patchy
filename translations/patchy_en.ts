@@ -10758,10 +10758,6 @@ RGB: %2, %3, %4</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Analyzing image...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Object Selection failed: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -10771,6 +10767,18 @@ RGB: %2, %3, %4</source>
     </message>
     <message>
         <source>Object Selection</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Analyzing image... %1%</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select Object needs a selection around the object</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select Object</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -19080,47 +19088,11 @@ Baked into images: %1.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>S&amp;ubject</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Select the main subject of the image automatically</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Object Selection</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Open a document before using Select Subject</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Select Subject is not available in this build</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Select Subject is unavailable in Quick Mask mode</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Select Subject could not read the document</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Selecting the subject...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Select Subject cancelled</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Select Subject failed: %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Select Subject found no subject</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -19133,6 +19105,82 @@ Baked into images: %1.</source>
     </message>
     <message>
         <source>Object Selection: active layer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove Background</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select S&amp;ubject</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select &amp;Background</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove Bac&amp;kground</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Hide the background with a layer mask on the active layer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open a document before using %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 is not available in this build</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 is unavailable in Quick Mask mode</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 could not read the document</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Finding the subject...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 cancelled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 failed: %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 found no subject</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select Background</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selected the background</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Removed the background with a layer mask</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select &amp;Object</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selected the object</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Finding the subject... %1%</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -20676,6 +20724,18 @@ Baked into images: %1.</source>
     </message>
     <message>
         <source>Invalid objectSelect option: %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>removeBackground needs a pixel, adjustment, or group layer.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>removeBackground found no subject.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid selectBackground option: %1.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

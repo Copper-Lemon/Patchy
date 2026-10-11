@@ -42,6 +42,10 @@ class QObject;
 class QListWidget;
 class QProgressDialog;
 
+namespace patchy::ai {
+struct AiMask;
+}
+
 namespace patchy::ui {
 
 class CanvasWidget;
@@ -116,6 +120,11 @@ void run_filter_compute_with_progress(QProgressDialog& progress,
                                       std::function<QString(const QString&)> label_text,
                                       std::function<void()> tick_processing,
                                       const std::function<void(FilterProgress&)>& compute);
+
+// Remove Background's mask step, shared by the menu command and layer.removeBackground():
+// sets `layer`'s mask to the subject matte (0 outside it), multiplied into an existing mask's
+// painted pixels so earlier hiding stays and its density and feather settings are kept.
+void apply_subject_matte_to_layer_mask(const Document& document, Layer& layer, const patchy::ai::AiMask& matte);
 
 // Points the automatic-selection engine at the bundled models ("ai-models" beside the
 // executable, the macOS bundle's Resources, or the Linux share directory) unless a folder

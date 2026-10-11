@@ -10798,10 +10798,6 @@ RGB: %2, %3, %4</translation>
         <translation>Przed użyciem zaznaczania obiektu wybierz warstwę pikseli</translation>
     </message>
     <message>
-        <source>Analyzing image...</source>
-        <translation>Analizowanie obrazu...</translation>
-    </message>
-    <message>
         <source>Object Selection failed: %1</source>
         <translation>Zaznaczanie obiektu nie powiodło się: %1</translation>
     </message>
@@ -10812,6 +10808,18 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Object Selection</source>
         <translation>Zaznaczanie obiektu</translation>
+    </message>
+    <message>
+        <source>Analyzing image... %1%</source>
+        <translation>Analizowanie obrazu... %1%</translation>
+    </message>
+    <message>
+        <source>Select Object needs a selection around the object</source>
+        <translation>Zaznacz obiekt wymaga zaznaczenia wokół obiektu</translation>
+    </message>
+    <message>
+        <source>Select Object</source>
+        <translation>Zaznacz obiekt</translation>
     </message>
 </context>
 <context>
@@ -19186,48 +19194,12 @@ Y: %2
         <translation>Zaznacz motyw</translation>
     </message>
     <message>
-        <source>S&amp;ubject</source>
-        <translation>Mot&amp;yw</translation>
-    </message>
-    <message>
         <source>Select the main subject of the image automatically</source>
         <translation>Automatycznie zaznacz główny motyw obrazu</translation>
     </message>
     <message>
         <source>Object Selection</source>
         <translation>Zaznaczanie obiektu</translation>
-    </message>
-    <message>
-        <source>Open a document before using Select Subject</source>
-        <translation>Otwórz dokument przed użyciem polecenia Zaznacz motyw</translation>
-    </message>
-    <message>
-        <source>Select Subject is not available in this build</source>
-        <translation>Polecenie Zaznacz motyw nie jest dostępne w tej wersji</translation>
-    </message>
-    <message>
-        <source>Select Subject is unavailable in Quick Mask mode</source>
-        <translation>Polecenie Zaznacz motyw jest niedostępne w trybie szybkiej maski</translation>
-    </message>
-    <message>
-        <source>Select Subject could not read the document</source>
-        <translation>Polecenie Zaznacz motyw nie mogło odczytać dokumentu</translation>
-    </message>
-    <message>
-        <source>Selecting the subject...</source>
-        <translation>Zaznaczanie motywu...</translation>
-    </message>
-    <message>
-        <source>Select Subject cancelled</source>
-        <translation>Anulowano polecenie Zaznacz motyw</translation>
-    </message>
-    <message>
-        <source>Select Subject failed: %1</source>
-        <translation>Polecenie Zaznacz motyw nie powiodło się: %1</translation>
-    </message>
-    <message>
-        <source>Select Subject found no subject</source>
-        <translation>Polecenie Zaznacz motyw nie znalazło motywu</translation>
     </message>
     <message>
         <source>Selected the subject</source>
@@ -19240,6 +19212,82 @@ Y: %2
     <message>
         <source>Object Selection: active layer</source>
         <translation>Zaznaczanie obiektu: aktywna warstwa</translation>
+    </message>
+    <message>
+        <source>Remove Background</source>
+        <translation>Usuń tło</translation>
+    </message>
+    <message>
+        <source>Select S&amp;ubject</source>
+        <translation>Zaznacz mot&amp;yw</translation>
+    </message>
+    <message>
+        <source>Select &amp;Background</source>
+        <translation>Zaznacz &amp;tło</translation>
+    </message>
+    <message>
+        <source>Remove Bac&amp;kground</source>
+        <translation>Usuń t&amp;ło</translation>
+    </message>
+    <message>
+        <source>Hide the background with a layer mask on the active layer</source>
+        <translation>Ukryj tło za pomocą maski warstwy na aktywnej warstwie</translation>
+    </message>
+    <message>
+        <source>Open a document before using %1</source>
+        <translation>Otwórz dokument przed użyciem polecenia %1</translation>
+    </message>
+    <message>
+        <source>%1 is not available in this build</source>
+        <translation>Polecenie %1 nie jest dostępne w tej wersji</translation>
+    </message>
+    <message>
+        <source>%1 is unavailable in Quick Mask mode</source>
+        <translation>Polecenie %1 jest niedostępne w trybie szybkiej maski</translation>
+    </message>
+    <message>
+        <source>%1 could not read the document</source>
+        <translation>Polecenie %1 nie mogło odczytać dokumentu</translation>
+    </message>
+    <message>
+        <source>Finding the subject...</source>
+        <translation>Wyszukiwanie motywu...</translation>
+    </message>
+    <message>
+        <source>%1 cancelled</source>
+        <translation>Anulowano polecenie %1</translation>
+    </message>
+    <message>
+        <source>%1 failed: %2</source>
+        <translation>Polecenie %1 nie powiodło się: %2</translation>
+    </message>
+    <message>
+        <source>%1 found no subject</source>
+        <translation>Polecenie %1 nie znalazło motywu</translation>
+    </message>
+    <message>
+        <source>Select Background</source>
+        <translation>Zaznacz tło</translation>
+    </message>
+    <message>
+        <source>Selected the background</source>
+        <translation>Zaznaczono tło</translation>
+    </message>
+    <message>
+        <source>Removed the background with a layer mask</source>
+        <translation>Usunięto tło za pomocą maski warstwy</translation>
+    </message>
+    <message>
+        <source>Select &amp;Object</source>
+        <translation>Zaznacz &amp;obiekt</translation>
+    </message>
+    <message>
+        <source>Selected the object</source>
+        <translation>Zaznaczono obiekt</translation>
+    </message>
+    <message>
+        <source>Finding the subject... %1%</source>
+        <translation>Wyszukiwanie motywu... %1%</translation>
     </message>
 </context>
 <context>
@@ -20784,6 +20832,18 @@ Y: %2
     <message>
         <source>Invalid objectSelect option: %1.</source>
         <translation>Nieprawidłowa opcja objectSelect: %1.</translation>
+    </message>
+    <message>
+        <source>removeBackground needs a pixel, adjustment, or group layer.</source>
+        <translation>removeBackground wymaga warstwy pikseli, dopasowania lub grupy.</translation>
+    </message>
+    <message>
+        <source>removeBackground found no subject.</source>
+        <translation>removeBackground nie znalazło motywu.</translation>
+    </message>
+    <message>
+        <source>Invalid selectBackground option: %1.</source>
+        <translation>Nieprawidłowa opcja selectBackground: %1.</translation>
     </message>
 </context>
 <context>

@@ -10738,10 +10738,6 @@ RGB: %2, %3, %4</translation>
         <translation>개체 선택을 사용하기 전에 픽셀 레이어를 선택하세요</translation>
     </message>
     <message>
-        <source>Analyzing image...</source>
-        <translation>이미지 분석 중...</translation>
-    </message>
-    <message>
         <source>Object Selection failed: %1</source>
         <translation>개체 선택 실패: %1</translation>
     </message>
@@ -10751,6 +10747,18 @@ RGB: %2, %3, %4</translation>
     </message>
     <message>
         <source>Object Selection</source>
+        <translation>개체 선택</translation>
+    </message>
+    <message>
+        <source>Analyzing image... %1%</source>
+        <translation>이미지 분석 중... %1%</translation>
+    </message>
+    <message>
+        <source>Select Object needs a selection around the object</source>
+        <translation>개체 선택에는 개체를 둘러싼 선택 영역이 필요합니다</translation>
+    </message>
+    <message>
+        <source>Select Object</source>
         <translation>개체 선택</translation>
     </message>
 </context>
@@ -19072,48 +19080,12 @@ Y: %2
         <translation>피사체 선택</translation>
     </message>
     <message>
-        <source>S&amp;ubject</source>
-        <translation>피사체(&amp;U)</translation>
-    </message>
-    <message>
         <source>Select the main subject of the image automatically</source>
         <translation>이미지의 주 피사체를 자동으로 선택합니다</translation>
     </message>
     <message>
         <source>Object Selection</source>
         <translation>개체 선택</translation>
-    </message>
-    <message>
-        <source>Open a document before using Select Subject</source>
-        <translation>피사체 선택을 사용하기 전에 문서를 여세요</translation>
-    </message>
-    <message>
-        <source>Select Subject is not available in this build</source>
-        <translation>이 빌드에서는 피사체 선택을 사용할 수 없습니다</translation>
-    </message>
-    <message>
-        <source>Select Subject is unavailable in Quick Mask mode</source>
-        <translation>빠른 마스크 모드에서는 피사체 선택을 사용할 수 없습니다</translation>
-    </message>
-    <message>
-        <source>Select Subject could not read the document</source>
-        <translation>피사체 선택이 문서를 읽지 못했습니다</translation>
-    </message>
-    <message>
-        <source>Selecting the subject...</source>
-        <translation>피사체 선택 중...</translation>
-    </message>
-    <message>
-        <source>Select Subject cancelled</source>
-        <translation>피사체 선택이 취소되었습니다</translation>
-    </message>
-    <message>
-        <source>Select Subject failed: %1</source>
-        <translation>피사체 선택 실패: %1</translation>
-    </message>
-    <message>
-        <source>Select Subject found no subject</source>
-        <translation>피사체 선택이 피사체를 찾지 못했습니다</translation>
     </message>
     <message>
         <source>Selected the subject</source>
@@ -19126,6 +19098,82 @@ Y: %2
     <message>
         <source>Object Selection: active layer</source>
         <translation>개체 선택: 활성 레이어</translation>
+    </message>
+    <message>
+        <source>Remove Background</source>
+        <translation>배경 제거</translation>
+    </message>
+    <message>
+        <source>Select S&amp;ubject</source>
+        <translation>피사체 선택(&amp;U)</translation>
+    </message>
+    <message>
+        <source>Select &amp;Background</source>
+        <translation>배경 선택(&amp;B)</translation>
+    </message>
+    <message>
+        <source>Remove Bac&amp;kground</source>
+        <translation>배경 제거(&amp;K)</translation>
+    </message>
+    <message>
+        <source>Hide the background with a layer mask on the active layer</source>
+        <translation>활성 레이어의 레이어 마스크로 배경을 숨깁니다</translation>
+    </message>
+    <message>
+        <source>Open a document before using %1</source>
+        <translation>%1을(를) 사용하기 전에 문서를 여세요</translation>
+    </message>
+    <message>
+        <source>%1 is not available in this build</source>
+        <translation>이 빌드에서는 %1을(를) 사용할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>%1 is unavailable in Quick Mask mode</source>
+        <translation>빠른 마스크 모드에서는 %1을(를) 사용할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>%1 could not read the document</source>
+        <translation>%1이(가) 문서를 읽지 못했습니다</translation>
+    </message>
+    <message>
+        <source>Finding the subject...</source>
+        <translation>피사체 찾는 중...</translation>
+    </message>
+    <message>
+        <source>%1 cancelled</source>
+        <translation>%1 취소됨</translation>
+    </message>
+    <message>
+        <source>%1 failed: %2</source>
+        <translation>%1 실패: %2</translation>
+    </message>
+    <message>
+        <source>%1 found no subject</source>
+        <translation>%1이(가) 피사체를 찾지 못했습니다</translation>
+    </message>
+    <message>
+        <source>Select Background</source>
+        <translation>배경 선택</translation>
+    </message>
+    <message>
+        <source>Selected the background</source>
+        <translation>배경을 선택했습니다</translation>
+    </message>
+    <message>
+        <source>Removed the background with a layer mask</source>
+        <translation>레이어 마스크로 배경을 제거했습니다</translation>
+    </message>
+    <message>
+        <source>Select &amp;Object</source>
+        <translation>개체 선택(&amp;O)</translation>
+    </message>
+    <message>
+        <source>Selected the object</source>
+        <translation>개체를 선택했습니다</translation>
+    </message>
+    <message>
+        <source>Finding the subject... %1%</source>
+        <translation>피사체 찾는 중... %1%</translation>
     </message>
 </context>
 <context>
@@ -20668,6 +20716,18 @@ Y: %2
     <message>
         <source>Invalid objectSelect option: %1.</source>
         <translation>잘못된 objectSelect 옵션: %1.</translation>
+    </message>
+    <message>
+        <source>removeBackground needs a pixel, adjustment, or group layer.</source>
+        <translation>removeBackground에는 픽셀, 조정 또는 그룹 레이어가 필요합니다.</translation>
+    </message>
+    <message>
+        <source>removeBackground found no subject.</source>
+        <translation>removeBackground가 피사체를 찾지 못했습니다.</translation>
+    </message>
+    <message>
+        <source>Invalid selectBackground option: %1.</source>
+        <translation>잘못된 selectBackground 옵션: %1.</translation>
     </message>
 </context>
 <context>

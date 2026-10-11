@@ -253,8 +253,19 @@ bool CanvasWidget::show_canvas_context_menu(QPoint widget_point, QPoint global_p
       }
     }
   };
-  if (has_selection() && selection_alpha_at(document_point) != 0U && selection_context_actions_callback_) {
+  const bool inside_selection = has_selection() && selection_alpha_at(document_point) != 0U;
+  if (inside_selection && selection_context_actions_callback_) {
     append_section(selection_context_actions_callback_());
+  } else if (!inside_selection && selection_tool_context_actions_callback_ && tool_ != CanvasTool::PatchTool &&
+             selection_tool_index(tool_) >= 0 && document_contains(document_point)) {
+    // Hidden actions (a build without automatic selection) are skipped.
+    QList<QAction*> visible;
+    for (auto* action : selection_tool_context_actions_callback_()) {
+      if (action != nullptr && action->isVisible()) {
+        visible.push_back(action);
+      }
+    }
+    append_section(visible);
   }
   if (!edit_locked_) {
     const auto& document = std::as_const(*document_);
