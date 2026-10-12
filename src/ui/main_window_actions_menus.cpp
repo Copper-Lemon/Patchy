@@ -688,7 +688,9 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   connect(remove_background_action_, &QAction::triggered, this, [this] { remove_background(); });
   remove_background_action_->setVisible(automatic_selection);
   selection_tool_context_actions_ = {select_subject_action_, select_background_action_, remove_background_action_};
-  // Right-click inside a selection: the object inside the selection's bounds.
+  // Right-click inside a selection: the object inside the selection's bounds. It runs the
+  // Object Selection model, so it ships whenever Object Selection does, not with the
+  // held-back subject model.
   select_object_action_ = new QAction(tr("Select &Object"), this);
   select_object_action_->setObjectName(QStringLiteral("selectObjectInSelectionAction"));
   bind_action_text(select_object_action_, QT_TR_NOOP("Select &Object"));
@@ -698,7 +700,7 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
       statusBar()->showMessage(tr("Selected the object"));
     }
   });
-  select_object_action_->setVisible(automatic_selection);
+  select_object_action_->setVisible(patchy::ai::segmentation_available());
   quick_mask_action_ = new QAction(tr("Edit in &Quick Mask Mode"), this);
   quick_mask_action_->setObjectName(QStringLiteral("selectQuickMaskAction"));
   quick_mask_action_->setCheckable(true);

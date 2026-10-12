@@ -676,6 +676,13 @@ void ui_select_object_in_marquee_selection_finds_the_object() {
   }
   QApplication::processEvents();
   CHECK(select_object != nullptr);
+  if (select_object == nullptr) {
+    return;
+  }
+  // Present AND shown: Qt keeps hidden actions in a menu's list (the subject-model hold-back
+  // once hid this one while the list check still passed).
+  CHECK(select_object->isVisible());
+  CHECK(select_object->isEnabled());
   CHECK(select_object->icon().isNull());
   select_object->trigger();
   QApplication::processEvents();
@@ -886,6 +893,8 @@ void ui_select_subject_is_left_out_without_the_subject_model() {
     CHECK(!require_action(window, name)->isVisible());
   }
   CHECK(require_action(window, "toolObjectSelectionAction")->isVisible());
+  // Select Object (right-click inside a selection) runs the Object Selection model and ships.
+  CHECK(require_action(window, "selectObjectInSelectionAction")->isVisible());
   require_action(window, "toolObjectSelectionAction")->trigger();
   QApplication::processEvents();
   for (const auto* name : {"selectSubjectButton", "removeBackgroundButton"}) {
