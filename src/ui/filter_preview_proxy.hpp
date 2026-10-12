@@ -1,6 +1,7 @@
 #pragma once
 
 #include "filters/filter_registry.hpp"
+#include "ui/filter_selection.hpp"
 
 #include <QImage>
 #include <QRegion>
@@ -18,13 +19,13 @@ namespace patchy::ui {
 // Shared by the gallery's center preview and the direct filter dialogs
 // (moved verbatim out of the gallery TU, July 2026). A proxy is a bounded
 // premultiplied-bilinear downsample of an immutable layer plus its scaled
-// selection; renders scale pixel-distance parameters through
-// FilterRegistry::scale.
+// selection (a soft selection's coverage scaled with it, in proxy pixels);
+// renders scale pixel-distance parameters through FilterRegistry::scale.
 inline constexpr int kFilterProxyMaximumDimension = 640;
 
 struct FilterPreviewProxy {
   PixelBuffer original;
-  QRegion selection;
+  FilterSelection selection;
   bool selection_restricted{false};
   double spatial_scale{1.0};
 };
@@ -79,7 +80,7 @@ void close_filter_proxy_preview(
 [[nodiscard]] PixelBuffer make_proxy_pixels(const PixelBuffer& source,
                                             int width, int height);
 [[nodiscard]] FilterPreviewProxy make_filter_preview_proxy(
-    const PixelBuffer& source, Rect bounds, const QRegion& selection,
+    const PixelBuffer& source, Rect bounds, const FilterSelection& selection,
     int maximum_dimension);
 [[nodiscard]] QImage image_from_pixels(const PixelBuffer& pixels);
 [[nodiscard]] QImage align_original_to_bounds(const QImage& original,

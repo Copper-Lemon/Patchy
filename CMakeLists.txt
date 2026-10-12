@@ -1065,6 +1065,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/filter_parameter_panel.hpp
       src/ui/filter_parameter_panel.cpp
       src/ui/filter_preview_proxy.hpp
+      src/ui/filter_selection.hpp
       src/ui/filter_preview_proxy.cpp
       src/ui/zoomable_image_preview.hpp
       src/ui/zoomable_image_preview.cpp

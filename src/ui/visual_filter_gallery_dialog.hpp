@@ -1,6 +1,7 @@
 #pragma once
 
 #include "filters/filter_registry.hpp"
+#include "ui/filter_selection.hpp"
 
 #include <QRegion>
 
@@ -76,7 +77,7 @@ struct GalleryTargetContext {
 // the result outcome distinguishes accepting Original from cancelling.
 [[nodiscard]] VisualFilterGalleryResult request_visual_filter_gallery(
     QWidget* parent, const PixelBuffer& immutable_original, Rect bounds,
-    const QRegion& selection, const FilterRegistry& registry,
+    const FilterSelection& selection, const FilterRegistry& registry,
     RgbColor foreground, RgbColor background,
     VisualFilterGalleryPreviewCallback preview_changed = {},
     FilterLookLibrary* look_library = nullptr,

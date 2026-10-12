@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <stdexcept>
 #include <thread>
 #include <utility>
@@ -119,9 +120,67 @@ PixelBuffer make_proxy_pixels(const PixelBuffer& source, int width,
   return result;
 }
 
+namespace {
+
+// A soft selection's coverage at proxy resolution: each proxy pixel averages
+// the coverage over the source pixels it stands for (outside the coverage
+// rectangle counts as unselected), so the proxy's blend matches the full
+// render's at the proxy's scale.
+PixelBuffer proxy_selection_coverage(const FilterSelection& selection,
+                                     Rect bounds, int source_width,
+                                     int source_height, int width,
+                                     int height) {
+  PixelBuffer scaled(width, height, PixelFormat::gray8());
+  scaled.clear(0);
+  const auto& coverage = selection.coverage;
+  // The coverage rectangle in source-local pixels.
+  const auto cover_left = selection.coverage_bounds.x - bounds.x;
+  const auto cover_top = selection.coverage_bounds.y - bounds.y;
+  const auto cover_right = cover_left + coverage.width();
+  const auto cover_bottom = cover_top + coverage.height();
+  const auto span = [](int index, int source_extent, int proxy_extent) {
+    const auto begin = static_cast<int>(
+        static_cast<std::int64_t>(index) * source_extent / proxy_extent);
+    const auto end = static_cast<int>(
+        static_cast<std::int64_t>(index + 1) * source_extent / proxy_extent);
+    return std::pair<int, int>{begin, std::max(begin + 1, end)};
+  };
+  for (int y = 0; y < height; ++y) {
+    const auto [top, bottom] = span(y, source_height, height);
+    const auto clipped_top = std::max(top, cover_top);
+    const auto clipped_bottom = std::min(bottom, cover_bottom);
+    if (clipped_top >= clipped_bottom) {
+      continue;
+    }
+    auto* row = scaled.pixel(0, y);
+    for (int x = 0; x < width; ++x) {
+      const auto [left, right] = span(x, source_width, width);
+      const auto clipped_left = std::max(left, cover_left);
+      const auto clipped_right = std::min(right, cover_right);
+      if (clipped_left >= clipped_right) {
+        continue;
+      }
+      std::uint64_t sum = 0;
+      for (int sy = clipped_top; sy < clipped_bottom; ++sy) {
+        const auto* samples =
+            coverage.pixel(clipped_left - cover_left, sy - cover_top);
+        for (int sx = 0; sx < clipped_right - clipped_left; ++sx) {
+          sum += samples[sx];
+        }
+      }
+      const auto area = static_cast<std::uint64_t>(right - left) *
+                        static_cast<std::uint64_t>(bottom - top);
+      row[x] = static_cast<std::uint8_t>((sum + area / 2U) / area);
+    }
+  }
+  return scaled;
+}
+
+}  // namespace
+
 FilterPreviewProxy make_filter_preview_proxy(const PixelBuffer& source,
                                              Rect bounds,
-                                             const QRegion& selection,
+                                             const FilterSelection& selection,
                                              int maximum_dimension) {
   FilterPreviewProxy proxy;
   if (!source.empty() && source.format().bit_depth != BitDepth::UInt8) {
@@ -150,7 +209,7 @@ FilterPreviewProxy make_filter_preview_proxy(const PixelBuffer& source,
   }
 
   const QRect source_bounds(bounds.x, bounds.y, source.width(), source.height());
-  const auto selected = selection.intersected(QRegion(source_bounds));
+  const auto selected = selection.region.intersected(QRegion(source_bounds));
   const auto scale_x = static_cast<double>(width) / source.width();
   const auto scale_y = static_cast<double>(height) / source.height();
   for (const auto& rect : selected) {
@@ -162,10 +221,16 @@ FilterPreviewProxy make_filter_preview_proxy(const PixelBuffer& source,
     const auto top = static_cast<int>(std::floor(local_top * scale_y));
     const auto right = static_cast<int>(std::ceil(local_right * scale_x));
     const auto bottom = static_cast<int>(std::ceil(local_bottom * scale_y));
-    proxy.selection += QRect(left, top, std::max(1, right - left),
-                             std::max(1, bottom - top));
+    proxy.selection.region += QRect(left, top, std::max(1, right - left),
+                                    std::max(1, bottom - top));
   }
-  proxy.selection &= QRegion(QRect(0, 0, width, height));
+  proxy.selection.region &= QRegion(QRect(0, 0, width, height));
+  if (!selection.coverage.empty()) {
+    proxy.selection.coverage_bounds = Rect::from_size(width, height);
+    proxy.selection.coverage =
+        proxy_selection_coverage(selection, bounds, source.width(),
+                                 source.height(), width, height);
+  }
   return proxy;
 }
 

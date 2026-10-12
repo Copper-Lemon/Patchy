@@ -36,6 +36,7 @@
 #include "ui/curves_presets.hpp"
 #include "ui/filter_workflows.hpp"
 #include "ui/filter_look_library.hpp"
+#include "ui/filter_preview_proxy.hpp"
 #include "ui/font_picker.hpp"
 #include "ui/gradient_stops_editor.hpp"
 #include "ui/gradient_library.hpp"
@@ -2559,6 +2560,43 @@ void ui_filter_gallery_on_shape_layer_rasterize_choice() {
 
 // Destructive adjustment dialogs (Levels) refuse smart objects, so the prompt
 // offers Rasterize only; Cancel leaves the text layer untouched.
+// The bounded preview proxy (direct filter dialogs and the gallery) carries a soft
+// selection's coverage scaled to its own pixels, so the dialog preview fades the edge the
+// way the canvas preview and Apply do instead of clipping it to the hard region.
+void ui_filter_preview_proxy_blends_soft_selection_coverage() {
+  // 1280 x 20 source at document x 100 renders at half size (640 px maximum).
+  const patchy::Rect bounds{100, 0, 1280, 20};
+  const auto source = solid_pixels(1280, 20, patchy::PixelFormat::rgba8(), QColor(200, 40, 40));
+  // Unselected left of source x 400, half covered to 800, fully covered from there.
+  patchy::ui::FilterSelection selection(QRegion(QRect(bounds.x + 400, 0, 880, 20)));
+  selection.coverage_bounds = patchy::Rect{bounds.x + 400, 0, 880, 20};
+  selection.coverage = patchy::PixelBuffer(880, 20, patchy::PixelFormat::gray8());
+  for (int y = 0; y < 20; ++y) {
+    for (int x = 0; x < 880; ++x) {
+      selection.coverage.pixel(x, y)[0] = x < 400 ? 128 : 255;
+    }
+  }
+  const auto proxy =
+      patchy::ui::make_filter_preview_proxy(source, bounds, selection, patchy::ui::kFilterProxyMaximumDimension);
+  CHECK(proxy.original.width() == 640 && proxy.original.height() == 10);
+  CHECK(proxy.selection.coverage.width() == 640);
+
+  patchy::FilterRegistry registry;
+  patchy::register_builtin_filters(registry);
+  const auto rendered =
+      patchy::ui::render_filter_proxy(proxy, registry, registry.default_invocation("patchy.filters.invert"));
+  const auto color_at = [&](int x) {
+    return rendered.image.pixelColor(x - rendered.bounds.x, 5 - rendered.bounds.y);
+  };
+  // Proxy x 100 / 300 / 500 stand for source x 200 / 600 / 1000.
+  CHECK(color_close(color_at(100), QColor(200, 40, 40), 0));
+  CHECK(color_close(color_at(300), QColor(127, 128, 128), 2));
+  CHECK(color_close(color_at(500), QColor(55, 215, 215), 0));
+  // The soft edge starts on proxy pixel 200 (source x 400); nothing left of it is covered.
+  CHECK(*proxy.selection.coverage.pixel(199, 5) == 0);
+  CHECK(*proxy.selection.coverage.pixel(200, 5) == 128);
+}
+
 void ui_levels_on_text_layer_prompt_has_no_convert_choice() {
   patchy::ui::MainWindow window;
   show_window(window);
@@ -2650,5 +2688,7 @@ std::vector<patchy::test::TestCase> destructive_filters_gallery_tests_part1() {
        ui_filter_gallery_on_shape_layer_rasterize_choice},
       {"ui_levels_on_text_layer_prompt_has_no_convert_choice",
        ui_levels_on_text_layer_prompt_has_no_convert_choice},
+      {"ui_filter_preview_proxy_blends_soft_selection_coverage",
+       ui_filter_preview_proxy_blends_soft_selection_coverage},
   };
 }
