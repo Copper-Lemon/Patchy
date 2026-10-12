@@ -16,7 +16,7 @@ For bug reports and feature requests, please [open an issue](https://github.com/
 
 ## Download
 
-**Latest release: 1.09** · October 12, 2026 · [Release notes](#whats-new) · [All releases](https://github.com/SethRobinson/Patchy/releases)
+**Latest release: 1.10** · October 13, 2026 · [Release notes](#whats-new) · [All releases](https://github.com/SethRobinson/Patchy/releases)
 
 Windows releases are code signed by Seth A. Robinson; the macOS app is signed and
 notarized (Robinson Technologies Corporation); the Linux Flatpak repository is GPG
@@ -126,6 +126,14 @@ and Affinity import has format-specific limitations. See [current compatibility]
 
 ## What's New
 
+### 1.10 - October 13, 2026
+
+- Windows: one-click updates. Starting with the release after this one, the update prompt can download the new version, close Patchy, install it and start it again. It asks about unsaved work first and needs no administrator rights. Copies unpacked from the zip still get the browser download
+- Updating no longer requires closing Claude, Codex or other AI apps connected to Patchy. They keep working on the old version, Patchy tells you which apps to restart, and the assistant is told as well. Assistants also hear when a new release is out, for people who only use Patchy through one
+- Object Selection: an optional High Quality model finds objects much more accurately. It is a 234 MB download, offered the first time you use the tool and managed in Preferences. Dragging a box now analyzes just that area for sharper edges, and Select Object is back in the selection right-click menu
+- Web build: Object Selection now works in the browser
+- Copy Merged keeps the shape of the selection, and filters, adjustments and their previews blend soft selection edges instead of cutting them off. Script `applyFilter` honors the selection too
+
 ### 1.09 - October 12, 2026
 
 - Object Selection tool (desktop): drag a box or click an object and Patchy selects it
@@ -135,17 +143,6 @@ and Affinity import has format-specific limitations. See [current compatibility]
 - Text layers in some older PSDs (Photoshop CS5 era) can be edited again instead of all showing as protected ([issue 86](https://github.com/SethRobinson/Patchy/issues/86))
 - PSD compatibility pass: CMYK layers composite in their own ink channels, CMYK, grayscale and 16-bit saves keep their native color space, and knockout transparency, aligned vector stroke edges, grayscale Smart Objects, duotone inks and noise gradients render closer to Photoshop
 - Saves and automatic document recovery hold up better against crashes and power loss
-
-### 1.08 - October 10, 2026
-
-- 16-bit and 32-bit editing: PSD, PSB, PNG and TIFF files open and save at their bit depth, and Image > Mode switches a document between 8, 16 and 32 bits per channel. Painting, retouching, transforms, layer operations, adjustment layers, HDR Toning, the Filter Gallery and 8BF plug-ins (16-bit) work at depth, with Photoshop's 32-bit blend mode rules. New documents still start at 8 bits, and the browser build stops at 16 bits
-- DDS textures: open BC1 to BC7 files, including cubemaps, volume and array textures, and save uncompressed, DXT1, DXT5, BC4, BC5 or BC7 with optional mipmaps. Automatic follows the opened file's format, and Preview Mipmaps shows every level ([issue 81](https://github.com/SethRobinson/Patchy/issues/81))
-- Text inside shapes: the Type tool flows paragraph text inside a closed path or shape, saved as native Photoshop area text ([issue 80](https://github.com/SethRobinson/Patchy/issues/80))
-- Gradient fill layers span their mask's visible area and land on the same pixel edges as Photoshop
-- Windows: a single click on the title bar no longer restores a maximized window; double-click or drag it instead ([issue 82](https://github.com/SethRobinson/Patchy/issues/82)). Dialogs now open inside the visible screen area
-- Scripting: You can now right click a script and assign it a hotkey, it's really simple. (Hotkey dialog works too) So it's now possible to script a missing feature via script and assign it a hotkey to make it feel like a native feature.  I added a "Save as DDS" script to demonstrate this, this could be useful if you wanted specific save options but didn't want to deal with the dialog each time.
-- Web build: Safari now gets the same multithreaded build as other browsers, the latest Safari fixed its bugs so everything works fine on it now
-- We now properly save thumbnail/preview images inside of psd/psb files, this speeds up thumbnail generation in File Explorer and other places
 
 [Older releases](RELEASE-HISTORY.md)
 

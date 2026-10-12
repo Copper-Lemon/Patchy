@@ -132,6 +132,16 @@
     <control>tablet</control>
   </supports>
   <releases>
+    <release version="1.10" date="2026-10-13">
+      <description>
+        <ul>
+          <li>Object Selection: an optional High Quality model, downloaded on request, finds objects much more accurately</li>
+          <li>Dragging a box with Object Selection analyzes just that area for sharper edges</li>
+          <li>Copy Merged keeps the shape of the selection, and filters and adjustments blend soft selection edges</li>
+          <li>AI assistants connected to Patchy report when it has been updated or a new release is out</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.09" date="2026-10-12">
       <description>
         <ul>

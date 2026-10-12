@@ -3,6 +3,17 @@
 Older Patchy release notes are collected here. The two most recent releases
 remain in [README.md](README.md#whats-new).
 
+## 1.08 - October 10, 2026
+
+- 16-bit and 32-bit editing: PSD, PSB, PNG and TIFF files open and save at their bit depth, and Image > Mode switches a document between 8, 16 and 32 bits per channel. Painting, retouching, transforms, layer operations, adjustment layers, HDR Toning, the Filter Gallery and 8BF plug-ins (16-bit) work at depth, with Photoshop's 32-bit blend mode rules. New documents still start at 8 bits, and the browser build stops at 16 bits
+- DDS textures: open BC1 to BC7 files, including cubemaps, volume and array textures, and save uncompressed, DXT1, DXT5, BC4, BC5 or BC7 with optional mipmaps. Automatic follows the opened file's format, and Preview Mipmaps shows every level ([issue 81](https://github.com/SethRobinson/Patchy/issues/81))
+- Text inside shapes: the Type tool flows paragraph text inside a closed path or shape, saved as native Photoshop area text ([issue 80](https://github.com/SethRobinson/Patchy/issues/80))
+- Gradient fill layers span their mask's visible area and land on the same pixel edges as Photoshop
+- Windows: a single click on the title bar no longer restores a maximized window; double-click or drag it instead ([issue 82](https://github.com/SethRobinson/Patchy/issues/82)). Dialogs now open inside the visible screen area
+- Scripting: You can now right click a script and assign it a hotkey, it's really simple. (Hotkey dialog works too) So it's now possible to script a missing feature via script and assign it a hotkey to make it feel like a native feature.  I added a "Save as DDS" script to demonstrate this, this could be useful if you wanted specific save options but didn't want to deal with the dialog each time.
+- Web build: Safari now gets the same multithreaded build as other browsers, the latest Safari fixed its bugs so everything works fine on it now
+- We now properly save thumbnail/preview images inside of psd/psb files, this speeds up thumbnail generation in File Explorer and other places
+
 ## 1.07 - October 7, 2026
 
 - Free Transform: Bicubic Smoother, Bicubic Sharper and Bicubic Automatic interpolation, the same choices as Image Size, which now honors and remembers the chosen resampling method and previews with it

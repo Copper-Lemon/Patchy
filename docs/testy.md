@@ -15,6 +15,9 @@ patchy.exe as-is).
 
 ## Running it
 
+When Seth says "run the Testy suite", he means the psd-tools corpus
+(`--corpus corpus\psd-tools.txt`, below), not the small default list in `config.local.json`.
+
 Double-click `testy\start-testy.bat`: it kills stale Testy processes, starts the
 dashboard server, and opens the control panel in the browser. The "New run" box is
 pre-filled with the default corpus (one absolute path per line) and takes any pasted

@@ -45,7 +45,7 @@ modules:
       - -DPATCHY_BUILD_TESTS=OFF
       - -DPATCHY_REQUIRE_AI_SELECTION=ON
       - -DPATCHY_ONNXRUNTIME_DIR=/app/onnxruntime
-      - -DPATCHY_AI_MODELS_DIR=/run/build/patchy/ai-models-download
+      - -DPATCHY_AI_MODELS_DIR=/run/build/patchy/ai-models-pinned
     sources:
       - type: dir
         path: ../../..
@@ -57,14 +57,15 @@ modules:
           - local-test-fixtures
           - test-artifacts
       # The int8 automatic selection models, pinned like scripts/setup-ai-deps.sh.
+      # Not "ai-models-download": the build clears that folder in the build directory (cmake/patchy_ai.cmake).
       - type: file
         url: https://github.com/SethRobinson/Patchy/releases/download/ai-models-1/mobile_sam_image_encoder_int8.onnx
         sha256: 6af3f249f7a5a6a8a3ef988b6814015e8c3a300977c135d1f9572ed2f2930cd7
-        dest: ai-models-download
+        dest: ai-models-pinned
       - type: file
         url: https://github.com/SethRobinson/Patchy/releases/download/ai-models-1/sam_mask_decoder_multi_int8.onnx
         sha256: aa1410bec8f050b6017fba29ca07f16317029a8f74a98e5998aeed46680c10a6
-        dest: ai-models-download
+        dest: ai-models-pinned
       # birefnet_lite_general_1024_int8.onnx (Select Subject) is left out while
       # PATCHY_ENABLE_SELECT_SUBJECT is off (held back pending patent review); restore it from
       # scripts/setup-ai-deps.sh together with -DPATCHY_ENABLE_SELECT_SUBJECT=ON.
