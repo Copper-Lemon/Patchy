@@ -19984,6 +19984,50 @@ Convertis en images : %1.</translation>
         <source>Downloads the High Quality model (%1 MB from GitHub). Object Selection finds objects more accurately with it.</source>
         <translation>Télécharge le modèle haute qualité (%1 Mo depuis GitHub). Avec lui, la sélection d&apos;objet trouve les objets plus précisément.</translation>
     </message>
+    <message>
+        <source>The update installer could not be started</source>
+        <translation>Impossible de lancer le programme d&apos;installation de la mise à jour</translation>
+    </message>
+    <message>
+        <source>Downloading Patchy %1... %2 of %3 MB</source>
+        <translation>Téléchargement de Patchy %1... %2 sur %3 Mo</translation>
+    </message>
+    <message>
+        <source>The update could not be downloaded: %1</source>
+        <translation>Impossible de télécharger la mise à jour : %1</translation>
+    </message>
+    <message>
+        <source>The update was not installed because Patchy stayed open</source>
+        <translation>La mise à jour n&apos;a pas été installée, car Patchy est resté ouvert</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, close, install it, and start again. You will be asked about unsaved work first.</source>
+        <translation>Patchy %1 est disponible. Vous utilisez la version %2.
+
+Patchy peut télécharger la mise à jour, se fermer, l&apos;installer et redémarrer. Une question vous sera d&apos;abord posée sur le travail non enregistré.</translation>
+    </message>
+    <message>
+        <source>Update Now</source>
+        <translation>Mettre à jour maintenant</translation>
+    </message>
+    <message>
+        <source>Patchy Updated</source>
+        <translation>Patchy mis à jour</translation>
+    </message>
+    <message>
+        <source>Patchy was updated to version %1.
+
+These apps are still connected to the old version: %2.
+
+Restart them to finish updating.</source>
+        <translation>Patchy a été mis à jour vers la version %1.
+
+Ces applications sont encore connectées à l&apos;ancienne version : %2.
+
+Redémarrez-les pour terminer la mise à jour.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

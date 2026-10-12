@@ -17,6 +17,7 @@
 #include <QStringList>
 
 #include <cstddef>
+#include <functional>
 #include <optional>
 #include <utility>
 
@@ -39,6 +40,21 @@ public:
   static void allow_high_quality_offer_offscreen(MainWindow& window) {
     window.high_quality_offer_in_offscreen_tests_ = true;
   }
+
+  // One-click update seams (docs/auto-update.md): treat this copy as installer-made (or
+  // not), download into a scratch folder, and capture the installer launch instead of
+  // starting a process.
+  static void set_self_update_override(MainWindow& window, std::optional<bool> value) {
+    window.self_update_override_for_tests_ = value;
+  }
+  static void set_update_download_folder(MainWindow& window, const QString& folder) {
+    window.update_download_folder_for_tests_ = folder;
+  }
+  static void set_update_installer_launcher(MainWindow& window,
+                                            std::function<bool(const UpdateInstallerLaunch&)> launcher) {
+    window.update_installer_launcher_for_tests_ = std::move(launcher);
+  }
+  static bool update_install_pending(const MainWindow& window) { return window.pending_update_install_.has_value(); }
 
   // The historical startup document (startup now opens an empty workspace):
   // show_window creates one so pre-existing tests keep their canvas.

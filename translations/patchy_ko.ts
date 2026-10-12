@@ -19927,6 +19927,50 @@ Y: %2
         <source>Downloads the High Quality model (%1 MB from GitHub). Object Selection finds objects more accurately with it.</source>
         <translation>고품질 모델을 다운로드합니다(GitHub에서 %1MB). 개체 선택이 개체를 더 정확하게 찾습니다.</translation>
     </message>
+    <message>
+        <source>The update installer could not be started</source>
+        <translation>업데이트 설치 프로그램을 시작할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>Downloading Patchy %1... %2 of %3 MB</source>
+        <translation>Patchy %1 다운로드 중... %2/%3MB</translation>
+    </message>
+    <message>
+        <source>The update could not be downloaded: %1</source>
+        <translation>업데이트를 다운로드할 수 없습니다: %1</translation>
+    </message>
+    <message>
+        <source>The update was not installed because Patchy stayed open</source>
+        <translation>Patchy가 열려 있어 업데이트가 설치되지 않았습니다</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, close, install it, and start again. You will be asked about unsaved work first.</source>
+        <translation>Patchy %1을(를) 사용할 수 있습니다. 버전 %2을(를) 사용하고 있습니다.
+
+Patchy가 업데이트를 다운로드하고 종료한 다음 설치하고 다시 시작할 수 있습니다. 먼저 저장하지 않은 작업에 대해 묻습니다.</translation>
+    </message>
+    <message>
+        <source>Update Now</source>
+        <translation>지금 업데이트</translation>
+    </message>
+    <message>
+        <source>Patchy Updated</source>
+        <translation>Patchy 업데이트됨</translation>
+    </message>
+    <message>
+        <source>Patchy was updated to version %1.
+
+These apps are still connected to the old version: %2.
+
+Restart them to finish updating.</source>
+        <translation>Patchy가 버전 %1(으)로 업데이트되었습니다.
+
+다음 앱은 아직 이전 버전에 연결되어 있습니다: %2.
+
+업데이트를 완료하려면 해당 앱을 다시 시작하세요.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

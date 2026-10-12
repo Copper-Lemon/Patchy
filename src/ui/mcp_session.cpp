@@ -1,6 +1,7 @@
 #include "ui/mcp_session.hpp"
 #include "ui/mcp_activity.hpp"
 #include "ui/ai_control_paths.hpp"
+#include "ui/connector_freshness.hpp"
 #include "ui/main_window.hpp"
 #include "ui/script_engine.hpp"
 #include "ui/background_workers.hpp"
@@ -184,7 +185,12 @@ struct McpSession::Impl final : public QObject {
   }
 
   void tool_reply(const QJsonValue& id, QJsonObject data, bool error = false, QJsonArray content = {}) {
+    QJsonArray notice;
+    // An owned connector that an update left behind says so (connector_freshness.hpp). The
+    // attached proxy adds its own; this session then runs inside the current Patchy.
+    if (!attached_) { add_connector_update_notice(data, notice); }
     content.append(QJsonObject{{"type", "text"}, {"text", QString::fromUtf8(QJsonDocument(data).toJson(QJsonDocument::Compact))}});
+    for (const auto& item : notice) { content.append(item); }
     reply(id, {{"isError", error}, {"structuredContent", data}, {"content", content}});
   }
 
@@ -315,13 +321,17 @@ struct McpSession::Impl final : public QObject {
       activity_->set_operation(name == "execute_script" ? args["name"].toString(operations[name]) : operations[name], editing);
       if (name == "get_info") {
         const bool offscreen = QGuiApplication::platformName() == QStringLiteral("offscreen");
-        complete_tool(id, {{"version", app_.applicationVersion()}, {"apiVersion", 1}, {"mode", offscreen ? "offscreen" : "visible"},
+        QJsonObject info{{"version", app_.applicationVersion()}, {"apiVersion", 1}, {"mode", offscreen ? "offscreen" : "visible"},
           {"platform", QGuiApplication::platformName()}, {"windowVisible", !offscreen && window_.isVisible()},
           {"skillDirectory", kit_directory()}, {"capabilities", QJsonArray{"persistentDocuments", "javascript", "brush", "eraser", "pressure", "seededDynamics", "pixels", "preview", "undo", "redo", "vectorShapes", "vectorPaths", "vectorMasks", "vectorPaints",
             "brushTips", "brushPresets", "brushDynamics", "wetEdges", "mixerBrush", "penPose", "strokeSmoothing", "timedAirbrush", "brushLibraryWrites", "slowMode", "pauseAutomation", "palettes", "paletteColorNames", "indexedPng"}},
           {"scriptTrust", "applicationPrivileges"}, {"workspaceAvailable", true}, {"liveWindowAttachment", attached_},
           {"workspace", attached_ ? "attached" : "isolated"}, {"requiresExpectedState", attached_},
-          {"processId", QString::number(QCoreApplication::applicationPid())}});
+          {"processId", QString::number(QCoreApplication::applicationPid())}};
+        // An owned connector's own update check (connector_freshness.hpp); the attached
+        // Patchy shows its user the update prompt itself.
+        if (!attached_ && !connector_update_available().isEmpty()) { info.insert("updateAvailable", connector_update_available()); }
+        complete_tool(id, std::move(info));
       } else if (name == "get_help") {
         complete_tool(id, mcp_help_result(args));
       } else if (name == "get_state") {

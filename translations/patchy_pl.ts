@@ -20041,6 +20041,50 @@ Y: %2
         <source>Downloads the High Quality model (%1 MB from GitHub). Object Selection finds objects more accurately with it.</source>
         <translation>Pobiera model wysokiej jakości (%1 MB z serwisu GitHub). Zaznaczanie obiektu dokładniej wykrywa z nim obiekty.</translation>
     </message>
+    <message>
+        <source>The update installer could not be started</source>
+        <translation>Nie udało się uruchomić instalatora aktualizacji</translation>
+    </message>
+    <message>
+        <source>Downloading Patchy %1... %2 of %3 MB</source>
+        <translation>Pobieranie Patchy %1... %2 z %3 MB</translation>
+    </message>
+    <message>
+        <source>The update could not be downloaded: %1</source>
+        <translation>Nie udało się pobrać aktualizacji: %1</translation>
+    </message>
+    <message>
+        <source>The update was not installed because Patchy stayed open</source>
+        <translation>Aktualizacja nie została zainstalowana, ponieważ Patchy pozostał otwarty</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, close, install it, and start again. You will be asked about unsaved work first.</source>
+        <translation>Dostępny jest Patchy %1. Używasz wersji %2.
+
+Patchy może pobrać aktualizację, zamknąć się, zainstalować ją i uruchomić się ponownie. Najpierw pojawi się pytanie o niezapisaną pracę.</translation>
+    </message>
+    <message>
+        <source>Update Now</source>
+        <translation>Aktualizuj teraz</translation>
+    </message>
+    <message>
+        <source>Patchy Updated</source>
+        <translation>Zaktualizowano Patchy</translation>
+    </message>
+    <message>
+        <source>Patchy was updated to version %1.
+
+These apps are still connected to the old version: %2.
+
+Restart them to finish updating.</source>
+        <translation>Patchy został zaktualizowany do wersji %1.
+
+Te aplikacje są nadal połączone ze starą wersją: %2.
+
+Uruchom je ponownie, aby dokończyć aktualizację.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

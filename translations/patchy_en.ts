@@ -19935,6 +19935,44 @@ Baked into images: %1.</source>
         <source>Downloads the High Quality model (%1 MB from GitHub). Object Selection finds objects more accurately with it.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>The update installer could not be started</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Downloading Patchy %1... %2 of %3 MB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The update could not be downloaded: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The update was not installed because Patchy stayed open</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, close, install it, and start again. You will be asked about unsaved work first.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Update Now</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Patchy Updated</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Patchy was updated to version %1.
+
+These apps are still connected to the old version: %2.
+
+Restart them to finish updating.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

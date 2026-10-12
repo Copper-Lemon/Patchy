@@ -8439,6 +8439,21 @@ void MainWindow::closeEvent(QCloseEvent* event) {
       return;
     }
   }
+  // A one-click update (download_and_install_update): every document is settled, so hand
+  // over to the installer, which waits for this process to exit. If it cannot start, stay
+  // open rather than quit with nothing updated.
+  if (pending_update_install_.has_value()) {
+    const auto launch = *std::exchange(pending_update_install_, std::nullopt);
+    const bool started =
+        update_installer_launcher_for_tests_ ? update_installer_launcher_for_tests_(launch)
+                                             : launch_update_installer(launch);
+    if (!started) {
+      restore_hidden_floats();
+      event->ignore();
+      show_status_error(tr("The update installer could not be started"));
+      return;
+    }
+  }
   save_window_geometry();
   // Flush any tool-option change still waiting on the save debounce; the timer
   // will not fire once the window is gone.

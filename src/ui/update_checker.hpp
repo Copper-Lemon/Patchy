@@ -15,7 +15,15 @@ struct UpdateInfo {
   QString platform;
   QString version;
   QUrl download_url;
+  // The installer Patchy can fetch and run by itself (Windows; docs/auto-update.md). Set
+  // only when the manifest entry carries all of installer_url (https), installer_size and
+  // installer_sha256; otherwise the update is offered as a browser download.
+  QUrl installer_url{};
+  qint64 installer_size{0};
+  QByteArray installer_sha256{};  // lowercase hex
 };
+
+[[nodiscard]] bool update_has_installer(const UpdateInfo& update);
 
 enum class UpdateCheckStatus {
   UpdateAvailable,

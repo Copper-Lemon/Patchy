@@ -2,17 +2,22 @@
 #include "app/mcp_stdio.hpp"
 #include "ui/ai_control_paths.hpp"
 #include "ui/background_workers.hpp"
+#include "ui/connector_freshness.hpp"
 #include "ui/main_window.hpp"
 #include "ui/mcp_attachment.hpp"
 #include "ui/mcp_line_buffer.hpp"
 #include "ui/mcp_session.hpp"
 #include "ui/script_engine.hpp"
+#include "ui/update_checker.hpp"
 #include "ui/cli_exit.hpp"
 #include <QApplication>
 #include <chrono>
 #include <QFileInfo>
+#include <QJsonArray>
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QLocalSocket>
+#include <QSettings>
 #include <QTimer>
 #include <cstdio>
 #include <stdexcept>
@@ -130,9 +135,27 @@ class AttachedProxy final : public QObject {
   static void rpc_error(const QJsonValue& id, int code, const QString& message) {
     send({{"jsonrpc", "2.0"}, {"id", id}, {"error", QJsonObject{{"code", code}, {"message", message}}}});
   }
-  static void tool_reply(const QJsonValue& id, const QJsonObject& data, bool error = false) {
-    reply(id, {{"isError", error}, {"structuredContent", data}, {"content", QJsonArray{QJsonObject{
-      {"type", "text"}, {"text", QString::fromUtf8(QJsonDocument(data).toJson(QJsonDocument::Compact))}}}}});
+  static void tool_reply(const QJsonValue& id, QJsonObject data, bool error = false) {
+    QJsonArray notice;
+    ui::add_connector_update_notice(data, notice);
+    QJsonArray content{QJsonObject{
+      {"type", "text"}, {"text", QString::fromUtf8(QJsonDocument(data).toJson(QJsonDocument::Compact))}}};
+    for (const auto& item : notice) { content.append(item); }
+    reply(id, {{"isError", error}, {"structuredContent", data}, {"content", content}});
+  }
+  // A tool result relayed from the workspace, with this proxy's update notice added when an
+  // update left the proxy behind (ui/connector_freshness.hpp). Empty when there is nothing to add.
+  static QByteArray with_update_notice(QJsonObject message) {
+    if (ui::connector_update_notice().isEmpty() || !message["result"].isObject()) { return {}; }
+    auto result = message["result"].toObject();
+    if (!result.contains("content")) { return {}; }
+    auto structured = result["structuredContent"].toObject();
+    auto content = result["content"].toArray();
+    ui::add_connector_update_notice(structured, content);
+    result["structuredContent"] = structured;
+    result["content"] = content;
+    message["result"] = result;
+    return QJsonDocument(message).toJson(QJsonDocument::Compact);
   }
   void write_workspace(const QJsonObject& message) {
     const auto bytes = QJsonDocument(message).toJson(QJsonDocument::Compact) + '\n';
@@ -168,7 +191,8 @@ class AttachedProxy final : public QObject {
         pending_ = {};
         forwarded_ = false;
       }
-      write_mcp_stdout(line + '\n');
+      const auto noticed = with_update_notice(message);
+      write_mcp_stdout((noticed.isEmpty() ? line : noticed) + '\n');
     }
   }
   void unavailable() {
@@ -220,6 +244,7 @@ int run_attached_proxy(QApplication& app) {
 
 int run_mcp_server(QApplication& app) {
   configure_mcp_stdio();
+  ui::watch_running_executable();  // before anything can replace it (an update, a rebuild)
   app.setQuitOnLastWindowClosed(false);
   const auto args = app.arguments().mid(1);
   if (args == QStringList{QStringLiteral("--attach")}) { return run_attached_proxy(app); }
@@ -261,6 +286,20 @@ int run_mcp_server(QApplication& app) {
     return finish_after_event_loop(ok ? 0 : 2);
   }
 
+  // The update check the app would run at startup, for people who only use Patchy through
+  // an AI app: get_info then reports a newer version (ui/connector_freshness.hpp). It honors
+  // the same switches and the user's own Preferences setting, and never runs for a suite
+  // that brought its own settings folder.
+  if (ui::update_checks_available() && qEnvironmentVariableIsEmpty("PATCHY_MCP_OWNED_SETTINGS") &&
+      QSettings(qEnvironmentVariable("PATCHY_RECENT_SETTINGS_FILE"), QSettings::IniFormat)
+          .value(QStringLiteral("updates/checkOnStartup"), true).toBool()) {
+    ui::request_update_check(&app, app.applicationVersion(), [](ui::UpdateCheckResult result) {
+      if (result.update.has_value()) {
+        ui::set_connector_update_available(ui::connector_update_available_message(
+            result.update->version, result.update->download_url.toString()));
+      }
+    });
+  }
   ui::McpSession session(window, false, write_mcp_stdout);
   session.connect_from_any_thread();
   while (!session.ready()) { app.processEvents(QEventLoop::ExcludeUserInputEvents); }

@@ -188,8 +188,8 @@ stay as they were, and translations must not assume localized decimal separators
   `packaging/linux/com.rtsoft.patchy.desktop` and the AppStream metainfo carry
   `GenericName`, `Comment`, `summary` and description translations for every language.
 - Windows installer (`packaging/windows/InstallPatchy.ps1`): every message in its
-  `$PatchyInstallerText` table (running-Patchy, file-in-use, canceled, and the install
-  folder refusals) exists in every language, and the script picks one from the UI
+  `$PatchyInstallerText` table (running-Patchy, file-in-use, locked file, canceled, and the
+  install folder refusals) exists in every language, and the script picks one from the UI
   culture with the same script-aware Chinese and Brazilian Portuguese fallback rules.
   The wizard's own labels stay English.
 - wasm: the `/translations` preload takes the directory; the qtbase catalogs come from the

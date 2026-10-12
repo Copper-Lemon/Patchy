@@ -20,6 +20,7 @@
 #include "ui/stress_test.hpp"
 #include "ui/text_paragraph_metrics.hpp"
 #include "ui/unit_spin_box.hpp"
+#include "ui/update_installer.hpp"
 
 #include <QBrush>
 #include <QByteArray>
@@ -186,6 +187,10 @@ public:
   bool save_debug_screenshot(const QString& file_path, const QString& widget_name = {},
                              const QRect& region = {});
   void show_update_available(const UpdateInfo& update);
+  // After a one-click update (docs/auto-update.md): AI apps whose connector was running
+  // during the update still use the previous version until they restart. `apps` are their
+  // names as the installer found them ("Claude", "Codex").
+  void show_connector_restart_notice(const QStringList& apps);
   // The startup update check (honors updates/checkOnStartup). Called from src/app/main.cpp
   // only, so tests constructing MainWindow never fire network requests; the result lands on
   // the start panel's status line and, for an available update, show_update_available.
@@ -2539,6 +2544,17 @@ private:
   // CLI automation (run_cli_export): suppress interactive prompts on the open/edit/save
   // paths so an unattended run can never block on a dialog.
   bool cli_automation_mode_{false};
+  // One-click update (docs/auto-update.md). can_install_update is true for an update whose
+  // manifest entry pins an installer, on a copy the Windows installer made.
+  // download_and_install_update fetches it behind a progress dialog, then close()s; the
+  // accepted closeEvent starts the installer from pending_update_install_, and a cancelled
+  // close drops it. The three members below are MainWindowTestAccess seams.
+  [[nodiscard]] bool can_install_update(const UpdateInfo& update) const;
+  void download_and_install_update(const UpdateInfo& update);
+  std::optional<UpdateInstallerLaunch> pending_update_install_;
+  std::optional<bool> self_update_override_for_tests_;
+  QString update_download_folder_for_tests_;
+  std::function<bool(const UpdateInstallerLaunch&)> update_installer_launcher_for_tests_;
   // Cache behind history_retained_bytes(); see enforce_history_memory_budget.
   std::size_t last_history_retained_bytes_{0};
 };

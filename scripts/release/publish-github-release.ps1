@@ -152,6 +152,10 @@ foreach ($name in $assets.Keys) {
   $hash = Get-Sha256Hex $dest
   if ($hash -notmatch '^[0-9a-f]{64}$') { Fail "could not hash $name" }
   $sums.Add("$hash  $name")
+  if ($name -eq 'PatchyWindowsInstaller.exe') {
+    $installerSize = (Get-Item -LiteralPath $dest).Length
+    $installerSha256 = $hash
+  }
   Write-Host ("  {0,-30} {1,12:N0} bytes  sha256 {2}  <- {3}" -f $name, (Get-Item -LiteralPath $dest).Length, $hash, $source)
 }
 $sumsPath = Join-Path $stage 'SHA256SUMS.txt'
@@ -241,4 +245,10 @@ git fetch origin --tags --quiet
 Write-Host ''
 Write-Host "Published $($final.tagName): $($final.url)"
 Write-Host "Latest permalinks: https://github.com/$Repo/releases/latest/download/<asset name>"
+# The one-click update (docs/auto-update.md) needs these in the announcement commit.
+Write-Host ''
+Write-Host 'For the windows entry of latest_version.json:'
+Write-Host "      `"installer_url`": `"$base/PatchyWindowsInstaller.exe`","
+Write-Host "      `"installer_size`": $installerSize,"
+Write-Host "      `"installer_sha256`": `"$installerSha256`""
 exit 0

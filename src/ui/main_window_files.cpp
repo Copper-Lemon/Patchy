@@ -7,6 +7,7 @@
 #include "ui/main_window.hpp"
 #include "ui/main_window_shared.hpp"
 #include "ui/network_mounts.hpp"
+#include "ui/object_selection_model_download.hpp"
 #include "ui/qt_paths.hpp"
 
 #include "core/blend_math.hpp"
@@ -99,6 +100,7 @@
 #include "ui/start_panel.hpp"
 #include "ui/splash_dialog.hpp"
 #include "ui/update_checker.hpp"
+#include "ui/update_installer.hpp"
 #include "ui/zoom_status_bar.hpp"
 #include "support/string_utils.hpp"
 
@@ -4269,7 +4271,84 @@ void MainWindow::print_document() {
   }
 }
 
+bool MainWindow::can_install_update(const UpdateInfo& update) const {
+  return update_has_installer(update) && self_update_override_for_tests_.value_or(installed_copy_can_self_update());
+}
+
+void MainWindow::download_and_install_update(const UpdateInfo& update) {
+#if defined(Q_OS_WASM)
+  Q_UNUSED(update);
+#else
+  const auto megabytes = [](qint64 bytes) { return static_cast<int>((bytes + 500000) / 1000000); };
+  const auto total_mb = megabytes(update.installer_size);
+  const auto progress_text = [&](qint64 received) {
+    return tr("Downloading Patchy %1... %2 of %3 MB").arg(update.version).arg(megabytes(received)).arg(total_mb);
+  };
+  const auto folder = update_download_folder_for_tests_.isEmpty() ? update_download_folder(update.version)
+                                                                  : update_download_folder_for_tests_;
+  std::optional<QProgressDialog> dialog;
+  dialog.emplace(progress_text(0), tr("Cancel"), 0, 1000, this);
+  dialog->setObjectName(QStringLiteral("updateDownloadDialog"));
+  dialog->setWindowModality(Qt::WindowModal);
+  dialog->setMinimumDuration(0);
+  remember_dialog_position(*dialog);
+  dialog->setValue(0);
+  ModelDownloadResult result;
+  bool done = false;
+  QEventLoop wait_loop;
+  // Pinned by size and SHA-256 and written through QSaveFile; an installer already
+  // downloaded for this version (an update cancelled at the save prompt) is reused.
+  auto job = start_model_download(
+      this, folder,
+      {DownloadableModelFile{update_installer_file_name(), update.installer_url, update.installer_size,
+                             update.installer_sha256}},
+      [&](qint64 received, qint64 total) {
+        dialog->setLabelText(progress_text(received));
+        dialog->setValue(total > 0 ? static_cast<int>(received * 999 / total) : 0);
+      },
+      [&](ModelDownloadResult finished) {
+        result = std::move(finished);
+        done = true;
+        wait_loop.quit();
+      });
+  connect(&*dialog, &QProgressDialog::canceled, this, [&job] { job->cancel(); });
+  if (!done) {
+    wait_loop.exec();
+  }
+  dialog.reset();
+  if (result.cancelled) {
+    statusBar()->showMessage(tr("Download cancelled"));
+    return;
+  }
+  if (!result.ok) {
+    QMessageBox failure(QMessageBox::Warning, tr("Update Available"),
+                        tr("The update could not be downloaded: %1").arg(result.error), QMessageBox::NoButton, this);
+    failure.setObjectName(QStringLiteral("updateDownloadFailedMessageBox"));
+    auto* browser_button = failure.addButton(tr("Download"), QMessageBox::AcceptRole);
+    failure.addButton(tr("Not Now"), QMessageBox::RejectRole);
+    failure.setDefaultButton(browser_button);
+    exec_dialog(failure);
+    if (failure.clickedButton() == browser_button && !QDesktopServices::openUrl(update.download_url)) {
+      show_status_error(tr("Could not open the download link"));
+    }
+    return;
+  }
+  // closeEvent asks about unsaved work as on any quit, then starts the installer, which
+  // waits for this process before it replaces anything.
+  pending_update_install_ = UpdateInstallerLaunch{QDir(folder).filePath(update_installer_file_name()),
+                                                  QCoreApplication::applicationDirPath(),
+                                                  QCoreApplication::applicationPid()};
+  if (!close() && pending_update_install_.has_value()) {
+    pending_update_install_.reset();
+    statusBar()->showMessage(tr("The update was not installed because Patchy stayed open"));
+  }
+#endif
+}
+
 void MainWindow::show_update_available(const UpdateInfo& update) {
+  // Windows only, on a copy the installer made (docs/auto-update.md): Patchy fetches and
+  // runs the installer itself. Everything else gets the per-artifact advice below.
+  const bool self_update = can_install_update(update);
   // The install advice is artifact-specific: Windows ships an installer exe, macOS a
   // drag-to-Applications DMG, Linux a Flatpak that updates from its repository.
 #if defined(Q_OS_MACOS)
@@ -4288,9 +4367,13 @@ void MainWindow::show_update_available(const UpdateInfo& update) {
                               "To update, paste this into a terminal:\n\n%3")
                                .arg(update.version, QStringLiteral(PATCHY_VERSION), install_command);
 #else
-  const auto update_text = tr("Patchy %1 is available. You are using version %2.\n\n"
-                              "Save your work and close Patchy before running the installer.")
-                               .arg(update.version, QStringLiteral(PATCHY_VERSION));
+  const auto update_text =
+      (self_update ? tr("Patchy %1 is available. You are using version %2.\n\n"
+                        "Patchy can download the update, close, install it, and start again. "
+                        "You will be asked about unsaved work first.")
+                   : tr("Patchy %1 is available. You are using version %2.\n\n"
+                        "Save your work and close Patchy before running the installer."))
+          .arg(update.version, QStringLiteral(PATCHY_VERSION));
 #endif
   QMessageBox dialog(QMessageBox::Information, tr("Update Available"), update_text, QMessageBox::NoButton, this);
   dialog.setObjectName(QStringLiteral("updateAvailableMessageBox"));
@@ -4302,13 +4385,27 @@ void MainWindow::show_update_available(const UpdateInfo& update) {
 #else
   QAbstractButton* copy_button = nullptr;
 #endif
-  auto* download_button = dialog.addButton(tr("Download"), QMessageBox::AcceptRole);
-  dialog.addButton(tr("Not Now"), QMessageBox::RejectRole);
+  QAbstractButton* install_button = nullptr;
+  QAbstractButton* download_button = nullptr;
+  if (self_update) {
+    auto* button = dialog.addButton(tr("Update Now"), QMessageBox::AcceptRole);
+    button->setObjectName(QStringLiteral("updateInstallNowButton"));
+    dialog.setDefaultButton(button);
+    install_button = button;
+  } else {
+    auto* button = dialog.addButton(tr("Download"), QMessageBox::AcceptRole);
 #if !defined(Q_OS_LINUX)
-  dialog.setDefaultButton(download_button);
+    dialog.setDefaultButton(button);
 #endif
+    download_button = button;
+  }
+  dialog.addButton(tr("Not Now"), QMessageBox::RejectRole);
 
   exec_dialog(dialog);
+  if (install_button != nullptr && dialog.clickedButton() == install_button) {
+    download_and_install_update(update);
+    return;
+  }
 #if defined(Q_OS_LINUX)
   if (dialog.clickedButton() == copy_button) {
     if (auto* clipboard = QApplication::clipboard(); clipboard != nullptr) {
@@ -4320,9 +4417,25 @@ void MainWindow::show_update_available(const UpdateInfo& update) {
 #else
   Q_UNUSED(copy_button);
 #endif
-  if (dialog.clickedButton() == download_button && !QDesktopServices::openUrl(update.download_url)) {
+  if (download_button != nullptr && dialog.clickedButton() == download_button &&
+      !QDesktopServices::openUrl(update.download_url)) {
     show_status_error(tr("Could not open the download link"));
   }
+}
+
+void MainWindow::show_connector_restart_notice(const QStringList& apps) {
+  if (apps.isEmpty()) {
+    return;
+  }
+  QMessageBox dialog(QMessageBox::Information, tr("Patchy Updated"),
+                     tr("Patchy was updated to version %1.\n\n"
+                        "These apps are still connected to the old version: %2.\n\n"
+                        "Restart them to finish updating.")
+                         .arg(QStringLiteral(PATCHY_VERSION), apps.join(QStringLiteral(", "))),
+                     QMessageBox::Ok, this);
+  dialog.setObjectName(QStringLiteral("updateConnectorNoticeMessageBox"));
+  dialog.setTextFormat(Qt::PlainText);
+  exec_dialog(dialog);
 }
 
 void MainWindow::begin_startup_update_check() {
@@ -4331,9 +4444,20 @@ void MainWindow::begin_startup_update_check() {
   // would only fail CORS and surface a network error on the start panel.
   return;
 #endif
+  // The installer's update mode starts this copy with the AI apps it found still running
+  // the previous connector (packaging/windows/InstallPatchy.ps1).
+  if (const auto clients = qEnvironmentVariable("PATCHY_UPDATE_CONNECTOR_CLIENTS"); !clients.isEmpty()) {
+    qunsetenv("PATCHY_UPDATE_CONNECTOR_CLIENTS");  // one notice; nothing this copy starts inherits it
+    QTimer::singleShot(0, this, [this, apps = clients.split(QLatin1Char('|'), Qt::SkipEmptyParts)] {
+      show_connector_restart_notice(apps);
+    });
+  }
   if (!update_checks_available()) {
     return;
   }
+  // A one-click update leaves the installer for this version in the temp folder. It may
+  // still be exiting when the copy it installed starts, so the cleanup waits a little.
+  QTimer::singleShot(30000, this, [] { remove_update_download(QStringLiteral(PATCHY_VERSION)); });
   {
     auto settings = app_settings();
     if (!settings.value(QStringLiteral("updates/checkOnStartup"), true).toBool()) {

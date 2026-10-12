@@ -70,6 +70,10 @@
 #include "ui/background_workers.hpp"
 #include "ui/network_mounts.hpp"
 #include "ui/update_checker.hpp"
+#include "ui/update_installer.hpp"
+#include "ui/connector_freshness.hpp"
+#include "ui/qt_paths.hpp"
+#include "unicode_path_names.hpp"
 #include "ui/visual_filter_gallery_dialog.hpp"
 #include "ui/zoomable_image_preview.hpp"
 #include "ui/zoom_status_bar.hpp"
@@ -102,6 +106,7 @@
 #include <QDataStream>
 #include <QDockWidget>
 #include <QCoreApplication>
+#include <QCryptographicHash>
 #include <QDir>
 #include <QStandardPaths>
 #include <QDoubleSpinBox>
@@ -1809,6 +1814,81 @@ void update_manifest_parser_handles_supported_cases() {
   })";
   CHECK(!patchy::ui::parse_update_manifest(relative_url_manifest, QStringLiteral("windows"), QStringLiteral("0.1.0"))
              .has_value());
+
+  // The one-click installer fields (docs/auto-update.md) are all or nothing: an entry
+  // without them, with one missing, with a non-https URL or with a malformed hash is still
+  // an update, offered as a browser download.
+  CHECK(!patchy::ui::update_has_installer(*update));
+  const auto installer_manifest = [](const QString& extra_fields) {
+    return QStringLiteral(R"({"platforms": {"windows": {"version": "0.2",
+        "download_url": "https://rtsoft.com/patchy/PatchyWindowsInstaller.exe"%1}}})")
+        .arg(extra_fields)
+        .toUtf8();
+  };
+  const auto sha = QStringLiteral("0123456789ABCDEF0123456789abcdef0123456789abcdef0123456789abcdef");
+  const auto with_installer = patchy::ui::parse_update_manifest(
+      installer_manifest(QStringLiteral(R"(, "installer_url": "https://rtsoft.com/v0.2/PatchyWindowsInstaller.exe",
+                                           "installer_size": 123456789, "installer_sha256": "%1")")
+                             .arg(sha)),
+      QStringLiteral("windows"), QStringLiteral("0.1.0"));
+  CHECK(with_installer.has_value());
+  if (with_installer.has_value()) {
+    CHECK(patchy::ui::update_has_installer(*with_installer));
+    CHECK(with_installer->installer_url == QUrl(QStringLiteral("https://rtsoft.com/v0.2/PatchyWindowsInstaller.exe")));
+    CHECK(with_installer->installer_size == 123456789);
+    CHECK(with_installer->installer_sha256 == sha.toLower().toLatin1());
+    CHECK(with_installer->download_url == QUrl(QStringLiteral("https://rtsoft.com/patchy/PatchyWindowsInstaller.exe")));
+  }
+  for (const auto& fields : {
+           QStringLiteral(R"(, "installer_url": "https://rtsoft.com/i.exe", "installer_size": 10)"),
+           QStringLiteral(R"(, "installer_url": "https://rtsoft.com/i.exe", "installer_sha256": "%1")").arg(sha),
+           QStringLiteral(R"(, "installer_size": 10, "installer_sha256": "%1")").arg(sha),
+           QStringLiteral(R"(, "installer_url": "http://rtsoft.com/i.exe", "installer_size": 10,
+                             "installer_sha256": "%1")").arg(sha),
+           QStringLiteral(R"(, "installer_url": "https://rtsoft.com/i.exe", "installer_size": 0,
+                             "installer_sha256": "%1")").arg(sha),
+           QStringLiteral(R"(, "installer_url": "https://rtsoft.com/i.exe", "installer_size": 10,
+                             "installer_sha256": "not-a-hash")"),
+       }) {
+    const auto partial =
+        patchy::ui::parse_update_manifest(installer_manifest(fields), QStringLiteral("windows"), QStringLiteral("0.1.0"));
+    CHECK(partial.has_value());
+    CHECK(partial.has_value() && !patchy::ui::update_has_installer(*partial));
+  }
+  // A manifest chosen through PATCHY_UPDATE_MANIFEST_URL may name an http installer (a
+  // local trial of the whole update); the shipped manifest never can (the fourth case above).
+  {
+    const auto previous = qgetenv("PATCHY_UPDATE_MANIFEST_URL");
+    qputenv("PATCHY_UPDATE_MANIFEST_URL", "http://127.0.0.1:1/latest_version.json");
+    const auto local = patchy::ui::parse_update_manifest(
+        installer_manifest(QStringLiteral(R"(, "installer_url": "http://127.0.0.1:1/i.exe", "installer_size": 10,
+                                             "installer_sha256": "%1")")
+                               .arg(sha)),
+        QStringLiteral("windows"), QStringLiteral("0.1.0"));
+    if (previous.isEmpty()) {
+      qunsetenv("PATCHY_UPDATE_MANIFEST_URL");
+    } else {
+      qputenv("PATCHY_UPDATE_MANIFEST_URL", previous);
+    }
+    CHECK(local.has_value() && patchy::ui::update_has_installer(*local));
+  }
+}
+
+// Only a copy the Windows installer made updates itself: the uninstall entry's
+// InstallLocation must name the folder the app runs from.
+void update_install_location_matching_ignores_case_and_separators() {
+  using patchy::ui::install_location_matches;
+  CHECK(install_location_matches(QStringLiteral("C:\\Users\\Me\\AppData\\Local\\Programs\\Patchy"),
+                                 QStringLiteral("C:/Users/Me/AppData/Local/Programs/Patchy")));
+  CHECK(install_location_matches(QStringLiteral("c:\\apps\\patchy\\"), QStringLiteral("C:/Apps/Patchy")));
+  CHECK(!install_location_matches(QStringLiteral("C:\\Apps\\Patchy"), QStringLiteral("C:/Apps/Patchy 2")));
+  CHECK(!install_location_matches(QStringLiteral("C:\\Apps"), QStringLiteral("C:/Apps/Patchy")));
+  CHECK(!install_location_matches(QString(), QStringLiteral("C:/Apps/Patchy")));
+  CHECK(!install_location_matches(QStringLiteral("C:\\Apps\\Patchy"), QString()));
+  // The suites never run from an installed copy, so they never start a real update.
+  CHECK(!patchy::ui::installed_copy_can_self_update());
+  CHECK(patchy::ui::update_download_folder(QStringLiteral("1.10")).endsWith(QStringLiteral("/patchy-update-1.10")));
+  CHECK(patchy::ui::update_download_folder(QStringLiteral("..\\1.10/x")).endsWith(QStringLiteral("/patchy-update-..1.10")));
 }
 
 namespace {
@@ -1975,6 +2055,8 @@ void ui_update_available_dialog_warns_to_close_patchy_before_installing() {
     CHECK(dialog->text().contains(
         QStringLiteral("Save your work and close Patchy before running the installer.")));
 #endif
+    // No pinned installer in this update, and the suite is not an installed copy.
+    CHECK(dialog->findChild<QAbstractButton*>(QStringLiteral("updateInstallNowButton")) == nullptr);
     saw_dialog = true;
     dialog->reject();
   });
@@ -1990,6 +2072,251 @@ void ui_update_available_dialog_warns_to_close_patchy_before_installing() {
 #endif
   window.show_update_available({QStringLiteral("windows"), QStringLiteral("9.9"), download_url});
   CHECK(saw_dialog);
+}
+
+// One-click update (docs/auto-update.md), Windows only: an installed copy offered an update
+// with a pinned installer gets "Update Now"; without either, the browser download stays.
+void ui_update_available_dialog_offers_one_click_update_for_installed_copy() {
+#if defined(Q_OS_WIN)
+  patchy::ui::MainWindow window;
+  show_window(window);
+
+  patchy::ui::UpdateInfo update{QStringLiteral("windows"), QStringLiteral("9.9"),
+                                QUrl(QStringLiteral("https://rtsoft.com/patchy/PatchyWindowsInstaller.exe"))};
+  update.installer_url = QUrl(QStringLiteral("https://rtsoft.com/patchy/v9.9/PatchyWindowsInstaller.exe"));
+  update.installer_size = 1000;
+  update.installer_sha256 = QByteArray(64, 'a');
+
+  const auto shown_with_update_now = [&window](const patchy::ui::UpdateInfo& info, QString* text) {
+    bool saw_dialog = false;
+    bool update_now = false;
+    QTimer::singleShot(0, [&] {
+      auto* dialog = qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("updateAvailableMessageBox")));
+      CHECK(dialog != nullptr);
+      auto* button = dialog->findChild<QAbstractButton*>(QStringLiteral("updateInstallNowButton"));
+      update_now = button != nullptr;
+      if (button != nullptr) {
+        CHECK(dialog->defaultButton() == button);
+      }
+      if (text != nullptr) {
+        *text = dialog->text();
+      }
+      saw_dialog = true;
+      dialog->reject();  // never an accept: that would start the download
+    });
+    window.show_update_available(info);
+    CHECK(saw_dialog);
+    return update_now;
+  };
+
+  QString text;
+  patchy::ui::MainWindowTestAccess::set_self_update_override(window, true);
+  CHECK(shown_with_update_now(update, &text));
+  CHECK(text.contains(QStringLiteral("Patchy can download the update, close, install it, and start again.")));
+  CHECK(!text.contains(QStringLiteral("before running the installer")));
+
+  // The portable zip or a development build: the browser download.
+  patchy::ui::MainWindowTestAccess::set_self_update_override(window, false);
+  CHECK(!shown_with_update_now(update, &text));
+  CHECK(text.contains(QStringLiteral("before running the installer")));
+
+  // An installed copy and a manifest without the installer fields: the same.
+  patchy::ui::MainWindowTestAccess::set_self_update_override(window, true);
+  CHECK(!shown_with_update_now({QStringLiteral("windows"), QStringLiteral("9.9"), update.download_url}, nullptr));
+  CHECK(!patchy::ui::MainWindowTestAccess::update_install_pending(window));
+#endif
+}
+
+// After a one-click update the installer hands Patchy the AI apps still running the
+// previous connector; the note names them and the version now installed.
+void ui_update_connector_restart_notice_names_the_apps() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  bool saw_dialog = false;
+  QTimer::singleShot(0, [&] {
+    auto* dialog =
+        qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("updateConnectorNoticeMessageBox")));
+    CHECK(dialog != nullptr);
+    if (dialog != nullptr) {
+      CHECK(dialog->text().contains(QStringLiteral("Claude, Codex")));
+      CHECK(dialog->text().contains(QStringLiteral(PATCHY_VERSION)));
+      CHECK(dialog->text().contains(QStringLiteral("Restart them")));
+      saw_dialog = true;
+      dialog->accept();
+    }
+  });
+  window.show_connector_restart_notice({QStringLiteral("Claude"), QStringLiteral("Codex")});
+  CHECK(saw_dialog);
+  // Nothing to name: no dialog at all.
+  window.show_connector_restart_notice({});
+  CHECK(find_top_level_dialog(QStringLiteral("updateConnectorNoticeMessageBox")) == nullptr);
+}
+
+// A connector an update left behind notices that another file now sits at its path
+// (ui/connector_freshness.hpp); one that is still current adds nothing to its replies.
+void connector_update_notice_reports_a_replaced_executable() {
+  QTemporaryDir dir;
+  CHECK(dir.isValid());
+  const auto path = dir.filePath(QStringLiteral("patchy-mcp.exe"));
+  const auto write = [&path](const QByteArray& bytes) {
+    QFile file(path);
+    CHECK(file.open(QIODevice::WriteOnly | QIODevice::Truncate) && file.write(bytes) == bytes.size());
+  };
+  write("version one");
+  const patchy::ui::ReplacedFileWatch watch(path);
+  CHECK(!watch.replaced());
+  // The update: the running file is renamed aside and a new one takes its name.
+  CHECK(QFile::rename(path, path + QStringLiteral(".old-20260101000000")));
+  CHECK(watch.replaced());
+  write("version two, a different size");
+  CHECK(watch.replaced());
+  // A path with no file at the start never reports a replacement.
+  const patchy::ui::ReplacedFileWatch absent(dir.filePath(QStringLiteral("absent.exe")));
+  CHECK(!absent.replaced());
+
+  // This test binary has not been replaced: no notice, and replies stay as they were.
+  patchy::ui::watch_running_executable();
+  CHECK(patchy::ui::connector_update_notice().isEmpty());
+  QJsonObject structured{{QStringLiteral("version"), QStringLiteral("1")}};
+  QJsonArray content;
+  CHECK(!patchy::ui::add_connector_update_notice(structured, content));
+  CHECK(structured.size() == 1 && content.isEmpty());
+
+  // The connector's own update check words its finding for the assistant; nothing is
+  // reported until a check has found a newer version.
+  CHECK(patchy::ui::connector_update_available().isEmpty());
+  const auto available =
+      patchy::ui::connector_update_available_message(QStringLiteral("9.9"), QStringLiteral("https://rtsoft.com/p.exe"));
+  CHECK(available.contains(QStringLiteral("Patchy 9.9 is available")));
+  CHECK(available.contains(QStringLiteral("https://rtsoft.com/p.exe")));
+  CHECK(available.contains(QStringLiteral("open the Patchy app")));
+}
+
+// The whole one-click path with a file:// stand-in for the installer and the launch
+// captured: a wrong checksum never reaches the installer, a cancelled save prompt or a
+// launch that fails leaves Patchy open, and a settled close hands over exactly once.
+void ui_update_one_click_downloads_installer_and_hands_over_on_close() {
+#if defined(Q_OS_WIN)
+  const auto root = patchy::ui::to_qstring(
+      std::filesystem::absolute(patchy::test::unicode_artifact_dir(u8"one-click-update")));
+  QDir(root).mkpath(QStringLiteral("source"));
+  QByteArray installer_bytes;
+  for (int i = 0; i < 180000; ++i) {
+    installer_bytes.append(static_cast<char>(i % 241));
+  }
+  const auto source_path = QDir(root).filePath(QStringLiteral("source/PatchyWindowsInstaller.exe"));
+  {
+    QFile source(source_path);
+    CHECK(source.open(QIODevice::WriteOnly) && source.write(installer_bytes) == installer_bytes.size());
+  }
+  const auto download_folder = QDir(root).filePath(QStringLiteral("download"));
+  const auto downloaded_path = QDir(download_folder).filePath(QStringLiteral("PatchyWindowsInstaller.exe"));
+
+  patchy::ui::UpdateInfo update{QStringLiteral("windows"), QStringLiteral("9.9"),
+                                QUrl(QStringLiteral("https://rtsoft.com/patchy/PatchyWindowsInstaller.exe"))};
+  update.installer_url = QUrl::fromLocalFile(source_path);
+  update.installer_size = installer_bytes.size();
+  update.installer_sha256 = QCryptographicHash::hash(installer_bytes, QCryptographicHash::Sha256).toHex();
+
+  patchy::ui::MainWindow window;
+  show_window(window);
+  patchy::ui::MainWindowTestAccess::set_self_update_override(window, true);
+  patchy::ui::MainWindowTestAccess::set_update_download_folder(window, download_folder);
+  std::vector<patchy::ui::UpdateInstallerLaunch> launches;
+  bool launcher_starts = true;
+  patchy::ui::MainWindowTestAccess::set_update_installer_launcher(
+      window, [&](const patchy::ui::UpdateInstallerLaunch& launch) {
+        launches.push_back(launch);
+        return launcher_starts;
+      });
+
+  // Answers each dialog of one run as it appears.
+  bool prompt_answered = false;
+  bool saw_failure = false;
+  bool saw_save_prompt = false;
+  auto save_answer = QMessageBox::Cancel;
+  QTimer driver;
+  QObject::connect(&driver, &QTimer::timeout, &window, [&] {
+    if (auto* failure =
+            qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("updateDownloadFailedMessageBox")))) {
+      saw_failure = true;
+      failure->reject();  // never the Download button: it opens a browser
+      return;
+    }
+    if (auto* save = qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("saveChangesMessageBox")))) {
+      saw_save_prompt = true;
+      save->button(save_answer)->click();
+      return;
+    }
+    if (prompt_answered) {
+      return;
+    }
+    if (auto* prompt = qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("updateAvailableMessageBox")))) {
+      prompt_answered = true;
+      auto* update_now = prompt->findChild<QAbstractButton*>(QStringLiteral("updateInstallNowButton"));
+      CHECK(update_now != nullptr);
+      if (update_now != nullptr) {
+        update_now->click();
+      } else {
+        prompt->reject();
+      }
+    }
+  });
+  const auto run_update = [&](const patchy::ui::UpdateInfo& info) {
+    prompt_answered = false;
+    saw_failure = false;
+    saw_save_prompt = false;
+    driver.start(10);
+    window.show_update_available(info);
+    driver.stop();
+    CHECK(prompt_answered);
+  };
+
+  // A download that does not match the manifest's checksum: reported, nothing kept.
+  auto wrong = update;
+  wrong.installer_sha256 = QCryptographicHash::hash(QByteArray("something else"), QCryptographicHash::Sha256).toHex();
+  run_update(wrong);
+  CHECK(saw_failure);
+  CHECK(launches.empty());
+  CHECK(window.isVisible());
+  CHECK(!QFileInfo::exists(downloaded_path));
+
+  // Unsaved work and Cancel at the save prompt: Patchy stays open, nothing is launched.
+  require_action(window, "layerNewAction")->trigger();
+  QApplication::processEvents();
+  CHECK(patchy::ui::MainWindowTestAccess::active_session_is_modified(window));
+  save_answer = QMessageBox::Cancel;
+  run_update(update);
+  CHECK(!saw_failure);
+  CHECK(saw_save_prompt);
+  CHECK(launches.empty());
+  CHECK(window.isVisible());
+  CHECK(!patchy::ui::MainWindowTestAccess::update_install_pending(window));
+  {
+    QFile downloaded(downloaded_path);
+    CHECK(downloaded.open(QIODevice::ReadOnly) && downloaded.readAll() == installer_bytes);
+  }
+
+  // The installer cannot be started: Patchy stays open instead of quitting un-updated.
+  save_answer = QMessageBox::Discard;
+  launcher_starts = false;
+  run_update(update);
+  CHECK(saw_save_prompt);
+  CHECK(launches.size() == 1);
+  CHECK(window.isVisible());
+  CHECK(!patchy::ui::MainWindowTestAccess::update_install_pending(window));
+
+  // Settled: the installer gets this copy's folder and process id, and the window closes.
+  launcher_starts = true;
+  run_update(update);
+  CHECK(launches.size() == 2);
+  if (launches.size() == 2) {
+    CHECK(QFileInfo(launches.back().installer_path) == QFileInfo(downloaded_path));
+    CHECK(launches.back().install_dir == QCoreApplication::applicationDirPath());
+    CHECK(launches.back().wait_process_id == QCoreApplication::applicationPid());
+  }
+  CHECK(!window.isVisible());
+#endif
 }
 
 void ui_update_preference_persists_startup_check_setting() {
@@ -5188,6 +5515,14 @@ std::vector<patchy::test::TestCase> app_shell_tests() {
        ui_update_check_reports_unresolvable_host_and_drops_destroyed_owner},
       {"ui_update_available_dialog_warns_to_close_patchy_before_installing",
        ui_update_available_dialog_warns_to_close_patchy_before_installing},
+      {"update_install_location_matching_ignores_case_and_separators",
+       update_install_location_matching_ignores_case_and_separators},
+      {"ui_update_available_dialog_offers_one_click_update_for_installed_copy",
+       ui_update_available_dialog_offers_one_click_update_for_installed_copy},
+      {"ui_update_connector_restart_notice_names_the_apps", ui_update_connector_restart_notice_names_the_apps},
+      {"connector_update_notice_reports_a_replaced_executable", connector_update_notice_reports_a_replaced_executable},
+      {"ui_update_one_click_downloads_installer_and_hands_over_on_close",
+       ui_update_one_click_downloads_installer_and_hands_over_on_close},
       {"ui_update_preference_defaults_startup_check_setting_to_enabled",
        ui_update_preference_defaults_startup_check_setting_to_enabled},
       {"ui_update_preference_persists_startup_check_setting", ui_update_preference_persists_startup_check_setting},

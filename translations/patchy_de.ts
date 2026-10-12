@@ -19984,6 +19984,50 @@ In Bilder umgewandelt: %1.</translation>
         <source>Downloads the High Quality model (%1 MB from GitHub). Object Selection finds objects more accurately with it.</source>
         <translation>Lädt das Modell „Hohe Qualität“ herunter (%1 MB von GitHub). Damit erkennt die Objektauswahl Objekte genauer.</translation>
     </message>
+    <message>
+        <source>The update installer could not be started</source>
+        <translation>Das Update-Installationsprogramm konnte nicht gestartet werden</translation>
+    </message>
+    <message>
+        <source>Downloading Patchy %1... %2 of %3 MB</source>
+        <translation>Patchy %1 wird heruntergeladen... %2 von %3 MB</translation>
+    </message>
+    <message>
+        <source>The update could not be downloaded: %1</source>
+        <translation>Das Update konnte nicht heruntergeladen werden: %1</translation>
+    </message>
+    <message>
+        <source>The update was not installed because Patchy stayed open</source>
+        <translation>Das Update wurde nicht installiert, weil Patchy geöffnet blieb</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, close, install it, and start again. You will be asked about unsaved work first.</source>
+        <translation>Patchy %1 ist verfügbar. Sie verwenden Version %2.
+
+Patchy kann das Update herunterladen, sich schließen, es installieren und neu starten. Zuvor werden Sie nach nicht gespeicherten Änderungen gefragt.</translation>
+    </message>
+    <message>
+        <source>Update Now</source>
+        <translation>Jetzt aktualisieren</translation>
+    </message>
+    <message>
+        <source>Patchy Updated</source>
+        <translation>Patchy aktualisiert</translation>
+    </message>
+    <message>
+        <source>Patchy was updated to version %1.
+
+These apps are still connected to the old version: %2.
+
+Restart them to finish updating.</source>
+        <translation>Patchy wurde auf Version %1 aktualisiert.
+
+Diese Apps sind noch mit der alten Version verbunden: %2.
+
+Starten Sie sie neu, um die Aktualisierung abzuschließen.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

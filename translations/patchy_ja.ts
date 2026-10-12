@@ -19927,6 +19927,50 @@ Baked into images: %1.</source>
         <source>Downloads the High Quality model (%1 MB from GitHub). Object Selection finds objects more accurately with it.</source>
         <translation>高品質モデルをダウンロードします (GitHub から %1 MB)。オブジェクト選択がより正確にオブジェクトを検出します。</translation>
     </message>
+    <message>
+        <source>The update installer could not be started</source>
+        <translation>アップデートのインストーラーを起動できませんでした</translation>
+    </message>
+    <message>
+        <source>Downloading Patchy %1... %2 of %3 MB</source>
+        <translation>Patchy %1 をダウンロードしています... %2 / %3 MB</translation>
+    </message>
+    <message>
+        <source>The update could not be downloaded: %1</source>
+        <translation>アップデートをダウンロードできませんでした: %1</translation>
+    </message>
+    <message>
+        <source>The update was not installed because Patchy stayed open</source>
+        <translation>Patchy が開いたままだったため、アップデートはインストールされませんでした</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, close, install it, and start again. You will be asked about unsaved work first.</source>
+        <translation>Patchy %1 が利用可能です。現在のバージョンは %2 です。
+
+Patchy はアップデートをダウンロードし、終了してインストールした後、再び起動できます。その前に、保存されていない作業について確認します。</translation>
+    </message>
+    <message>
+        <source>Update Now</source>
+        <translation>今すぐアップデート</translation>
+    </message>
+    <message>
+        <source>Patchy Updated</source>
+        <translation>Patchy を更新しました</translation>
+    </message>
+    <message>
+        <source>Patchy was updated to version %1.
+
+These apps are still connected to the old version: %2.
+
+Restart them to finish updating.</source>
+        <translation>Patchy をバージョン %1 に更新しました。
+
+次のアプリは古いバージョンに接続したままです: %2。
+
+更新を完了するには、これらを再起動してください。</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

@@ -19927,6 +19927,50 @@ Baked into images: %1.</source>
         <source>Downloads the High Quality model (%1 MB from GitHub). Object Selection finds objects more accurately with it.</source>
         <translation>下载高质量模型（从 GitHub 下载 %1 MB）。使用它时，对象选择能更准确地找到对象。</translation>
     </message>
+    <message>
+        <source>The update installer could not be started</source>
+        <translation>无法启动更新安装程序</translation>
+    </message>
+    <message>
+        <source>Downloading Patchy %1... %2 of %3 MB</source>
+        <translation>正在下载 Patchy %1... %2 / %3 MB</translation>
+    </message>
+    <message>
+        <source>The update could not be downloaded: %1</source>
+        <translation>无法下载更新：%1</translation>
+    </message>
+    <message>
+        <source>The update was not installed because Patchy stayed open</source>
+        <translation>由于 Patchy 仍处于打开状态，更新未安装</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, close, install it, and start again. You will be asked about unsaved work first.</source>
+        <translation>Patchy %1 已推出，您当前使用的是 %2 版。
+
+Patchy 可以下载更新、关闭、安装并重新启动。在此之前会询问您如何处理未保存的工作。</translation>
+    </message>
+    <message>
+        <source>Update Now</source>
+        <translation>立即更新</translation>
+    </message>
+    <message>
+        <source>Patchy Updated</source>
+        <translation>Patchy 已更新</translation>
+    </message>
+    <message>
+        <source>Patchy was updated to version %1.
+
+These apps are still connected to the old version: %2.
+
+Restart them to finish updating.</source>
+        <translation>Patchy 已更新到版本 %1。
+
+以下应用仍连接到旧版本：%2。
+
+请重新启动这些应用以完成更新。</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

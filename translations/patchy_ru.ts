@@ -20041,6 +20041,50 @@ Y: %2
         <source>Downloads the High Quality model (%1 MB from GitHub). Object Selection finds objects more accurately with it.</source>
         <translation>Скачивает модель высокого качества (%1 МБ с GitHub). С ней выделение объектов находит объекты точнее.</translation>
     </message>
+    <message>
+        <source>The update installer could not be started</source>
+        <translation>Не удалось запустить установщик обновления</translation>
+    </message>
+    <message>
+        <source>Downloading Patchy %1... %2 of %3 MB</source>
+        <translation>Загрузка Patchy %1... %2 из %3 МБ</translation>
+    </message>
+    <message>
+        <source>The update could not be downloaded: %1</source>
+        <translation>Не удалось скачать обновление: %1</translation>
+    </message>
+    <message>
+        <source>The update was not installed because Patchy stayed open</source>
+        <translation>Обновление не установлено, так как Patchy остался открытым</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, close, install it, and start again. You will be asked about unsaved work first.</source>
+        <translation>Доступна версия Patchy %1. Вы используете версию %2.
+
+Patchy может скачать обновление, закрыться, установить его и запуститься снова. Сначала появится вопрос о несохранённой работе.</translation>
+    </message>
+    <message>
+        <source>Update Now</source>
+        <translation>Обновить сейчас</translation>
+    </message>
+    <message>
+        <source>Patchy Updated</source>
+        <translation>Patchy обновлён</translation>
+    </message>
+    <message>
+        <source>Patchy was updated to version %1.
+
+These apps are still connected to the old version: %2.
+
+Restart them to finish updating.</source>
+        <translation>Patchy обновлён до версии %1.
+
+Эти приложения всё ещё подключены к старой версии: %2.
+
+Перезапустите их, чтобы завершить обновление.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

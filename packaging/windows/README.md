@@ -56,6 +56,12 @@ The wizard's install folder box is editable and has a Browse button (issue 85). 
 - Installing to a different folder than the registered one moves the install: once the new copy, shortcuts and registration succeed, the old folder's manifest files are removed (`Remove-PatchyInstalledFiles`), and then the folder if that leaves it empty. Nested old and new folders are left alone.
 - The refusal messages are in `$PatchyInstallerText` in every shipped language. `UninstallPatchy.exe` needs no location of its own: it treats its own folder as the install root.
 
+## Update mode
+
+A running Patchy can start the installer to update itself ([docs/auto-update.md](../../docs/auto-update.md)). It sets `PATCHY_UPDATE_INSTALL_DIR` and `PATCHY_UPDATE_WAIT_PID` in the installer's environment; `InstallPatchyLauncher.cs` passes them on as `InstallPatchy.ps1 -Update -InstallDir <folder> -WaitForProcessId <pid>`. No wizard is shown. The script waits for that process to exit, shows an "Updating Patchy to version N..." window, installs into the given folder, creates the desktop shortcut only if one exists, and starts Patchy. Without the variable the installer behaves as always.
+
+Before any install removes a file, `Confirm-PatchyFilesFreeForInstall` renames every installed file another program holds open (a running `patchy-mcp.exe` connector and the DLLs it loaded, typically) to `<name>.old-<yyyyMMddHHmmss>`, so the new copy can take its place while that program keeps running the previous version. The set-aside files are listed in `PatchyInstallManifest.txt`, and the next install or the uninstaller deletes them once they are free. Only a file that cannot be renamed stops setup: the wizard and update mode name it and offer Retry, a quiet install fails without changing anything. Setup never stops another process. After an update, Patchy names the AI apps that need a restart (docs/auto-update.md).
+
 ## Open with
 
 The installer lists Patchy under Explorer's "Open with" for the image types it opens (the `$PatchyOpenWithExtensions` list in `InstallPatchy.ps1`; PDF is left out). It writes, all under `HKCU\Software\Classes`:
@@ -85,6 +91,7 @@ After signing, `build-release.bat` runs `scripts\release\verify-windows-package.
 - runs the unpacked `InstallPatchy.ps1` with the launcher's arguments plus `-SmokeTest`, which builds the whole wizard, shows it invisibly, and closes it. A wizard that cannot open fails here (issue 55);
 - runs it again with `-OpenWithCheckRoot <scratch key>`, which writes the "Open with" registration under that key instead of the real Classes tree, and checks the name, the command, the type list, and that an extension gets the ProgID in `OpenWithProgids` with no default value;
 - runs it with `-LocationCheckRoot <scratch folder>`, which checks the install folder rules and the Browse rule on cases built inside that folder;
+- runs it with `-UpdateCheckRoot <scratch folder>`, which checks update mode's wait for the closing Patchy and the locked-file check on stand-in files inside that folder;
 - unpacks the zip and compares it with `PatchyInstallManifest.txt`;
 - checks the unpacked executable's display name, product name, original filename,
   and file/product versions against the package version;

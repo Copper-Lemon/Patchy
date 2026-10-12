@@ -19984,6 +19984,50 @@ Y: %2
         <source>Downloads the High Quality model (%1 MB from GitHub). Object Selection finds objects more accurately with it.</source>
         <translation>Baixa o modelo de alta qualidade (%1 MB do GitHub). Com ele, a Seleção de objeto encontra objetos com mais precisão.</translation>
     </message>
+    <message>
+        <source>The update installer could not be started</source>
+        <translation>Não foi possível iniciar o instalador da atualização</translation>
+    </message>
+    <message>
+        <source>Downloading Patchy %1... %2 of %3 MB</source>
+        <translation>Baixando o Patchy %1... %2 de %3 MB</translation>
+    </message>
+    <message>
+        <source>The update could not be downloaded: %1</source>
+        <translation>Não foi possível baixar a atualização: %1</translation>
+    </message>
+    <message>
+        <source>The update was not installed because Patchy stayed open</source>
+        <translation>A atualização não foi instalada porque o Patchy permaneceu aberto</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, close, install it, and start again. You will be asked about unsaved work first.</source>
+        <translation>O Patchy %1 está disponível. Você está usando a versão %2.
+
+O Patchy pode baixar a atualização, fechar, instalá-la e iniciar novamente. Antes, você será perguntado sobre o trabalho não salvo.</translation>
+    </message>
+    <message>
+        <source>Update Now</source>
+        <translation>Atualizar agora</translation>
+    </message>
+    <message>
+        <source>Patchy Updated</source>
+        <translation>Patchy atualizado</translation>
+    </message>
+    <message>
+        <source>Patchy was updated to version %1.
+
+These apps are still connected to the old version: %2.
+
+Restart them to finish updating.</source>
+        <translation>O Patchy foi atualizado para a versão %1.
+
+Estes aplicativos ainda estão conectados à versão antiga: %2.
+
+Reinicie-os para concluir a atualização.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

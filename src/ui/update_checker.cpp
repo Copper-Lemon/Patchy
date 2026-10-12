@@ -57,6 +57,28 @@ bool is_download_url_usable(const QUrl& url) {
   return scheme == QStringLiteral("http") || scheme == QStringLiteral("https");
 }
 
+// The self-install fields (manifest keys are permanent: installer_url, installer_size,
+// installer_sha256). All three or none: a partial or malformed set leaves the update a
+// browser download.
+void read_installer_fields(const QJsonObject& platform_entry, UpdateInfo& update) {
+  const QUrl url(platform_entry.value(QStringLiteral("installer_url")).toString().trimmed());
+  const auto size = static_cast<qint64>(platform_entry.value(QStringLiteral("installer_size")).toDouble(0.0));
+  const auto sha256 = platform_entry.value(QStringLiteral("installer_sha256")).toString().trimmed().toLower().toLatin1();
+  // https only. A manifest named by PATCHY_UPDATE_MANIFEST_URL (tests, a local trial of the
+  // whole update) may also use http: whoever sets that variable already chooses the manifest
+  // and with it the checksum.
+  const bool scheme_ok =
+      url.scheme() == QStringLiteral("https") ||
+      (url.scheme() == QStringLiteral("http") && qEnvironmentVariableIsSet("PATCHY_UPDATE_MANIFEST_URL"));
+  if (!url.isValid() || !scheme_ok || url.host().isEmpty() || size <= 0 ||
+      sha256.size() != 64 || QByteArray::fromHex(sha256).toHex() != sha256) {
+    return;
+  }
+  update.installer_url = url;
+  update.installer_size = size;
+  update.installer_sha256 = sha256;
+}
+
 QUrl cache_busted_manifest_url() {
   auto url = update_manifest_url();
   QUrlQuery query(url);
@@ -66,6 +88,11 @@ QUrl cache_busted_manifest_url() {
 }
 
 }  // namespace
+
+bool update_has_installer(const UpdateInfo& update) {
+  return update.installer_url.isValid() && !update.installer_url.isEmpty() && update.installer_size > 0 &&
+         !update.installer_sha256.isEmpty();
+}
 
 bool update_checks_available() {
 #if defined(Q_OS_WASM) || defined(PATCHY_STORE_BUILD)
@@ -170,6 +197,7 @@ UpdateCheckResult inspect_update_manifest(const QByteArray& json, const QString&
 
   result.status = UpdateCheckStatus::UpdateAvailable;
   result.update = UpdateInfo{platform, latest_version, download_url};
+  read_installer_fields(platform_entry, *result.update);
   return result;
 }
 

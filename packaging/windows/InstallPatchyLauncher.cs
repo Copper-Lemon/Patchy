@@ -39,8 +39,27 @@ internal static class InstallPatchyLauncher
             "-File " + Quote(scriptPath) + " " +
             "-PayloadZip " + Quote(payloadZip) + " " +
             "-Version " + Quote(version);
+
+        // One-click update (docs/auto-update.md): a running Patchy starts this installer
+        // with the request in the environment, so nothing has to pass through the
+        // self-extractor's command line. No variable means the normal wizard.
+        string updateDirectory = Environment.GetEnvironmentVariable("PATCHY_UPDATE_INSTALL_DIR");
+        if (!string.IsNullOrWhiteSpace(updateDirectory))
+        {
+            char[] separators = new char[] { '\\', '/' };
+            startInfo.Arguments += " -Update -InstallDir " + Quote(updateDirectory.Trim().TrimEnd(separators));
+            int waitProcessId;
+            if (int.TryParse(Environment.GetEnvironmentVariable("PATCHY_UPDATE_WAIT_PID"), out waitProcessId) &&
+                waitProcessId > 0)
+            {
+                startInfo.Arguments += " -WaitForProcessId " + waitProcessId;
+            }
+        }
         startInfo.WorkingDirectory = payloadDirectory;
         startInfo.UseShellExecute = false;
+        // The Patchy the update starts afterwards must not inherit the request.
+        startInfo.EnvironmentVariables.Remove("PATCHY_UPDATE_INSTALL_DIR");
+        startInfo.EnvironmentVariables.Remove("PATCHY_UPDATE_WAIT_PID");
         startInfo.CreateNoWindow = true;
         startInfo.WindowStyle = ProcessWindowStyle.Hidden;
 

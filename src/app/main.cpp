@@ -322,8 +322,10 @@ int main(int argc, char* argv[]) {
 #ifdef PATCHY_MCP_EXECUTABLE
   // Share brushes and recent paths with the artist, while keeping window preferences
   // isolated. Honor an automation settings root before capturing its filename.
-  if (const auto root = qEnvironmentVariable("PATCHY_SETTINGS_DIR"); !root.isEmpty())
+  if (const auto root = qEnvironmentVariable("PATCHY_SETTINGS_DIR"); !root.isEmpty()) {
     QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, root);
+    qputenv("PATCHY_MCP_OWNED_SETTINGS", "1");  // a suite's connector: no update check (mcp_server.cpp)
+  }
   if (qEnvironmentVariableIsEmpty("PATCHY_BRUSH_SETTINGS_FILE"))
     qputenv("PATCHY_BRUSH_SETTINGS_FILE", patchy::ui::app_settings().fileName().toUtf8());
   if (qEnvironmentVariableIsEmpty("PATCHY_RECENT_SETTINGS_FILE"))

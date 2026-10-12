@@ -98,7 +98,7 @@ See it in action.  Click an image for the full-size capture.
 **Local by design.** No telemetry, tracking, or uploads of your images. The browser build
 runs the same editor locally through WebAssembly. Desktop builds have more memory
 available and add printing, scanner/camera import, and command-line automation.
-Optional update checks contact GitHub, as does Object Selection's High Quality model, downloaded only if you ask for it. Twelve interface languages, dark and light
+Optional update checks contact GitHub, as do the Windows one-click update and Object Selection's High Quality model, each downloaded only if you ask for it. Twelve interface languages, dark and light
 schemes, and importable themes are included.
 
 ## PSD compatibility, measured

@@ -60,6 +60,10 @@ are fetched through `get_help` or read from that installation for CLI use.
 Existing topic identifiers remain unchanged. The connector reads the files for
 each request, so workflow updates do not require recopying a client skill.
 After upgrading the executable, reconnect before editing so code and help match.
+A connector an update left running says so itself: every tool result carries
+`updateNotice` once another file sits at its executable's path, and an owned
+connector's `get_info` carries `updateAvailable` when its own update check finds a
+newer release (`ui/connector_freshness.*`, [auto-update.md](auto-update.md)).
 Entry-point changes require an explicit one-file refresh; migrate old full-folder
 installs by removing only verified unmodified package files, preserving local edits.
 

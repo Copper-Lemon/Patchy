@@ -186,6 +186,14 @@ $location = Invoke-Bounded -FilePath $powershellExe -Arguments $locationArgs -Ti
 $locationOk = (-not $location.TimedOut) -and ($location.ExitCode -eq 0) -and ($location.Output -match "location check passed")
 Write-Step $locationOk "installer install-folder rules" $(if ($location.TimedOut) { "timed out" } elseif (-not $locationOk) { "exit code " + $location.ExitCode + "; " + $location.Output } else { "" })
 
+# 3d. The one-click update helpers (docs/auto-update.md): the wait for the closing Patchy and
+#     the locked-file check, against stand-in files inside a scratch folder. Nothing installs.
+$updateArgs = "-NoLogo -NoProfile -ExecutionPolicy Bypass -File " + (Quote (Join-Path $payloadDir "InstallPatchy.ps1")) +
+    " -PayloadZip " + (Quote $payloadZip) + " -UpdateCheckRoot " + (Quote (Join-Path $WorkDir "update-check"))
+$update = Invoke-Bounded -FilePath $powershellExe -Arguments $updateArgs -TimeoutSeconds 90 -WorkingDirectory $payloadDir
+$updateOk = (-not $update.TimedOut) -and ($update.ExitCode -eq 0) -and ($update.Output -match "update-mode check passed")
+Write-Step $updateOk "installer update mode" $(if ($update.TimedOut) { "timed out" } elseif (-not $updateOk) { "exit code " + $update.ExitCode + "; " + $update.Output } else { "" })
+
 # 4. Unpack the zip and compare it with its own manifest, before anything runs in it.
 Expand-Archive -LiteralPath $Zip -DestinationPath $appParent -Force
 $manifestPath = Join-Path $appDir "PatchyInstallManifest.txt"

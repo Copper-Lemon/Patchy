@@ -1227,6 +1227,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/script_engine.hpp
       src/ui/script_engine.cpp
       src/ui/script_automation.cpp
+      src/ui/connector_freshness.hpp
+      src/ui/connector_freshness.cpp
       src/ui/mcp_session.hpp
       src/ui/mcp_session.cpp
       src/ui/mcp_activity.hpp
@@ -1285,6 +1287,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/single_instance.cpp
       src/ui/update_checker.hpp
       src/ui/update_checker.cpp
+      src/ui/update_installer.hpp
+      src/ui/update_installer.cpp
       src/ui/host_resolve.hpp
       src/ui/host_resolve.cpp
       src/ui/object_selection_model_download.hpp

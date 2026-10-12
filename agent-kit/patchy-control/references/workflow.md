@@ -8,6 +8,8 @@ Use the configured Patchy tools. Call `get_info` and `get_state`, then read `get
 
 This workflow is served from the connected Patchy installation. The assistant's installed skill is only an entry point; old references copied into a client skill folder are not current documentation. After a Patchy upgrade, save work, reconnect, and fetch the workflow and API again.
 
+Two fields report updates; pass both on to the user in plain words. `updateNotice` on any tool result means Patchy was updated while this connection was open and the connection still runs the old version: finish or save the current work, then ask the user to restart this AI app or start a new session. Do not tell them to "reconnect": most apps offer no way to. `updateAvailable` in `get_info` means a newer Patchy has been released: tell the user once, with the instructions it carries, and continue the task.
+
 If the connector is not configured, use the package's [setup instructions](setup.md). Installing this skill does not register an MCP server. A shell-capable agent can also use the headless CLI below.
 
 An attached connector remains available when Patchy is closed. A
