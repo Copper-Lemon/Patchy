@@ -37,6 +37,10 @@ echo Uploading the wasm site to rtsoft.com/patchy...
 rem Object Selection's runtime and models first: the html goes last.
 scp -r "%SITE_DIR%\ai-models" "%SITE_DIR%\%ORT_WEB_DIR%" rtsoft@rtsoft.com:www/patchy/
 if errorlevel 1 goto fail
+rem scp -r from Windows creates the folders as 707, which Apache refuses
+rem (403); give them the same 775 as the rest of the site.
+ssh rtsoft@rtsoft.com "chmod 775 www/patchy/ai-models www/patchy/%ORT_WEB_DIR%"
+if errorlevel 1 goto fail
 scp "%SITE_DIR%\patchy.data" "%SITE_DIR%\patchy.wasm" "%SITE_DIR%\patchy.js" "%SITE_DIR%\qtloader.js" "%SITE_DIR%\patchy.data.br" "%SITE_DIR%\patchy.data.gz" "%SITE_DIR%\patchy.wasm.br" "%SITE_DIR%\patchy.wasm.gz" "%SITE_DIR%\patchy.js.br" "%SITE_DIR%\patchy.js.gz" "%SITE_DIR%\qtloader.js.br" "%SITE_DIR%\qtloader.js.gz" "%SITE_DIR%\patchy-logo.svg" "%SITE_DIR%\favicon.ico" "%SITE_DIR%\apple-touch-icon.png" "%SITE_DIR%\patchy-192.png" "%SITE_DIR%\patchy-512.png" "%SITE_DIR%\site.webmanifest" "%SITE_DIR%\NOTICE-THIRD-PARTY.md" "%SITE_DIR%\libheif-COPYING.txt" "%SITE_DIR%\.htaccess" "%SITE_DIR%\patchy.html" "%SITE_DIR%\index.html" rtsoft@rtsoft.com:www/patchy/
 if errorlevel 1 goto fail
 rem The multithreaded app dies without cross-origin isolation, and .htaccess
