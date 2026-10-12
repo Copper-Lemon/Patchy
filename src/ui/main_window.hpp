@@ -1423,9 +1423,12 @@ private:
   void remove_background();
   bool run_remove_background(QString* error);
   std::optional<patchy::ai::AiMask> compute_subject_matte(const QString& command, QString* error);
+  // The one-time High Quality offer, from the tool's first activation or the first
+  // right-click Select Object; never offscreen (unless a test opts in) or unattended.
   void maybe_offer_high_quality_object_selection_model();
   bool offer_high_quality_object_selection_model();
   void refresh_object_select_model_combo();
+  bool high_quality_offer_in_offscreen_tests_{false};  // MainWindowTestAccess opts in
   // Variation continuity: a dialog opened again on the same selection (a
   // hash of the selection region) continues after the last variation it
   // showed instead of repeating variation 1; another selection starts fresh.

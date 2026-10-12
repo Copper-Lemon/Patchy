@@ -696,6 +696,10 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   bind_action_text(select_object_action_, QT_TR_NOOP("Select &Object"));
   register_hotkey(select_object_action_, "select.object_in_selection");
   connect(select_object_action_, &QAction::triggered, this, [this] {
+    // Its first use offers the High Quality model once, like the tool's first activation;
+    // the selection is untouched by the offer, so the solve below uses whichever model the
+    // answer left in place.
+    maybe_offer_high_quality_object_selection_model();
     if (canvas_ != nullptr && canvas_->select_object_in_selection()) {
       statusBar()->showMessage(tr("Selected the object"));
     }

@@ -704,6 +704,71 @@ void ui_select_object_in_marquee_selection_finds_the_object() {
   CHECK(canvas->selected_document_region().contains(QPoint(75, 45)));
 }
 
+// Select Object's first use offers the High Quality model once, like the tool's first
+// activation: "Not Now" still selects the object (Standard model), and later uses never ask.
+void ui_select_object_offers_the_high_quality_model_once() {
+  if (!automatic_selection_or_skip("ui_select_object_offers_the_high_quality_model_once")) {
+    return;
+  }
+  patchy::ui::app_settings().remove(QStringLiteral("automaticSelection/highQualityModelOffered"));
+  const QPoint center(150, 120);
+  patchy::ui::MainWindow window;
+  show_window(window);
+  patchy::ui::MainWindowTestAccess::allow_high_quality_offer_offscreen(window);
+  window.add_document_session(disc_document(300, 240, center, 55), QStringLiteral("Offer on Select Object"));
+  QApplication::processEvents();
+  auto* canvas = require_canvas(window);
+  require_action_by_text(window, QStringLiteral("Marquee"))->trigger();
+  QApplication::processEvents();
+  const auto widget_point = [canvas](QPoint document_point) {
+    return canvas->widget_position_for_document_point(document_point);
+  };
+  send_mouse(*canvas, QEvent::MouseButtonPress, widget_point(QPoint(70, 40)), Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*canvas, QEvent::MouseMove, widget_point(QPoint(232, 205)), Qt::NoButton, Qt::LeftButton);
+  send_mouse(*canvas, QEvent::MouseButtonRelease, widget_point(QPoint(232, 205)), Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(canvas->selected_document_region().contains(QPoint(75, 45)));
+
+  // Answers "Not Now" to every offer that appears and counts them.
+  int offers = 0;
+  QTimer answer;
+  answer.setInterval(20);
+  QObject::connect(&answer, &QTimer::timeout, [&offers] {
+    auto* box = qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("objectSelectionModelOfferMessageBox")));
+    if (box == nullptr || !box->isVisible()) {
+      return;
+    }
+    for (auto* button : box->buttons()) {
+      if (box->buttonRole(button) == QMessageBox::RejectRole) {
+        ++offers;
+        button->click();
+        return;
+      }
+    }
+  });
+  answer.start();
+  auto* select_object = require_action(window, "selectObjectInSelectionAction");
+  select_object->trigger();
+  QApplication::processEvents();
+  CHECK(offers == 1);
+  CHECK(patchy::ui::app_settings().value(QStringLiteral("automaticSelection/highQualityModelOffered")).toBool());
+  auto region = canvas->selected_document_region();
+  CHECK(region.contains(center));
+  CHECK(!region.contains(QPoint(75, 45)));  // the object replaced the rectangle
+
+  // A second use (and the tool's activation) never ask again.
+  require_action_by_text(window, QStringLiteral("Undo"))->trigger();
+  QApplication::processEvents();
+  select_object->trigger();
+  QApplication::processEvents();
+  require_action(window, "toolObjectSelectionAction")->trigger();
+  QApplication::processEvents();
+  QApplication::processEvents();
+  answer.stop();
+  CHECK(offers == 1);
+  CHECK(canvas->selected_document_region().contains(center));
+}
+
 // Runs a short script to completion and reports whether it ended without an error.
 bool run_test_script(patchy::ui::MainWindow& window, const QString& source) {
   auto& host = window.script_engine_host();
@@ -985,6 +1050,7 @@ std::vector<patchy::test::TestCase> ai_selection_ui_tests() {
        ui_select_subject_is_left_out_without_the_subject_model},
       {"ui_select_object_in_marquee_selection_finds_the_object",
        ui_select_object_in_marquee_selection_finds_the_object},
+      {"ui_select_object_offers_the_high_quality_model_once", ui_select_object_offers_the_high_quality_model_once},
       {"ui_object_select_samples_the_active_shape_layer_alone",
        ui_object_select_samples_the_active_shape_layer_alone},
       {"ui_select_subject_follows_sample_all_layers", ui_select_subject_follows_sample_all_layers},

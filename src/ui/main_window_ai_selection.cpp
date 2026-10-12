@@ -125,9 +125,10 @@ int megabytes(qint64 bytes) {
 void MainWindow::maybe_offer_high_quality_object_selection_model() {
 #if !defined(Q_OS_WASM)
   configure_automatic_selection_models();
-  if (current_tool_ != CanvasTool::ObjectSelect || !patchy::ai::segmentation_available() ||
-      patchy::ai::high_quality_model_available() || unattended_automation() ||
-      QGuiApplication::platformName() == QLatin1String("offscreen")) {
+  // Offscreen runs are tests (they opt in through MainWindowTestAccess) or headless work.
+  const bool offscreen = QGuiApplication::platformName() == QLatin1String("offscreen");
+  if (!patchy::ai::segmentation_available() || patchy::ai::high_quality_model_available() ||
+      unattended_automation() || (offscreen && !high_quality_offer_in_offscreen_tests_)) {
     return;
   }
   auto settings = app_settings();

@@ -35,6 +35,11 @@ public:
 
   static void show_preferences(MainWindow& window) { window.show_preferences(); }
 
+  // The one-time High Quality offer stays away offscreen; a test that drives it opts in.
+  static void allow_high_quality_offer_offscreen(MainWindow& window) {
+    window.high_quality_offer_in_offscreen_tests_ = true;
+  }
+
   // The historical startup document (startup now opens an empty workspace):
   // show_window creates one so pre-existing tests keep their canvas.
   static void create_default_document(MainWindow& window) {
