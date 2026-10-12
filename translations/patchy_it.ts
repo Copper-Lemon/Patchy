@@ -19985,10 +19985,6 @@ Convertiti in immagini: %1.</translation>
         <translation>Scarica il modello ad alta qualità (%1 MB da GitHub). Con esso Selezione oggetto trova gli oggetti con più precisione.</translation>
     </message>
     <message>
-        <source>The update installer could not be started</source>
-        <translation>Impossibile avviare il programma di installazione dell&apos;aggiornamento</translation>
-    </message>
-    <message>
         <source>Downloading Patchy %1... %2 of %3 MB</source>
         <translation>Download di Patchy %1... %2 di %3 MB</translation>
     </message>
@@ -20027,6 +20023,38 @@ Restart them to finish updating.</source>
 Queste app sono ancora collegate alla versione precedente: %2.
 
 Riavviale per completare l&apos;aggiornamento.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is no longer on this computer.</source>
+        <translation>Il programma di installazione scaricato non è più su questo computer.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer does not match the checksum published for this update.</source>
+        <translation>Il programma di installazione scaricato non corrisponde al checksum pubblicato per questo aggiornamento.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is not signed by %1, the publisher of this copy of Patchy.</source>
+        <translation>Il programma di installazione scaricato non è firmato da %1, l&apos;autore di questa copia di Patchy.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is signed by %1, not by %2, the publisher of this copy of Patchy.</source>
+        <translation>Il programma di installazione scaricato è firmato da %1, non da %2, l&apos;autore di questa copia di Patchy.</translation>
+    </message>
+    <message>
+        <source>Windows could not start the installer.</source>
+        <translation>Windows non è riuscito ad avviare il programma di installazione.</translation>
+    </message>
+    <message>
+        <source>The update was not installed.
+
+%1
+
+You can still download it in your browser.</source>
+        <translation>L&apos;aggiornamento non è stato installato.
+
+%1
+
+Puoi comunque scaricarlo nel browser.</translation>
     </message>
 </context>
 <context>

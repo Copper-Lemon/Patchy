@@ -19985,10 +19985,6 @@ Convertis en images : %1.</translation>
         <translation>Télécharge le modèle haute qualité (%1 Mo depuis GitHub). Avec lui, la sélection d&apos;objet trouve les objets plus précisément.</translation>
     </message>
     <message>
-        <source>The update installer could not be started</source>
-        <translation>Impossible de lancer le programme d&apos;installation de la mise à jour</translation>
-    </message>
-    <message>
         <source>Downloading Patchy %1... %2 of %3 MB</source>
         <translation>Téléchargement de Patchy %1... %2 sur %3 Mo</translation>
     </message>
@@ -20027,6 +20023,38 @@ Restart them to finish updating.</source>
 Ces applications sont encore connectées à l&apos;ancienne version : %2.
 
 Redémarrez-les pour terminer la mise à jour.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is no longer on this computer.</source>
+        <translation>Le programme d&apos;installation téléchargé n&apos;est plus sur cet ordinateur.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer does not match the checksum published for this update.</source>
+        <translation>Le programme d&apos;installation téléchargé ne correspond pas à la somme de contrôle publiée pour cette mise à jour.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is not signed by %1, the publisher of this copy of Patchy.</source>
+        <translation>Le programme d&apos;installation téléchargé n&apos;est pas signé par %1, l&apos;éditeur de cette copie de Patchy.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is signed by %1, not by %2, the publisher of this copy of Patchy.</source>
+        <translation>Le programme d&apos;installation téléchargé est signé par %1, et non par %2, l&apos;éditeur de cette copie de Patchy.</translation>
+    </message>
+    <message>
+        <source>Windows could not start the installer.</source>
+        <translation>Windows n&apos;a pas pu lancer le programme d&apos;installation.</translation>
+    </message>
+    <message>
+        <source>The update was not installed.
+
+%1
+
+You can still download it in your browser.</source>
+        <translation>La mise à jour n&apos;a pas été installée.
+
+%1
+
+Vous pouvez toujours la télécharger dans votre navigateur.</translation>
     </message>
 </context>
 <context>

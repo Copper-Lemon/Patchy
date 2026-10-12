@@ -19985,10 +19985,6 @@ Convertido en imágenes: %1.</translation>
         <translation>Descarga el modelo de alta calidad (%1 MB desde GitHub). Con él, Selección de objetos encuentra los objetos con más precisión.</translation>
     </message>
     <message>
-        <source>The update installer could not be started</source>
-        <translation>No se pudo iniciar el instalador de la actualización</translation>
-    </message>
-    <message>
         <source>Downloading Patchy %1... %2 of %3 MB</source>
         <translation>Descargando Patchy %1... %2 de %3 MB</translation>
     </message>
@@ -20027,6 +20023,38 @@ Restart them to finish updating.</source>
 Estas aplicaciones siguen conectadas a la versión anterior: %2.
 
 Reinícielas para completar la actualización.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is no longer on this computer.</source>
+        <translation>El instalador descargado ya no está en este equipo.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer does not match the checksum published for this update.</source>
+        <translation>El instalador descargado no coincide con la suma de comprobación publicada para esta actualización.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is not signed by %1, the publisher of this copy of Patchy.</source>
+        <translation>El instalador descargado no está firmado por %1, el editor de esta copia de Patchy.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is signed by %1, not by %2, the publisher of this copy of Patchy.</source>
+        <translation>El instalador descargado está firmado por %1, no por %2, el editor de esta copia de Patchy.</translation>
+    </message>
+    <message>
+        <source>Windows could not start the installer.</source>
+        <translation>Windows no pudo iniciar el instalador.</translation>
+    </message>
+    <message>
+        <source>The update was not installed.
+
+%1
+
+You can still download it in your browser.</source>
+        <translation>La actualización no se instaló.
+
+%1
+
+Aún puede descargarla en su navegador.</translation>
     </message>
 </context>
 <context>

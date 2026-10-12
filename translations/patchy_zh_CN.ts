@@ -19928,10 +19928,6 @@ Baked into images: %1.</source>
         <translation>下载高质量模型（从 GitHub 下载 %1 MB）。使用它时，对象选择能更准确地找到对象。</translation>
     </message>
     <message>
-        <source>The update installer could not be started</source>
-        <translation>无法启动更新安装程序</translation>
-    </message>
-    <message>
         <source>Downloading Patchy %1... %2 of %3 MB</source>
         <translation>正在下载 Patchy %1... %2 / %3 MB</translation>
     </message>
@@ -19970,6 +19966,38 @@ Restart them to finish updating.</source>
 以下应用仍连接到旧版本：%2。
 
 请重新启动这些应用以完成更新。</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is no longer on this computer.</source>
+        <translation>下载的安装程序已不在此计算机上。</translation>
+    </message>
+    <message>
+        <source>The downloaded installer does not match the checksum published for this update.</source>
+        <translation>下载的安装程序与此更新公布的校验和不一致。</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is not signed by %1, the publisher of this copy of Patchy.</source>
+        <translation>下载的安装程序没有由此 Patchy 副本的发布者 %1 签名。</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is signed by %1, not by %2, the publisher of this copy of Patchy.</source>
+        <translation>下载的安装程序由 %1 签名，而不是此 Patchy 副本的发布者 %2。</translation>
+    </message>
+    <message>
+        <source>Windows could not start the installer.</source>
+        <translation>Windows 无法启动安装程序。</translation>
+    </message>
+    <message>
+        <source>The update was not installed.
+
+%1
+
+You can still download it in your browser.</source>
+        <translation>更新未安装。
+
+%1
+
+您仍然可以在浏览器中下载。</translation>
     </message>
 </context>
 <context>

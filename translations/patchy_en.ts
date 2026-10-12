@@ -19936,10 +19936,6 @@ Baked into images: %1.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>The update installer could not be started</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Downloading Patchy %1... %2 of %3 MB</source>
         <translation type="unfinished"></translation>
     </message>
@@ -19971,6 +19967,34 @@ Patchy can download the update, close, install it, and start again. You will be 
 These apps are still connected to the old version: %2.
 
 Restart them to finish updating.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The downloaded installer is no longer on this computer.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The downloaded installer does not match the checksum published for this update.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The downloaded installer is not signed by %1, the publisher of this copy of Patchy.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The downloaded installer is signed by %1, not by %2, the publisher of this copy of Patchy.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Windows could not start the installer.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The update was not installed.
+
+%1
+
+You can still download it in your browser.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

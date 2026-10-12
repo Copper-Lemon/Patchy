@@ -8444,13 +8444,15 @@ void MainWindow::closeEvent(QCloseEvent* event) {
   // open rather than quit with nothing updated.
   if (pending_update_install_.has_value()) {
     const auto launch = *std::exchange(pending_update_install_, std::nullopt);
-    const bool started =
-        update_installer_launcher_for_tests_ ? update_installer_launcher_for_tests_(launch)
-                                             : launch_update_installer(launch);
-    if (!started) {
+    const auto result = update_installer_launcher_for_tests_ ? update_installer_launcher_for_tests_(launch)
+                                                             : launch_update_installer(launch);
+    if (!result.started()) {
       restore_hidden_floats();
       event->ignore();
-      show_status_error(tr("The update installer could not be started"));
+      // After this close event has been refused, not from inside it.
+      QTimer::singleShot(0, this, [this, result, url = launch.browser_download_url] {
+        show_update_launch_failure(result, url);
+      });
       return;
     }
   }

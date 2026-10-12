@@ -19928,10 +19928,6 @@ Y: %2
         <translation>고품질 모델을 다운로드합니다(GitHub에서 %1MB). 개체 선택이 개체를 더 정확하게 찾습니다.</translation>
     </message>
     <message>
-        <source>The update installer could not be started</source>
-        <translation>업데이트 설치 프로그램을 시작할 수 없습니다</translation>
-    </message>
-    <message>
         <source>Downloading Patchy %1... %2 of %3 MB</source>
         <translation>Patchy %1 다운로드 중... %2/%3MB</translation>
     </message>
@@ -19970,6 +19966,38 @@ Restart them to finish updating.</source>
 다음 앱은 아직 이전 버전에 연결되어 있습니다: %2.
 
 업데이트를 완료하려면 해당 앱을 다시 시작하세요.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is no longer on this computer.</source>
+        <translation>다운로드한 설치 프로그램이 더 이상 이 컴퓨터에 없습니다.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer does not match the checksum published for this update.</source>
+        <translation>다운로드한 설치 프로그램이 이 업데이트에 대해 게시된 체크섬과 일치하지 않습니다.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is not signed by %1, the publisher of this copy of Patchy.</source>
+        <translation>다운로드한 설치 프로그램이 이 Patchy의 게시자인 %1의 서명이 되어 있지 않습니다.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is signed by %1, not by %2, the publisher of this copy of Patchy.</source>
+        <translation>다운로드한 설치 프로그램이 이 Patchy의 게시자인 %2이(가) 아니라 %1의 서명이 되어 있습니다.</translation>
+    </message>
+    <message>
+        <source>Windows could not start the installer.</source>
+        <translation>Windows에서 설치 프로그램을 시작할 수 없습니다.</translation>
+    </message>
+    <message>
+        <source>The update was not installed.
+
+%1
+
+You can still download it in your browser.</source>
+        <translation>업데이트가 설치되지 않았습니다.
+
+%1
+
+브라우저에서 계속 다운로드할 수 있습니다.</translation>
     </message>
 </context>
 <context>

@@ -146,11 +146,11 @@ FileSignature file_signature(const QString& path) {
   return result;
 }
 
-bool launch_update_installer(const UpdateInstallerLaunch& launch) {
+UpdateLaunchResult launch_update_installer(const UpdateInstallerLaunch& launch) {
 #ifdef Q_OS_WIN
   const QFileInfo installer(launch.installer_path);
   if (!installer.isFile() || launch.install_dir.isEmpty()) {
-    return false;
+    return {UpdateLaunchFailure::InstallerMissing};
   }
   const auto installer_path = installer.absoluteFilePath();
   // Held open without write or delete sharing from here until the process exists: the save
@@ -160,12 +160,18 @@ bool launch_update_installer(const UpdateInstallerLaunch& launch) {
   const HANDLE guard = CreateFileW(native_path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
                                    FILE_ATTRIBUTE_NORMAL, nullptr);
   if (guard == INVALID_HANDLE_VALUE) {
-    return false;
+    return {UpdateLaunchFailure::InstallerMissing};
   }
-  bool started = false;
   static const FileSignature own_signature = file_signature(QCoreApplication::applicationFilePath());
-  if (file_matches_checksum(installer_path, launch.expected_size, launch.expected_sha256) &&
-      installer_signer_acceptable(own_signature, file_signature(installer_path))) {
+  UpdateLaunchResult result;
+  if (!file_matches_checksum(installer_path, launch.expected_size, launch.expected_sha256)) {
+    result.failure = UpdateLaunchFailure::ChecksumMismatch;
+  } else if (const auto signature = file_signature(installer_path);
+             !installer_signer_acceptable(own_signature, signature)) {
+    result.failure = signature.valid ? UpdateLaunchFailure::WrongSigner : UpdateLaunchFailure::NotSigned;
+    result.expected_signer = own_signature.signer;
+    result.installer_signer = signature.signer;
+  } else {
     auto environment = QProcessEnvironment::systemEnvironment();
     environment.insert(QStringLiteral("PATCHY_UPDATE_INSTALL_DIR"), QDir::toNativeSeparators(launch.install_dir));
     environment.insert(QStringLiteral("PATCHY_UPDATE_WAIT_PID"), QString::number(launch.wait_process_id));
@@ -173,13 +179,15 @@ bool launch_update_installer(const UpdateInstallerLaunch& launch) {
     process.setProgram(installer_path);
     process.setWorkingDirectory(installer.absolutePath());
     process.setProcessEnvironment(environment);
-    started = process.startDetached();
+    if (!process.startDetached()) {
+      result.failure = UpdateLaunchFailure::StartFailed;
+    }
   }
   CloseHandle(guard);
-  return started;
+  return result;
 #else
   Q_UNUSED(launch);
-  return false;
+  return {UpdateLaunchFailure::StartFailed};
 #endif
 }
 

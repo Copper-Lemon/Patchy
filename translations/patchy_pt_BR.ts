@@ -19985,10 +19985,6 @@ Y: %2
         <translation>Baixa o modelo de alta qualidade (%1 MB do GitHub). Com ele, a Seleção de objeto encontra objetos com mais precisão.</translation>
     </message>
     <message>
-        <source>The update installer could not be started</source>
-        <translation>Não foi possível iniciar o instalador da atualização</translation>
-    </message>
-    <message>
         <source>Downloading Patchy %1... %2 of %3 MB</source>
         <translation>Baixando o Patchy %1... %2 de %3 MB</translation>
     </message>
@@ -20027,6 +20023,38 @@ Restart them to finish updating.</source>
 Estes aplicativos ainda estão conectados à versão antiga: %2.
 
 Reinicie-os para concluir a atualização.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is no longer on this computer.</source>
+        <translation>O instalador baixado não está mais neste computador.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer does not match the checksum published for this update.</source>
+        <translation>O instalador baixado não corresponde à soma de verificação publicada para esta atualização.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is not signed by %1, the publisher of this copy of Patchy.</source>
+        <translation>O instalador baixado não está assinado por %1, o editor desta cópia do Patchy.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is signed by %1, not by %2, the publisher of this copy of Patchy.</source>
+        <translation>O instalador baixado está assinado por %1, e não por %2, o editor desta cópia do Patchy.</translation>
+    </message>
+    <message>
+        <source>Windows could not start the installer.</source>
+        <translation>O Windows não conseguiu iniciar o instalador.</translation>
+    </message>
+    <message>
+        <source>The update was not installed.
+
+%1
+
+You can still download it in your browser.</source>
+        <translation>A atualização não foi instalada.
+
+%1
+
+Você ainda pode baixá-la no navegador.</translation>
     </message>
 </context>
 <context>

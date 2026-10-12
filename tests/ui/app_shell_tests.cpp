@@ -2249,7 +2249,13 @@ void update_installer_is_checked_again_before_it_runs() {
   // A swapped or damaged file is refused before anything is started.
   patchy::ui::UpdateInstallerLaunch launch{path, dir.path(), QCoreApplication::applicationPid(), bytes.size(),
                                            QByteArray(64, '0')};
-  CHECK(!patchy::ui::launch_update_installer(launch));
+#if defined(Q_OS_WIN)
+  CHECK(patchy::ui::launch_update_installer(launch).failure == patchy::ui::UpdateLaunchFailure::ChecksumMismatch);
+  launch.installer_path = dir.filePath(QStringLiteral("absent.exe"));
+  CHECK(patchy::ui::launch_update_installer(launch).failure == patchy::ui::UpdateLaunchFailure::InstallerMissing);
+#else
+  CHECK(!patchy::ui::launch_update_installer(launch).started());
+#endif
 #if defined(Q_OS_WIN)
   // Real signatures: Qt's DLL beside the suite is signed, the suite itself and the stand-in are not.
   const auto qt_signature = patchy::ui::file_signature(
@@ -2296,13 +2302,17 @@ void ui_update_one_click_downloads_installer_and_hands_over_on_close() {
   patchy::ui::MainWindowTestAccess::set_update_installer_launcher(
       window, [&](const patchy::ui::UpdateInstallerLaunch& launch) {
         launches.push_back(launch);
-        return launcher_starts;
+        return launcher_starts
+                   ? patchy::ui::UpdateLaunchResult{}
+                   : patchy::ui::UpdateLaunchResult{patchy::ui::UpdateLaunchFailure::NotSigned,
+                                                    QStringLiteral("Seth A. Robinson"), {}};
       });
 
   // Answers each dialog of one run as it appears.
   bool prompt_answered = false;
   bool saw_failure = false;
   bool saw_save_prompt = false;
+  QString install_failure_text;
   auto save_answer = QMessageBox::Cancel;
   QTimer driver;
   QObject::connect(&driver, &QTimer::timeout, &window, [&] {
@@ -2310,6 +2320,12 @@ void ui_update_one_click_downloads_installer_and_hands_over_on_close() {
             qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("updateDownloadFailedMessageBox")))) {
       saw_failure = true;
       failure->reject();  // never the Download button: it opens a browser
+      return;
+    }
+    if (auto* refused =
+            qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("updateInstallFailedMessageBox")))) {
+      install_failure_text = refused->text();
+      refused->reject();  // never the Download button: it opens a browser
       return;
     }
     if (auto* save = qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("saveChangesMessageBox")))) {
@@ -2335,8 +2351,10 @@ void ui_update_one_click_downloads_installer_and_hands_over_on_close() {
     prompt_answered = false;
     saw_failure = false;
     saw_save_prompt = false;
+    install_failure_text.clear();
     driver.start(10);
     window.show_update_available(info);
+    process_events_for(200);  // a refused installer is reported once the close event is over
     driver.stop();
     CHECK(prompt_answered);
   };
@@ -2374,6 +2392,9 @@ void ui_update_one_click_downloads_installer_and_hands_over_on_close() {
   CHECK(launches.size() == 1);
   CHECK(window.isVisible());
   CHECK(!patchy::ui::MainWindowTestAccess::update_install_pending(window));
+  // And says why, not only that it failed.
+  CHECK(install_failure_text.contains(QStringLiteral("The update was not installed.")));
+  CHECK(install_failure_text.contains(QStringLiteral("is not signed by Seth A. Robinson")));
 
   // Settled: the installer gets this copy's folder and process id, and the window closes.
   launcher_starts = true;

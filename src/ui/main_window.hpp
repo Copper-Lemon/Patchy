@@ -2551,10 +2551,13 @@ private:
   // close drops it. The three members below are MainWindowTestAccess seams.
   [[nodiscard]] bool can_install_update(const UpdateInfo& update) const;
   void download_and_install_update(const UpdateInfo& update);
+  // Says why the installer was not run (checksum, signature, could not start) and offers
+  // the browser download.
+  void show_update_launch_failure(const UpdateLaunchResult& result, const QUrl& browser_download_url);
   std::optional<UpdateInstallerLaunch> pending_update_install_;
   std::optional<bool> self_update_override_for_tests_;
   QString update_download_folder_for_tests_;
-  std::function<bool(const UpdateInstallerLaunch&)> update_installer_launcher_for_tests_;
+  std::function<UpdateLaunchResult(const UpdateInstallerLaunch&)> update_installer_launcher_for_tests_;
   // Cache behind history_retained_bytes(); see enforce_history_memory_budget.
   std::size_t last_history_retained_bytes_{0};
 };

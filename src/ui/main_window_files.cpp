@@ -4338,12 +4338,49 @@ void MainWindow::download_and_install_update(const UpdateInfo& update) {
   pending_update_install_ = UpdateInstallerLaunch{QDir(folder).filePath(update_installer_file_name()),
                                                   QCoreApplication::applicationDirPath(),
                                                   QCoreApplication::applicationPid(), update.installer_size,
-                                                  update.installer_sha256};
+                                                  update.installer_sha256, update.download_url};
   if (!close() && pending_update_install_.has_value()) {
     pending_update_install_.reset();
     statusBar()->showMessage(tr("The update was not installed because Patchy stayed open"));
   }
 #endif
+}
+
+void MainWindow::show_update_launch_failure(const UpdateLaunchResult& result, const QUrl& browser_download_url) {
+  QString reason;
+  switch (result.failure) {
+    case UpdateLaunchFailure::None:
+      return;
+    case UpdateLaunchFailure::InstallerMissing:
+      reason = tr("The downloaded installer is no longer on this computer.");
+      break;
+    case UpdateLaunchFailure::ChecksumMismatch:
+      reason = tr("The downloaded installer does not match the checksum published for this update.");
+      break;
+    case UpdateLaunchFailure::NotSigned:
+      reason = tr("The downloaded installer is not signed by %1, the publisher of this copy of Patchy.")
+                   .arg(result.expected_signer);
+      break;
+    case UpdateLaunchFailure::WrongSigner:
+      reason = tr("The downloaded installer is signed by %1, not by %2, the publisher of this copy of Patchy.")
+                   .arg(result.installer_signer, result.expected_signer);
+      break;
+    case UpdateLaunchFailure::StartFailed:
+      reason = tr("Windows could not start the installer.");
+      break;
+  }
+  QMessageBox failure(QMessageBox::Warning, tr("Update Available"),
+                      tr("The update was not installed.\n\n%1\n\nYou can still download it in your browser.").arg(reason),
+                      QMessageBox::NoButton, this);
+  failure.setObjectName(QStringLiteral("updateInstallFailedMessageBox"));
+  failure.setTextFormat(Qt::PlainText);
+  auto* browser_button = failure.addButton(tr("Download"), QMessageBox::AcceptRole);
+  failure.addButton(tr("Not Now"), QMessageBox::RejectRole);
+  failure.setDefaultButton(browser_button);
+  exec_dialog(failure);
+  if (failure.clickedButton() == browser_button && !QDesktopServices::openUrl(browser_download_url)) {
+    show_status_error(tr("Could not open the download link"));
+  }
 }
 
 void MainWindow::show_update_available(const UpdateInfo& update) {

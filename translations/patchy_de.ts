@@ -19985,10 +19985,6 @@ In Bilder umgewandelt: %1.</translation>
         <translation>Lädt das Modell „Hohe Qualität“ herunter (%1 MB von GitHub). Damit erkennt die Objektauswahl Objekte genauer.</translation>
     </message>
     <message>
-        <source>The update installer could not be started</source>
-        <translation>Das Update-Installationsprogramm konnte nicht gestartet werden</translation>
-    </message>
-    <message>
         <source>Downloading Patchy %1... %2 of %3 MB</source>
         <translation>Patchy %1 wird heruntergeladen... %2 von %3 MB</translation>
     </message>
@@ -20027,6 +20023,38 @@ Restart them to finish updating.</source>
 Diese Apps sind noch mit der alten Version verbunden: %2.
 
 Starten Sie sie neu, um die Aktualisierung abzuschließen.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is no longer on this computer.</source>
+        <translation>Das heruntergeladene Installationsprogramm befindet sich nicht mehr auf diesem Computer.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer does not match the checksum published for this update.</source>
+        <translation>Das heruntergeladene Installationsprogramm stimmt nicht mit der für dieses Update veröffentlichten Prüfsumme überein.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is not signed by %1, the publisher of this copy of Patchy.</source>
+        <translation>Das heruntergeladene Installationsprogramm ist nicht von %1 signiert, dem Herausgeber dieser Kopie von Patchy.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is signed by %1, not by %2, the publisher of this copy of Patchy.</source>
+        <translation>Das heruntergeladene Installationsprogramm ist von %1 signiert, nicht von %2, dem Herausgeber dieser Kopie von Patchy.</translation>
+    </message>
+    <message>
+        <source>Windows could not start the installer.</source>
+        <translation>Windows konnte das Installationsprogramm nicht starten.</translation>
+    </message>
+    <message>
+        <source>The update was not installed.
+
+%1
+
+You can still download it in your browser.</source>
+        <translation>Das Update wurde nicht installiert.
+
+%1
+
+Sie können es weiterhin im Browser herunterladen.</translation>
     </message>
 </context>
 <context>

@@ -19928,10 +19928,6 @@ Baked into images: %1.</source>
         <translation>高品質モデルをダウンロードします (GitHub から %1 MB)。オブジェクト選択がより正確にオブジェクトを検出します。</translation>
     </message>
     <message>
-        <source>The update installer could not be started</source>
-        <translation>アップデートのインストーラーを起動できませんでした</translation>
-    </message>
-    <message>
         <source>Downloading Patchy %1... %2 of %3 MB</source>
         <translation>Patchy %1 をダウンロードしています... %2 / %3 MB</translation>
     </message>
@@ -19970,6 +19966,38 @@ Restart them to finish updating.</source>
 次のアプリは古いバージョンに接続したままです: %2。
 
 更新を完了するには、これらを再起動してください。</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is no longer on this computer.</source>
+        <translation>ダウンロードしたインストーラーは、このコンピューターにもうありません。</translation>
+    </message>
+    <message>
+        <source>The downloaded installer does not match the checksum published for this update.</source>
+        <translation>ダウンロードしたインストーラーが、このアップデート用に公開されているチェックサムと一致しません。</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is not signed by %1, the publisher of this copy of Patchy.</source>
+        <translation>ダウンロードしたインストーラーは、この Patchy の発行元である %1 によって署名されていません。</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is signed by %1, not by %2, the publisher of this copy of Patchy.</source>
+        <translation>ダウンロードしたインストーラーは、この Patchy の発行元である %2 ではなく %1 によって署名されています。</translation>
+    </message>
+    <message>
+        <source>Windows could not start the installer.</source>
+        <translation>Windows はインストーラーを起動できませんでした。</translation>
+    </message>
+    <message>
+        <source>The update was not installed.
+
+%1
+
+You can still download it in your browser.</source>
+        <translation>アップデートはインストールされませんでした。
+
+%1
+
+ブラウザーからダウンロードすることもできます。</translation>
     </message>
 </context>
 <context>

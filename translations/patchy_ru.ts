@@ -20042,10 +20042,6 @@ Y: %2
         <translation>Скачивает модель высокого качества (%1 МБ с GitHub). С ней выделение объектов находит объекты точнее.</translation>
     </message>
     <message>
-        <source>The update installer could not be started</source>
-        <translation>Не удалось запустить установщик обновления</translation>
-    </message>
-    <message>
         <source>Downloading Patchy %1... %2 of %3 MB</source>
         <translation>Загрузка Patchy %1... %2 из %3 МБ</translation>
     </message>
@@ -20084,6 +20080,38 @@ Restart them to finish updating.</source>
 Эти приложения всё ещё подключены к старой версии: %2.
 
 Перезапустите их, чтобы завершить обновление.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is no longer on this computer.</source>
+        <translation>Загруженного установщика больше нет на этом компьютере.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer does not match the checksum published for this update.</source>
+        <translation>Загруженный установщик не соответствует контрольной сумме, опубликованной для этого обновления.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is not signed by %1, the publisher of this copy of Patchy.</source>
+        <translation>Загруженный установщик не подписан издателем этой копии Patchy (%1).</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is signed by %1, not by %2, the publisher of this copy of Patchy.</source>
+        <translation>Загруженный установщик подписан %1, а не издателем этой копии Patchy (%2).</translation>
+    </message>
+    <message>
+        <source>Windows could not start the installer.</source>
+        <translation>Windows не удалось запустить установщик.</translation>
+    </message>
+    <message>
+        <source>The update was not installed.
+
+%1
+
+You can still download it in your browser.</source>
+        <translation>Обновление не установлено.
+
+%1
+
+Его по-прежнему можно скачать в браузере.</translation>
     </message>
 </context>
 <context>

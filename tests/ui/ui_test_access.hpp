@@ -51,7 +51,7 @@ public:
     window.update_download_folder_for_tests_ = folder;
   }
   static void set_update_installer_launcher(MainWindow& window,
-                                            std::function<bool(const UpdateInstallerLaunch&)> launcher) {
+                                            std::function<UpdateLaunchResult(const UpdateInstallerLaunch&)> launcher) {
     window.update_installer_launcher_for_tests_ = std::move(launcher);
   }
   static bool update_install_pending(const MainWindow& window) { return window.pending_update_install_.has_value(); }

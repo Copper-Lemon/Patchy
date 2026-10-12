@@ -9,6 +9,7 @@
 
 #include <QByteArray>
 #include <QString>
+#include <QUrl>
 #include <QtGlobal>
 
 namespace patchy::ui {
@@ -21,6 +22,24 @@ struct UpdateInstallerLaunch {
   // started, not only when it was downloaded.
   qint64 expected_size{0};
   QByteArray expected_sha256{};  // lowercase hex
+  // Where the browser download is, offered when the installer cannot be run.
+  QUrl browser_download_url{};
+};
+
+// Why an installer was not started; the prompt tells the user which.
+enum class UpdateLaunchFailure {
+  None,
+  InstallerMissing,   // the downloaded file is gone or cannot be opened
+  ChecksumMismatch,   // not the size and SHA-256 the manifest pinned
+  NotSigned,          // no valid Authenticode signature, and this Patchy is signed
+  WrongSigner,        // validly signed, by someone other than this Patchy's publisher
+  StartFailed,        // Windows would not start it
+};
+struct UpdateLaunchResult {
+  UpdateLaunchFailure failure{UpdateLaunchFailure::None};
+  QString expected_signer{};   // NotSigned, WrongSigner: this Patchy's publisher
+  QString installer_signer{};  // WrongSigner: who signed the file
+  [[nodiscard]] bool started() const { return failure == UpdateLaunchFailure::None; }
 };
 
 // True when `registered_install_location` (the uninstall entry's InstallLocation) names
@@ -63,7 +82,7 @@ struct FileSignature {
 // the check until the process exists. The request travels in the child's environment
 // (PATCHY_UPDATE_INSTALL_DIR, PATCHY_UPDATE_WAIT_PID), which
 // packaging/windows/InstallPatchyLauncher.cs turns into InstallPatchy.ps1 -Update.
-// False when it failed a check or could not be started (always off Windows).
-bool launch_update_installer(const UpdateInstallerLaunch& launch);
+// The result names the check that failed, or StartFailed (always, off Windows).
+[[nodiscard]] UpdateLaunchResult launch_update_installer(const UpdateInstallerLaunch& launch);
 
 }  // namespace patchy::ui

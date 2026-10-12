@@ -20042,10 +20042,6 @@ Y: %2
         <translation>Pobiera model wysokiej jakości (%1 MB z serwisu GitHub). Zaznaczanie obiektu dokładniej wykrywa z nim obiekty.</translation>
     </message>
     <message>
-        <source>The update installer could not be started</source>
-        <translation>Nie udało się uruchomić instalatora aktualizacji</translation>
-    </message>
-    <message>
         <source>Downloading Patchy %1... %2 of %3 MB</source>
         <translation>Pobieranie Patchy %1... %2 z %3 MB</translation>
     </message>
@@ -20084,6 +20080,38 @@ Restart them to finish updating.</source>
 Te aplikacje są nadal połączone ze starą wersją: %2.
 
 Uruchom je ponownie, aby dokończyć aktualizację.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is no longer on this computer.</source>
+        <translation>Pobranego instalatora nie ma już na tym komputerze.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer does not match the checksum published for this update.</source>
+        <translation>Pobrany instalator nie zgadza się z sumą kontrolną opublikowaną dla tej aktualizacji.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is not signed by %1, the publisher of this copy of Patchy.</source>
+        <translation>Pobrany instalator nie jest podpisany przez %1, wydawcę tej kopii Patchy.</translation>
+    </message>
+    <message>
+        <source>The downloaded installer is signed by %1, not by %2, the publisher of this copy of Patchy.</source>
+        <translation>Pobrany instalator jest podpisany przez %1, a nie przez %2, wydawcę tej kopii Patchy.</translation>
+    </message>
+    <message>
+        <source>Windows could not start the installer.</source>
+        <translation>System Windows nie mógł uruchomić instalatora.</translation>
+    </message>
+    <message>
+        <source>The update was not installed.
+
+%1
+
+You can still download it in your browser.</source>
+        <translation>Aktualizacja nie została zainstalowana.
+
+%1
+
+Nadal możesz pobrać ją w przeglądarce.</translation>
     </message>
 </context>
 <context>
