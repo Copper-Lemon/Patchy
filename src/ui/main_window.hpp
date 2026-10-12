@@ -230,12 +230,14 @@ public:
   // (never offscreen or unattended); choosing High Quality on the options bar asks again.
   // The download runs under a window-modal progress dialog with Cancel, or with status-bar
   // progress and `keep_alive` called while it waits when show_dialog is false (scripts).
-  // Returns true once the model is present; `error` stays empty after a cancel.
+  // Returns true once the model is present; `error` stays empty after a cancel. The progress
+  // dialog is modal to `dialog_parent` (Preferences passes itself), else to the main window.
   bool download_high_quality_object_selection_model(bool show_dialog, const std::function<void()>& keep_alive,
-                                                    QString* error);
+                                                    QString* error, QWidget* dialog_parent = nullptr);
   // Preferences > Tools > Delete: frees the loaded sessions and deletes the downloaded High
   // Quality files by name (delete_downloaded_high_quality_model). Object Selection falls back
-  // to Standard.
+  // to Standard, and the Model choice and the first-use offer reset, so the tool offers the
+  // download again.
   bool delete_high_quality_object_selection_model(QString* error);
 #ifndef Q_OS_WASM
   // Automatic document recovery (docs/document-recovery.md, main_window_recovery.cpp):

@@ -20037,6 +20037,10 @@ Y: %2
         <source>The High Quality model could not be deleted: %1</source>
         <translation>Не удалось удалить модель высокого качества: %1</translation>
     </message>
+    <message>
+        <source>Downloads the High Quality model (%1 MB from GitHub). Object Selection finds objects more accurately with it.</source>
+        <translation>Скачивает модель высокого качества (%1 МБ с GitHub). С ней выделение объектов находит объекты точнее.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

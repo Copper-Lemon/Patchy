@@ -1061,21 +1061,41 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
     auto* model_status = new QLabel(model_group);
     model_status->setObjectName(QStringLiteral("preferencesObjectSelectionModelStatus"));
     model_status->setWordWrap(true);
+    const auto model_megabytes = static_cast<int>((high_quality_model_download_bytes() + 500000) / 1000000);
+    auto* download_model_button = new QPushButton(tr("Download"), model_group);
+    download_model_button->setObjectName(QStringLiteral("preferencesDownloadObjectSelectionModelButton"));
+    download_model_button->setToolTip(
+        tr("Downloads the High Quality model (%1 MB from GitHub). Object Selection finds objects more accurately "
+           "with it.")
+            .arg(model_megabytes));
     auto* delete_model_button = new QPushButton(tr("Delete"), model_group);
     delete_model_button->setObjectName(QStringLiteral("preferencesDeleteObjectSelectionModelButton"));
     delete_model_button->setToolTip(tr("Deletes the downloaded High Quality model. Object Selection then uses the "
                                        "built-in model; you can download it again from the tool's options bar."));
     model_layout->addWidget(model_status, 1);
+    model_layout->addWidget(download_model_button);
     model_layout->addWidget(delete_model_button);
-    const auto refresh_model_status = [model_status, delete_model_button] {
+    const auto refresh_model_status = [model_status, download_model_button, delete_model_button, model_megabytes] {
       const bool present = downloaded_high_quality_model_present(downloaded_models_folder());
-      model_status->setText(
-          present ? tr("High Quality Object Selection model: downloaded (%1 MB)")
-                        .arg(static_cast<int>((high_quality_model_download_bytes() + 500000) / 1000000))
-                  : tr("High Quality Object Selection model: not downloaded"));
+      model_status->setText(present ? tr("High Quality Object Selection model: downloaded (%1 MB)").arg(model_megabytes)
+                                    : tr("High Quality Object Selection model: not downloaded"));
+      download_model_button->setEnabled(!present);
       delete_model_button->setEnabled(present);
     };
     refresh_model_status();
+    connect(download_model_button, &QPushButton::clicked, &dialog, [this, &dialog, refresh_model_status] {
+      QString error;
+      if (download_high_quality_object_selection_model(true, {}, &error, &dialog)) {
+        set_object_selection_high_quality_setting(true);
+        refresh_object_select_model_combo();
+        statusBar()->showMessage(tr("Object Selection now uses the High Quality model"));
+      } else if (!error.isEmpty()) {
+        show_status_error(tr("The High Quality model could not be downloaded: %1").arg(error));
+      } else {
+        statusBar()->showMessage(tr("Download cancelled"));
+      }
+      refresh_model_status();
+    });
     connect(delete_model_button, &QPushButton::clicked, &dialog, [this, refresh_model_status] {
       QString error;
       if (delete_high_quality_object_selection_model(&error)) {

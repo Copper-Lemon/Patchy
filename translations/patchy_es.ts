@@ -19980,6 +19980,10 @@ Convertido en imágenes: %1.</translation>
         <source>The High Quality model could not be deleted: %1</source>
         <translation>No se pudo eliminar el modelo de alta calidad: %1</translation>
     </message>
+    <message>
+        <source>Downloads the High Quality model (%1 MB from GitHub). Object Selection finds objects more accurately with it.</source>
+        <translation>Descarga el modelo de alta calidad (%1 MB desde GitHub). Con él, Selección de objetos encuentra los objetos con más precisión.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

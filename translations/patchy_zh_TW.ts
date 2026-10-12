@@ -19923,6 +19923,10 @@ Baked into images: %1.</source>
         <source>The High Quality model could not be deleted: %1</source>
         <translation>無法刪除高品質模型：%1</translation>
     </message>
+    <message>
+        <source>Downloads the High Quality model (%1 MB from GitHub). Object Selection finds objects more accurately with it.</source>
+        <translation>下載高品質模型（從 GitHub 下載 %1 MB）。使用它時，物件選取能更準確地找到物件。</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

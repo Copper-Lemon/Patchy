@@ -7,6 +7,7 @@
 #include "ui/main_window_shared.hpp"
 #include "ui/script_engine.hpp"
 
+#include "ui/app_settings.hpp"
 #include "ui/object_selection_model_download.hpp"
 #include "ui/qt_paths.hpp"
 
@@ -351,6 +352,9 @@ void ui_preferences_deletes_only_the_downloaded_model_files() {
   patchy::ui::MainWindow window;
   show_window(window);
   bool saw_preferences = false;
+  // The first-use offer was already made and the user had picked Standard: Delete resets both.
+  patchy::ui::app_settings().setValue(QStringLiteral("automaticSelection/highQualityModelOffered"), true);
+  patchy::ui::set_object_selection_high_quality_setting(false);
   QTimer::singleShot(0, [&saw_preferences] {
     auto* dialog = find_top_level_dialog(QStringLiteral("patchyPreferencesDialog"));
     CHECK(dialog != nullptr);
@@ -359,18 +363,24 @@ void ui_preferences_deletes_only_the_downloaded_model_files() {
     }
     auto* status = dialog->findChild<QLabel*>(QStringLiteral("preferencesObjectSelectionModelStatus"));
     auto* button = dialog->findChild<QPushButton*>(QStringLiteral("preferencesDeleteObjectSelectionModelButton"));
+    auto* download =
+        dialog->findChild<QPushButton*>(QStringLiteral("preferencesDownloadObjectSelectionModelButton"));
     CHECK(status != nullptr && status->text().contains(QStringLiteral("downloaded (234 MB)")));
     CHECK(button != nullptr && button->isEnabled());
-    if (status != nullptr && button != nullptr) {
+    CHECK(download != nullptr && !download->isEnabled());
+    if (status != nullptr && button != nullptr && download != nullptr) {
       button->click();
       CHECK(status->text().contains(QStringLiteral("not downloaded")));
       CHECK(!button->isEnabled());
+      CHECK(download->isEnabled());  // not clicked: it would reach the network
       saw_preferences = true;
     }
     dialog->reject();
   });
   patchy::ui::MainWindowTestAccess::show_preferences(window);
   CHECK(saw_preferences);
+  CHECK(!patchy::ui::app_settings().contains(QStringLiteral("automaticSelection/highQualityModelOffered")));
+  CHECK(patchy::ui::object_selection_high_quality_setting());
   for (const auto& file : patchy::ui::high_quality_model_files()) {
     CHECK(!QFile::exists(QDir(root).filePath(file.name)));
   }

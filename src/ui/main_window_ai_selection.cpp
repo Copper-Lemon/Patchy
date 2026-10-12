@@ -172,7 +172,7 @@ bool MainWindow::offer_high_quality_object_selection_model() {
 }
 
 bool MainWindow::download_high_quality_object_selection_model(bool show_dialog, const std::function<void()>& keep_alive,
-                                                              QString* error) {
+                                                              QString* error, QWidget* dialog_parent) {
   const auto fail = [error](const QString& message) {
     if (error != nullptr) {
       *error = message;
@@ -182,6 +182,7 @@ bool MainWindow::download_high_quality_object_selection_model(bool show_dialog, 
 #if defined(Q_OS_WASM)
   (void)show_dialog;
   (void)keep_alive;
+  (void)dialog_parent;
   return fail(tr("The High Quality model is not available in the web version"));
 #else
   configure_automatic_selection_models();
@@ -194,7 +195,7 @@ bool MainWindow::download_high_quality_object_selection_model(bool show_dialog, 
   };
   std::optional<QProgressDialog> dialog;
   if (show_dialog) {
-    dialog.emplace(progress_text(0), tr("Cancel"), 0, 1000, this);
+    dialog.emplace(progress_text(0), tr("Cancel"), 0, 1000, dialog_parent != nullptr ? dialog_parent : this);
     dialog->setObjectName(QStringLiteral("objectSelectionModelDownloadDialog"));
     dialog->setWindowModality(Qt::WindowModal);
     dialog->setMinimumDuration(0);
@@ -255,6 +256,12 @@ bool MainWindow::delete_high_quality_object_selection_model(QString* error) {
   patchy::ai::release_high_quality_model();
   QString detail;
   const bool ok = delete_downloaded_high_quality_model(downloaded_models_folder(), &detail);
+  if (ok) {
+    // Back to a fresh start: the tool offers the download again on its next first use, and
+    // a new download is used without picking High Quality again.
+    app_settings().remove(QLatin1String(kHighQualityOfferedKey));
+    set_object_selection_high_quality_setting(true);
+  }
   refresh_object_select_model_combo();
   if (!ok && error != nullptr) {
     *error = detail;
