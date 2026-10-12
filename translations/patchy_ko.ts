@@ -11409,6 +11409,10 @@ RGB: %2, %3, %4</translation>
         <source>%1 ran out of memory. Close other programs or documents to free some memory, then try again.</source>
         <translation>%1: 메모리가 부족합니다. 다른 프로그램이나 문서를 닫아 메모리를 확보한 다음 다시 시도하세요.</translation>
     </message>
+    <message>
+        <source>Downloading Object Selection model... %1%</source>
+        <translation>개체 선택 모델 다운로드 중... %1%</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21444,6 +21448,10 @@ Y: %2
     <message>
         <source>Select Subject is not included in this build of Patchy; check doc.selection.subjectSelectionAvailable.</source>
         <translation>이 Patchy 빌드에는 &apos;피사체 선택&apos;이 포함되어 있지 않습니다. doc.selection.subjectSelectionAvailable를 확인하세요.</translation>
+    </message>
+    <message>
+        <source>The document changed during automatic selection.</source>
+        <translation>자동 선택 중에 문서가 변경되었습니다.</translation>
     </message>
 </context>
 <context>

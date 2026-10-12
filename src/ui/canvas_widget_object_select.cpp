@@ -287,34 +287,52 @@ bool CanvasWidget::solve_object_select(bool is_click, QPoint point, QRect box, S
                                        QString history_label) {
   auto embedding_future = object_select_embedding_;
   begin_processing_operation();
+  // The decoder runs on a worker as well: the web engine must never run on the main thread
+  // (the page-side host it waits for runs there), and the wait below keeps the overlay alive.
+  auto solve = launch_async([embedding_future, is_click, point, box] {
+    const auto embedding = embedding_future.get();
+    if (is_click) {
+      return patchy::ai::sam_select_point(*embedding, point.x() + 0.5, point.y() + 0.5);
+    }
+    return patchy::ai::sam_select_box(*embedding, Rect{box.x(), box.y(), box.width(), box.height()});
+  });
   // The encoder reports no progress of its own; the percent is an estimate from the last
-  // encode on this machine, held below 100 until the embedding is actually ready.
+  // encode on this machine, held below 100 until the embedding is actually ready. The web
+  // build's first use downloads the models first, which does report progress.
   const auto estimate_ms = std::max<qint64>(200, object_select_last_encode_ms_);
   const auto started = object_select_encode_started_;
+  bool downloaded = false;
   wait_for_processing_operation(
       [&] {
-        if (embedding_future.wait_for(std::chrono::milliseconds(16)) == std::future_status::ready) {
+        if (object_select_encode_pending_ &&
+            embedding_future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+          // A first use that downloaded the models says nothing about the encode itself.
+          if (started.isValid() && !downloaded) {
+            object_select_last_encode_ms_ = started.elapsed();
+          }
+          object_select_encode_pending_ = false;
+        }
+        if (solve.wait_for(std::chrono::milliseconds(16)) == std::future_status::ready) {
           return true;
         }
-        const auto elapsed = started.isValid() ? started.elapsed() : 0;
-        const auto percent = std::clamp<qint64>(elapsed * 100 / estimate_ms, 1, 95);
-        set_processing_operation_message(tr("Analyzing image... %1%").arg(percent));
+        if (const auto permille = patchy::ai::model_download_permille(); permille >= 0) {
+          downloaded = true;
+          set_processing_operation_message(
+              tr("Downloading Object Selection model... %1%").arg(std::clamp(permille / 10, 0, 99)));
+          return false;
+        }
+        if (object_select_encode_pending_) {
+          const auto elapsed = started.isValid() ? started.elapsed() : 0;
+          const auto percent = std::clamp<qint64>(elapsed * 100 / estimate_ms, 1, 95);
+          set_processing_operation_message(tr("Analyzing image... %1%").arg(percent));
+        }
         return false;
       },
       true);
   patchy::ai::AiMask mask;
   QString failure;
   try {
-    const auto embedding = embedding_future.get();
-    if (object_select_encode_started_.isValid() && object_select_encode_pending_) {
-      object_select_last_encode_ms_ = object_select_encode_started_.elapsed();
-      object_select_encode_pending_ = false;
-    }
-    if (is_click) {
-      mask = patchy::ai::sam_select_point(*embedding, point.x() + 0.5, point.y() + 0.5);
-    } else {
-      mask = patchy::ai::sam_select_box(*embedding, Rect{box.x(), box.y(), box.width(), box.height()});
-    }
+    mask = solve.get();
   } catch (const std::exception& error) {
     failure = patchy::ai::is_out_of_memory(error) ? automatic_selection_out_of_memory_message(tr("Object Selection"))
                                                   : tr("Object Selection failed: %1").arg(QString::fromUtf8(error.what()));

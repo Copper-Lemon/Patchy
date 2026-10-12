@@ -532,8 +532,9 @@ interface PatchySelection {
   selectRect(x: number, y: number, width: number, height: number): void;
   selectEllipse(x: number, y: number, width: number, height: number): void;
   /**
-   * True when this build ships automatic selection (desktop builds with the bundled models;
-   * false on the web build). selectSubject and objectSelect throw when it is false.
+   * True when this build ships automatic selection (desktop builds with the bundled models,
+   * and the web build, whose first objectSelect downloads the models). selectSubject and
+   * objectSelect throw when it is false.
    */
   readonly automaticSelectionAvailable: boolean;
   /**

@@ -1,6 +1,8 @@
-// The parts of segmentation_engine.hpp shared by the ONNX Runtime engine and the stub.
+// The parts of segmentation_engine.hpp shared by the ONNX Runtime engine, the web engine
+// and the stub.
 
 #include "ai/segmentation_engine.hpp"
+#include "ai/segmentation_engine_internal.hpp"
 
 #include <algorithm>
 #include <array>
@@ -85,6 +87,30 @@ void set_model_directory(const std::filesystem::path& directory) {
 std::filesystem::path model_directory() {
   const std::lock_guard lock(model_directory_mutex());
   return model_directory_storage();
+}
+
+SamDecoderPrompt sam_point_prompt(const SamTransform& transform, double x, double y) noexcept {
+  const auto point = to_sam_point(transform, x, y);
+  // Label 1 is the one positive point; label -1 is SAM's required padding point when no
+  // box is given. Never a 0 (negative) label.
+  return {{point.x, point.y, 0.0F, 0.0F}, {1.0F, -1.0F}, 1};
+}
+
+SamDecoderPrompt sam_box_prompt(const SamTransform& transform, Rect box) noexcept {
+  const auto top_left = to_sam_point(transform, box.x, box.y);
+  const auto bottom_right = to_sam_point(transform, box.x + box.width, box.y + box.height);
+  // Labels 2 and 3 are the box corners; no point rides along.
+  return {{top_left.x, top_left.y, bottom_right.x, bottom_right.y}, {2.0F, 3.0F}, 0};
+}
+
+std::int64_t best_sam_candidate(const float* scores, std::int64_t first_candidate) noexcept {
+  std::int64_t chosen = first_candidate;
+  for (std::int64_t index = first_candidate + 1; index < kDecoderMaskCount; ++index) {
+    if (scores[index] > scores[chosen]) {
+      chosen = index;
+    }
+  }
+  return chosen;
 }
 
 }  // namespace patchy::ai

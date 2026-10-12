@@ -1,16 +1,26 @@
 #!/usr/bin/env bash
 # One-time (idempotent) provisioning of the automatic-selection dependencies on macOS and
-# Linux: the pinned ONNX Runtime CPU package and the pinned segmentation models, into
-# .deps (gitignored). Every download is checked against the SHA-256 pinned below; a file
+# Linux: the pinned ONNX Runtime CPU package and the pinned segmentation models (plus, with
+# --web, the pinned onnxruntime-web package a wasm build stages), into .deps (gitignored). Every download is checked against the SHA-256 pinned below; a file
 # that fails the check is deleted, never used. See docs/ai-selection.md.
 #
 #   bash scripts/setup-ai-deps.sh            # provisions <main checkout>/.deps
 #   bash scripts/setup-ai-deps.sh /some/deps  # explicit deps folder
+#   bash scripts/setup-ai-deps.sh --web       # also onnxruntime-web (wasm builds)
 # Rerunning is a fast no-op once everything is present and verified.
 set -euo pipefail
 
 # Keep in sync with scripts/setup-ai-deps.ps1 and cmake/patchy_ai.cmake.
 ORT_VERSION="1.30.0"
+# onnxruntime-web: the npm tarball's SHA-256 and the license texts at the same tag (the npm
+# package carries none).
+ORT_WEB_VERSION="1.30.0"
+ORT_WEB_PACKAGE_SHA256="d2228df7e4616bc3348bf504ee888f3bec43789a273f0a63f3e68d203ce3bf71"
+ORT_WEB_FILES=(ort.wasm.min.mjs ort-wasm-simd-threaded.mjs ort-wasm-simd-threaded.wasm)
+ORT_WEB_LICENSES=(
+  "LICENSE|2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c"
+  "ThirdPartyNotices.txt|143764b952fdb1a7c69ce653bfba74a7744d6a8a573bfb73e235fba356c83de3"
+)
 # The int8 models Patchy ships: converted from the pinned upstream fp32 files by
 # scripts/ai/quantize_models.py (byte-reproducible) and hosted on the ai-models-1 release.
 MODELS=(
@@ -26,6 +36,11 @@ case "$(uname -s)-$(uname -m)" in
   *) echo "setup-ai-deps: unsupported platform $(uname -s)-$(uname -m)" >&2; exit 1 ;;
 esac
 
+WEB=0
+if [[ "${1:-}" == "--web" ]]; then
+  WEB=1
+  shift
+fi
 if [[ $# -ge 1 ]]; then
   DEPS_DIR="$1"
 else
@@ -84,4 +99,30 @@ for entry in "${MODELS[@]}"; do
   fetch_verified "$url" "$MODEL_DIR/$name" "$sha"
 done
 echo "models ready at $MODEL_DIR"
+
+if [[ "$WEB" == 1 ]]; then
+  echo "== onnxruntime-web $ORT_WEB_VERSION =="
+  WEB_DIR="$DEPS_DIR/onnxruntime-web/$ORT_WEB_VERSION"
+  mkdir -p "$WEB_DIR"
+  web_ready=1
+  for name in "${ORT_WEB_FILES[@]}"; do [[ -f "$WEB_DIR/$name" ]] || web_ready=0; done
+  if [[ "$web_ready" == 0 ]]; then
+    ARCHIVE="$WEB_DIR/onnxruntime-web-$ORT_WEB_VERSION.tgz"
+    fetch_verified "https://registry.npmjs.org/onnxruntime-web/-/onnxruntime-web-$ORT_WEB_VERSION.tgz" "$ARCHIVE" \
+      "$ORT_WEB_PACKAGE_SHA256"
+    rm -rf "${DEPS_DIR:?}/onnxruntime-web/$ORT_WEB_VERSION/staging"
+    mkdir -p "$WEB_DIR/staging"
+    members=()
+    for name in "${ORT_WEB_FILES[@]}"; do members+=("package/dist/$name"); done
+    tar -xzf "$ARCHIVE" -C "$WEB_DIR/staging" "${members[@]}"
+    for name in "${ORT_WEB_FILES[@]}"; do mv -f "$WEB_DIR/staging/package/dist/$name" "$WEB_DIR/$name"; done
+    rm -rf "${DEPS_DIR:?}/onnxruntime-web/$ORT_WEB_VERSION/staging"
+    rm -f "$ARCHIVE"
+  fi
+  for entry in "${ORT_WEB_LICENSES[@]}"; do
+    IFS='|' read -r name sha <<<"$entry"
+    fetch_verified "https://raw.githubusercontent.com/microsoft/onnxruntime/v$ORT_WEB_VERSION/$name" "$WEB_DIR/$name" "$sha"
+  done
+  echo "onnxruntime-web ready at $WEB_DIR"
+fi
 echo "== automatic-selection dependencies ready =="

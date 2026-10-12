@@ -139,9 +139,7 @@ then open `http://localhost:8973/patchy.html`; `serve.mjs` sends the
 COOP/COEP headers the threaded build needs. `scripts\release\start-local-wasm-test-server.bat`
 (raw build dir) and `start-local-wasm-server.bat` (staged site) add port cleanup.
 
-When wasm work is finished, stop every local server you started with
-`scripts\wasm\free-server-port.ps1 -Port <port>`, one call per port (repo
-rule; see AGENTS.md).
+Stop every server you started when done (AGENTS.md rule, `free-server-port.ps1`).
 
 A hidden tab never fires requestAnimationFrame, so Qt stops presenting and
 the tab looks frozen. Keep it foregrounded, or shim requestAnimationFrame
@@ -227,7 +225,8 @@ onto setTimeout before qtloader runs (harness below).
   `third_party/fonts-web` (~23 MB of OFL fonts, wasm only; [fonts.md](fonts.md))
   merges into the staged fonts; `LINK_DEPENDS` on the fonts stamp makes a
   fonts-only change repack `patchy.data`. The 8.7 MB texture pack stays
-  embedded.
+  embedded. Object Selection's runtime and models are fetched on first
+  use ([ai-selection.md](ai-selection.md)).
 - **Memory:** the shell page constructs the shared `WebAssembly.Memory`
   and passes it to qtLoad as `wasmMemory`; `QT_WASM_INITIAL_MEMORY`
   (256 MB) is the FLOOR baked into the memory import, and the page's

@@ -4,6 +4,12 @@
 # and PATCHY_AI_MODELS_DIR explicitly. Without them the stub engine builds and the feature
 # reports itself unavailable; PATCHY_REQUIRE_AI_SELECTION turns that into a configure error
 # (release builds set it).
+#
+# The threaded wasm app instead runs MobileSAM in the page's onnxruntime-web
+# (segmentation_engine_web.cpp plus scripts/wasm/ai-host-pre.js): the npm package and the two
+# Object Selection models are staged beside patchy.html, never packed into patchy.data, and
+# the page fetches them on first use. wasm-core (no page) and the single-threaded app (no
+# worker can wait for the page) keep the stub.
 
 option(PATCHY_ENABLE_AI_SELECTION "Build automatic selection (ONNX Runtime and bundled models)" ON)
 option(PATCHY_REQUIRE_AI_SELECTION "Fail the configure when automatic selection cannot be built" OFF)
@@ -14,6 +20,11 @@ option(PATCHY_ENABLE_SELECT_SUBJECT "Ship Select Subject, Select Background and 
 
 # Keep in sync with scripts/setup-ai-deps.ps1 and scripts/setup-ai-deps.sh.
 set(PATCHY_ONNXRUNTIME_VERSION "1.30.0")
+set(PATCHY_ONNXRUNTIME_WEB_VERSION "1.30.0")
+# The staged folder carries the version, so a new release never meets a cached older ORT.
+set(PATCHY_ONNXRUNTIME_WEB_FOLDER "onnxruntime-web-${PATCHY_ONNXRUNTIME_WEB_VERSION}")
+set(PATCHY_ONNXRUNTIME_WEB_FILES ort.wasm.min.mjs ort-wasm-simd-threaded.mjs ort-wasm-simd-threaded.wasm
+                                 LICENSE ThirdPartyNotices.txt)
 set(PATCHY_AI_MODEL_FILES
   mobile_sam_image_encoder_int8.onnx
   sam_mask_decoder_multi_int8.onnx
@@ -60,6 +71,15 @@ if(NOT PATCHY_ONNXRUNTIME_DIR)
     endif()
   endforeach()
 endif()
+if(EMSCRIPTEN AND NOT PATCHY_ONNXRUNTIME_WEB_DIR)
+  foreach(candidate IN LISTS PATCHY_AI_DEPS_CANDIDATES)
+    set(dir "${candidate}/onnxruntime-web/${PATCHY_ONNXRUNTIME_WEB_VERSION}")
+    if(EXISTS "${dir}/ort.wasm.min.mjs")
+      set(PATCHY_ONNXRUNTIME_WEB_DIR "${dir}")
+      break()
+    endif()
+  endforeach()
+endif()
 if(NOT PATCHY_AI_MODELS_DIR)
   foreach(candidate IN LISTS PATCHY_AI_DEPS_CANDIDATES)
     if(EXISTS "${candidate}/ai-models/mobile_sam_image_encoder_int8.onnx")
@@ -69,10 +89,35 @@ if(NOT PATCHY_AI_MODELS_DIR)
   endforeach()
 endif()
 
+# PATCHY_AI_SELECTION_BUILT is the native engine only (it drives the bundle and install
+# rules, and Emscripten counts as UNIX); PATCHY_AI_WEB_BUILT is the wasm app's engine.
 set(PATCHY_AI_SELECTION_BUILT OFF)
+set(PATCHY_AI_WEB_BUILT OFF)
 set(PATCHY_AI_MISSING "")
 if(EMSCRIPTEN)
-  set(PATCHY_AI_MISSING "not supported on WebAssembly yet")
+  if(NOT PATCHY_BUILD_APP)
+    set(PATCHY_AI_MISSING "wasm-core has no page to run onnxruntime-web")
+  elseif(PATCHY_WASM_SINGLETHREAD)
+    set(PATCHY_AI_MISSING "the single-threaded wasm app has no worker to wait for the page")
+  elseif(NOT PATCHY_ENABLE_AI_SELECTION)
+    set(PATCHY_AI_MISSING "PATCHY_ENABLE_AI_SELECTION is OFF")
+  elseif(NOT PATCHY_ONNXRUNTIME_WEB_DIR)
+    set(PATCHY_AI_MISSING
+        "onnxruntime-web ${PATCHY_ONNXRUNTIME_WEB_VERSION} not found (run scripts/setup-ai-deps -Web)")
+  elseif(NOT PATCHY_AI_MODELS_DIR)
+    set(PATCHY_AI_MISSING "models not found (run scripts/setup-ai-deps)")
+  else()
+    foreach(model IN ITEMS mobile_sam_image_encoder_int8.onnx sam_mask_decoder_multi_int8.onnx)
+      if(NOT EXISTS "${PATCHY_AI_MODELS_DIR}/${model}")
+        set(PATCHY_AI_MISSING "model ${model} missing from ${PATCHY_AI_MODELS_DIR}")
+      endif()
+    endforeach()
+    foreach(web_file IN LISTS PATCHY_ONNXRUNTIME_WEB_FILES)
+      if(NOT EXISTS "${PATCHY_ONNXRUNTIME_WEB_DIR}/${web_file}")
+        set(PATCHY_AI_MISSING "onnxruntime-web file ${web_file} missing from ${PATCHY_ONNXRUNTIME_WEB_DIR}")
+      endif()
+    endforeach()
+  endif()
 elseif(NOT PATCHY_ENABLE_AI_SELECTION)
   set(PATCHY_AI_MISSING "PATCHY_ENABLE_AI_SELECTION is OFF")
 elseif(NOT PATCHY_ONNXRUNTIME_DIR)
@@ -87,7 +132,7 @@ else()
   endforeach()
 endif()
 
-if(PATCHY_AI_MISSING STREQUAL "")
+if(PATCHY_AI_MISSING STREQUAL "" AND NOT EMSCRIPTEN)
   if(WIN32)
     set(PATCHY_ONNXRUNTIME_RUNTIME_FILES
       "${PATCHY_ONNXRUNTIME_DIR}/lib/onnxruntime.dll"
@@ -117,7 +162,15 @@ add_library(patchy_ai
 target_link_libraries(patchy_ai PUBLIC patchy_core)
 patchy_configure_target(patchy_ai)
 
-if(PATCHY_AI_MISSING STREQUAL "")
+if(PATCHY_AI_MISSING STREQUAL "" AND EMSCRIPTEN)
+  set(PATCHY_AI_WEB_BUILT ON)
+  target_sources(patchy_ai PRIVATE src/ai/segmentation_engine_web.cpp)
+  set_source_files_properties(src/ai/segmentation_engine_web.cpp PROPERTIES
+    COMPILE_DEFINITIONS "PATCHY_ONNXRUNTIME_WEB_FOLDER=\"${PATCHY_ONNXRUNTIME_WEB_FOLDER}\"")
+  target_compile_definitions(patchy_ai PUBLIC PATCHY_HAVE_AI_SELECTION=1)
+  message(STATUS "Automatic selection: onnxruntime-web at ${PATCHY_ONNXRUNTIME_WEB_DIR}, "
+                 "models at ${PATCHY_AI_MODELS_DIR}")
+elseif(PATCHY_AI_MISSING STREQUAL "")
   set(PATCHY_AI_SELECTION_BUILT ON)
   # ONNX Runtime is loaded at run time, never linked (segmentation_engine_onnx.cpp): a
   # machine that cannot load it still runs Patchy. Only its headers are needed here;
@@ -181,11 +234,50 @@ if(PATCHY_AI_SELECTION_BUILT)
   )
   add_custom_target(patchy_ai_runtime DEPENDS "${PATCHY_AI_RUNTIME_STAMP}")
 endif()
+# The wasm app's runtime: onnxruntime-web in <build>/onnxruntime-web-<version> and the two
+# Object Selection models in <build>/ai-models, beside patchy.html (the page fetches them on
+# first use; build-wasm.bat stages both folders into the site). Same copy-once shape.
+if(PATCHY_AI_WEB_BUILT)
+  set(PATCHY_AI_WEB_MODEL_SOURCES
+    "${PATCHY_AI_MODELS_DIR}/mobile_sam_image_encoder_int8.onnx"
+    "${PATCHY_AI_MODELS_DIR}/sam_mask_decoder_multi_int8.onnx")
+  set(PATCHY_AI_WEB_RUNTIME_SOURCES "")
+  foreach(web_file IN LISTS PATCHY_ONNXRUNTIME_WEB_FILES)
+    list(APPEND PATCHY_AI_WEB_RUNTIME_SOURCES "${PATCHY_ONNXRUNTIME_WEB_DIR}/${web_file}")
+  endforeach()
+  set(PATCHY_AI_LICENSE_FILE "${PROJECT_SOURCE_DIR}/third_party/ai-models/MODEL-LICENSES.txt")
+  set(PATCHY_AI_RUNTIME_STAMP "${CMAKE_BINARY_DIR}/CMakeFiles/patchy_ai_runtime.stamp")
+  add_custom_command(
+    OUTPUT "${PATCHY_AI_RUNTIME_STAMP}"
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/ai-models"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/ai-models"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PATCHY_AI_WEB_MODEL_SOURCES} "${PATCHY_AI_LICENSE_FILE}"
+            "${CMAKE_BINARY_DIR}/ai-models/"
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/${PATCHY_ONNXRUNTIME_WEB_FOLDER}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/${PATCHY_ONNXRUNTIME_WEB_FOLDER}"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PATCHY_AI_WEB_RUNTIME_SOURCES}
+            "${CMAKE_BINARY_DIR}/${PATCHY_ONNXRUNTIME_WEB_FOLDER}/"
+    COMMAND ${CMAKE_COMMAND} -E touch "${PATCHY_AI_RUNTIME_STAMP}"
+    DEPENDS ${PATCHY_AI_WEB_MODEL_SOURCES} ${PATCHY_AI_WEB_RUNTIME_SOURCES} "${PATCHY_AI_LICENSE_FILE}"
+    COMMENT "Copying onnxruntime-web and the Object Selection models into the build directory"
+  )
+  add_custom_target(patchy_ai_runtime DEPENDS "${PATCHY_AI_RUNTIME_STAMP}")
+  # build-wasm.bat stages exactly this folder (an older version's folder can linger in a
+  # long-lived build tree).
+  file(WRITE "${CMAKE_BINARY_DIR}/onnxruntime-web-folder.txt" "${PATCHY_ONNXRUNTIME_WEB_FOLDER}")
+endif()
+
 function(patchy_copy_ai_runtime target)
   if(TARGET patchy_ai_runtime)
     # The engine loads the library from beside the executable (build trees, the Windows
     # package), from ../Frameworks (the macOS bundle), or by plain name (the Flatpak's
     # /app/lib), so no rpath is involved.
     add_dependencies(${target} patchy_ai_runtime)
+  endif()
+  if(PATCHY_AI_WEB_BUILT)
+    # The page-side host the web engine talks to (it must live in the page, not a worker).
+    set(host_script "${PROJECT_SOURCE_DIR}/scripts/wasm/ai-host-pre.js")
+    target_link_options(${target} PRIVATE "SHELL:--pre-js ${host_script}")
+    set_property(TARGET ${target} APPEND PROPERTY LINK_DEPENDS "${host_script}")
   endif()
 endfunction()

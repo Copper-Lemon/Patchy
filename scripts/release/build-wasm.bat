@@ -54,7 +54,9 @@ call "%REPO%\scripts\vs-env.bat" -arch=x64 -host_arch=x64 >nul
 if not "%ERRORLEVEL%"=="0" goto fail
 
 echo Configuring wasm-release build...
-"%CMAKE_EXE%" --preset wasm-release
+rem Object Selection is required in a deployed site, like the desktop packages
+rem (docs/ai-selection.md); a missing onnxruntime-web or model is a configure error.
+"%CMAKE_EXE%" --preset wasm-release -DPATCHY_REQUIRE_AI_SELECTION=ON
 if not "%ERRORLEVEL%"=="0" goto fail
 
 echo Building wasm-release preset...
@@ -72,6 +74,15 @@ for %%F in (patchy.js patchy.wasm patchy.data qtloader.js) do (
   )
   copy /Y "%BUILD_DIR%\%%F" "%SITE_DIR%\" >nul || goto fail
 )
+rem Object Selection (docs/ai-selection.md): the page fetches onnxruntime-web
+rem and the two models from these folders on first use, never from patchy.data.
+if not exist "%BUILD_DIR%\onnxruntime-web-folder.txt" (
+  echo onnxruntime-web was not staged in build\wasm-release. Run: pwsh -File scripts\setup-ai-deps.ps1 -Web
+  goto fail
+)
+set /p PATCHY_ORT_WEB_FOLDER=<"%BUILD_DIR%\onnxruntime-web-folder.txt"
+xcopy /E /I /Q /Y "%BUILD_DIR%\%PATCHY_ORT_WEB_FOLDER%" "%SITE_DIR%\%PATCHY_ORT_WEB_FOLDER%" >nul || goto fail
+xcopy /E /I /Q /Y "%BUILD_DIR%\ai-models" "%SITE_DIR%\ai-models" >nul || goto fail
 rem Shared SVG, multi-size favicon, touch icons, and cache-versioned manifest.
 powershell -NoProfile -ExecutionPolicy Bypass -File "%REPO%\scripts\wasm\stage-branding.ps1" -Destination "%SITE_DIR%" -CacheTag "%PATCHY_WEB_CACHE_TAG%"
 if not "%ERRORLEVEL%"=="0" goto fail

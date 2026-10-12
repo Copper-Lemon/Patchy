@@ -4,7 +4,7 @@
 // roughly a quarter). Runs on the emsdk-bundled node from
 // scripts\release\build-wasm.bat; no dependencies beyond node's zlib.
 // Usage: node precompress-site.mjs <site-dir>
-import { readFile, writeFile, rm } from 'node:fs/promises';
+import { readdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { brotliCompressSync, gzipSync, constants } from 'node:zlib';
 
@@ -19,6 +19,14 @@ if (!siteDir) {
 }
 
 const megabytes = (bytes) => (bytes / (1024 * 1024)).toFixed(1);
+
+// onnxruntime-web's wasm (Object Selection, docs/ai-selection.md). The models stay
+// identity-encoded: the page counts their download progress against Content-Length.
+for (const entry of await readdir(siteDir)) {
+  if (entry.startsWith('onnxruntime-web-')) {
+    assets.push(`${entry}/ort-wasm-simd-threaded.wasm`);
+  }
+}
 
 for (const name of assets) {
   const path = join(siteDir, name);

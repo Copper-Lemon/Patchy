@@ -2,8 +2,10 @@
 
 // Automatic selection inference (docs/ai-selection.md): MobileSAM for the Object
 // Selection tool and BiRefNet for Select > Subject, both on ONNX Runtime's CPU provider.
-// Builds without ONNX Runtime (PATCHY_ENABLE_AI_SELECTION off, wasm) link a stub that
-// reports the feature unavailable, so callers never need their own #if.
+// The threaded wasm app runs MobileSAM in the page's onnxruntime-web instead
+// (segmentation_engine_web.cpp); there every inference call must run off the main thread.
+// Builds without either (PATCHY_ENABLE_AI_SELECTION off, wasm-core, single-threaded wasm)
+// link a stub that reports the feature unavailable, so callers never need their own #if.
 //
 // Patent boundary (binding; see the "Automatic selection" bullet in
 // docs/legal-constraints.md): every call below is ONE network solve from ONE prompt.
@@ -108,6 +110,11 @@ struct SamEmbedding {
 // image (stretched to 1024 square), upsampled once. Throws std::runtime_error when
 // subject_selection_available() is false.
 [[nodiscard]] AiMask subject_matte(const PixelBuffer& rgba8, InferenceCancel* cancel = nullptr);
+
+// Progress of a model download the running inference waits on, in permille, or -1 when
+// nothing is downloading. Only the web engine downloads (on first use); desktop builds ship
+// the models beside the executable and always return -1.
+[[nodiscard]] int model_download_permille() noexcept;
 
 // Frees the loaded sessions (they reload on next use). The subject model is the large one
 // (about 220 MB of weights, about 2 s to load): it stays loaded after a run so a second

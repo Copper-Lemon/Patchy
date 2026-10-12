@@ -530,7 +530,7 @@ Colors everywhere are CSS-style strings: `"#rrggbb"`, `"#aarrggbb"`, or named co
 | `selectSubject(options?)` | Select > Subject: the main subject from the bundled model, one pass over the merged document (several seconds on the CPU). Options: `operation` (`"replace"`, `"add"`, `"subtract"`, `"intersect"`), `feather`, `antialias`. |
 | `selectBackground(options?)` | Select > Select Background: everything `selectSubject` would not select. Same options. `selectSubject`, `selectBackground` and `layer.removeBackground` also take `sampleAllLayers` (default true; false analyzes the active layer alone). |
 | `objectSelect(options)` | The Object Selection tool: `{rect: {x, y, width, height}}` selects the object in the box, `{point: {x, y}}` the object under the point (exactly one of the two). Also `operation` (`"replace"`, `"add"`, `"subtract"`), `sampleAllLayers` (default true), `feather`, `antialias`. |
-| `automaticSelectionAvailable` | False where the build has no automatic selection (the web build); the calls above then throw. |
+| `automaticSelectionAvailable` | False where the build has no automatic selection; the calls above then throw. The web build has it: its first `objectSelect` downloads the models (about 19 MB, cached by the browser afterward). |
 | `subjectSelectionAvailable` | True when the build includes Select Subject's model. Current builds leave it out, so `selectSubject`, `selectBackground` and `layer.removeBackground` throw while `objectSelect` still works. |
 
 ### Dialogs and UI (patchy.ui)

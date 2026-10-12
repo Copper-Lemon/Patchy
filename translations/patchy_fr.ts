@@ -11439,6 +11439,10 @@ RVB : %2, %3, %4</translation>
         <source>%1 ran out of memory. Close other programs or documents to free some memory, then try again.</source>
         <translation>%1 : mémoire insuffisante. Fermez d&apos;autres programmes ou documents pour libérer de la mémoire, puis réessayez.</translation>
     </message>
+    <message>
+        <source>Downloading Object Selection model... %1%</source>
+        <translation>Téléchargement du modèle de sélection d&apos;objet... %1%</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21502,6 +21506,10 @@ Convertis en images : %1.</translation>
     <message>
         <source>Select Subject is not included in this build of Patchy; check doc.selection.subjectSelectionAvailable.</source>
         <translation>« Sélectionner un sujet » n&apos;est pas inclus dans cette version de Patchy ; vérifiez doc.selection.subjectSelectionAvailable.</translation>
+    </message>
+    <message>
+        <source>The document changed during automatic selection.</source>
+        <translation>Le document a changé pendant la sélection automatique.</translation>
     </message>
 </context>
 <context>

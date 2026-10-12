@@ -7,6 +7,13 @@ attachment, palettes, vector automation, brushes, Slow mode and Pause) are in
 [scripting-api-changes-through-2026-09-11.md](scripting-api-changes-through-2026-09-11.md).
 Every entry below is API 1.
 
+2026-10-12 (behavioral): the web build has Object Selection. `automaticSelectionAvailable`
+is true there and `objectSelect` works; the first call downloads the models (about 19 MB, then
+cached by the browser), and the call waits in an event loop meanwhile, so it throws "The
+document changed during automatic selection." if the document closed or changed size during
+the wait. `subjectSelectionAvailable` stays false on the web. No automated pin (the UI suite
+does not run on wasm); verified in Chrome, see [ai-selection.md](ai-selection.md).
+
 2026-10-12 (additive, behavioral): `doc.selection.subjectSelectionAvailable`. Builds with
 CMake's `PATCHY_ENABLE_SELECT_SUBJECT` off (the default; the subject model is held back pending
 patent review) report it false, and `selectSubject`, `selectBackground` and

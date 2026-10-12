@@ -13,6 +13,17 @@
 #include "ui/main_window_shared.hpp"
 #include "ui/vector_operations.hpp"
 
+#if defined(Q_OS_WASM) && defined(__EMSCRIPTEN_PTHREADS__)
+#include "ui/background_workers.hpp"
+
+#include <QEventLoop>
+#include <QTimer>
+
+#include <chrono>
+#include <functional>
+#include <future>
+#endif
+
 #include <QStringList>
 
 #include <cstring>
@@ -43,6 +54,29 @@ QString automatic_selection_failure(const std::exception& error) {
   }
   return ScriptEngineHost::tr("Automatic selection failed: %1").arg(QString::fromUtf8(error.what()));
 }
+
+#if defined(Q_OS_WASM) && defined(__EMSCRIPTEN_PTHREADS__)
+// The web engine must not run on the main thread (the page-side host it waits for runs
+// there), so a script's inference runs on a worker while the call waits in an event loop,
+// keeping the script watchdog fed. Desktop builds run it inline.
+patchy::ai::AiMask wait_for_inference(std::future<patchy::ai::AiMask> future, const std::function<void()>& keep_alive) {
+  const auto ready = [&future] { return future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready; };
+  if (!ready()) {
+    QEventLoop wait_loop;
+    QTimer poll_timer;
+    poll_timer.setInterval(50);
+    QObject::connect(&poll_timer, &QTimer::timeout, &wait_loop, [&] {
+      keep_alive();
+      if (ready()) {
+        wait_loop.quit();
+      }
+    });
+    poll_timer.start();
+    wait_loop.exec(QEventLoop::ExcludeUserInputEvents);
+  }
+  return future.get();
+}
+#endif
 
 // selectSubject, selectBackground and removeBackground in a build without the subject model
 // (held back pending patent review; docs/ai-selection.md).
@@ -91,23 +125,35 @@ QString ScriptEngineHost::automatic_select(std::int64_t session_id, const Automa
     return tr("Automatic selection could not read the document.");
   }
 
+  const auto box = request.box.intersected(QRect(QPoint(0, 0), size));
+  const auto infer = [subject_model, is_box = request.kind == AutomaticSelectionRequest::Kind::Box, box,
+                      point = request.point, pixels = pixels_from_image_rgba(source)] {
+    if (subject_model) {
+      return patchy::ai::subject_matte(pixels);
+    }
+    const auto embedding = patchy::ai::sam_encode(pixels);
+    if (is_box) {
+      return patchy::ai::sam_select_box(*embedding, Rect{box.x(), box.y(), box.width(), box.height()});
+    }
+    return patchy::ai::sam_select_point(*embedding, point.x(), point.y());
+  };
   patchy::ai::AiMask mask;
   try {
-    const auto pixels = pixels_from_image_rgba(source);
-    if (subject_model) {
-      mask = patchy::ai::subject_matte(pixels);
-    } else {
-      const auto embedding = patchy::ai::sam_encode(pixels);
-      if (request.kind == AutomaticSelectionRequest::Kind::Box) {
-        const auto box = request.box.intersected(QRect(QPoint(0, 0), size));
-        mask = patchy::ai::sam_select_box(*embedding, Rect{box.x(), box.y(), box.width(), box.height()});
-      } else {
-        mask = patchy::ai::sam_select_point(*embedding, request.point.x(), request.point.y());
-      }
-    }
+#if defined(Q_OS_WASM) && defined(__EMSCRIPTEN_PTHREADS__)
+    mask = wait_for_inference(launch_async(infer), [this] { keep_alive_for_ui(); });
+#else
+    mask = infer();
+#endif
   } catch (const std::exception& error) {
     return automatic_selection_failure(error);
   }
+#if defined(Q_OS_WASM) && defined(__EMSCRIPTEN_PTHREADS__)
+  // The wait ran an event loop: the document may have closed or changed size meanwhile.
+  if (const auto* current = session_document_const(session_id);
+      current == nullptr || current->width() != size.width() || current->height() != size.height()) {
+    return tr("The document changed during automatic selection.");
+  }
+#endif
 
   PixelBuffer coverage(size.width(), size.height(), PixelFormat::gray8());
   coverage.clear(0);

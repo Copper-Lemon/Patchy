@@ -11409,6 +11409,10 @@ Mixed selection</source>
         <source>%1 ran out of memory. Close other programs or documents to free some memory, then try again.</source>
         <translation>%1: メモリが不足しています。他のプログラムやドキュメントを閉じてメモリを空けてから、もう一度お試しください。</translation>
     </message>
+    <message>
+        <source>Downloading Object Selection model... %1%</source>
+        <translation>オブジェクト選択モデルをダウンロード中... %1%</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21444,6 +21448,10 @@ Baked into images: %1.</source>
     <message>
         <source>Select Subject is not included in this build of Patchy; check doc.selection.subjectSelectionAvailable.</source>
         <translation>このビルドの Patchy には「被写体を選択」が含まれていません。doc.selection.subjectSelectionAvailable を確認してください。</translation>
+    </message>
+    <message>
+        <source>The document changed during automatic selection.</source>
+        <translation>自動選択の実行中にドキュメントが変更されました。</translation>
     </message>
 </context>
 <context>

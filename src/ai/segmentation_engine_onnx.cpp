@@ -7,6 +7,7 @@
 // simply reports automatic selection unavailable.
 
 #include "ai/segmentation_engine.hpp"
+#include "ai/segmentation_engine_internal.hpp"
 
 #include "core/environment.hpp"
 #include "core/worker_budget.hpp"
@@ -36,21 +37,6 @@
 
 namespace patchy::ai {
 namespace {
-
-// Pinned by scripts/setup-ai-deps.* (docs/ai-selection.md lists provenance and licenses): the
-// int8 conversions made by scripts/ai/quantize_models.py.
-constexpr const char* kSamEncoderFile = "mobile_sam_image_encoder_int8.onnx";
-constexpr const char* kSamDecoderFile = "sam_mask_decoder_multi_int8.onnx";
-constexpr const char* kSubjectModelFile = "birefnet_lite_general_1024_int8.onnx";
-
-// The multimask decoder returns four masks with predicted IoUs: index 0 is SAM's
-// single-mask output, 1-3 the three alternatives a prompt can mean. A point picks among
-// 1-3 (SAM's own rule for an ambiguous single point). A box picks among all four: MobileSAM's
-// single-mask output degrades on a loose box (it pulled in a whole fridge behind a boy at
-// predicted IoU 0.66 while alternative 3 was the boy at 0.96), so the decoder's own
-// confidence decides. Either way it is one choice among the outputs of one run.
-constexpr std::int64_t kDecoderMaskCount = 4;
-constexpr std::int64_t kDecoderLowResSize = 256;
 
 // The executable's folder, where build trees and the Windows package keep the library.
 std::filesystem::path executable_directory() {
@@ -230,12 +216,10 @@ Ort::MemoryInfo cpu_memory() {
   return Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
 }
 
-// One decoder run. `coords`/`labels` are exactly one prompt: a single positive point plus
-// SAM's padding point, or a single box's two corners. mask_input stays zero with
-// has_mask_input 0 on every call: a previous mask is never fed back (patent boundary in
-// segmentation_engine.hpp).
-AiMask decode(const SamEmbedding& embedding, std::array<float, 4> coords, std::array<float, 2> labels,
-              std::int64_t first_candidate) {
+// One decoder run from exactly one prompt (segmentation_engine_internal.hpp). mask_input
+// stays zero with has_mask_input 0 on every call: a previous mask is never fed back (patent
+// boundary in segmentation_engine.hpp).
+AiMask decode(const SamEmbedding& embedding, SamDecoderPrompt prompt) {
   if (embedding.values.size() != kSamEmbeddingValues) {
     throw std::invalid_argument("automatic selection: malformed image embedding");
   }
@@ -261,9 +245,9 @@ AiMask decode(const SamEmbedding& embedding, std::array<float, 4> coords, std::a
   std::array<Ort::Value, 6> inputs{
       Ort::Value::CreateTensor<float>(memory, embedding_values.data(), embedding_values.size(),
                                       embedding_shape.data(), embedding_shape.size()),
-      Ort::Value::CreateTensor<float>(memory, coords.data(), coords.size(), coords_shape.data(),
+      Ort::Value::CreateTensor<float>(memory, prompt.coords.data(), prompt.coords.size(), coords_shape.data(),
                                       coords_shape.size()),
-      Ort::Value::CreateTensor<float>(memory, labels.data(), labels.size(), labels_shape.data(),
+      Ort::Value::CreateTensor<float>(memory, prompt.labels.data(), prompt.labels.size(), labels_shape.data(),
                                       labels_shape.size()),
       Ort::Value::CreateTensor<float>(memory, no_mask.data(), no_mask.size(), mask_shape.data(), mask_shape.size()),
       Ort::Value::CreateTensor<float>(memory, &has_mask, 1, flag_shape.data(), flag_shape.size()),
@@ -281,13 +265,7 @@ AiMask decode(const SamEmbedding& embedding, std::array<float, 4> coords, std::a
       shape[3] != transform.scaled_width) {
     throw std::runtime_error("automatic selection: unexpected decoder output shape");
   }
-  const float* scores = outputs[1].GetTensorData<float>();
-  std::int64_t chosen = first_candidate;
-  for (std::int64_t index = first_candidate + 1; index < kDecoderMaskCount; ++index) {
-    if (scores[index] > scores[chosen]) {
-      chosen = index;
-    }
-  }
+  const auto chosen = best_sam_candidate(outputs[1].GetTensorData<float>(), prompt.first_candidate);
   const auto plane = static_cast<std::size_t>(transform.scaled_width) * static_cast<std::size_t>(transform.scaled_height);
   const float* logits = outputs[0].GetTensorData<float>() + static_cast<std::size_t>(chosen) * plane;
   return document_mask_from_logits(logits, transform.scaled_width, transform.scaled_height, transform.source_width,
@@ -352,18 +330,12 @@ std::shared_ptr<const SamEmbedding> sam_encode(const PixelBuffer& rgba8, Inferen
 }
 
 AiMask sam_select_point(const SamEmbedding& embedding, double x, double y) {
-  const auto point = to_sam_point(embedding.transform, x, y);
-  // Label 1 is the one positive point; label -1 is SAM's required padding point when no
-  // box is given. Never a 0 (negative) label.
-  return decode(embedding, {point.x, point.y, 0.0F, 0.0F}, {1.0F, -1.0F}, 1);
+  return decode(embedding, sam_point_prompt(embedding.transform, x, y));
 }
 
 AiMask sam_select_box(const SamEmbedding& embedding, Rect box) {
-  const auto top_left = to_sam_point(embedding.transform, box.x, box.y);
-  const auto bottom_right = to_sam_point(embedding.transform, box.x + box.width, box.y + box.height);
-  // Labels 2 and 3 are the box corners; no point rides along. The result stays inside the box.
-  return clip_mask_to_rect(
-      decode(embedding, {top_left.x, top_left.y, bottom_right.x, bottom_right.y}, {2.0F, 3.0F}, 0), box);
+  // The result stays inside the box.
+  return clip_mask_to_rect(decode(embedding, sam_box_prompt(embedding.transform, box)), box);
 }
 
 AiMask subject_matte(const PixelBuffer& rgba8, InferenceCancel* cancel) {
@@ -394,6 +366,10 @@ AiMask subject_matte(const PixelBuffer& rgba8, InferenceCancel* cancel) {
   // in segmentation_engine.hpp).
   return document_mask_from_logits(outputs[0].GetTensorData<float>(), kSubjectInputSize, kSubjectInputSize,
                                    rgba8.width(), rgba8.height(), LogitMapping::Sigmoid);
+}
+
+int model_download_permille() noexcept {
+  return -1;
 }
 
 void release_models() {

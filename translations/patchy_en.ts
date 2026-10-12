@@ -11429,6 +11429,10 @@ RGB: %2, %3, %4</source>
         <source>%1 ran out of memory. Close other programs or documents to free some memory, then try again.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Downloading Object Selection model... %1%</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21452,6 +21456,10 @@ Baked into images: %1.</source>
     </message>
     <message>
         <source>Select Subject is not included in this build of Patchy; check doc.selection.subjectSelectionAvailable.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The document changed during automatic selection.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

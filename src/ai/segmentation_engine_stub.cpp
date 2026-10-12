@@ -1,5 +1,5 @@
-// Automatic selection in a build without ONNX Runtime (PATCHY_ENABLE_AI_SELECTION off,
-// including every wasm build for now): everything reports unavailable.
+// Automatic selection in a build without an engine (PATCHY_ENABLE_AI_SELECTION off,
+// wasm-core, the single-threaded wasm app): everything reports unavailable.
 
 #include "ai/segmentation_engine.hpp"
 
@@ -38,6 +38,10 @@ AiMask sam_select_box(const SamEmbedding&, Rect) {
 
 AiMask subject_matte(const PixelBuffer&, InferenceCancel*) {
   throw_unavailable();
+}
+
+int model_download_permille() noexcept {
+  return -1;
 }
 
 void release_models() {}

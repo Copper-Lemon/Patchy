@@ -1,5 +1,6 @@
 # One-time (idempotent) provisioning of the automatic-selection dependencies:
-# the pinned ONNX Runtime CPU package and the pinned segmentation models.
+# the pinned ONNX Runtime CPU package and the pinned segmentation models, plus, with
+# -Web, the pinned onnxruntime-web package the wasm app stages beside patchy.html.
 # Everything lands in .deps (gitignored, same idea as .deps/Qt); nothing here is
 # ever committed. Every download is checked against the SHA-256 pinned below, and
 # a file that fails the check is deleted, never used. See docs/ai-selection.md.
@@ -7,11 +8,13 @@
 # Run from anywhere (a git worktree provisions the main checkout's .deps, which is
 # where CMake looks for it):
 #   pwsh -File scripts\setup-ai-deps.ps1
+#   pwsh -File scripts\setup-ai-deps.ps1 -Web     # also onnxruntime-web (wasm builds)
 # Rerunning is a fast no-op once everything is present and verified.
 param(
   [string]$DepsDir = '',
   [ValidateSet('win-x64', 'win-arm64')]
-  [string]$Platform = 'win-x64'
+  [string]$Platform = 'win-x64',
+  [switch]$Web
 )
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -21,6 +24,16 @@ $OrtVersion = '1.30.0'
 $OrtPackages = @{
   'win-x64'   = 'c6ba983baf5681af108599675d2a89c2d145512d02de28aed0bff177cd0ba949'
   'win-arm64' = 'e53db8a50b23ae35be901cc93428baf997dc8d420333b097b2eae53d3ea9f2d3'
+}
+# onnxruntime-web: the npm package (its tarball's SHA-256; npm's own sha512 integrity is
+# q0y+JrrtukXSzsBWEMccVfqX25LRmosXHF+CaRJmg8pZClzcV7svNc4rKY3jL02Vb7QmRMDs1SigqR4CXAfKYQ==)
+# and the license texts at the same release tag, which the npm package does not carry.
+$OrtWebVersion = '1.30.0'
+$OrtWebPackageSha256 = 'd2228df7e4616bc3348bf504ee888f3bec43789a273f0a63f3e68d203ce3bf71'
+$OrtWebFiles = @('ort.wasm.min.mjs', 'ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.wasm')
+$OrtWebLicenses = @{
+  'LICENSE'               = '2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c'
+  'ThirdPartyNotices.txt' = '143764b952fdb1a7c69ce653bfba74a7744d6a8a573bfb73e235fba356c83de3'
 }
 # The int8 models Patchy ships: converted from the pinned upstream fp32 files by
 # scripts/ai/quantize_models.py (byte-reproducible) and hosted on the ai-models-1 release.
@@ -96,4 +109,33 @@ foreach ($Model in $Models) {
   Get-VerifiedFile $Model.Url (Join-Path $ModelDir $Model.Name) $Model.Sha256
 }
 Write-Host "models ready at $ModelDir"
+
+if ($Web) {
+  Write-Host "== onnxruntime-web $OrtWebVersion =="
+  $WebDir = Join-Path $DepsDir "onnxruntime-web\$OrtWebVersion"
+  $WebReady = $true
+  foreach ($Name in $OrtWebFiles) {
+    if (-not (Test-Path -LiteralPath (Join-Path $WebDir $Name))) { $WebReady = $false }
+  }
+  if (-not $WebReady) {
+    New-Item -ItemType Directory -Force $WebDir | Out-Null
+    $Archive = Join-Path $WebDir "onnxruntime-web-$OrtWebVersion.tgz"
+    Get-VerifiedFile "https://registry.npmjs.org/onnxruntime-web/-/onnxruntime-web-$OrtWebVersion.tgz" $Archive $OrtWebPackageSha256
+    $Staging = Join-Path $WebDir 'staging'
+    if (Test-Path -LiteralPath $Staging) { Remove-Item -LiteralPath "$DepsDir\onnxruntime-web\$OrtWebVersion\staging" -Recurse -Force }
+    New-Item -ItemType Directory -Force $Staging | Out-Null
+    $Members = $OrtWebFiles | ForEach-Object { "package/dist/$_" }
+    tar -xzf $Archive -C $Staging @Members
+    if ($LASTEXITCODE -ne 0) { throw "could not extract $Archive" }
+    foreach ($Name in $OrtWebFiles) {
+      Move-Item -Force -LiteralPath (Join-Path $Staging "package\dist\$Name") -Destination (Join-Path $WebDir $Name)
+    }
+    Remove-Item -LiteralPath "$DepsDir\onnxruntime-web\$OrtWebVersion\staging" -Recurse -Force
+    Remove-Item -LiteralPath $Archive
+  }
+  foreach ($Name in $OrtWebLicenses.Keys) {
+    Get-VerifiedFile "https://raw.githubusercontent.com/microsoft/onnxruntime/v$OrtWebVersion/$Name" (Join-Path $WebDir $Name) $OrtWebLicenses[$Name]
+  }
+  Write-Host "onnxruntime-web ready at $WebDir"
+}
 Write-Host '== automatic-selection dependencies ready =='

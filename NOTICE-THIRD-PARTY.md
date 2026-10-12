@@ -192,9 +192,18 @@ MIT License. Its license and `ThirdPartyNotices.txt` ship in `ai-models/` as
 `onnxruntime-LICENSE.txt` and `onnxruntime-ThirdPartyNotices.txt`.
 Source: https://github.com/microsoft/onnxruntime
 
-## Automatic selection models (desktop builds)
+## ONNX Runtime Web (web build only)
 
-Shipped in `ai-models/` as int8 conversions Patchy made from the original float32
+The web application runs the Object Selection models in ONNX Runtime Web 1.30.0
+(the `onnxruntime-web` npm package, https://www.npmjs.com/package/onnxruntime-web),
+Copyright (c) Microsoft Corporation, MIT License. The page loads it from the
+`onnxruntime-web-1.30.0/` folder beside it on first use; its `LICENSE` and
+`ThirdPartyNotices.txt` are staged in that folder.
+
+## Automatic selection models (desktop builds, and the two Object Selection models in the web build)
+
+Shipped in `ai-models/` (the web build's `ai-models/` folder holds only the two
+MobileSAM files) as int8 conversions Patchy made from the original float32
 files (`scripts/ai/quantize_models.py`; provenance and checksums in
 `docs/ai-selection.md`; the license texts, including Apache License 2.0, and the
 modification notice are in `ai-models/MODEL-LICENSES.txt`, from `third_party/ai-models/`):

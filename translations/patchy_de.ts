@@ -11439,6 +11439,10 @@ RGB: %2, %3, %4</translation>
         <source>%1 ran out of memory. Close other programs or documents to free some memory, then try again.</source>
         <translation>%1: Nicht genügend Arbeitsspeicher. Schließen Sie andere Programme oder Dokumente, um Speicher freizugeben, und versuchen Sie es erneut.</translation>
     </message>
+    <message>
+        <source>Downloading Object Selection model... %1%</source>
+        <translation>Modell für die Objektauswahl wird heruntergeladen... %1%</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21502,6 +21506,10 @@ In Bilder umgewandelt: %1.</translation>
     <message>
         <source>Select Subject is not included in this build of Patchy; check doc.selection.subjectSelectionAvailable.</source>
         <translation>„Motiv auswählen“ ist in diesem Build von Patchy nicht enthalten; prüfen Sie doc.selection.subjectSelectionAvailable.</translation>
+    </message>
+    <message>
+        <source>The document changed during automatic selection.</source>
+        <translation>Das Dokument hat sich während der automatischen Auswahl geändert.</translation>
     </message>
 </context>
 <context>

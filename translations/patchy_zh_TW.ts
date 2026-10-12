@@ -11409,6 +11409,10 @@ RGB：%2, %3, %4</translation>
         <source>%1 ran out of memory. Close other programs or documents to free some memory, then try again.</source>
         <translation>%1：記憶體不足。請關閉其他程式或文件以釋放記憶體，然後再試一次。</translation>
     </message>
+    <message>
+        <source>Downloading Object Selection model... %1%</source>
+        <translation>正在下載物件選取模型... %1%</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21444,6 +21448,10 @@ Baked into images: %1.</source>
     <message>
         <source>Select Subject is not included in this build of Patchy; check doc.selection.subjectSelectionAvailable.</source>
         <translation>此版本的 Patchy 不包含「選取主體」；請檢查 doc.selection.subjectSelectionAvailable。</translation>
+    </message>
+    <message>
+        <source>The document changed during automatic selection.</source>
+        <translation>自動選取期間文件已變更。</translation>
     </message>
 </context>
 <context>
