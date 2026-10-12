@@ -132,6 +132,7 @@ and Affinity import has format-specific limitations. See [current compatibility]
 - File > File Info: view, edit and strip image metadata. EXIF, XMP, IPTC, ICC profiles and text chunks are read from every format, kept on save, and Export can keep all metadata, only the copyright, or none. Scripts get `fileInfo` and `stripMetadata`
 - Windows installer: can now choose the install folder ([issue 85](https://github.com/SethRobinson/Patchy/issues/85))
 - macOS: fixed bug where arrow-key nudges with the Move tool didn't work on a physical keyboard, and the hover outline follows the nudged layer ([issue 84](https://github.com/SethRobinson/Patchy/issues/84))
+- Text layers in some older PSDs (Photoshop CS5 era) can be edited again instead of all showing as protected ([issue 86](https://github.com/SethRobinson/Patchy/issues/86))
 - PSD compatibility pass: CMYK layers composite in their own ink channels, CMYK, grayscale and 16-bit saves keep their native color space, and knockout transparency, aligned vector stroke edges, grayscale Smart Objects, duotone inks and noise gradients render closer to Photoshop
 - Saves and automatic document recovery hold up better against crashes and power loss
 
