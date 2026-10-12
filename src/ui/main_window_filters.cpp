@@ -2319,7 +2319,7 @@ void MainWindow::apply_filter(const QString& identifier) {
     }
     const auto display_name = filter_display_name(*filter);
     const auto dialog_spec = filter_dialog_spec_for(*filter);
-    const auto selection = canvas_->selected_document_region();
+    const auto selection = filter_selection(*canvas_);
     const auto bounds = layer->bounds();
     auto original_pixels =
         std::make_shared<const PixelBuffer>(std::as_const(*layer).pixels());
@@ -2606,7 +2606,7 @@ void MainWindow::auto_all_adjustments() {
   const auto bounds = layer->bounds();
   auto original_pixels =
       std::make_shared<const PixelBuffer>(std::as_const(*layer).pixels());
-  const auto selection = canvas_->selected_document_region();
+  const auto selection = filter_selection(*canvas_);
 
   const auto to_rgb = [](const QColor& color) {
     return RgbColor{static_cast<std::uint8_t>(color.red()), static_cast<std::uint8_t>(color.green()),
@@ -2732,7 +2732,7 @@ void MainWindow::liquify_dialog() {
 
   const auto original_pixels = source_layer->pixels();
   const auto bounds = source_layer->bounds();
-  const auto selection = canvas_->selected_document_region();
+  const auto selection = filter_selection(*canvas_);
   // A 16-bit layer is warped on its 8-bit copy and the change folded back at depth
   // (docs/high-bit-depth.md).
   const auto deep_source = original_pixels.format().bit_depth != BitDepth::UInt8;
@@ -2810,6 +2810,7 @@ void MainWindow::liquify_dialog() {
                     rendered->pixel(local.left(), y));
       }
     }
+    blend_by_selection_coverage(*rendered, original_pixels, bounds, selection);
   }
   if (pixel_buffers_equal(*rendered, original_pixels)) {
     statusBar()->showMessage(tr("Liquify made no changes"));
@@ -2909,7 +2910,7 @@ void MainWindow::visual_filter_gallery_dialog() {
   const auto layer_id = *active;
   const auto bounds = source_layer->bounds();
   auto original_pixels = std::make_shared<const PixelBuffer>(source_layer->pixels());
-  const auto selection = target_session->canvas->selected_document_region();
+  const auto selection = filter_selection(*target_session->canvas);
   const auto foreground_color = target_session->canvas->primary_color();
   const auto background_color = target_session->canvas->secondary_color();
   const auto to_rgb = [](const QColor& color) {

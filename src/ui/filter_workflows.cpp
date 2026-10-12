@@ -1026,7 +1026,71 @@ PixelBuffer build_filter_preview_pixels_impl(const PixelBuffer& original, const 
 
 }  // namespace
 
-PixelBuffer build_filter_preview_pixels(const PixelBuffer& original, const QRegion& selection, Rect bounds,
+FilterSelection filter_selection(const CanvasWidget& canvas) {
+  FilterSelection selection(canvas.selected_document_region());
+  if (selection.region.isEmpty() || !canvas.selection_has_partial_alpha()) {
+    return selection;
+  }
+  const auto rect = selection.region.boundingRect();
+  selection.coverage_bounds = Rect{rect.x(), rect.y(), rect.width(), rect.height()};
+  selection.coverage = selection_mask_pixels(canvas, rect);
+  return selection;
+}
+
+void blend_by_selection_coverage(PixelBuffer& result, const PixelBuffer& original, Rect bounds,
+                                 const FilterSelection& selection) {
+  const auto& coverage = selection.coverage;
+  if (coverage.empty() || result.empty() || result.format() != original.format() ||
+      result.width() != original.width() || result.height() != original.height()) {
+    return;
+  }
+  const QRect layer_rect(bounds.x, bounds.y, result.width(), result.height());
+  const QRect coverage_rect(selection.coverage_bounds.x, selection.coverage_bounds.y, coverage.width(),
+                            coverage.height());
+  const auto area = layer_rect.intersected(coverage_rect);
+  if (area.isEmpty()) {
+    return;
+  }
+  const auto format = result.format();
+  const auto pixel_bytes = bytes_per_pixel(format);
+  const auto color = format.channels >= 3U;
+  for (int y = area.top(); y <= area.bottom(); ++y) {
+    const auto* cover_row = coverage.pixel(area.left() - coverage_rect.x(), y - coverage_rect.y());
+    const auto* before = original.pixel(area.left() - layer_rect.x(), y - layer_rect.y());
+    auto* after = result.pixel(area.left() - layer_rect.x(), y - layer_rect.y());
+    for (int x = 0; x < area.width(); ++x, before += pixel_bytes, after += pixel_bytes) {
+      const auto cover = cover_row[x];
+      if (cover == 255U) {
+        continue;
+      }
+      if (cover == 0U) {
+        std::copy(before, before + pixel_bytes, after);
+        continue;
+      }
+      const auto t = static_cast<float>(cover) / 255.0F;
+      if (!color) {
+        for (std::size_t c = 0; c < pixel_bytes; ++c) {
+          after[c] = static_cast<std::uint8_t>(
+              std::lround(static_cast<float>(before[c]) + (static_cast<float>(after[c]) - before[c]) * t));
+        }
+        continue;
+      }
+      // Straight RGBA mixed through premultiplied values, so a pixel the filter made
+      // transparent never lends its hidden color to the blend.
+      const auto from = load_pixel(format, before);
+      auto to = load_pixel(format, after);
+      const auto alpha = from[3] + (to[3] - from[3]) * t;
+      for (std::size_t c = 0; c < 3U; ++c) {
+        const auto premultiplied = from[c] * from[3] * (1.0F - t) + to[c] * to[3] * t;
+        to[c] = alpha > 0.0F ? premultiplied / alpha : 0.0F;
+      }
+      to[3] = alpha;
+      store_pixel(format, after, to);
+    }
+  }
+}
+
+PixelBuffer build_filter_preview_pixels(const PixelBuffer& original, const FilterSelection& selection, Rect bounds,
                                          const FilterRegistry& registry, const FilterPreviewSettings& settings,
                                          const FilterProgress* progress, Rect* result_bounds) {
   if (!settings.preview_enabled) {
@@ -1035,14 +1099,20 @@ PixelBuffer build_filter_preview_pixels(const PixelBuffer& original, const QRegi
     }
     return original;
   }
-  return build_filter_preview_pixels_impl(original, selection, bounds, registry, settings.invocation, progress,
-                                          result_bounds);
+  // With a selection the result keeps the layer's bounds, so a soft selection blends in place.
+  auto pixels = build_filter_preview_pixels_impl(original, selection.region, bounds, registry, settings.invocation,
+                                                 progress, result_bounds);
+  blend_by_selection_coverage(pixels, original, bounds, selection);
+  return pixels;
 }
 
-PixelBuffer build_filter_preview_pixels(const PixelBuffer& original, const QRegion& selection, Rect bounds,
+PixelBuffer build_filter_preview_pixels(const PixelBuffer& original, const FilterSelection& selection, Rect bounds,
                                          const FilterRegistry& registry, const FilterRecipe& recipe,
                                          const FilterProgress* progress, Rect* result_bounds) {
-  return build_filter_preview_pixels_impl(original, selection, bounds, registry, recipe, progress, result_bounds);
+  auto pixels =
+      build_filter_preview_pixels_impl(original, selection.region, bounds, registry, recipe, progress, result_bounds);
+  blend_by_selection_coverage(pixels, original, bounds, selection);
+  return pixels;
 }
 
 bool filter_recipe_fills_entire_canvas(const FilterRegistry& registry, const FilterRecipe& recipe) {
@@ -1092,6 +1162,20 @@ bool editable_rgb_layer_any_depth(const Layer* layer) {
 
 namespace {
 
+// Runs an in-place adjustment, then blends it with the untouched pixels by a soft
+// selection's coverage (the copy shares storage until the adjustment writes).
+template <typename Apply>
+void apply_with_selection_coverage(PixelBuffer& pixels, Rect bounds, const FilterSelection& selection,
+                                   Apply&& apply) {
+  if (selection.coverage.empty()) {
+    apply();
+    return;
+  }
+  const auto original = pixels;
+  apply();
+  blend_by_selection_coverage(pixels, original, bounds, selection);
+}
+
 // 16/32-bit destructive adjustments (docs/high-bit-depth.md): the adjustment layer's
 // Photoshop-calibrated deep transfer (DeepAdjuster) on every selected pixel, in the
 // buffer's own domain (32-bit Levels and Curves work on linear values, as in Photoshop);
@@ -1121,7 +1205,7 @@ void apply_adjustment_to_deep_pixels(PixelBuffer& pixels, Rect bounds, const QRe
 
 }  // namespace
 
-void apply_levels_to_pixels(PixelBuffer& pixels, Rect bounds, const QRegion& selection, LevelsSettings settings,
+static void apply_levels_to_pixels_hard(PixelBuffer& pixels, Rect bounds, const QRegion& selection, LevelsSettings settings,
                             const FilterProgress* progress) {
   settings = clamp_levels_settings(settings);
   if (pixels.format().bit_depth != BitDepth::UInt8) {
@@ -1149,7 +1233,7 @@ void apply_levels_to_pixels(PixelBuffer& pixels, Rect bounds, const QRegion& sel
   for_each_selected_row_span(pixels, bounds, selection, progress, apply_span);
 }
 
-void apply_curves_to_pixels(PixelBuffer& pixels, Rect bounds, const QRegion& selection, CurvesSettings settings,
+static void apply_curves_to_pixels_hard(PixelBuffer& pixels, Rect bounds, const QRegion& selection, CurvesSettings settings,
                             const FilterProgress* progress) {
   if (pixels.format().bit_depth != BitDepth::UInt8) {
     AdjustmentSettings adjustment;
@@ -1168,7 +1252,7 @@ void apply_curves_to_pixels(PixelBuffer& pixels, Rect bounds, const QRegion& sel
   });
 }
 
-void apply_hue_saturation_to_pixels(PixelBuffer& pixels, Rect bounds, const QRegion& selection,
+static void apply_hue_saturation_to_pixels_hard(PixelBuffer& pixels, Rect bounds, const QRegion& selection,
                                     HueSaturationSettings settings, const FilterProgress* progress) {
   // Route through the core math so the destructive filter matches an adjustment
   // layer with identical settings exactly, in master mode as well as colorize.
@@ -1201,7 +1285,7 @@ void apply_hue_saturation_to_pixels(PixelBuffer& pixels, Rect bounds, const QReg
   for_each_selected_row_span(pixels, bounds, selection, progress, apply_span);
 }
 
-void apply_color_balance_to_pixels(PixelBuffer& pixels, Rect bounds, const QRegion& selection,
+static void apply_color_balance_to_pixels_hard(PixelBuffer& pixels, Rect bounds, const QRegion& selection,
                                    ColorBalanceSettings settings, const FilterProgress* progress) {
   settings.cyan_red = std::clamp(settings.cyan_red, -100, 100);
   settings.magenta_green = std::clamp(settings.magenta_green, -100, 100);
@@ -1236,6 +1320,30 @@ void apply_color_balance_to_pixels(PixelBuffer& pixels, Rect bounds, const QRegi
     px[1] = filter_clamp_byte(static_cast<int>(px[1]) + green_delta);
     px[2] = filter_clamp_byte(static_cast<int>(px[2]) + blue_delta);
   });
+}
+
+void apply_levels_to_pixels(PixelBuffer& pixels, Rect bounds, const FilterSelection& selection, LevelsSettings settings,
+                            const FilterProgress* progress) {
+  apply_with_selection_coverage(pixels, bounds, selection,
+                                [&] { apply_levels_to_pixels_hard(pixels, bounds, selection, settings, progress); });
+}
+
+void apply_curves_to_pixels(PixelBuffer& pixels, Rect bounds, const FilterSelection& selection, CurvesSettings settings,
+                            const FilterProgress* progress) {
+  apply_with_selection_coverage(pixels, bounds, selection,
+                                [&] { apply_curves_to_pixels_hard(pixels, bounds, selection, settings, progress); });
+}
+
+void apply_hue_saturation_to_pixels(PixelBuffer& pixels, Rect bounds, const FilterSelection& selection, HueSaturationSettings settings,
+                                    const FilterProgress* progress) {
+  apply_with_selection_coverage(pixels, bounds, selection,
+                                [&] { apply_hue_saturation_to_pixels_hard(pixels, bounds, selection, settings, progress); });
+}
+
+void apply_color_balance_to_pixels(PixelBuffer& pixels, Rect bounds, const FilterSelection& selection, ColorBalanceSettings settings,
+                                   const FilterProgress* progress) {
+  apply_with_selection_coverage(pixels, bounds, selection,
+                                [&] { apply_color_balance_to_pixels_hard(pixels, bounds, selection, settings, progress); });
 }
 
 }  // namespace patchy::ui

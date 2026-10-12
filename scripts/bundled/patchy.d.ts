@@ -379,7 +379,10 @@ interface PatchyLayer {
   remove(): void;
   /** Ungroups this folder into its parent; returns the released layers top to bottom. */
   ungroup(): PatchyLayer[];
-  /** Fills the selection (or the whole canvas on an empty layer). RGB8 and RGBA8 are supported. */
+  /**
+   * Fills the selection (or the whole canvas on an empty layer); a soft selection's edge
+   * blends the fill in by its coverage. RGB8 and RGBA8 are supported.
+   */
   fill(color: string): void;
   /**
    * Overwrites one document-space rect of the layer's pixels (clipped to its
@@ -391,8 +394,9 @@ interface PatchyLayer {
   fillRect(x: number, y: number, width: number, height: number, color: string): void;
   /**
    * Applies a filter to this layer's pixels by registry id, e.g.
-   * applyFilter("patchy.filters.gaussian_blur", {radius: 8}). Unknown ids or
-   * parameters throw.
+   * applyFilter("patchy.filters.gaussian_blur", {radius: 8}). With a selection only
+   * the selected pixels change, a soft edge blended by its coverage (the Filter menu's
+   * rule). Unknown ids or parameters throw.
    */
   applyFilter(filterId: string, params?: Record<string, number | boolean | string>): void;
   /**

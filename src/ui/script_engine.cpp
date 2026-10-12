@@ -20,6 +20,7 @@
 #include "ui/canvas_widget.hpp"
 #include "ui/color_panel.hpp"
 #include "ui/dialog_utils.hpp"
+#include "ui/filter_workflows.hpp"
 #include "ui/font_face_name_index.hpp"
 #include "ui/main_window.hpp"
 #include "ui/mcp_activity.hpp"
@@ -1779,6 +1780,20 @@ PixelBuffer ScriptEngineHost::pixels_limited_to_selection(std::int64_t session_i
   return patchy::ui::pixels_limited_to_selection(*canvas, pixels, bounds);
 }
 
+bool ScriptEngineHost::selection_has_soft_coverage(std::int64_t session_id) const {
+  auto* canvas = session_canvas(session_id);
+  return canvas != nullptr && canvas->has_selection() && canvas->selection_has_partial_alpha();
+}
+
+void ScriptEngineHost::blend_by_selection_coverage(std::int64_t session_id, PixelBuffer& result,
+                                                   const PixelBuffer& original, Rect bounds) const {
+  auto* canvas = session_canvas(session_id);
+  if (canvas == nullptr || !canvas->has_selection()) {
+    return;
+  }
+  patchy::ui::blend_by_selection_coverage(result, original, bounds, filter_selection(*canvas));
+}
+
 bool ScriptEngineHost::remove_object_in_selection(std::int64_t session_id, LayerId layer_id, bool content_aware,
                                                   int attempt, int tone_match, int feather, bool* used_content_aware,
                                                   int* source, int* source_count, std::int64_t* patches,
@@ -2702,7 +2717,15 @@ bool ScriptEngineHost::apply_filter_to_layer(std::int64_t session_id, LayerId la
     return false;
   }
   const auto before_bounds = to_qrect(layer_render_bounds(std::as_const(*layer)));
-  registry.apply(*normalized, layer->pixels());
+  if (auto* canvas = session_canvas(session_id); canvas != nullptr && canvas->has_selection()) {
+    // Like the menu command: limited to the selection, its soft edges blended by coverage.
+    auto filtered = build_filter_preview_pixels(std::as_const(*layer).pixels(), filter_selection(*canvas),
+                                                std::as_const(*layer).bounds(), registry,
+                                                FilterPreviewSettings{true, *normalized});
+    layer->set_pixels(std::move(filtered));
+  } else {
+    registry.apply(*normalized, layer->pixels());
+  }
   note_pixels_changed(session_id, before_bounds);
   return true;
 }

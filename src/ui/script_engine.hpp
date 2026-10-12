@@ -328,6 +328,13 @@ public:
   // session's selection; unchanged without a selection.
   [[nodiscard]] PixelBuffer pixels_limited_to_selection(std::int64_t session_id, const PixelBuffer& pixels,
                                                         Rect bounds) const;
+  // True when the session's selection has soft (partial) coverage: a feather or an
+  // anti-aliased Object Selection edge.
+  [[nodiscard]] bool selection_has_soft_coverage(std::int64_t session_id) const;
+  // Blends `result` toward `original` (both at `bounds`) by that soft coverage, the way
+  // destructive filters do; a no-op for a hard selection.
+  void blend_by_selection_coverage(std::int64_t session_id, PixelBuffer& result, const PixelBuffer& original,
+                                   Rect bounds) const;
   // Edit > Remove Object on the session's selection through its canvas; the
   // layer must be the document's active layer. The pixel edit rides this
   // run's undo snapshot. False (with a JS error thrown) on refusal.

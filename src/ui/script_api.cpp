@@ -969,6 +969,9 @@ void ScriptLayerObject::fill(const QString& color) {
     return;
   }
   const auto fill_pixel = script_fill_pixel(pixels.format(), parsed);
+  // A soft selection (feather, Object Selection edge) blends the fill in by its coverage.
+  const auto unfilled = host_.selection_has_soft_coverage(session_id_) ? std::optional<PixelBuffer>(pixels)
+                                                                       : std::nullopt;
   for (const QRect& rect : target) {
     const QRect layer_rect =
         rect.intersected(QRect(bounds.x, bounds.y, pixels.width(), pixels.height()));
@@ -977,6 +980,9 @@ void ScriptLayerObject::fill(const QString& color) {
         std::copy(fill_pixel.begin(), fill_pixel.end(), pixels.pixel(x - bounds.x, y - bounds.y));
       }
     }
+  }
+  if (unfilled.has_value()) {
+    host_.blend_by_selection_coverage(session_id_, pixels, *unfilled, bounds);
   }
   host_.note_pixels_changed(session_id_, target.boundingRect());
 }

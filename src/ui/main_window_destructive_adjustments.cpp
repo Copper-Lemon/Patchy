@@ -272,7 +272,7 @@ void MainWindow::levels_dialog() {
   const auto bounds = layer->bounds();
   auto original_pixels =
       std::make_shared<const PixelBuffer>(std::as_const(*layer).pixels());
-  const auto selection = canvas_->selected_document_region();
+  const auto selection = filter_selection(*canvas_);
   DestructiveAdjustmentPreviewHooks preview_hooks;
   preview_hooks.original_pixels = original_pixels;
   preview_hooks.restore_identity = [this, active_id, bounds, original_pixels] {
@@ -428,7 +428,7 @@ void MainWindow::curves_dialog() {
   const auto bounds = layer->bounds();
   auto original_layer = std::make_shared<const Layer>(*layer);
   auto original_pixels = std::make_shared<const PixelBuffer>(original_layer->pixels());
-  const auto selection = canvas_->selected_document_region();
+  const auto selection = filter_selection(*canvas_);
   DestructiveAdjustmentPreviewHooks preview_hooks;
   preview_hooks.original_pixels = original_pixels;
   // Unlike the other destructive dialogs, the identity restore puts back the
@@ -585,7 +585,7 @@ void MainWindow::hue_saturation_dialog() {
   const auto bounds = layer->bounds();
   auto original_pixels =
       std::make_shared<const PixelBuffer>(std::as_const(*layer).pixels());
-  const auto selection = canvas_->selected_document_region();
+  const auto selection = filter_selection(*canvas_);
   const auto hue_saturation_has_effect = [](const HueSaturationSettings& settings) {
     return settings.colorize || settings.hue_shift != 0 || settings.saturation_delta != 0 ||
            settings.lightness_delta != 0;
@@ -689,7 +689,7 @@ void MainWindow::color_balance_dialog() {
   const auto bounds = layer->bounds();
   auto original_pixels =
       std::make_shared<const PixelBuffer>(std::as_const(*layer).pixels());
-  const auto selection = canvas_->selected_document_region();
+  const auto selection = filter_selection(*canvas_);
   const auto color_balance_has_effect = [](const ColorBalanceSettings& settings) {
     return !(settings.cyan_red == 0 && settings.magenta_green == 0 && settings.yellow_blue == 0);
   };

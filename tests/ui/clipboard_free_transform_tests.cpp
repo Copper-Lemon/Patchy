@@ -244,6 +244,52 @@ void ui_open_clipboard_creates_unsaved_document_with_exact_pixels() {
   QApplication::clipboard()->clear();
 }
 
+// Copy Merged keeps the selection's shape, not just its bounding box (Seth's lasso report):
+// the same mask Copy applies, in the internal clipboard and in the system clipboard image.
+void ui_copy_merged_masks_to_the_selection_shape() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  patchy::Document source(80, 60, patchy::PixelFormat::rgba8());
+  source.add_pixel_layer("Lower", solid_pixels(80, 60, patchy::PixelFormat::rgba8(), QColor(Qt::red)));
+  // The upper layer is green on its left half only, transparent on the right.
+  auto upper = solid_pixels(80, 60, patchy::PixelFormat::rgba8(), QColor(Qt::transparent));
+  fill_pixel_rect(upper, QRect(0, 0, 40, 60), QColor(Qt::green));
+  source.add_pixel_layer("Upper", std::move(upper));
+  window.add_document_session(std::move(source), QStringLiteral("Copy merged shape"));
+  QApplication::processEvents();
+  auto* canvas = require_canvas(window);
+  // A hard elliptical selection (centered at 40,30, radii 30 x 20), as the script API sets one.
+  patchy::PixelBuffer coverage(80, 60, patchy::PixelFormat::gray8());
+  for (int y = 0; y < 60; ++y) {
+    for (int x = 0; x < 80; ++x) {
+      const double dx = (x + 0.5 - 40.0) / 30.0;
+      const double dy = (y + 0.5 - 30.0) / 20.0;
+      coverage.pixel(x, y)[0] = dx * dx + dy * dy <= 1.0 ? 255 : 0;
+    }
+  }
+  canvas->apply_grayscale_to_selection(coverage);
+  QApplication::processEvents();
+  CHECK(canvas->has_selection());
+
+  for (const auto* action : {"editCopyMergedAction", "editCopyAction"}) {
+    QApplication::clipboard()->clear();
+    require_action(window, action)->trigger();
+    QApplication::processEvents();
+    const auto image = QApplication::clipboard()->image().convertToFormat(QImage::Format_RGBA8888);
+    CHECK(image.size() == QSize(60, 40));
+    if (image.size() != QSize(60, 40)) {
+      continue;
+    }
+    // Inside the ellipse (and the upper layer, for Copy): painted. The bounding box's corners
+    // are outside it: transparent.
+    CHECK(image.pixelColor(20, 20).alpha() == 255);
+    CHECK(image.pixelColor(1, 1).alpha() == 0);
+    CHECK(image.pixelColor(58, 38).alpha() == 0);
+    CHECK(image.pixelColor(1, 38).alpha() == 0);
+  }
+  QApplication::clipboard()->clear();
+}
+
 void ui_open_clipboard_shortcut_keeps_existing_document_and_uses_current_image() {
   patchy::ui::MainWindow window;
   show_window(window);
@@ -2758,6 +2804,7 @@ std::vector<patchy::test::TestCase> clipboard_free_transform_tests() {
   return {
       {"ui_open_clipboard_creates_unsaved_document_with_exact_pixels",
        ui_open_clipboard_creates_unsaved_document_with_exact_pixels},
+      {"ui_copy_merged_masks_to_the_selection_shape", ui_copy_merged_masks_to_the_selection_shape},
       {"ui_open_clipboard_shortcut_keeps_existing_document_and_uses_current_image",
        ui_open_clipboard_shortcut_keeps_existing_document_and_uses_current_image},
       {"ui_open_clipboard_rejects_empty_and_non_image_data_without_creating_tabs",

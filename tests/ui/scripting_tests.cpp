@@ -90,9 +90,11 @@
 #include <QTreeWidgetItem>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
+#include <functional>
 #include <iostream>
 #include <string>
 #include <utility>
@@ -104,6 +106,12 @@ using patchy::test::ui::EnvironmentVariableRestorer;
 using patchy::test::ui::remove_test_scratch_dir;
 using patchy::test::ui::save_widget_artifact;
 using patchy::test::ui::show_window;
+using patchy::test::ui::accept_filter_dialog;
+using patchy::test::ui::accept_levels_dialog;
+using patchy::test::ui::color_close;
+using patchy::test::ui::require_action;
+using patchy::test::ui::require_canvas;
+using patchy::test::ui::solid_pixels;
 
 patchy::ui::ScriptEngineHost& start_script(patchy::ui::MainWindow& window, const QString& source) {
   auto& host = window.script_engine_host();
@@ -940,6 +948,76 @@ void ui_script_filters_and_text_layers() {
   CHECK(backlog_contains(window, QStringLiteral("inverted=0,255,255")));
   CHECK(backlog_contains(window, QStringLiteral("text=true,Scripted Text")));
   CHECK(backlog_contains(window, QStringLiteral("bad-mode-threw=true")));
+}
+
+// A soft selection (a feather, Object Selection's edge) limits destructive edits by its
+// coverage, as in Photoshop: a half-covered pixel lands halfway, an uncovered one keeps its
+// color. Covers the menu's filter (Invert) and adjustment (Levels) paths and the script's
+// applyFilter (which used to ignore the selection) and fill.
+void ui_destructive_edits_blend_by_soft_selection_coverage() {
+  patchy::Document source(40, 10, patchy::PixelFormat::rgba8());
+  source.add_pixel_layer("Paint", solid_pixels(40, 10, patchy::PixelFormat::rgba8(), QColor(200, 40, 40)));
+  patchy::ui::MainWindow window;
+  window.add_document_session(std::move(source), QStringLiteral("Soft selection"));
+  show_window(window);
+  auto* canvas = require_canvas(window);
+  // Uncovered left of x 10, half covered to x 20, fully covered from there.
+  patchy::PixelBuffer coverage(40, 10, patchy::PixelFormat::gray8());
+  for (int y = 0; y < 10; ++y) {
+    for (int x = 0; x < 40; ++x) {
+      coverage.pixel(x, y)[0] = x < 10 ? 0 : (x < 20 ? 128 : 255);
+    }
+  }
+  canvas->apply_grayscale_to_selection(coverage);
+  QApplication::processEvents();
+  CHECK(canvas->has_selection() && canvas->selection_has_partial_alpha());
+
+  const QColor start(200, 40, 40);
+  const auto layer_color = [&](int x) {
+    const auto& document = std::as_const(patchy::ui::MainWindowTestAccess::document(window));
+    const auto* layer = document.find_layer(*document.active_layer_id());
+    const auto* pixel = layer->pixels().pixel(x, 5);
+    return QColor(pixel[0], pixel[1], pixel[2], pixel[3]);
+  };
+  const auto check_blend = [&](const char* label, QColor full, const std::function<void()>& edit) {
+    {
+      auto& document = patchy::ui::MainWindowTestAccess::document(window);
+      document.find_layer(*document.active_layer_id())
+          ->set_pixels(solid_pixels(40, 10, patchy::PixelFormat::rgba8(), start));
+      canvas->document_changed();
+    }
+    edit();
+    QApplication::processEvents();
+    const auto half = 128.0 / 255.0;
+    const QColor midway(static_cast<int>(std::lround(start.red() + (full.red() - start.red()) * half)),
+                        static_cast<int>(std::lround(start.green() + (full.green() - start.green()) * half)),
+                        static_cast<int>(std::lround(start.blue() + (full.blue() - start.blue()) * half)));
+    const auto outside = layer_color(5);
+    const auto edge = layer_color(15);
+    const auto inside = layer_color(30);
+    const auto ok = color_close(outside, start, 0) && color_close(edge, midway, 2) && color_close(inside, full, 2);
+    if (!ok) {
+      std::cerr << label << ": outside " << outside.name().toStdString() << " edge " << edge.name().toStdString()
+                << " (want " << midway.name().toStdString() << ") inside " << inside.name().toStdString() << '\n';
+    }
+    CHECK(ok);
+  };
+
+  check_blend("menu invert", QColor(55, 215, 215), [&] {
+    accept_filter_dialog();
+    require_action(window, "imageAdjustInvertAction")->trigger();
+  });
+  // White input 128 doubles every channel: 200 clips to 255, 40 becomes 80.
+  check_blend("menu levels", QColor(255, 80, 80), [&] {
+    accept_levels_dialog(0, 128, 100);
+    require_action(window, "imageAdjustLevelsAction")->trigger();
+  });
+  check_blend("script applyFilter", QColor(55, 215, 215), [&] {
+    CHECK(run_script(window, QStringLiteral("app.activeDocument.activeLayer.applyFilter('patchy.filters.invert');")));
+  });
+  check_blend("script fill", QColor(0, 0, 255), [&] {
+    CHECK(run_script(window, QStringLiteral("app.activeDocument.activeLayer.fill('#0000ff');")));
+  });
 }
 
 // doc.bitDepth / convertBitDepth and filters on 16/32-bit layers
@@ -4759,6 +4837,8 @@ std::vector<patchy::test::TestCase> scripting_tests() {
        ui_script_busy_panel_yields_to_script_dialogs},
       {"ui_script_console_and_error_line_numbers", ui_script_console_and_error_line_numbers},
       {"ui_script_filters_and_text_layers", ui_script_filters_and_text_layers},
+      {"ui_destructive_edits_blend_by_soft_selection_coverage",
+       ui_destructive_edits_blend_by_soft_selection_coverage},
       {"ui_script_bit_depth_and_deep_filters", ui_script_bit_depth_and_deep_filters},
       {"ui_script_deep_documents_save_to_8_bit_formats", ui_script_deep_documents_save_to_8_bit_formats},
       {"ui_script_text_size_is_zoom_independent", ui_script_text_size_is_zoom_independent},

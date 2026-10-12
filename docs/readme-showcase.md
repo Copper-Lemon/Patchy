@@ -60,9 +60,9 @@ The Object Selection scene crops the Havana street photo to its lower half and r
 Quality model (zoom-to-box applies). The car must come out exact, wheels and mirrors
 included and the street excluded; check the capture after a model or engine change.
 One-pixel marching ants vanish at thumbnail size, so the script inverts the selection,
-fills a gray Saturation-mode layer and a 45% black layer through it, and inverts back. It does not use `layer.applyFilter` for this, because that call
-filters the whole layer and ignores the selection, and a Desaturate menu command run
-from the script did not apply. The status bar shows "Running script", as in the KPT shot.
+fills a gray Saturation-mode layer and a 45% black layer through it, and inverts back
+(fill layers rather than a filter on the photo, so the photo layer stays untouched; a
+Desaturate menu command run from the script did not apply). The status bar shows "Running script", as in the KPT shot.
 
 The text showcase combines a live Warp Text preview with three warped words,
 a single boxed paragraph containing bold, italic, colored, and mixed-font runs,

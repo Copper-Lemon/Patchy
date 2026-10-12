@@ -129,6 +129,30 @@ struct FilterDialogPreviewSource {
 using FilterProgress = ::patchy::FilterProgress;
 using FilterCancelled = ::patchy::FilterCancelled;
 
+// The selection a destructive filter or adjustment runs under. `region` bounds the work
+// and everything outside it is restored; a soft selection (a feather, Object Selection's
+// anti-aliased edge) also carries its coverage, and each result pixel is blended with the
+// original by that coverage, as in Photoshop. Converts to and from QRegion, so hard
+// selections and the region-only helpers are unchanged.
+struct FilterSelection {
+  FilterSelection() = default;
+  FilterSelection(QRegion selection_region)  // NOLINT(google-explicit-constructor)
+      : region(std::move(selection_region)) {}
+  operator const QRegion&() const noexcept { return region; }  // NOLINT(google-explicit-constructor)
+  [[nodiscard]] bool isEmpty() const noexcept { return region.isEmpty(); }
+
+  QRegion region;
+  Rect coverage_bounds{};  // document coordinates of `coverage`
+  PixelBuffer coverage;    // gray8, 255 = fully selected; empty for a hard selection
+};
+
+// The canvas selection, with its coverage when it has soft (partial) alpha.
+[[nodiscard]] FilterSelection filter_selection(const CanvasWidget& canvas);
+// Blends `result` toward `original` (both at `bounds`) by the selection's soft coverage.
+// A no-op for a hard selection or when the buffers differ in size or format.
+void blend_by_selection_coverage(PixelBuffer& result, const PixelBuffer& original, Rect bounds,
+                                 const FilterSelection& selection);
+
 [[nodiscard]] QString filter_action_object_name(const QString& identifier);
 [[nodiscard]] QString filter_display_name(const FilterDefinition& filter);
 [[nodiscard]] QString filter_category_display_name(FilterCategory category);
@@ -174,10 +198,10 @@ using FilterCancelled = ::patchy::FilterCancelled;
 // receives the new document-space bounds (origin shifted, size grown). For other
 // filters the buffer keeps its size and `result_bounds` is set to `bounds`.
 [[nodiscard]] PixelBuffer build_filter_preview_pixels(
-    const PixelBuffer& original, const QRegion& selection, Rect bounds, const FilterRegistry& registry,
+    const PixelBuffer& original, const FilterSelection& selection, Rect bounds, const FilterRegistry& registry,
     const FilterPreviewSettings& settings, const FilterProgress* progress = nullptr, Rect* result_bounds = nullptr);
 [[nodiscard]] PixelBuffer build_filter_preview_pixels(
-    const PixelBuffer& original, const QRegion& selection, Rect bounds, const FilterRegistry& registry,
+    const PixelBuffer& original, const FilterSelection& selection, Rect bounds, const FilterRegistry& registry,
     const FilterRecipe& recipe, const FilterProgress* progress = nullptr, Rect* result_bounds = nullptr);
 // True when any enabled, nonzero-opacity entry's catalog metadata declares
 // fills_entire_canvas (today only Clouds).
@@ -197,13 +221,13 @@ struct CanvasFilterSource {
 // A color pixel layer at any depth: Levels, Curves, Hue/Saturation and Color Balance
 // apply to 16/32-bit layers too (docs/high-bit-depth.md).
 [[nodiscard]] bool editable_rgb_layer_any_depth(const Layer* layer);
-void apply_levels_to_pixels(PixelBuffer& pixels, Rect bounds, const QRegion& selection, LevelsSettings settings,
+void apply_levels_to_pixels(PixelBuffer& pixels, Rect bounds, const FilterSelection& selection, LevelsSettings settings,
                             const FilterProgress* progress = nullptr);
-void apply_curves_to_pixels(PixelBuffer& pixels, Rect bounds, const QRegion& selection, CurvesSettings settings,
+void apply_curves_to_pixels(PixelBuffer& pixels, Rect bounds, const FilterSelection& selection, CurvesSettings settings,
                             const FilterProgress* progress = nullptr);
-void apply_hue_saturation_to_pixels(PixelBuffer& pixels, Rect bounds, const QRegion& selection,
+void apply_hue_saturation_to_pixels(PixelBuffer& pixels, Rect bounds, const FilterSelection& selection,
                                     HueSaturationSettings settings, const FilterProgress* progress = nullptr);
-void apply_color_balance_to_pixels(PixelBuffer& pixels, Rect bounds, const QRegion& selection,
+void apply_color_balance_to_pixels(PixelBuffer& pixels, Rect bounds, const FilterSelection& selection,
                                    ColorBalanceSettings settings, const FilterProgress* progress = nullptr);
 
 }  // namespace patchy::ui

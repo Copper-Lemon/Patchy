@@ -1071,8 +1071,12 @@ void MainWindow::copy_merged() {
     const ScopedDocumentDepthRender depth_render;
     image = qimage_from_document(document(), true).copy(QRect(copy_rect.x, copy_rect.y, copy_rect.width, copy_rect.height));
   }
-  clipboard_ = ClipboardPayload{pixels_from_image_at_depth(image, depth), QPoint(copy_rect.x, copy_rect.y)};
-  set_system_clipboard_image(depth == BitDepth::UInt8 ? image : display_qimage_from_pixel_buffer(clipboard_->pixels));
+  auto copied = pixels_from_image_at_depth(image, depth);
+  // The selection's shape, not just its bounding box (a lasso or Object Selection), with soft
+  // edges kept: the same mask Copy applies.
+  apply_selection_mask(copied, copy_rect, *canvas_);
+  clipboard_ = ClipboardPayload{std::move(copied), QPoint(copy_rect.x, copy_rect.y)};
+  set_system_clipboard_image(display_qimage_from_pixel_buffer(clipboard_->pixels));
   statusBar()->showMessage(tr("Copied merged %1 x %2 px").arg(copy_rect.width).arg(copy_rect.height));
 }
 

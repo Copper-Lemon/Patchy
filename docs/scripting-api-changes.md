@@ -7,6 +7,12 @@ attachment, palettes, vector automation, brushes, Slow mode and Pause) are in
 [scripting-api-changes-through-2026-09-11.md](scripting-api-changes-through-2026-09-11.md).
 Every entry below is API 1.
 
+2026-10-12 (behavioral): `layer.applyFilter` honors the selection like the Filter menu: only
+selected pixels change and the layer keeps its bounds (it used to filter the whole layer).
+A soft selection (a feather, an Object Selection edge) now blends `applyFilter` and
+`layer.fill` by its coverage instead of applying at full strength wherever coverage is
+nonzero. Pinned by `ui_destructive_edits_blend_by_soft_selection_coverage`.
+
 2026-10-12 (additive, behavioral): Object Selection's High Quality model (EfficientViT-SAM
 XL0, a one-time 234 MB desktop download). `doc.selection.objectSelectionModel` reads
 `"standard"` or `"highQuality"` (permanent tokens): the model `objectSelect` runs, which is
