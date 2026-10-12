@@ -128,12 +128,12 @@ and Affinity import has format-specific limitations. See [current compatibility]
 
 ### 1.09 - October 12, 2026
 
-- Object Selection tool (desktop): drag a box or click an object and Patchy selects it, using a small model that runs on the CPU. It honors Sample All Layers, and a run that runs out of memory says so instead of failing silently. The models ship with the download; the web build does not have it yet
+- Object Selection tool (desktop): drag a box or click an object and Patchy selects it
 - File > File Info: view, edit and strip image metadata. EXIF, XMP, IPTC, ICC profiles and text chunks are read from every format, kept on save, and Export can keep all metadata, only the copyright, or none. Scripts get `fileInfo` and `stripMetadata`
-- Windows installer: choose the install folder, and move an existing install to a new one ([issue 85](https://github.com/SethRobinson/Patchy/issues/85))
-- macOS: arrow-key nudges with the Move tool work on a physical keyboard, and the hover outline follows the nudged layer ([issue 84](https://github.com/SethRobinson/Patchy/issues/84))
-- PSD compatibility: CMYK layers composite in their own ink channels, CMYK, grayscale and 16-bit saves keep their native color space, and knockout transparency, aligned vector stroke edges, grayscale Smart Objects, duotone inks and noise gradients render closer to Photoshop
-- Saves and automatic document recovery hold up better against crashes and power loss, and PDF exports replace the old file only once the new one is complete
+- Windows installer: can now choose the install folder ([issue 85](https://github.com/SethRobinson/Patchy/issues/85))
+- macOS: fixed bug where arrow-key nudges with the Move tool didn't work on a physical keyboard, and the hover outline follows the nudged layer ([issue 84](https://github.com/SethRobinson/Patchy/issues/84))
+- PSD compatibility pass: CMYK layers composite in their own ink channels, CMYK, grayscale and 16-bit saves keep their native color space, and knockout transparency, aligned vector stroke edges, grayscale Smart Objects, duotone inks and noise gradients render closer to Photoshop
+- Saves and automatic document recovery hold up better against crashes and power loss
 
 ### 1.08 - October 10, 2026
 
