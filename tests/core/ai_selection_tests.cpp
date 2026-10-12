@@ -1,6 +1,7 @@
 // Automatic selection (docs/ai-selection.md): the pre/post-processing math everywhere, and
-// real MobileSAM / BiRefNet runs when the build includes ONNX Runtime. Model outputs are
-// CPU-dependent float math, so model checks compare masks by IoU, never by bytes.
+// real MobileSAM / EfficientViT-SAM / BiRefNet runs when the build includes ONNX Runtime.
+// Model outputs are CPU-dependent float math, so model checks compare masks by IoU, never
+// by bytes.
 
 #include "ai/ai_selection_math.hpp"
 #include "ai/segmentation_engine.hpp"
@@ -130,6 +131,91 @@ void ai_sam_transform_scales_longest_side() {
   CHECK(std::abs(point.y - 128.0F) < 1e-3F);
 }
 
+void ai_sam_region_transform_offsets_points() {
+  const auto region = patchy::ai::sam_region_transform(Rect{1000, 500, 2000, 1000});
+  CHECK(region.source_width == 2000 && region.source_height == 1000);
+  CHECK(region.scaled_width == 1024 && region.scaled_height == 512);
+  CHECK(region.origin_x == 1000 && region.origin_y == 500);
+  const auto point = patchy::ai::to_sam_point(region, 1500.0, 700.0);
+  CHECK(std::abs(point.x - 256.0F) < 1e-3F);
+  CHECK(std::abs(point.y - 102.4F) < 1e-3F);
+}
+
+// Zoom-to-box is fixed geometry from the user's box alone (patent boundary in
+// segmentation_engine.hpp): margin, minimum size, clamping, and the whole-image fallback.
+void ai_sam_box_region_is_fixed_geometry() {
+  // A 1000x800 box grows by 15% of its longer side on every side.
+  const auto grown = patchy::ai::sam_box_region(Rect{2000, 1000, 1000, 800}, 6000, 4000);
+  CHECK(grown.has_value());
+  CHECK(grown->x == 1850 && grown->y == 850 && grown->width == 1300 && grown->height == 1100);
+  // A tiny box gets at least the minimum margin, widens to the minimum region, and clamps.
+  const auto tiny = patchy::ai::sam_box_region(Rect{100, 2000, 20, 20}, 6000, 4000);
+  CHECK(tiny.has_value());
+  CHECK(tiny->x == 0 && tiny->width == 302);
+  CHECK(tiny->height == patchy::ai::kSamBoxMinimumRegion);
+  CHECK(tiny->y <= 2000 - patchy::ai::kSamBoxMinimumMargin && tiny->y + tiny->height >= 2020 + 64);
+  // A box covering most of the image keeps the whole-image embedding.
+  CHECK(!patchy::ai::sam_box_region(Rect{50, 50, 900, 700}, 1000, 800).has_value());
+  CHECK(!patchy::ai::sam_box_region(Rect{10, 10, 0, 5}, 1000, 800).has_value());
+  CHECK(!patchy::ai::sam_box_region(Rect{2000, 2000, 50, 50}, 1000, 800).has_value());
+}
+
+void ai_crop_rgba_copies_the_region() {
+  PixelBuffer pixels(8, 6, PixelFormat::rgba8());
+  for (std::int32_t y = 0; y < 6; ++y) {
+    for (std::int32_t x = 0; x < 8; ++x) {
+      auto* px = pixels.pixel(x, y);
+      px[0] = static_cast<std::uint8_t>(x);
+      px[1] = static_cast<std::uint8_t>(y);
+      px[2] = 0;
+      px[3] = 255;
+    }
+  }
+  const auto crop = patchy::ai::crop_rgba(pixels, Rect{5, 2, 10, 3});  // clamped to 3x3
+  CHECK(crop.width() == 3 && crop.height() == 3);
+  CHECK(crop.pixel(0, 0)[0] == 5 && crop.pixel(0, 0)[1] == 2);
+  CHECK(crop.pixel(2, 2)[0] == 7 && crop.pixel(2, 2)[1] == 4);
+}
+
+void ai_padded_encoder_input_is_normalized_and_padded() {
+  const auto white = solid_rgba(200, 100, 255, 255, 255, 255);
+  const auto transform = patchy::ai::sam_transform(200, 100);
+  const auto input = patchy::ai::padded_sam_encoder_input(white, transform);
+  const std::size_t plane = 1024U * 1024U;
+  CHECK(input.size() == plane * 3U);
+  CHECK(std::abs(input[0] - (1.0F - 0.485F) / 0.229F) < 1e-4F);
+  CHECK(std::abs(input[2 * plane + 511U * 1024U + 1023U] - (1.0F - 0.406F) / 0.225F) < 1e-4F);
+  // Below the scaled image (512 rows) is padding: zero, the normalized mean color.
+  CHECK(input[plane + 600U * 1024U + 10U] == 0.0F);
+}
+
+void ai_low_res_logits_map_through_the_padded_frame() {
+  // A 2000x1000 region at (100, 50): the scaled frame is 1024x512, so the decoder's 256-cell
+  // grid holds the image in its top 128 rows. Cells 64..127 x 32..63 are frame pixels
+  // 256..511 x 128..255, region pixels 500..999 x 250..499.
+  const auto transform = patchy::ai::sam_region_transform(Rect{100, 50, 2000, 1000});
+  std::vector<float> logits(256U * 256U, -20.0F);
+  for (std::size_t y = 32; y < 64; ++y) {
+    for (std::size_t x = 64; x < 128; ++x) {
+      logits[y * 256U + x] = 20.0F;
+    }
+  }
+  // Hot cells in the padding below the image must never select anything.
+  for (std::size_t y = 200; y < 256; ++y) {
+    for (std::size_t x = 0; x < 256; ++x) {
+      logits[y * 256U + x] = 20.0F;
+    }
+  }
+  const auto local = patchy::ai::document_mask_from_low_res_logits(logits.data(), transform);
+  CHECK(!local.empty());
+  CHECK(std::abs(local.bounds.x - 500) <= 8 && std::abs(local.bounds.y - 250) <= 8);
+  CHECK(std::abs(local.bounds.x + local.bounds.width - 1000) <= 8);
+  CHECK(std::abs(local.bounds.y + local.bounds.height - 500) <= 8);
+  const auto placed = patchy::ai::translated_mask(local, transform.origin_x, transform.origin_y);
+  CHECK(placed.bounds.x == local.bounds.x + 100 && placed.bounds.y == local.bounds.y + 50);
+  CHECK(placed.alpha.pixel(750 - local.bounds.x, 375 - local.bounds.y)[0] == 255U);
+}
+
 void ai_encoder_input_composites_over_white_and_resizes() {
   const auto transparent = solid_rgba(200, 100, 10, 20, 30, 0);
   const auto transform = patchy::ai::sam_transform(200, 100);
@@ -235,6 +321,87 @@ void ai_object_selection_box_and_point_find_the_disc() {
   const auto point_iou = patchy::ai::mask_iou(pointed, disc);
   std::printf("  point IoU %.3f\n", point_iou);
   CHECK(point_iou >= 0.9);
+}
+
+// The High Quality model (EfficientViT-SAM XL0) from the build's stand-in for the download
+// folder (<build>/ai-models-download, staged when setup-ai-deps provisioned it). Restores
+// the Standard-only state afterwards so the other tests keep running MobileSAM.
+struct HighQualityModelScope {
+  bool available{false};
+  HighQualityModelScope() {
+    const auto folder = std::filesystem::current_path() / "ai-models-download";
+    patchy::ai::set_downloaded_model_directory(folder);
+    patchy::ai::set_high_quality_model_enabled(true);
+    available = patchy::ai::high_quality_model_available();
+  }
+  ~HighQualityModelScope() {
+    patchy::ai::set_downloaded_model_directory({});
+    patchy::ai::set_high_quality_model_enabled(true);
+  }
+  HighQualityModelScope(const HighQualityModelScope&) = delete;
+  HighQualityModelScope& operator=(const HighQualityModelScope&) = delete;
+};
+
+// Zoom-to-box: the box's own region, encoded at full resolution, finds the same object.
+void check_zoomed_box_finds_the_disc(const char* label) {
+  AiMask disc;
+  const auto scene = disc_scene(2400, 1800, disc);
+  const Rect box{disc.bounds.x - 30, disc.bounds.y - 30, disc.bounds.width + 60, disc.bounds.height + 60};
+  const auto region = patchy::ai::sam_box_region(box, scene.width(), scene.height());
+  CHECK(region.has_value());
+  if (!region.has_value()) {
+    return;
+  }
+  const auto embedding = patchy::ai::sam_encode_region(scene, *region);
+  CHECK(embedding->transform.origin_x == region->x && embedding->transform.origin_y == region->y);
+  const auto iou = patchy::ai::mask_iou(patchy::ai::sam_select_box(*embedding, box), disc);
+  std::printf("  %s zoomed box IoU %.3f\n", label, iou);
+  CHECK(iou >= 0.9);
+}
+
+void ai_object_selection_zoomed_box_finds_the_disc() {
+  if (!point_engine_at_build_models()) {
+    std::printf("[SKIP] ai_object_selection_zoomed_box_finds_the_disc (build without automatic selection)\n");
+    return;
+  }
+  CHECK(patchy::ai::active_sam_model() == patchy::ai::SamModel::Standard);
+  check_zoomed_box_finds_the_disc("MobileSAM");
+}
+
+void ai_high_quality_object_selection_finds_the_disc() {
+  if (!point_engine_at_build_models()) {
+    std::printf("[SKIP] ai_high_quality_object_selection_finds_the_disc (build without automatic selection)\n");
+    return;
+  }
+  const HighQualityModelScope scope;
+  if (!scope.available) {
+    std::printf("[SKIP] ai_high_quality_object_selection_finds_the_disc (High Quality model not staged)\n");
+    return;
+  }
+  CHECK(patchy::ai::active_sam_model() == patchy::ai::SamModel::HighQuality);
+  AiMask disc;
+  const auto scene = disc_scene(1200, 900, disc);
+  const auto start = std::chrono::steady_clock::now();
+  const auto embedding = patchy::ai::sam_encode(scene);
+  std::printf("  EfficientViT-SAM XL0 encode %.0f ms (load included)\n", milliseconds_since(start));
+  CHECK(embedding->model == patchy::ai::SamModel::HighQuality);
+  const Rect box{disc.bounds.x - 20, disc.bounds.y - 20, disc.bounds.width + 40, disc.bounds.height + 40};
+  const auto box_iou = patchy::ai::mask_iou(patchy::ai::sam_select_box(*embedding, box), disc);
+  const auto point_iou = patchy::ai::mask_iou(
+      patchy::ai::sam_select_point(*embedding, disc.bounds.x + disc.bounds.width * 0.5,
+                                   disc.bounds.y + disc.bounds.height * 0.5),
+      disc);
+  std::printf("  box IoU %.3f, point IoU %.3f\n", box_iou, point_iou);
+  CHECK(box_iou >= 0.9);
+  CHECK(point_iou >= 0.9);
+  check_zoomed_box_finds_the_disc("EfficientViT-SAM XL0");
+
+  // The Model setting switches back to Standard; the High Quality embedding still decodes
+  // with its own decoder.
+  patchy::ai::set_high_quality_model_enabled(false);
+  CHECK(patchy::ai::active_sam_model() == patchy::ai::SamModel::Standard);
+  CHECK(patchy::ai::sam_encode(scene)->model == patchy::ai::SamModel::Standard);
+  CHECK(patchy::ai::mask_iou(patchy::ai::sam_select_box(*embedding, box), disc) >= 0.9);
 }
 
 // A loose box around a boy in front of a fridge (local photo, never committed): MobileSAM's
@@ -395,6 +562,11 @@ void ai_models_load_from_unicode_directory() {
 std::vector<patchy::test::TestCase> ai_selection_tests() {
   return {
       {"ai_sam_transform_scales_longest_side", ai_sam_transform_scales_longest_side},
+      {"ai_sam_region_transform_offsets_points", ai_sam_region_transform_offsets_points},
+      {"ai_sam_box_region_is_fixed_geometry", ai_sam_box_region_is_fixed_geometry},
+      {"ai_crop_rgba_copies_the_region", ai_crop_rgba_copies_the_region},
+      {"ai_padded_encoder_input_is_normalized_and_padded", ai_padded_encoder_input_is_normalized_and_padded},
+      {"ai_low_res_logits_map_through_the_padded_frame", ai_low_res_logits_map_through_the_padded_frame},
       {"ai_encoder_input_composites_over_white_and_resizes", ai_encoder_input_composites_over_white_and_resizes},
       {"ai_subject_input_is_imagenet_normalized_nchw", ai_subject_input_is_imagenet_normalized_nchw},
       {"ai_logit_coverage_mappings", ai_logit_coverage_mappings},
@@ -402,6 +574,8 @@ std::vector<patchy::test::TestCase> ai_selection_tests() {
       {"ai_clip_mask_to_rect_crops_and_clears", ai_clip_mask_to_rect_crops_and_clears},
       {"ai_mask_iou_counts_threshold_overlap", ai_mask_iou_counts_threshold_overlap},
       {"ai_object_selection_box_and_point_find_the_disc", ai_object_selection_box_and_point_find_the_disc},
+      {"ai_object_selection_zoomed_box_finds_the_disc", ai_object_selection_zoomed_box_finds_the_disc},
+      {"ai_high_quality_object_selection_finds_the_disc", ai_high_quality_object_selection_finds_the_disc},
       {"ai_object_selection_loose_box_skips_background_if_available",
        ai_object_selection_loose_box_skips_background_if_available},
       {"ai_select_subject_finds_the_disc", ai_select_subject_finds_the_disc},

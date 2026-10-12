@@ -544,6 +544,12 @@ interface PatchySelection {
    */
   readonly subjectSelectionAvailable: boolean;
   /**
+   * The model objectSelect runs: "standard" (bundled) or "highQuality" (desktop builds, once
+   * downloaded with app.downloadObjectSelectionModel or from the tool, unless the Object
+   * Selection tool's Model setting is Standard).
+   */
+  readonly objectSelectionModel: "standard" | "highQuality";
+  /**
    * Select > Subject: selects the main subject with the bundled model, one pass over the
    * merged document on the CPU (several seconds). The soft matte combines by `operation`
    * (default "replace"); `feather` (px, default 0) and `antialias` (default true) shape it.
@@ -558,7 +564,8 @@ interface PatchySelection {
    * The Object Selection tool: selects the object inside `rect`, or the object under
    * `point` (document pixels). Exactly one of rect or point. `operation` is "replace"
    * (default), "add" or "subtract"; `sampleAllLayers` (default true) analyzes the merged
-   * document instead of the active pixel layer.
+   * document instead of the active pixel layer. A rect that is small against the image is
+   * analyzed with its surroundings at full resolution, like the tool.
    */
   objectSelect(options: {rect?: PatchyRect; point?: {x: number; y: number};
     operation?: "replace" | "add" | "subtract"; sampleAllLayers?: boolean; feather?: number;
@@ -948,6 +955,13 @@ interface PatchyApp {
   runCommand(commandId: string): boolean;
   /** Every registered command id, sorted. */
   commandIds(): string[];
+  /**
+   * Downloads Object Selection's High Quality model (234 MB from GitHub, kept in Patchy's
+   * per-user data folder) when it is missing; the call waits, showing progress in the status
+   * bar. Returns true once the model is present (immediately if it already is). Throws on a
+   * failed download and in the web build. See doc.selection.objectSelectionModel.
+   */
+  downloadObjectSelectionModel(): boolean;
   /**
    * Every font family the text engine can use right now (installed and user-added),
    * with its face names and the writing systems the font declares (a declared

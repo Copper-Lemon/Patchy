@@ -19851,6 +19851,78 @@ Baked into images: %1.</source>
         <source>Metadata removed; the file changes the next time you save.</source>
         <translation>メタデータを削除しました。ファイルは次回保存したときに変更されます。</translation>
     </message>
+    <message>
+        <source>Model:</source>
+        <translation>モデル:</translation>
+    </message>
+    <message>
+        <source>Standard</source>
+        <translation>標準</translation>
+    </message>
+    <message>
+        <source>High Quality</source>
+        <translation>高品質</translation>
+    </message>
+    <message>
+        <source>Standard is built in. High Quality finds objects more accurately and is downloaded once.</source>
+        <translation>標準は組み込み済みです。高品質はオブジェクトをより正確に検出し、一度だけダウンロードします。</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection</source>
+        <translation>高品質オブジェクト選択</translation>
+    </message>
+    <message>
+        <source>Download the High Quality model for Object Selection?</source>
+        <translation>オブジェクト選択用の高品質モデルをダウンロードしますか？</translation>
+    </message>
+    <message>
+        <source>It finds objects much more accurately than the built-in model. The download is %1 MB from GitHub and is kept on this computer. You can switch models at any time on the Object Selection options bar.</source>
+        <translation>組み込みモデルよりもはるかに正確にオブジェクトを検出します。GitHub から %1 MB をダウンロードし、このコンピューターに保存します。モデルはオブジェクト選択のオプションバーでいつでも切り替えられます。</translation>
+    </message>
+    <message>
+        <source>Object Selection now uses the High Quality model</source>
+        <translation>オブジェクト選択で高品質モデルを使用するようになりました</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be downloaded: %1</source>
+        <translation>高品質モデルをダウンロードできませんでした: %1</translation>
+    </message>
+    <message>
+        <source>Download cancelled</source>
+        <translation>ダウンロードをキャンセルしました</translation>
+    </message>
+    <message>
+        <source>The High Quality model is not available in the web version</source>
+        <translation>高品質モデルは Web 版では利用できません</translation>
+    </message>
+    <message>
+        <source>Downloading the High Quality model... %1 of %2 MB</source>
+        <translation>高品質モデルをダウンロードしています... %1 / %2 MB</translation>
+    </message>
+    <message>
+        <source>the downloaded files are not where Patchy looks for them</source>
+        <translation>ダウンロードしたファイルが Patchy の参照する場所にありません</translation>
+    </message>
+    <message>
+        <source>Deletes the downloaded High Quality model. Object Selection then uses the built-in model; you can download it again from the tool&apos;s options bar.</source>
+        <translation>ダウンロードした高品質モデルを削除します。オブジェクト選択は組み込みモデルを使用するようになります。ツールのオプションバーからいつでも再ダウンロードできます。</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection model: downloaded (%1 MB)</source>
+        <translation>オブジェクト選択の高品質モデル: ダウンロード済み (%1 MB)</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection model: not downloaded</source>
+        <translation>オブジェクト選択の高品質モデル: 未ダウンロード</translation>
+    </message>
+    <message>
+        <source>Deleted the High Quality Object Selection model</source>
+        <translation>オブジェクト選択の高品質モデルを削除しました</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be deleted: %1</source>
+        <translation>高品質モデルを削除できませんでした: %1</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -21452,6 +21524,14 @@ Baked into images: %1.</source>
     <message>
         <source>The document changed during automatic selection.</source>
         <translation>自動選択の実行中にドキュメントが変更されました。</translation>
+    </message>
+    <message>
+        <source>The download was cancelled.</source>
+        <translation>ダウンロードはキャンセルされました。</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be downloaded: %1</source>
+        <translation>高品質モデルをダウンロードできませんでした: %1</translation>
     </message>
 </context>
 <context>

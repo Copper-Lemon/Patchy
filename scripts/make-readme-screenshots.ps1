@@ -90,6 +90,10 @@ function Set-RoundedWindowCorners {
 # Key = the README image base name; Script = the scene; Args = extra
 # --script-arg tokens; Fixture = skip the scene when this file is missing.
 $jsScenes = [ordered]@{
+    'object_select' = @{
+        Script = Join-Path $repo 'scripts\dev\readme-shots\object-select.js'
+        Args = @("photo=$(Join-Path $repo 'test-fixtures\readme\havana_vintage_car_cc0.jpg')")
+    }
     'plugin_kpt5' = @{
         Script = Join-Path $repo 'scripts\dev\readme-shots\plugin-kpt5.js'
         Args = @("photo=$(Join-Path $repo 'test-fixtures\readme\san_francisco_cityscape_cc0.jpg')")

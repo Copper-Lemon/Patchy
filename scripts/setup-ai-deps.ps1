@@ -35,9 +35,17 @@ $OrtWebLicenses = @{
   'LICENSE'               = '2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c'
   'ThirdPartyNotices.txt' = '143764b952fdb1a7c69ce653bfba74a7744d6a8a573bfb73e235fba356c83de3'
 }
-# The int8 models Patchy ships: converted from the pinned upstream fp32 files by
-# scripts/ai/quantize_models.py (byte-reproducible) and hosted on the ai-models-1 release.
+# The models Patchy ships: converted from the pinned upstream fp32 files by
+# scripts/ai/quantize_models.py (byte-reproducible) and hosted on the ai-models-N releases.
+# MobileSAM is what builds bundle. EfficientViT-SAM (ai-models-2) is Object Selection's High
+# Quality model: users download it in the app; dev trees fetch it so tests can stage it.
 $Models = @(
+  @{ Name = 'efficientvit_sam_xl0_encoder_fp16.onnx'
+     Url = 'https://github.com/SethRobinson/Patchy/releases/download/ai-models-2/efficientvit_sam_xl0_encoder_fp16.onnx'
+     Sha256 = 'a28cf6978672e202b597e948f71c09a31267ee947d26579f6ca290281e5bf101' },
+  @{ Name = 'efficientvit_sam_xl0_decoder_multi_fp16.onnx'
+     Url = 'https://github.com/SethRobinson/Patchy/releases/download/ai-models-2/efficientvit_sam_xl0_decoder_multi_fp16.onnx'
+     Sha256 = '632613ec55ebd52a72f0a1933c297ce67b8563ff2e970b0c2eea059373ba496b' },
   @{ Name = 'mobile_sam_image_encoder_int8.onnx'
      Url = 'https://github.com/SethRobinson/Patchy/releases/download/ai-models-1/mobile_sam_image_encoder_int8.onnx'
      Sha256 = '6af3f249f7a5a6a8a3ef988b6814015e8c3a300977c135d1f9572ed2f2930cd7' },

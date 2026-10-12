@@ -202,12 +202,18 @@ Copyright (c) Microsoft Corporation, MIT License. The page loads it from the
 
 ## Automatic selection models (desktop builds, and the two Object Selection models in the web build)
 
-Shipped in `ai-models/` (the web build's `ai-models/` folder holds only the two
-MobileSAM files) as int8 conversions Patchy made from the original float32
-files (`scripts/ai/quantize_models.py`; provenance and checksums in
+Shipped in `ai-models/` (the web build's folder holds only the two MobileSAM files; the
+EfficientViT-SAM files are downloaded on request into the user's data folder) as conversions Patchy made from the
+original float32 files (`scripts/ai/quantize_models.py`; provenance and checksums in
 `docs/ai-selection.md`; the license texts, including Apache License 2.0, and the
 modification notice are in `ai-models/MODEL-LICENSES.txt`, from `third_party/ai-models/`):
 
+- `efficientvit_sam_xl0_encoder_fp16.onnx`, `efficientvit_sam_xl0_decoder_multi_fp16.onnx`
+  (Object Selection's High Quality model, a desktop download): EfficientViT-SAM XL0 (MIT Han Lab,
+  https://github.com/mit-han-lab/efficientvit, Apache License 2.0), from the project's
+  own ONNX export (https://huggingface.co/mit-han-lab/efficientvit-sam), with the Segment
+  Anything prompt encoder and mask decoder (Meta Platforms, Inc., Apache License 2.0).
+  Weights stored as float16; the decoder outputs all four masks.
 - `mobile_sam_image_encoder_int8.onnx`, `sam_mask_decoder_multi_int8.onnx`: MobileSAM
   (Chaoning Zhang et al., https://github.com/ChaoningZhang/MobileSAM, Apache
   License 2.0) with the Segment Anything mask decoder (Meta Platforms, Inc.,
@@ -269,6 +275,13 @@ not part of any release package.
   https://commons.wikimedia.org/wiki/File:Cityscape_of_San_Francisco.jpg
   (SHA-256 `8B09FA97853316DC4C548C7A1631D4C0955148338DF7CA2E75BAA5BC576DDE0D`).
   It is used only to regenerate the README Tilt-Shift Blur screenshot.
+- `test-fixtures/readme/havana_vintage_car_cc0.jpg`: "Vintage car driving in Centro
+  Havana," photographed by Eva Blue (Unsplash, https://unsplash.com/photos/ppuYl-1noKc) and
+  published under the Creative Commons CC0 1.0 Universal Public Domain Dedication. The
+  exact Wikimedia Commons original was downloaded on 2026-10-12 from
+  https://commons.wikimedia.org/wiki/File:Vintage_car_driving_in_Centro_Havana_(Unsplash).jpg
+  (SHA-256 `90D61080598A430F12615282014CA47138CD04BDE3AE8185333E0530480A35D8`).
+  It is used only to regenerate the README Object Selection screenshot.
 - `test-fixtures/svg/hot_air_balloons_cc0.svg`: "Hot Air Balloon Scene," a
   vector illustration published under the Creative Commons CC0 1.0 Universal
   Public Domain Dedication (uploader OpenClipart). The exact file was

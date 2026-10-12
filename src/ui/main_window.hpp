@@ -224,6 +224,19 @@ public:
   // data-loss confirms). Set before opening files.
   void set_cli_automation_mode(bool enabled) { cli_automation_mode_ = enabled; }
   [[nodiscard]] bool unattended_automation() const;
+  // Object Selection's High Quality model (EfficientViT-SAM XL0, docs/ai-selection.md): a
+  // one-time download into the app-data folder (main_window_ai_selection.cpp). The offer
+  // asks once, the first time the tool is chosen on a desktop build without the model
+  // (never offscreen or unattended); choosing High Quality on the options bar asks again.
+  // The download runs under a window-modal progress dialog with Cancel, or with status-bar
+  // progress and `keep_alive` called while it waits when show_dialog is false (scripts).
+  // Returns true once the model is present; `error` stays empty after a cancel.
+  bool download_high_quality_object_selection_model(bool show_dialog, const std::function<void()>& keep_alive,
+                                                    QString* error);
+  // Preferences > Tools > Delete: frees the loaded sessions and deletes the downloaded High
+  // Quality files by name (delete_downloaded_high_quality_model). Object Selection falls back
+  // to Standard.
+  bool delete_high_quality_object_selection_model(QString* error);
 #ifndef Q_OS_WASM
   // Automatic document recovery (docs/document-recovery.md, main_window_recovery.cpp):
   // a timer writes a PSB copy of every modified document into this instance's
@@ -1408,6 +1421,9 @@ private:
   void remove_background();
   bool run_remove_background(QString* error);
   std::optional<patchy::ai::AiMask> compute_subject_matte(const QString& command, QString* error);
+  void maybe_offer_high_quality_object_selection_model();
+  bool offer_high_quality_object_selection_model();
+  void refresh_object_select_model_combo();
   // Variation continuity: a dialog opened again on the same selection (a
   // hash of the selection region) continues after the last variation it
   // showed instead of repeating variation 1; another selection starts fresh.
@@ -1980,6 +1996,7 @@ private:
   QCheckBox* crop_delete_layers_check_{nullptr};
   QPushButton* patch_remove_object_button_{nullptr};
   QCheckBox* object_select_sample_all_layers_check_{nullptr};
+  QComboBox* object_select_model_combo_{nullptr};
   QPushButton* select_subject_button_{nullptr};
   QPushButton* remove_background_button_{nullptr};
   QAction* select_subject_action_{nullptr};

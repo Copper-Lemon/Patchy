@@ -1,10 +1,22 @@
 Licenses for the automatic selection models shipped in ai-models/
 (provenance and checksums: docs/ai-selection.md in the Patchy source)
 
-Every model file is a modified version: Patchy converted the original float32 ONNX
-models to int8 (dynamic quantization of the MatMul/Gemm weights; for BiRefNet the
-weight-forwarding Identity nodes were also removed first). The conversion script is
-scripts/ai/quantize_models.py in the Patchy source.
+Every model file is a modified version of the original float32 ONNX models. The
+conversion script is scripts/ai/quantize_models.py in the Patchy source. The
+EfficientViT-SAM files store their weights as float16 (cast back to float32 when
+loaded), and the decoder outputs all four of its masks with their scores instead of
+only the best one. The others were converted to int8 (dynamic quantization of the
+MatMul/Gemm weights; for BiRefNet the weight-forwarding Identity nodes were also
+removed first).
+
+efficientvit_sam_xl0_encoder_fp16.onnx, efficientvit_sam_xl0_decoder_multi_fp16.onnx
+(Object Selection's High Quality model, downloaded on request by desktop builds)
+  EfficientViT-SAM XL0, MIT Han Lab, https://github.com/mit-han-lab/efficientvit,
+  Apache License 2.0; ONNX export from
+  https://huggingface.co/mit-han-lab/efficientvit-sam
+  Its prompt encoder and mask decoder are Segment Anything's, Copyright (c) Meta
+  Platforms, Inc. and affiliates, https://github.com/facebookresearch/segment-anything,
+  Apache License 2.0
 
 mobile_sam_image_encoder_int8.onnx, sam_mask_decoder_multi_int8.onnx
   MobileSAM, https://github.com/ChaoningZhang/MobileSAM, Apache License 2.0
@@ -42,7 +54,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 -------------------------------------------------------------------------------
-Apache License, Version 2.0 (MobileSAM, Segment Anything)
+Apache License, Version 2.0 (EfficientViT-SAM, MobileSAM, Segment Anything)
 
                               Apache License
                         Version 2.0, January 2004

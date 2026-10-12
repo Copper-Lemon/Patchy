@@ -48,7 +48,171 @@ float visible_logit(LogitMapping mapping) noexcept {
   return mapping == LogitMapping::SamEdgeRamp ? kSamVisibleLogit : kSigmoidVisibleLogit;
 }
 
+// A logit grid (grid_width x grid_height cells, rows `stride` floats apart) sampled
+// bilinearly at document pixel centers: document pixel x samples grid coordinate
+// (x + 0.5) * cells_per_pixel_x - 0.5, clamped to the grid. Maps to coverage and crops to
+// the covered bounds.
+AiMask mask_from_grid(const float* logits, std::int32_t grid_width, std::int32_t grid_height, std::size_t stride,
+                      double cells_per_pixel_x, double cells_per_pixel_y, std::int32_t document_width,
+                      std::int32_t document_height, LogitMapping mapping) {
+  AiMask mask;
+  if (logits == nullptr || grid_width <= 0 || grid_height <= 0 || document_width <= 0 || document_height <= 0 ||
+      cells_per_pixel_x <= 0.0 || cells_per_pixel_y <= 0.0) {
+    return mask;
+  }
+  const auto threshold = visible_logit(mapping);
+  std::int32_t min_mx = grid_width;
+  std::int32_t min_my = grid_height;
+  std::int32_t max_mx = -1;
+  std::int32_t max_my = -1;
+  for (std::int32_t my = 0; my < grid_height; ++my) {
+    const auto* row = logits + static_cast<std::size_t>(my) * stride;
+    for (std::int32_t mx = 0; mx < grid_width; ++mx) {
+      if (row[mx] > threshold) {
+        min_mx = std::min(min_mx, mx);
+        max_mx = std::max(max_mx, mx);
+        min_my = std::min(min_my, my);
+        max_my = std::max(max_my, my);
+      }
+    }
+  }
+  if (max_mx < 0) {
+    return mask;
+  }
+
+  // Only pixels whose sample lands within one cell of a visible sample can be covered.
+  const auto document_span = [](std::int32_t model_min, std::int32_t model_max, double scale,
+                                std::int32_t document_size) {
+    const auto first = static_cast<std::int32_t>(std::floor((model_min - 1 + 0.5) / scale - 0.5));
+    const auto last = static_cast<std::int32_t>(std::ceil((model_max + 1 + 0.5) / scale - 0.5));
+    return std::pair{std::clamp(first, 0, document_size - 1), std::clamp(last, 0, document_size - 1)};
+  };
+  const auto [x0, x1] = document_span(min_mx, max_mx, cells_per_pixel_x, document_width);
+  const auto [y0, y1] = document_span(min_my, max_my, cells_per_pixel_y, document_height);
+  const auto span_width = x1 - x0 + 1;
+  const auto span_height = y1 - y0 + 1;
+
+  // Per-column sample positions are shared by every row.
+  std::vector<std::int32_t> column_low(static_cast<std::size_t>(span_width));
+  std::vector<float> column_fraction(static_cast<std::size_t>(span_width));
+  for (std::int32_t i = 0; i < span_width; ++i) {
+    const auto sample =
+        std::clamp((x0 + i + 0.5) * cells_per_pixel_x - 0.5, 0.0, static_cast<double>(grid_width - 1));
+    const auto low = std::min(static_cast<std::int32_t>(sample), grid_width - 1);
+    column_low[static_cast<std::size_t>(i)] = low;
+    column_fraction[static_cast<std::size_t>(i)] = static_cast<float>(sample - low);
+  }
+
+  PixelBuffer coverage(span_width, span_height, PixelFormat::gray8());
+  std::int32_t min_x = span_width;
+  std::int32_t min_y = span_height;
+  std::int32_t max_x = -1;
+  std::int32_t max_y = -1;
+  for (std::int32_t j = 0; j < span_height; ++j) {
+    const auto sample =
+        std::clamp((y0 + j + 0.5) * cells_per_pixel_y - 0.5, 0.0, static_cast<double>(grid_height - 1));
+    const auto low = std::min(static_cast<std::int32_t>(sample), grid_height - 1);
+    const auto high = std::min(low + 1, grid_height - 1);
+    const auto fy = static_cast<float>(sample - low);
+    const auto* top = logits + static_cast<std::size_t>(low) * stride;
+    const auto* bottom = logits + static_cast<std::size_t>(high) * stride;
+    auto out = coverage.row(j);
+    for (std::int32_t i = 0; i < span_width; ++i) {
+      const auto lx = column_low[static_cast<std::size_t>(i)];
+      const auto hx = std::min(lx + 1, grid_width - 1);
+      const auto fx = column_fraction[static_cast<std::size_t>(i)];
+      const auto upper = top[lx] + (top[hx] - top[lx]) * fx;
+      const auto lower = bottom[lx] + (bottom[hx] - bottom[lx]) * fx;
+      const auto value = logit_to_coverage(upper + (lower - upper) * fy, mapping);
+      out[static_cast<std::size_t>(i)] = value;
+      if (value != 0U) {
+        min_x = std::min(min_x, i);
+        max_x = std::max(max_x, i);
+        min_y = std::min(min_y, j);
+        max_y = std::max(max_y, j);
+      }
+    }
+  }
+  if (max_x < 0) {
+    return mask;
+  }
+
+  mask.bounds = Rect{x0 + min_x, y0 + min_y, max_x - min_x + 1, max_y - min_y + 1};
+  if (mask.bounds.width == span_width && mask.bounds.height == span_height) {
+    mask.alpha = std::move(coverage);
+    return mask;
+  }
+  mask.alpha = PixelBuffer(mask.bounds.width, mask.bounds.height, PixelFormat::gray8());
+  for (std::int32_t j = 0; j < mask.bounds.height; ++j) {
+    const auto source = std::as_const(coverage).row(min_y + j);
+    std::memcpy(mask.alpha.row(j).data(), source.data() + min_x, static_cast<std::size_t>(mask.bounds.width));
+  }
+  return mask;
+}
+
 }  // namespace
+
+SamTransform sam_region_transform(Rect region) noexcept {
+  auto transform = sam_transform(region.width, region.height);
+  transform.origin_x = region.x;
+  transform.origin_y = region.y;
+  return transform;
+}
+
+std::optional<Rect> sam_box_region(Rect box, std::int32_t width, std::int32_t height) noexcept {
+  if (width <= 0 || height <= 0 || box.width <= 0 || box.height <= 0) {
+    return std::nullopt;
+  }
+  // 64-bit throughout: boxes and images are capped at 30000 pixels a side.
+  const std::int64_t longer = std::max(box.width, box.height);
+  const std::int64_t margin = std::max<std::int64_t>(kSamBoxMinimumMargin, longer * kSamBoxMarginPercent / 100);
+  std::int64_t left = box.x - margin;
+  std::int64_t top = box.y - margin;
+  std::int64_t right = static_cast<std::int64_t>(box.x) + box.width + margin;
+  std::int64_t bottom = static_cast<std::int64_t>(box.y) + box.height + margin;
+  // Widen a small region around its center, so a tiny object is not magnified past what
+  // the encoder can use.
+  const auto widen = [](std::int64_t& low, std::int64_t& high) {
+    const auto missing = kSamBoxMinimumRegion - (high - low);
+    if (missing > 0) {
+      low -= missing / 2;
+      high += missing - missing / 2;
+    }
+  };
+  widen(left, right);
+  widen(top, bottom);
+  left = std::max<std::int64_t>(left, 0);
+  top = std::max<std::int64_t>(top, 0);
+  right = std::min<std::int64_t>(right, width);
+  bottom = std::min<std::int64_t>(bottom, height);
+  if (left >= right || top >= bottom) {
+    return std::nullopt;
+  }
+  const auto area = (right - left) * (bottom - top);
+  if (area * 100 >= static_cast<std::int64_t>(width) * height * kSamBoxWholeImagePercent) {
+    return std::nullopt;
+  }
+  return Rect{static_cast<std::int32_t>(left), static_cast<std::int32_t>(top), static_cast<std::int32_t>(right - left),
+              static_cast<std::int32_t>(bottom - top)};
+}
+
+PixelBuffer crop_rgba(const PixelBuffer& rgba8, Rect region) {
+  require_rgba8(rgba8);
+  const auto left = std::clamp(region.x, 0, rgba8.width());
+  const auto top = std::clamp(region.y, 0, rgba8.height());
+  const auto right = std::clamp(region.x + region.width, left, rgba8.width());
+  const auto bottom = std::clamp(region.y + region.height, top, rgba8.height());
+  if (left == right || top == bottom) {
+    throw std::invalid_argument("automatic selection: the region is outside the image");
+  }
+  PixelBuffer crop(right - left, bottom - top, PixelFormat::rgba8());
+  for (auto y = top; y < bottom; ++y) {
+    const auto source = rgba8.row(y);
+    std::memcpy(crop.row(y - top).data(), source.data() + static_cast<std::size_t>(left) * 4U,
+                static_cast<std::size_t>(right - left) * 4U);
+  }
+  return crop;
+}
 
 SamTransform sam_transform(std::int32_t source_width, std::int32_t source_height) noexcept {
   SamTransform transform;
@@ -64,7 +228,8 @@ SamTransform sam_transform(std::int32_t source_width, std::int32_t source_height
 }
 
 SamPoint to_sam_point(const SamTransform& transform, double x, double y) noexcept {
-  return SamPoint{static_cast<float>(x * transform.scale), static_cast<float>(y * transform.scale)};
+  return SamPoint{static_cast<float>((x - transform.origin_x) * transform.scale),
+                  static_cast<float>((y - transform.origin_y) * transform.scale)};
 }
 
 std::vector<float> sam_encoder_input(const PixelBuffer& rgba8, const SamTransform& transform) {
@@ -80,6 +245,27 @@ std::vector<float> sam_encoder_input(const PixelBuffer& rgba8, const SamTransfor
       *out++ = over_white(pixel[0], pixel[3]);
       *out++ = over_white(pixel[1], pixel[3]);
       *out++ = over_white(pixel[2], pixel[3]);
+    }
+  }
+  return input;
+}
+
+std::vector<float> padded_sam_encoder_input(const PixelBuffer& rgba8, const SamTransform& transform) {
+  require_rgba8(rgba8);
+  const auto resized = resized_rgba(rgba8, transform.scaled_width, transform.scaled_height);
+  const auto plane = static_cast<std::size_t>(kSamInputSize) * static_cast<std::size_t>(kSamInputSize);
+  // Zero after normalization is the mean color, what the reference pipeline pads with.
+  std::vector<float> input(plane * 3U, 0.0F);
+  for (std::int32_t y = 0; y < resized.height(); ++y) {
+    const auto row = resized.row(y);
+    const auto offset = static_cast<std::size_t>(y) * static_cast<std::size_t>(kSamInputSize);
+    for (std::int32_t x = 0; x < resized.width(); ++x) {
+      const auto* pixel = row.data() + static_cast<std::size_t>(x) * 4U;
+      for (std::size_t channel = 0; channel < 3U; ++channel) {
+        const auto value = over_white(pixel[channel], pixel[3]) / 255.0F;
+        input[channel * plane + offset + static_cast<std::size_t>(x)] =
+            (value - kImageNetMean[channel]) / kImageNetStd[channel];
+      }
     }
   }
   return input;
@@ -118,98 +304,32 @@ std::uint8_t logit_to_coverage(float logit, LogitMapping mapping) noexcept {
 AiMask document_mask_from_logits(const float* logits, std::int32_t model_width, std::int32_t model_height,
                                  std::int32_t document_width, std::int32_t document_height,
                                  LogitMapping mapping) {
-  AiMask mask;
-  if (logits == nullptr || model_width <= 0 || model_height <= 0 || document_width <= 0 ||
-      document_height <= 0) {
-    return mask;
+  if (document_width <= 0 || document_height <= 0) {
+    return {};
   }
-  const auto threshold = visible_logit(mapping);
-  std::int32_t min_mx = model_width;
-  std::int32_t min_my = model_height;
-  std::int32_t max_mx = -1;
-  std::int32_t max_my = -1;
-  for (std::int32_t my = 0; my < model_height; ++my) {
-    const auto* row = logits + static_cast<std::size_t>(my) * static_cast<std::size_t>(model_width);
-    for (std::int32_t mx = 0; mx < model_width; ++mx) {
-      if (row[mx] > threshold) {
-        min_mx = std::min(min_mx, mx);
-        max_mx = std::max(max_mx, mx);
-        min_my = std::min(min_my, my);
-        max_my = std::max(max_my, my);
-      }
-    }
-  }
-  if (max_mx < 0) {
-    return mask;
-  }
+  return mask_from_grid(logits, model_width, model_height, static_cast<std::size_t>(std::max(model_width, 0)),
+                        static_cast<double>(model_width) / static_cast<double>(document_width),
+                        static_cast<double>(model_height) / static_cast<double>(document_height), document_width,
+                        document_height, mapping);
+}
 
-  // Document pixel x samples the grid at (x + 0.5) * model / document - 0.5; only pixels
-  // whose sample lands within one cell of a visible sample can be covered.
-  const double scale_x = static_cast<double>(model_width) / static_cast<double>(document_width);
-  const double scale_y = static_cast<double>(model_height) / static_cast<double>(document_height);
-  const auto document_span = [](std::int32_t model_min, std::int32_t model_max, double scale,
-                                std::int32_t document_size) {
-    const auto first = static_cast<std::int32_t>(std::floor((model_min - 1 + 0.5) / scale - 0.5));
-    const auto last = static_cast<std::int32_t>(std::ceil((model_max + 1 + 0.5) / scale - 0.5));
-    return std::pair{std::clamp(first, 0, document_size - 1), std::clamp(last, 0, document_size - 1)};
+AiMask document_mask_from_low_res_logits(const float* logits, const SamTransform& transform) {
+  // The grid covers the padded 1024 frame at 4 frame pixels a cell; only the cells over the
+  // scaled image hold the image.
+  constexpr double kFramePixelsPerCell = static_cast<double>(kSamInputSize) / kSamLowResSize;
+  const auto used = [](std::int32_t scaled) {
+    return std::clamp(static_cast<std::int32_t>(std::ceil(scaled / kFramePixelsPerCell)), 1, kSamLowResSize);
   };
-  const auto [x0, x1] = document_span(min_mx, max_mx, scale_x, document_width);
-  const auto [y0, y1] = document_span(min_my, max_my, scale_y, document_height);
-  const auto span_width = x1 - x0 + 1;
-  const auto span_height = y1 - y0 + 1;
+  const auto cells_per_pixel = transform.scale / kFramePixelsPerCell;
+  return mask_from_grid(logits, used(transform.scaled_width), used(transform.scaled_height),
+                        static_cast<std::size_t>(kSamLowResSize), cells_per_pixel, cells_per_pixel,
+                        transform.source_width, transform.source_height, LogitMapping::SamEdgeRamp);
+}
 
-  // Per-column sample positions are shared by every row.
-  std::vector<std::int32_t> column_low(static_cast<std::size_t>(span_width));
-  std::vector<float> column_fraction(static_cast<std::size_t>(span_width));
-  for (std::int32_t i = 0; i < span_width; ++i) {
-    const auto sample = std::clamp((x0 + i + 0.5) * scale_x - 0.5, 0.0, static_cast<double>(model_width - 1));
-    const auto low = std::min(static_cast<std::int32_t>(sample), model_width - 1);
-    column_low[static_cast<std::size_t>(i)] = low;
-    column_fraction[static_cast<std::size_t>(i)] = static_cast<float>(sample - low);
-  }
-
-  PixelBuffer coverage(span_width, span_height, PixelFormat::gray8());
-  std::int32_t min_x = span_width;
-  std::int32_t min_y = span_height;
-  std::int32_t max_x = -1;
-  std::int32_t max_y = -1;
-  for (std::int32_t j = 0; j < span_height; ++j) {
-    const auto sample = std::clamp((y0 + j + 0.5) * scale_y - 0.5, 0.0, static_cast<double>(model_height - 1));
-    const auto low = std::min(static_cast<std::int32_t>(sample), model_height - 1);
-    const auto high = std::min(low + 1, model_height - 1);
-    const auto fy = static_cast<float>(sample - low);
-    const auto* top = logits + static_cast<std::size_t>(low) * static_cast<std::size_t>(model_width);
-    const auto* bottom = logits + static_cast<std::size_t>(high) * static_cast<std::size_t>(model_width);
-    auto out = coverage.row(j);
-    for (std::int32_t i = 0; i < span_width; ++i) {
-      const auto lx = column_low[static_cast<std::size_t>(i)];
-      const auto hx = std::min(lx + 1, model_width - 1);
-      const auto fx = column_fraction[static_cast<std::size_t>(i)];
-      const auto upper = top[lx] + (top[hx] - top[lx]) * fx;
-      const auto lower = bottom[lx] + (bottom[hx] - bottom[lx]) * fx;
-      const auto value = logit_to_coverage(upper + (lower - upper) * fy, mapping);
-      out[static_cast<std::size_t>(i)] = value;
-      if (value != 0U) {
-        min_x = std::min(min_x, i);
-        max_x = std::max(max_x, i);
-        min_y = std::min(min_y, j);
-        max_y = std::max(max_y, j);
-      }
-    }
-  }
-  if (max_x < 0) {
-    return mask;
-  }
-
-  mask.bounds = Rect{x0 + min_x, y0 + min_y, max_x - min_x + 1, max_y - min_y + 1};
-  if (mask.bounds.width == span_width && mask.bounds.height == span_height) {
-    mask.alpha = std::move(coverage);
-    return mask;
-  }
-  mask.alpha = PixelBuffer(mask.bounds.width, mask.bounds.height, PixelFormat::gray8());
-  for (std::int32_t j = 0; j < mask.bounds.height; ++j) {
-    const auto source = std::as_const(coverage).row(min_y + j);
-    std::memcpy(mask.alpha.row(j).data(), source.data() + min_x, static_cast<std::size_t>(mask.bounds.width));
+AiMask translated_mask(AiMask mask, std::int32_t dx, std::int32_t dy) noexcept {
+  if (!mask.empty()) {
+    mask.bounds.x += dx;
+    mask.bounds.y += dy;
   }
   return mask;
 }

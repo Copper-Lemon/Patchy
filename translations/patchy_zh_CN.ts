@@ -19851,6 +19851,78 @@ Baked into images: %1.</source>
         <source>Metadata removed; the file changes the next time you save.</source>
         <translation>元数据已移除，文件将在下次保存时更改。</translation>
     </message>
+    <message>
+        <source>Model:</source>
+        <translation>模型:</translation>
+    </message>
+    <message>
+        <source>Standard</source>
+        <translation>标准</translation>
+    </message>
+    <message>
+        <source>High Quality</source>
+        <translation>高质量</translation>
+    </message>
+    <message>
+        <source>Standard is built in. High Quality finds objects more accurately and is downloaded once.</source>
+        <translation>标准模型为内置模型。高质量模型能更准确地找到对象，只需下载一次。</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection</source>
+        <translation>高质量对象选择</translation>
+    </message>
+    <message>
+        <source>Download the High Quality model for Object Selection?</source>
+        <translation>要下载对象选择的高质量模型吗？</translation>
+    </message>
+    <message>
+        <source>It finds objects much more accurately than the built-in model. The download is %1 MB from GitHub and is kept on this computer. You can switch models at any time on the Object Selection options bar.</source>
+        <translation>它找到对象的准确度远高于内置模型。将从 GitHub 下载 %1 MB，并保存在这台电脑上。你可以随时在对象选择的选项栏中切换模型。</translation>
+    </message>
+    <message>
+        <source>Object Selection now uses the High Quality model</source>
+        <translation>对象选择现在使用高质量模型</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be downloaded: %1</source>
+        <translation>无法下载高质量模型：%1</translation>
+    </message>
+    <message>
+        <source>Download cancelled</source>
+        <translation>下载已取消</translation>
+    </message>
+    <message>
+        <source>The High Quality model is not available in the web version</source>
+        <translation>网页版不提供高质量模型</translation>
+    </message>
+    <message>
+        <source>Downloading the High Quality model... %1 of %2 MB</source>
+        <translation>正在下载高质量模型... %1 / %2 MB</translation>
+    </message>
+    <message>
+        <source>the downloaded files are not where Patchy looks for them</source>
+        <translation>下载的文件不在 Patchy 查找的位置</translation>
+    </message>
+    <message>
+        <source>Deletes the downloaded High Quality model. Object Selection then uses the built-in model; you can download it again from the tool&apos;s options bar.</source>
+        <translation>删除已下载的高质量模型。之后对象选择将使用内置模型；你可以随时在该工具的选项栏中重新下载。</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection model: downloaded (%1 MB)</source>
+        <translation>对象选择高质量模型：已下载（%1 MB）</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection model: not downloaded</source>
+        <translation>对象选择高质量模型：未下载</translation>
+    </message>
+    <message>
+        <source>Deleted the High Quality Object Selection model</source>
+        <translation>已删除对象选择高质量模型</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be deleted: %1</source>
+        <translation>无法删除高质量模型：%1</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -21452,6 +21524,14 @@ Baked into images: %1.</source>
     <message>
         <source>The document changed during automatic selection.</source>
         <translation>自动选择期间文档已更改。</translation>
+    </message>
+    <message>
+        <source>The download was cancelled.</source>
+        <translation>下载已取消。</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be downloaded: %1</source>
+        <translation>无法下载高质量模型：%1</translation>
     </message>
 </context>
 <context>

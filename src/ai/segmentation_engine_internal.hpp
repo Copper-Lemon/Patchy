@@ -22,9 +22,13 @@ inline constexpr std::int64_t kDecoderMaskCount = 4;
 inline constexpr std::int64_t kDecoderLowResSize = 256;
 
 // Pinned by scripts/setup-ai-deps.* (docs/ai-selection.md lists provenance and licenses): the
-// int8 conversions made by scripts/ai/quantize_models.py.
-inline constexpr const char* kSamEncoderFile = "mobile_sam_image_encoder_int8.onnx";
-inline constexpr const char* kSamDecoderFile = "sam_mask_decoder_multi_int8.onnx";
+// conversions made by scripts/ai/quantize_models.py. Desktop builds run EfficientViT-SAM XL0
+// (float16 weights); the web build runs MobileSAM (int8), a much smaller first-use download.
+// Both decoders are SAM's: same prompts, four masks with predicted IoUs, no mask input.
+inline constexpr const char* kEfficientSamEncoderFile = "efficientvit_sam_xl0_encoder_fp16.onnx";
+inline constexpr const char* kEfficientSamDecoderFile = "efficientvit_sam_xl0_decoder_multi_fp16.onnx";
+inline constexpr const char* kMobileSamEncoderFile = "mobile_sam_image_encoder_int8.onnx";
+inline constexpr const char* kMobileSamDecoderFile = "sam_mask_decoder_multi_int8.onnx";
 inline constexpr const char* kSubjectModelFile = "birefnet_lite_general_1024_int8.onnx";
 
 // Exactly one prompt for one decoder run: a single positive point plus SAM's padding point,
@@ -41,5 +45,16 @@ struct SamDecoderPrompt {
 
 // The output with the highest predicted IoU among first_candidate..kDecoderMaskCount-1.
 [[nodiscard]] std::int64_t best_sam_candidate(const float* scores, std::int64_t first_candidate) noexcept;
+
+// Where a HighQuality model file is: the downloaded models folder when the file is there,
+// otherwise beside the bundled models.
+[[nodiscard]] std::filesystem::path high_quality_model_path(const char* file);
+
+// Each engine's two network steps; segmentation_engine_common.cpp builds the public calls on
+// them. encode_frame encodes an image already cropped to the encoded region (the caller sets
+// the transform's origin). decode_prompt is one decoder run from one prompt and returns the
+// chosen mask in the encoded region's coordinates.
+[[nodiscard]] std::shared_ptr<SamEmbedding> encode_frame(const PixelBuffer& rgba8, InferenceCancel* cancel);
+[[nodiscard]] AiMask decode_prompt(const SamEmbedding& embedding, const SamDecoderPrompt& prompt);
 
 }  // namespace patchy::ai

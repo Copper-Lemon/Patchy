@@ -1138,6 +1138,10 @@ void MainWindow::build_tool_palette(ActionBuildContext& ctx) {
     } else {
       statusBar()->showMessage(tool_name(selected));
     }
+    if (selected == CanvasTool::ObjectSelect) {
+      // After the switch has painted: a one-time offer of the High Quality model.
+      QTimer::singleShot(0, this, [this] { maybe_offer_high_quality_object_selection_model(); });
+    }
   });
   ctx.type_menu->addAction(type_tool_action_);
 

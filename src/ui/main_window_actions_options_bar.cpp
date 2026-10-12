@@ -11,6 +11,7 @@
 #include "ui/main_window_actions_internal.hpp"
 
 #include "ai/segmentation_engine.hpp"
+#include "ui/object_selection_model_download.hpp"
 
 #include "core/blend_math.hpp"
 #include "core/layer_metadata.hpp"
@@ -2399,6 +2400,42 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
       refresh_document_info();
     }
   });
+#if !defined(Q_OS_WASM)
+  // The model Object Selection runs (docs/ai-selection.md): the bundled Standard model, or
+  // the High Quality model once downloaded. Choosing High Quality offers the download.
+  configure_automatic_selection_models();
+  if (patchy::ai::segmentation_available()) {
+    add_option_label(QT_TR_NOOP("Model:"), {CanvasTool::ObjectSelect});
+    object_select_model_combo_ = new QComboBox(toolbar);
+    object_select_model_combo_->setObjectName(QStringLiteral("objectSelectModelCombo"));
+    object_select_model_combo_->addItems({tr("Standard"), tr("High Quality")});
+    QPointer<QComboBox> model_combo(object_select_model_combo_);
+    register_retranslation([model_combo] {
+      if (model_combo == nullptr || model_combo->count() < 2) {
+        return;
+      }
+      QSignalBlocker blocker(model_combo);
+      model_combo->setItemText(0, MainWindow::tr("Standard"));
+      model_combo->setItemText(1, MainWindow::tr("High Quality"));
+    });
+    bind_tooltip(object_select_model_combo_,
+                 QT_TRANSLATE_NOOP("patchy::ui::MainWindow",
+                                   "Standard is built in. High Quality finds objects more accurately and is "
+                                   "downloaded once."));
+    add_option_widget(object_select_model_combo_, {CanvasTool::ObjectSelect});
+    refresh_object_select_model_combo();
+    connect(object_select_model_combo_, &QComboBox::activated, this, [this](int index) {
+      if (index == 0) {
+        set_object_selection_high_quality_setting(false);
+      } else if (patchy::ai::high_quality_model_available()) {
+        set_object_selection_high_quality_setting(true);
+      } else {
+        offer_high_quality_object_selection_model();
+      }
+      refresh_object_select_model_combo();
+    });
+  }
+#endif
   select_subject_button_ = new QPushButton(tr("Select Subject"), toolbar);
   select_subject_button_->setObjectName(QStringLiteral("selectSubjectButton"));
   bind_widget_text(select_subject_button_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Select Subject"));

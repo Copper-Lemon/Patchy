@@ -28,6 +28,13 @@ public:
     return window.document();
   }
 
+  // The High Quality Object Selection model offer (main_window_ai_selection.cpp).
+  static bool offer_high_quality_object_selection_model(MainWindow& window) {
+    return window.offer_high_quality_object_selection_model();
+  }
+
+  static void show_preferences(MainWindow& window) { window.show_preferences(); }
+
   // The historical startup document (startup now opens an empty workspace):
   // show_window creates one so pre-existing tests keep their canvas.
   static void create_default_document(MainWindow& window) {

@@ -90,7 +90,11 @@ Click any image to inspect it at full size. These are captures of the real edito
     </td>
 </tr>
 <tr>
-<td align="center" valign="top" colspan="2">
+<td align="center" valign="top" width="50%">
+      <a href="images/screenshots/object_select.png"><img src="images/screenshots/object_select.png" width="430" alt="Object Selection tool with a vintage car selected in a busy Havana street, the rest of the photo muted by layers filled through the inverted selection"></a>
+      <br><sub>Object Selection: one loose box drag picks out the car from a busy street, wheels and mirrors included, on the CPU with the High Quality model</sub>
+    </td>
+<td align="center" valign="top" width="50%">
       <a href="images/screenshots/script_options.png"><img src="images/screenshots/script_options.png" width="430" alt="Duotone script options dialog with instructions, shadow and highlight color fields, and a contrast slider over a photo already remapped to navy and amber"></a>
       <br><sub>Scripts ask with real options dialogs; the same script runs unattended from the command line with the same defaults</sub>
     </td>

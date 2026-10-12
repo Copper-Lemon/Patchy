@@ -1,6 +1,6 @@
 #pragma once
 
-// Automatic selection inference (docs/ai-selection.md): MobileSAM for the Object
+// Automatic selection inference (docs/ai-selection.md): EfficientViT-SAM XL0 for the Object
 // Selection tool and BiRefNet for Select > Subject, both on ONNX Runtime's CPU provider.
 // The threaded wasm app runs MobileSAM in the page's onnxruntime-web instead
 // (segmentation_engine_web.cpp); there every inference call must run off the main thread.
@@ -10,10 +10,13 @@
 // Patent boundary (binding; see the "Automatic selection" bullet in
 // docs/legal-constraints.md): every call below is ONE network solve from ONE prompt.
 // Never send a negative point (US 11314982), never combine a box with points in one solve
-// (US 11568627), never feed a previous mask back into the decoder (US 11676279: the
-// decoder's mask_input is always zero with has_mask_input 0), and Select Subject runs one
-// pass over the whole image with no network-located crop or second pass (US 11244195).
-// Callers combine results with plain selection booleans only.
+// (US 11568627), never feed a previous mask back into the decoder (US 11676279: MobileSAM's
+// mask_input is always zero with has_mask_input 0, and the EfficientViT-SAM decoder has no
+// mask input), and Select Subject runs one pass over the whole image with no
+// network-located crop or second pass (US 11244195). Zoom-to-box encodes the region
+// sam_box_region derives from the user's own box by fixed geometry, once per box, and
+// decodes that box once: never a region a network located, never a second pass over a
+// result. Callers combine results with plain selection booleans only.
 
 #include "ai/ai_selection_math.hpp"
 
@@ -75,7 +78,7 @@ private:
 void set_model_directory(const std::filesystem::path& directory);
 [[nodiscard]] std::filesystem::path model_directory();
 
-// True when this build has ONNX Runtime and the Object Selection model files are present.
+// True when this build has ONNX Runtime and an Object Selection model's files are present.
 [[nodiscard]] bool segmentation_available();
 // English diagnostic for logs and script errors when unavailable; empty when available.
 [[nodiscard]] std::string segmentation_unavailable_reason();
@@ -86,17 +89,50 @@ void set_model_directory(const std::filesystem::path& directory);
 // model is held back pending patent review (US 12051225, docs/legal-constraints.md).
 [[nodiscard]] bool subject_selection_available();
 
-// The MobileSAM image embedding of one image. Computing it is the expensive step
-// (about 0.2-0.8 s on a desktop CPU); each prompt afterwards is a fast decoder run.
+// The two Object Selection models (docs/ai-selection.md). Standard is MobileSAM, bundled
+// with every build that has automatic selection (and the only one in the web build).
+// HighQuality is EfficientViT-SAM XL0, a 234 MB download desktop users opt into; it runs
+// only when its files are present and the user's setting allows it. Which model runs is
+// the user's choice, never derived from image content (patent boundary above: no automatic
+// choice between models).
+enum class SamModel {
+  Standard,
+  HighQuality
+};
+
+// Where downloaded models live (the per-user app-data folder; empty until set). HighQuality's
+// files are looked up there first, then beside the bundled models (a build tree or a
+// packager may stage them there). Thread-safe.
+void set_downloaded_model_directory(const std::filesystem::path& directory);
+[[nodiscard]] std::filesystem::path downloaded_model_directory();
+// True when HighQuality's files are present. Always false in the web build.
+[[nodiscard]] bool high_quality_model_available();
+// The user's setting: whether HighQuality runs once it is available (default true).
+void set_high_quality_model_enabled(bool enabled);
+[[nodiscard]] bool high_quality_model_enabled();
+// The model the next sam_encode uses: HighQuality when available and enabled.
+[[nodiscard]] SamModel active_sam_model();
+
+// The SAM image embedding of one image or one region of it, and the model that made it
+// (decoding uses that model's decoder). Computing it is the expensive step (about 1.5 s for
+// EfficientViT-SAM XL0 on a fast desktop CPU, 0.3-1 s for MobileSAM); each prompt
+// afterwards is a fast decoder run.
 struct SamEmbedding {
   std::vector<float> values;
   SamTransform transform;
+  SamModel model{SamModel::Standard};
 };
 
 // Encodes an RGBA8 image (composited over white). Throws InferenceCancelled on cancel and
 // std::runtime_error when the model cannot run.
 [[nodiscard]] std::shared_ptr<const SamEmbedding> sam_encode(const PixelBuffer& rgba8,
                                                              InferenceCancel* cancel = nullptr);
+
+// Encodes only `region` (document coordinates, clamped to the image) at the encoder's full
+// resolution: zoom-to-box, with the region from sam_box_region. Prompts and results stay in
+// document coordinates.
+[[nodiscard]] std::shared_ptr<const SamEmbedding> sam_encode_region(const PixelBuffer& rgba8, Rect region,
+                                                                    InferenceCancel* cancel = nullptr);
 
 // One positive point (document coordinates) -> the object under it: one decoder run, the
 // multimask output with the highest predicted IoU.
@@ -112,8 +148,9 @@ struct SamEmbedding {
 [[nodiscard]] AiMask subject_matte(const PixelBuffer& rgba8, InferenceCancel* cancel = nullptr);
 
 // Progress of a model download the running inference waits on, in permille, or -1 when
-// nothing is downloading. Only the web engine downloads (on first use); desktop builds ship
-// the models beside the executable and always return -1.
+// nothing is downloading. Only the web engine downloads on first use; desktop builds ship
+// their bundled models beside the executable (the High Quality model's download is the app's
+// own, before any run) and always return -1.
 [[nodiscard]] int model_download_permille() noexcept;
 
 // Frees the loaded sessions (they reload on next use). The subject model is the large one
@@ -121,5 +158,8 @@ struct SamEmbedding {
 // Select Subject is faster, and the app frees it after a while idle.
 void release_models();
 void release_subject_model();
+// Frees only the High Quality model's sessions (before its files are deleted). A run in
+// progress keeps its own reference and finishes normally.
+void release_high_quality_model();
 
 }  // namespace patchy::ai

@@ -53,6 +53,8 @@
 #include "ui/qt_paths.hpp"
 #include "ui/font_picker.hpp"
 #include "ui/hotkey_editor.hpp"
+#include "ui/object_selection_model_download.hpp"
+#include "ai/segmentation_engine.hpp"
 #include "ui/script_folders.hpp"
 #include "ui/edit_conversions.hpp"
 #include "ui/color_panel.hpp"
@@ -1047,6 +1049,45 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
   transform_snap_check->setChecked(snap_transforms_to_pixel_grid_);
   tools_form->addRow(transform_snap_check);
   tools_layout->addWidget(tools_group);
+#if !defined(Q_OS_WASM)
+  // Object Selection's downloaded High Quality model (docs/ai-selection.md): its status and a
+  // way to delete it (exactly its own files; Object Selection falls back to Standard).
+  configure_automatic_selection_models();
+  if (patchy::ai::segmentation_available()) {
+    auto* model_group = new QFrame(tools_page);
+    model_group->setObjectName(QStringLiteral("preferencesObjectSelectionModelGroup"));
+    configure_panel(model_group);
+    auto* model_layout = new QHBoxLayout(model_group);
+    auto* model_status = new QLabel(model_group);
+    model_status->setObjectName(QStringLiteral("preferencesObjectSelectionModelStatus"));
+    model_status->setWordWrap(true);
+    auto* delete_model_button = new QPushButton(tr("Delete"), model_group);
+    delete_model_button->setObjectName(QStringLiteral("preferencesDeleteObjectSelectionModelButton"));
+    delete_model_button->setToolTip(tr("Deletes the downloaded High Quality model. Object Selection then uses the "
+                                       "built-in model; you can download it again from the tool's options bar."));
+    model_layout->addWidget(model_status, 1);
+    model_layout->addWidget(delete_model_button);
+    const auto refresh_model_status = [model_status, delete_model_button] {
+      const bool present = downloaded_high_quality_model_present(downloaded_models_folder());
+      model_status->setText(
+          present ? tr("High Quality Object Selection model: downloaded (%1 MB)")
+                        .arg(static_cast<int>((high_quality_model_download_bytes() + 500000) / 1000000))
+                  : tr("High Quality Object Selection model: not downloaded"));
+      delete_model_button->setEnabled(present);
+    };
+    refresh_model_status();
+    connect(delete_model_button, &QPushButton::clicked, &dialog, [this, refresh_model_status] {
+      QString error;
+      if (delete_high_quality_object_selection_model(&error)) {
+        statusBar()->showMessage(tr("Deleted the High Quality Object Selection model"));
+      } else {
+        show_status_error(tr("The High Quality model could not be deleted: %1").arg(error));
+      }
+      refresh_model_status();
+    });
+    tools_layout->addWidget(model_group);
+  }
+#endif
   tools_layout->addStretch(1);
   tabs->addTab(tools_page, tr("Tools"));
 

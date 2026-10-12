@@ -19965,6 +19965,78 @@ Y: %2
         <source>Metadata removed; the file changes the next time you save.</source>
         <translation>Usunięto metadane; plik zmieni się przy następnym zapisie.</translation>
     </message>
+    <message>
+        <source>Model:</source>
+        <translation>Model:</translation>
+    </message>
+    <message>
+        <source>Standard</source>
+        <translation>Standardowy</translation>
+    </message>
+    <message>
+        <source>High Quality</source>
+        <translation>Wysoka jakość</translation>
+    </message>
+    <message>
+        <source>Standard is built in. High Quality finds objects more accurately and is downloaded once.</source>
+        <translation>Model standardowy jest wbudowany. Wysoka jakość dokładniej wykrywa obiekty i jest pobierana jednorazowo.</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection</source>
+        <translation>Zaznaczanie obiektu w wysokiej jakości</translation>
+    </message>
+    <message>
+        <source>Download the High Quality model for Object Selection?</source>
+        <translation>Pobrać model wysokiej jakości do zaznaczania obiektu?</translation>
+    </message>
+    <message>
+        <source>It finds objects much more accurately than the built-in model. The download is %1 MB from GitHub and is kept on this computer. You can switch models at any time on the Object Selection options bar.</source>
+        <translation>Znajduje obiekty znacznie dokładniej niż wbudowany model. Pobieranie ma %1 MB z serwisu GitHub, a plik zostaje na tym komputerze. Model można zmienić w dowolnej chwili na pasku opcji zaznaczania obiektu.</translation>
+    </message>
+    <message>
+        <source>Object Selection now uses the High Quality model</source>
+        <translation>Zaznaczanie obiektu używa teraz modelu wysokiej jakości</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be downloaded: %1</source>
+        <translation>Nie udało się pobrać modelu wysokiej jakości: %1</translation>
+    </message>
+    <message>
+        <source>Download cancelled</source>
+        <translation>Pobieranie anulowane</translation>
+    </message>
+    <message>
+        <source>The High Quality model is not available in the web version</source>
+        <translation>Model wysokiej jakości nie jest dostępny w wersji internetowej</translation>
+    </message>
+    <message>
+        <source>Downloading the High Quality model... %1 of %2 MB</source>
+        <translation>Pobieranie modelu wysokiej jakości... %1 z %2 MB</translation>
+    </message>
+    <message>
+        <source>the downloaded files are not where Patchy looks for them</source>
+        <translation>pobrane pliki nie znajdują się tam, gdzie Patchy ich szuka</translation>
+    </message>
+    <message>
+        <source>Deletes the downloaded High Quality model. Object Selection then uses the built-in model; you can download it again from the tool&apos;s options bar.</source>
+        <translation>Usuwa pobrany model wysokiej jakości. Zaznaczanie obiektu będzie wtedy używać wbudowanego modelu; można go ponownie pobrać z paska opcji narzędzia.</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection model: downloaded (%1 MB)</source>
+        <translation>Model wysokiej jakości do zaznaczania obiektu: pobrany (%1 MB)</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection model: not downloaded</source>
+        <translation>Model wysokiej jakości do zaznaczania obiektu: niepobrany</translation>
+    </message>
+    <message>
+        <source>Deleted the High Quality Object Selection model</source>
+        <translation>Usunięto model wysokiej jakości do zaznaczania obiektu</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be deleted: %1</source>
+        <translation>Nie udało się usunąć modelu wysokiej jakości: %1</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -21568,6 +21640,14 @@ Y: %2
     <message>
         <source>The document changed during automatic selection.</source>
         <translation>Dokument zmienił się podczas automatycznego zaznaczania.</translation>
+    </message>
+    <message>
+        <source>The download was cancelled.</source>
+        <translation>Pobieranie zostało anulowane.</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be downloaded: %1</source>
+        <translation>Nie udało się pobrać modelu wysokiej jakości: %1</translation>
     </message>
 </context>
 <context>

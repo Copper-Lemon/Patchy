@@ -1,7 +1,7 @@
 // The Object Selection tool and the shared automatic-selection combine
-// (docs/ai-selection.md). The drag shows only a plain rectangle outline; MobileSAM solves
-// once on release from one prompt, the dragged box or the clicked point, and the mask
-// combines with the selection by plain boolean. Read the patent boundary in
+// (docs/ai-selection.md). The drag shows only a plain rectangle outline; SAM solves once on
+// release from one prompt, the dragged box or the clicked point, and the mask combines with
+// the selection by plain boolean. Read the patent boundary in
 // src/ai/segmentation_engine.hpp before changing how prompts or modes reach the network:
 // no negative points, no box plus points in one solve, no previous mask fed back, and no
 // hover preview (US 8050498 and Adobe's allowed hover-preview application).
@@ -158,6 +158,7 @@ void CanvasWidget::invalidate_object_select_embedding() noexcept {
   // The worker owns its promise; dropping our shared_future never blocks.
   object_select_embedding_key_.reset();
   object_select_embedding_ = {};
+  object_select_encode_cancel_.reset();
   object_select_embedding_unverified_ = false;
 }
 
@@ -171,6 +172,8 @@ void CanvasWidget::ensure_object_select_embedding() {
   }
   ObjectSelectEmbeddingKey key;
   key.sample_all_layers = object_select_sample_all_layers_;
+  // An embedding only decodes with its own model's decoder: a model switch re-encodes.
+  key.high_quality = patchy::ai::active_sam_model() == patchy::ai::SamModel::HighQuality;
   if (!object_select_sample_all_layers_) {
     select_only_layer_if_none_active();
     key.layer = std::as_const(*document_).active_layer_id().value_or(0);
@@ -198,16 +201,18 @@ void CanvasWidget::ensure_object_select_embedding() {
   // The encoder sees no prompt and nothing is displayed from it; it only prepares the
   // embedding the release-time solve decodes.
   auto promise = std::make_shared<std::promise<std::shared_ptr<const patchy::ai::SamEmbedding>>>();
+  auto cancel = std::make_shared<patchy::ai::InferenceCancel>();
   object_select_embedding_ = promise->get_future().share();
+  object_select_encode_cancel_ = cancel;
   object_select_embedding_key_ = key;
   object_select_source_hash_ = signature;
   object_select_embedding_unverified_ = false;
   ++object_select_encodes_started_;
   object_select_encode_started_.start();
   object_select_encode_pending_ = true;
-  run_tracked_background_worker([promise, source = std::move(source)] {
+  run_tracked_background_worker([promise, cancel, source = std::move(source)] {
     try {
-      promise->set_value(patchy::ai::sam_encode(pixels_from_image_rgba(source)));
+      promise->set_value(patchy::ai::sam_encode(pixels_from_image_rgba(source), cancel.get()));
     } catch (...) {
       promise->set_exception(std::current_exception());
     }
@@ -282,26 +287,66 @@ void CanvasWidget::finish_object_select(QPoint widget_position) {
   solve_object_select(is_click, object_select_press_, box, selection_operation_, tr("Object Selection"));
 }
 
-// The one release-time (or command-time) decoder run: a click or a box, never both.
+// The one release-time (or command-time) decoder run: a click or a box, never both. A box
+// with a zoom-to-box region (patchy::ai::sam_box_region: fixed geometry from the box alone)
+// encodes that region first, once, and decodes the box once against it.
 bool CanvasWidget::solve_object_select(bool is_click, QPoint point, QRect box, SelectionMode operation,
                                        QString history_label) {
+  if (document_ == nullptr) {
+    return false;
+  }
+  const auto region = is_click ? std::nullopt
+                               : patchy::ai::sam_box_region(Rect{box.x(), box.y(), box.width(), box.height()},
+                                                            document_->width(), document_->height());
+  QImage region_source;
+  if (region.has_value()) {
+    QString error;
+    region_source = automatic_selection_source(object_select_sample_all_layers_, &error);
+    if (region_source.isNull()) {
+      report_status_error(error.isEmpty() ? tr("Object Selection could not read the document") : error);
+      update();
+      return false;
+    }
+    // An unfinished whole-image encode would only compete with the region encode for the CPU.
+    if (object_select_embedding_.valid() &&
+        object_select_embedding_.wait_for(std::chrono::milliseconds(0)) != std::future_status::ready) {
+      if (object_select_encode_cancel_) {
+        object_select_encode_cancel_->request();
+      }
+      invalidate_object_select_embedding();
+    }
+    object_select_encode_pending_ = false;
+    ++object_select_encodes_started_;
+  } else if (!object_select_embedding_.valid()) {
+    update();
+    return false;
+  }
   auto embedding_future = object_select_embedding_;
   begin_processing_operation();
   // The decoder runs on a worker as well: the web engine must never run on the main thread
   // (the page-side host it waits for runs there), and the wait below keeps the overlay alive.
-  auto solve = launch_async([embedding_future, is_click, point, box] {
+  QElapsedTimer region_started;
+  region_started.start();
+  auto solve = launch_async([embedding_future, is_click, point, box, region,
+                             pixels = region.has_value() ? pixels_from_image_rgba(region_source) : PixelBuffer()] {
+    const auto rect = Rect{box.x(), box.y(), box.width(), box.height()};
+    if (region.has_value()) {
+      return patchy::ai::sam_select_box(*patchy::ai::sam_encode_region(pixels, *region), rect);
+    }
     const auto embedding = embedding_future.get();
     if (is_click) {
       return patchy::ai::sam_select_point(*embedding, point.x() + 0.5, point.y() + 0.5);
     }
-    return patchy::ai::sam_select_box(*embedding, Rect{box.x(), box.y(), box.width(), box.height()});
+    return patchy::ai::sam_select_box(*embedding, rect);
   });
   // The encoder reports no progress of its own; the percent is an estimate from the last
-  // encode on this machine, held below 100 until the embedding is actually ready. The web
-  // build's first use downloads the models first, which does report progress.
+  // encode on this machine (whole image or region: the encoder frame is the same size),
+  // held below 100 until the embedding is actually ready. The web build's first use
+  // downloads the models first, which does report progress.
   const auto estimate_ms = std::max<qint64>(200, object_select_last_encode_ms_);
-  const auto started = object_select_encode_started_;
+  const auto started = region.has_value() ? region_started : object_select_encode_started_;
   bool downloaded = false;
+  bool region_pending = region.has_value();
   wait_for_processing_operation(
       [&] {
         if (object_select_encode_pending_ &&
@@ -313,6 +358,9 @@ bool CanvasWidget::solve_object_select(bool is_click, QPoint point, QRect box, S
           object_select_encode_pending_ = false;
         }
         if (solve.wait_for(std::chrono::milliseconds(16)) == std::future_status::ready) {
+          if (region_pending && !downloaded) {
+            object_select_last_encode_ms_ = started.elapsed();
+          }
           return true;
         }
         if (const auto permille = patchy::ai::model_download_permille(); permille >= 0) {
@@ -321,7 +369,7 @@ bool CanvasWidget::solve_object_select(bool is_click, QPoint point, QRect box, S
               tr("Downloading Object Selection model... %1%").arg(std::clamp(permille / 10, 0, 99)));
           return false;
         }
-        if (object_select_encode_pending_) {
+        if (object_select_encode_pending_ || region_pending) {
           const auto elapsed = started.isValid() ? started.elapsed() : 0;
           const auto percent = std::clamp<qint64>(elapsed * 100 / estimate_ms, 1, 95);
           set_processing_operation_message(tr("Analyzing image... %1%").arg(percent));
@@ -371,11 +419,17 @@ bool CanvasWidget::select_object_in_selection() {
   if (box.isEmpty()) {
     return false;
   }
-  ensure_object_select_embedding();
-  if (!object_select_embedding_.valid()) {
-    report_status_error(object_select_source_error_.isEmpty() ? tr("Object Selection could not read the document")
-                                                              : object_select_source_error_);
-    return false;
+  // A box with a zoom-to-box region encodes that region itself; only a box covering most of
+  // the image needs the whole-image embedding.
+  if (!patchy::ai::sam_box_region(Rect{box.x(), box.y(), box.width(), box.height()}, document_->width(),
+                                  document_->height())
+           .has_value()) {
+    ensure_object_select_embedding();
+    if (!object_select_embedding_.valid()) {
+      report_status_error(object_select_source_error_.isEmpty() ? tr("Object Selection could not read the document")
+                                                                : object_select_source_error_);
+      return false;
+    }
   }
   // The selection's bounding box is the one box prompt; the object replaces the selection.
   return solve_object_select(false, QPoint(), box, SelectionMode::Replace, tr("Select Object"));

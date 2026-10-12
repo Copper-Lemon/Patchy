@@ -17,6 +17,15 @@ internal static class UninstallPatchy
     private const string OpenWithProgId = "Patchy.Image";
     private const string ShortcutRelativePath = @"Microsoft\Windows\Start Menu\Programs\Patchy.lnk";
     private const string DesktopShortcutName = "Patchy.lnk";
+    // Object Selection's downloaded High Quality model (docs/ai-selection.md): Qt's
+    // AppDataLocation for organization RTsoft, application Patchy, plus "ai-models". Only
+    // these exact files are deleted, never a wildcard; keep the names in sync with
+    // high_quality_model_files() in src/ui/object_selection_model_download.cpp.
+    private const string DownloadedModelsRelativePath = @"RTsoft\Patchy\ai-models";
+    private static readonly string[] DownloadedModelFileNames = {
+        "efficientvit_sam_xl0_encoder_fp16.onnx",
+        "efficientvit_sam_xl0_decoder_multi_fp16.onnx"
+    };
 
     private static readonly string[] LegacyInstalledRelativePaths = {
         "patchy.exe",
@@ -86,6 +95,7 @@ internal static class UninstallPatchy
             RemoveShortcuts();
             RemoveUninstallEntry();
             RemoveOpenWithEntry(installRoot);
+            RemoveDownloadedModels();
             StartHiddenCleanup(installRoot, installedFiles, Process.GetCurrentProcess().Id);
             return 0;
         }
@@ -237,6 +247,38 @@ internal static class UninstallPatchy
             {
                 File.Delete(desktopShortcutPath);
             }
+        }
+    }
+
+    // Deletes the downloaded model files by their full names, then the ai-models folder only
+    // when nothing else is left in it (Directory.Delete without recursion). The rest of the
+    // user's Patchy data (fonts, scripts, settings) stays.
+    private static void RemoveDownloadedModels()
+    {
+        try
+        {
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            if (string.IsNullOrWhiteSpace(appData))
+            {
+                return;
+            }
+            string modelsDirectory = Path.Combine(appData, DownloadedModelsRelativePath);
+            foreach (string fileName in DownloadedModelFileNames)
+            {
+                string modelPath = Path.Combine(modelsDirectory, fileName);
+                if (File.Exists(modelPath))
+                {
+                    File.Delete(modelPath);
+                }
+            }
+            if (Directory.Exists(modelsDirectory) && Directory.GetFileSystemEntries(modelsDirectory).Length == 0)
+            {
+                Directory.Delete(modelsDirectory, false);
+            }
+        }
+        catch (Exception)
+        {
+            // A file Patchy no longer uses must not block the uninstall.
         }
     }
 

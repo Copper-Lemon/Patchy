@@ -19965,6 +19965,78 @@ Y: %2
         <source>Metadata removed; the file changes the next time you save.</source>
         <translation>Метаданные удалены; файл изменится при следующем сохранении.</translation>
     </message>
+    <message>
+        <source>Model:</source>
+        <translation>Модель:</translation>
+    </message>
+    <message>
+        <source>Standard</source>
+        <translation>Стандартная</translation>
+    </message>
+    <message>
+        <source>High Quality</source>
+        <translation>Высокое качество</translation>
+    </message>
+    <message>
+        <source>Standard is built in. High Quality finds objects more accurately and is downloaded once.</source>
+        <translation>Стандартная модель встроена. Модель высокого качества точнее находит объекты и скачивается один раз.</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection</source>
+        <translation>Выделение объектов высокого качества</translation>
+    </message>
+    <message>
+        <source>Download the High Quality model for Object Selection?</source>
+        <translation>Скачать модель высокого качества для выделения объектов?</translation>
+    </message>
+    <message>
+        <source>It finds objects much more accurately than the built-in model. The download is %1 MB from GitHub and is kept on this computer. You can switch models at any time on the Object Selection options bar.</source>
+        <translation>Она находит объекты гораздо точнее встроенной модели. Загрузка составляет %1 МБ с GitHub и хранится на этом компьютере. Модель можно сменить в любой момент на панели параметров выделения объектов.</translation>
+    </message>
+    <message>
+        <source>Object Selection now uses the High Quality model</source>
+        <translation>Выделение объектов теперь использует модель высокого качества</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be downloaded: %1</source>
+        <translation>Не удалось скачать модель высокого качества: %1</translation>
+    </message>
+    <message>
+        <source>Download cancelled</source>
+        <translation>Загрузка отменена</translation>
+    </message>
+    <message>
+        <source>The High Quality model is not available in the web version</source>
+        <translation>Модель высокого качества недоступна в веб-версии</translation>
+    </message>
+    <message>
+        <source>Downloading the High Quality model... %1 of %2 MB</source>
+        <translation>Загрузка модели высокого качества... %1 из %2 МБ</translation>
+    </message>
+    <message>
+        <source>the downloaded files are not where Patchy looks for them</source>
+        <translation>загруженные файлы находятся не там, где их ищет Patchy</translation>
+    </message>
+    <message>
+        <source>Deletes the downloaded High Quality model. Object Selection then uses the built-in model; you can download it again from the tool&apos;s options bar.</source>
+        <translation>Удаляет скачанную модель высокого качества. Выделение объектов будет использовать встроенную модель; скачать её снова можно на панели параметров инструмента.</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection model: downloaded (%1 MB)</source>
+        <translation>Модель высокого качества для выделения объектов: скачана (%1 МБ)</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection model: not downloaded</source>
+        <translation>Модель высокого качества для выделения объектов: не скачана</translation>
+    </message>
+    <message>
+        <source>Deleted the High Quality Object Selection model</source>
+        <translation>Модель высокого качества для выделения объектов удалена</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be deleted: %1</source>
+        <translation>Не удалось удалить модель высокого качества: %1</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -21568,6 +21640,14 @@ Y: %2
     <message>
         <source>The document changed during automatic selection.</source>
         <translation>Документ изменился во время автоматического выделения.</translation>
+    </message>
+    <message>
+        <source>The download was cancelled.</source>
+        <translation>Загрузка была отменена.</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be downloaded: %1</source>
+        <translation>Не удалось скачать модель высокого качества: %1</translation>
     </message>
 </context>
 <context>

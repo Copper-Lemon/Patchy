@@ -19851,6 +19851,78 @@ Y: %2
         <source>Metadata removed; the file changes the next time you save.</source>
         <translation>메타데이터가 제거되었습니다. 파일은 다음에 저장할 때 변경됩니다.</translation>
     </message>
+    <message>
+        <source>Model:</source>
+        <translation>모델:</translation>
+    </message>
+    <message>
+        <source>Standard</source>
+        <translation>표준</translation>
+    </message>
+    <message>
+        <source>High Quality</source>
+        <translation>고품질</translation>
+    </message>
+    <message>
+        <source>Standard is built in. High Quality finds objects more accurately and is downloaded once.</source>
+        <translation>표준은 기본으로 포함되어 있습니다. 고품질은 개체를 더 정확하게 찾으며 한 번만 다운로드합니다.</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection</source>
+        <translation>고품질 개체 선택</translation>
+    </message>
+    <message>
+        <source>Download the High Quality model for Object Selection?</source>
+        <translation>개체 선택용 고품질 모델을 다운로드하시겠습니까?</translation>
+    </message>
+    <message>
+        <source>It finds objects much more accurately than the built-in model. The download is %1 MB from GitHub and is kept on this computer. You can switch models at any time on the Object Selection options bar.</source>
+        <translation>기본 제공 모델보다 개체를 훨씬 더 정확하게 찾습니다. GitHub에서 %1MB를 다운로드하며 이 컴퓨터에 보관됩니다. 개체 선택 옵션 막대에서 언제든지 모델을 바꿀 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>Object Selection now uses the High Quality model</source>
+        <translation>이제 개체 선택에서 고품질 모델을 사용합니다</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be downloaded: %1</source>
+        <translation>고품질 모델을 다운로드할 수 없습니다: %1</translation>
+    </message>
+    <message>
+        <source>Download cancelled</source>
+        <translation>다운로드가 취소되었습니다</translation>
+    </message>
+    <message>
+        <source>The High Quality model is not available in the web version</source>
+        <translation>고품질 모델은 웹 버전에서 사용할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>Downloading the High Quality model... %1 of %2 MB</source>
+        <translation>고품질 모델 다운로드 중... %1/%2MB</translation>
+    </message>
+    <message>
+        <source>the downloaded files are not where Patchy looks for them</source>
+        <translation>다운로드한 파일이 Patchy가 찾는 위치에 없습니다</translation>
+    </message>
+    <message>
+        <source>Deletes the downloaded High Quality model. Object Selection then uses the built-in model; you can download it again from the tool&apos;s options bar.</source>
+        <translation>다운로드한 고품질 모델을 삭제합니다. 이후 개체 선택은 기본 제공 모델을 사용하며, 도구의 옵션 막대에서 다시 다운로드할 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection model: downloaded (%1 MB)</source>
+        <translation>개체 선택 고품질 모델: 다운로드됨(%1MB)</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection model: not downloaded</source>
+        <translation>개체 선택 고품질 모델: 다운로드되지 않음</translation>
+    </message>
+    <message>
+        <source>Deleted the High Quality Object Selection model</source>
+        <translation>개체 선택 고품질 모델을 삭제했습니다</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be deleted: %1</source>
+        <translation>고품질 모델을 삭제할 수 없습니다: %1</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -21452,6 +21524,14 @@ Y: %2
     <message>
         <source>The document changed during automatic selection.</source>
         <translation>자동 선택 중에 문서가 변경되었습니다.</translation>
+    </message>
+    <message>
+        <source>The download was cancelled.</source>
+        <translation>다운로드가 취소되었습니다.</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be downloaded: %1</source>
+        <translation>고품질 모델을 다운로드할 수 없습니다: %1</translation>
     </message>
 </context>
 <context>

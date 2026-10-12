@@ -1,5 +1,7 @@
 #include "ui/update_checker.hpp"
 
+#include "ui/host_resolve.hpp"
+
 #include <QDateTime>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -17,64 +19,11 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <memory>
-#include <mutex>
-#include <string>
-#include <thread>
 #include <utility>
 #include <vector>
 
-#if defined(Q_OS_WIN)
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#else
-#include <netdb.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#endif
-
 namespace patchy::ui {
 namespace {
-
-// A getaddrinfo on a network that drops DNS queries takes 20 to 30 seconds. Qt runs
-// QNetworkAccessManager's lookups on QHostInfo's thread pool, and ~QCoreApplication
-// waits for that pool with no timeout, so a lookup still pending at quit froze the
-// app after its window had closed (GitHub issue 48, macOS 26). The host is therefore
-// resolved on a detached thread first, which nothing waits for, and the request only
-// starts once the resolver has answered (fast, and cached for Qt's own lookup).
-constexpr int kHostResolveTimeoutMs = 10000;
-
-struct HostResolveState {
-  std::mutex mutex;
-  QObject* target{nullptr};  // the owner while it lives; null once destroyed or timed out
-  bool finished{false};
-};
-
-bool host_name_resolves(const std::string& host) {
-#if defined(Q_OS_WIN)
-  WSADATA wsa_data{};
-  if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0) {
-    return false;
-  }
-#endif
-  addrinfo hints{};
-  hints.ai_socktype = SOCK_STREAM;
-  addrinfo* result = nullptr;
-  const int rc = getaddrinfo(host.c_str(), nullptr, &hints, &result);
-  if (result != nullptr) {
-    freeaddrinfo(result);
-  }
-#if defined(Q_OS_WIN)
-  WSACleanup();
-#endif
-  return rc == 0;
-}
 
 std::optional<std::vector<std::int64_t>> parse_dotted_version(QString version) {
   version = version.trimmed();
@@ -276,61 +225,19 @@ void request_update_check(QObject* owner, QString current_version, UpdateCheckRe
   }
   const QPointer<QObject> owner_guard(owner);
   const auto url = cache_busted_manifest_url();
-  const auto host = QUrl::toAce(url.host());
-#if defined(Q_OS_WASM) && !defined(__EMSCRIPTEN_PTHREADS__)
-  const bool can_resolve_first = false;  // no threads; the wasm app never runs the check anyway
-#else
-  const bool can_resolve_first = !host.isEmpty();
-#endif
-  if (!can_resolve_first) {
-    start_manifest_request(owner_guard, url, std::move(current_version), std::move(callback));
-    return;
-  }
-
-  auto state = std::make_shared<HostResolveState>();
-  state->target = owner;
-  // Direct (context-less) call from ~QObject: once the owner is gone the resolver
-  // thread must not post to it. Anything it posted earlier dies with the owner.
-  QObject::connect(owner, &QObject::destroyed, [state] {
-    const std::lock_guard<std::mutex> lock(state->mutex);
-    state->target = nullptr;
-  });
-  // A resolver that is still silent after this long reports the check as failed and
-  // is abandoned; the thread ends on its own whenever the OS gives up.
-  QTimer::singleShot(kHostResolveTimeoutMs, owner, [state, callback] {
-    {
-      const std::lock_guard<std::mutex> lock(state->mutex);
-      if (state->finished) {
-        return;
-      }
-      state->finished = true;
-      state->target = nullptr;
-    }
-    callback(network_error_result());
-  });
-  std::thread([state, host = std::string(host.constData(), static_cast<std::size_t>(host.size())), owner_guard, url,
-               current_version = std::move(current_version), callback = std::move(callback)]() mutable {
-    const bool resolved = host_name_resolves(host);
-    const std::lock_guard<std::mutex> lock(state->mutex);
-    if (state->finished || state->target == nullptr) {
-      return;
-    }
-    state->finished = true;
-    QMetaObject::invokeMethod(
-        state->target,
-        [resolved, owner_guard, url, current_version = std::move(current_version),
-         callback = std::move(callback)]() mutable {
-          if (owner_guard == nullptr) {
-            return;
-          }
-          if (resolved) {
-            start_manifest_request(owner_guard, url, std::move(current_version), std::move(callback));
-          } else {
-            callback(network_error_result());
-          }
-        },
-        Qt::QueuedConnection);
-  }).detach();
+  // The host resolves on a detached thread first (GitHub issue 48; host_resolve.hpp).
+  resolve_host_first(owner, url.host(),
+                     [owner_guard, url, current_version = std::move(current_version),
+                      callback = std::move(callback)](bool resolved) mutable {
+                       if (owner_guard == nullptr) {
+                         return;
+                       }
+                       if (resolved) {
+                         start_manifest_request(owner_guard, url, std::move(current_version), std::move(callback));
+                       } else {
+                         callback(network_error_result());
+                       }
+                     });
 }
 
 QString update_check_status_text(const UpdateCheckResult& result) {

@@ -19908,6 +19908,78 @@ Convertiti in immagini: %1.</translation>
         <source>Metadata removed; the file changes the next time you save.</source>
         <translation>Metadati rimossi; il file cambia al prossimo salvataggio.</translation>
     </message>
+    <message>
+        <source>Model:</source>
+        <translation>Modello:</translation>
+    </message>
+    <message>
+        <source>Standard</source>
+        <translation>Standard</translation>
+    </message>
+    <message>
+        <source>High Quality</source>
+        <translation>Alta qualità</translation>
+    </message>
+    <message>
+        <source>Standard is built in. High Quality finds objects more accurately and is downloaded once.</source>
+        <translation>Standard è integrato. Alta qualità trova gli oggetti con più precisione e si scarica una sola volta.</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection</source>
+        <translation>Selezione oggetto ad alta qualità</translation>
+    </message>
+    <message>
+        <source>Download the High Quality model for Object Selection?</source>
+        <translation>Scaricare il modello ad alta qualità per Selezione oggetto?</translation>
+    </message>
+    <message>
+        <source>It finds objects much more accurately than the built-in model. The download is %1 MB from GitHub and is kept on this computer. You can switch models at any time on the Object Selection options bar.</source>
+        <translation>Trova gli oggetti con molta più precisione del modello integrato. Il download è di %1 MB da GitHub e resta su questo computer. Puoi cambiare modello in qualsiasi momento dalla barra delle opzioni di Selezione oggetto.</translation>
+    </message>
+    <message>
+        <source>Object Selection now uses the High Quality model</source>
+        <translation>Selezione oggetto ora usa il modello ad alta qualità</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be downloaded: %1</source>
+        <translation>Impossibile scaricare il modello ad alta qualità: %1</translation>
+    </message>
+    <message>
+        <source>Download cancelled</source>
+        <translation>Download annullato</translation>
+    </message>
+    <message>
+        <source>The High Quality model is not available in the web version</source>
+        <translation>Il modello ad alta qualità non è disponibile nella versione web</translation>
+    </message>
+    <message>
+        <source>Downloading the High Quality model... %1 of %2 MB</source>
+        <translation>Download del modello ad alta qualità... %1 di %2 MB</translation>
+    </message>
+    <message>
+        <source>the downloaded files are not where Patchy looks for them</source>
+        <translation>i file scaricati non sono dove Patchy li cerca</translation>
+    </message>
+    <message>
+        <source>Deletes the downloaded High Quality model. Object Selection then uses the built-in model; you can download it again from the tool&apos;s options bar.</source>
+        <translation>Elimina il modello ad alta qualità scaricato. Selezione oggetto userà il modello integrato; puoi scaricarlo di nuovo dalla barra delle opzioni dello strumento.</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection model: downloaded (%1 MB)</source>
+        <translation>Modello ad alta qualità di Selezione oggetto: scaricato (%1 MB)</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection model: not downloaded</source>
+        <translation>Modello ad alta qualità di Selezione oggetto: non scaricato</translation>
+    </message>
+    <message>
+        <source>Deleted the High Quality Object Selection model</source>
+        <translation>Il modello ad alta qualità di Selezione oggetto è stato eliminato</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be deleted: %1</source>
+        <translation>Impossibile eliminare il modello ad alta qualità: %1</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -21510,6 +21582,14 @@ Convertiti in immagini: %1.</translation>
     <message>
         <source>The document changed during automatic selection.</source>
         <translation>Il documento è cambiato durante la selezione automatica.</translation>
+    </message>
+    <message>
+        <source>The download was cancelled.</source>
+        <translation>Il download è stato annullato.</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be downloaded: %1</source>
+        <translation>Impossibile scaricare il modello ad alta qualità: %1</translation>
     </message>
 </context>
 <context>

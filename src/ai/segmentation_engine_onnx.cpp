@@ -33,6 +33,7 @@
 #include <cstdint>
 #include <new>
 #include <optional>
+#include <string_view>
 #include <vector>
 
 namespace patchy::ai {
@@ -114,9 +115,13 @@ struct OrtState {
   // Sessions must not outlive their environment; the state is never destroyed (see
   // ort_state) and release_models() only resets sessions.
   std::optional<Ort::Env> env;
-  std::unique_ptr<Ort::Session> encoder;
-  std::unique_ptr<Ort::Session> decoder;
-  std::unique_ptr<Ort::Session> subject;
+  // Shared: a run holds its own reference, so releasing a slot (release_models, deleting the
+  // High Quality model) never frees a session another thread is running.
+  std::shared_ptr<Ort::Session> standard_encoder;  // MobileSAM
+  std::shared_ptr<Ort::Session> standard_decoder;
+  std::shared_ptr<Ort::Session> high_quality_encoder;  // EfficientViT-SAM XL0
+  std::shared_ptr<Ort::Session> high_quality_decoder;
+  std::shared_ptr<Ort::Session> subject;
 };
 
 // Never destroyed: at process exit ONNX Runtime's own globals can be torn down before ours
@@ -155,10 +160,19 @@ Ort::SessionOptions session_options() {
   return options;
 }
 
-std::unique_ptr<Ort::Session> open_session(Ort::Env& env, const char* file) {
-  const auto path = model_path(file);
+// The file a session loads: HighQuality's files may be in the downloaded models folder.
+std::filesystem::path session_path(const char* file) {
+  const std::string_view name(file);
+  if (name == kEfficientSamEncoderFile || name == kEfficientSamDecoderFile) {
+    return high_quality_model_path(file);
+  }
+  return model_path(file);
+}
+
+std::shared_ptr<Ort::Session> open_session(Ort::Env& env, const char* file) {
+  const auto path = session_path(file);
   try {
-    return std::make_unique<Ort::Session>(env, path.c_str(), session_options());
+    return std::make_shared<Ort::Session>(env, path.c_str(), session_options());
   } catch (const Ort::Exception& error) {
     if (is_out_of_memory_message(error.what())) {
       throw InferenceOutOfMemory();
@@ -169,11 +183,11 @@ std::unique_ptr<Ort::Session> open_session(Ort::Env& env, const char* file) {
   }
 }
 
-Ort::Session& shared_session(OrtState& state, std::unique_ptr<Ort::Session>& slot, const char* file) {
+std::shared_ptr<Ort::Session> shared_session(OrtState& state, std::shared_ptr<Ort::Session>& slot, const char* file) {
   if (!slot) {
     slot = open_session(environment(state), file);
   }
-  return *slot;
+  return slot;
 }
 
 // Runs a session with cancellation wired to `cancel`; translates ONNX Runtime failures.
@@ -216,22 +230,15 @@ Ort::MemoryInfo cpu_memory() {
   return Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
 }
 
-// One decoder run from exactly one prompt (segmentation_engine_internal.hpp). mask_input
-// stays zero with has_mask_input 0 on every call: a previous mask is never fed back (patent
-// boundary in segmentation_engine.hpp).
-AiMask decode(const SamEmbedding& embedding, SamDecoderPrompt prompt) {
-  if (embedding.values.size() != kSamEmbeddingValues) {
-    throw std::invalid_argument("automatic selection: malformed image embedding");
-  }
-  auto& state = ort_state();
-  Ort::Session* session = nullptr;
-  {
-    const std::lock_guard lock(state.mutex);
-    session = &shared_session(state, state.decoder, kSamDecoderFile);
-  }
+// MobileSAM's decoder: mask_input stays zero with has_mask_input 0 on every call, so a
+// previous mask is never fed back (patent boundary in segmentation_engine.hpp). It upsamples
+// its masks to the scaled frame itself.
+AiMask decode_standard(Ort::Session& session, const SamEmbedding& embedding, const SamDecoderPrompt& prompt) {
   const auto& transform = embedding.transform;
   auto memory = cpu_memory();
   std::vector<float> embedding_values = embedding.values;
+  auto coords = prompt.coords;
+  auto labels = prompt.labels;
   std::vector<float> no_mask(static_cast<std::size_t>(kDecoderLowResSize * kDecoderLowResSize), 0.0F);
   float has_mask = 0.0F;
   std::array<float, 2> output_size{static_cast<float>(transform.scaled_height),
@@ -245,10 +252,8 @@ AiMask decode(const SamEmbedding& embedding, SamDecoderPrompt prompt) {
   std::array<Ort::Value, 6> inputs{
       Ort::Value::CreateTensor<float>(memory, embedding_values.data(), embedding_values.size(),
                                       embedding_shape.data(), embedding_shape.size()),
-      Ort::Value::CreateTensor<float>(memory, prompt.coords.data(), prompt.coords.size(), coords_shape.data(),
-                                      coords_shape.size()),
-      Ort::Value::CreateTensor<float>(memory, prompt.labels.data(), prompt.labels.size(), labels_shape.data(),
-                                      labels_shape.size()),
+      Ort::Value::CreateTensor<float>(memory, coords.data(), coords.size(), coords_shape.data(), coords_shape.size()),
+      Ort::Value::CreateTensor<float>(memory, labels.data(), labels.size(), labels_shape.data(), labels_shape.size()),
       Ort::Value::CreateTensor<float>(memory, no_mask.data(), no_mask.size(), mask_shape.data(), mask_shape.size()),
       Ort::Value::CreateTensor<float>(memory, &has_mask, 1, flag_shape.data(), flag_shape.size()),
       Ort::Value::CreateTensor<float>(memory, output_size.data(), output_size.size(), size_shape.data(),
@@ -257,7 +262,7 @@ AiMask decode(const SamEmbedding& embedding, SamDecoderPrompt prompt) {
   constexpr std::array<const char*, 6> input_names{"image_embeddings", "point_coords", "point_labels",
                                                    "mask_input",       "has_mask_input", "orig_im_size"};
   constexpr std::array<const char*, 2> output_names{"masks", "iou_predictions"};
-  auto outputs = run(*session, input_names.data(), inputs.data(), inputs.size(), output_names.data(),
+  auto outputs = run(session, input_names.data(), inputs.data(), inputs.size(), output_names.data(),
                      output_names.size(), nullptr);
 
   const auto shape = outputs[0].GetTensorTypeAndShapeInfo().GetShape();
@@ -272,7 +277,70 @@ AiMask decode(const SamEmbedding& embedding, SamDecoderPrompt prompt) {
                                    transform.source_height, LogitMapping::SamEdgeRamp);
 }
 
+// EfficientViT-SAM's decoder has no mask input at all, so a previous mask cannot be fed
+// back. It returns its masks on the low-resolution grid.
+AiMask decode_high_quality(Ort::Session& session, const SamEmbedding& embedding, const SamDecoderPrompt& prompt) {
+  auto memory = cpu_memory();
+  std::vector<float> embedding_values = embedding.values;
+  auto coords = prompt.coords;
+  auto labels = prompt.labels;
+  const std::array<std::int64_t, 4> embedding_shape{1, 256, 64, 64};
+  const std::array<std::int64_t, 3> coords_shape{1, 2, 2};
+  const std::array<std::int64_t, 2> labels_shape{1, 2};
+  std::array<Ort::Value, 3> inputs{
+      Ort::Value::CreateTensor<float>(memory, embedding_values.data(), embedding_values.size(),
+                                      embedding_shape.data(), embedding_shape.size()),
+      Ort::Value::CreateTensor<float>(memory, coords.data(), coords.size(), coords_shape.data(), coords_shape.size()),
+      Ort::Value::CreateTensor<float>(memory, labels.data(), labels.size(), labels_shape.data(), labels_shape.size()),
+  };
+  constexpr std::array<const char*, 3> input_names{"image_embeddings", "point_coords", "point_labels"};
+  constexpr std::array<const char*, 2> output_names{"low_res_masks", "iou_predictions"};
+  auto outputs = run(session, input_names.data(), inputs.data(), inputs.size(), output_names.data(),
+                     output_names.size(), nullptr);
+
+  const auto shape = outputs[0].GetTensorTypeAndShapeInfo().GetShape();
+  if (shape.size() != 4 || shape[1] != kDecoderMaskCount || shape[2] != kSamLowResSize ||
+      shape[3] != kSamLowResSize ||
+      outputs[1].GetTensorTypeAndShapeInfo().GetElementCount() != static_cast<std::size_t>(kDecoderMaskCount)) {
+    throw std::runtime_error("automatic selection: unexpected decoder output shape");
+  }
+  const auto chosen = best_sam_candidate(outputs[1].GetTensorData<float>(), prompt.first_candidate);
+  const auto plane = static_cast<std::size_t>(kSamLowResSize) * static_cast<std::size_t>(kSamLowResSize);
+  return document_mask_from_low_res_logits(
+      outputs[0].GetTensorData<float>() + static_cast<std::size_t>(chosen) * plane, embedding.transform);
+}
+
+bool standard_model_present() {
+  if (model_directory().empty()) {
+    return false;
+  }
+  for (const auto* file : {kMobileSamEncoderFile, kMobileSamDecoderFile}) {
+    std::error_code error;
+    if (!std::filesystem::is_regular_file(model_path(file), error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 }  // namespace
+
+// One decoder run from exactly one prompt (segmentation_engine_internal.hpp), with the
+// decoder of the model that made the embedding.
+AiMask decode_prompt(const SamEmbedding& embedding, const SamDecoderPrompt& prompt) {
+  if (embedding.values.size() != kSamEmbeddingValues) {
+    throw std::invalid_argument("automatic selection: malformed image embedding");
+  }
+  const bool high_quality = embedding.model == SamModel::HighQuality;
+  auto& state = ort_state();
+  std::shared_ptr<Ort::Session> session;
+  {
+    const std::lock_guard lock(state.mutex);
+    session = high_quality ? shared_session(state, state.high_quality_decoder, kEfficientSamDecoderFile)
+                           : shared_session(state, state.standard_decoder, kMobileSamDecoderFile);
+  }
+  return high_quality ? decode_high_quality(*session, embedding, prompt) : decode_standard(*session, embedding, prompt);
+}
 
 bool segmentation_available() {
   return segmentation_unavailable_reason().empty();
@@ -282,15 +350,11 @@ std::string segmentation_unavailable_reason() {
   if (!runtime().loaded) {
     return runtime().error;
   }
-  const auto directory = model_directory();
-  if (directory.empty()) {
+  if (model_directory().empty()) {
     return "the automatic selection models folder is not set";
   }
-  for (const auto* file : {kSamEncoderFile, kSamDecoderFile}) {
-    std::error_code error;
-    if (!std::filesystem::is_regular_file(model_path(file), error)) {
-      return std::string("the automatic selection model ") + file + " is missing";
-    }
+  if (!standard_model_present() && !high_quality_model_available()) {
+    return std::string("the automatic selection model ") + kMobileSamEncoderFile + " is missing";
   }
   return {};
 }
@@ -305,17 +369,33 @@ bool subject_selection_available() {
   return std::filesystem::is_regular_file(model_path(kSubjectModelFile), error);
 }
 
-std::shared_ptr<const SamEmbedding> sam_encode(const PixelBuffer& rgba8, InferenceCancel* cancel) {
+std::shared_ptr<SamEmbedding> encode_frame(const PixelBuffer& rgba8, InferenceCancel* cancel) {
+  // The user's model choice (active_sam_model), never anything about the image.
+  const auto model = active_sam_model() == SamModel::HighQuality || !standard_model_present()
+                         ? SamModel::HighQuality
+                         : SamModel::Standard;
+  const bool high_quality = model == SamModel::HighQuality;
   auto& state = ort_state();
-  Ort::Session* session = nullptr;
+  std::shared_ptr<Ort::Session> session;
   {
     const std::lock_guard lock(state.mutex);
-    session = &shared_session(state, state.encoder, kSamEncoderFile);
+    session = high_quality ? shared_session(state, state.high_quality_encoder, kEfficientSamEncoderFile)
+                           : shared_session(state, state.standard_encoder, kMobileSamEncoderFile);
   }
   auto embedding = std::make_shared<SamEmbedding>();
+  embedding->model = model;
   embedding->transform = sam_transform(rgba8.width(), rgba8.height());
-  auto input = sam_encoder_input(rgba8, embedding->transform);
-  const std::array<std::int64_t, 3> shape{embedding->transform.scaled_height, embedding->transform.scaled_width, 3};
+  std::vector<float> input;
+  std::vector<std::int64_t> shape;
+  if (high_quality) {
+    // NCHW, normalized and padded to the square frame.
+    input = padded_sam_encoder_input(rgba8, embedding->transform);
+    shape = {1, 3, kSamInputSize, kSamInputSize};
+  } else {
+    // HWC in 0..255 at the scaled size; the MobileSAM export normalizes and pads itself.
+    input = sam_encoder_input(rgba8, embedding->transform);
+    shape = {embedding->transform.scaled_height, embedding->transform.scaled_width, 3};
+  }
   auto memory = cpu_memory();
   auto tensor = Ort::Value::CreateTensor<float>(memory, input.data(), input.size(), shape.data(), shape.size());
   constexpr std::array<const char*, 1> input_names{"input_image"};
@@ -329,24 +409,15 @@ std::shared_ptr<const SamEmbedding> sam_encode(const PixelBuffer& rgba8, Inferen
   return embedding;
 }
 
-AiMask sam_select_point(const SamEmbedding& embedding, double x, double y) {
-  return decode(embedding, sam_point_prompt(embedding.transform, x, y));
-}
-
-AiMask sam_select_box(const SamEmbedding& embedding, Rect box) {
-  // The result stays inside the box.
-  return clip_mask_to_rect(decode(embedding, sam_box_prompt(embedding.transform, box)), box);
-}
-
 AiMask subject_matte(const PixelBuffer& rgba8, InferenceCancel* cancel) {
   if (!subject_selection_available()) {
     throw std::runtime_error("this build of Patchy does not include Select Subject");
   }
-  Ort::Session* session = nullptr;
+  std::shared_ptr<Ort::Session> session;
   {
     auto& state = ort_state();
     const std::lock_guard lock(state.mutex);
-    session = &shared_session(state, state.subject, kSubjectModelFile);
+    session = shared_session(state, state.subject, kSubjectModelFile);
   }
   if (cancel != nullptr && cancel->requested()) {
     throw InferenceCancelled();
@@ -375,8 +446,10 @@ int model_download_permille() noexcept {
 void release_models() {
   auto& state = ort_state();
   const std::lock_guard lock(state.mutex);
-  state.encoder.reset();
-  state.decoder.reset();
+  state.standard_encoder.reset();
+  state.standard_decoder.reset();
+  state.high_quality_encoder.reset();
+  state.high_quality_decoder.reset();
   state.subject.reset();
 }
 
@@ -384,6 +457,13 @@ void release_subject_model() {
   auto& state = ort_state();
   const std::lock_guard lock(state.mutex);
   state.subject.reset();
+}
+
+void release_high_quality_model() {
+  auto& state = ort_state();
+  const std::lock_guard lock(state.mutex);
+  state.high_quality_encoder.reset();
+  state.high_quality_decoder.reset();
 }
 
 }  // namespace patchy::ai

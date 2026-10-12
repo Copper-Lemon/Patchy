@@ -144,7 +144,7 @@ bool attach_host() {
   }
   const int attached = patchy_js_ai_attach_host(&g_mailbox.sequence, g_mailbox.slots.data(), kSlotCount,
                                                 static_cast<int>(sizeof(WebSlot) / 4), PATCHY_ONNXRUNTIME_WEB_FOLDER,
-                                                kSamEncoderFile, kSamDecoderFile);
+                                                kMobileSamEncoderFile, kMobileSamDecoderFile);
   g_host_state.store(attached == 1 ? 1 : 0, std::memory_order_release);
   return attached == 1;
 }
@@ -256,10 +256,12 @@ Response run(const Request& request, InferenceCancel* cancel) {
   }
 }
 
+}  // namespace
+
 // One decoder run from exactly one prompt (segmentation_engine_internal.hpp). The host
 // feeds mask_input zero with has_mask_input 0 on every call: a previous mask is never fed
 // back (patent boundary in segmentation_engine.hpp).
-AiMask decode(const SamEmbedding& embedding, SamDecoderPrompt prompt) {
+AiMask decode_prompt(const SamEmbedding& embedding, const SamDecoderPrompt& prompt) {
   require_worker_thread();
   if (embedding.values.size() != kSamEmbeddingValues) {
     throw std::invalid_argument("automatic selection: malformed image embedding");
@@ -286,8 +288,6 @@ AiMask decode(const SamEmbedding& embedding, SamDecoderPrompt prompt) {
                                    LogitMapping::SamEdgeRamp);
 }
 
-}  // namespace
-
 bool segmentation_available() {
   return attach_host();
 }
@@ -308,7 +308,7 @@ bool subject_selection_available() {
   return false;
 }
 
-std::shared_ptr<const SamEmbedding> sam_encode(const PixelBuffer& rgba8, InferenceCancel* cancel) {
+std::shared_ptr<SamEmbedding> encode_frame(const PixelBuffer& rgba8, InferenceCancel* cancel) {
   require_worker_thread();
   auto embedding = std::make_shared<SamEmbedding>();
   embedding->transform = sam_transform(rgba8.width(), rgba8.height());
@@ -329,15 +329,6 @@ std::shared_ptr<const SamEmbedding> sam_encode(const PixelBuffer& rgba8, Inferen
   return embedding;
 }
 
-AiMask sam_select_point(const SamEmbedding& embedding, double x, double y) {
-  return decode(embedding, sam_point_prompt(embedding.transform, x, y));
-}
-
-AiMask sam_select_box(const SamEmbedding& embedding, Rect box) {
-  // The result stays inside the box.
-  return clip_mask_to_rect(decode(embedding, sam_box_prompt(embedding.transform, box)), box);
-}
-
 AiMask subject_matte(const PixelBuffer&, InferenceCancel*) {
   throw std::runtime_error("this build of Patchy does not include Select Subject");
 }
@@ -353,5 +344,7 @@ void release_models() {
 }
 
 void release_subject_model() {}
+
+void release_high_quality_model() {}
 
 }  // namespace patchy::ai

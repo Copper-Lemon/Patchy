@@ -74,6 +74,7 @@ struct VectorPath;
 }
 
 namespace patchy::ai {
+class InferenceCancel;
 struct SamEmbedding;
 }
 
@@ -1926,11 +1927,13 @@ private:
   void finish_object_select(QPoint widget_position);
   void cancel_object_select();
   void draw_object_select_overlay(QPainter& painter) const;
-  // The MobileSAM embedding of the current object-selection source, computed on a tracked
-  // worker the first time the tool is pressed and reused until the document, the sampled
-  // layer, Sample All Layers, or the sampled pixels change. Document change notifications
-  // only mark it for verification: the next press hashes the source pixels and re-encodes
-  // only when they differ (a selection-only undo keeps the embedding).
+  // The whole-image SAM embedding of the current object-selection source, computed on a
+  // tracked worker the first time the tool is pressed and reused for clicks (and boxes too
+  // big for zoom-to-box) until the document, the sampled layer, Sample All Layers, or the
+  // sampled pixels change. Document change notifications only mark it for verification: the
+  // next press hashes the source pixels and re-encodes only when they differ (a
+  // selection-only undo keeps the embedding). A box with a zoom-to-box region encodes that
+  // region at release instead (solve_object_select).
   void ensure_object_select_embedding();
   void invalidate_object_select_embedding() noexcept;
   bool solve_object_select(bool is_click, QPoint point, QRect box, SelectionMode operation, QString history_label);
@@ -2553,11 +2556,14 @@ private:
   // What was sampled; the pixels themselves are checked by object_select_source_hash_.
   struct ObjectSelectEmbeddingKey {
     bool sample_all_layers{true};
+    bool high_quality{false};  // which model (patchy::ai::SamModel) made it
     LayerId layer{0};
     bool operator==(const ObjectSelectEmbeddingKey&) const = default;
   };
   std::optional<ObjectSelectEmbeddingKey> object_select_embedding_key_;
   std::shared_future<std::shared_ptr<const patchy::ai::SamEmbedding>> object_select_embedding_;
+  // Stops the whole-image encode when a box release needs its own region encode instead.
+  std::shared_ptr<patchy::ai::InferenceCancel> object_select_encode_cancel_;
   std::uint64_t object_select_source_hash_{0};
   QString object_select_source_error_;
   bool object_select_embedding_unverified_{false};

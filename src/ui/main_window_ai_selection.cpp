@@ -18,18 +18,24 @@
 #include "ui/dialog_utils.hpp"
 #include "ui/image_document_io.hpp"
 #include "ui/main_window_shared.hpp"
+#include "ui/object_selection_model_download.hpp"
 #include "ui/qt_geometry.hpp"
 #include "ui/qt_paths.hpp"
 
+#include <QComboBox>
 #include <QCoreApplication>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QEventLoop>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QLatin1String>
 #include <QImage>
+#include <QMessageBox>
 #include <QPointer>
 #include <QProgressDialog>
+#include <QPushButton>
+#include <QSignalBlocker>
 #include <QStatusBar>
 #include <QTimer>
 
@@ -90,6 +96,7 @@ void apply_subject_matte_to_layer_mask(const Document& document, Layer& layer, c
 }
 
 void configure_automatic_selection_models() {
+  configure_downloaded_object_selection_model();
   if (!patchy::ai::model_directory().empty()) {
     return;
   }
@@ -101,6 +108,168 @@ void configure_automatic_selection_models() {
       return;
     }
   }
+}
+
+namespace {
+
+// Persisted settings key (never rename): the first-use offer was shown.
+constexpr auto kHighQualityOfferedKey = "automaticSelection/highQualityModelOffered";
+
+// Decimal megabytes, as download sizes are usually given.
+int megabytes(qint64 bytes) {
+  return static_cast<int>((bytes + 500000) / 1000000);
+}
+
+}  // namespace
+
+void MainWindow::maybe_offer_high_quality_object_selection_model() {
+#if !defined(Q_OS_WASM)
+  configure_automatic_selection_models();
+  if (current_tool_ != CanvasTool::ObjectSelect || !patchy::ai::segmentation_available() ||
+      patchy::ai::high_quality_model_available() || unattended_automation() ||
+      QGuiApplication::platformName() == QLatin1String("offscreen")) {
+    return;
+  }
+  auto settings = app_settings();
+  if (settings.value(QLatin1String(kHighQualityOfferedKey), false).toBool()) {
+    return;
+  }
+  settings.setValue(QLatin1String(kHighQualityOfferedKey), true);
+  offer_high_quality_object_selection_model();
+#endif
+}
+
+bool MainWindow::offer_high_quality_object_selection_model() {
+  QMessageBox box(this);
+  box.setObjectName(QStringLiteral("objectSelectionModelOfferMessageBox"));
+  box.setIcon(QMessageBox::Question);
+  box.setWindowTitle(tr("High Quality Object Selection"));
+  box.setText(tr("Download the High Quality model for Object Selection?"));
+  box.setInformativeText(tr("It finds objects much more accurately than the built-in model. The download is %1 MB "
+                            "from GitHub and is kept on this computer. You can switch models at any time on the "
+                            "Object Selection options bar.")
+                             .arg(megabytes(high_quality_model_download_bytes())));
+  auto* download_button = box.addButton(tr("Download"), QMessageBox::AcceptRole);
+  box.addButton(tr("Not Now"), QMessageBox::RejectRole);
+  box.setDefaultButton(download_button);
+  exec_dialog(box);
+  if (box.clickedButton() != download_button) {
+    refresh_object_select_model_combo();
+    return false;
+  }
+  QString error;
+  const bool ok = download_high_quality_object_selection_model(true, {}, &error);
+  if (ok) {
+    set_object_selection_high_quality_setting(true);
+    statusBar()->showMessage(tr("Object Selection now uses the High Quality model"));
+  } else if (!error.isEmpty()) {
+    show_status_error(tr("The High Quality model could not be downloaded: %1").arg(error));
+  } else {
+    statusBar()->showMessage(tr("Download cancelled"));
+  }
+  refresh_object_select_model_combo();
+  return ok;
+}
+
+bool MainWindow::download_high_quality_object_selection_model(bool show_dialog, const std::function<void()>& keep_alive,
+                                                              QString* error) {
+  const auto fail = [error](const QString& message) {
+    if (error != nullptr) {
+      *error = message;
+    }
+    return false;
+  };
+#if defined(Q_OS_WASM)
+  (void)show_dialog;
+  (void)keep_alive;
+  return fail(tr("The High Quality model is not available in the web version"));
+#else
+  configure_automatic_selection_models();
+  if (patchy::ai::high_quality_model_available()) {
+    return true;
+  }
+  const auto total_mb = megabytes(high_quality_model_download_bytes());
+  const auto progress_text = [total_mb](qint64 received) {
+    return tr("Downloading the High Quality model... %1 of %2 MB").arg(megabytes(received)).arg(total_mb);
+  };
+  std::optional<QProgressDialog> dialog;
+  if (show_dialog) {
+    dialog.emplace(progress_text(0), tr("Cancel"), 0, 1000, this);
+    dialog->setObjectName(QStringLiteral("objectSelectionModelDownloadDialog"));
+    dialog->setWindowModality(Qt::WindowModal);
+    dialog->setMinimumDuration(0);
+    remember_dialog_position(*dialog);
+    dialog->setValue(0);
+  } else {
+    statusBar()->showMessage(progress_text(0));
+  }
+  ModelDownloadResult result;
+  bool done = false;
+  QEventLoop wait_loop;
+  auto job = start_model_download(
+      this, downloaded_models_folder(), high_quality_model_files(),
+      [&](qint64 received, qint64 total) {
+        if (dialog.has_value()) {
+          dialog->setLabelText(progress_text(received));
+          dialog->setValue(total > 0 ? static_cast<int>(received * 1000 / total) : 0);
+        } else {
+          statusBar()->showMessage(progress_text(received));
+        }
+      },
+      [&](ModelDownloadResult finished) {
+        result = std::move(finished);
+        done = true;
+        wait_loop.quit();
+      });
+  if (dialog.has_value()) {
+    connect(&*dialog, &QProgressDialog::canceled, this, [&job] { job->cancel(); });
+  }
+  QTimer keep_alive_timer;
+  if (keep_alive) {
+    keep_alive_timer.setInterval(200);
+    connect(&keep_alive_timer, &QTimer::timeout, this, [&keep_alive] { keep_alive(); });
+    keep_alive_timer.start();
+  }
+  if (!done) {
+    wait_loop.exec(show_dialog ? QEventLoop::AllEvents : QEventLoop::ExcludeUserInputEvents);
+  }
+  keep_alive_timer.stop();
+  dialog.reset();
+  if (!result.ok) {
+    return fail(result.cancelled ? QString() : result.error);
+  }
+  // A cached Standard embedding no longer matches the model that will run (the canvas key
+  // includes the model, so the next press re-encodes).
+  return patchy::ai::high_quality_model_available() ||
+         fail(tr("the downloaded files are not where Patchy looks for them"));
+#endif
+}
+
+bool MainWindow::delete_high_quality_object_selection_model(QString* error) {
+#if defined(Q_OS_WASM)
+  (void)error;
+  return true;
+#else
+  configure_automatic_selection_models();
+  // A run in flight keeps its own session reference; the files are read only at load.
+  patchy::ai::release_high_quality_model();
+  QString detail;
+  const bool ok = delete_downloaded_high_quality_model(downloaded_models_folder(), &detail);
+  refresh_object_select_model_combo();
+  if (!ok && error != nullptr) {
+    *error = detail;
+  }
+  return ok;
+#endif
+}
+
+void MainWindow::refresh_object_select_model_combo() {
+  if (object_select_model_combo_ == nullptr) {
+    return;
+  }
+  const QSignalBlocker blocker(object_select_model_combo_);
+  object_select_model_combo_->setCurrentIndex(patchy::ai::active_sam_model() == patchy::ai::SamModel::HighQuality ? 1
+                                                                                                                  : 0);
 }
 
 std::optional<patchy::ai::AiMask> MainWindow::compute_subject_matte(const QString& command, QString* error) {

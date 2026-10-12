@@ -10,7 +10,9 @@
 #include "ui/canvas_widget.hpp"
 #include "ui/canvas_widget_shared.hpp"
 #include "ui/image_document_io.hpp"
+#include "ui/main_window.hpp"
 #include "ui/main_window_shared.hpp"
+#include "ui/script_engine.hpp"
 #include "ui/vector_operations.hpp"
 
 #if defined(Q_OS_WASM) && defined(__EMSCRIPTEN_PTHREADS__)
@@ -131,11 +133,15 @@ QString ScriptEngineHost::automatic_select(std::int64_t session_id, const Automa
     if (subject_model) {
       return patchy::ai::subject_matte(pixels);
     }
-    const auto embedding = patchy::ai::sam_encode(pixels);
     if (is_box) {
-      return patchy::ai::sam_select_box(*embedding, Rect{box.x(), box.y(), box.width(), box.height()});
+      // Zoom-to-box like the tool: the box's own region when sam_box_region gives one.
+      const auto rect = Rect{box.x(), box.y(), box.width(), box.height()};
+      const auto region = patchy::ai::sam_box_region(rect, pixels.width(), pixels.height());
+      const auto embedding =
+          region.has_value() ? patchy::ai::sam_encode_region(pixels, *region) : patchy::ai::sam_encode(pixels);
+      return patchy::ai::sam_select_box(*embedding, rect);
     }
-    return patchy::ai::sam_select_point(*embedding, point.x(), point.y());
+    return patchy::ai::sam_select_point(*patchy::ai::sam_encode(pixels), point.x(), point.y());
   };
   patchy::ai::AiMask mask;
   try {
@@ -270,6 +276,27 @@ bool ScriptSelectionObject::subject_selection_available() const {
   const ScriptApiCall api_call(host_);
   configure_automatic_selection_models();
   return patchy::ai::subject_selection_available();
+}
+
+QString ScriptSelectionObject::object_selection_model() const {
+  const ScriptApiCall api_call(host_);
+  configure_automatic_selection_models();
+  return patchy::ai::active_sam_model() == patchy::ai::SamModel::HighQuality ? QStringLiteral("highQuality")
+                                                                             : QStringLiteral("standard");
+}
+
+bool ScriptAppObject::downloadObjectSelectionModel() {
+  const ScriptApiCall api_call(host_);
+  QString error;
+  // No dialog: progress goes to the status bar while the call waits, feeding the watchdog.
+  if (host_.window().download_high_quality_object_selection_model(false, [this] { host_.keep_alive_for_ui(); },
+                                                                   &error)) {
+    return true;
+  }
+  host_.throw_js_error(error.isEmpty() ? ScriptEngineHost::tr("The download was cancelled.")
+                                       : ScriptEngineHost::tr("The High Quality model could not be downloaded: %1")
+                                             .arg(error));
+  return false;
 }
 
 void ScriptSelectionObject::selectSubject(const QJSValue& options) {

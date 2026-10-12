@@ -7,6 +7,18 @@ attachment, palettes, vector automation, brushes, Slow mode and Pause) are in
 [scripting-api-changes-through-2026-09-11.md](scripting-api-changes-through-2026-09-11.md).
 Every entry below is API 1.
 
+2026-10-12 (additive, behavioral): Object Selection's High Quality model (EfficientViT-SAM
+XL0, a one-time 234 MB desktop download). `doc.selection.objectSelectionModel` reads
+`"standard"` or `"highQuality"` (permanent tokens): the model `objectSelect` runs, which is
+High Quality once downloaded unless the tool's Model setting says Standard.
+`app.downloadObjectSelectionModel()` downloads it when missing (status-bar progress, the
+call waits), returns true once it is present, and throws on failure or in the web build.
+`objectSelect({rect})` now encodes the box's surroundings at full resolution (zoom-to-box)
+when the box is small against the image, like the tool; results change slightly, prompts and
+options do not. Pinned by `ai_object_selection_zoomed_box_finds_the_disc`,
+`ui_object_select_model_option_and_zoomed_box` and
+`ui_select_subject_is_left_out_without_the_subject_model` (the model token).
+
 2026-10-12 (behavioral): the web build has Object Selection. `automaticSelectionAvailable`
 is true there and `objectSelect` works; the first call downloads the models (about 19 MB, then
 cached by the browser), and the call waits in an event loop meanwhile, so it throws "The

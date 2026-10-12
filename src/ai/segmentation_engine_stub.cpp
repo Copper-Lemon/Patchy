@@ -2,6 +2,7 @@
 // wasm-core, the single-threaded wasm app): everything reports unavailable.
 
 #include "ai/segmentation_engine.hpp"
+#include "ai/segmentation_engine_internal.hpp"
 
 namespace patchy::ai {
 namespace {
@@ -24,15 +25,11 @@ bool subject_selection_available() {
   return false;
 }
 
-std::shared_ptr<const SamEmbedding> sam_encode(const PixelBuffer&, InferenceCancel*) {
+std::shared_ptr<SamEmbedding> encode_frame(const PixelBuffer&, InferenceCancel*) {
   throw_unavailable();
 }
 
-AiMask sam_select_point(const SamEmbedding&, double, double) {
-  throw_unavailable();
-}
-
-AiMask sam_select_box(const SamEmbedding&, Rect) {
+AiMask decode_prompt(const SamEmbedding&, const SamDecoderPrompt&) {
   throw_unavailable();
 }
 
@@ -47,5 +44,7 @@ int model_download_permille() noexcept {
 void release_models() {}
 
 void release_subject_model() {}
+
+void release_high_quality_model() {}
 
 }  // namespace patchy::ai

@@ -7,30 +7,51 @@
 #include "ui/main_window_shared.hpp"
 #include "ui/script_engine.hpp"
 
+#include "ui/object_selection_model_download.hpp"
+#include "ui/qt_paths.hpp"
+
 #include "ai/segmentation_engine.hpp"
 #include "core/pixel_depth.hpp"
 #include "test_harness.hpp"
 #include "ui_test_access.hpp"
 #include "ui_test_support.hpp"
+#include "unicode_path_names.hpp"
 
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
+#include <QComboBox>
+#include <QCryptographicHash>
+#include <QDir>
 #include <QElapsedTimer>
+#include <QEventLoop>
+#include <QFile>
+#include <QLabel>
 #include <QMenu>
+#include <QMessageBox>
 #include <QStringList>
 #include <QPushButton>
+#include <QTimer>
 
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
 #include <utility>
 
 namespace {
 
 using namespace patchy::test::ui;
 
+// The High Quality model's download folder is the user's app data, which these tests do not
+// isolate: pin it to an empty build-local folder so they always run the bundled Standard
+// model unless a test opts into the staged copy (ui_object_select_model_option_and_zoomed_box).
+void pin_downloaded_models_to_nothing() {
+  patchy::ai::set_downloaded_model_directory(std::filesystem::current_path() / "ai-models-none");
+}
+
 bool automatic_selection_or_skip(const char* test_name) {
+  pin_downloaded_models_to_nothing();
   patchy::ui::configure_automatic_selection_models();
   if (patchy::ai::segmentation_available()) {
     return true;
@@ -42,6 +63,7 @@ bool automatic_selection_or_skip(const char* test_name) {
 // Select Subject, Select Background and Remove Background need the subject model, which
 // builds leave out while PATCHY_ENABLE_SELECT_SUBJECT is off (docs/ai-selection.md).
 bool subject_selection_or_skip(const char* test_name) {
+  pin_downloaded_models_to_nothing();
   patchy::ui::configure_automatic_selection_models();
   if (patchy::ai::subject_selection_available()) {
     return true;
@@ -192,6 +214,256 @@ void ui_object_select_tool_and_options_are_listed() {
   sample_all->setChecked(true);
   auto* subject_action = require_action(window, "selectSubjectAction");
   CHECK(subject_action->isVisible() == subject);
+}
+
+// The options bar's Model choice, and zoom-to-box: a box much smaller than the image encodes
+// its own region on release (one extra encode) and still selects just the object.
+void ui_object_select_model_option_and_zoomed_box() {
+  if (!automatic_selection_or_skip("ui_object_select_model_option_and_zoomed_box")) {
+    return;
+  }
+  const QPoint center(700, 520);
+  const int radius = 90;
+  patchy::ui::MainWindow window;
+  show_window(window);
+  window.add_document_session(disc_document(1400, 1000, center, radius), QStringLiteral("Zoom"));
+  QApplication::processEvents();
+  auto* canvas = require_canvas(window);
+  require_action(window, "toolObjectSelectionAction")->trigger();
+  QApplication::processEvents();
+  canvas->set_selection_feather_radius(0);
+  auto* combo = window.findChild<QComboBox*>(QStringLiteral("objectSelectModelCombo"));
+  CHECK(combo != nullptr && combo->count() == 2 && combo->isVisibleTo(&window));
+  CHECK(combo != nullptr && combo->currentIndex() == 0);  // nothing downloaded: Standard
+  const auto widget_point = [canvas](QPoint document_point) {
+    return canvas->widget_position_for_document_point(document_point);
+  };
+
+  send_mouse(*canvas, QEvent::MouseButtonPress, widget_point(QPoint(580, 400)), Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*canvas, QEvent::MouseMove, widget_point(QPoint(820, 640)), Qt::NoButton, Qt::LeftButton);
+  CHECK(!canvas->has_selection());
+  send_mouse(*canvas, QEvent::MouseButtonRelease, widget_point(QPoint(820, 640)), Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  // The press started the whole-image encode; the release encoded the box's region.
+  CHECK(canvas->object_select_encodes_started() == 2);
+  auto region = canvas->selected_document_region();
+  CHECK(region.contains(center));
+  CHECK(region.contains(center + QPoint(radius - 6, 0)));
+  CHECK(!region.contains(center + QPoint(radius + 10, 0)));
+  CHECK(!region.contains(QPoint(590, 410)));
+
+  // With the High Quality model present (the build's stand-in for the download folder), the
+  // Model choice switches to it and the next press encodes with it.
+  patchy::ai::set_downloaded_model_directory(std::filesystem::current_path() / "ai-models-download");
+  if (!patchy::ai::high_quality_model_available()) {
+    std::printf("  (High Quality model not staged; the model switch is not exercised)\n");
+  } else if (combo != nullptr) {
+    combo->setCurrentIndex(1);
+    emit combo->activated(1);
+    QApplication::processEvents();
+    CHECK(combo->currentIndex() == 1);
+    CHECK(patchy::ai::active_sam_model() == patchy::ai::SamModel::HighQuality);
+    send_mouse(*canvas, QEvent::MouseButtonPress, widget_point(center), Qt::LeftButton, Qt::LeftButton);
+    send_mouse(*canvas, QEvent::MouseButtonRelease, widget_point(center), Qt::LeftButton, Qt::NoButton);
+    QApplication::processEvents();
+    CHECK(canvas->object_select_encodes_started() == 3);
+    region = canvas->selected_document_region();
+    CHECK(region.contains(center) && !region.contains(QPoint(100, 100)));
+    combo->setCurrentIndex(0);
+    emit combo->activated(0);
+    QApplication::processEvents();
+    CHECK(combo->currentIndex() == 0);
+    CHECK(patchy::ai::active_sam_model() == patchy::ai::SamModel::Standard);
+  }
+  patchy::ui::set_object_selection_high_quality_setting(true);
+  pin_downloaded_models_to_nothing();
+}
+
+// The High Quality offer: "Not Now" downloads nothing and keeps Standard; with the model
+// already present, the download call returns at once without any dialog.
+void ui_object_selection_model_offer_not_now_keeps_standard() {
+  if (!automatic_selection_or_skip("ui_object_selection_model_offer_not_now_keeps_standard")) {
+    return;
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+  window.add_document_session(disc_document(200, 160, QPoint(100, 80), 30), QStringLiteral("Offer"));
+  QApplication::processEvents();
+  require_action(window, "toolObjectSelectionAction")->trigger();
+  QApplication::processEvents();  // offscreen: the first-use offer stays away by itself
+  CHECK(find_top_level_dialog(QStringLiteral("objectSelectionModelOfferMessageBox")) == nullptr);
+
+  bool saw_offer = false;
+  QTimer::singleShot(0, [&saw_offer] {
+    auto* box = qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("objectSelectionModelOfferMessageBox")));
+    CHECK(box != nullptr);
+    if (box == nullptr) {
+      return;
+    }
+    CHECK(box->informativeText().contains(QStringLiteral("234 MB")));
+    for (auto* button : box->buttons()) {
+      if (box->buttonRole(button) == QMessageBox::RejectRole) {
+        saw_offer = true;
+        button->click();
+        return;
+      }
+    }
+  });
+  CHECK(!patchy::ui::MainWindowTestAccess::offer_high_quality_object_selection_model(window));
+  CHECK(saw_offer);
+  CHECK(patchy::ai::active_sam_model() == patchy::ai::SamModel::Standard);
+  auto* combo = window.findChild<QComboBox*>(QStringLiteral("objectSelectModelCombo"));
+  CHECK(combo != nullptr && combo->currentIndex() == 0);
+
+  patchy::ai::set_downloaded_model_directory(std::filesystem::current_path() / "ai-models-download");
+  if (patchy::ai::high_quality_model_available()) {
+    QString error;
+    CHECK(window.download_high_quality_object_selection_model(true, {}, &error));
+    CHECK(error.isEmpty());
+  }
+  pin_downloaded_models_to_nothing();
+}
+
+// Preferences > Tools shows the downloaded High Quality model and deletes exactly its two
+// files by name: anything else in the folder stays (and so does the folder); with nothing
+// else left, the folder goes too. A scratch Unicode folder stands in for the app-data one.
+void ui_preferences_deletes_only_the_downloaded_model_files() {
+  if (!automatic_selection_or_skip("ui_preferences_deletes_only_the_downloaded_model_files")) {
+    return;
+  }
+  const auto root = patchy::ui::to_qstring(std::filesystem::absolute(
+      patchy::test::unicode_artifact_dir(patchy::test::kUnicodeCombinedStem) / "ai-models"));
+  QDir().mkpath(root);
+  const auto write_models = [&root] {
+    for (const auto& file : patchy::ui::high_quality_model_files()) {
+      QFile model(QDir(root).filePath(file.name));
+      CHECK(model.open(QIODevice::WriteOnly) && model.write("stand-in") == 8);
+    }
+  };
+  write_models();
+  const auto keep_path = QDir(root).filePath(QStringLiteral("keep.txt"));
+  {
+    QFile keep(keep_path);
+    CHECK(keep.open(QIODevice::WriteOnly) && keep.write("mine") == 4);
+  }
+  patchy::ai::set_downloaded_model_directory(patchy::ui::to_filesystem_path(root));
+
+  patchy::ui::MainWindow window;
+  show_window(window);
+  bool saw_preferences = false;
+  QTimer::singleShot(0, [&saw_preferences] {
+    auto* dialog = find_top_level_dialog(QStringLiteral("patchyPreferencesDialog"));
+    CHECK(dialog != nullptr);
+    if (dialog == nullptr) {
+      return;
+    }
+    auto* status = dialog->findChild<QLabel*>(QStringLiteral("preferencesObjectSelectionModelStatus"));
+    auto* button = dialog->findChild<QPushButton*>(QStringLiteral("preferencesDeleteObjectSelectionModelButton"));
+    CHECK(status != nullptr && status->text().contains(QStringLiteral("downloaded (234 MB)")));
+    CHECK(button != nullptr && button->isEnabled());
+    if (status != nullptr && button != nullptr) {
+      button->click();
+      CHECK(status->text().contains(QStringLiteral("not downloaded")));
+      CHECK(!button->isEnabled());
+      saw_preferences = true;
+    }
+    dialog->reject();
+  });
+  patchy::ui::MainWindowTestAccess::show_preferences(window);
+  CHECK(saw_preferences);
+  for (const auto& file : patchy::ui::high_quality_model_files()) {
+    CHECK(!QFile::exists(QDir(root).filePath(file.name)));
+  }
+  CHECK(QFile::exists(keep_path));
+  CHECK(!patchy::ai::high_quality_model_available());
+
+  // Nothing else left: the folder goes as well (a plain rmdir, never a recursive delete).
+  CHECK(QFile::remove(keep_path));
+  write_models();
+  QString error;
+  CHECK(patchy::ui::delete_downloaded_high_quality_model(root, &error));
+  CHECK(error.isEmpty());
+  CHECK(!QDir(root).exists());
+
+  pin_downloaded_models_to_nothing();
+  if (QDir(root).exists()) {
+    remove_test_scratch_dir(root);
+  }
+}
+
+// The download pins every file by size and SHA-256 and writes through QSaveFile: matching
+// files land, a mismatch leaves nothing behind, and present files are skipped. Served from
+// file:// URLs into a Unicode folder (every new file-writing entry point gets one).
+void ui_object_selection_model_download_verifies_files() {
+  const auto root = patchy::ui::to_qstring(
+      std::filesystem::absolute(patchy::test::unicode_artifact_dir(patchy::test::kUnicodeCombinedStem)));
+  QDir(root).mkpath(QStringLiteral("source"));
+  const auto write = [&root](const QString& name, const QByteArray& bytes) {
+    QFile file(QDir(root).filePath(QStringLiteral("source/") + name));
+    CHECK(file.open(QIODevice::WriteOnly) && file.write(bytes) == bytes.size());
+    return QUrl::fromLocalFile(file.fileName());
+  };
+  const QByteArray first(300000, 'a');
+  QByteArray second;
+  for (int i = 0; i < 70000; ++i) {
+    second.append(static_cast<char>(i % 251));
+  }
+  const auto sha = [](const QByteArray& bytes) {
+    return QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex();
+  };
+  std::vector<patchy::ui::DownloadableModelFile> files{
+      {QStringLiteral("first.onnx"), write(QStringLiteral("first.onnx"), first), first.size(), sha(first)},
+      {QStringLiteral("second.onnx"), write(QStringLiteral("second.onnx"), second), second.size(), sha(second)},
+  };
+  const auto target = QDir(root).filePath(QStringLiteral("models"));
+  QObject owner;
+  const auto run = [&owner, &target](std::vector<patchy::ui::DownloadableModelFile> list, qint64* last_received) {
+    patchy::ui::ModelDownloadResult result;
+    bool done = false;
+    QEventLoop loop;
+    QTimer::singleShot(30000, &loop, &QEventLoop::quit);
+    auto job = patchy::ui::start_model_download(
+        &owner, target, std::move(list),
+        [last_received](qint64 received, qint64) {
+          if (last_received != nullptr) {
+            *last_received = received;
+          }
+        },
+        [&](patchy::ui::ModelDownloadResult finished) {
+          result = std::move(finished);
+          done = true;
+          loop.quit();
+        });
+    if (!done) {
+      loop.exec();
+    }
+    CHECK(done);
+    return result;
+  };
+
+  qint64 received = 0;
+  auto result = run(files, &received);
+  CHECK(result.ok && !result.cancelled);
+  CHECK(received == first.size() + second.size());
+  QFile landed(QDir(target).filePath(QStringLiteral("second.onnx")));
+  CHECK(landed.open(QIODevice::ReadOnly) && landed.readAll() == second);
+  landed.close();
+
+  // Already present and matching: skipped, still a success.
+  result = run(files, nullptr);
+  CHECK(result.ok);
+
+  // A checksum mismatch fails and leaves no file (not even a partial one).
+  auto wrong = files;
+  wrong[0].name = QStringLiteral("wrong.onnx");
+  wrong[0].sha256_hex = sha("something else");
+  wrong.resize(1);
+  result = run(wrong, nullptr);
+  CHECK(!result.ok && !result.cancelled && result.error.contains(QStringLiteral("checksum")));
+  CHECK(!QFile::exists(QDir(target).filePath(QStringLiteral("wrong.onnx"))));
+  CHECK(QDir(target).entryList(QDir::Files).size() == 2);
+
+  remove_test_scratch_dir(root);
 }
 
 void ui_select_subject_menu_selects_the_subject() {
@@ -641,6 +913,7 @@ void ui_select_subject_is_left_out_without_the_subject_model() {
   (void)host.run_source(QStringLiteral(R"JS(
     var d = app.activeDocument;
     if (!d.selection.automaticSelectionAvailable) throw Error('object selection unavailable');
+    if (d.selection.objectSelectionModel !== 'standard') throw Error('model ' + d.selection.objectSelectionModel);
     if (d.selection.subjectSelectionAvailable) throw Error('subject reported available');
     var calls = [function () { d.selection.selectSubject(); }, function () { d.selection.selectBackground(); },
                  function () { d.activeLayer.removeBackground(); }];
@@ -675,6 +948,12 @@ std::vector<patchy::test::TestCase> ai_selection_ui_tests() {
   return {
       {"ui_object_select_box_and_clicks_select_on_release", ui_object_select_box_and_clicks_select_on_release},
       {"ui_object_select_tool_and_options_are_listed", ui_object_select_tool_and_options_are_listed},
+      {"ui_object_select_model_option_and_zoomed_box", ui_object_select_model_option_and_zoomed_box},
+      {"ui_object_selection_model_download_verifies_files", ui_object_selection_model_download_verifies_files},
+      {"ui_object_selection_model_offer_not_now_keeps_standard",
+       ui_object_selection_model_offer_not_now_keeps_standard},
+      {"ui_preferences_deletes_only_the_downloaded_model_files",
+       ui_preferences_deletes_only_the_downloaded_model_files},
       {"ui_select_subject_menu_selects_the_subject", ui_select_subject_menu_selects_the_subject},
       {"ui_script_automatic_selection_selects_objects", ui_script_automatic_selection_selects_objects},
       {"ui_select_background_selects_everything_but_the_subject",

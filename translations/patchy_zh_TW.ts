@@ -19851,6 +19851,78 @@ Baked into images: %1.</source>
         <source>Metadata removed; the file changes the next time you save.</source>
         <translation>中繼資料已移除，檔案會在下次儲存時變更。</translation>
     </message>
+    <message>
+        <source>Model:</source>
+        <translation>模型:</translation>
+    </message>
+    <message>
+        <source>Standard</source>
+        <translation>標準</translation>
+    </message>
+    <message>
+        <source>High Quality</source>
+        <translation>高品質</translation>
+    </message>
+    <message>
+        <source>Standard is built in. High Quality finds objects more accurately and is downloaded once.</source>
+        <translation>標準模型為內建模型。高品質模型能更準確地找到物件，只需下載一次。</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection</source>
+        <translation>高品質物件選取</translation>
+    </message>
+    <message>
+        <source>Download the High Quality model for Object Selection?</source>
+        <translation>要下載物件選取的高品質模型嗎？</translation>
+    </message>
+    <message>
+        <source>It finds objects much more accurately than the built-in model. The download is %1 MB from GitHub and is kept on this computer. You can switch models at any time on the Object Selection options bar.</source>
+        <translation>它找到物件的準確度遠高於內建模型。將從 GitHub 下載 %1 MB，並保存在這台電腦上。你可以隨時在物件選取的選項列中切換模型。</translation>
+    </message>
+    <message>
+        <source>Object Selection now uses the High Quality model</source>
+        <translation>物件選取現在使用高品質模型</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be downloaded: %1</source>
+        <translation>無法下載高品質模型：%1</translation>
+    </message>
+    <message>
+        <source>Download cancelled</source>
+        <translation>下載已取消</translation>
+    </message>
+    <message>
+        <source>The High Quality model is not available in the web version</source>
+        <translation>網頁版不提供高品質模型</translation>
+    </message>
+    <message>
+        <source>Downloading the High Quality model... %1 of %2 MB</source>
+        <translation>正在下載高品質模型... %1 / %2 MB</translation>
+    </message>
+    <message>
+        <source>the downloaded files are not where Patchy looks for them</source>
+        <translation>下載的檔案不在 Patchy 尋找的位置</translation>
+    </message>
+    <message>
+        <source>Deletes the downloaded High Quality model. Object Selection then uses the built-in model; you can download it again from the tool&apos;s options bar.</source>
+        <translation>刪除已下載的高品質模型。之後物件選取將使用內建模型；你可以隨時在該工具的選項列中重新下載。</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection model: downloaded (%1 MB)</source>
+        <translation>物件選取高品質模型：已下載（%1 MB）</translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection model: not downloaded</source>
+        <translation>物件選取高品質模型：未下載</translation>
+    </message>
+    <message>
+        <source>Deleted the High Quality Object Selection model</source>
+        <translation>已刪除物件選取高品質模型</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be deleted: %1</source>
+        <translation>無法刪除高品質模型：%1</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -21452,6 +21524,14 @@ Baked into images: %1.</source>
     <message>
         <source>The document changed during automatic selection.</source>
         <translation>自動選取期間文件已變更。</translation>
+    </message>
+    <message>
+        <source>The download was cancelled.</source>
+        <translation>下載已取消。</translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be downloaded: %1</source>
+        <translation>無法下載高品質模型：%1</translation>
     </message>
 </context>
 <context>

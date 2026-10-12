@@ -176,6 +176,7 @@ class ScriptSelectionObject : public QObject {
   Q_PROPERTY(QJSValue bounds READ bounds)
   Q_PROPERTY(bool automaticSelectionAvailable READ automatic_selection_available)
   Q_PROPERTY(bool subjectSelectionAvailable READ subject_selection_available)
+  Q_PROPERTY(QString objectSelectionModel READ object_selection_model)
 
 public:
   ScriptSelectionObject(ScriptEngineHost& host, std::int64_t session_id);
@@ -192,6 +193,8 @@ public:
   [[nodiscard]] bool automatic_selection_available() const;
   // selectSubject, selectBackground and layer.removeBackground (the subject model).
   [[nodiscard]] bool subject_selection_available() const;
+  // "standard" or "highQuality": the model objectSelect runs (permanent tokens).
+  [[nodiscard]] QString object_selection_model() const;
   Q_INVOKABLE void selectSubject(const QJSValue& options = QJSValue());
   Q_INVOKABLE void selectBackground(const QJSValue& options = QJSValue());
   Q_INVOKABLE void objectSelect(const QJSValue& options);
@@ -356,6 +359,9 @@ public:
   Q_INVOKABLE bool exportPdf(const QJSValue& documents, const QString& path, const QJSValue& options = QJSValue());
   Q_INVOKABLE QStringList commandIds();
   Q_INVOKABLE QJSValue listFonts();
+  // Downloads Object Selection's High Quality model when it is missing (desktop only;
+  // script_ai_selection.cpp). True once it is present; throws on failure.
+  Q_INVOKABLE bool downloadObjectSelectionModel();
 
 private:
   ScriptEngineHost& host_;

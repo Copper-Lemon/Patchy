@@ -19859,6 +19859,78 @@ Baked into images: %1.</source>
         <source>Metadata removed; the file changes the next time you save.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Model:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Standard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>High Quality</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Standard is built in. High Quality finds objects more accurately and is downloaded once.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Download the High Quality model for Object Selection?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>It finds objects much more accurately than the built-in model. The download is %1 MB from GitHub and is kept on this computer. You can switch models at any time on the Object Selection options bar.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Object Selection now uses the High Quality model</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be downloaded: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Download cancelled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The High Quality model is not available in the web version</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Downloading the High Quality model... %1 of %2 MB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>the downloaded files are not where Patchy looks for them</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Deletes the downloaded High Quality model. Object Selection then uses the built-in model; you can download it again from the tool&apos;s options bar.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection model: downloaded (%1 MB)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>High Quality Object Selection model: not downloaded</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Deleted the High Quality Object Selection model</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be deleted: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -21460,6 +21532,14 @@ Baked into images: %1.</source>
     </message>
     <message>
         <source>The document changed during automatic selection.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The download was cancelled.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The High Quality model could not be downloaded: %1</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

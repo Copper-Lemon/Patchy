@@ -32,6 +32,15 @@ set(PATCHY_AI_MODEL_FILES
 if(PATCHY_ENABLE_SELECT_SUBJECT)
   list(APPEND PATCHY_AI_MODEL_FILES birefnet_lite_general_1024_int8.onnx)
 endif()
+# Object Selection's High quality model (EfficientViT-SAM XL0, 234 MB) is never packaged:
+# desktop users download it on first use into their app-data folder (docs/ai-selection.md).
+# When setup-ai-deps provisioned it, the build stages it into <build>/ai-models-download, the
+# stand-in for that folder that tests point the engine at. Keep in sync with
+# src/ui/object_selection_model_download.cpp, which pins the same files.
+set(PATCHY_AI_DOWNLOAD_MODEL_FILES
+  efficientvit_sam_xl0_encoder_fp16.onnx
+  efficientvit_sam_xl0_decoder_multi_fp16.onnx
+)
 
 set(PATCHY_AI_DEPS_CANDIDATES "${PROJECT_SOURCE_DIR}/.deps")
 find_package(Git QUIET)
@@ -215,12 +224,31 @@ if(PATCHY_AI_SELECTION_BUILT)
   endforeach()
   # License texts travel with the models: the tracked model licenses (Apache-2.0 requires
   # its text to ship) and ONNX Runtime's own license and third-party notices.
+  set(PATCHY_AI_DOWNLOAD_MODEL_SOURCES "")
+  foreach(model IN LISTS PATCHY_AI_DOWNLOAD_MODEL_FILES)
+    if(EXISTS "${PATCHY_AI_MODELS_DIR}/${model}")
+      list(APPEND PATCHY_AI_DOWNLOAD_MODEL_SOURCES "${PATCHY_AI_MODELS_DIR}/${model}")
+    endif()
+  endforeach()
+  list(LENGTH PATCHY_AI_DOWNLOAD_MODEL_SOURCES download_model_count)
+  list(LENGTH PATCHY_AI_DOWNLOAD_MODEL_FILES download_model_expected)
+  if(download_model_count EQUAL download_model_expected)
+    set(PATCHY_AI_DOWNLOAD_STAGE_COMMAND
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PATCHY_AI_DOWNLOAD_MODEL_SOURCES}
+                "${CMAKE_BINARY_DIR}/ai-models-download/")
+  else()
+    set(PATCHY_AI_DOWNLOAD_MODEL_SOURCES "")
+    set(PATCHY_AI_DOWNLOAD_STAGE_COMMAND "")
+  endif()
   set(PATCHY_AI_LICENSE_FILE "${PROJECT_SOURCE_DIR}/third_party/ai-models/MODEL-LICENSES.txt")
   set(PATCHY_AI_RUNTIME_STAMP "${CMAKE_BINARY_DIR}/CMakeFiles/patchy_ai_runtime.stamp")
   add_custom_command(
     OUTPUT "${PATCHY_AI_RUNTIME_STAMP}"
     COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/ai-models"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/ai-models"
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/ai-models-download"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/ai-models-download"
+    ${PATCHY_AI_DOWNLOAD_STAGE_COMMAND}
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PATCHY_AI_MODEL_SOURCES} "${CMAKE_BINARY_DIR}/ai-models/"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PATCHY_AI_LICENSE_FILE}" "${CMAKE_BINARY_DIR}/ai-models/"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PATCHY_ONNXRUNTIME_DIR}/LICENSE"
@@ -229,7 +257,8 @@ if(PATCHY_AI_SELECTION_BUILT)
             "${CMAKE_BINARY_DIR}/ai-models/onnxruntime-ThirdPartyNotices.txt"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PATCHY_ONNXRUNTIME_RUNTIME_FILES} "${CMAKE_BINARY_DIR}/"
     COMMAND ${CMAKE_COMMAND} -E touch "${PATCHY_AI_RUNTIME_STAMP}"
-    DEPENDS ${PATCHY_AI_MODEL_SOURCES} ${PATCHY_ONNXRUNTIME_RUNTIME_FILES} "${PATCHY_AI_LICENSE_FILE}"
+    DEPENDS ${PATCHY_AI_MODEL_SOURCES} ${PATCHY_AI_DOWNLOAD_MODEL_SOURCES} ${PATCHY_ONNXRUNTIME_RUNTIME_FILES}
+            "${PATCHY_AI_LICENSE_FILE}"
     COMMENT "Copying ONNX Runtime and the automatic selection models into the build directory"
   )
   add_custom_target(patchy_ai_runtime DEPENDS "${PATCHY_AI_RUNTIME_STAMP}")

@@ -28,7 +28,8 @@ or `-Scene plugin_kpt5`. It requires the Windows 32-bit legacy helper.
 | `smart_filters.png` (hero) | `shot_readme_smart_filters` | `local-test-fixtures/psd/akiko_cycling_okinawa.jpg`, grouped captions, clipping, a Levels adjustment, and color controls |
 | `layer_styles.png` | `shot_readme_layer_styles` | `local-test-fixtures/psd/ipad_main_v04.psd`, live layer styles and gradient color controls |
 | `plugin_kpt5.png` | `scripts/dev/readme-shots/plugin-kpt5.js` | Licensed KPT 5 fixture and the existing CC0 city photograph |
-| `smart_objects.png` | `shot_readme_smart_objects` | Local PSD fixtures used by the existing scene |
+| `object_select.png` | `scripts/dev/readme-shots/object-select.js` | `test-fixtures/readme/havana_vintage_car_cc0.jpg` (CC0), cropped in the script; needs the High Quality model (the script downloads it when missing) |
+| `smart_objects.png` (gallery only) | `shot_readme_smart_objects` | Local PSD fixtures used by the existing scene |
 | `vector_tools.png` | `shot_readme_vector_tools` | Generated vector artwork with gradient fill, rounded corners, and a dashed pattern stroke |
 | `warp_text.png` | `shot_readme_warp_text` | Generated editable type; Japanese-capable font required |
 | `tilt_shift.png` | `shot_readme_tilt_shift` | `test-fixtures/readme/san_francisco_cityscape_cc0.jpg` |
@@ -51,7 +52,17 @@ and anchor editing with gradient paint, a dashed pattern stroke, and rounded cor
 The separate Levels, brush-dynamics, shape-appearance, and Affinity images are retired
 from the gallery. Their existing scenes remain regression coverage; the driver
 does not publish those artifacts. Brush dynamics are described with brush tips.
-Long Shadow remains in the gallery; the README's six feature cards use Layer Styles instead.
+Long Shadow and Smart Objects remain in the gallery; the README's six feature cards use
+Layer Styles and Object Selection instead.
+
+The Object Selection scene crops the Havana street photo to its lower half and runs
+`doc.selection.objectSelect` with one loose box around the vintage car, on the High
+Quality model (zoom-to-box applies). The car must come out exact, wheels and mirrors
+included and the street excluded; check the capture after a model or engine change.
+One-pixel marching ants vanish at thumbnail size, so the script inverts the selection,
+fills a gray Saturation-mode layer and a 45% black layer through it, and inverts back. It does not use `layer.applyFilter` for this, because that call
+filters the whole layer and ignores the selection, and a Desaturate menu command run
+from the script did not apply. The status bar shows "Running script", as in the KPT shot.
 
 The text showcase combines a live Warp Text preview with three warped words,
 a single boxed paragraph containing bold, italic, colored, and mixed-font runs,
