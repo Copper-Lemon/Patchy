@@ -22,7 +22,8 @@ does not carry the installer keys.
    `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\Patchy` names the folder the
    app runs from as `InstallLocation`, and `UninstallPatchy.exe` sits beside `patchy.exe`.
 3. `MainWindow::download_and_install_update` (`src/ui/main_window_files.cpp`) downloads
-   into `<temp>/patchy-update-<version>/PatchyWindowsInstaller.exe` with
+   into `<per-user app data>/updates/patchy-update-<version>/PatchyWindowsInstaller.exe` (never the
+   shared temp folder) with
    `start_model_download`, the same downloader as the Object Selection model: every host
    resolves on a detached thread first, redirects must be https, the file is written through
    `QSaveFile`, and it is kept only when size and SHA-256 match the manifest. A file already
@@ -31,7 +32,10 @@ does not carry the installer keys.
    unsaved documents as on any quit. Cancel there drops the pending update and Patchy stays
    open. Once every document is settled, `launch_update_installer` starts the installer
    detached with `PATCHY_UPDATE_INSTALL_DIR` and `PATCHY_UPDATE_WAIT_PID` in its
-   environment; if it cannot start, the close is refused so Patchy does not quit un-updated.
+   environment. It first checks the file again (the save prompts may have taken minutes): size
+   and SHA-256 as pinned, and the signer rule below, holding the file open against writes
+   until the process exists. If a check fails or it cannot start, the close is refused so
+   Patchy does not quit un-updated.
 5. `packaging/windows/InstallPatchyLauncher.cs` turns those variables into
    `InstallPatchy.ps1 -Update -InstallDir <dir> -WaitForProcessId <pid>` and removes them
    from the child's environment. Without the variable the wizard runs as before. The
@@ -43,14 +47,37 @@ does not carry the installer keys.
    Responding"), keeps the desktop shortcut only
    if there is one, and starts the installed `patchy.exe`. A problem (Patchy still running,
    a file in use, a failed copy) shows the same Retry or error box the wizard would.
-7. The updated copy deletes the downloaded installer 30 seconds after startup
+7. If the script fails or never runs, the launcher starts the installed `patchy.exe` again
+   when it is still there, or says where to download the installer.
+8. The updated copy deletes the downloaded installer 30 seconds after startup
    (`remove_update_download`, by exact file name, then the empty folder).
+
+## Switching it off from the manifest
+
+If a release's self-update turns out to be broken, edit `latest_version.json` on `main`; no
+client has to change. Both switches leave the update prompt itself working, with the old
+"download in the browser" button.
+
+- **Only for versions older than X:** add `"installer_min_version": "X"` to the `windows`
+  entry. Copies running a version older than X keep the browser download; X and newer still
+  install by themselves. Example: 1.10's updater is broken and 1.11 fixes it, so the entry
+  for 1.11 carries `"installer_min_version": "1.11"`. A value that is not a version string
+  switches self-install off for everyone, so a typo fails safe.
+- **For everyone:** remove the three installer keys (or just one of them).
+
+The key name is permanent, like the other three.
 
 ## Rules
 
-- The download is trusted because its hash comes from the manifest on `main`, fetched over
-  https; that is the same trust the update check already has. Never accept an installer
-  whose size or hash was not in the manifest, and never run one from `download_url`.
+- Two independent checks guard the installer. Its size and SHA-256 come from the manifest
+  on `main`, fetched over https. And a signed Patchy runs it only when Windows verifies its
+  Authenticode signature and the signer is the publisher that signed the running `patchy.exe`
+  (`file_signature`, `installer_signer_acceptable`): the download carries no Mark of the Web
+  and shows no SmartScreen prompt, so without this a bad push to the manifest alone could run
+  any file. An unsigned Patchy (development, the trial script) has no publisher and relies on
+  the checksum. Never accept an installer whose size or hash was not in the manifest, never
+  run one from `download_url`, and never drop the signer check to make an update work.
+- Nothing from the manifest except the version reaches an AI assistant as text.
 - Nothing is ever killed. The installer waits for the Patchy that asked for the update;
   AI apps are left alone (see below).
 - The install is per-user and needs no elevation, so there is no UAC prompt in the flow.
@@ -71,6 +98,10 @@ works around them:
   is renamed to `<name>.old-<yyyyMMddHHmmss>` (Windows lets a loaded image be renamed, not
   replaced), and the new copy takes its name. The old process keeps running the old code.
   Only a file that cannot even be renamed stops the install with a Retry box naming it.
+  This happens after the payload is unpacked and checked, immediately before the old files
+  are removed, and a replacement that then fails gives each set-aside file its name back
+  (`Restore-PatchySetAsideFiles`). The check also covers the new version's file list, so an
+  install with a missing or damaged manifest is handled the same way.
   The suffix goes after the extension so Qt never loads a set-aside plug-in DLL.
 - **Set-aside files stay in `PatchyInstallManifest.txt`**, so the next install and the
   uninstaller delete them once nothing uses them; one still in use is carried forward.

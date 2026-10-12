@@ -7,6 +7,7 @@
 // do this; the portable zip, a development build and every other platform keep the browser
 // download.
 
+#include <QByteArray>
 #include <QString>
 #include <QtGlobal>
 
@@ -16,6 +17,10 @@ struct UpdateInstallerLaunch {
   QString installer_path;
   QString install_dir;         // where this copy is installed; the installer updates it in place
   qint64 wait_process_id{0};   // the installer waits for this process to exit first
+  // What the manifest pinned. The file is checked against these again at the moment it is
+  // started, not only when it was downloaded.
+  qint64 expected_size{0};
+  QByteArray expected_sha256{};  // lowercase hex
 };
 
 // True when `registered_install_location` (the uninstall entry's InstallLocation) names
@@ -28,16 +33,37 @@ struct UpdateInstallerLaunch {
 [[nodiscard]] bool installed_copy_can_self_update();
 
 [[nodiscard]] QString update_installer_file_name();
-// <temp>/patchy-update-<version>, where the installer for `version` is downloaded.
+// <per-user app data>/updates/patchy-update-<version>, where the installer for `version` is
+// downloaded. Never the shared temp folder: another account must not be able to put a file
+// where Patchy will run one.
 [[nodiscard]] QString update_download_folder(const QString& version);
 // Deletes the installer downloaded for `version` (by its exact name) and its then-empty
-// folder. Run by the updated copy once the installer has exited; missing files are fine.
+// folders. Run by the updated copy once the installer has exited; missing files are fine.
 void remove_update_download(const QString& version);
 
-// Starts the installer detached in update mode. The request travels in the child's
-// environment (PATCHY_UPDATE_INSTALL_DIR, PATCHY_UPDATE_WAIT_PID), which
+// True when the file at `path` has exactly this size and SHA-256.
+[[nodiscard]] bool file_matches_checksum(const QString& path, qint64 size, const QByteArray& sha256_hex);
+
+// A file's embedded Authenticode signature: `valid` when Windows verifies it up to a trusted
+// root (no revocation lookup, no network), `signer` the signing certificate's display name.
+// Never valid off Windows.
+struct FileSignature {
+  bool valid{false};
+  QString signer{};
+};
+[[nodiscard]] FileSignature file_signature(const QString& path);
+// A signed Patchy only runs an installer signed by the same publisher, so a manifest that
+// names some other file (a bad push, a taken-over account) cannot run code by its checksum
+// alone. An unsigned Patchy (a development or trial build) has no publisher to compare with
+// and accepts the checksum.
+[[nodiscard]] bool installer_signer_acceptable(const FileSignature& running_app, const FileSignature& installer);
+
+// Starts the installer detached in update mode, after checking it once more: size and
+// SHA-256 as pinned, and the signer rule above, with the file held open against writes from
+// the check until the process exists. The request travels in the child's environment
+// (PATCHY_UPDATE_INSTALL_DIR, PATCHY_UPDATE_WAIT_PID), which
 // packaging/windows/InstallPatchyLauncher.cs turns into InstallPatchy.ps1 -Update.
-// False when it could not be started (always off Windows).
+// False when it failed a check or could not be started (always off Windows).
 bool launch_update_installer(const UpdateInstallerLaunch& launch);
 
 }  // namespace patchy::ui

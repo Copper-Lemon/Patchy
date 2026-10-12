@@ -43,7 +43,7 @@ bool add_connector_update_notice(QJsonObject& structured_content, QJsonArray& co
 // Someone who only ever uses Patchy through an AI app never sees the app's update prompt,
 // so an owned connector runs the same update check and get_info carries its answer as
 // "updateAvailable". English wire text; empty until a newer version is known.
-[[nodiscard]] QString connector_update_available_message(const QString& new_version, const QString& download_url);
+[[nodiscard]] QString connector_update_available_message(const QString& new_version);
 void set_connector_update_available(const QString& message);
 [[nodiscard]] QString connector_update_available();
 

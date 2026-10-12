@@ -4337,7 +4337,8 @@ void MainWindow::download_and_install_update(const UpdateInfo& update) {
   // waits for this process before it replaces anything.
   pending_update_install_ = UpdateInstallerLaunch{QDir(folder).filePath(update_installer_file_name()),
                                                   QCoreApplication::applicationDirPath(),
-                                                  QCoreApplication::applicationPid()};
+                                                  QCoreApplication::applicationPid(), update.installer_size,
+                                                  update.installer_sha256};
   if (!close() && pending_update_install_.has_value()) {
     pending_update_install_.reset();
     statusBar()->showMessage(tr("The update was not installed because Patchy stayed open"));

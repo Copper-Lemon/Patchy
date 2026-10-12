@@ -488,14 +488,22 @@ function Remove-PatchyInstalledFiles {
 # The first installed file another program holds open (a running patchy-mcp.exe connector
 # or plug-in host, for example), as a path relative to the install folder, or $null.
 function Get-PatchyLockedInstalledFile {
-    param([Parameter(Mandatory = $true)][string]$InstallRoot)
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$InstallRoot,
+
+        # The files the new version will write. An install whose own manifest is missing or
+        # damaged still gets every file that is about to be replaced checked.
+        [string[]]$ExtraRelativePaths = @()
+    )
 
     if (-not (Test-Path -LiteralPath $InstallRoot -PathType Container)) {
         return $null
     }
 
-    foreach ($relativePath in Get-InstalledRelativePaths -InstallRoot $InstallRoot) {
-        if (-not (Test-SafeRelativeInstallPath -RelativePath $relativePath)) {
+    $candidates = @(Get-InstalledRelativePaths -InstallRoot $InstallRoot) + @($ExtraRelativePaths) | Sort-Object -Unique
+    foreach ($relativePath in $candidates) {
+        if (-not $relativePath -or -not (Test-SafeRelativeInstallPath -RelativePath $relativePath)) {
             continue
         }
         if ($relativePath -match $SetAsideFilePattern) {
@@ -529,17 +537,43 @@ $script:PatchySetAsideFiles = New-Object System.Collections.Generic.List[string]
 # or deleted; the program using it (an AI app's patchy-mcp.exe connector, typically) keeps
 # running the previous version until it restarts. Throws when a file cannot be renamed.
 function Move-PatchyLockedInstalledFilesAside {
-    param([Parameter(Mandatory = $true)][string]$InstallRoot)
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$InstallRoot,
+
+        [string[]]$ExtraRelativePaths = @()
+    )
 
     $stamp = Get-Date -Format "yyyyMMddHHmmss"
     while ($true) {
-        $lockedFile = Get-PatchyLockedInstalledFile -InstallRoot $InstallRoot
+        $lockedFile = Get-PatchyLockedInstalledFile -InstallRoot $InstallRoot -ExtraRelativePaths $ExtraRelativePaths
         if (-not $lockedFile) {
             return
         }
         $setAside = "$lockedFile.old-$stamp"
         Rename-Item -LiteralPath (Join-Path $InstallRoot $lockedFile) -NewName (Split-Path -Leaf $setAside) -ErrorAction Stop
         $script:PatchySetAsideFiles.Add($setAside)
+    }
+}
+
+# An install that failed after setting files aside gives them their names back wherever
+# the new file never arrived, so the program using them and the old Patchy keep working.
+# A set-aside file whose new copy did arrive stays set aside and stays recorded.
+function Restore-PatchySetAsideFiles {
+    param([Parameter(Mandatory = $true)][string]$InstallRoot)
+
+    foreach ($setAside in @($script:PatchySetAsideFiles)) {
+        $original = $setAside -replace $SetAsideFilePattern, ""
+        $setAsidePath = Join-Path $InstallRoot $setAside
+        $originalPath = Join-Path $InstallRoot $original
+        if ((Test-Path -LiteralPath $setAsidePath -PathType Leaf) -and -not (Test-Path -LiteralPath $originalPath)) {
+            try {
+                Rename-Item -LiteralPath $setAsidePath -NewName (Split-Path -Leaf $original) -ErrorAction Stop
+                [void]$script:PatchySetAsideFiles.Remove($setAside)
+            } catch {
+                Write-Warning "Could not restore ${original}: $($_.Exception.Message)"
+            }
+        }
     }
 }
 
@@ -566,7 +600,7 @@ function Get-PatchyConnectorClientNames {
 
     $names = @()
     try {
-        $connectors = @(Get-CimInstance Win32_Process -Filter "Name = 'patchy-mcp.exe'" -ErrorAction Stop)
+        $connectors = @(Get-CimInstance Win32_Process -Filter "Name = 'patchy-mcp.exe'" -OperationTimeoutSec 5 -ErrorAction Stop)
     } catch {
         return @()
     }
@@ -599,16 +633,18 @@ function Confirm-PatchyFilesFreeForInstall {
 
         [bool]$Quiet = $false,
 
-        [object]$Owner = $null
+        [object]$Owner = $null,
+
+        [string[]]$ExtraRelativePaths = @()
     )
 
     while ($true) {
         try {
-            Move-PatchyLockedInstalledFilesAside -InstallRoot $InstallRoot
+            Move-PatchyLockedInstalledFilesAside -InstallRoot $InstallRoot -ExtraRelativePaths $ExtraRelativePaths
             return
         } catch {
         }
-        $lockedFile = Get-PatchyLockedInstalledFile -InstallRoot $InstallRoot
+        $lockedFile = Get-PatchyLockedInstalledFile -InstallRoot $InstallRoot -ExtraRelativePaths $ExtraRelativePaths
         if (-not $lockedFile) {
             return
         }
@@ -957,7 +993,6 @@ function Invoke-PatchyInstall {
         if ($previousRoot) {
             Confirm-PatchyClosedForInstall -InstallRoot $previousRoot -Quiet $Quiet -Owner $Owner
         }
-        Confirm-PatchyFilesFreeForInstall -InstallRoot $InstallRoot -Quiet $Quiet -Owner $Owner
         $writeProblem = Test-PatchyInstallFolderWritable -InstallRoot $InstallRoot
         if ($writeProblem) {
             throw $writeProblem
@@ -971,14 +1006,31 @@ function Invoke-PatchyInstall {
             throw "Installer payload does not contain Patchy\patchy.exe."
         }
 
+        $payloadPaths = @()
+        $payloadManifest = Join-Path $sourceRoot $ManifestFileName
+        if (Test-Path -LiteralPath $payloadManifest -PathType Leaf) {
+            $payloadPaths = @(Get-Content -LiteralPath $payloadManifest | Where-Object {
+                -not [string]::IsNullOrWhiteSpace($_) -and (Test-SafeRelativeInstallPath -RelativePath $_)
+            })
+        }
+
         $earlierSetAside = @()
         if (Test-Path -LiteralPath $InstallRoot -PathType Container) {
             $earlierSetAside = @(Get-InstalledRelativePaths -InstallRoot $InstallRoot | Where-Object { $_ -match $SetAsideFilePattern })
         }
-        Remove-PatchyInstalledFiles -InstallRoot $InstallRoot
-        [void][IO.Directory]::CreateDirectory($InstallRoot)
-        Get-ChildItem -LiteralPath $sourceRoot -Force | ForEach-Object {
-            Copy-Item -LiteralPath $_.FullName -Destination $InstallRoot -Recurse -Force
+        # Up to here nothing installed has changed: the payload is unpacked and checked.
+        # Files in use are set aside only now, and get their names back if the replacement
+        # below does not go through.
+        try {
+            Confirm-PatchyFilesFreeForInstall -InstallRoot $InstallRoot -Quiet $Quiet -Owner $Owner -ExtraRelativePaths $payloadPaths
+            Remove-PatchyInstalledFiles -InstallRoot $InstallRoot
+            [void][IO.Directory]::CreateDirectory($InstallRoot)
+            Get-ChildItem -LiteralPath $sourceRoot -Force | ForEach-Object {
+                Copy-Item -LiteralPath $_.FullName -Destination $InstallRoot -Recurse -Force
+            }
+        } catch {
+            Restore-PatchySetAsideFiles -InstallRoot $InstallRoot
+            throw
         }
 
         $payloadDirectory = Split-Path -Parent $PayloadZip
@@ -1046,7 +1098,7 @@ function Invoke-PatchyInstall {
         return $installedExe
     } finally {
         if (Test-Path -LiteralPath $tempRoot) {
-            Remove-Item -LiteralPath $tempRoot -Recurse -Force
+            Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
 }
@@ -1698,6 +1750,35 @@ if ($UpdateCheckRoot) {
             $failures += "the locked-file check removed an installed file"
         }
 
+        # An install with no manifest: a file in use is found through the new version's file
+        # list, and a replacement that fails gives the set-aside file its name back.
+        $script:PatchySetAsideFiles.Clear()
+        $bareFolder = Join-Path $checkRoot "no-manifest"
+        [void][IO.Directory]::CreateDirectory($bareFolder)
+        $runtime = Join-Path $bareFolder "Qt6Extra.dll"
+        [IO.File]::WriteAllText($runtime, "previous version")
+        $held = [IO.File]::Open($runtime, [IO.FileMode]::Open, [IO.FileAccess]::Read,
+            ([IO.FileShare]::Read -bor [IO.FileShare]::Delete))
+        try {
+            if (Get-PatchyLockedInstalledFile -InstallRoot $bareFolder) {
+                $failures += "a file outside the legacy list was reported without the new file list"
+            }
+            if ((Get-PatchyLockedInstalledFile -InstallRoot $bareFolder -ExtraRelativePaths @("Qt6Extra.dll")) -ne "Qt6Extra.dll") {
+                $failures += "a file in use was not found through the new version's file list"
+            }
+            Confirm-PatchyFilesFreeForInstall -InstallRoot $bareFolder -Quiet $true -ExtraRelativePaths @("Qt6Extra.dll")
+            if ((Test-Path -LiteralPath $runtime) -or $script:PatchySetAsideFiles.Count -ne 1) {
+                $failures += "the file in use was not set aside in the install without a manifest"
+            }
+            Restore-PatchySetAsideFiles -InstallRoot $bareFolder
+            if (-not (Test-Path -LiteralPath $runtime -PathType Leaf) -or $script:PatchySetAsideFiles.Count -ne 0 -or
+                @(Get-ChildItem -LiteralPath $bareFolder -File -Filter "*.old-*").Count -ne 0) {
+                $failures += "a failed install did not give the set-aside file its name back"
+            }
+        } finally {
+            $held.Dispose()
+        }
+
         $child = Start-Process -FilePath (Join-Path $PSHOME "powershell.exe") `
             -ArgumentList "-NoLogo -NoProfile -Command Start-Sleep -Seconds 3" -WindowStyle Hidden -PassThru
         if (Wait-PatchyProcessExit -ProcessId $child.Id -TimeoutSeconds 0) {
@@ -1761,9 +1842,6 @@ try {
         # AI apps whose connector keeps running the previous version (its files are set
         # aside, not stopped); the updated Patchy tells the user to restart them.
         $connectorClients = @()
-        if (-not $UpdateWorker) {
-            $connectorClients = @(Get-PatchyConnectorClientNames -InstallRoot $installRoot)
-        }
         if ($WaitForProcessId -gt 0 -and ($UpdateWorker -or -not $interactive)) {
             [void](Wait-PatchyProcessExit -ProcessId $WaitForProcessId)
         }
@@ -1772,6 +1850,7 @@ try {
             # of this script while this one keeps the progress window alive.
             $progressForm = Show-PatchyUpdateProgress -Version $Version `
                 -IconPath (Join-Path (Split-Path -Parent $PayloadZip) "Patchy.ico")
+            $connectorClients = @(Get-PatchyConnectorClientNames -InstallRoot $installRoot)
             $workerExitCode = 1
             try {
                 $workerInfo = New-Object System.Diagnostics.ProcessStartInfo
@@ -1796,6 +1875,9 @@ try {
             }
             $installedExe = Join-Path $installRoot "patchy.exe"
         } else {
+            if (-not $UpdateWorker) {
+                $connectorClients = @(Get-PatchyConnectorClientNames -InstallRoot $installRoot)
+            }
             $installedExe = Invoke-PatchyInstallWithRetry `
                 -PayloadZip $PayloadZip `
                 -InstallRoot $installRoot `
@@ -1814,7 +1896,12 @@ try {
         if ($connectorClients.Count -gt 0) {
             $env:PATCHY_UPDATE_CONNECTOR_CLIENTS = $connectorClients -join "|"
         }
-        Start-Process -FilePath $installedExe -WorkingDirectory (Split-Path -Parent $installedExe)
+        # Not Start-Process: its -WorkingDirectory treats [ ] in a folder name as a wildcard.
+        $relaunch = New-Object System.Diagnostics.ProcessStartInfo
+        $relaunch.FileName = $installedExe
+        $relaunch.WorkingDirectory = Split-Path -Parent $installedExe
+        $relaunch.UseShellExecute = $false
+        [void][System.Diagnostics.Process]::Start($relaunch)
         exit 0
     }
 

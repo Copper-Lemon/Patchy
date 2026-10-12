@@ -60,7 +60,18 @@ bool is_download_url_usable(const QUrl& url) {
 // The self-install fields (manifest keys are permanent: installer_url, installer_size,
 // installer_sha256). All three or none: a partial or malformed set leaves the update a
 // browser download.
-void read_installer_fields(const QJsonObject& platform_entry, UpdateInfo& update) {
+void read_installer_fields(const QJsonObject& platform_entry, const QString& current_version, UpdateInfo& update) {
+  // The remote off switch: "installer_min_version" (a permanent key) names the oldest running
+  // version allowed to install by itself. Older copies keep the browser download, so a
+  // release whose self-update turns out broken is switched back from the manifest alone,
+  // while fixed versions carry on. A value that does not parse switches it off for everyone.
+  const auto min_version = platform_entry.value(QStringLiteral("installer_min_version"));
+  if (!min_version.isUndefined()) {
+    const auto required = min_version.toString().trimmed();
+    if (!parse_dotted_version(required).has_value() || update_version_is_newer(required, current_version)) {
+      return;
+    }
+  }
   const QUrl url(platform_entry.value(QStringLiteral("installer_url")).toString().trimmed());
   const auto size = static_cast<qint64>(platform_entry.value(QStringLiteral("installer_size")).toDouble(0.0));
   const auto sha256 = platform_entry.value(QStringLiteral("installer_sha256")).toString().trimmed().toLower().toLatin1();
@@ -70,7 +81,10 @@ void read_installer_fields(const QJsonObject& platform_entry, UpdateInfo& update
   const bool scheme_ok =
       url.scheme() == QStringLiteral("https") ||
       (url.scheme() == QStringLiteral("http") && qEnvironmentVariableIsSet("PATCHY_UPDATE_MANIFEST_URL"));
-  if (!url.isValid() || !scheme_ok || url.host().isEmpty() || size <= 0 ||
+  // A size no installer has: the download is capped at the pinned size, so the pin itself
+  // must be sane.
+  constexpr qint64 kLargestInstallerBytes = qint64{2} * 1024 * 1024 * 1024;
+  if (!url.isValid() || !scheme_ok || url.host().isEmpty() || size <= 0 || size > kLargestInstallerBytes ||
       sha256.size() != 64 || QByteArray::fromHex(sha256).toHex() != sha256) {
     return;
   }
@@ -197,7 +211,7 @@ UpdateCheckResult inspect_update_manifest(const QByteArray& json, const QString&
 
   result.status = UpdateCheckStatus::UpdateAvailable;
   result.update = UpdateInfo{platform, latest_version, download_url};
-  read_installer_fields(platform_entry, *result.update);
+  read_installer_fields(platform_entry, current_version, *result.update);
   return result;
 }
 

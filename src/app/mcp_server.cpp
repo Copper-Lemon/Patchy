@@ -295,8 +295,7 @@ int run_mcp_server(QApplication& app) {
           .value(QStringLiteral("updates/checkOnStartup"), true).toBool()) {
     ui::request_update_check(&app, app.applicationVersion(), [](ui::UpdateCheckResult result) {
       if (result.update.has_value()) {
-        ui::set_connector_update_available(ui::connector_update_available_message(
-            result.update->version, result.update->download_url.toString()));
+        ui::set_connector_update_available(ui::connector_update_available_message(result.update->version));
       }
     });
   }

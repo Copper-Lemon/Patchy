@@ -44,10 +44,12 @@ internal static class InstallPatchyLauncher
         // with the request in the environment, so nothing has to pass through the
         // self-extractor's command line. No variable means the normal wizard.
         string updateDirectory = Environment.GetEnvironmentVariable("PATCHY_UPDATE_INSTALL_DIR");
-        if (!string.IsNullOrWhiteSpace(updateDirectory))
+        bool updating = !string.IsNullOrWhiteSpace(updateDirectory);
+        if (updating)
         {
             char[] separators = new char[] { '\\', '/' };
-            startInfo.Arguments += " -Update -InstallDir " + Quote(updateDirectory.Trim().TrimEnd(separators));
+            updateDirectory = updateDirectory.Trim().TrimEnd(separators);
+            startInfo.Arguments += " -Update -InstallDir " + Quote(updateDirectory);
             int waitProcessId;
             if (int.TryParse(Environment.GetEnvironmentVariable("PATCHY_UPDATE_WAIT_PID"), out waitProcessId) &&
                 waitProcessId > 0)
@@ -68,14 +70,54 @@ internal static class InstallPatchyLauncher
             using (Process process = Process.Start(startInfo))
             {
                 process.WaitForExit();
-                return process.ExitCode;
+                int exitCode = process.ExitCode;
+                if (exitCode != 0 && updating)
+                {
+                    RecoverFromFailedUpdate(updateDirectory);
+                }
+                return exitCode;
             }
         }
         catch (Exception ex)
         {
             MessageBox.Show(ex.Message, "Patchy Setup", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            if (updating)
+            {
+                RecoverFromFailedUpdate(updateDirectory);
+            }
             return 1;
         }
+    }
+
+    // An update that did not go through must not leave the user with nothing on screen:
+    // Patchy closed itself to make way for it. The script reports its own errors, but a
+    // PowerShell that never ran the script (blocked by policy, stopped by antivirus) says
+    // nothing. Start the installed Patchy again when it is still there; otherwise say what
+    // to do.
+    private static void RecoverFromFailedUpdate(string installDirectory)
+    {
+        try
+        {
+            string installedExe = Path.Combine(installDirectory, "patchy.exe");
+            if (File.Exists(installedExe))
+            {
+                ProcessStartInfo relaunch = new ProcessStartInfo();
+                relaunch.FileName = installedExe;
+                relaunch.WorkingDirectory = installDirectory;
+                relaunch.UseShellExecute = false;
+                relaunch.EnvironmentVariables.Remove("PATCHY_UPDATE_INSTALL_DIR");
+                relaunch.EnvironmentVariables.Remove("PATCHY_UPDATE_WAIT_PID");
+                Process.Start(relaunch);
+                return;
+            }
+        }
+        catch (Exception)
+        {
+        }
+        MessageBox.Show(
+            "Patchy could not be updated. Download the installer from " +
+            "https://github.com/SethRobinson/Patchy/releases/latest and run it.",
+            "Patchy Setup", MessageBoxButtons.OK, MessageBoxIcon.Error);
     }
 
     private static string Quote(string value)

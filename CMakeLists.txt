@@ -1423,7 +1423,9 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       add_dependencies(patchy_ui patchy-8bf-host64 patchy_8bf_host32)
       # winmm: PlaySound for the script sound effects (sound_effects.cpp).
       # ws2_32: getaddrinfo for the network clients' own host resolve (host_resolve.cpp).
-      target_link_libraries(patchy_ui PUBLIC wiaguid winmm ws2_32)
+      # wintrust, crypt32: the one-click update checks the installer's Authenticode signer
+    # (update_installer.cpp).
+    target_link_libraries(patchy_ui PUBLIC wiaguid winmm ws2_32 wintrust crypt32)
     endif()
     patchy_configure_target(patchy_ui)
 

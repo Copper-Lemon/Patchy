@@ -68,11 +68,14 @@ QString& update_available_text() {
 
 }  // namespace
 
-QString connector_update_available_message(const QString& new_version, const QString& download_url) {
+QString connector_update_available_message(const QString& new_version) {
+  // Nothing from the manifest but the version (digits and dots) goes into text an assistant
+  // reads as instructions; the download address is fixed here.
   return QStringLiteral("Patchy %1 is available; this connection runs %2. Tell the user. To update, they open the "
-                        "Patchy app, which offers the update when it starts, or download it from %3. Afterwards "
-                        "they restart this AI app, or start a new session, so it uses the new version.")
-      .arg(new_version, QCoreApplication::applicationVersion(), download_url);
+                        "Patchy app, which offers the update when it starts, or download it from "
+                        "https://github.com/SethRobinson/Patchy/releases/latest. Afterwards they restart this AI "
+                        "app, or start a new session, so it uses the new version.")
+      .arg(new_version, QCoreApplication::applicationVersion());
 }
 
 void set_connector_update_available(const QString& message) {

@@ -1855,6 +1855,29 @@ void update_manifest_parser_handles_supported_cases() {
     CHECK(partial.has_value());
     CHECK(partial.has_value() && !patchy::ui::update_has_installer(*partial));
   }
+  // The remote off switch: installer_min_version keeps copies older than it on the browser
+  // download (a release whose self-update is broken), while newer ones still install by
+  // themselves. A value that does not parse switches self-install off for everyone.
+  const auto with_min_version = [&](const QString& min_version, const QString& running) {
+    const auto parsed = patchy::ui::parse_update_manifest(
+        installer_manifest(QStringLiteral(R"(, "installer_url": "https://rtsoft.com/v9/PatchyWindowsInstaller.exe",
+                                             "installer_size": 10, "installer_sha256": "%1",
+                                             "installer_min_version": %2)")
+                               .arg(sha, min_version))
+            .replace("\"version\": \"0.2\"", "\"version\": \"9.0\""),
+        QStringLiteral("windows"), running);
+    CHECK(parsed.has_value());  // still an update, whatever the switch says
+    return parsed.has_value() && patchy::ui::update_has_installer(*parsed);
+  };
+  CHECK(!with_min_version(QStringLiteral("\"1.11\""), QStringLiteral("1.10")));
+  CHECK(!with_min_version(QStringLiteral("\"1.11\""), QStringLiteral("1.9")));
+  CHECK(with_min_version(QStringLiteral("\"1.11\""), QStringLiteral("1.11")));
+  CHECK(with_min_version(QStringLiteral("\"1.11\""), QStringLiteral("1.12")));
+  CHECK(with_min_version(QStringLiteral("\"1.10\""), QStringLiteral("1.10")));
+  CHECK(!with_min_version(QStringLiteral("\"never\""), QStringLiteral("1.10")));
+  CHECK(!with_min_version(QStringLiteral("\"\""), QStringLiteral("1.10")));
+  CHECK(!with_min_version(QStringLiteral("111"), QStringLiteral("1.10")));  // a number, not a version string
+
   // A manifest chosen through PATCHY_UPDATE_MANIFEST_URL may name an http installer (a
   // local trial of the whole update); the shipped manifest never can (the fourth case above).
   {
@@ -2185,11 +2208,57 @@ void connector_update_notice_reports_a_replaced_executable() {
   // The connector's own update check words its finding for the assistant; nothing is
   // reported until a check has found a newer version.
   CHECK(patchy::ui::connector_update_available().isEmpty());
-  const auto available =
-      patchy::ui::connector_update_available_message(QStringLiteral("9.9"), QStringLiteral("https://rtsoft.com/p.exe"));
+  const auto available = patchy::ui::connector_update_available_message(QStringLiteral("9.9"));
   CHECK(available.contains(QStringLiteral("Patchy 9.9 is available")));
-  CHECK(available.contains(QStringLiteral("https://rtsoft.com/p.exe")));
+  // The address is fixed in the code: nothing a manifest says reaches the assistant as text.
+  CHECK(available.contains(QStringLiteral("https://github.com/SethRobinson/Patchy/releases/latest")));
   CHECK(available.contains(QStringLiteral("open the Patchy app")));
+}
+
+// The installer is checked again at the moment it is started: its pinned checksum, and for a
+// signed Patchy the same Authenticode publisher. A file that fails either is never run.
+void update_installer_is_checked_again_before_it_runs() {
+  QTemporaryDir dir;
+  CHECK(dir.isValid());
+  const auto path = dir.filePath(QStringLiteral("PatchyWindowsInstaller.exe"));
+  const QByteArray bytes(50000, 'i');
+  {
+    QFile file(path);
+    CHECK(file.open(QIODevice::WriteOnly) && file.write(bytes) == bytes.size());
+  }
+  const auto sha = QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex();
+  CHECK(patchy::ui::file_matches_checksum(path, bytes.size(), sha));
+  CHECK(patchy::ui::file_matches_checksum(path, bytes.size(), sha.toUpper()));
+  CHECK(!patchy::ui::file_matches_checksum(path, bytes.size() + 1, sha));
+  CHECK(!patchy::ui::file_matches_checksum(path, bytes.size(), QByteArray(64, '0')));
+  CHECK(!patchy::ui::file_matches_checksum(path, 0, {}));
+  CHECK(!patchy::ui::file_matches_checksum(dir.filePath(QStringLiteral("absent.exe")), bytes.size(), sha));
+
+  using patchy::ui::FileSignature;
+  using patchy::ui::installer_signer_acceptable;
+  const FileSignature unsigned_file{};
+  const FileSignature publisher{true, QStringLiteral("Seth A. Robinson")};
+  const FileSignature someone_else{true, QStringLiteral("Someone Else")};
+  CHECK(installer_signer_acceptable(publisher, publisher));
+  CHECK(!installer_signer_acceptable(publisher, someone_else));
+  CHECK(!installer_signer_acceptable(publisher, unsigned_file));
+  // A development build has no publisher to compare with; the checksum still applies.
+  CHECK(installer_signer_acceptable(unsigned_file, unsigned_file));
+  CHECK(installer_signer_acceptable(unsigned_file, someone_else));
+
+  // A swapped or damaged file is refused before anything is started.
+  patchy::ui::UpdateInstallerLaunch launch{path, dir.path(), QCoreApplication::applicationPid(), bytes.size(),
+                                           QByteArray(64, '0')};
+  CHECK(!patchy::ui::launch_update_installer(launch));
+#if defined(Q_OS_WIN)
+  // Real signatures: Qt's DLL beside the suite is signed, the suite itself and the stand-in are not.
+  const auto qt_signature = patchy::ui::file_signature(
+      QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("Qt6Core.dll")));
+  CHECK(qt_signature.valid);
+  CHECK(qt_signature.signer.contains(QStringLiteral("Qt Company")));
+  CHECK(!patchy::ui::file_signature(QCoreApplication::applicationFilePath()).valid);
+  CHECK(!patchy::ui::file_signature(path).valid);
+#endif
 }
 
 // The whole one-click path with a file:// stand-in for the installer and the launch
@@ -2314,6 +2383,8 @@ void ui_update_one_click_downloads_installer_and_hands_over_on_close() {
     CHECK(QFileInfo(launches.back().installer_path) == QFileInfo(downloaded_path));
     CHECK(launches.back().install_dir == QCoreApplication::applicationDirPath());
     CHECK(launches.back().wait_process_id == QCoreApplication::applicationPid());
+    CHECK(launches.back().expected_size == installer_bytes.size());
+    CHECK(launches.back().expected_sha256 == update.installer_sha256);
   }
   CHECK(!window.isVisible());
 #endif
@@ -5521,6 +5592,7 @@ std::vector<patchy::test::TestCase> app_shell_tests() {
        ui_update_available_dialog_offers_one_click_update_for_installed_copy},
       {"ui_update_connector_restart_notice_names_the_apps", ui_update_connector_restart_notice_names_the_apps},
       {"connector_update_notice_reports_a_replaced_executable", connector_update_notice_reports_a_replaced_executable},
+      {"update_installer_is_checked_again_before_it_runs", update_installer_is_checked_again_before_it_runs},
       {"ui_update_one_click_downloads_installer_and_hands_over_on_close",
        ui_update_one_click_downloads_installer_and_hands_over_on_close},
       {"ui_update_preference_defaults_startup_check_setting_to_enabled",
