@@ -128,11 +128,9 @@ and Affinity import has format-specific limitations. See [current compatibility]
 
 ### 1.10 - October 13, 2026
 
-- Windows: one-click updates. Starting with the release after this one, the update prompt can download the new version, close Patchy, install it and start it again. It asks about unsaved work first and needs no administrator rights. Copies unpacked from the zip still get the browser download
-- Updating no longer requires closing Claude, Codex or other AI apps connected to Patchy. They keep working on the old version, Patchy tells you which apps to restart, and the assistant is told as well. Assistants also hear when a new release is out, for people who only use Patchy through one
-- Object Selection: an optional High Quality model finds objects much more accurately. It is a 234 MB download, offered the first time you use the tool and managed in Preferences. Dragging a box now analyzes just that area for sharper edges, and Select Object is back in the selection right-click menu
-- Web build: Object Selection now works in the browser
-- Copy Merged keeps the shape of the selection, and filters, adjustments and their previews blend soft selection edges instead of cutting them off. Script `applyFilter` honors the selection too
+- Windows: one-click updates. Starting with the release after this one, the update prompt can download the new version, close Patchy, install it and start it again. It asks about unsaved work first and needs no administrator rights. It checks signatures and SHA-256 checksums, and the manifest hosted here on github can also disable this system and go back to "here's the link, install it yourself" if I notice a problem with it later.
+- Object Selection: an optional High Quality model finds objects much more accurately. It is a 234 MB download, offered the first time you use the tool and managed in Preferences. Dragging a box now analyzes just that area for sharper edges, and Select Object is back in the selection right-click menu (was accidently removed in 1.09)
+- Huge bug fix: Copy Merged keeps the shape of the selection, and filters, adjustments and their previews blend soft selection edges instead of cutting them off. Script `applyFilter` honors the selection too
 
 ### 1.09 - October 12, 2026
 
