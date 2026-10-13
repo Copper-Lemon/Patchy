@@ -594,6 +594,7 @@ public:
       : QObject(palette), palette_(palette), extension_(extension) {
     palette->installEventFilter(this);
     connect(extension, &QToolButton::toggled, this, [this](bool checked) {
+      suspend_window_animation();
       if (checked) {
         schedule_reservation();
         return;
@@ -627,6 +628,22 @@ protected:
   }
 
 private:
+  // The expansion must not go through the main-window widget animator. While a
+  // toolbar animates, QToolBarLayout skips laying out its items, and Qt 6.11
+  // reports the animation finished only when the animation object is destroyed,
+  // a turn after the collapsed geometry was applied: the buttons stayed where
+  // the wide bar had centered them (GitHub issue 88). toggled() is emitted
+  // before the clicked() that Qt's own expand/collapse slot listens to, so
+  // turning animation off here makes that slot apply its geometry directly.
+  void suspend_window_animation() {
+    auto* window = palette_ != nullptr ? qobject_cast<QMainWindow*>(palette_->parentWidget()) : nullptr;
+    if (window == nullptr || !window->isAnimated()) {
+      return;
+    }
+    window->setAnimated(false);
+    QTimer::singleShot(0, window, [window] { window->setAnimated(true); });
+  }
+
   void schedule_reservation() {
     if (scheduled_) {
       return;
