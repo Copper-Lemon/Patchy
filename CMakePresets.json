@@ -80,6 +80,17 @@
       }
     },
     {
+      "name": "linux-flatpak-qt",
+      "displayName": "Linux release build against the Flatpak SDK's Qt (configure and build inside org.kde.Sdk; see docs/platform.md)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/linux-flatpak-qt",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "PATCHY_BUILD_APP": "ON",
+        "PATCHY_BUILD_TESTS": "ON"
+      }
+    },
+    {
       "name": "linux-dev",
       "displayName": "Linux developer build",
       "inherits": "linux-release",
@@ -180,6 +191,10 @@
     {
       "name": "linux-release",
       "configurePreset": "linux-release"
+    },
+    {
+      "name": "linux-flatpak-qt",
+      "configurePreset": "linux-flatpak-qt"
     },
     {
       "name": "linux-dev",

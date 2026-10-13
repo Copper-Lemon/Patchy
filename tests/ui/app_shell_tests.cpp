@@ -584,6 +584,42 @@ void ui_tool_palette_expansion_collapses_when_window_fits_again() {
   CHECK(setup.quick_mask->isVisible());
 }
 
+// GitHub issue 88: with the main-window animator on (the default outside these
+// tests), collapsing the expansion on Qt 6.11 left the buttons where the wide
+// bar had centered them. Only a build against that Qt fails here without the
+// fix (the Linux remote suite runs on it); Qt 6.8.3 pins the animation
+// hand-back instead.
+void ui_tool_palette_animated_collapse_realigns_buttons() {
+  patchy::ui::MainWindow window;
+  CHECK(window.isAnimated());
+  show_window(window);
+  const auto setup = shrink_window_until_tool_palette_overflows(window);
+
+  setup.extension->click();
+  CHECK(process_events_until([&] { return setup.palette->width() > 45; }));
+  CHECK(process_events_until(
+      [&] { return !window.centralWidget()->geometry().intersects(setup.palette->geometry()); }));
+  process_events_for(400);
+  CHECK(window.isAnimated());
+
+  setup.extension->click();
+  CHECK(process_events_until([&] { return setup.palette->width() <= 45; }));
+  process_events_for(400);
+  CHECK(window.isAnimated());
+  CHECK(setup.palette->width() <= 45);
+  CHECK(!window.centralWidget()->geometry().intersects(setup.palette->geometry()));
+  int visible_children = 0;
+  for (auto* child : setup.palette->findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly)) {
+    if (!child->isVisible()) {
+      continue;
+    }
+    ++visible_children;
+    CHECK(child->geometry().left() >= 0);
+    CHECK(child->geometry().right() < setup.palette->width());
+  }
+  CHECK(visible_children > 10);
+}
+
 // Dissolve's dither threshold is a pure function of the document coordinate,
 // which is exactly what the dirty-rect patch machinery needs: rendering a
 // sub-rect must produce the same pixels as the same region of a full render.
@@ -5572,6 +5608,7 @@ std::vector<patchy::test::TestCase> app_shell_tests() {
       {"ui_tool_palette_expansion_sticky_after_tool_pick", ui_tool_palette_expansion_sticky_after_tool_pick},
       {"ui_tool_palette_expanded_zoom_double_click_sets_actual_pixels",
        ui_tool_palette_expanded_zoom_double_click_sets_actual_pixels},
+      {"ui_tool_palette_animated_collapse_realigns_buttons", ui_tool_palette_animated_collapse_realigns_buttons},
       {"ui_tool_palette_expansion_collapses_when_window_fits_again",
        ui_tool_palette_expansion_collapses_when_window_fits_again},
       {"ui_dissolve_clipped_render_matches_full_render", ui_dissolve_clipped_render_matches_full_render},

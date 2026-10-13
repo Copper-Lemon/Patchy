@@ -63,7 +63,7 @@ Required release handoff steps:
 
 3. Explicitly report whether `build\release\patchy.exe` exists.
 
-4. Changes to platform-guarded code, CMake files/presets, or packaging also require the affected best-effort remote build: `scripts\remote\remote-build.ps1 -Target mac` and/or `-Target linux`. Report failures even though Windows remains the release gate. Separately, when Seth explicitly asks to offload a Windows build because the dev box is busy, `-Target windows` builds the real `release` preset on the Windows offload host; the local `build\release` remains the release gate and packaging source. See [docs/platform.md](docs/platform.md).
+4. Changes to platform-guarded code, CMake files/presets, or packaging also require the affected best-effort remote build: `scripts\remote\remote-build.ps1 -Target mac` and/or `-Target linux` (Linux tests on the Flatpak's Qt: [docs/linux-testing.md](docs/linux-testing.md)). Report failures even though Windows remains the release gate. When Seth explicitly asks to offload a Windows build, `-Target windows` builds the `release` preset on the offload host; local `build\release` stays the release gate and packaging source. See [docs/platform.md](docs/platform.md).
 
 Do not say a release was created unless the release preset build succeeded.
 

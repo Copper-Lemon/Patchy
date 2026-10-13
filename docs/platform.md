@@ -50,7 +50,7 @@ and `-Wunused-function` fires for a dead helper in an anonymous namespace (delet
 ### The flatpak build is a second Linux compiler
 
 A warning reported by the flatpak release build usually cannot be reproduced or
-verified by `remote-build.ps1 -Target linux`. The two use different compilers and
+verified by the `linux-release` preset. The two use different compilers and
 different flags: `linux-release` on the linux build host is the system `/usr/bin/c++` (GCC 13.3.0 on
 Ubuntu 24.04) with only `-O3 -DNDEBUG -std=c++20 -Wall -Wextra -Wpedantic`, while
 `packaging/linux/make-flatpak.sh` builds inside `org.kde.Sdk//6.11` with GCC 15.2.0 and
@@ -75,7 +75,7 @@ warning instead of merely being compiled by something that never reported it.
 
 Build machines are developer-specific and never named in the repository. Their ssh targets live in `scripts/remote/hosts.local.json` (gitignored; copy `hosts.example.json`), read through `scripts/remote/remote-hosts.ps1`; hardware notes and quirks go in `agents_local.md`. Both live in the main checkout (worktree runs fall back to it). Below, `<mac-build-host>`, `<linux-build-host>` and `<windows-build-host>` are those ssh targets.
 
-macOS (arm64, preset `mac-release`, Qt at `.deps/Qt/6.8.3/macos`) and Linux (preset `linux-release`, Qt at `.deps/Qt/6.8.3/gcc_64`) build remotely via `scripts\remote\remote-build.ps1 -Target mac|linux`, which snapshots the working tree (uncommitted changes included; no commits, branches or index changes) to a bare repo (`~/patchy.git`) on the build host, builds there, and runs both suites with output streamed back. One-time machine provisioning is `scripts/remote/setup-mac.sh` / `setup-linux.sh` (idempotent: venv tools + Qt via aqtinstall + apt deps).
+macOS (arm64, preset `mac-release`, Qt at `.deps/Qt/6.8.3/macos`) and Linux (preset `linux-flatpak-qt` inside the Flatpak SDK, see [linux-testing.md](linux-testing.md); `-NativeQt` for `linux-release` on `.deps/Qt/6.8.3/gcc_64`) build remotely via `scripts\remote\remote-build.ps1 -Target mac|linux`, which snapshots the working tree (uncommitted changes included; no commits, branches or index changes) to a bare repo (`~/patchy.git`) on the build host, builds there, and runs both suites with output streamed back. One-time machine provisioning is `scripts/remote/setup-mac.sh` / `setup-linux.sh` (idempotent: venv tools + Qt via aqtinstall + apt deps).
 
 `remote-build.ps1` checks out over the one shared `~/patchy/src`, so first check nobody else is using the box: `ssh <linux-build-host> "pgrep -af 'patchy_|ninja|cc1plus'"`. When it is busy, do not wait on or kill that run: push the snapshot to a private ref (`refs/snapshots/<topic>`), clone `~/patchy.git` into `~/patchy-<topic>/src`, symlink `.deps` to `~/patchy/src/.deps`, configure and build the preset there with the environment lines from `build-and-test.sh`, and delete the clone and the ref afterwards.
 
@@ -93,7 +93,7 @@ macOS (arm64, preset `mac-release`, Qt at `.deps/Qt/6.8.3/macos`) and Linux (pre
 
 ## AddressSanitizer runs (order-dependent heap bugs)
 
-The `linux-asan` preset (RelWithDebInfo + `-fsanitize=address`, own `build/linux-asan` dir) is the tool for crashes that only reproduce in the full ordered suite (teardown and store use-after-frees). Sync the tree with `remote-build.ps1 -Target linux -SkipTests`, then build and run the instrumented suites on the box:
+The `linux-asan` preset (RelWithDebInfo + `-fsanitize=address`, own `build/linux-asan` dir) is the tool for crashes that only reproduce in the full ordered suite (teardown and store use-after-frees). Sync the tree with `remote-build.ps1 -Target linux -NativeQt -SkipTests`, then build and run the instrumented suites on the box:
 
     ssh <linux-build-host> "ASAN_OPTIONS='quarantine_size_mb=8192:malloc_context_size=25:detect_leaks=0' \
       bash ~/patchy/src/scripts/remote/build-and-test.sh linux-asan"

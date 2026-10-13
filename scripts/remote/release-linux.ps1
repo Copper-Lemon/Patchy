@@ -5,7 +5,7 @@ current working tree and copies both into build\package\ next to the Windows art
   scripts\remote\release-linux.ps1
 
 Flow: snapshot push (scripts\remote\remote-build.ps1 -SkipTests validates the tree
-still builds against the aqt Qt), then packaging/linux/make-flatpak.sh on the linux build host
+still builds, tests included, inside the Flatpak SDK), then packaging/linux/make-flatpak.sh on the linux build host
 (flatpak-builder against the org.kde.Platform runtime -> signed repository -> flatpak
 build-bundle), then scp the bundle and the repository tar back. One-time build-host setup
 is in the make-flatpak.sh header (flatpak/flatpak-builder via apt) and in

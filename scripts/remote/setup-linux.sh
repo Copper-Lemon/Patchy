@@ -7,6 +7,9 @@
 # static release binary, and Qt installs via aqtinstall into the work tree's .deps/Qt so
 # the linux-* CMake presets resolve it exactly like on Windows. Only the apt package
 # step needs sudo; without it the script prints the command to run manually.
+# That Qt serves only the linux-release/-dev/-asan presets. The suites run inside the
+# Flatpak SDK instead (docs/linux-testing.md); the last step here reports whether the
+# SDK the manifest names is installed.
 set -euo pipefail
 
 TOOLS="$HOME/.patchy-tools"
@@ -80,4 +83,16 @@ cmake --version | head -1
 printf 'ninja %s\n' "$("$TOOLS/bin/ninja" --version)"
 g++ --version | head -1
 [ -x "$QT_DIR/bin/qmake" ] && echo "Qt: $QT_DIR OK"
+
+MANIFEST="$SRC/packaging/linux/flatpak/com.rtsoft.patchy.yml"
+if [ -f "$MANIFEST" ]; then
+  SDK_VERSION=$(sed -nE "s/^runtime-version:[[:space:]]*'?([0-9.]+)'?.*$/\1/p" "$MANIFEST" | head -1)
+  if flatpak info --user "org.kde.Sdk//$SDK_VERSION" >/dev/null 2>&1; then
+    echo "Flatpak SDK: org.kde.Sdk//$SDK_VERSION OK"
+  else
+    echo "Flatpak SDK missing (the Linux suites need it). Install with:"
+    echo "  flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo"
+    echo "  flatpak install --user -y flathub org.kde.Platform//$SDK_VERSION org.kde.Sdk//$SDK_VERSION"
+  fi
+fi
 echo "== linux setup complete =="

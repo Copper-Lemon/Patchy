@@ -40,6 +40,16 @@ using namespace patchy::test::ui;
 
 namespace {
 
+// QImage::mirrored is deprecated from Qt 6.9 (the Flatpak runtime's Qt), and
+// its replacement does not exist in the 6.8.3 the native presets use.
+QImage mirrored_horizontally(const QImage& image) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 9, 0)
+  return image.flipped(Qt::Horizontal);
+#else
+  return image.mirrored(true, false);
+#endif
+}
+
 QImage visible_alpha_cropped_image(const patchy::PixelBuffer& pixels) {
   const auto image = image_from_pixels_for_visuals(pixels).convertToFormat(QImage::Format_ARGB32);
   const auto bounds = alpha_pixel_bounds_in_rows(pixels, 0, pixels.height());
@@ -205,7 +215,7 @@ void ui_point_text_flip_transform_mirrors_and_survives_reedit() {
     return;
   }
   const auto base_image = visible_alpha_cropped_image(base_layer->pixels());
-  const auto base_mirrored = base_image.mirrored(true, false);
+  const auto base_mirrored = mirrored_horizontally(base_image);
   const auto base_ink = document_ink_rect(*base_layer);
   CHECK(base_ink.has_value());
   print_transform_state("base", *base_layer);
@@ -312,7 +322,7 @@ void ui_point_text_flip_transform_mirrors_and_survives_reedit() {
   const auto preview_image = drag_grab.copy(preview_region.intersected(drag_grab.rect()));
   const auto drag_identity_score = grab_ink_overlap_score(preview_image, restored_image);
   const auto drag_mirror_score =
-      grab_ink_overlap_score(preview_image, restored_image.mirrored(true, false));
+      grab_ink_overlap_score(preview_image, mirrored_horizontally(restored_image));
   std::cout << "[text-transform] mid-drag preview: identity=" << drag_identity_score
             << " mirror=" << drag_mirror_score << std::endl;
   CHECK(drag_mirror_score > drag_identity_score);
@@ -521,7 +531,7 @@ void run_geometry_scenario(const GeometryScenario& scenario) {
   // operation's raster, not the pre-operation one ("Flip me." has no mirror symmetry).
   const auto final_image = visible_alpha_cropped_image(final_layer->pixels());
   const auto same_orientation_score = alpha_overlap_score(final_image, moved_image);
-  const auto mirrored_orientation_score = alpha_overlap_score(final_image, moved_image.mirrored(true, false));
+  const auto mirrored_orientation_score = alpha_overlap_score(final_image, mirrored_horizontally(moved_image));
   std::cout << "[text-transform] " << scenario.name << " orientation: same=" << same_orientation_score
             << " mirrored=" << mirrored_orientation_score << std::endl;
   CHECK(same_orientation_score > mirrored_orientation_score);
