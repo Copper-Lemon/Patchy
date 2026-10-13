@@ -59,14 +59,13 @@ What this does not cover:
 The first full run inside the SDK: core suite 1207 pass, 0 fail; UI suite 1748 pass, 11
 fail. All 11 pass on the host's Qt 6.8.3 build. Each is either a real difference Flatpak
 users see or a font/environment assumption in the test, and none has been investigated
-yet. Remove an entry when it is fixed or explained.
+yet. Remove an entry when it is fixed or explained (10 remain).
 
 - `ui_brush_tip_picker_keeps_options_bar_height` (options bar height)
 - `ui_options_bar_transform_session_replaces_tool_controls` (options bar height)
 - `ui_animation_preview_fits_its_text_at_larger_fonts` (clipped text)
 - `ui_text_reedit_preserves_rich_text_spacing`
 - `ui_text_editor_ctrl_b_and_ctrl_i_toggle_formatting` (font picker face is not "Bold Italic")
-- `ui_tips_psd_speed_mode_line_clip_if_available`
 - `ui_text_layer_font_without_glyph_coverage_counts_as_missing`
 - `ui_image_size_dialog_scales_box_text_frame_and_size`
 - `ui_typing_uncovered_characters_switches_their_font`

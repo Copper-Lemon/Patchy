@@ -2182,6 +2182,90 @@ void ui_imported_psd_box_text_follows_markers_after_edit_if_available() {
   QApplication::processEvents();
 }
 
+void ui_box_text_metric_scale_narrows_the_drawn_glyphs() {
+  // The session's advance calibration (patchy.textMetricScale) narrows every font so imported
+  // box text wraps like Photoshop's raster. The width residual that makes up for whole-percent
+  // font stretch used to read that narrowing as lost stretch and widen the glyphs back through
+  // the matrix: the text wrapped narrow, drew at full width past its frame (tips.psd: 716 px of
+  // ink in a 574 px box), and every re-edit grew the render rect by the same factor again. One
+  // unwrapped word measures it without depending on any face: its ink follows the scale.
+  patchy::test::register_test_fonts(patchy::test::TestFontRole::UiDefault);
+  const auto path = patchy::test::committed_psd_fixture_path("photoshop-text-box-auto-leading.psd");
+  auto document = patchy::psd::DocumentIo::read_file(path);
+  patchy::LayerId layer_id = 0;
+  patchy::Rect layer_bounds{};
+  for (const auto& layer : document.layers()) {
+    if (patchy::layer_is_text(layer) && layer.metadata().contains(patchy::kLayerMetadataPsdTextBoxBounds)) {
+      layer_id = layer.id();
+      layer_bounds = layer.bounds();
+    }
+  }
+  CHECK(layer_id != 0);
+  if (layer_id == 0) {
+    return;
+  }
+
+  patchy::ui::MainWindow window;
+  show_window(window);
+  window.add_document_session(std::move(document), QStringLiteral("Box Text Metric Scale"));
+  auto* canvas = require_canvas(window);
+  canvas->set_zoom(1.0);
+  QApplication::processEvents();
+  auto& live_document = patchy::ui::MainWindowTestAccess::document(window);
+  live_document.set_active_layer(layer_id);
+
+  require_action_by_text(window, QStringLiteral("Type"))->trigger();
+  const auto hit_point = canvas->widget_position_for_document_point(
+      QPoint(layer_bounds.x + layer_bounds.width / 2, layer_bounds.y + 12));
+  accept_missing_psd_text_font_warning_if_present();
+  send_mouse(*canvas, QEvent::MouseButtonPress, hit_point, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*canvas, QEvent::MouseButtonRelease, hit_point, Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  auto* editor = canvas->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor"));
+  CHECK(editor != nullptr);
+  if (editor == nullptr) {
+    return;
+  }
+  CHECK(editor->property("patchy.usesPsdTextFrame").toBool());
+
+  const auto preview_ink = [&]() -> QRect {
+    process_events_for(300);
+    if (auto* preview = preview_layer_for_editor(live_document, *editor); preview != nullptr) {
+      if (const auto alpha = alpha_pixel_bounds_in_rows(preview->pixels(), 0, preview->pixels().height());
+          alpha.has_value()) {
+        return alpha->translated(preview->bounds().x, preview->bounds().y);
+      }
+    }
+    return QRect();
+  };
+  editor->setPlainText(QStringLiteral("HHHHHHHH"));
+  const auto natural_ink = preview_ink();
+  CHECK(natural_ink.width() > 40);
+
+  constexpr double kScale = 0.75;
+  editor->setProperty("patchy.textMetricScale", kScale);
+  editor->setPlainText(QStringLiteral("HHHHHHHH"));
+  const auto scaled_ink = preview_ink();
+  CHECK(!scaled_ink.isEmpty());
+  // Whole-pixel glyph origins and the stem widths leave a few pixels of slack either way; the
+  // regression drew the scaled text at the natural width.
+  CHECK(std::abs(scaled_ink.width() - natural_ink.width() * kScale) <= 4.0);
+  CHECK(scaled_ink.height() == natural_ink.height());
+
+  require_action_by_text(window, QStringLiteral("Move"))->trigger();
+  QApplication::processEvents();
+  CHECK(canvas->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor")) == nullptr);
+  const auto* committed = std::as_const(live_document).find_layer(layer_id);
+  CHECK(committed != nullptr);
+  if (committed == nullptr) {
+    return;
+  }
+  const auto committed_ink =
+      alpha_pixel_bounds_in_rows(committed->pixels(), 0, committed->pixels().height());
+  CHECK(committed_ink.has_value());
+  CHECK(committed_ink.has_value() && committed_ink->width() == scaled_ink.width());
+}
+
 void ui_tips_psd_speed_mode_line_clip_if_available() {
   const auto path = patchy::test::local_psd_fixture_path("tips.psd");
   if (!std::filesystem::exists(path)) {
@@ -2266,6 +2350,14 @@ void ui_tips_psd_speed_mode_line_clip_if_available() {
   CHECK(std::abs(alpha_row_band_span(preview_bands) - source_span) <= 24);
   CHECK(preview_bands.back().bottom - preview_bands.back().top >=
         source_bands.back().bottom - source_bands.back().top - 4);
+  // The calibrated advances wrap the text inside the frame, and the glyphs are drawn at those
+  // advances: the ink stays in the frame instead of running 1 / scale past its right edge.
+  const auto frame_right =
+      editor->property("patchy.documentTextX").toInt() + editor->property("patchy.documentTextWidth").toInt();
+  const auto preview_ink =
+      alpha_pixel_bounds_in_rows(preview_layer->pixels(), 0, preview_layer->pixels().height());
+  CHECK(preview_ink.has_value());
+  CHECK(preview_ink.has_value() && preview_layer->bounds().x + preview_ink->right() <= frame_right + 4);
   save_widget_artifact("ui_tips_psd_speed_mode_after_edit", *canvas);
 
   require_action_by_text(window, QStringLiteral("Move"))->trigger();
@@ -2277,6 +2369,7 @@ void ui_tips_psd_speed_mode_line_clip_if_available() {
   const auto committed_bands = alpha_row_bands(committed_layer->pixels());
   CHECK(committed_bands.size() == source_bands.size());
   CHECK(std::abs(alpha_row_band_span(committed_bands) - source_span) <= 24);
+  const auto committed_width = committed_layer->pixels().width();
 
   require_action_by_text(window, QStringLiteral("Type"))->trigger();
   send_mouse(*canvas, QEvent::MouseButtonPress, hit_point, Qt::LeftButton, Qt::LeftButton);
@@ -2293,10 +2386,20 @@ void ui_tips_psd_speed_mode_line_clip_if_available() {
   preview_layer = preview_layer_for_editor(patchy::ui::MainWindowTestAccess::document(window), *editor);
   CHECK(preview_layer != nullptr);
   const auto reedit_bands = alpha_row_bands(preview_layer->pixels());
+  for (std::size_t i = 0; i < reedit_bands.size() && i < committed_bands.size() && i < preview_bands.size(); ++i) {
+    std::fprintf(stderr, "band %d: source %d-%d preview %d-%d committed %d-%d reedit %d-%d\n", static_cast<int>(i),
+                 source_bands[i].top, source_bands[i].bottom, preview_bands[i].top, preview_bands[i].bottom,
+                 committed_bands[i].top, committed_bands[i].bottom, reedit_bands[i].top, reedit_bands[i].bottom);
+  }
   CHECK(reedit_bands.size() == committed_bands.size());
   CHECK(std::abs(alpha_row_band_span(reedit_bands) - alpha_row_band_span(committed_bands)) <= 4);
-  CHECK(reedit_bands.back().bottom - reedit_bands.back().top >=
-        committed_bands.back().bottom - committed_bands.back().top - 2);
+  // Re-entering renders the same lines into the same rect: the buffer must not grow (it used
+  // to widen by 1 / scale per session), and every line keeps its rows.
+  CHECK(std::abs(preview_layer->pixels().width() - committed_width) <= 4);
+  for (std::size_t i = 0; i < reedit_bands.size() && i < committed_bands.size(); ++i) {
+    CHECK(reedit_bands[i].top == committed_bands[i].top);
+    CHECK(reedit_bands[i].bottom == committed_bands[i].bottom);
+  }
   save_widget_artifact("ui_tips_psd_speed_mode_reedit", *canvas);
 
   send_key(*editor, Qt::Key_Escape);
@@ -3990,6 +4093,8 @@ std::vector<patchy::test::TestCase> psd_text_import_tests() {
        ui_cdi_a4_title_text_import_edit_visual_bounds_if_available},
       {"ui_imported_psd_box_text_follows_markers_after_edit_if_available",
        ui_imported_psd_box_text_follows_markers_after_edit_if_available},
+      {"ui_box_text_metric_scale_narrows_the_drawn_glyphs",
+       ui_box_text_metric_scale_narrows_the_drawn_glyphs},
       {"ui_tips_psd_speed_mode_line_clip_if_available",
        ui_tips_psd_speed_mode_line_clip_if_available},
       {"ui_horror_virtualboy_caret_tracks_zoom_if_available",

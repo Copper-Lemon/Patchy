@@ -81,7 +81,8 @@ VerticalScale is fractional on its own (issue 20: 1086.61 x 0.93 = 1010.55), and
 the same problem one level up. HorizontalScale / VerticalScale becomes `QFont::setStretch`, a
 whole percent (0.95 / 0.93 = 102.15% renders at 102%, a pixel narrow at the far edge of a
 1080 px word). `dominant_run_width_residual` measures the dominant run's real advance ratio
-(what the stretch delivered, on whatever engine) against the ratio the runs ask for and
+(what the stretch delivered, on whatever engine) against the ratio the runs ask for (times the
+session's `patchy.textMetricScale`, which is wanted narrowing, not a shortfall) and
 pre-scales the matrix's local x axis by the shortfall. Both residuals are render-only: the stored
 transform and the TySh never carry them, and a layer whose sizes and ratio are already whole
 renders byte-identically. `ui_dungeon_scroll_psd_text_commit_keeps_placement_if_available` pins

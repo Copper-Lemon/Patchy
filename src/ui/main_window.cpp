@@ -4256,7 +4256,14 @@ double dominant_text_run_size(const TextToolSettings& settings, const QString& r
 // CoreText, and a fallback engine may ignore stretch altogether), so the residual is exactly
 // what the matrix still has to supply. The dominant run is the largest pixel size, the same
 // choice dominant_text_run_size makes for the vertical fold.
-double dominant_run_width_residual(const QTextDocument& document) {
+//
+// metric_scale is the session's advance calibration (calibrated_box_text_metric_scale), which
+// build_text_render_document already folded into every font's stretch. It is part of the width
+// the render WANTS, not a shortfall: left out, the residual read the narrowing as lost stretch
+// and widened the glyphs back through the matrix, so calibrated box text wrapped at the narrow
+// advances and then drew 1 / metric_scale wider than its frame (tips.psd: 716 px of ink in a
+// 574 px box), and every re-edit grew the render rect by the same factor again.
+double dominant_run_width_residual(const QTextDocument& document, double metric_scale) {
   double best_size = 0.0;
   QTextCharFormat best;
   bool found = false;
@@ -4288,8 +4295,9 @@ double dominant_run_width_residual(const QTextDocument& document) {
     }
     return 1.0;
   };
-  const auto wanted =
-      scale_property(kTextHorizontalScaleFormatProperty) / scale_property(kTextVerticalScaleFormatProperty);
+  metric_scale = std::clamp(std::isfinite(metric_scale) ? metric_scale : 1.0, 0.5, 1.5);
+  const auto wanted = scale_property(kTextHorizontalScaleFormatProperty) /
+                      scale_property(kTextVerticalScaleFormatProperty) * metric_scale;
   QFont stretched = best.font();
   stretched.setLetterSpacing(QFont::AbsoluteSpacing, 0.0);
   // The face at its OWN width is QFont::AnyStretch, never stretch 100: Qt synthesizes
@@ -4490,7 +4498,7 @@ TextRenderPlan build_text_render_plan(const TextToolSettings& settings, QColor c
     // Whatever width the whole-percent stretch could not express scales the local x axis
     // (dominant_run_width_residual), applied before the document transform so rotation and
     // shear still act on the corrected advances.
-    const auto width_residual = dominant_run_width_residual(document);
+    const auto width_residual = dominant_run_width_residual(document, metric_scale);
     if (std::abs(width_residual - 1.0) > 1e-6) {
       document_transform = QTransform::fromScale(width_residual, 1.0) * document_transform;
     }
