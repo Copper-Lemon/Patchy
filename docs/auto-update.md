@@ -107,7 +107,8 @@ works around them:
   uninstaller delete them once nothing uses them; one still in use is carried forward.
 - **Patchy tells the user after the restart.** Update mode lists the apps whose connector
   ran from the install (the connector's parent process, by product name) and starts Patchy
-  with them in `PATCHY_UPDATE_CONNECTOR_CLIENTS` (`|` separated).
+  with them in `PATCHY_UPDATE_CONNECTOR_CLIENTS` (`|` separated). It starts Patchy before
+  closing the progress window (`Start-PatchyInForeground`), or Patchy opens under other windows.
   `MainWindow::show_connector_restart_notice` shows them once: restart these apps to finish
   updating. No user-facing text says "reconnect": most AI apps have no such control.
 - **The old connector tells the assistant.** `ui/connector_freshness.*` remembers the

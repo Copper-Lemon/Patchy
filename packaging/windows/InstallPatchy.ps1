@@ -938,6 +938,54 @@ public static extern void SHChangeNotify(int eventId, uint flags, IntPtr item1, 
     [PatchySetup.Shell]::SHChangeNotify(0x08000000, 0, [IntPtr]::Zero, [IntPtr]::Zero)
 }
 
+# Starts the installed Patchy so its window comes to the front. Windows lets a new
+# process take the foreground only while the process that started it owns it, so call
+# this while setup's own window is still up, never after closing it (Patchy then opens
+# under other windows). The grant covers a Patchy that hands the launch to an instance
+# already running. Returns once Patchy has a window, it exits, or the wait runs out.
+# Only a failure to start Patchy throws.
+function Start-PatchyInForeground {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$InstalledExe,
+
+        [int]$TimeoutSeconds = 10
+    )
+
+    # Not Start-Process: its -WorkingDirectory treats [ ] in a folder name as a wildcard.
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = $InstalledExe
+    $startInfo.WorkingDirectory = Split-Path -Parent $InstalledExe
+    $startInfo.UseShellExecute = $false
+    $process = [System.Diagnostics.Process]::Start($startInfo)
+
+    try {
+        if (-not ("PatchySetup.Foreground" -as [type])) {
+            Add-Type -Namespace PatchySetup -Name Foreground -MemberDefinition @"
+[DllImport("user32.dll")]
+public static extern bool AllowSetForegroundWindow(uint processId);
+"@
+        }
+        # ASFW_ANY
+        [void][PatchySetup.Foreground]::AllowSetForegroundWindow([uint32]::MaxValue)
+
+        $pumpMessages = [bool]("System.Windows.Forms.Application" -as [type])
+        $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+        while ([DateTime]::UtcNow -lt $deadline) {
+            if ($process.WaitForExit(50)) { break }
+            $process.Refresh()
+            if ($process.MainWindowHandle -ne [IntPtr]::Zero) { break }
+            if ($pumpMessages) {
+                [System.Windows.Forms.Application]::DoEvents()
+            }
+        }
+    } catch {
+        # Patchy is running; where its window lands is not worth failing setup over.
+    } finally {
+        $process.Dispose()
+    }
+}
+
 function Invoke-PatchyInstall {
     param(
         [Parameter(Mandatory = $true)]
@@ -1290,6 +1338,7 @@ function Show-PatchyInstallerWizard {
     $state = @{
         InstalledExe = $null
         Launch = $false
+        Launched = $false
         Completed = $false
     }
 
@@ -1445,6 +1494,17 @@ function Show-PatchyInstallerWizard {
     $installButton.Add_Click({
         if ($form.Tag -eq "complete") {
             $state.Launch = $launchCheck.Checked
+            if ($state.Launch -and (Test-Path -LiteralPath $state.InstalledExe -PathType Leaf)) {
+                # Before the wizard closes, so Patchy can come to the front.
+                $installButton.Enabled = $false
+                $launchCheck.Enabled = $false
+                try {
+                    Start-PatchyInForeground -InstalledExe $state.InstalledExe
+                    $state.Launched = $true
+                } catch {
+                    # The caller tries once more after the wizard closes.
+                }
+            }
             $form.DialogResult = [System.Windows.Forms.DialogResult]::OK
             $form.Close()
             return
@@ -1866,14 +1926,18 @@ try {
                 }
                 $workerExitCode = $worker.ExitCode
                 $worker.Dispose()
+                if ($workerExitCode -eq 0) {
+                    # While the progress window is still up, so Patchy can come to the front.
+                    if ($connectorClients.Count -gt 0) {
+                        $env:PATCHY_UPDATE_CONNECTOR_CLIENTS = $connectorClients -join "|"
+                    }
+                    Start-PatchyInForeground -InstalledExe (Join-Path $installRoot "patchy.exe")
+                }
             } finally {
                 $progressForm.Close()
                 $progressForm.Dispose()
             }
-            if ($workerExitCode -ne 0) {
-                exit $workerExitCode  # the worker already said why
-            }
-            $installedExe = Join-Path $installRoot "patchy.exe"
+            exit $workerExitCode  # on a failure the worker already said why
         } else {
             if (-not $UpdateWorker) {
                 $connectorClients = @(Get-PatchyConnectorClientNames -InstallRoot $installRoot)
@@ -1896,12 +1960,7 @@ try {
         if ($connectorClients.Count -gt 0) {
             $env:PATCHY_UPDATE_CONNECTOR_CLIENTS = $connectorClients -join "|"
         }
-        # Not Start-Process: its -WorkingDirectory treats [ ] in a folder name as a wildcard.
-        $relaunch = New-Object System.Diagnostics.ProcessStartInfo
-        $relaunch.FileName = $installedExe
-        $relaunch.WorkingDirectory = Split-Path -Parent $installedExe
-        $relaunch.UseShellExecute = $false
-        [void][System.Diagnostics.Process]::Start($relaunch)
+        Start-PatchyInForeground -InstalledExe $installedExe
         exit 0
     }
 
@@ -1932,8 +1991,8 @@ try {
     if ($result.Completed) {
         $installedRoot = Split-Path -Parent $result.InstalledExe
         Write-Host "Patchy installed to $installedRoot"
-        if ($result.Launch -and (Test-Path -LiteralPath $result.InstalledExe -PathType Leaf)) {
-            Start-Process -FilePath $result.InstalledExe -WorkingDirectory $installedRoot
+        if ($result.Launch -and -not $result.Launched -and (Test-Path -LiteralPath $result.InstalledExe -PathType Leaf)) {
+            Start-PatchyInForeground -InstalledExe $result.InstalledExe
         }
     }
 
