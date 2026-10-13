@@ -20243,6 +20243,30 @@ You can still download it in your browser.</source>
         <source>%1 needs about %2 MB of memory for these layers, more than this computer can spare. Use fewer input layers or a smaller image.</source>
         <translation>Для %1 требуется около %2 МБ памяти для этих слоёв, больше, чем может выделить этот компьютер. Используйте меньше входных слоёв или изображение меньшего размера.</translation>
     </message>
+    <message>
+        <source>Don&apos;t ask again about version %1</source>
+        <translation>Больше не спрашивать о версии %1</translation>
+    </message>
+    <message>
+        <source>Every launch</source>
+        <translation>При каждом запуске</translation>
+    </message>
+    <message>
+        <source>Weekly</source>
+        <translation>Раз в неделю</translation>
+    </message>
+    <message>
+        <source>Every 2 weeks</source>
+        <translation>Раз в 2 недели</translation>
+    </message>
+    <message>
+        <source>Monthly</source>
+        <translation>Раз в месяц</translation>
+    </message>
+    <message>
+        <source>How often Patchy looks for a new version when it starts. The About window always checks.</source>
+        <translation>Как часто Patchy ищет новую версию при запуске. Окно «О программе» проверяет всегда.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

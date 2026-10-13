@@ -123,6 +123,10 @@ Plug-ins (Windows only). Tool and canvas-input behavior (the mouse wheel, Free T
 options) goes on Tools; Pen holds only pen and tablet settings; Application holds app-level
 settings (language, theme, updates, recovery, open/save policies). Tests find Hotkeys by
 title and pin the rest of the order in `ui_canvas_aid_preferences_and_guide_dialogs_work`.
+`install_wheel_scroll_guard` (`dialog_utils.hpp`) makes combo boxes, spin boxes and sliders
+in its scrolling pages take the wheel only with keyboard focus (issue 92); use it for any
+dialog whose pages scroll. The dialog resizes by a `VisibleSizeGrip` and remembers
+`preferences/dialogSize`.
 
 Application-wide fill, quick-selection, interpolation, and vector options transfer
 when the active canvas changes. Language changes in Preferences apply only on OK.

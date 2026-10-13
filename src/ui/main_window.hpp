@@ -194,7 +194,8 @@ public:
   // during the update still use the previous version until they restart. `apps` are their
   // names as the installer found them ("Claude", "Codex").
   void show_connector_restart_notice(const QStringList& apps);
-  // The startup update check (honors updates/checkOnStartup). Called from src/app/main.cpp
+  // The startup update check (honors updates/checkOnStartup, the chosen interval and a
+  // skipped version; docs/auto-update.md). Called from src/app/main.cpp
   // only, so tests constructing MainWindow never fire network requests; the result lands on
   // the start panel's status line and, for an available update, show_update_available.
   void begin_startup_update_check();

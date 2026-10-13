@@ -20186,6 +20186,30 @@ Você ainda pode baixá-la no navegador.</translation>
         <source>%1 needs about %2 MB of memory for these layers, more than this computer can spare. Use fewer input layers or a smaller image.</source>
         <translation>%1 precisa de cerca de %2 MB de memória para estas camadas, mais do que este computador pode oferecer. Use menos camadas de entrada ou uma imagem menor.</translation>
     </message>
+    <message>
+        <source>Don&apos;t ask again about version %1</source>
+        <translation>Não perguntar novamente sobre a versão %1</translation>
+    </message>
+    <message>
+        <source>Every launch</source>
+        <translation>A cada inicialização</translation>
+    </message>
+    <message>
+        <source>Weekly</source>
+        <translation>Semanalmente</translation>
+    </message>
+    <message>
+        <source>Every 2 weeks</source>
+        <translation>A cada 2 semanas</translation>
+    </message>
+    <message>
+        <source>Monthly</source>
+        <translation>Mensalmente</translation>
+    </message>
+    <message>
+        <source>How often Patchy looks for a new version when it starts. The About window always checks.</source>
+        <translation>Com que frequência o Patchy procura uma nova versão ao iniciar. A janela Sobre sempre verifica.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

@@ -163,6 +163,13 @@ UnitIntSpinBox* add_dialog_slider_spin_row(QFormLayout* form, QWidget* parent, c
 // clamps it inside the screen's available horizontal range and flips it above
 // the anchor when it would run past the bottom. Call before show().
 void position_popup_below(const QWidget& anchor, QWidget& popup);
+// For a dialog whose pages scroll (GitHub issue 92): a combo box, spin box or slider inside
+// a scroll area under `root` ignores the mouse wheel unless it holds keyboard focus (a click
+// or Tab; their focus policy drops from WheelFocus to StrongFocus), so a wheel that passes
+// over one scrolls the page instead of changing a setting. Covers controls created later.
+// Call once the dialog is built; repeated calls are no-ops. Preferences is the one user so
+// far. Test: ui_preferences_wheel_over_unfocused_control_scrolls_the_page.
+void install_wheel_scroll_guard(QWidget& root);
 // QSizeGrip paints through the platform style, which is close to invisible on the dark QSS
 // theme; repaint it as three light diagonal strokes so the resize corner is discoverable.
 // The resize handle for frameless windows (chrome dialogs, popups), which have no native border.

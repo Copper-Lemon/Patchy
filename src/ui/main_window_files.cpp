@@ -4438,11 +4438,19 @@ void MainWindow::show_update_available(const UpdateInfo& update) {
     download_button = button;
   }
   dialog.addButton(tr("Not Now"), QMessageBox::RejectRole);
+  // Silences the startup prompt for this version only (GitHub issue 92): a later release
+  // asks again, and the start panel and About window keep reporting the update.
+  auto* skip_check = new QCheckBox(tr("Don't ask again about version %1").arg(update.version), &dialog);
+  skip_check->setObjectName(QStringLiteral("updateSkipVersionCheck"));
+  dialog.setCheckBox(skip_check);
 
   exec_dialog(dialog);
   if (install_button != nullptr && dialog.clickedButton() == install_button) {
     download_and_install_update(update);
     return;
+  }
+  if (skip_check->isChecked()) {
+    set_stored_update_skipped_version(update.version);
   }
 #if defined(Q_OS_LINUX)
   if (dialog.clickedButton() == copy_button) {
@@ -4502,6 +4510,11 @@ void MainWindow::begin_startup_update_check() {
       return;
     }
   }
+  // The chosen interval (Preferences, GitHub issue 92): every launch by default.
+  if (!startup_update_check_due(stored_update_check_interval_days(), stored_update_last_check_secs(),
+                                QDateTime::currentSecsSinceEpoch())) {
+    return;
+  }
   if (start_panel_ != nullptr) {
     start_panel_->set_update_status(QObject::tr("Checking for updates..."));
   }
@@ -4509,6 +4522,10 @@ void MainWindow::begin_startup_update_check() {
   // stays safe to capture. The status lands on the panel even while it is hidden (a file
   // was opened at startup): it shows if the panel reappears after the last document closes.
   request_update_check(this, QStringLiteral(PATCHY_VERSION), [this](UpdateCheckResult result) {
+    // Only an answer starts the interval: a launch without a network tries again next time.
+    if (result.status != UpdateCheckStatus::NetworkError) {
+      set_stored_update_last_check_secs(QDateTime::currentSecsSinceEpoch());
+    }
     if (start_panel_ != nullptr) {
       // "Up to date" says nothing the version line above does not; clear the
       // "Checking..." line instead of restating the version (Seth, October 2026).
@@ -4517,7 +4534,8 @@ void MainWindow::begin_startup_update_check() {
                                           ? QString()
                                           : update_check_status_text(result));
     }
-    if (result.update.has_value()) {
+    if (result.update.has_value() &&
+        update_prompt_wanted(result.update->version, stored_update_skipped_version())) {
       show_update_available(*result.update);
     }
   });

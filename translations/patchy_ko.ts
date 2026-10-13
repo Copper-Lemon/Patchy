@@ -20129,6 +20129,30 @@ You can still download it in your browser.</source>
         <source>%1 needs about %2 MB of memory for these layers, more than this computer can spare. Use fewer input layers or a smaller image.</source>
         <translation>%1에는 이 레이어들에 약 %2MB의 메모리가 필요하며, 이 컴퓨터가 제공할 수 있는 양보다 많습니다. 입력 레이어를 줄이거나 더 작은 이미지를 사용하세요.</translation>
     </message>
+    <message>
+        <source>Don&apos;t ask again about version %1</source>
+        <translation>버전 %1에 대해 다시 묻지 않기</translation>
+    </message>
+    <message>
+        <source>Every launch</source>
+        <translation>실행할 때마다</translation>
+    </message>
+    <message>
+        <source>Weekly</source>
+        <translation>매주</translation>
+    </message>
+    <message>
+        <source>Every 2 weeks</source>
+        <translation>2주마다</translation>
+    </message>
+    <message>
+        <source>Monthly</source>
+        <translation>매월</translation>
+    </message>
+    <message>
+        <source>How often Patchy looks for a new version when it starts. The About window always checks.</source>
+        <translation>Patchy가 시작할 때 새 버전을 확인하는 빈도입니다. 정보 창에서는 항상 확인합니다.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

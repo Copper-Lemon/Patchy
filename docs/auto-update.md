@@ -9,6 +9,26 @@ prompts, installs into the same folder, and starts Patchy again. Everything else
 browser download: the portable zip, a development build, macOS, Linux, and any manifest that
 does not carry the installer keys.
 
+## When the startup check runs
+
+`MainWindow::begin_startup_update_check` (called from `src/app/main.cpp` only) decides, in
+this order. Every key is permanent; accessors live in `src/ui/app_settings.hpp`.
+
+- `updates/checkOnStartup` (bool, default true) is the master switch.
+- `updates/checkIntervalDays` (int: 0, 7, 14 or 30; anything else reads as 0) is the
+  Preferences choice beside the checkbox (GitHub issue 92). 0 is "Every launch" and stays
+  the default. `startup_update_check_due` (`update_checker.hpp`) compares it with
+  `updates/lastCheckSecsSinceEpoch` and is also true with no record or one in the future.
+- The record is written when a check gets an answer, never on `NetworkError`, so a launch
+  without a network tries again next time.
+- `updates/skippedVersion` holds the version from the prompt's "Don't ask again about
+  version X" checkbox (stored on any button except Update Now). `update_prompt_wanted`
+  shows the prompt only for a version newer than it. The check still runs and the start
+  panel still says an update is available.
+
+The About window and the connector's own check (below) ignore the interval and the skipped
+version: neither raises a prompt.
+
 ## Flow
 
 1. `request_update_check` (`src/ui/update_checker.cpp`) reads the manifest. The `windows`
@@ -133,6 +153,10 @@ had not loaded yet would be the new build.
   at the save prompt, a launch that fails, a settled close).
   `ui_update_connector_restart_notice_names_the_apps` and
   `connector_update_notice_reports_a_replaced_executable` cover the connector notices.
+  `ui_update_check_interval_gates_the_startup_check`,
+  `ui_update_startup_check_honors_stored_interval` (a loopback manifest server) and
+  `ui_update_prompt_skip_version_silences_until_a_newer_one` cover the interval and the
+  skipped version.
 - `scripts\release\verify-windows-package.ps1` runs `InstallPatchy.ps1 -UpdateCheckRoot`:
   the process wait, the locked-file check, and setting a file in use aside (renamed,
   recorded in the manifest, removed by the next install) on stand-in files in a scratch folder.

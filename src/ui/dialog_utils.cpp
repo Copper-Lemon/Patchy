@@ -12,6 +12,8 @@
 #endif
 
 #include <QAbstractButton>
+#include <QAbstractScrollArea>
+#include <QAbstractSlider>
 #include <QAbstractSpinBox>
 #include <QAction>
 #include <QApplication>
@@ -50,6 +52,7 @@
 #include <QScopeGuard>
 #include <QScreen>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QSettings>
 #include <QSignalBlocker>
 #include <QSize>
@@ -1751,6 +1754,90 @@ QWidget* wrap_spin_with_step_buttons(QAbstractSpinBox* spin, QWidget* parent,
     add_spin_step_buttons(real, layout, field_name);
   }
   return row;
+}
+
+namespace {
+
+constexpr auto kWheelScrollGuardInstalledProperty = "patchy.wheelScrollGuardInstalled";
+
+// Never a QScrollBar: a scroll area hands its own wheel events to its scroll bars, so
+// bouncing those back to the parent would loop.
+bool is_wheel_adjusted_control(const QWidget* widget) {
+  if (qobject_cast<const QScrollBar*>(widget) != nullptr) {
+    return false;
+  }
+  return qobject_cast<const QComboBox*>(widget) != nullptr || qobject_cast<const QAbstractSpinBox*>(widget) != nullptr ||
+         qobject_cast<const QAbstractSlider*>(widget) != nullptr;
+}
+
+// An application-level filter rather than one per control: controls a dialog creates after
+// the guard is installed (the Preferences Hotkeys panel is built on first visit) are covered.
+class WheelScrollGuard final : public QObject {
+public:
+  explicit WheelScrollGuard(QWidget& root) : QObject(&root), root_(root) {}
+
+  // True for a combo box, spin box or slider that sits inside a scroll area under the root.
+  [[nodiscard]] bool guards(const QWidget* widget) const {
+    if (widget == nullptr || !is_wheel_adjusted_control(widget) || !root_.isAncestorOf(widget)) {
+      return false;
+    }
+    for (auto* parent = widget->parentWidget(); parent != nullptr && parent != &root_;
+         parent = parent->parentWidget()) {
+      if (qobject_cast<const QAbstractScrollArea*>(parent) != nullptr) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Qt gives a WheelFocus widget the focus before it delivers the wheel, which would make
+  // every wheel over a control count as a wheel on the focused one.
+  static void drop_wheel_focus(QWidget* widget) {
+    if (widget->focusPolicy() == Qt::WheelFocus) {
+      widget->setFocusPolicy(Qt::StrongFocus);
+    }
+  }
+
+protected:
+  bool eventFilter(QObject* watched, QEvent* event) override {
+    if (event->type() != QEvent::Wheel && event->type() != QEvent::Polish) {
+      return false;
+    }
+    auto* widget = qobject_cast<QWidget*>(watched);
+    if (!guards(widget)) {
+      return false;
+    }
+    if (event->type() == QEvent::Polish) {
+      drop_wheel_focus(widget);
+      return false;
+    }
+    if (widget->hasFocus()) {
+      return false;
+    }
+    // Ignored and filtered: QApplication offers the wheel to the parent next, which
+    // reaches the enclosing scroll area.
+    event->ignore();
+    return true;
+  }
+
+private:
+  QWidget& root_;
+};
+
+}  // namespace
+
+void install_wheel_scroll_guard(QWidget& root) {
+  if (root.property(kWheelScrollGuardInstalledProperty).toBool()) {
+    return;
+  }
+  root.setProperty(kWheelScrollGuardInstalledProperty, true);
+  auto* guard = new WheelScrollGuard(root);
+  for (auto* widget : root.findChildren<QWidget*>()) {
+    if (guard->guards(widget)) {
+      WheelScrollGuard::drop_wheel_focus(widget);
+    }
+  }
+  qApp->installEventFilter(guard);
 }
 
 VisibleSizeGrip::VisibleSizeGrip(QWidget* parent) : QSizeGrip(parent) {

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QSettings>
+#include <QSize>
+#include <QString>
 #include <QStringList>
 
 #include <array>
@@ -58,6 +60,27 @@ inline constexpr int kDefaultRecoveryIntervalMinutes = 10;
 void set_stored_recovery_enabled(bool enabled);
 [[nodiscard]] int stored_recovery_interval_minutes();
 void set_stored_recovery_interval_minutes(int minutes);
+
+// How often the startup update check runs (GitHub issue 92), in days; 0 checks on every
+// launch and is the default. Key `updates/checkIntervalDays`; a stored value outside the
+// steps falls back to the default. `updates/lastCheckSecsSinceEpoch` is when a startup
+// check last got an answer (UTC seconds, 0 when never). `updates/skippedVersion` is the
+// version the user ticked "Don't ask again" for on the update prompt (empty when none).
+// All three keys are compatibility contracts. See docs/auto-update.md.
+inline constexpr std::array<int, 4> kUpdateCheckIntervalDays{0, 7, 14, 30};
+inline constexpr int kDefaultUpdateCheckIntervalDays = 0;
+[[nodiscard]] int normalize_update_check_interval_days(int stored);
+[[nodiscard]] int stored_update_check_interval_days();
+void set_stored_update_check_interval_days(int days);
+[[nodiscard]] qint64 stored_update_last_check_secs();
+void set_stored_update_last_check_secs(qint64 secs_since_epoch);
+[[nodiscard]] QString stored_update_skipped_version();
+void set_stored_update_skipped_version(const QString& version);
+
+// The size the user dragged the Preferences dialog to (key `preferences/dialogSize`, a
+// compatibility contract); invalid when never resized.
+[[nodiscard]] QSize stored_preferences_dialog_size();
+void set_stored_preferences_dialog_size(QSize size);
 
 // Legacy Photoshop plug-in folders the user added (key `plugins/userFolders`, a
 // compatibility contract), on top of the automatic `plugins` folders next to the

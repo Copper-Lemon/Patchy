@@ -156,6 +156,20 @@ bool update_version_is_newer(const QString& latest_version, const QString& curre
   return false;
 }
 
+bool startup_update_check_due(int interval_days, qint64 last_check_secs, qint64 now_secs) {
+  if (interval_days <= 0 || last_check_secs <= 0 || last_check_secs > now_secs) {
+    return true;
+  }
+  return now_secs - last_check_secs >= qint64{interval_days} * 24 * 60 * 60;
+}
+
+bool update_prompt_wanted(const QString& version, const QString& skipped_version) {
+  if (!parse_dotted_version(skipped_version).has_value()) {
+    return true;
+  }
+  return update_version_is_newer(version, skipped_version);
+}
+
 std::optional<UpdateInfo> parse_update_manifest(const QByteArray& json, const QString& platform,
                                                 const QString& current_version) {
   return inspect_update_manifest(json, platform, current_version).update;

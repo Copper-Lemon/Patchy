@@ -20129,6 +20129,30 @@ You can still download it in your browser.</source>
         <source>%1 needs about %2 MB of memory for these layers, more than this computer can spare. Use fewer input layers or a smaller image.</source>
         <translation>%1 处理这些图层需要约 %2 MB 内存，超出了此计算机可提供的范围。请减少输入图层或使用较小的图像。</translation>
     </message>
+    <message>
+        <source>Don&apos;t ask again about version %1</source>
+        <translation>不再询问版本 %1</translation>
+    </message>
+    <message>
+        <source>Every launch</source>
+        <translation>每次启动</translation>
+    </message>
+    <message>
+        <source>Weekly</source>
+        <translation>每周</translation>
+    </message>
+    <message>
+        <source>Every 2 weeks</source>
+        <translation>每 2 周</translation>
+    </message>
+    <message>
+        <source>Monthly</source>
+        <translation>每月</translation>
+    </message>
+    <message>
+        <source>How often Patchy looks for a new version when it starts. The About window always checks.</source>
+        <translation>Patchy 启动时检查新版本的频率。“关于”窗口始终会检查。</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

@@ -20129,6 +20129,30 @@ You can still download it in your browser.</source>
         <source>%1 needs about %2 MB of memory for these layers, more than this computer can spare. Use fewer input layers or a smaller image.</source>
         <translation>%1 はこれらのレイヤーに約 %2 MB のメモリを必要とし、このコンピューターで確保できる量を超えています。入力レイヤーを減らすか、画像を小さくしてください。</translation>
     </message>
+    <message>
+        <source>Don&apos;t ask again about version %1</source>
+        <translation>バージョン %1 については今後確認しない</translation>
+    </message>
+    <message>
+        <source>Every launch</source>
+        <translation>起動するたび</translation>
+    </message>
+    <message>
+        <source>Weekly</source>
+        <translation>毎週</translation>
+    </message>
+    <message>
+        <source>Every 2 weeks</source>
+        <translation>2 週間ごと</translation>
+    </message>
+    <message>
+        <source>Monthly</source>
+        <translation>毎月</translation>
+    </message>
+    <message>
+        <source>How often Patchy looks for a new version when it starts. The About window always checks.</source>
+        <translation>Patchy が起動時に新しいバージョンを確認する頻度です。バージョン情報ウィンドウでは常に確認します。</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

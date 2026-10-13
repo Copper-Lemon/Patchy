@@ -20123,6 +20123,29 @@ You can still download it in your browser.</source>
     </message>
     <message>
         <source>%1 needs about %2 MB of memory for these layers, more than this computer can spare. Use fewer input layers or a smaller image.</source>
+    </message>
+    <message>
+        <source>Don&apos;t ask again about version %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Every launch</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Weekly</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Every 2 weeks</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Monthly</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>How often Patchy looks for a new version when it starts. The About window always checks.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

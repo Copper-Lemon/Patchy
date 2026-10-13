@@ -60,6 +60,14 @@ using UpdateCheckResultCallback = std::function<void(UpdateCheckResult)>;
                                                         const QString& current_version);
 [[nodiscard]] std::optional<UpdateInfo> parse_update_manifest(const QByteArray& json, const QString& platform,
                                                               const QString& current_version);
+// The interval gate for the startup check (GitHub issue 92): true when `interval_days` is 0
+// (every launch), no check is recorded, the record lies in the future (the clock moved
+// back), or that many days have passed. Times are UTC seconds since the epoch.
+[[nodiscard]] bool startup_update_check_due(int interval_days, qint64 last_check_secs, qint64 now_secs);
+// Whether the startup check should raise the update prompt for `version`: not when the user
+// ticked "Don't ask again" for it (`skipped_version`) or for a later one. A stored value
+// that is empty or not a version never hides a prompt.
+[[nodiscard]] bool update_prompt_wanted(const QString& version, const QString& skipped_version);
 void request_update_check(QObject* owner, QString current_version, UpdateCheckResultCallback callback);
 // One-line user-facing summary of a check result ("Patchy is up to date (0.80).").
 [[nodiscard]] QString update_check_status_text(const UpdateCheckResult& result);

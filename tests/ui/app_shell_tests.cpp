@@ -168,6 +168,8 @@
 #include <QRadioButton>
 #include <QSpinBox>
 #include <QStringList>
+#include <QDateTime>
+#include <QScrollArea>
 #include <QScrollBar>
 #include <QScreen>
 #include <QSet>
@@ -2524,6 +2526,342 @@ void ui_update_checks_can_be_switched_off() {
   // Accepting Preferences without the checkbox leaves the stored choice alone.
   auto settings = patchy::ui::app_settings();
   CHECK(settings.value(QStringLiteral("updates/checkOnStartup"), false).toBool());
+}
+
+namespace {
+
+// Opens Preferences, hands the dialog to `inspect`, then accepts or rejects it.
+template <typename Inspect>
+void run_preferences_dialog(patchy::ui::MainWindow& window, bool accept, Inspect inspect) {
+  bool saw_dialog = false;
+  QTimer::singleShot(0, [&] {
+    auto* dialog = find_top_level_dialog(QStringLiteral("patchyPreferencesDialog"));
+    CHECK(dialog != nullptr);
+    if (dialog == nullptr) {
+      return;
+    }
+    inspect(*dialog);
+    saw_dialog = true;
+    if (accept) {
+      dialog->accept();
+    } else {
+      dialog->reject();
+    }
+  });
+  require_action(window, "filePreferencesAction")->trigger();
+  QApplication::processEvents();
+  CHECK(saw_dialog);
+}
+
+// One wheel notch down, delivered as the window system delivers it. Qt hands only a
+// spontaneous wheel on to the parent widgets (and gives WheelFocus widgets the focus first),
+// and sendEvent clears that flag, so this goes through notify() the way QTest's key and
+// mouse helpers do.
+void send_wheel_notch_down(QWidget& target) {
+  const QPointF center(target.width() / 2.0, target.height() / 2.0);
+  QWheelEvent wheel(center, target.mapToGlobal(center), QPoint(), QPoint(0, -120), Qt::NoButton, Qt::NoModifier,
+                    Qt::NoScrollPhase, false);
+  QSpontaneKeyEvent::setSpontaneous(&wheel);
+  qApp->notify(&target, &wheel);
+}
+
+}  // namespace
+
+// GitHub issue 92: a wheel that passes over a Preferences dropdown or number field scrolls
+// the page and leaves the setting alone; only a control with keyboard focus takes the wheel.
+void ui_preferences_wheel_over_unfocused_control_scrolls_the_page() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  run_preferences_dialog(window, /*accept=*/false, [](QDialog& dialog) {
+    auto* tabs = dialog.findChild<QTabWidget*>(QStringLiteral("preferencesTabWidget"));
+    auto* combo = dialog.findChild<QComboBox*>(QStringLiteral("preferencesGuiScaleCombo"));
+    CHECK(tabs != nullptr && combo != nullptr);
+    if (tabs == nullptr || combo == nullptr) {
+      return;
+    }
+    dialog.resize(dialog.minimumSize());
+    QApplication::processEvents();
+    auto* scroll = tabs->currentWidget()->findChild<QScrollArea*>(QStringLiteral("preferencesTabScroll"));
+    CHECK(scroll != nullptr);
+    if (scroll == nullptr) {
+      return;
+    }
+    auto* bar = scroll->verticalScrollBar();
+    CHECK(bar->maximum() > 0);
+    bar->setValue(0);
+
+    // A real wheel focuses a WheelFocus widget before delivery, so the policy matters too.
+    CHECK(combo->focusPolicy() == Qt::StrongFocus);
+    combo->clearFocus();
+    CHECK(combo->count() > 1);
+    combo->setCurrentIndex(0);
+    send_wheel_notch_down(*combo);
+    CHECK(combo->currentIndex() == 0);
+    CHECK(bar->value() > 0);
+
+    // With keyboard focus the wheel is the control's again.
+    combo->setFocus();
+    QApplication::processEvents();
+    CHECK(combo->hasFocus());
+    // (macOS combo boxes never take the wheel; the style says so.)
+    if (combo->style()->styleHint(QStyle::SH_ComboBox_AllowWheelScrolling, nullptr, combo) != 0) {
+      const int scrolled = bar->value();
+      send_wheel_notch_down(*combo);
+      CHECK(combo->currentIndex() == 1);
+      CHECK(bar->value() == scrolled);
+    }
+    combo->clearFocus();
+
+    // Spin boxes on the other tabs are covered by the same guard.
+    auto* spin = dialog.findChild<QAbstractSpinBox*>(QStringLiteral("preferencesGridSpacingSpin"));
+    CHECK(spin != nullptr);
+    if (spin != nullptr) {
+      CHECK(spin->focusPolicy() == Qt::StrongFocus);
+      const auto before = spin->text();
+      send_wheel_notch_down(*spin);
+      CHECK(spin->text() == before);
+    }
+  });
+}
+
+// GitHub issue 92: the frameless Preferences dialog resizes by its corner grip, its pages
+// grow with it, and the size comes back the next time it opens.
+void ui_preferences_dialog_resizes_and_remembers_its_size() {
+  SettingsValueRestorer restore_size(QStringLiteral("preferences/dialogSize"));
+  {
+    auto settings = patchy::ui::app_settings();
+    settings.remove(QStringLiteral("preferences/dialogSize"));
+    settings.sync();
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+
+  QSize target;
+  run_preferences_dialog(window, /*accept=*/false, [&](QDialog& dialog) {
+    CHECK(dialog.findChild<QSizeGrip*>(QStringLiteral("preferencesSizeGrip")) != nullptr);
+    auto* tabs = dialog.findChild<QTabWidget*>(QStringLiteral("preferencesTabWidget"));
+    CHECK(tabs != nullptr);
+    if (tabs == nullptr) {
+      return;
+    }
+    CHECK(dialog.maximumHeight() > dialog.minimumHeight());
+    const auto entry_size = dialog.size();
+    dialog.resize(dialog.minimumSize());
+    QApplication::processEvents();
+    const int small_tabs_height = tabs->height();
+    // Taller only: the tab row can make the minimum width as wide as the offscreen screen,
+    // and a restored size is kept inside the screen.
+    target = dialog.minimumSize() + QSize(0, 90);
+    CHECK(target != entry_size);
+    dialog.resize(target);
+    QApplication::processEvents();
+    CHECK(dialog.size() == target);
+    CHECK(tabs->height() > small_tabs_height);
+  });
+  CHECK(target.isValid());
+  CHECK(patchy::ui::stored_preferences_dialog_size() == target);
+
+  run_preferences_dialog(window, /*accept=*/false, [&](QDialog& dialog) { CHECK(dialog.size() == target); });
+}
+
+// GitHub issue 92: the interval gate of the startup update check, without any network.
+void ui_update_check_interval_gates_the_startup_check() {
+  using patchy::ui::startup_update_check_due;
+  constexpr qint64 kDay = 24 * 60 * 60;
+  constexpr qint64 kNow = 1'800'000'000;
+
+  // Every launch is the default and always due.
+  CHECK(patchy::ui::kDefaultUpdateCheckIntervalDays == 0);
+  CHECK(startup_update_check_due(0, kNow - 1, kNow));
+  CHECK(startup_update_check_due(0, kNow, kNow));
+  for (const int days : {7, 14, 30}) {
+    CHECK(!startup_update_check_due(days, kNow - 1, kNow));
+    CHECK(!startup_update_check_due(days, kNow - days * kDay + 1, kNow));
+    CHECK(startup_update_check_due(days, kNow - days * kDay, kNow));
+    CHECK(startup_update_check_due(days, kNow - days * kDay - 1, kNow));
+    // Never checked, or a record from the future (the clock moved back).
+    CHECK(startup_update_check_due(days, 0, kNow));
+    CHECK(startup_update_check_due(days, kNow + kDay, kNow));
+  }
+
+  for (const int days : patchy::ui::kUpdateCheckIntervalDays) {
+    CHECK(patchy::ui::normalize_update_check_interval_days(days) == days);
+  }
+  CHECK(patchy::ui::normalize_update_check_interval_days(5) == 0);
+  CHECK(patchy::ui::normalize_update_check_interval_days(-7) == 0);
+
+  SettingsValueRestorer restore_interval(QStringLiteral("updates/checkIntervalDays"));
+  {
+    auto settings = patchy::ui::app_settings();
+    settings.remove(QStringLiteral("updates/checkIntervalDays"));
+    settings.sync();
+  }
+  CHECK(patchy::ui::stored_update_check_interval_days() == 0);
+
+  using patchy::ui::update_prompt_wanted;
+  CHECK(update_prompt_wanted(QStringLiteral("9.9"), QString()));
+  CHECK(update_prompt_wanted(QStringLiteral("9.9"), QStringLiteral("not a version")));
+  CHECK(!update_prompt_wanted(QStringLiteral("9.9"), QStringLiteral("9.9")));
+  CHECK(!update_prompt_wanted(QStringLiteral("9.8"), QStringLiteral("9.9")));
+  CHECK(update_prompt_wanted(QStringLiteral("9.10"), QStringLiteral("9.9")));
+}
+
+// The startup check against a loopback manifest: skipped inside the interval, run and
+// recorded once it has passed, and always run on "every launch".
+void ui_update_startup_check_honors_stored_interval() {
+  SettingsValueRestorer restore_update_check(QStringLiteral("updates/checkOnStartup"));
+  SettingsValueRestorer restore_interval(QStringLiteral("updates/checkIntervalDays"));
+  SettingsValueRestorer restore_last_check(QStringLiteral("updates/lastCheckSecsSinceEpoch"));
+  {
+    auto settings = patchy::ui::app_settings();
+    settings.setValue(QStringLiteral("updates/checkOnStartup"), true);
+    settings.sync();
+  }
+  // Nothing newer, so no prompt opens.
+  ManifestServer server(R"({"platforms": {"windows": {"version": "0.0.1", "download_url": "https://rtsoft.com/w.exe"},
+                                          "macos": {"version": "0.0.1", "download_url": "https://rtsoft.com/m.dmg"},
+                                          "linux": {"version": "0.0.1", "download_url": "https://rtsoft.com/l.flatpak"}}})");
+  const UpdateManifestUrlOverride override(server.manifest_url());
+  patchy::ui::MainWindow window;
+  show_window(window);
+
+  constexpr qint64 kDay = 24 * 60 * 60;
+  const auto now = QDateTime::currentSecsSinceEpoch();
+
+  patchy::ui::set_stored_update_check_interval_days(7);
+  patchy::ui::set_stored_update_last_check_secs(now - 3600);
+  window.begin_startup_update_check();
+  process_events_for(500);
+  CHECK(server.requests() == 0);
+  CHECK(patchy::ui::stored_update_last_check_secs() == now - 3600);
+
+  patchy::ui::set_stored_update_last_check_secs(now - 8 * kDay);
+  window.begin_startup_update_check();
+  CHECK(process_events_until([&] { return patchy::ui::stored_update_last_check_secs() >= now; }, 15000));
+  CHECK(server.requests() == 1);
+
+  // The record is fresh now, but "every launch" checks regardless.
+  patchy::ui::set_stored_update_check_interval_days(0);
+  window.begin_startup_update_check();
+  CHECK(process_events_until([&] { return server.requests() == 2; }, 15000));
+}
+
+void ui_update_preference_persists_check_interval() {
+  SettingsValueRestorer restore_update_check(QStringLiteral("updates/checkOnStartup"));
+  SettingsValueRestorer restore_interval(QStringLiteral("updates/checkIntervalDays"));
+  {
+    auto settings = patchy::ui::app_settings();
+    settings.setValue(QStringLiteral("updates/checkOnStartup"), true);
+    settings.remove(QStringLiteral("updates/checkIntervalDays"));
+    settings.sync();
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+
+  run_preferences_dialog(window, /*accept=*/true, [](QDialog& dialog) {
+    auto* combo = dialog.findChild<QComboBox*>(QStringLiteral("preferencesUpdateCheckIntervalCombo"));
+    CHECK(combo != nullptr);
+    if (combo == nullptr) {
+      return;
+    }
+    // Every launch stays the default; the stored value is the day count, never an index.
+    CHECK(combo->isEnabled());
+    CHECK(combo->currentData().toInt() == 0);
+    CHECK(combo->currentText() == QStringLiteral("Every launch"));
+    QList<int> days;
+    for (int index = 0; index < combo->count(); ++index) {
+      days.push_back(combo->itemData(index).toInt());
+    }
+    CHECK(days == QList<int>({0, 7, 14, 30}));
+    combo->setCurrentIndex(combo->findData(14));
+  });
+  CHECK(patchy::ui::stored_update_check_interval_days() == 14);
+  CHECK(patchy::ui::app_settings().value(QStringLiteral("updates/checkIntervalDays")).toInt() == 14);
+
+  run_preferences_dialog(window, /*accept=*/false, [](QDialog& dialog) {
+    auto* combo = dialog.findChild<QComboBox*>(QStringLiteral("preferencesUpdateCheckIntervalCombo"));
+    auto* check = dialog.findChild<QCheckBox*>(QStringLiteral("preferencesCheckForUpdatesCheck"));
+    CHECK(combo != nullptr && check != nullptr);
+    if (combo == nullptr || check == nullptr) {
+      return;
+    }
+    CHECK(combo->currentData().toInt() == 14);
+    check->setChecked(false);
+    CHECK(!combo->isEnabled());
+  });
+}
+
+// "Don't ask again about version X" on the update prompt silences the startup prompt for
+// that version only: the start panel still reports it, and a later release asks again.
+void ui_update_prompt_skip_version_silences_until_a_newer_one() {
+  SettingsValueRestorer restore_update_check(QStringLiteral("updates/checkOnStartup"));
+  SettingsValueRestorer restore_interval(QStringLiteral("updates/checkIntervalDays"));
+  SettingsValueRestorer restore_last_check(QStringLiteral("updates/lastCheckSecsSinceEpoch"));
+  SettingsValueRestorer restore_skipped(QStringLiteral("updates/skippedVersion"));
+  {
+    auto settings = patchy::ui::app_settings();
+    settings.setValue(QStringLiteral("updates/checkOnStartup"), true);
+    settings.setValue(QStringLiteral("updates/checkIntervalDays"), 0);
+    settings.remove(QStringLiteral("updates/skippedVersion"));
+    settings.sync();
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+
+  // Closes every update prompt that opens, ticking the checkbox when asked to.
+  int prompts = 0;
+  bool tick_skip = true;
+  QTimer closer;
+  QObject::connect(&closer, &QTimer::timeout, &closer, [&] {
+    auto* dialog = qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("updateAvailableMessageBox")));
+    if (dialog == nullptr) {
+      return;
+    }
+    ++prompts;
+    auto* skip = dialog->findChild<QCheckBox*>(QStringLiteral("updateSkipVersionCheck"));
+    CHECK(skip != nullptr);
+    if (skip != nullptr) {
+      CHECK(skip->text() == QStringLiteral("Don't ask again about version %1").arg(prompts == 1 ? QStringLiteral("9.9") : QStringLiteral("9.10")));
+      CHECK(!skip->isChecked());
+      skip->setChecked(tick_skip);
+    }
+    dialog->reject();
+  });
+  closer.start(20);
+
+  window.show_update_available(
+      {QStringLiteral("windows"), QStringLiteral("9.9"), QUrl(QStringLiteral("https://rtsoft.com/w.exe"))});
+  CHECK(prompts == 1);
+  CHECK(patchy::ui::stored_update_skipped_version() == QStringLiteral("9.9"));
+
+  const auto manifest = [](const char* version) {
+    return QByteArray(R"({"platforms": {"windows": {"version": "V", "download_url": "https://rtsoft.com/w.exe"},
+                                         "macos": {"version": "V", "download_url": "https://rtsoft.com/m.dmg"},
+                                         "linux": {"version": "V", "download_url": "https://rtsoft.com/l.flatpak"}}})")
+        .replace("V", version);
+  };
+  {
+    ManifestServer server(manifest("9.9"));
+    const UpdateManifestUrlOverride override(server.manifest_url());
+    window.begin_startup_update_check();
+    CHECK(process_events_until([&] { return server.requests() == 1; }, 15000));
+    process_events_for(300);
+    CHECK(prompts == 1);
+    auto* status = window.findChild<QLabel*>(QStringLiteral("startPanelUpdateStatus"));
+    CHECK(status != nullptr);
+    if (status != nullptr) {
+      CHECK(status->text().contains(QStringLiteral("9.9")));
+    }
+  }
+  {
+    tick_skip = false;
+    ManifestServer server(manifest("9.10"));
+    const UpdateManifestUrlOverride override(server.manifest_url());
+    window.begin_startup_update_check();
+    CHECK(process_events_until([&] { return prompts == 2; }, 15000));
+    // Not ticked this time: the stored choice is left alone.
+    CHECK(patchy::ui::stored_update_skipped_version() == QStringLiteral("9.9"));
+  }
 }
 
 struct GuiScaleDialogRun {
@@ -5657,6 +5995,14 @@ std::vector<patchy::test::TestCase> app_shell_tests() {
        ui_update_preference_defaults_startup_check_setting_to_enabled},
       {"ui_update_preference_persists_startup_check_setting", ui_update_preference_persists_startup_check_setting},
       {"ui_update_checks_can_be_switched_off", ui_update_checks_can_be_switched_off},
+      {"ui_preferences_wheel_over_unfocused_control_scrolls_the_page",
+       ui_preferences_wheel_over_unfocused_control_scrolls_the_page},
+      {"ui_preferences_dialog_resizes_and_remembers_its_size", ui_preferences_dialog_resizes_and_remembers_its_size},
+      {"ui_update_check_interval_gates_the_startup_check", ui_update_check_interval_gates_the_startup_check},
+      {"ui_update_startup_check_honors_stored_interval", ui_update_startup_check_honors_stored_interval},
+      {"ui_update_preference_persists_check_interval", ui_update_preference_persists_check_interval},
+      {"ui_update_prompt_skip_version_silences_until_a_newer_one",
+       ui_update_prompt_skip_version_silences_until_a_newer_one},
       {"ui_gui_scale_preference_persists_setting", ui_gui_scale_preference_persists_setting},
       {"ui_gui_scale_preference_persists_step_below_full_size",
        ui_gui_scale_preference_persists_step_below_full_size},

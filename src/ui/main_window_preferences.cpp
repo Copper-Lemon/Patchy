@@ -819,11 +819,33 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
   // The web build has no update check to configure: the deployed site is
   // always the current version. A store build has none either (the store updates it).
   QCheckBox* update_check = nullptr;
+  QComboBox* update_interval_combo = nullptr;
   if (update_checks_available()) {
-    update_check = new QCheckBox(tr("Check for updates on startup"), application_group);
+    // The checkbox and how often it applies on one row, like the recovery row below
+    // (GitHub issue 92). The item data is the day count the setting stores.
+    auto* update_row = new QWidget(application_group);
+    update_row->setObjectName(QStringLiteral("preferencesUpdateCheckRow"));
+    auto* update_layout = new QHBoxLayout(update_row);
+    update_layout->setContentsMargins(0, 0, 0, 0);
+    update_check = new QCheckBox(tr("Check for updates on startup"), update_row);
     update_check->setObjectName(QStringLiteral("preferencesCheckForUpdatesCheck"));
     update_check->setChecked(settings.value(QStringLiteral("updates/checkOnStartup"), true).toBool());
-    application_form->addRow(update_check);
+    update_interval_combo = new QComboBox(update_row);
+    update_interval_combo->setObjectName(QStringLiteral("preferencesUpdateCheckIntervalCombo"));
+    update_interval_combo->addItem(tr("Every launch"), 0);
+    update_interval_combo->addItem(tr("Weekly"), 7);
+    update_interval_combo->addItem(tr("Every 2 weeks"), 14);
+    update_interval_combo->addItem(tr("Monthly"), 30);
+    update_interval_combo->setToolTip(
+        tr("How often Patchy looks for a new version when it starts. The About window always checks."));
+    update_interval_combo->setCurrentIndex(
+        std::max(0, update_interval_combo->findData(stored_update_check_interval_days())));
+    update_interval_combo->setEnabled(update_check->isChecked());
+    connect(update_check, &QCheckBox::toggled, update_interval_combo, &QComboBox::setEnabled);
+    update_layout->addWidget(update_check);
+    update_layout->addWidget(update_interval_combo);
+    update_layout->addStretch(1);
+    application_form->addRow(update_row);
   }
   // Automatic document recovery (docs/document-recovery.md): a checkbox and the
   // interval combo on one row, the way Photoshop's File Handling page lays it out.
@@ -1543,7 +1565,15 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
   auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok, &dialog);
   buttons->setObjectName(QStringLiteral("preferencesButtonBox"));
   connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
-  content->addWidget(buttons);
+  // Frameless chrome has no native resize border; the corner grip is the resize handle
+  // (GitHub issue 92).
+  auto* button_row = new QHBoxLayout();
+  button_row->setContentsMargins(0, 0, 0, 0);
+  button_row->addWidget(buttons, 1);
+  auto* size_grip = new VisibleSizeGrip(&dialog);
+  size_grip->setObjectName(QStringLiteral("preferencesSizeGrip"));
+  button_row->addWidget(size_grip, 0, Qt::AlignBottom);
+  content->addLayout(button_row);
 
   // Applied after every child widget exists: Qt does not reliably pick up
   // sub-control rules (QSpinBox::up-button) for widgets created on hidden
@@ -1605,6 +1635,7 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
     }
     /* Plain-QWidget field containers inherit the global QWidget background, which
        shows as a mismatched band against the panel_card_bg panels. */
+    QDialog#patchyPreferencesDialog QWidget#preferencesUpdateCheckRow,
     QDialog#patchyPreferencesDialog QWidget#preferencesVisibilityRow,
     QDialog#patchyPreferencesDialog QWidget#preferencesSnapTargetsRow {
       background: transparent;
@@ -1625,8 +1656,23 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
   if (dialog.width() < needed_width) {
     dialog.resize(needed_width, dialog.height());
   }
+  // The size the user last dragged the dialog to, kept inside the screen it opens on.
+  if (const auto saved_size = stored_preferences_dialog_size(); saved_size.isValid()) {
+    auto restored_size = saved_size;
+    if (const auto* owner_screen = screen(); owner_screen != nullptr) {
+      restored_size = restored_size.boundedTo(owner_screen->availableGeometry().size());
+    }
+    dialog.resize(restored_size.expandedTo(dialog.minimumSize()));
+  }
+  const auto entry_size = dialog.size();
 
-  if (exec_dialog(dialog) == QDialog::Accepted) {
+  install_wheel_scroll_guard(dialog);
+
+  const int dialog_result = exec_dialog(dialog);
+  if (dialog.size() != entry_size) {
+    set_stored_preferences_dialog_size(dialog.size());
+  }
+  if (dialog_result == QDialog::Accepted) {
     if (const auto code = language_combo->currentData().toString(); !code.isEmpty()) {
       LocalizationManager::instance().set_language(code);
     }
@@ -1648,6 +1694,7 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
 #ifndef Q_OS_WASM
     if (update_check != nullptr) {
       settings.setValue(QStringLiteral("updates/checkOnStartup"), update_check->isChecked());
+      set_stored_update_check_interval_days(update_interval_combo->currentData().toInt());
     }
     set_stored_recovery_enabled(recovery_check->isChecked());
     set_stored_recovery_interval_minutes(recovery_combo->currentData().toInt());

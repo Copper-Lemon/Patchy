@@ -20243,6 +20243,30 @@ Nadal możesz pobrać ją w przeglądarce.</translation>
         <source>%1 needs about %2 MB of memory for these layers, more than this computer can spare. Use fewer input layers or a smaller image.</source>
         <translation>%1 wymaga około %2 MB pamięci dla tych warstw, więcej niż ten komputer może udostępnić. Użyj mniejszej liczby warstw wejściowych lub mniejszego obrazu.</translation>
     </message>
+    <message>
+        <source>Don&apos;t ask again about version %1</source>
+        <translation>Nie pytaj ponownie o wersję %1</translation>
+    </message>
+    <message>
+        <source>Every launch</source>
+        <translation>Przy każdym uruchomieniu</translation>
+    </message>
+    <message>
+        <source>Weekly</source>
+        <translation>Co tydzień</translation>
+    </message>
+    <message>
+        <source>Every 2 weeks</source>
+        <translation>Co 2 tygodnie</translation>
+    </message>
+    <message>
+        <source>Monthly</source>
+        <translation>Co miesiąc</translation>
+    </message>
+    <message>
+        <source>How often Patchy looks for a new version when it starts. The About window always checks.</source>
+        <translation>Jak często Patchy szuka nowej wersji podczas uruchamiania. Okno „O programie” sprawdza zawsze.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
