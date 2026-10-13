@@ -91,7 +91,7 @@ See it in action.  Click an image for the full-size capture.
 | **PDF documents** | Import pages as editable text, vectors, and images on desktop; export single or multi-page PDFs with editable or flattened content. |
 | **Photos and other formats** | 16-bit and 32-bit (HDR) editing, Camera Raw development, HEIC/HEIF photos, layered Affinity import, and common image formats. |
 | **Pixel art and game assets** | Named palettes, indexed export, seamless tiling, sprite sheets, image sequences, DDS textures, and animated GIF and WebP. |
-| **Extend your workflow** | Legacy Photoshop filters on Windows, JavaScript scripts, batch processing, command-line tools, and local MCP control. |
+| **Extend your workflow** | The G'MIC filter library (nearly 400 filters, desktop), legacy Photoshop filters on Windows, JavaScript scripts, batch processing, command-line tools, and local MCP control. |
 
 [Full feature list and format support](docs/features.md) · [Scripting guide](scripts/bundled/scripting-guide.md) · [AI control setup](docs/ai-control.md)
 

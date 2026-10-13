@@ -6,6 +6,7 @@
 // is load-bearing (see create_actions() for the phase order).
 
 #include "ui/main_window.hpp"
+#include "filters/gmic/gmic_engine.hpp"
 #include "ui/main_window_shared.hpp"
 #include "ui/main_window_actions_internal.hpp"
 
@@ -1590,6 +1591,26 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
           [this] { liquify_dialog(); });
   register_document_action(liquify_action);
   filter_menu->addSeparator();
+
+  // Only builds with the G'MIC engine offer its library (docs/gmic.md). It sits below
+  // Liquify in its own group: ui_filter_catalog_and_menu_contracts_are_stable pins the
+  // first five rows.
+  if (gmic::engine_available()) {
+    auto* gmic_library_action = filter_menu->addAction(tr("G'&MIC Filter Library..."));
+    gmic_library_action->setObjectName(QStringLiteral("filterGmicLibraryAction"));
+    gmic_library_action->setProperty("patchy.channelViewBlocked", true);
+    gmic_library_action->setIcon(simple_icon(QStringLiteral("GM")));
+    gmic_library_action->setStatusTip(tr("Browse and apply filters from the G'MIC library"));
+    bind_action_text(gmic_library_action,
+                     QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "G'&MIC Filter Library..."));
+    bind_translated_status_tip(gmic_library_action, "Browse and apply filters from the G'MIC library");
+    apply_bound_translation(gmic_library_action);
+    refresh_action_tooltip(gmic_library_action);
+    register_hotkey(gmic_library_action, "filter.gmic_library");
+    connect(gmic_library_action, &QAction::triggered, this, [this] { gmic_filter_library_dialog(); });
+    register_document_action(gmic_library_action);
+    filter_menu->addSeparator();
+  }
 
   const auto add_filter_submenu = [this, filter_menu](
                                       const char* object_name,

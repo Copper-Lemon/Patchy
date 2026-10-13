@@ -363,6 +363,7 @@ int main(int argc, char* argv[]) {
            mcp_tests,
            unicode_path_tests,
            legacy_plugin_tests,
+           gmic_ui_tests,
            history_panel_tests,
            file_info_tests,
            composite_render_tests,

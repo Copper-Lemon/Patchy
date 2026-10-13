@@ -411,6 +411,32 @@ interface PatchyLayer {
    */
   applyPlugin(pluginId: string, options?: { dialog?: boolean; captureDialog?: string }): void;
   /**
+   * Runs a G'MIC library filter (an id from patchy.gmic.list()) on this layer, limited
+   * to the document selection, as part of the run's undo entry. `values` is an array
+   * (one per parameter, in list() order) or an object keyed by parameter name; anything
+   * left out uses the filter's default. A value has the kind list() reports as the
+   * default: a number, a boolean, a choice's index or label, "#rrggbb" / "#rrggbbaa" or
+   * [r, g, b, a] for a color, [x, y] in percent for a point, a string for text.
+   * `inputLayers` names the layers the filter reads ("active", "activeAndBelow",
+   * "activeAndAbove", "all", "visible", "hidden"); the default is the filter's own.
+   * "visible" and "hidden" follow what the document shows, enclosing folders included.
+   * Only this layer is changed. A filter that works on each layer it reads gives this
+   * layer its own result; a filter that merges its input replaces this layer with the
+   * merged image; every further result becomes a new layer above it. Layers that were
+   * only read are never changed. When this layer is not among the layers read (a visible
+   * layer with "hidden"), it keeps its pixels and every result is a new layer. Returns
+   * the number of layers added.
+   * Throws when the filter is unknown, a value does not fit, the filter fails, no layer
+   * matches `inputLayers`, the run would not fit in memory, the layer is a text, shape or
+   * Smart Object layer or has locked pixels, Quick Mask is on, or the build has no G'MIC
+   * engine (patchy.gmic.available).
+   */
+  applyGmic(
+    filterId: string,
+    values?: PatchyGmicValue[] | { [parameterName: string]: PatchyGmicValue },
+    options?: { inputLayers?: PatchyGmicInputLayers },
+  ): number;
+  /**
    * Edit > Remove Object: fills the document selection from its surroundings
    * (the dialog's fill, without the dialog). `method` "contentAware"
    * (default) is the deterministic exemplar fill (an exhaustive best-patch
@@ -1257,6 +1283,41 @@ interface PatchyPlugins {
   rescan(): ReturnType<PatchyPlugins["list"]>;
 }
 
+type PatchyGmicValue = number | boolean | string | number[];
+type PatchyGmicInputLayers = "active" | "activeAndBelow" | "activeAndAbove" | "all" | "visible" | "hidden";
+
+interface PatchyGmicParameter {
+  /** G'MIC's own English label; applyGmic accepts it as a key. */
+  name: string;
+  type: "float" | "int" | "bool" | "choice" | "color" | "point" | "text" | "file" | "folder" | "button" | "value";
+  /** In the form applyGmic takes back (a choice's default is its index). */
+  default: PatchyGmicValue;
+  /** float and int only. */
+  minimum?: number;
+  maximum?: number;
+  /** choice only: the labels, in index order. */
+  choices?: string[];
+}
+
+interface PatchyGmic {
+  /** False in builds without the G'MIC engine; list() is then empty and applyGmic throws. */
+  readonly available: boolean;
+  /** The G'MIC version the filters come from, such as "4.0.5"; "" when unavailable. */
+  readonly version: string;
+  /**
+   * Every filter the G'MIC Filter Library offers, in menu order. `id` is permanent.
+   * `folder` is the menu path ("Colors", or "Various / Misc"). `inputLayers` is what
+   * the filter reads by default. `parameters` are the ones that carry a value, in the
+   * order applyGmic takes them.
+   */
+  list(): {
+    id: string;
+    name: string;
+    folder: string;
+    inputLayers: PatchyGmicInputLayers;
+    parameters: PatchyGmicParameter[];
+  }[];
+}
 interface PatchyRecovery {
   /** The Preferences checkbox (persisted). Setting it re-arms the timer. */
   enabled: boolean;
@@ -1289,6 +1350,7 @@ interface PatchyNamespace {
   readonly ui: PatchyUi;
   readonly recovery: PatchyRecovery;
   readonly plugins: PatchyPlugins;
+  readonly gmic: PatchyGmic;
   readonly scripts: PatchyScripts;
   readonly brushes: PatchyBrushes;
   readonly apiVersion: number;

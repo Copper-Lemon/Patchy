@@ -11443,6 +11443,10 @@ RGB: %2, %3, %4</translation>
         <source>Downloading Object Selection model... %1%</source>
         <translation>Download del modello di selezione oggetto... %1%</translation>
     </message>
+    <message>
+        <source>Refining preview...</source>
+        <translation>Rifinitura dell&apos;anteprima...</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -11509,6 +11513,80 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Search fonts...</source>
         <translation>Cerca font...</translation>
+    </message>
+</context>
+<context>
+    <name>patchy::ui::GmicFilterLibraryDialog</name>
+    <message>
+        <source>G&apos;MIC Filter Library</source>
+        <translation>Libreria filtri G&apos;MIC</translation>
+    </message>
+    <message>
+        <source>Search filters...</source>
+        <translation>Cerca filtri...</translation>
+    </message>
+    <message>
+        <source>Reset</source>
+        <translation>Ripristina</translation>
+    </message>
+    <message>
+        <source>Filters from G&apos;MIC %1 (gmic.eu)</source>
+        <translation>Filtri di G&apos;MIC %1 (gmic.eu)</translation>
+    </message>
+    <message>
+        <source>Select a filter</source>
+        <translation>Seleziona un filtro</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Anteprima</translation>
+    </message>
+    <message>
+        <source>Input layers:</source>
+        <translation>Livelli di input:</translation>
+    </message>
+    <message>
+        <source>Active layer</source>
+        <translation>Livello attivo</translation>
+    </message>
+    <message>
+        <source>Active layer and the one below</source>
+        <translation>Livello attivo e quello sottostante</translation>
+    </message>
+    <message>
+        <source>Active layer and the one above</source>
+        <translation>Livello attivo e quello soprastante</translation>
+    </message>
+    <message>
+        <source>All layers</source>
+        <translation>Tutti i livelli</translation>
+    </message>
+    <message>
+        <source>All visible layers</source>
+        <translation>Tutti i livelli visibili</translation>
+    </message>
+    <message>
+        <source>All hidden layers</source>
+        <translation>Tutti i livelli nascosti</translation>
+    </message>
+</context>
+<context>
+    <name>patchy::ui::GmicParameterPanel</name>
+    <message>
+        <source>Alpha:</source>
+        <translation>Alfa:</translation>
+    </message>
+    <message>
+        <source>X:</source>
+        <translation>X:</translation>
+    </message>
+    <message>
+        <source>Y:</source>
+        <translation>Y:</translation>
+    </message>
+    <message>
+        <source>Browse...</source>
+        <translation>Sfoglia...</translation>
     </message>
 </context>
 <context>
@@ -20056,6 +20134,58 @@ You can still download it in your browser.</source>
 
 Puoi comunque scaricarlo nel browser.</translation>
     </message>
+    <message>
+        <source>G&apos;&amp;MIC Filter Library...</source>
+        <translation>Libreria filtri G&apos;&amp;MIC...</translation>
+    </message>
+    <message>
+        <source>Browse and apply filters from the G&apos;MIC library</source>
+        <translation>Sfoglia e applica i filtri della libreria G&apos;MIC</translation>
+    </message>
+    <message>
+        <source>This G&apos;MIC filter is not available</source>
+        <translation>Questo filtro G&apos;MIC non è disponibile</translation>
+    </message>
+    <message>
+        <source>Rasterize the Smart Object before using %1</source>
+        <translation>Rasterizza l&apos;oggetto avanzato prima di usare %1</translation>
+    </message>
+    <message>
+        <source>The filter returned no image.</source>
+        <translation>Il filtro non ha restituito alcuna immagine.</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC Filter Library</source>
+        <translation>Libreria filtri G&apos;MIC</translation>
+    </message>
+    <message>
+        <source>%1 could not be applied.
+
+%2</source>
+        <translation>Impossibile applicare %1.
+
+%2</translation>
+    </message>
+    <message>
+        <source>%1 changes the layer size. Deselect before applying it.</source>
+        <translation>%1 cambia le dimensioni del livello. Deseleziona prima di applicarlo.</translation>
+    </message>
+    <message>
+        <source>Applied %1 (new layers: %2)</source>
+        <translation>%1 applicato (nuovi livelli: %2)</translation>
+    </message>
+    <message>
+        <source>New layers on apply: %1</source>
+        <translation>Nuovi livelli all&apos;applicazione: %1</translation>
+    </message>
+    <message>
+        <source>No layer matches the chosen input layers.</source>
+        <translation>Nessun livello corrisponde ai livelli di input scelti.</translation>
+    </message>
+    <message>
+        <source>%1 needs about %2 MB of memory for these layers, more than this computer can spare. Use fewer input layers or a smaller image.</source>
+        <translation>%1 richiede circa %2 MB di memoria per questi livelli, più di quanta questo computer ne possa fornire. Usa meno livelli di input o un&apos;immagine più piccola.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -21666,6 +21796,42 @@ Puoi comunque scaricarlo nel browser.</translation>
     <message>
         <source>The High Quality model could not be downloaded: %1</source>
         <translation>Impossibile scaricare il modello ad alta qualità: %1</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC filters are not available in this build.</source>
+        <translation>I filtri G&apos;MIC non sono disponibili in questa build.</translation>
+    </message>
+    <message>
+        <source>Unknown G&apos;MIC filter: %1</source>
+        <translation>Filtro G&apos;MIC sconosciuto: %1</translation>
+    </message>
+    <message>
+        <source>applyGmic: %1 is not a valid value for %2.</source>
+        <translation>applyGmic: %1 non è un valore valido per %2.</translation>
+    </message>
+    <message>
+        <source>applyGmic: too many values (%1 given, the filter takes %2).</source>
+        <translation>applyGmic: troppi valori (%1 forniti, il filtro ne accetta %2).</translation>
+    </message>
+    <message>
+        <source>applyGmic: unknown parameter %1.</source>
+        <translation>applyGmic: parametro sconosciuto %1.</translation>
+    </message>
+    <message>
+        <source>applyGmic: unknown option %1.</source>
+        <translation>applyGmic: opzione sconosciuta %1.</translation>
+    </message>
+    <message>
+        <source>applyGmic: unknown inputLayers value %1.</source>
+        <translation>applyGmic: valore inputLayers sconosciuto %1.</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC filter %1 was cancelled.</source>
+        <translation>Il filtro G&apos;MIC %1 è stato annullato.</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC filter %1 failed: %2</source>
+        <translation>Filtro G&apos;MIC %1 non riuscito: %2</translation>
     </message>
 </context>
 <context>

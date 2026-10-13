@@ -11433,6 +11433,10 @@ RGB: %2, %3, %4</source>
         <source>Downloading Object Selection model... %1%</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Refining preview...</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -11498,6 +11502,80 @@ RGB: %2, %3, %4</source>
     </message>
     <message>
         <source>Search fonts...</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>patchy::ui::GmicFilterLibraryDialog</name>
+    <message>
+        <source>G&apos;MIC Filter Library</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Search filters...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reset</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Filters from G&apos;MIC %1 (gmic.eu)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select a filter</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Input layers:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Active layer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Active layer and the one below</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Active layer and the one above</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>All layers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>All visible layers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>All hidden layers</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>patchy::ui::GmicParameterPanel</name>
+    <message>
+        <source>Alpha:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>X:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Y:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Browse...</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -19997,6 +20075,56 @@ Restart them to finish updating.</source>
 You can still download it in your browser.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>G&apos;&amp;MIC Filter Library...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Browse and apply filters from the G&apos;MIC library</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This G&apos;MIC filter is not available</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rasterize the Smart Object before using %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The filter returned no image.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>G&apos;MIC Filter Library</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 could not be applied.
+
+%2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 changes the layer size. Deselect before applying it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Applied %1 (new layers: %2)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New layers on apply: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No layer matches the chosen input layers.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 needs about %2 MB of memory for these layers, more than this computer can spare. Use fewer input layers or a smaller image.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -21606,6 +21734,42 @@ You can still download it in your browser.</source>
     </message>
     <message>
         <source>The High Quality model could not be downloaded: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>G&apos;MIC filters are not available in this build.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Unknown G&apos;MIC filter: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>applyGmic: %1 is not a valid value for %2.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>applyGmic: too many values (%1 given, the filter takes %2).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>applyGmic: unknown parameter %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>applyGmic: unknown option %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>applyGmic: unknown inputLayers value %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>G&apos;MIC filter %1 was cancelled.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>G&apos;MIC filter %1 failed: %2</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

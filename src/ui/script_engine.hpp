@@ -439,6 +439,13 @@ public:
   // the session's selection; the dialog is skipped for unattended runs.
   bool apply_legacy_plugin_to_layer(std::int64_t session_id, LayerId layer_id, const QString& plugin_id,
                                     bool show_dialog, const QString& capture_dialog_path = QString());
+  // A G'MIC library filter by id (patchy.gmic.list()) on a layer, limited to the
+  // session's selection and part of the run's undo entry. Returns the number of
+  // layers the filter added, or throws.
+  QJSValue apply_gmic_to_layer(std::int64_t session_id, LayerId layer_id, const QString& filter_id,
+                               const QJSValue& values, const QJSValue& options);
+  // The offered G'MIC filters with their parameters, as script objects.
+  [[nodiscard]] QJSValue gmic_filter_list();
   // The plug-in files the last scan saw, as script objects.
   [[nodiscard]] QJSValue legacy_plugin_list();
   // Rescans the plug-in folders (patchy.plugins.rescan / folders setter).

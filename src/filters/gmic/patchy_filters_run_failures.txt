@@ -1,0 +1,20 @@
+# Filters that failed gmic_allowlisted_filters_run_with_defaults (G'MIC 4.0.5, October 2026).
+# Maintained by hand; build_allowlist.py treats each as excluded with the reason given.
+fx_equation_parametric  # does not finish in 10 s at default settings on a 48x40 image
+fx_equation_plot  # does not finish in 10 s at default settings on a 48x40 image
+fx_generate_random_portrait  # network
+fx_gmic_demos  # window or interactive input
+fx_light_leaks  # needs a data file G'MIC downloads
+fx_quick_copyright  # needs a font G'MIC downloads
+fx_simulate_grain  # needs a data file G'MIC downloads
+fx_watermark_visible  # needs a font G'MIC downloads
+fx_clut_from_ab  # needs two input layers but declares the active layer as its input
+fx_import_image  # only loads a file the user names, which is File > Open's job
+fx_mask_color  # needs a window (interactive)
+fx_curves_interactive  # needs a window (interactive)
+fx_morph_interactive  # needs a window (interactive)
+fx_warp_interactive  # needs a window (interactive)
+fx_intarsia  # only writes an HTML file and needs an output folder to run
+fx_linify  # fails on the 48x40 test image (cause not yet understood)
+fx_rotate_tileable  # fails on the 48x40 test image (cause not yet understood)
+fx_output_565  # only writes a file, and into the working folder at its default name; exporting is File > Export's job

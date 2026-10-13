@@ -7,6 +7,9 @@
 
 #include "ui/script_api.hpp"
 
+#include "filters/gmic/gmic_engine.hpp"
+#include "ui/gmic_library.hpp"
+
 #include "core/document_depth.hpp"
 #include "core/pixel_depth.hpp"
 #include "ui/image_document_io.hpp"
@@ -1066,6 +1069,11 @@ void ScriptLayerObject::applyPlugin(const QString& pluginId, const QJSValue& opt
     }
   }
   host_.apply_legacy_plugin_to_layer(session_id_, layer_id_, pluginId, dialog, capture_path);
+}
+
+QJSValue ScriptLayerObject::applyGmic(const QString& filterId, const QJSValue& values, const QJSValue& options) {
+  const ScriptApiCall api_call(host_);
+  return host_.apply_gmic_to_layer(session_id_, layer_id_, filterId, values, options);
 }
 
 // Remove Object through the session's canvas, which is why the layer has to
@@ -3026,6 +3034,20 @@ QJSValue ScriptPluginsObject::rescan() {
   const ScriptApiCall api_call(host_);
   host_.rescan_legacy_plugins();
   return host_.legacy_plugin_list();
+}
+
+// ---------------------------------------------------------------------------
+// ScriptGmicObject
+
+ScriptGmicObject::ScriptGmicObject(ScriptEngineHost& host) : host_(host) {}
+
+bool ScriptGmicObject::available() const { return gmic_filters_available(); }
+
+QString ScriptGmicObject::version() const { return QString::fromStdString(gmic::engine_version()); }
+
+QJSValue ScriptGmicObject::list() {
+  const ScriptApiCall api_call(host_);
+  return host_.gmic_filter_list();
 }
 
 ScriptLibraryObject::ScriptLibraryObject(ScriptEngineHost& host) : host_(host) {}

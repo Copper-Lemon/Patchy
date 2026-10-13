@@ -144,6 +144,9 @@ class StyleLibrary;
 class ZoomPercentEdit;
 class ZoomStatusBar;
 
+struct GmicRenderResult;  // main_window_gmic.cpp
+struct GmicRunInput;
+
 class MainWindow final : public QMainWindow {
   Q_OBJECT
 
@@ -273,6 +276,27 @@ public:
   // The JS scripting engine (lazily created; see main_window_scripting.cpp and
   // docs/scripting.md).
   [[nodiscard]] ScriptEngineHost& script_engine_host();
+  // Runs one G'MIC library filter (an id from the offered catalog, one value per
+  // value-carrying parameter; missing values use the defaults) on the active layer:
+  // limited to the selection, one undo step. `input_mode` names the layers it reads
+  // ('.' active, '*' all, '+' active and below, '-' active and above, 'v' visible,
+  // 'i' hidden); 0 uses the filter's own. False when it was refused, failed or was
+  // cancelled. docs/gmic.md.
+  bool apply_gmic_filter(const std::string& filter_id, const std::vector<std::string>& values,
+                         char input_mode = 0);
+  // The same run for a script: any open document's layer, no prompts, no status text and
+  // no undo of its own (`before_write` runs just before the document changes, so the
+  // caller can take its snapshot; the caller also refreshes). `show_progress` false waits
+  // without a progress box. `error` gets the reason for Error; `added_layers` the count of
+  // layers the filter added. `keep_running`, when given, is called several times a second
+  // while the filter runs (a script feeds its inactivity watchdog there); false stops the run.
+  enum class GmicApplyStatus { Applied, NoChange, Cancelled, Error };
+  GmicApplyStatus apply_gmic_filter_to_layer(DocumentSession& session, CanvasWidget* canvas, LayerId layer_id,
+                                             const std::string& filter_id, const std::vector<std::string>& values,
+                                             char input_mode, bool show_progress,
+                                             const std::function<void()>& before_write, QString* error,
+                                             std::size_t* added_layers,
+                                             const std::function<bool()>& keep_running = {});
   // Runs a script in THIS instance and appends console output, errors, and a
   // final "[done]"/"[failed]" line to output_path when the run fully completes
   // (a forwarded `--run-script` from a second launch lands here, like
@@ -1020,6 +1044,16 @@ private:
                          int visual_direction);
   void delete_smart_filter(LayerId layer_id, std::size_t execution_index);
   void visual_filter_gallery_dialog();
+  // The G'MIC Filter Library (main_window_gmic.cpp, docs/gmic.md).
+  void gmic_filter_library_dialog();
+  // The active layer when a G'MIC filter may run on it; otherwise reports why not.
+  [[nodiscard]] std::optional<LayerId> gmic_target_layer(const QString& operation_name);
+  // Runs one command on a worker under a cancellable progress box.
+  [[nodiscard]] GmicRenderResult render_gmic_with_progress(const QString& name, const GmicRunInput& input,
+                                                           const std::function<bool()>& keep_running = {});
+  // Reports a failed run, or writes a finished one into the document as one undo step: the
+  // active layer's new pixels plus any layers the filter added above it.
+  bool commit_gmic_render(LayerId layer_id, const QString& name, GmicRenderResult& render, Rect bounds);
   void populate_new_adjustment_layer_menu(QMenu* menu, const QString& object_name_prefix = {});
   void new_levels_adjustment_layer();
   void levels_dialog();
@@ -2284,6 +2318,16 @@ private:
   std::map<std::string, QByteArray> legacy_plugin_parameters_;
   // The plug-in whose run last completed this session (Plugins > Repeat).
   std::string last_legacy_plugin_identifier_;
+  // The filter and values the G'MIC Filter Library last accepted (this session).
+  std::string last_gmic_filter_id_;
+  std::vector<std::string> last_gmic_values_;
+  char last_gmic_input_mode_{0};
+  // How long each filter's last full-quality preview took per megapixel of input (this
+  // session): a filter measured as quick skips the preview's draft pass.
+  std::map<std::string, double> gmic_full_ms_per_megapixel_;
+  // Drafts the library dialog has put on the canvas, and where the last one landed (tests).
+  std::uint64_t gmic_draft_previews_shown_{0};
+  Rect gmic_last_draft_bounds_{};
   QAction* plugins_repeat_last_action_{nullptr};
   QAction* plugins_last_settings_action_{nullptr};
   QPageLayout print_page_layout_;

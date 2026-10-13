@@ -85,7 +85,9 @@ if (pluginsFolder) {
     "patchy-8bf-host32.exe",
     "patchy-8bf-host64.exe",
     "LICENSE",
-    "NOTICE-THIRD-PARTY.md"
+    "NOTICE-THIRD-PARTY.md",
+    "licenses/gmic/gmic-COPYING.txt",
+    "licenses/gmic/pocketfft-LICENSE.md"
   ];
   for (var r = 0; r < required.length; r++) {
     check(patchy.io.fileExists(root + required[r]), "missing file: " + required[r]);
@@ -140,6 +142,14 @@ if (scene.selection.subjectSelectionAvailable) {
 }
 scene.close();
 console.log("automatic selection ok");
+
+// --- G'MIC Filter Library: the engine is linked in and its filter library loads ----------
+check(patchy.gmic.available, "the G'MIC engine is missing from this build");
+check(patchy.gmic.list().length > 300, "the G'MIC filter library did not load");
+var gmicLayer = source.addLayer("gmic");
+gmicLayer.fill("#3C8F45");
+gmicLayer.applyGmic("fx_sepia");
+console.log("G'MIC ok: " + patchy.gmic.version);
 
 source.close();
 console.log("package self-test passed");

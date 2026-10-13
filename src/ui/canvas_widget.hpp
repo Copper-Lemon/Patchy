@@ -1076,6 +1076,17 @@ public:
   // counting, so history steps on big documents swap frames instead of
   // flashing checkerboard.
   void set_document_for_history_restore(Document* document, bool normal_composite_unchanged = false);
+  // Draggable position markers for a preview dialog (the G'MIC Filter Library's point
+  // parameters, docs/gmic.md): plain markers at document positions, nothing drawn around
+  // them. `moved(index, document_position, finished)` runs while one is dragged and once
+  // more, with finished true, on release. Handles win the press over the active tool.
+  void set_preview_point_handles(std::vector<QPointF> document_positions,
+                                 std::function<void(int, QPointF, bool)> moved);
+  void clear_preview_point_handles();
+  [[nodiscard]] int preview_point_handle_count() const noexcept;
+  [[nodiscard]] QPointF preview_point_handle(int index) const;                  // document space
+  [[nodiscard]] QPointF preview_point_handle_widget_position(int index) const;  // for tests and input
+
   [[nodiscard]] bool processing_overlay_visible() const noexcept;
   [[nodiscard]] bool processing_operation_active() const noexcept;
   // delay_ms_override < 0 uses the standard delay (processing_overlay_delay_ms,
@@ -1094,6 +1105,15 @@ public:
   // Callers pair begin at worker spawn with end in the queued completion.
   void begin_preview_render();
   void end_preview_render();
+  // The percentage (0..100) the preview in flight has reached, shown after the badge's
+  // text; negative (the default, restored when the last preview ends) shows none.
+  void set_preview_render_progress(int percent);
+  [[nodiscard]] int preview_render_progress() const noexcept { return preview_render_progress_; }
+  // True while the preview in flight replaces a draft already on screen: the badge reads
+  // "Refining preview..." (reset when the last preview ends).
+  void set_preview_render_refining(bool refining);
+  // The badge's text for a preview render at its current progress.
+  [[nodiscard]] QString preview_render_message() const;
   // True while a background full refresh (the deferred-async route that keeps
   // the previous frame on screen) or a deferred Move commit job has been
   // running longer than the standard overlay delay: the frame on screen is
@@ -1576,6 +1596,10 @@ private:
   [[nodiscard]] double ruler_pixels_per_unit(bool horizontal_axis) const noexcept;
   void show_ruler_unit_menu(QPoint global_position);
   void draw_processing_overlay(QPainter& painter) const;
+  // canvas_widget_preview_points.cpp
+  void draw_preview_point_handles(QPainter& painter) const;
+  [[nodiscard]] bool press_preview_point_handle(QMouseEvent* event);
+  [[nodiscard]] bool move_preview_point_handle(QMouseEvent* event, bool finished);
   [[nodiscard]] bool preview_render_overlay_visible() const;
   void show_processing_overlay(QString message = {});
   void hide_processing_overlay();
@@ -2750,6 +2774,10 @@ private:
   mutable std::atomic<bool> selection_lookup_valid_{false};
   mutable std::mutex selection_lookup_mutex_;
   QBasicTimer processing_animation_timer_;
+  std::vector<QPointF> preview_points_;  // document space
+  std::function<void(int, QPointF, bool)> preview_point_moved_;
+  int preview_point_drag_{-1};
+  QPointF preview_point_drag_offset_;
   bool processing_overlay_visible_{false};
   bool processing_render_wait_active_{false};
   // A mouse release that arrived while processing_render_wait_active_ (wasm
@@ -2765,6 +2793,8 @@ private:
   };
   std::optional<DeferredWaitRelease> deferred_wait_release_;
   int preview_renders_in_flight_{0};
+  int preview_render_progress_{-1};
+  bool preview_render_refining_{false};
   QElapsedTimer preview_render_started_{};
   // Started when a background refresh or deferred Move commit begins with
   // nothing else of the kind in flight; invalid once both are idle.

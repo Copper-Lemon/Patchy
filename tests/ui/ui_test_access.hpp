@@ -58,6 +58,17 @@ public:
 
   // The historical startup document (startup now opens an empty workspace):
   // show_window creates one so pre-existing tests keep their canvas.
+  static std::uint64_t gmic_draft_previews_shown(const MainWindow& window) {
+    return window.gmic_draft_previews_shown_;
+  }
+  // True once a full-quality preview of the filter has completed this session.
+  static bool gmic_full_preview_finished(const MainWindow& window, const std::string& filter_id) {
+    return window.gmic_full_ms_per_megapixel_.count(filter_id) != 0;
+  }
+  static Rect gmic_last_draft_bounds(const MainWindow& window) {
+    return window.gmic_last_draft_bounds_;
+  }
+
   static void create_default_document(MainWindow& window) {
     window.reset_document(1024, 768, Qt::white, QStringLiteral("New document"));
   }

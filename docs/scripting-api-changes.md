@@ -7,6 +7,26 @@ attachment, palettes, vector automation, brushes, Slow mode and Pause) are in
 [scripting-api-changes-through-2026-09-11.md](scripting-api-changes-through-2026-09-11.md).
 Every entry below is API 1.
 
+2026-10-14 (behavioral): `layer.applyGmic` with several input layers. A filter that returns
+an image per layer it read now gives the layer its own result and drops the results for the
+layers that were only read (they used to arrive as duplicate layers, and the layer took the
+top layer's result). When the layer is not among the input (`hidden` on a visible layer) it
+keeps its pixels and every result is a new layer. `visible` and `hidden` follow enclosing
+folders. It now throws on text and shape layers, locked pixels, Quick Mask, an `inputLayers`
+value that matches no layer, and a run that would not fit in memory. A filter that runs
+longer than the inactivity limit is no longer stopped by it, and stopping the script now
+stops the filter. Pinned by
+`ui_gmic_filter_changes_only_the_active_layer_whatever_it_reads`.
+2026-10-13 (additive): G'MIC filters. `patchy.gmic.available` and `patchy.gmic.version`
+describe the engine (absent from the web build and from builds with `PATCHY_ENABLE_GMIC` off), and
+`patchy.gmic.list()` returns every offered filter as `{id, name, folder, inputLayers,
+parameters}` with each parameter's `{name, type, default, minimum, maximum, choices}`.
+`layer.applyGmic(filterId, values, {inputLayers})` runs one inside the selection as part of
+the run's undo entry and returns the number of layers the filter added; `values` is an array
+in list() order or an object keyed by parameter name. Permanent identifiers: the filter ids,
+the parameter type tokens (`float`, `int`, `bool`, `choice`, `color`, `point`, `text`, `file`,
+`folder`, `button`, `value`) and the `inputLayers` tokens (`active`, `activeAndBelow`,
+`activeAndAbove`, `all`, `visible`, `hidden`). Pinned by `ui_gmic_script_api_lists_and_applies`.
 2026-10-12 (behavioral): `layer.applyFilter` honors the selection like the Filter menu: only
 selected pixels change and the layer keeps its bounds (it used to filter the whole layer).
 A soft selection (a feather, an Object Selection edge) now blends `applyFilter` and

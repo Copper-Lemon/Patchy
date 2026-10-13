@@ -483,6 +483,11 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
   if (!handling_tablet_event_) {
     active_pen_input_sample_.reset();
   }
+  // A preview dialog's point handle takes the press before any tool (docs/gmic.md).
+  if (press_preview_point_handle(event)) {
+    event->accept();
+    return;
+  }
   // Momentum still coasting from a trackpad flick ends at a press (see wheelEvent).
   swallow_scroll_momentum_ = true;
   dragging_text_entry_selection_ = false;
@@ -1413,6 +1418,10 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
   if (!handling_tablet_event_) {
     active_pen_input_sample_.reset();
   }
+  if (preview_point_drag_ >= 0 && move_preview_point_handle(event, false)) {
+    event->accept();
+    return;
+  }
   emit_info_for_widget_position(event->pos());
   track_brush_hover_position(event->pos());
   if (brush_adjust_dragging_) {
@@ -2105,6 +2114,10 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
   }
   if (!handling_tablet_event_) {
     active_pen_input_sample_.reset();
+  }
+  if (preview_point_drag_ >= 0 && event->button() == Qt::LeftButton && move_preview_point_handle(event, true)) {
+    event->accept();
+    return;
   }
   if (brush_adjust_dragging_) {
     if (event->button() == Qt::RightButton || (event->buttons() & Qt::RightButton) == 0) {

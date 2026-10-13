@@ -11413,6 +11413,10 @@ RGB：%2, %3, %4</translation>
         <source>Downloading Object Selection model... %1%</source>
         <translation>正在下載物件選取模型... %1%</translation>
     </message>
+    <message>
+        <source>Refining preview...</source>
+        <translation>正在細化預視...</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -11479,6 +11483,80 @@ RGB：%2, %3, %4</translation>
     <message>
         <source>Search fonts...</source>
         <translation>搜尋字體...</translation>
+    </message>
+</context>
+<context>
+    <name>patchy::ui::GmicFilterLibraryDialog</name>
+    <message>
+        <source>G&apos;MIC Filter Library</source>
+        <translation>G&apos;MIC 濾鏡庫</translation>
+    </message>
+    <message>
+        <source>Search filters...</source>
+        <translation>搜尋濾鏡...</translation>
+    </message>
+    <message>
+        <source>Reset</source>
+        <translation>重設</translation>
+    </message>
+    <message>
+        <source>Filters from G&apos;MIC %1 (gmic.eu)</source>
+        <translation>來自 G&apos;MIC %1 的濾鏡 (gmic.eu)</translation>
+    </message>
+    <message>
+        <source>Select a filter</source>
+        <translation>選取一個濾鏡</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>預視</translation>
+    </message>
+    <message>
+        <source>Input layers:</source>
+        <translation>輸入圖層:</translation>
+    </message>
+    <message>
+        <source>Active layer</source>
+        <translation>作用中圖層</translation>
+    </message>
+    <message>
+        <source>Active layer and the one below</source>
+        <translation>作用中圖層及其下方圖層</translation>
+    </message>
+    <message>
+        <source>Active layer and the one above</source>
+        <translation>作用中圖層及其上方圖層</translation>
+    </message>
+    <message>
+        <source>All layers</source>
+        <translation>所有圖層</translation>
+    </message>
+    <message>
+        <source>All visible layers</source>
+        <translation>所有可見圖層</translation>
+    </message>
+    <message>
+        <source>All hidden layers</source>
+        <translation>所有隱藏圖層</translation>
+    </message>
+</context>
+<context>
+    <name>patchy::ui::GmicParameterPanel</name>
+    <message>
+        <source>Alpha:</source>
+        <translation>Alpha:</translation>
+    </message>
+    <message>
+        <source>X:</source>
+        <translation>X:</translation>
+    </message>
+    <message>
+        <source>Y:</source>
+        <translation>Y:</translation>
+    </message>
+    <message>
+        <source>Browse...</source>
+        <translation>瀏覽...</translation>
     </message>
 </context>
 <context>
@@ -19999,6 +20077,58 @@ You can still download it in your browser.</source>
 
 您仍然可以在瀏覽器中下載。</translation>
     </message>
+    <message>
+        <source>G&apos;&amp;MIC Filter Library...</source>
+        <translation>G&apos;MIC 濾鏡庫(&amp;M)...</translation>
+    </message>
+    <message>
+        <source>Browse and apply filters from the G&apos;MIC library</source>
+        <translation>瀏覽並套用 G&apos;MIC 庫中的濾鏡</translation>
+    </message>
+    <message>
+        <source>This G&apos;MIC filter is not available</source>
+        <translation>此 G&apos;MIC 濾鏡無法使用</translation>
+    </message>
+    <message>
+        <source>Rasterize the Smart Object before using %1</source>
+        <translation>使用 %1 前請先點陣化智慧型物件</translation>
+    </message>
+    <message>
+        <source>The filter returned no image.</source>
+        <translation>濾鏡未傳回任何影像。</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC Filter Library</source>
+        <translation>G&apos;MIC 濾鏡庫</translation>
+    </message>
+    <message>
+        <source>%1 could not be applied.
+
+%2</source>
+        <translation>無法套用 %1。
+
+%2</translation>
+    </message>
+    <message>
+        <source>%1 changes the layer size. Deselect before applying it.</source>
+        <translation>%1 會變更圖層大小。請在套用前取消選取。</translation>
+    </message>
+    <message>
+        <source>Applied %1 (new layers: %2)</source>
+        <translation>已套用 %1 (新圖層: %2)</translation>
+    </message>
+    <message>
+        <source>New layers on apply: %1</source>
+        <translation>套用時新增圖層: %1</translation>
+    </message>
+    <message>
+        <source>No layer matches the chosen input layers.</source>
+        <translation>沒有圖層符合所選的輸入圖層。</translation>
+    </message>
+    <message>
+        <source>%1 needs about %2 MB of memory for these layers, more than this computer can spare. Use fewer input layers or a smaller image.</source>
+        <translation>%1 處理這些圖層需要約 %2 MB 記憶體，超出此電腦可提供的範圍。請減少輸入圖層或使用較小的影像。</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -21608,6 +21738,42 @@ You can still download it in your browser.</source>
     <message>
         <source>The High Quality model could not be downloaded: %1</source>
         <translation>無法下載高品質模型：%1</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC filters are not available in this build.</source>
+        <translation>此版本不提供 G&apos;MIC 濾鏡。</translation>
+    </message>
+    <message>
+        <source>Unknown G&apos;MIC filter: %1</source>
+        <translation>未知的 G&apos;MIC 濾鏡: %1</translation>
+    </message>
+    <message>
+        <source>applyGmic: %1 is not a valid value for %2.</source>
+        <translation>applyGmic: %1 不是 %2 的有效值。</translation>
+    </message>
+    <message>
+        <source>applyGmic: too many values (%1 given, the filter takes %2).</source>
+        <translation>applyGmic: 值過多 (給出 %1 個，濾鏡接受 %2 個)。</translation>
+    </message>
+    <message>
+        <source>applyGmic: unknown parameter %1.</source>
+        <translation>applyGmic: 未知參數 %1。</translation>
+    </message>
+    <message>
+        <source>applyGmic: unknown option %1.</source>
+        <translation>applyGmic: 未知選項 %1。</translation>
+    </message>
+    <message>
+        <source>applyGmic: unknown inputLayers value %1.</source>
+        <translation>applyGmic: 未知的 inputLayers 值 %1。</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC filter %1 was cancelled.</source>
+        <translation>G&apos;MIC 濾鏡 %1 已取消。</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC filter %1 failed: %2</source>
+        <translation>G&apos;MIC 濾鏡 %1 失敗: %2</translation>
     </message>
 </context>
 <context>

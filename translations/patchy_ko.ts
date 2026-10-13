@@ -11413,6 +11413,10 @@ RGB: %2, %3, %4</translation>
         <source>Downloading Object Selection model... %1%</source>
         <translation>개체 선택 모델 다운로드 중... %1%</translation>
     </message>
+    <message>
+        <source>Refining preview...</source>
+        <translation>미리 보기 다듬는 중...</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -11479,6 +11483,80 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Search fonts...</source>
         <translation>글꼴 검색...</translation>
+    </message>
+</context>
+<context>
+    <name>patchy::ui::GmicFilterLibraryDialog</name>
+    <message>
+        <source>G&apos;MIC Filter Library</source>
+        <translation>G&apos;MIC 필터 라이브러리</translation>
+    </message>
+    <message>
+        <source>Search filters...</source>
+        <translation>필터 검색...</translation>
+    </message>
+    <message>
+        <source>Reset</source>
+        <translation>초기화</translation>
+    </message>
+    <message>
+        <source>Filters from G&apos;MIC %1 (gmic.eu)</source>
+        <translation>G&apos;MIC %1의 필터 (gmic.eu)</translation>
+    </message>
+    <message>
+        <source>Select a filter</source>
+        <translation>필터를 선택하세요</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>미리 보기</translation>
+    </message>
+    <message>
+        <source>Input layers:</source>
+        <translation>입력 레이어:</translation>
+    </message>
+    <message>
+        <source>Active layer</source>
+        <translation>활성 레이어</translation>
+    </message>
+    <message>
+        <source>Active layer and the one below</source>
+        <translation>활성 레이어와 아래 레이어</translation>
+    </message>
+    <message>
+        <source>Active layer and the one above</source>
+        <translation>활성 레이어와 위 레이어</translation>
+    </message>
+    <message>
+        <source>All layers</source>
+        <translation>모든 레이어</translation>
+    </message>
+    <message>
+        <source>All visible layers</source>
+        <translation>보이는 모든 레이어</translation>
+    </message>
+    <message>
+        <source>All hidden layers</source>
+        <translation>숨겨진 모든 레이어</translation>
+    </message>
+</context>
+<context>
+    <name>patchy::ui::GmicParameterPanel</name>
+    <message>
+        <source>Alpha:</source>
+        <translation>알파:</translation>
+    </message>
+    <message>
+        <source>X:</source>
+        <translation>X:</translation>
+    </message>
+    <message>
+        <source>Y:</source>
+        <translation>Y:</translation>
+    </message>
+    <message>
+        <source>Browse...</source>
+        <translation>찾아보기...</translation>
     </message>
 </context>
 <context>
@@ -19999,6 +20077,58 @@ You can still download it in your browser.</source>
 
 브라우저에서 계속 다운로드할 수 있습니다.</translation>
     </message>
+    <message>
+        <source>G&apos;&amp;MIC Filter Library...</source>
+        <translation>G&apos;MIC 필터 라이브러리(&amp;M)...</translation>
+    </message>
+    <message>
+        <source>Browse and apply filters from the G&apos;MIC library</source>
+        <translation>G&apos;MIC 라이브러리의 필터 찾아보기 및 적용</translation>
+    </message>
+    <message>
+        <source>This G&apos;MIC filter is not available</source>
+        <translation>이 G&apos;MIC 필터는 사용할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>Rasterize the Smart Object before using %1</source>
+        <translation>%1을(를) 사용하기 전에 스마트 개체를 래스터화하세요</translation>
+    </message>
+    <message>
+        <source>The filter returned no image.</source>
+        <translation>필터가 이미지를 반환하지 않았습니다.</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC Filter Library</source>
+        <translation>G&apos;MIC 필터 라이브러리</translation>
+    </message>
+    <message>
+        <source>%1 could not be applied.
+
+%2</source>
+        <translation>%1을(를) 적용할 수 없습니다.
+
+%2</translation>
+    </message>
+    <message>
+        <source>%1 changes the layer size. Deselect before applying it.</source>
+        <translation>%1은(는) 레이어 크기를 변경합니다. 적용하기 전에 선택을 해제하세요.</translation>
+    </message>
+    <message>
+        <source>Applied %1 (new layers: %2)</source>
+        <translation>%1을(를) 적용했습니다 (새 레이어: %2)</translation>
+    </message>
+    <message>
+        <source>New layers on apply: %1</source>
+        <translation>적용 시 추가되는 레이어: %1</translation>
+    </message>
+    <message>
+        <source>No layer matches the chosen input layers.</source>
+        <translation>선택한 입력 레이어에 해당하는 레이어가 없습니다.</translation>
+    </message>
+    <message>
+        <source>%1 needs about %2 MB of memory for these layers, more than this computer can spare. Use fewer input layers or a smaller image.</source>
+        <translation>%1에는 이 레이어들에 약 %2MB의 메모리가 필요하며, 이 컴퓨터가 제공할 수 있는 양보다 많습니다. 입력 레이어를 줄이거나 더 작은 이미지를 사용하세요.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -21608,6 +21738,42 @@ You can still download it in your browser.</source>
     <message>
         <source>The High Quality model could not be downloaded: %1</source>
         <translation>고품질 모델을 다운로드할 수 없습니다: %1</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC filters are not available in this build.</source>
+        <translation>이 빌드에서는 G&apos;MIC 필터를 사용할 수 없습니다.</translation>
+    </message>
+    <message>
+        <source>Unknown G&apos;MIC filter: %1</source>
+        <translation>알 수 없는 G&apos;MIC 필터: %1</translation>
+    </message>
+    <message>
+        <source>applyGmic: %1 is not a valid value for %2.</source>
+        <translation>applyGmic: %1은(는) %2에 유효한 값이 아닙니다.</translation>
+    </message>
+    <message>
+        <source>applyGmic: too many values (%1 given, the filter takes %2).</source>
+        <translation>applyGmic: 값이 너무 많습니다 (%1개 지정, 필터는 %2개를 받음).</translation>
+    </message>
+    <message>
+        <source>applyGmic: unknown parameter %1.</source>
+        <translation>applyGmic: 알 수 없는 매개변수 %1.</translation>
+    </message>
+    <message>
+        <source>applyGmic: unknown option %1.</source>
+        <translation>applyGmic: 알 수 없는 옵션 %1.</translation>
+    </message>
+    <message>
+        <source>applyGmic: unknown inputLayers value %1.</source>
+        <translation>applyGmic: 알 수 없는 inputLayers 값 %1.</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC filter %1 was cancelled.</source>
+        <translation>G&apos;MIC 필터 %1이(가) 취소되었습니다.</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC filter %1 failed: %2</source>
+        <translation>G&apos;MIC 필터 %1 실패: %2</translation>
     </message>
 </context>
 <context>

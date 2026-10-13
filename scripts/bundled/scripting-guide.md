@@ -314,7 +314,7 @@ Field types: `number`, `slider`, `checkbox`, `choice`, `text`, `color`, `folder`
 | Global | What it is |
 | --- | --- |
 | `app` | The application: documents, dialogs, commands. |
-| `patchy` | The namespace: `patchy.ui`, `patchy.io`, `patchy.args`, `patchy.scripts`, `patchy.plugins`, `patchy.recovery`, `patchy.brushes`, `patchy.setResult()`, `patchy.isMainScript()`, `patchy.version`, `patchy.apiVersion`. |
+| `patchy` | The namespace: `patchy.ui`, `patchy.io`, `patchy.args`, `patchy.scripts`, `patchy.plugins`, `patchy.gmic`, `patchy.recovery`, `patchy.brushes`, `patchy.setResult()`, `patchy.isMainScript()`, `patchy.version`, `patchy.apiVersion`. |
 | `console` | `log`, `info`, `warn`, `error`; output goes to the Script Manager console and to `--script-output`. |
 | `setTimeout` / `setInterval` / `clearTimeout` / `clearInterval` / `requestAnimationFrame` | Timers, like in a browser. The run stays alive while timers are pending. |
 | `include(path)` | Runs another script file in the same scope. Relative paths resolve against the running script, then your user scripts folder, then the bundled scripts, so `include("Effects/fancy-background.js")` works from anywhere. Your script's `OPTIONS` object is protected: an included file's own OPTIONS block does not replace it. |
@@ -589,6 +589,37 @@ Windows builds run classic Photoshop filter plug-ins (`.8bf`, 32-bit and 64-bit)
 | `patchy.plugins.rescan()` | Rescans every folder and returns `list()`. |
 | `layer.applyPlugin(id, {dialog, captureDialog})` | Runs the plug-in on an 8 or 16-bit pixel layer inside the selection, one undo step (a 16-bit layer goes through an 8-bit copy; 32-bit layers throw). `{dialog: false}` skips its settings dialog (last or default settings; a plug-in that opens one anyway gets its OK pressed); unattended runs never show it. `{captureDialog: "shot.png"}` saves an image of the plug-in's dialog while it is up (an unattended run shows the dialog for the capture and answers it itself). |
 
+### G'MIC filters (patchy.gmic)
+
+Builds that include the G'MIC engine offer its filter library to scripts. Check
+`patchy.gmic.available` first: without the engine `list()` is empty and `applyGmic` throws.
+
+| Call | What it does |
+|---|---|
+| `patchy.gmic.available` | Whether this build has the G'MIC engine. |
+| `patchy.gmic.version` | The G'MIC version the filters come from, such as `"4.0.5"`. |
+| `patchy.gmic.list()` | `{id, name, folder, inputLayers, parameters}` for every offered filter. Each parameter is `{name, type, default, minimum, maximum, choices}`. |
+| `layer.applyGmic(id, values, {inputLayers})` | Runs the filter on the layer inside the selection and returns the number of layers it added. |
+
+`values` is an array in `list()` order or an object keyed by parameter name; anything left out
+keeps its default. Parameter names are G'MIC's own English labels.
+
+```js
+var layer = app.activeDocument.activeLayer;
+if (patchy.gmic.available) {
+  layer.applyGmic("fx_sepia", { "Brightness (%)": 10, "Contrast (%)": 5 });
+  // Splits the layer into three: it becomes red, and two layers are added above it.
+  var added = layer.applyGmic("fx_channels2layers");
+}
+```
+
+A filter only changes the layer it is applied to. `inputLayers` (`"active"`, `"activeAndBelow"`,
+`"activeAndAbove"`, `"all"`, `"visible"`, `"hidden"`) chooses which layers it reads. A filter that
+works on each layer gives the layer its own result, a filter that merges layers replaces it with
+the merged image, and any further results become new layers above it. If the layer is not among
+the layers read (a visible layer with `"hidden"`), it is left alone and every result is a new layer.
+`applyGmic` throws on a text, shape or Smart Object layer, on a layer with locked pixels, and when
+no layer matches `inputLayers`.
 ### The script library (patchy.scripts)
 
 Scripts can manage scripts: list what the Scripts menu shows, write a new one into your scripts folder, and put it on a key. This is how an agent driving Patchy through MCP answers "make a script that does X and assign it to Ctrl+Alt+X":

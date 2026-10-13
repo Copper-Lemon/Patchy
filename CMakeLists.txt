@@ -436,6 +436,8 @@ add_library(patchy_filters
 target_link_libraries(patchy_filters PUBLIC patchy_core)
 patchy_configure_target(patchy_filters)
 
+include(cmake/patchy_gmic.cmake)
+
 # The browser build may parse HEIF containers with libheif, but the compressed HEVC
 # picture is decoded only by the browser's WebCodecs implementation. Keep this dependency
 # out of every native build and the node-only wasm-core build. The explicit option list is
@@ -675,6 +677,8 @@ if(PATCHY_BUILD_APP)
          "${PROJECT_SOURCE_DIR}/src/*.mm")
     list(FILTER PATCHY_LUPDATE_SOURCES EXCLUDE REGEX
          "/src/(formats/(zstd|miniz|libheif|libraw|stb|bcdec|bc7enc)|color/lcms2)/")
+    # The vendored G'MIC interpreter holds no Patchy text.
+    list(FILTER PATCHY_LUPDATE_SOURCES EXCLUDE REGEX "/src/filters/gmic/(gmic\\.cpp|patchy_stub/)")
     list(SORT PATCHY_LUPDATE_SOURCES)
     set(PATCHY_LUPDATE_OPTIONS
       -locations none
@@ -1018,6 +1022,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/canvas_widget_guides.cpp
       src/ui/canvas_widget_move.cpp
       src/ui/canvas_widget_patch_tool.cpp
+      src/ui/canvas_widget_preview_points.cpp
       src/ui/canvas_widget_pen.cpp
       src/ui/canvas_widget_render.cpp
       src/ui/canvas_widget_vector_preview.cpp
@@ -1305,6 +1310,18 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/textures.qrc
       src/ui/themes.qrc
     )
+    # The G'MIC Filter Library (docs/gmic.md). Its interface compiles in every build;
+    # the filter library text is embedded only when the engine is built.
+    target_sources(patchy_ui PRIVATE
+      src/ui/gmic_filter_library_dialog.cpp
+      src/ui/gmic_library.cpp
+      src/ui/gmic_parameter_panel.cpp
+      src/ui/main_window_gmic.cpp
+    )
+    target_link_libraries(patchy_ui PUBLIC patchy_gmic)
+    if(PATCHY_ENABLE_GMIC)
+      target_sources(patchy_ui PRIVATE src/ui/gmic.qrc)
+    endif()
     # The print dialog TU is the one QtPrintSupport user; Qt ships no
     # PrintSupport for wasm, so that build compiles the stub TU instead
     # (print_layout.cpp above keeps the portable placement/render half real
@@ -1702,9 +1719,26 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
           COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PATCHY_ONNXRUNTIME_RUNTIME_FILES}
                   "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Frameworks/")
       endif()
+      # License texts the bundle carries: Patchy's own, the third-party notice and,
+      # with the G'MIC engine, the CeCILL and pocketfft texts.
+      set(PATCHY_BUNDLE_LICENSE_COMMANDS
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Resources/licenses"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PROJECT_SOURCE_DIR}/LICENSE"
+                "${PROJECT_SOURCE_DIR}/NOTICE-THIRD-PARTY.md"
+                "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Resources/licenses/")
+      list(APPEND PATCHY_BUNDLE_RESOURCE_DEPS
+           "${PROJECT_SOURCE_DIR}/LICENSE" "${PROJECT_SOURCE_DIR}/NOTICE-THIRD-PARTY.md")
+      if(PATCHY_ENABLE_GMIC)
+        list(APPEND PATCHY_BUNDLE_LICENSE_COMMANDS
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PROJECT_SOURCE_DIR}/src/filters/gmic/COPYING"
+                  "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Resources/licenses/gmic-COPYING.txt"
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PROJECT_SOURCE_DIR}/src/filters/gmic/pocketfft/LICENSE.md"
+                  "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Resources/licenses/pocketfft-LICENSE.md")
+      endif()
       add_custom_command(
         OUTPUT "${PATCHY_BUNDLE_RESOURCES_STAMP}"
         COMMAND ${CMAKE_COMMAND} -E rm -rf
+                "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Resources/licenses"
                 "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Resources/fonts"
                 "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Resources/translations"
                 "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Resources/scripts"
@@ -1724,6 +1758,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/ai"
                 "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Resources/ai"
         ${PATCHY_BUNDLE_AI_COMMANDS}
+        ${PATCHY_BUNDLE_LICENSE_COMMANDS}
         COMMAND ${CMAKE_COMMAND} -E touch "${PATCHY_BUNDLE_RESOURCES_STAMP}"
         DEPENDS ${PATCHY_BUNDLE_RESOURCE_DEPS}
         COMMENT "Staging fonts, translations, and scripts into the Patchy app bundle"
@@ -1785,6 +1820,12 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       install(FILES "${PROJECT_SOURCE_DIR}/LICENSE"
                     "${PROJECT_SOURCE_DIR}/NOTICE-THIRD-PARTY.md"
               DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/com.rtsoft.patchy")
+      if(PATCHY_ENABLE_GMIC)
+        install(FILES "${PROJECT_SOURCE_DIR}/src/filters/gmic/COPYING"
+                DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/com.rtsoft.patchy" RENAME gmic-COPYING.txt)
+        install(FILES "${PROJECT_SOURCE_DIR}/src/filters/gmic/pocketfft/LICENSE.md"
+                DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/com.rtsoft.patchy" RENAME pocketfft-LICENSE.md)
+      endif()
       foreach(icon_size 16 32 48 64 128 256 512)
         install(FILES "${PROJECT_SOURCE_DIR}/packaging/linux/icons/hicolor/${icon_size}x${icon_size}/apps/com.rtsoft.patchy.png"
                 DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/${icon_size}x${icon_size}/apps")
@@ -1858,7 +1899,9 @@ if(PATCHY_BUILD_TESTS)
     tests/core/vector_shape_tests.cpp
     tests/core/translation_marker_tests.cpp
     tests/core/ai_selection_tests.cpp
+    tests/core/gmic_tests.cpp
   )
+  target_link_libraries(patchy_core_tests PRIVATE patchy_gmic)
   # The split TUs live in tests/core/ but repeat the historical test_main.cpp
   # include block ("test_harness.hpp" etc.), so tests/ must be on the include path.
   target_include_directories(patchy_core_tests PRIVATE tests)
@@ -1970,6 +2013,7 @@ if(PATCHY_BUILD_TESTS)
       tests/ui/mcp_tests.cpp
       tests/ui/unicode_path_tests.cpp
       tests/ui/legacy_plugin_tests.cpp
+      tests/ui/gmic_tests.cpp
       tests/ui/history_panel_tests.cpp
       tests/ui/file_info_tests.cpp
       tests/ui/composite_render_tests.cpp

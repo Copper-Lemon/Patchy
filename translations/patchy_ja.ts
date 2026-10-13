@@ -11413,6 +11413,10 @@ Mixed selection</source>
         <source>Downloading Object Selection model... %1%</source>
         <translation>オブジェクト選択モデルをダウンロード中... %1%</translation>
     </message>
+    <message>
+        <source>Refining preview...</source>
+        <translation>プレビューを仕上げています...</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -11479,6 +11483,80 @@ Mixed selection</source>
     <message>
         <source>Search fonts...</source>
         <translation>フォントを検索...</translation>
+    </message>
+</context>
+<context>
+    <name>patchy::ui::GmicFilterLibraryDialog</name>
+    <message>
+        <source>G&apos;MIC Filter Library</source>
+        <translation>G&apos;MIC フィルターライブラリ</translation>
+    </message>
+    <message>
+        <source>Search filters...</source>
+        <translation>フィルターを検索...</translation>
+    </message>
+    <message>
+        <source>Reset</source>
+        <translation>リセット</translation>
+    </message>
+    <message>
+        <source>Filters from G&apos;MIC %1 (gmic.eu)</source>
+        <translation>G&apos;MIC %1 のフィルター (gmic.eu)</translation>
+    </message>
+    <message>
+        <source>Select a filter</source>
+        <translation>フィルターを選択してください</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>プレビュー</translation>
+    </message>
+    <message>
+        <source>Input layers:</source>
+        <translation>入力レイヤー:</translation>
+    </message>
+    <message>
+        <source>Active layer</source>
+        <translation>アクティブレイヤー</translation>
+    </message>
+    <message>
+        <source>Active layer and the one below</source>
+        <translation>アクティブレイヤーとその下のレイヤー</translation>
+    </message>
+    <message>
+        <source>Active layer and the one above</source>
+        <translation>アクティブレイヤーとその上のレイヤー</translation>
+    </message>
+    <message>
+        <source>All layers</source>
+        <translation>すべてのレイヤー</translation>
+    </message>
+    <message>
+        <source>All visible layers</source>
+        <translation>表示されているすべてのレイヤー</translation>
+    </message>
+    <message>
+        <source>All hidden layers</source>
+        <translation>非表示のすべてのレイヤー</translation>
+    </message>
+</context>
+<context>
+    <name>patchy::ui::GmicParameterPanel</name>
+    <message>
+        <source>Alpha:</source>
+        <translation>アルファ:</translation>
+    </message>
+    <message>
+        <source>X:</source>
+        <translation>X:</translation>
+    </message>
+    <message>
+        <source>Y:</source>
+        <translation>Y:</translation>
+    </message>
+    <message>
+        <source>Browse...</source>
+        <translation>参照...</translation>
     </message>
 </context>
 <context>
@@ -19999,6 +20077,58 @@ You can still download it in your browser.</source>
 
 ブラウザーからダウンロードすることもできます。</translation>
     </message>
+    <message>
+        <source>G&apos;&amp;MIC Filter Library...</source>
+        <translation>G&apos;MIC フィルターライブラリ(&amp;M)...</translation>
+    </message>
+    <message>
+        <source>Browse and apply filters from the G&apos;MIC library</source>
+        <translation>G&apos;MIC ライブラリのフィルターを参照して適用</translation>
+    </message>
+    <message>
+        <source>This G&apos;MIC filter is not available</source>
+        <translation>この G&apos;MIC フィルターは利用できません</translation>
+    </message>
+    <message>
+        <source>Rasterize the Smart Object before using %1</source>
+        <translation>%1 を使用する前にスマートオブジェクトをラスタライズしてください</translation>
+    </message>
+    <message>
+        <source>The filter returned no image.</source>
+        <translation>フィルターは画像を返しませんでした。</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC Filter Library</source>
+        <translation>G&apos;MIC フィルターライブラリ</translation>
+    </message>
+    <message>
+        <source>%1 could not be applied.
+
+%2</source>
+        <translation>%1 を適用できませんでした。
+
+%2</translation>
+    </message>
+    <message>
+        <source>%1 changes the layer size. Deselect before applying it.</source>
+        <translation>%1 はレイヤーのサイズを変更します。適用する前に選択を解除してください。</translation>
+    </message>
+    <message>
+        <source>Applied %1 (new layers: %2)</source>
+        <translation>%1 を適用しました (新しいレイヤー: %2)</translation>
+    </message>
+    <message>
+        <source>New layers on apply: %1</source>
+        <translation>適用時に追加されるレイヤー: %1</translation>
+    </message>
+    <message>
+        <source>No layer matches the chosen input layers.</source>
+        <translation>選択した入力レイヤーに該当するレイヤーがありません。</translation>
+    </message>
+    <message>
+        <source>%1 needs about %2 MB of memory for these layers, more than this computer can spare. Use fewer input layers or a smaller image.</source>
+        <translation>%1 はこれらのレイヤーに約 %2 MB のメモリを必要とし、このコンピューターで確保できる量を超えています。入力レイヤーを減らすか、画像を小さくしてください。</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -21608,6 +21738,42 @@ You can still download it in your browser.</source>
     <message>
         <source>The High Quality model could not be downloaded: %1</source>
         <translation>高品質モデルをダウンロードできませんでした: %1</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC filters are not available in this build.</source>
+        <translation>このビルドでは G&apos;MIC フィルターを利用できません。</translation>
+    </message>
+    <message>
+        <source>Unknown G&apos;MIC filter: %1</source>
+        <translation>不明な G&apos;MIC フィルター: %1</translation>
+    </message>
+    <message>
+        <source>applyGmic: %1 is not a valid value for %2.</source>
+        <translation>applyGmic: %1 は %2 の有効な値ではありません。</translation>
+    </message>
+    <message>
+        <source>applyGmic: too many values (%1 given, the filter takes %2).</source>
+        <translation>applyGmic: 値が多すぎます (%1 個指定、フィルターが受け取るのは %2 個)。</translation>
+    </message>
+    <message>
+        <source>applyGmic: unknown parameter %1.</source>
+        <translation>applyGmic: 不明なパラメーター %1。</translation>
+    </message>
+    <message>
+        <source>applyGmic: unknown option %1.</source>
+        <translation>applyGmic: 不明なオプション %1。</translation>
+    </message>
+    <message>
+        <source>applyGmic: unknown inputLayers value %1.</source>
+        <translation>applyGmic: 不明な inputLayers の値 %1。</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC filter %1 was cancelled.</source>
+        <translation>G&apos;MIC フィルター %1 はキャンセルされました。</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC filter %1 failed: %2</source>
+        <translation>G&apos;MIC フィルター %1 が失敗しました: %2</translation>
     </message>
 </context>
 <context>

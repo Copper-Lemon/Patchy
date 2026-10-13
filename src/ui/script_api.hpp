@@ -140,6 +140,12 @@ public:
   // captureDialog asks for it, and then answer it automatically. Windows only;
   // throws elsewhere.
   Q_INVOKABLE void applyPlugin(const QString& pluginId, const QJSValue& options = QJSValue());
+  // A G'MIC library filter (patchy.gmic.list()) on this layer, limited to the
+  // selection, part of the run's undo entry. `values` is an array (one per
+  // parameter, in order) or an object keyed by parameter name; missing ones use
+  // the defaults. Options {inputLayers}. Returns how many layers the filter added.
+  Q_INVOKABLE QJSValue applyGmic(const QString& filterId, const QJSValue& values = QJSValue(),
+                                 const QJSValue& options = QJSValue());
   // Edit > Remove Object on the document selection; the layer must be the
   // document's active layer. Options {method, attempt}; returns {method,
   // patches, source, sourceCount}.
@@ -414,6 +420,26 @@ public:
   Q_INVOKABLE QJSValue list();
   // Rescans the automatic and user folders; returns list().
   Q_INVOKABLE QJSValue rescan();
+
+private:
+  ScriptEngineHost& host_;
+};
+
+// patchy.gmic: the G'MIC filter library (docs/gmic.md). Empty in builds without the engine.
+class ScriptGmicObject : public QObject {
+  Q_OBJECT
+  Q_PROPERTY(bool available READ available)
+  Q_PROPERTY(QString version READ version)
+
+public:
+  explicit ScriptGmicObject(ScriptEngineHost& host);
+
+  [[nodiscard]] bool available() const;
+  // The G'MIC version the filters come from ("4.0.5"), "" when unavailable.
+  [[nodiscard]] QString version() const;
+  // Every offered filter: {id, name, folder, inputLayers, parameters: [{name, type,
+  // default, minimum, maximum, choices}]}, parameters in the order applyGmic takes them.
+  Q_INVOKABLE QJSValue list();
 
 private:
   ScriptEngineHost& host_;

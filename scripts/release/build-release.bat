@@ -196,6 +196,11 @@ copy /Y "%APP_ICON%" "%STAGE_DIR%\Patchy.ico" >nul || goto fail
 call :CopyQtLicenseSbom
 if not "!ERRORLEVEL!"=="0" goto fail
 
+rem The G'MIC engine is linked into patchy.exe; its license texts ship with it.
+if not exist "%STAGE_DIR%\licenses\gmic" mkdir "%STAGE_DIR%\licenses\gmic" || goto fail
+copy /Y "%REPO%\src\filters\gmic\COPYING" "%STAGE_DIR%\licenses\gmic\gmic-COPYING.txt" >nul || goto fail
+copy /Y "%REPO%\src\filters\gmic\pocketfft\LICENSE.md" "%STAGE_DIR%\licenses\gmic\pocketfft-LICENSE.md" >nul || goto fail
+
 call :HeadlessSmokeCheck
 if not "!ERRORLEVEL!"=="0" goto fail
 "%STAGE_DIR%\patchy-mcp.exe" --check
@@ -363,7 +368,7 @@ if not exist "%MSVC_REDIST_ROOT%" (
 )
 
 set "PATCHY_MSVC_REDIST_ROOT=%MSVC_REDIST_ROOT%"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$root = [IO.Path]::GetFullPath($env:PATCHY_MSVC_REDIST_ROOT); $stage = [IO.Path]::GetFullPath($env:PATCHY_STAGE_DIR); $crt = Get-ChildItem -LiteralPath $root -Directory | ForEach-Object { Get-ChildItem -Path (Join-Path $_.FullName 'x64\Microsoft.VC*.CRT') -Directory -ErrorAction SilentlyContinue } | Sort-Object FullName -Descending | Select-Object -First 1; if ($null -eq $crt) { Write-Error ('No x64 Microsoft.VC*.CRT directory found under ' + $root); exit 1 }; $files = Get-ChildItem -LiteralPath $crt.FullName -Filter '*.dll' -File | Sort-Object Name; if ($files.Count -eq 0) { Write-Error ('No MSVC runtime DLLs found under ' + $crt.FullName); exit 1 }; foreach ($file in $files) { Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $stage $file.Name) -Force }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$root = [IO.Path]::GetFullPath($env:PATCHY_MSVC_REDIST_ROOT); $stage = [IO.Path]::GetFullPath($env:PATCHY_STAGE_DIR); $crt = Get-ChildItem -LiteralPath $root -Directory | ForEach-Object { Get-ChildItem -Path (Join-Path $_.FullName 'x64\Microsoft.VC*.CRT') -Directory -ErrorAction SilentlyContinue } | Sort-Object FullName -Descending | Select-Object -First 1; if ($null -eq $crt) { Write-Error ('No x64 Microsoft.VC*.CRT directory found under ' + $root); exit 1 }; $files = Get-ChildItem -LiteralPath $crt.FullName -Filter '*.dll' -File | Sort-Object Name; if ($files.Count -eq 0) { Write-Error ('No MSVC runtime DLLs found under ' + $crt.FullName); exit 1 }; foreach ($file in $files) { Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $stage $file.Name) -Force }; $omp = Get-ChildItem -Path (Join-Path $crt.Parent.FullName 'Microsoft.VC*.OpenMP') -Directory -ErrorAction SilentlyContinue | Select-Object -First 1; if ($null -eq $omp) { Write-Error ('No Microsoft.VC*.OpenMP directory found beside ' + $crt.FullName); exit 1 }; $ompFiles = Get-ChildItem -LiteralPath $omp.FullName -Filter '*.dll' -File; if ($ompFiles.Count -eq 0) { Write-Error ('No OpenMP runtime DLL found under ' + $omp.FullName); exit 1 }; foreach ($file in $ompFiles) { Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $stage $file.Name) -Force }"
 exit /b %ERRORLEVEL%
 
 :CopyTranslations

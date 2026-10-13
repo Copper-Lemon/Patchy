@@ -41,6 +41,7 @@ third-party components, and license text extracted by Qt.
 ## Microsoft Visual C++ Runtime DLLs
 
 The Windows package includes the app-local Microsoft Visual C++ runtime DLLs
+(the OpenMP runtime `vcomp140.dll` among them, used by the G'MIC engine)
 from the local Visual Studio redistributable CRT directory. These DLLs are
 provided under Microsoft's runtime redistribution terms.
 
@@ -182,6 +183,34 @@ non-restricted portions), the BSD-licensed DCB demosaic and FBDD denoise
 Adobe DNG SDK fragments. The license texts are included at
 `src/formats/libraw/LICENSE.CDDL`, `src/formats/libraw/LICENSE.LGPL`, and
 `src/formats/libraw/COPYRIGHT`.
+
+## G'MIC and CImg (desktop builds)
+
+`src/filters/gmic/` vendors G'MIC 4.0.5 (https://gmic.eu, Copyright David
+Tschumperlé and the G'MIC contributors, GREYC / CNRS): the interpreter
+(`gmic.h`, `gmic.cpp`), the CImg Library it is built on (`CImg.h`,
+https://cimg.eu) and the standard filter library (`gmic_stdlib.gmic`). These
+files are dual-licensed under CeCILL-C 1.0 or CeCILL 2.1; Patchy uses them
+under CeCILL-C. Patchy's modifications are marked `PATCHY` in the sources and
+described in `docs/gmic.md`; the complete corresponding source is this
+repository. The G'MIC-Qt plug-in, the community filters, and FFTW are not
+included. The license texts are at `src/filters/gmic/COPYING` and ship in the
+desktop packages as `gmic-COPYING.txt` (in `licenses\gmic` on Windows,
+`Contents/Resources/licenses` on macOS and `share/licenses/com.rtsoft.patchy`
+on Linux). The web build does not contain this code.
+
+## pocketfft (desktop builds)
+
+The G'MIC engine computes its Fourier transforms with pocketfft
+(`src/filters/gmic/pocketfft/pocketfft_hdronly.h`, unmodified, from
+https://github.com/mreineck/pocketfft, cpp branch, commit
+`c90e55b3d529f8efa40ed01a20de22405f45fc65`). Copyright (C) 2010-2024
+Max-Planck-Society, Copyright (C) 2019-2020 Peter Bell, Copyright (C) 2024
+Tan Ping Liang and Peter Bell, Copyright (C) 2024 Cris Luengo, with portions
+Copyright (C) 2003, 2007-14 Matteo Frigo and the Massachusetts Institute of
+Technology; BSD 3-Clause License. The license text is
+`src/filters/gmic/pocketfft/LICENSE.md` and ships beside the G'MIC texts as
+`pocketfft-LICENSE.md`.
 
 ## ONNX Runtime (desktop builds)
 

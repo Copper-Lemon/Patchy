@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/gmic">
+    <file alias="gmic_stdlib.gmic">../filters/gmic/gmic_stdlib.gmic</file>
+    <file alias="patchy_filters_allowlist.txt">../filters/gmic/patchy_filters_allowlist.txt</file>
+  </qresource>
+</RCC>

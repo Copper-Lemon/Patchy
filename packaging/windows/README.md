@@ -37,10 +37,10 @@ The package is intentionally limited to the files needed by end users:
 - `Patchy.ico` and `PatchyInstallManifest.txt`
 - Qt DLLs for Core, GUI, Widgets, PrintSupport, Network, SVG, and the Qt ImageFormats plugins
 - the Windows and offscreen platform plugins (offscreen is what `--headless` loads; the script smoke-tests the staged tree headless before zipping), current Windows style plugin, SVG icon engine, TLS backend, and JPEG, SVG, TIFF, and WebP image plugins
-- app-local Microsoft Visual C++ runtime DLLs copied from the local Visual Studio redist CRT directory
+- app-local Microsoft Visual C++ runtime DLLs copied from the local Visual Studio redist CRT directory, plus `vcomp140.dll` from the OpenMP directory beside it (the G'MIC engine)
 - app and Qt base translations for every shipped language (German, Spanish, French, Italian, Japanese, Korean, Polish, Brazilian Portuguese, Russian, Simplified and Traditional Chinese) under `translations`
 - bundled compatibility fonts under `fonts`
-- `README.md`, `LICENSE`, `NOTICE-THIRD-PARTY.md`, and Qt module SPDX notices under `licenses\qt`
+- `README.md`, `LICENSE`, `NOTICE-THIRD-PARTY.md`, Qt module SPDX notices under `licenses\qt`, and the G'MIC and pocketfft license texts under `licenses\gmic`
 
 The zip does not include build files, tests, test fixtures, Qt translations for languages Patchy does not ship, Qt generic input plugins, installer-only helpers such as `InstallPatchy.exe` and `UninstallPatchy.exe`, the Visual C++ Redistributable installer, or developer packaging notes.
 

@@ -26,6 +26,7 @@
 #include "core/worker_budget.hpp"
 #include "ui/edit_conversions.hpp"
 #include "ui/image_document_io.hpp"
+#include "ui/measurement_units.hpp"
 #include "ui/qt_geometry.hpp"
 #include "ui/smart_object_render.hpp"
 #include "ui/tool_cursors.hpp"
@@ -1058,6 +1059,7 @@ void CanvasWidget::paintEvent(QPaintEvent* event) {
     }
     painter.restore();
   }
+  draw_preview_point_handles(painter);
   draw_zoom_preview(painter);
   draw_rulers(painter);
   draw_brush_hover_outline(painter);
@@ -2412,6 +2414,8 @@ void CanvasWidget::begin_preview_render() {
   if (++preview_renders_in_flight_ != 1) {
     return;
   }
+  preview_render_progress_ = -1;
+  preview_render_refining_ = false;
   preview_render_started_.start();
   // The animation timer keeps itself alive while a preview is in flight (see
   // timerEvent); its first tick past the badge delay paints the overlay, so
@@ -2425,10 +2429,42 @@ void CanvasWidget::end_preview_render() {
   if (preview_renders_in_flight_ <= 0) {
     return;
   }
-  if (--preview_renders_in_flight_ == 0 && preview_render_started_.isValid() &&
-      preview_render_started_.elapsed() >= processing_overlay_delay_ms()) {
+  if (--preview_renders_in_flight_ != 0) {
+    return;
+  }
+  preview_render_progress_ = -1;
+  preview_render_refining_ = false;
+  if (preview_render_started_.isValid() && preview_render_started_.elapsed() >= processing_overlay_delay_ms()) {
     update();
   }
+}
+
+void CanvasWidget::set_preview_render_refining(bool refining) {
+  if (refining == preview_render_refining_) {
+    return;
+  }
+  preview_render_refining_ = refining;
+  if (preview_render_overlay_visible()) {
+    update();
+  }
+}
+
+void CanvasWidget::set_preview_render_progress(int percent) {
+  percent = percent < 0 ? -1 : std::min(percent, 100);
+  if (percent == preview_render_progress_) {
+    return;
+  }
+  preview_render_progress_ = percent;
+  if (preview_render_overlay_visible()) {
+    update();
+  }
+}
+
+QString CanvasWidget::preview_render_message() const {
+  const QString message = preview_render_refining_ ? tr("Refining preview...") : tr("Rendering preview...");
+  return preview_render_progress_ < 0
+             ? message
+             : message + QLatin1Char(' ') + QString::number(preview_render_progress_) + percent_suffix();
 }
 
 bool CanvasWidget::background_refresh_overlay_visible() const noexcept {
@@ -2470,7 +2506,7 @@ void CanvasWidget::draw_processing_overlay(QPainter& painter) const {
     return;
   }
   const QString overlay_message = processing_overlay_visible_ ? processing_overlay_message_
-                                  : preview_render_wait      ? tr("Rendering preview...")
+                                  : preview_render_wait      ? preview_render_message()
                                                              : tr("Processing...");
 
   painter.save();

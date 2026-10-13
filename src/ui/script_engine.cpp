@@ -10,6 +10,10 @@
 #include "ui/main_window_shared.hpp"
 #include "ui/script_engine.hpp"
 
+#include "filters/gmic/gmic_catalog.hpp"
+#include "filters/gmic/gmic_engine.hpp"
+#include "ui/gmic_library.hpp"
+
 #include "core/layer_metadata.hpp"
 #include "core/text_area.hpp"
 #include "core/layer_render_utils.hpp"
@@ -126,6 +130,7 @@ constexpr const char* kBootstrapSource = R"JS(
     ui: g.__patchy_ui,
     recovery: g.__patchy_recovery,
     plugins: g.__patchy_plugins,
+    gmic: g.__patchy_gmic,
     scripts: g.__patchy_scripts,
     apiVersion: g.app.apiVersion,
     version: g.app.version,
@@ -393,6 +398,9 @@ void ScriptEngineHost::install_bindings(const RunOptions& options) {
   auto* plugins_object = new ScriptPluginsObject(*this);
   plugins_object->setParent(&engine);
   global.setProperty(QStringLiteral("__patchy_plugins"), engine.newQObject(plugins_object));
+  auto* gmic_object = new ScriptGmicObject(*this);
+  gmic_object->setParent(&engine);
+  global.setProperty(QStringLiteral("__patchy_gmic"), engine.newQObject(gmic_object));
   auto* scripts_object = new ScriptLibraryObject(*this);
   scripts_object->setParent(&engine);
   global.setProperty(QStringLiteral("__patchy_scripts"), engine.newQObject(scripts_object));
@@ -2783,6 +2791,343 @@ bool ScriptEngineHost::apply_legacy_plugin_to_layer(std::int64_t session_id, Lay
       return false;
   }
   return false;
+}
+
+// ---------------------------------------------------------------------------
+// patchy.gmic and layer.applyGmic (docs/gmic.md)
+
+namespace {
+
+// The tokens scripts use for a filter's input layers. Permanent identifiers.
+struct GmicInputToken {
+  char mode;
+  const char* token;
+};
+constexpr GmicInputToken kGmicInputTokens[] = {
+    {'.', "active"}, {'+', "activeAndBelow"}, {'-', "activeAndAbove"},
+    {'*', "all"},    {'v', "visible"},        {'i', "hidden"},
+};
+
+[[nodiscard]] QString gmic_input_token(char mode) {
+  for (const auto& entry : kGmicInputTokens) {
+    if (entry.mode == mode) {
+      return QString::fromLatin1(entry.token);
+    }
+  }
+  return QStringLiteral("active");
+}
+
+[[nodiscard]] const char* gmic_type_token(gmic::ParameterType type) {
+  switch (type) {
+    case gmic::ParameterType::Bool: return "bool";
+    case gmic::ParameterType::Button: return "button";
+    case gmic::ParameterType::Choice: return "choice";
+    case gmic::ParameterType::Color: return "color";
+    case gmic::ParameterType::Point: return "point";
+    case gmic::ParameterType::File: return "file";
+    case gmic::ParameterType::Float: return "float";
+    case gmic::ParameterType::Folder: return "folder";
+    case gmic::ParameterType::Int: return "int";
+    case gmic::ParameterType::Text: return "text";
+    case gmic::ParameterType::Value: return "value";
+    case gmic::ParameterType::Link:
+    case gmic::ParameterType::Note:
+    case gmic::ParameterType::Separator: break;
+  }
+  return "";
+}
+
+[[nodiscard]] QString gmic_qstring(const std::string& text) {
+  return QString::fromUtf8(text.c_str(), static_cast<qsizetype>(text.size()));
+}
+
+[[nodiscard]] std::string gmic_std_string(const QString& text) {
+  const auto bytes = text.toUtf8();
+  return std::string(bytes.constData(), static_cast<std::size_t>(bytes.size()));
+}
+
+[[nodiscard]] std::string gmic_number(double value) {
+  return gmic_std_string(QString::number(value, 'g', 12));
+}
+
+// A script value as the G'MIC argument a parameter takes; nullopt when it does not fit.
+[[nodiscard]] std::optional<std::string> gmic_argument_from_js(const gmic::Parameter& parameter,
+                                                               const QJSValue& value) {
+  switch (parameter.type) {
+    case gmic::ParameterType::Float:
+      return value.isNumber() ? std::optional(gmic_number(value.toNumber())) : std::nullopt;
+    case gmic::ParameterType::Int:
+      return value.isNumber() ? std::optional(gmic_number(std::round(value.toNumber()))) : std::nullopt;
+    case gmic::ParameterType::Bool:
+    case gmic::ParameterType::Button:
+      return std::string(value.toBool() ? "1" : "0");
+    case gmic::ParameterType::Choice: {
+      if (value.isNumber()) {
+        const double index = value.toNumber();
+        if (index < 0 || index >= static_cast<double>(parameter.choices.size()) || index != std::floor(index)) {
+          return std::nullopt;
+        }
+        return std::to_string(static_cast<int>(index));
+      }
+      const QString wanted = value.toString();
+      for (std::size_t index = 0; index < parameter.choices.size(); ++index) {
+        if (gmic_qstring(parameter.choices[index]).compare(wanted, Qt::CaseInsensitive) == 0) {
+          return std::to_string(index);
+        }
+      }
+      return std::nullopt;
+    }
+    case gmic::ParameterType::Color: {
+      // "#rrggbb" / "#rrggbbaa", or [r, g, b] / [r, g, b, a] with 0..255 channels.
+      std::vector<int> channels;
+      if (value.isString()) {
+        const QString text = value.toString();
+        if (!text.startsWith(QLatin1Char('#')) || (text.size() != 7 && text.size() != 9)) {
+          return std::nullopt;
+        }
+        for (qsizetype at = 1; at + 1 < text.size(); at += 2) {
+          bool ok = false;
+          channels.push_back(text.mid(at, 2).toInt(&ok, 16));
+          if (!ok) {
+            return std::nullopt;
+          }
+        }
+      } else if (value.isArray()) {
+        const auto length = value.property(QStringLiteral("length")).toInt();
+        if (length != 3 && length != 4) {
+          return std::nullopt;
+        }
+        for (int index = 0; index < length; ++index) {
+          channels.push_back(std::clamp(static_cast<int>(std::lround(value.property(static_cast<quint32>(index)).toNumber())), 0, 255));
+        }
+      } else {
+        return std::nullopt;
+      }
+      if (parameter.has_alpha && channels.size() == 3) {
+        channels.push_back(255);
+      }
+      std::string text;
+      for (std::size_t index = 0; index < (parameter.has_alpha ? 4U : 3U); ++index) {
+        text += (index == 0 ? "" : ",") + std::to_string(channels[index]);
+      }
+      return text;
+    }
+    case gmic::ParameterType::Point:
+      if (!value.isArray() || value.property(QStringLiteral("length")).toInt() != 2) {
+        return std::nullopt;
+      }
+      return gmic_number(value.property(0).toNumber()) + "," + gmic_number(value.property(1).toNumber());
+    case gmic::ParameterType::File:
+    case gmic::ParameterType::Folder:
+    case gmic::ParameterType::Text:
+      return gmic::quoted_text_value(gmic_std_string(value.toString()));
+    case gmic::ParameterType::Value:
+      return gmic::quoted_text_value(gmic_std_string(value.toString()));
+    case gmic::ParameterType::Link:
+    case gmic::ParameterType::Note:
+    case gmic::ParameterType::Separator:
+      break;
+  }
+  return std::nullopt;
+}
+
+// A parameter's default as a script value of the kind applyGmic accepts back.
+[[nodiscard]] QJSValue gmic_default_to_js(QJSEngine& engine, const gmic::Parameter& parameter) {
+  const QString text = gmic_qstring(parameter.default_value);
+  switch (parameter.type) {
+    case gmic::ParameterType::Float:
+    case gmic::ParameterType::Int:
+    case gmic::ParameterType::Choice:
+      return QJSValue(text.toDouble());
+    case gmic::ParameterType::Bool:
+    case gmic::ParameterType::Button:
+      return QJSValue(text == QLatin1String("1"));
+    case gmic::ParameterType::Color:
+    case gmic::ParameterType::Point: {
+      const auto parts = text.split(QLatin1Char(','));
+      auto array = engine.newArray(static_cast<quint32>(parts.size()));
+      for (qsizetype index = 0; index < parts.size(); ++index) {
+        array.setProperty(static_cast<quint32>(index), parts[index].toDouble());
+      }
+      return array;
+    }
+    case gmic::ParameterType::File:
+    case gmic::ParameterType::Folder:
+    case gmic::ParameterType::Text:
+    case gmic::ParameterType::Value:
+      return QJSValue(gmic_qstring(parameter.text));
+    default:
+      return QJSValue(text);
+  }
+}
+
+}  // namespace
+
+QJSValue ScriptEngineHost::gmic_filter_list() {
+  auto array = engine()->newArray();
+  if (!gmic_filters_available()) {
+    return array;
+  }
+  quint32 index = 0;
+  for (const auto& filter : gmic_library().catalog.filters) {
+    auto value = engine()->newObject();
+    value.setProperty(QStringLiteral("id"), gmic_qstring(filter.id));
+    value.setProperty(QStringLiteral("name"), gmic_qstring(filter.name));
+    QStringList folder;
+    for (const auto& name : filter.folder_path) {
+      folder << gmic_qstring(name);
+    }
+    value.setProperty(QStringLiteral("folder"), folder.join(QStringLiteral(" / ")));
+    value.setProperty(QStringLiteral("inputLayers"), gmic_input_token(filter.input_mode));
+    auto parameters = engine()->newArray();
+    quint32 parameter_index = 0;
+    for (const auto& parameter : filter.parameters) {
+      if (!parameter.carries_value()) {
+        continue;
+      }
+      auto entry = engine()->newObject();
+      entry.setProperty(QStringLiteral("name"), gmic_qstring(parameter.name));
+      entry.setProperty(QStringLiteral("type"), QString::fromLatin1(gmic_type_token(parameter.type)));
+      entry.setProperty(QStringLiteral("default"), gmic_default_to_js(*engine(), parameter));
+      if (parameter.type == gmic::ParameterType::Float || parameter.type == gmic::ParameterType::Int) {
+        entry.setProperty(QStringLiteral("minimum"), std::min(parameter.minimum, parameter.maximum));
+        entry.setProperty(QStringLiteral("maximum"), std::max(parameter.minimum, parameter.maximum));
+      }
+      if (parameter.type == gmic::ParameterType::Choice) {
+        auto choices = engine()->newArray(static_cast<quint32>(parameter.choices.size()));
+        for (std::size_t choice = 0; choice < parameter.choices.size(); ++choice) {
+          choices.setProperty(static_cast<quint32>(choice), gmic_qstring(parameter.choices[choice]));
+        }
+        entry.setProperty(QStringLiteral("choices"), choices);
+      }
+      parameters.setProperty(parameter_index++, entry);
+    }
+    value.setProperty(QStringLiteral("parameters"), parameters);
+    array.setProperty(index++, value);
+  }
+  return array;
+}
+
+QJSValue ScriptEngineHost::apply_gmic_to_layer(std::int64_t session_id, LayerId layer_id, const QString& filter_id,
+                                               const QJSValue& values, const QJSValue& options) {
+  pump_progress_indicator();
+  if (!gmic_filters_available()) {
+    throw_js_error(tr("G'MIC filters are not available in this build."));
+    return QJSValue();
+  }
+  auto* session = window_.session_with_id(session_id);
+  if (session == nullptr) {
+    throw_js_error(tr("The document is no longer open."));
+    return QJSValue();
+  }
+  const auto* filter = gmic_library().catalog.find(gmic_std_string(filter_id));
+  if (filter == nullptr) {
+    throw_js_error(tr("Unknown G'MIC filter: %1").arg(filter_id));
+    return QJSValue();
+  }
+
+  // One argument per value-carrying parameter, defaults first.
+  std::vector<const gmic::Parameter*> parameters;
+  for (const auto& parameter : filter->parameters) {
+    if (parameter.carries_value()) {
+      parameters.push_back(&parameter);
+    }
+  }
+  auto arguments = gmic::default_values(*filter);
+  const auto set_argument = [&](std::size_t index, const QJSValue& value) {
+    if (value.isUndefined() || value.isNull()) {
+      return true;  // keep the default
+    }
+    auto argument = gmic_argument_from_js(*parameters[index], value);
+    if (!argument.has_value()) {
+      throw_js_error(tr("applyGmic: %1 is not a valid value for %2.")
+                         .arg(value.toString(), gmic_qstring(parameters[index]->name)));
+      return false;
+    }
+    arguments[index] = std::move(*argument);
+    return true;
+  };
+  if (values.isArray()) {
+    const auto length = static_cast<std::size_t>(std::max(0, values.property(QStringLiteral("length")).toInt()));
+    if (length > parameters.size()) {
+      throw_js_error(tr("applyGmic: too many values (%1 given, the filter takes %2).")
+                         .arg(static_cast<qulonglong>(length))
+                         .arg(static_cast<qulonglong>(parameters.size())));
+      return QJSValue();
+    }
+    for (std::size_t index = 0; index < length; ++index) {
+      if (!set_argument(index, values.property(static_cast<quint32>(index)))) {
+        return QJSValue();
+      }
+    }
+  } else if (values.isObject()) {
+    QJSValueIterator it(values);
+    while (it.hasNext()) {
+      it.next();
+      const auto name = gmic_std_string(it.name());
+      const auto found = std::find_if(parameters.begin(), parameters.end(),
+                                      [&name](const gmic::Parameter* parameter) { return parameter->name == name; });
+      if (found == parameters.end()) {
+        throw_js_error(tr("applyGmic: unknown parameter %1.").arg(it.name()));
+        return QJSValue();
+      }
+      if (!set_argument(static_cast<std::size_t>(found - parameters.begin()), it.value())) {
+        return QJSValue();
+      }
+    }
+  }
+
+  char input_mode = 0;  // the filter's own
+  if (options.isObject()) {
+    QJSValueIterator it(options);
+    while (it.hasNext()) {
+      it.next();
+      if (it.name() != QLatin1String("inputLayers")) {
+        throw_js_error(tr("applyGmic: unknown option %1.").arg(it.name()));
+        return QJSValue();
+      }
+      const QString token = it.value().toString();
+      for (const auto& entry : kGmicInputTokens) {
+        if (token == QLatin1String(entry.token)) {
+          input_mode = entry.mode;
+        }
+      }
+      if (input_mode == 0) {
+        throw_js_error(tr("applyGmic: unknown inputLayers value %1.").arg(token));
+        return QJSValue();
+      }
+    }
+  }
+
+  QString error;
+  std::size_t added = 0;
+  const auto status = window_.apply_gmic_filter_to_layer(
+      *session, session_canvas(session_id), layer_id, filter->id, arguments, input_mode,
+      /*show_progress=*/!unattended_run(), [this, session_id] { (void)prepare_mutation(session_id); }, &error, &added,
+      // A filter may run for minutes on a large image: it is alive while it runs, and
+      // stopping the script stops it.
+      [this] {
+        keep_alive_for_ui();
+        return run_ != nullptr && !run_->stop_requested && (engine_ == nullptr || !engine_->isInterrupted());
+      });
+  switch (status) {
+    case MainWindow::GmicApplyStatus::Applied:
+      // The layer may have moved or grown, and layers may have been added.
+      note_pixels_changed(session_id, QRect(0, 0, session->document.width(), session->document.height()));
+      if (added > 0) {
+        note_structure_changed(session_id);
+      }
+      return QJSValue(static_cast<double>(added));
+    case MainWindow::GmicApplyStatus::NoChange:
+      return QJSValue(0);
+    case MainWindow::GmicApplyStatus::Cancelled:
+      throw_js_error(tr("G'MIC filter %1 was cancelled.").arg(filter_id));
+      return QJSValue();
+    case MainWindow::GmicApplyStatus::Error:
+      throw_js_error(tr("G'MIC filter %1 failed: %2").arg(filter_id, error));
+      return QJSValue();
+  }
+  return QJSValue();
 }
 
 void ScriptEngineHost::rescan_legacy_plugins() { window_.rescan_legacy_plugin_folders(); }
