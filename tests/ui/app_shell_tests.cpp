@@ -586,8 +586,9 @@ void ui_tool_palette_expansion_collapses_when_window_fits_again() {
 
 // GitHub issue 88: with the main-window animator on (the default outside these
 // tests), collapsing the expansion on Qt 6.11 left the buttons where the wide
-// bar had centered them. Only a build against that Qt can fail here; the
-// native presets pin the animation hand-back instead.
+// bar had centered them. Only a build against that Qt fails here without the
+// fix (the Linux remote suite runs on it); Qt 6.8.3 pins the animation
+// hand-back instead.
 void ui_tool_palette_animated_collapse_realigns_buttons() {
   patchy::ui::MainWindow window;
   CHECK(window.isAnimated());

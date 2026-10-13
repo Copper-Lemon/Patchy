@@ -97,7 +97,8 @@ native presets develop against Qt 6.8.3. Keep it on a branch that is not end-of-
 6.8 and 6.9 went end-of-life in 2026, after which every `flatpak update` warned Patchy
 users. Check with `flatpak remote-info
 --user flathub org.kde.Platform//<branch>` (an "End-of-life" line) and after a bump
-rerun the whole script; the sandbox build is the only compile against that Qt.
+rerun the whole script and both full suites (`remote-build.ps1 -Target linux` builds
+and tests inside the same SDK; see [docs/linux-testing.md](../../docs/linux-testing.md)).
 
 - `--filesystem=home` is the deliberate v1 choice (recents, CLI file arguments, and
   brush/palette folders behave like a desktop editor; file dialogs still go through

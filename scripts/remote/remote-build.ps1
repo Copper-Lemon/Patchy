@@ -3,6 +3,7 @@ Builds the current working tree (uncommitted changes included) on a remote test 
 and runs the test suites there.
 
   scripts\remote\remote-build.ps1 -Target mac [-TestFilter ui_palette] [-SkipTests] [-FetchArtifacts]
+  scripts\remote\remote-build.ps1 -Target linux [-NativeQt] [-TestFilter ui_palette] [-SkipTests]
   scripts\remote\remote-build.ps1 -Target windows [-TestFilter ui_palette] [-CoreTestFilter psd] [-SkipTests]
 
 Mechanism: a temporary-index git snapshot of the working tree is force-pushed to
@@ -12,6 +13,11 @@ created in this repository and the real index is untouched. The remote work tree
 detached -- unchanged files keep their mtimes, so remote Ninja rebuilds stay
 incremental -- then scripts/remote/build-and-test.sh configures, builds, and runs the
 suites with output streamed back here. The remote exit code propagates.
+
+-Target linux builds and tests inside the Flatpak SDK (preset linux-flatpak-qt), so the
+suites run against the Qt that Linux users get. -NativeQt selects the older
+linux-release preset (the aqt Qt in .deps) for the tools that need a host binary, such
+as the linux-asan sync.
 
 -Target windows offloads a Windows build to another Windows machine, only on explicit
 request. Its work tree comes from the host config (setup-windows.ps1 creates it), the
@@ -30,7 +36,9 @@ param(
   # windows only: core-suite name filter. mac/linux always run the full core suite.
   [string]$CoreTestFilter = '',
   [switch]$SkipTests,
-  [switch]$FetchArtifacts
+  [switch]$FetchArtifacts,
+  # linux only: build against the aqt Qt in .deps instead of the Flatpak SDK's Qt.
+  [switch]$NativeQt
 )
 
 # 'Continue', not 'Stop': under Windows PowerShell 5.1 any native stderr line
@@ -41,7 +49,10 @@ $ErrorActionPreference = 'Continue'
 . "$PSScriptRoot\remote-hosts.ps1"
 $remote = Get-PatchyRemoteHost $Target
 $remoteHost = $remote.ssh
-$preset = if ($Target -eq 'windows') { 'release' } else { "$Target-release" }
+$preset = if ($Target -eq 'windows') { 'release' }
+  elseif ($Target -eq 'linux' -and -not $NativeQt) { 'linux-flatpak-qt' }
+  else { "$Target-release" }
+if ($NativeQt -and $Target -ne 'linux') { throw '-NativeQt is only supported for -Target linux' }
 if ($CoreTestFilter -and $Target -ne 'windows') { throw '-CoreTestFilter is only supported for -Target windows' }
 
 $repoRoot = (git rev-parse --show-toplevel 2>$null)

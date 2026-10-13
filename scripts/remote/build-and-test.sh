@@ -6,6 +6,24 @@ set -euo pipefail
 
 PRESET="${1:?usage: build-and-test.sh <preset> [--filter substr] [--skip-tests]}"
 shift
+
+# linux-flatpak-qt builds and tests against the Qt Linux users actually run: the
+# org.kde.Sdk the Flatpak manifest names (compiler, Qt and fonts all come from it, never
+# from .deps or the host). Re-run this script inside that sandbox; /.flatpak-info marks
+# being inside. The SDK is the one make-flatpak.sh already needs installed.
+if [ "$PRESET" = "linux-flatpak-qt" ] && [ ! -f /.flatpak-info ]; then
+  MANIFEST="$HOME/patchy/src/packaging/linux/flatpak/com.rtsoft.patchy.yml"
+  SDK=$(sed -nE 's/^sdk:[[:space:]]*([A-Za-z0-9._-]+).*$/\1/p' "$MANIFEST" | head -1)
+  SDK_VERSION=$(sed -nE "s/^runtime-version:[[:space:]]*'?([0-9.]+)'?.*$/\1/p" "$MANIFEST" | head -1)
+  if [ -z "$SDK" ] || [ -z "$SDK_VERSION" ]; then
+    echo "ERROR: could not read sdk and runtime-version from $MANIFEST" >&2
+    exit 1
+  fi
+  echo "== entering $SDK//$SDK_VERSION =="
+  exec flatpak run --user --filesystem=home --command=bash "$SDK//$SDK_VERSION" \
+    "$HOME/patchy/src/scripts/remote/build-and-test.sh" "$PRESET" "$@"
+fi
+
 FILTER=""
 SKIP_TESTS=0
 while [ $# -gt 0 ]; do
@@ -16,11 +34,13 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-export PATH="$HOME/.patchy-tools/bin:$HOME/.local/bin:$PATH"
-
-# Sudo-free dependency sysroot (see setup-linux.sh): dev packages extracted with
-# dpkg-deb -x when apt install wasn't possible. Harmlessly absent elsewhere.
-if [ -d "$HOME/.patchy-tools/sysroot/usr" ]; then
+# Host tools and the sudo-free dependency sysroot (see setup-linux.sh: dev packages
+# extracted with dpkg-deb -x when apt install wasn't possible) are for native builds
+# only. Inside the Flatpak SDK they would shadow its cmake, ninja and libraries.
+if [ ! -f /.flatpak-info ]; then
+  export PATH="$HOME/.patchy-tools/bin:$HOME/.local/bin:$PATH"
+fi
+if [ ! -f /.flatpak-info ] && [ -d "$HOME/.patchy-tools/sysroot/usr" ]; then
   export CMAKE_PREFIX_PATH="$HOME/.patchy-tools/sysroot/usr${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
   export LD_LIBRARY_PATH="$HOME/.patchy-tools/sysroot/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 fi
