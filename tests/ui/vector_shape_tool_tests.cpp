@@ -15,6 +15,7 @@
 #include "ui/measurement_units.hpp"
 #include "ui/pattern_library.hpp"
 #include "ui/shape_appearance_dialog.hpp"
+#include "ui/theme_palette.hpp"
 #include "ui/unit_spin_box.hpp"
 
 #include <QAction>
@@ -30,6 +31,7 @@
 #include <QMenu>
 #include <QSpinBox>
 #include <QGroupBox>
+#include <QImage>
 #include <QDialogButtonBox>
 #include <QScreen>
 #include <QScrollBar>
@@ -43,8 +45,10 @@
 #include <QPushButton>
 #include <QEvent>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <exception>
 #include <functional>
 #include <cstdio>
@@ -2042,6 +2046,122 @@ void ui_shape_options_group_stroke_controls_and_end_with_appearance() {
   QApplication::processEvents();
   CHECK(stroke_width->value() == 3.0 + (QApplication::startDragDistance() + 5) * stroke_width->singleStep());
   save_widget_artifact("shape-options-stroke-enabled", *options);
+}
+
+[[nodiscard]] double swatch_relative_luminance(const QColor& color) {
+  const auto channel = [](double value) {
+    return value <= 0.03928 ? value / 12.92 : std::pow((value + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * channel(color.redF()) + 0.7152 * channel(color.greenF()) +
+         0.0722 * channel(color.blueF());
+}
+
+[[nodiscard]] double swatch_contrast_ratio(const QColor& first, const QColor& second) {
+  const double a = swatch_relative_luminance(first);
+  const double b = swatch_relative_luminance(second);
+  return (std::max(a, b) + 0.05) / (std::min(a, b) + 0.05);
+}
+
+// Renders an options-bar swatch button over the bar color and checks that the
+// pixels which read against the bar form a closed box: a chip the same color as
+// the bar is found by its outline alone.
+void check_swatch_outline_reads_on_bar(QToolButton& button, const char* label) {
+  constexpr double kMinimumContrast = 3.0;
+  const QColor bar = patchy::ui::theme().toolbar_bg;
+  QImage shot(button.size(), QImage::Format_ARGB32_Premultiplied);
+  shot.fill(bar);
+  button.render(&shot, QPoint(), QRegion(), QWidget::DrawChildren);
+  const auto reads = [&](int x, int y) {
+    return swatch_contrast_ratio(shot.pixelColor(x, y), bar) >= kMinimumContrast;
+  };
+  QRect box;
+  for (int y = 0; y < shot.height(); ++y) {
+    for (int x = 0; x < shot.width(); ++x) {
+      if (reads(x, y)) {
+        box = box.united(QRect(x, y, 1, 1));
+      }
+    }
+  }
+  int top = 0;
+  int bottom = 0;
+  int left = 0;
+  int right = 0;
+  for (int x = box.left(); !box.isNull() && x <= box.right(); ++x) {
+    top += reads(x, box.top()) ? 1 : 0;
+    bottom += reads(x, box.bottom()) ? 1 : 0;
+  }
+  for (int y = box.top(); !box.isNull() && y <= box.bottom(); ++y) {
+    left += reads(box.left(), y) ? 1 : 0;
+    right += reads(box.right(), y) ? 1 : 0;
+  }
+  // The rounded corners are antialiased below the floor, so each side is asked
+  // for its straight run only.
+  const bool closed = box.width() >= 14 && box.height() >= 9 && top * 2 >= box.width() &&
+                      bottom * 2 >= box.width() && left * 5 >= box.height() * 2 &&
+                      right * 5 >= box.height() * 2;
+  if (!closed) {
+    double strongest = 1.0;
+    for (int y = 0; y < shot.height(); ++y) {
+      for (int x = 0; x < shot.width(); ++x) {
+        strongest = std::max(strongest, swatch_contrast_ratio(shot.pixelColor(x, y), bar));
+      }
+    }
+    std::fprintf(stderr,
+                 "  %s: outline box %dx%d, sides top %d bottom %d left %d right %d, strongest contrast %.2f\n",
+                 label, box.width(), box.height(), top, bottom, left, right, strongest);
+    shot.save(QStringLiteral("test-artifacts/shape-swatch-outline-failure.png"));
+  }
+  CHECK(closed);
+}
+
+// GitHub issue 89: a black stroke swatch had no edge on Dark's options bar, and
+// a white one barely had one on Light's.
+void ui_shape_swatches_outline_contrasts_with_options_bar() {
+  VectorSettingsGuard settings_guard;
+  ColorSchemeRestorer restore_scheme(patchy::ui::ColorSchemePreference::Dark);
+  patchy::ui::MainWindow window;
+  show_window(window);
+  window.resize(1800, 800);
+  require_action_by_text(window, QStringLiteral("Rect"))->trigger();
+  QApplication::processEvents();
+  auto* stroke_check = window.findChild<QCheckBox*>(QStringLiteral("vectorStrokeCheck"));
+  auto* fill_swatch = window.findChild<QToolButton*>(QStringLiteral("vectorFillSwatchButton"));
+  auto* stroke_swatch = window.findChild<QToolButton*>(QStringLiteral("vectorStrokeSwatchButton"));
+  CHECK(stroke_check != nullptr && fill_swatch != nullptr && stroke_swatch != nullptr);
+  if (stroke_check == nullptr || fill_swatch == nullptr || stroke_swatch == nullptr) {
+    return;
+  }
+  stroke_check->setChecked(true);
+  QApplication::processEvents();
+  CHECK(fill_swatch->isVisible() && stroke_swatch->isVisible() && stroke_swatch->isEnabled());
+
+  auto& fill = patchy::ui::MainWindowTestAccess::current_vector_fill(window);
+  auto& stroke = patchy::ui::MainWindowTestAccess::current_vector_stroke_paint(window);
+  const auto set_paints = [&](std::uint8_t value) {
+    fill = patchy::VectorFill{};
+    fill.kind = patchy::VectorFillKind::Solid;
+    fill.color = patchy::RgbColor{value, value, value};
+    stroke = fill;
+  };
+
+  set_paints(0);
+  patchy::ui::MainWindowTestAccess::update_vector_swatch_icons(window);
+  QApplication::processEvents();
+  const auto fill_size = fill_swatch->size();
+  const auto stroke_size = stroke_swatch->size();
+  check_swatch_outline_reads_on_bar(*fill_swatch, "dark, black fill");
+  check_swatch_outline_reads_on_bar(*stroke_swatch, "dark, black stroke");
+  save_widget_artifact("shape-swatch-black-on-dark", *stroke_swatch->parentWidget());
+
+  // No refresh call here: the scheme change itself has to redraw the outline in
+  // the new scheme's color.
+  set_paints(255);
+  ColorSchemeRestorer::apply(patchy::ui::ColorSchemePreference::Light);
+  check_swatch_outline_reads_on_bar(*fill_swatch, "light, white fill");
+  check_swatch_outline_reads_on_bar(*stroke_swatch, "light, white stroke");
+  save_widget_artifact("shape-swatch-white-on-light", *stroke_swatch->parentWidget());
+  CHECK(fill_swatch->size() == fill_size);
+  CHECK(stroke_swatch->size() == stroke_size);
 }
 
 void ui_new_fill_layer_clips_to_targeted_path() {
@@ -4735,6 +4855,8 @@ std::vector<patchy::test::TestCase> vector_shape_tool_tests() {
        ui_options_bar_edits_selected_shape_appearance},
       {"ui_shape_options_group_stroke_controls_and_end_with_appearance",
        ui_shape_options_group_stroke_controls_and_end_with_appearance},
+      {"ui_shape_swatches_outline_contrasts_with_options_bar",
+       ui_shape_swatches_outline_contrasts_with_options_bar},
       {"ui_path_edits_refresh_panel_thumbnails", ui_path_edits_refresh_panel_thumbnails},
       {"ui_paths_panel_clipping_path_toggle", ui_paths_panel_clipping_path_toggle},
       {"ui_shape_mode_drag_previews_fill_appearance",

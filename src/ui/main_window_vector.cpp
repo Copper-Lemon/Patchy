@@ -36,6 +36,7 @@
 #include "ui/shape_appearance_dialog.hpp"
 #include "ui/appearance_properties.hpp"
 #include "ui/shape_create_dialog.hpp"
+#include "ui/theme_palette.hpp"
 #include "ui/localization.hpp"
 #include "ui/measurement_units.hpp"
 
@@ -1402,46 +1403,55 @@ std::optional<PatternResource> MainWindow::resolve_vector_pattern_resource(
 }
 
 void MainWindow::update_vector_swatch_icons() {
-  const auto make_swatch = [this](const VectorFill& paint) {
-    QPixmap pixmap(20, 14);
+  const auto make_swatch = [this](const VectorFill& paint, const QToolButton& button) {
+    // Drawn at the size the button shows it (a 20x14 chip fitted to the icon
+    // size): a scaled pixmap would blur the one-pixel outline into the bar.
+    const QSize authored(20, 14);
+    const QSize fitted = authored.scaled(button.iconSize(), Qt::KeepAspectRatio);
+    const QSize size = fitted.width() < authored.width() && !fitted.isEmpty() ? fitted : authored;
+    QPixmap pixmap(size);
     pixmap.fill(Qt::transparent);
     QPainter painter(&pixmap);
     painter.setRenderHint(QPainter::Antialiasing);
-    const QRectF box(0.5, 0.5, 19.0, 13.0);
+    const QRectF box(0.5, 0.5, size.width() - 1.0, size.height() - 1.0);
+    // The outline is a theme role so a chip the color of the options bar keeps
+    // an edge (black on Dark, white on Light). apply_color_scheme() rebuilds
+    // these pixmaps, since the color is baked in here.
+    const QColor outline = theme().swatch_border;
     switch (paint.kind) {
       case VectorFillKind::None: {
         // Photoshop's "no paint" swatch: white chip with a red slash.
-        painter.setPen(QColor(0, 0, 0, 160));
+        painter.setPen(outline);
         painter.setBrush(Qt::white);
         painter.drawRoundedRect(box, 2.0, 2.0);
         painter.setPen(QPen(QColor(214, 44, 44), 2.0));
-        painter.drawLine(QPointF(3.0, 11.0), QPointF(17.0, 3.0));
+        painter.drawLine(QPointF(3.0, size.height() - 3.0), QPointF(size.width() - 3.0, 3.0));
         break;
       }
       case VectorFillKind::Gradient: {
-        const auto ramp = gradient_thumbnail(paint.gradient, 20, 14);
+        const auto ramp = gradient_thumbnail(paint.gradient, size.width(), size.height());
         painter.setBrush(QBrush(ramp));
-        painter.setPen(QColor(0, 0, 0, 160));
+        painter.setPen(outline);
         painter.drawRoundedRect(box, 2.0, 2.0);
         break;
       }
       case VectorFillKind::Pattern: {
         if (const auto resource = resolve_vector_pattern_resource(paint.pattern_id);
             resource.has_value()) {
-          const auto tile = pattern_thumbnail(resource->tile, 20);
+          const auto tile = pattern_thumbnail(resource->tile, size.width());
           painter.setBrush(QBrush(tile));
-          painter.setPen(QColor(0, 0, 0, 160));
+          painter.setPen(outline);
           painter.drawRoundedRect(box, 2.0, 2.0);
         } else {
           // Unresolvable pattern renders as no paint (the rasterizer's rule).
-          painter.setPen(QColor(0, 0, 0, 160));
+          painter.setPen(outline);
           painter.setBrush(QColor(190, 190, 190));
           painter.drawRoundedRect(box, 2.0, 2.0);
         }
         break;
       }
       case VectorFillKind::Solid: {
-        painter.setPen(QColor(0, 0, 0, 160));
+        painter.setPen(outline);
         painter.setBrush(QColor(paint.color.red, paint.color.green, paint.color.blue));
         painter.drawRoundedRect(box, 2.0, 2.0);
         break;
@@ -1450,10 +1460,10 @@ void MainWindow::update_vector_swatch_icons() {
     return QIcon(pixmap);
   };
   if (vector_fill_swatch_button_ != nullptr) {
-    vector_fill_swatch_button_->setIcon(make_swatch(current_vector_fill_));
+    vector_fill_swatch_button_->setIcon(make_swatch(current_vector_fill_, *vector_fill_swatch_button_));
   }
   if (vector_stroke_swatch_button_ != nullptr) {
-    vector_stroke_swatch_button_->setIcon(make_swatch(current_vector_stroke_paint_));
+    vector_stroke_swatch_button_->setIcon(make_swatch(current_vector_stroke_paint_, *vector_stroke_swatch_button_));
   }
 }
 

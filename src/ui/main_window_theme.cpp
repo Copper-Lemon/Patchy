@@ -1219,6 +1219,8 @@ void MainWindow::apply_color_scheme() {
   layer_thumbnail_cache_.clear();
   channel_thumbnail_cache_.clear();
   path_thumbnail_cache_.clear();
+  // The shape swatches bake theme().swatch_border into their outline.
+  update_vector_swatch_icons();
   refresh_layer_list();
   refresh_channel_panel();
   refresh_paths_panel();

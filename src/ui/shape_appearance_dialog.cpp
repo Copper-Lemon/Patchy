@@ -61,7 +61,7 @@ QIcon color_swatch_icon(RgbColor color) {
   QPixmap pixmap(28, 14);
   pixmap.fill(Qt::transparent);
   QPainter painter(&pixmap);
-  painter.setPen(QColor(0, 0, 0, 160));
+  painter.setPen(theme().swatch_border);
   painter.setBrush(QColor(color.red, color.green, color.blue));
   painter.drawRect(0, 0, 27, 13);
   return QIcon(pixmap);
