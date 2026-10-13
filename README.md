@@ -103,12 +103,12 @@ schemes, and importable themes are included.
 
 ## PSD compatibility, measured
 
-In the [October 9, 2026 Testy v2 run](https://www.rtsoft.com/testy/2026-10-09/),
+In the [October 12, 2026 Testy v2 run](https://www.rtsoft.com/testy/2026-10-12/),
 Patchy opened **all 309 files** of the psd-tools test collection, and Photoshop
 reopened **every Patchy save** with **all 43 text objects, 183 adjustment layers,
 172 Smart Objects, and 181 live effects** kept. Patchy's perceptual render match
-was **92.7%**, the highest of the eight programs tested against Photoshop's
-reference, using commit `53f81dfd`.
+was **97.2%**, the highest of the eight programs tested against Photoshop's
+reference, using Patchy 1.10 (commit `d00225bb`).
 
 Testy v2 scores each program on what it draws itself: the baked pixels Photoshop
 stores for text, shapes, fills, and Smart Objects are removed first. That is
