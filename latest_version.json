@@ -1,15 +1,18 @@
 {
   "platforms": {
     "windows": {
-      "version": "1.09",
-      "download_url": "https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyWindowsInstaller.exe"
+      "version": "1.10",
+      "download_url": "https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyWindowsInstaller.exe",
+      "installer_url": "https://github.com/SethRobinson/Patchy/releases/download/v1.10/PatchyWindowsInstaller.exe",
+      "installer_size": 86710376,
+      "installer_sha256": "358478c13578333af20af02ee72739864d8f8e0afcea788f6e845f3901d0663d"
     },
     "macos": {
-      "version": "1.09",
+      "version": "1.10",
       "download_url": "https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyMacOS.dmg"
     },
     "linux": {
-      "version": "1.09",
+      "version": "1.10",
       "download_url": "https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyLinux.flatpak"
     }
   }
