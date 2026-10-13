@@ -18,6 +18,7 @@
 #include <QApplication>
 #include <QByteArray>
 #include <QDir>
+#include <QFileInfo>
 #include <QLockFile>
 #include <QSettings>
 #include <QString>
@@ -212,6 +213,11 @@ int main(int argc, char* argv[]) {
   const auto test_settings_path = QDir::current().filePath(QStringLiteral("test-artifacts/settings"));
   CHECK(QDir().mkpath(test_settings_path));
   QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, test_settings_path);
+  // The Linux suite runs inside the Flatpak SDK sandbox (docs/linux-testing.md), which
+  // sets FLATPAK_ID to the SDK's id. This binary is not a Flatpak app: without this the
+  // app code takes its "I am the installed Flatpak" paths (connector command line, MCP
+  // socket location) against a layout that is not there.
+  qunsetenv("FLATPAK_ID");
   // Every test window owns a recovery instance folder; keep them out of the real
   // per-user AutoRecover store (a test window is never a crashed user session).
   if (qEnvironmentVariableIsEmpty("PATCHY_RECOVERY_DIR")) {
@@ -221,11 +227,14 @@ int main(int argc, char* argv[]) {
   // suite must never see a developer's real scripts folder (a @hotkey there would change
   // the default-shortcut assertions). Per process, like the font store below.
   if (qEnvironmentVariableIsEmpty("PATCHY_USER_SCRIPTS_DIR")) {
-    qputenv("PATCHY_USER_SCRIPTS_DIR",
-            QDir::current()
-                .filePath(QStringLiteral("test-artifacts/user-scripts/") +
-                          QString::number(QCoreApplication::applicationPid()))
-                .toUtf8());
+    const auto scripts = QDir::current().filePath(QStringLiteral("test-artifacts/user-scripts/") +
+                                                  QString::number(QCoreApplication::applicationPid()));
+    // A pid is not unique across runs: the Flatpak SDK sandbox the Linux suite runs in
+    // has its own pid namespace and hands every run the same low pids. Start empty.
+    if (QFileInfo::exists(scripts)) {
+      patchy::test::ui::remove_test_scratch_dir(scripts);
+    }
+    qputenv("PATCHY_USER_SCRIPTS_DIR", scripts.toUtf8());
   }
   // The dropped-font store is private to this PROCESS. It used to be QStandardPaths'
   // test-mode app-data folder, one directory shared by every checkout and worktree on the
@@ -234,13 +243,26 @@ int main(int argc, char* argv[]) {
   // suite failed that way during the October 2026 1.05 release, with another session's tests
   // running), and on Linux and macOS the same cleanup deletes fonts the first process is
   // still drawing with. Stores left by processes that have exited are removed here; a lock
-  // file marks the ones still in use.
+  // file marks the ones still in use. A lock that names this process's own pid is stale
+  // too (nothing here has locked a store yet): inside a pid namespace, such as the Flatpak
+  // SDK sandbox the Linux suite runs in, every run gets the same low pids, and QLockFile
+  // would call the previous run's lock live because "its" process, this one, is running.
   if (qEnvironmentVariableIsEmpty("PATCHY_USER_FONTS_DIR")) {
     const QDir stores(QDir::current().filePath(QStringLiteral("test-artifacts/user-fonts")));
     for (const auto& stale : stores.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot)) {
       QLockFile stale_lock(stale.absoluteFilePath() + QStringLiteral("/store.lock"));
       stale_lock.setStaleLockTime(0);
-      if (stale_lock.tryLock(0)) {
+      bool unlocked = stale_lock.tryLock(0);
+      if (!unlocked) {
+        qint64 owner_pid = 0;
+        QString owner_host;
+        QString owner_app;
+        if (stale_lock.getLockInfo(&owner_pid, &owner_host, &owner_app) &&
+            owner_pid == QCoreApplication::applicationPid()) {
+          unlocked = stale_lock.removeStaleLockFile() && stale_lock.tryLock(0);
+        }
+      }
+      if (unlocked) {
         stale_lock.unlock();
         patchy::test::ui::remove_test_scratch_dir(stale.absoluteFilePath());
       }
