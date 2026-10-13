@@ -93,8 +93,15 @@ std::vector<OrphanedRecoveryFolder> RecoveryInstanceFolder::scan_orphaned(const 
       // tryLock succeeds when no instance holds the lock: the file is missing, or
       // its pid is dead (QLockFile removes such a stale lock itself). A live owner
       // makes it fail, and that folder is skipped.
+      //
+      // A pid alone cannot prove a live owner. Inside a pid namespace every launch
+      // gets the same pid (the Flatpak app is always pid 2), so a crashed instance's
+      // lock names the pid of the instance now scanning, QLockFile calls it live, and
+      // the crashed documents were never offered. removeStaleLockFile settles it: a
+      // live owner keeps the file natively locked (flock on Unix, an open handle on
+      // Windows) and the removal fails; only an abandoned file goes.
       auto lock = make_lock(item.path());
-      if (!lock->tryLock(0)) {
+      if (!lock->tryLock(0) && !(lock->removeStaleLockFile() && lock->tryLock(0))) {
         continue;
       }
       lock->unlock();

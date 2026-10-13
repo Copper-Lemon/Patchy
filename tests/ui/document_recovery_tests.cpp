@@ -31,6 +31,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QImage>
+#include <QLockFile>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QTabWidget>
@@ -423,6 +424,53 @@ void ui_recovery_live_instance_is_not_reported_as_orphaned() {
   CHECK(!QDir(root + QStringLiteral("/4000000000-9")).exists());
 }
 
+// Inside a pid namespace every launch gets the same pid (the Flatpak app is always
+// pid 2), so the lock a crashed instance left behind names the pid of the instance now
+// looking at it. Qt's pid check calls that lock live; the folder is an orphan anyway,
+// because nothing holds the file's native lock. A window's own live folder, whose lock
+// names the same pid and IS held, stays unlisted.
+void ui_recovery_crashed_instance_with_this_pid_is_orphaned() {
+#if defined(Q_OS_UNIX)
+  RecoveryEnvRestorer env;
+  const auto root = fresh_recovery_root(QStringLiteral("pid-reuse"));
+  patchy::ui::MainWindow window;
+  show_window(window);
+  add_filled_document(window, "#00ff00");
+  CHECK(window.write_recovery_now(true).size() == 1);
+  CHECK(window.list_orphaned_recovery().empty());
+
+  const auto folder = QStringLiteral("%1-9").arg(QCoreApplication::applicationPid());
+  seed_orphan_folder(root, folder, {{2, patchy::recovery::RecoveryEntry{}}});
+  // The exact bytes Qt writes for this process (pid, process name, host, boot id): take a
+  // real lock, copy its file, release it, and leave the copy behind unlocked, which is
+  // what a crashed instance with this pid leaves.
+  const auto lock_path = root + QLatin1Char('/') + folder + QStringLiteral("/lock");
+  QByteArray lock_bytes;
+  {
+    CHECK(QFile::remove(lock_path));
+    QLockFile real(lock_path);
+    real.setStaleLockTime(0);
+    CHECK(real.tryLock(0));
+    QFile reader(lock_path);
+    CHECK(reader.open(QIODevice::ReadOnly));
+    lock_bytes = reader.readAll();
+  }
+  CHECK(lock_bytes.startsWith(QByteArray::number(QCoreApplication::applicationPid()) + '\n'));
+  QFile lock(lock_path);
+  CHECK(lock.open(QIODevice::WriteOnly | QIODevice::Truncate));
+  lock.write(lock_bytes);
+  lock.close();
+
+  const auto orphans = window.list_orphaned_recovery();
+  CHECK(orphans.size() == 1);
+  // The live window's own folder is still there and still its own.
+  CHECK(QDir(window.recovery_directory()).exists());
+  CHECK(window.discard_orphaned_recovery() == 1);
+  CHECK(!QDir(root + QLatin1Char('/') + folder).exists());
+  CHECK(QDir(window.recovery_directory()).exists());
+#endif
+}
+
 // The orphan sweep and remove_folder only ever touch <pid>-<msecs> instance folders:
 // a PATCHY_RECOVERY_DIR pointed at a folder holding other things (even one shaped like
 // an orphan, with recovery files and a dead lock) leaves those things alone.
@@ -714,6 +762,8 @@ std::vector<patchy::test::TestCase> document_recovery_tests() {
       {"ui_recovery_orphaned_folder_recovers_as_modified_document",
        ui_recovery_orphaned_folder_recovers_as_modified_document},
       {"ui_recovery_live_instance_is_not_reported_as_orphaned", ui_recovery_live_instance_is_not_reported_as_orphaned},
+      {"ui_recovery_crashed_instance_with_this_pid_is_orphaned",
+       ui_recovery_crashed_instance_with_this_pid_is_orphaned},
       {"ui_recovery_sweep_only_touches_instance_folders", ui_recovery_sweep_only_touches_instance_folders},
       {"ui_recovery_sweep_keeps_foreign_date_named_folders", ui_recovery_sweep_keeps_foreign_date_named_folders},
       {"ui_recovery_adoption_failure_keeps_orphan_copy", ui_recovery_adoption_failure_keeps_orphan_copy},

@@ -92,7 +92,11 @@ Inside, per session (Qt-free layout in `src/core/document_recovery_store.hpp`):
 - `lock`: a `QLockFile` with `setStaleLockTime(0)`. Liveness comes from Qt's own check that
   the pid in the file is a running process; the age heuristic is disabled because a live
   instance older than 30 seconds would otherwise look stale and a second instance would
-  recover its documents out from under it. The probe itself (`tryLock` then `unlock`)
+  recover its documents out from under it. A pid is not proof on its own: in a pid
+  namespace every launch gets the same pid (the Flatpak app is always pid 2), so a crashed
+  instance's lock names the scanning instance itself. When `tryLock` fails, the scan
+  therefore tries `removeStaleLockFile`, which only succeeds when no process holds the
+  file's native lock (`ui_recovery_crashed_instance_with_this_pid_is_orphaned`). The probe itself (`tryLock` then `unlock`)
   replaces a stale lock file and removes it again, so after an orphan scan a dead
   instance's folder has no `lock`; tests must not expect one to survive.
 
