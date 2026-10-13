@@ -63,6 +63,8 @@ inline QStringList test_font_candidates(TestFontRole role) {
           QStringLiteral("/System/Library/Fonts/Supplemental/Arial Bold Italic.ttf"),
       };
 #else
+      // Two layouts, never both on one machine: Debian/Ubuntu's, and the Flatpak
+      // runtime's (org.kde.Platform), which the Linux suite runs in (docs/linux-testing.md).
       return {
           QStringLiteral("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
           QStringLiteral("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"),
@@ -70,6 +72,12 @@ inline QStringList test_font_candidates(TestFontRole role) {
           QStringLiteral("/usr/share/fonts/truetype/liberation/LiberationSans-BoldItalic.ttf"),
           QStringLiteral("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
           QStringLiteral("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
+          QStringLiteral("/usr/share/fonts/liberation-fonts/LiberationSans-Regular.ttf"),
+          QStringLiteral("/usr/share/fonts/liberation-fonts/LiberationSans-Bold.ttf"),
+          QStringLiteral("/usr/share/fonts/liberation-fonts/LiberationSans-Italic.ttf"),
+          QStringLiteral("/usr/share/fonts/liberation-fonts/LiberationSans-BoldItalic.ttf"),
+          QStringLiteral("/usr/share/fonts/dejavu/DejaVuSans.ttf"),
+          QStringLiteral("/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf"),
       };
 #endif
     case TestFontRole::CenturyGothic:
@@ -154,7 +162,9 @@ inline QStringList test_font_candidates(TestFontRole role) {
           QStringLiteral("C:/Windows/Fonts/YuGothM.ttc"),
       };
 #elif defined(Q_OS_LINUX)
-      return {QStringLiteral("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc")};
+      // The Flatpak runtime ships no CJK face; inside it the host's fonts are under /run/host.
+      return {QStringLiteral("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
+              QStringLiteral("/run/host/fonts/opentype/noto/NotoSansCJK-Regular.ttc")};
 #else
       return {};  // macOS ships Hiragino under non-ASCII paths; tests skip with a reason
 #endif

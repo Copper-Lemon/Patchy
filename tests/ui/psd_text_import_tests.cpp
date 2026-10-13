@@ -2294,6 +2294,16 @@ void ui_tips_psd_speed_mode_line_clip_if_available() {
   CHECK(preview_layer != nullptr);
   const auto reedit_bands = alpha_row_bands(preview_layer->pixels());
   CHECK(reedit_bands.size() == committed_bands.size());
+  for (std::size_t band = 0; band < reedit_bands.size() && band < committed_bands.size(); ++band) {
+    std::printf("  band %zu: source %d-%d preview %d-%d committed %d-%d reedit %d-%d font=%s\n", band,
+                band < source_bands.size() ? source_bands[band].top : -1,
+                band < source_bands.size() ? source_bands[band].bottom : -1,
+                band < preview_bands.size() ? preview_bands[band].top : -1,
+                band < preview_bands.size() ? preview_bands[band].bottom : -1, committed_bands[band].top,
+                committed_bands[band].bottom, reedit_bands[band].top, reedit_bands[band].bottom,
+                qPrintable(editor->currentFont().family()));
+  }
+  std::fflush(stdout);
   CHECK(std::abs(alpha_row_band_span(reedit_bands) - alpha_row_band_span(committed_bands)) <= 4);
   CHECK(reedit_bands.back().bottom - reedit_bands.back().top >=
         committed_bands.back().bottom - committed_bands.back().top - 2);

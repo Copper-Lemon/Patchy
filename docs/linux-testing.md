@@ -54,24 +54,36 @@ What this does not cover:
 - flatpak-builder sets `SOURCE_DATE_EPOCH` to the manifest's modification time, so the
   in-app build date of such a build is that time, not the build time.
 
-## Known failures on Qt 6.11 (untriaged, October 13, 2026)
+## What differs inside the sandbox
 
-The first full run inside the SDK: core suite 1207 pass, 0 fail; UI suite 1748 pass, 11
-fail. All 11 pass on the host's Qt 6.8.3 build. Each is either a real difference Flatpak
-users see or a font/environment assumption in the test, and none has been investigated
-yet. Remove an entry when it is fixed or explained.
+Triage of the first full run (October 13, 2026: 11 UI failures, all passing on the host's
+Qt 6.8.3 build) found no Qt 6.11 behavior change among them. The causes were the
+sandbox, and one of them was a real bug in the shipped Flatpak:
 
-- `ui_brush_tip_picker_keeps_options_bar_height` (options bar height)
-- `ui_options_bar_transform_session_replaces_tool_controls` (options bar height)
-- `ui_animation_preview_fits_its_text_at_larger_fonts` (clipped text)
-- `ui_text_reedit_preserves_rich_text_spacing`
-- `ui_text_editor_ctrl_b_and_ctrl_i_toggle_formatting` (font picker face is not "Bold Italic")
-- `ui_tips_psd_speed_mode_line_clip_if_available`
-- `ui_text_layer_font_without_glyph_coverage_counts_as_missing`
-- `ui_image_size_dialog_scales_box_text_frame_and_size`
-- `ui_typing_uncovered_characters_switches_their_font`
-- `ui_script_text_setters_warn_about_fonts`
-- `ui_ai_setup_dialog_opens_from_help` (the open-skill button is disabled)
+- **Fonts live elsewhere.** The runtime keeps Liberation and DejaVu in
+  `/usr/share/fonts/liberation-fonts` and `/usr/share/fonts/dejavu`, not Debian's
+  `/usr/share/fonts/truetype/...`; it ships no CJK face, and the host's fonts appear
+  under `/run/host/fonts`. `tests/test_fonts.hpp` lists both layouts. With no registered
+  UiDefault font the suite silently runs on a different default face, which is what nine
+  of the eleven were (options bar height, clipped labels, "Arial" resolving as a missing
+  font).
+- **Every run has the same pids.** The sandbox is a pid namespace: the test binary gets
+  the same low pid each run, and the Flatpak app is always pid 2. Anything keyed on a
+  pid, or trusting a `QLockFile` pid to mean "another live process", is wrong there.
+  The suite's per-process stores (`tests/ui/main.cpp`) handle a leftover store that names
+  their own pid. In the app this was crash recovery: a crashed instance's lock named the
+  scanning instance's own pid, so the Flatpak never offered the crashed documents
+  ([document-recovery.md](document-recovery.md)).
+- **`FLATPAK_ID` is the SDK's.** The harness unsets it, since the test binary is not the
+  installed Flatpak; a test of Flatpak-specific behavior sets it itself.
+
+Open, not a Qt difference: `ui_tips_psd_speed_mode_line_clip_if_available` (runs only
+where the local `tips.psd` fixture exists). The fixture's font is missing, so the
+fallback face depends on the machine: Noto Sans on the linux build host, DejaVu Sans in
+the sandbox. The re-edit preview draws the last line 3 px shorter than the committed
+layer with DejaVu Sans (1 px with Noto Sans) against a tolerance of 2. That is a small
+real disagreement between the re-edit preview and the commit, not yet investigated; the
+test prints every band so the numbers are in the log.
 
 Source changes the first SDK compile of the tests needed: a missing `<algorithm>`
 include, two GCC 15 `-Warray-bounds` false positives in test helpers (fixed by reserving
