@@ -36,6 +36,7 @@
 #include <QKeySequence>
 #include <QLabel>
 #include <QMenu>
+#include <QProcess>
 #include <QProgressBar>
 #include <QPushButton>
 #include <QStatusBar>
@@ -817,6 +818,37 @@ void ui_legacy_plugin_run_dialog_states() {
   CHECK(quiet.stop_requested());
 }
 
+#ifdef Q_OS_WIN
+// A plug-in that runs its interface in a program of its own (G'MIC-Qt) must not
+// leave it behind when the run is stopped: the runner's job object ends the
+// helper together with whatever the helper started. cmd stands in for the
+// helper and its second ping for the plug-in's program; the first ping only
+// gives the test time to put cmd in the job before the long-lived child starts.
+void ui_legacy_plugin_process_tree_ends_child_processes() {
+  QProcess parent;
+  parent.start(QStringLiteral("cmd.exe"),
+               {QStringLiteral("/c"), QStringLiteral("ping -n 2 127.0.0.1 >nul & ping -n 60 127.0.0.1 >nul")});
+  CHECK(parent.waitForStarted(5000));
+  patchy::ui::LegacyPluginProcessTree tree;
+  CHECK(tree.assign(parent.processId()));
+
+  QElapsedTimer timer;
+  timer.start();
+  while (timer.elapsed() < 15000 && (timer.elapsed() < 2500 || tree.process_ids().size() < 2)) {
+    QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
+  }
+  CHECK(tree.process_ids().size() >= 2);
+
+  tree.terminate();
+  CHECK(parent.waitForFinished(5000));
+  timer.restart();
+  while (timer.elapsed() < 5000 && !tree.process_ids().empty()) {
+    QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
+  }
+  CHECK(tree.process_ids().empty());
+}
+#endif
+
 // The README the app writes into a fresh plug-ins folder is the one the Windows
 // package ships.
 void ui_legacy_plugins_readme_matches_packaged_file() {
@@ -846,6 +878,7 @@ std::vector<patchy::test::TestCase> legacy_plugin_tests() {
       {"ui_legacy_plugin_runs_on_only_layer_when_none_selected",
        ui_legacy_plugin_runs_on_only_layer_when_none_selected},
       {"ui_legacy_plugin_repeat_last_commands", ui_legacy_plugin_repeat_last_commands},
+      {"ui_legacy_plugin_process_tree_ends_child_processes", ui_legacy_plugin_process_tree_ends_child_processes},
 #else
       {"ui_legacy_plugin_ui_absent_off_windows", ui_legacy_plugin_ui_absent_off_windows},
 #endif

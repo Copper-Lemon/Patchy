@@ -297,6 +297,54 @@ struct MappingHandle {
 
 }  // namespace
 
+LegacyPluginProcessTree::LegacyPluginProcessTree() : job_(CreateJobObjectW(nullptr, nullptr)) {}
+
+LegacyPluginProcessTree::~LegacyPluginProcessTree() {
+  if (job_ != nullptr) {
+    CloseHandle(static_cast<HANDLE>(job_));
+  }
+}
+
+bool LegacyPluginProcessTree::assign(qint64 process_id) {
+  if (job_ == nullptr || process_id <= 0) {
+    return false;
+  }
+  HANDLE process = OpenProcess(PROCESS_SET_QUOTA | PROCESS_TERMINATE, FALSE, static_cast<DWORD>(process_id));
+  if (process == nullptr) {
+    return false;
+  }
+  const bool assigned = AssignProcessToJobObject(static_cast<HANDLE>(job_), process) != FALSE;
+  CloseHandle(process);
+  return assigned;
+}
+
+std::vector<qint64> LegacyPluginProcessTree::process_ids() const {
+  std::vector<qint64> ids;
+  if (job_ == nullptr) {
+    return ids;
+  }
+  // The list is a count followed by that many ids; 256 is far more than a
+  // plug-in starts, and a longer list only truncates this report.
+  constexpr DWORD kMaxProcesses = 256;
+  std::vector<std::uint8_t> buffer(sizeof(JOBOBJECT_BASIC_PROCESS_ID_LIST) + kMaxProcesses * sizeof(ULONG_PTR));
+  auto* list = reinterpret_cast<JOBOBJECT_BASIC_PROCESS_ID_LIST*>(buffer.data());
+  if (QueryInformationJobObject(static_cast<HANDLE>(job_), JobObjectBasicProcessIdList, list,
+                                static_cast<DWORD>(buffer.size()), nullptr) == FALSE &&
+      GetLastError() != ERROR_MORE_DATA) {
+    return ids;
+  }
+  for (DWORD index = 0; index < list->NumberOfProcessIdsInList; ++index) {
+    ids.push_back(static_cast<qint64>(list->ProcessIdList[index]));
+  }
+  return ids;
+}
+
+void LegacyPluginProcessTree::terminate() {
+  if (job_ != nullptr) {
+    TerminateJobObject(static_cast<HANDLE>(job_), 1);
+  }
+}
+
 QString legacy_plugin_helper_path(const std::string& architecture) {
   const auto name = architecture == "x86" ? QStringLiteral("patchy-8bf-host32.exe") : QStringLiteral("patchy-8bf-host64.exe");
   return QDir(QCoreApplication::applicationDirPath()).filePath(name);
@@ -368,6 +416,20 @@ LegacyPluginRunResult run_legacy_plugin_out_of_process(const LegacyPluginRunInpu
     result.message = QCoreApplication::translate("LegacyPluginRunner", "The plug-in host program could not be started: %1").arg(process.errorString());
     return result;
   }
+  // The helper loads the plug-in only after the Run request, so nothing it
+  // starts can escape the job. Every return below ends the tree except a run
+  // that applied: a cancelled, stopped or crashed plug-in must not leave its
+  // own programs behind (G'MIC-Qt kept running without a window).
+  struct ProcessTreeGuard {
+    LegacyPluginProcessTree tree;
+    bool keep{false};
+    ~ProcessTreeGuard() {
+      if (!keep) {
+        tree.terminate();
+      }
+    }
+  } process_tree;
+  process_tree.tree.assign(process.processId());
 
   DialogAcceptor acceptor;
   acceptor.accept = input.auto_accept_dialogs;
@@ -600,6 +662,7 @@ LegacyPluginRunResult run_legacy_plugin_out_of_process(const LegacyPluginRunInpu
   if (run_result.status == kRunOk) {
     std::memcpy(input.output->data(), mapping.view + pixel_bytes, pixel_bytes);
     result.status = LegacyPluginRunStatus::Ok;
+    process_tree.keep = true;
   } else if (run_result.status == kRunCancelled) {
     result.status = LegacyPluginRunStatus::Cancelled;
   } else {

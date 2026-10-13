@@ -97,6 +97,32 @@ struct LegacyPluginRunCallbacks {
 [[nodiscard]] LegacyPluginRunResult run_legacy_plugin_out_of_process(const LegacyPluginRunInput& input,
                                                                      const LegacyPluginRunCallbacks& callbacks);
 
+#ifdef Q_OS_WIN
+// The helper and every process it starts, as one Windows job object. A plug-in
+// may run its interface in a program of its own (G'MIC's 8bf plug-in starts
+// G'MIC-Qt), which outlives a helper that is killed or cancelled; the runner
+// ends the whole tree on every outcome except a successful run. Closing the job
+// ends nothing, so a program a plug-in opened for the user (a help viewer) stays
+// after a run that applied. See docs/plugins.md.
+class LegacyPluginProcessTree {
+public:
+  LegacyPluginProcessTree();
+  ~LegacyPluginProcessTree();
+  LegacyPluginProcessTree(const LegacyPluginProcessTree&) = delete;
+  LegacyPluginProcessTree& operator=(const LegacyPluginProcessTree&) = delete;
+
+  // Puts a running process in the job; processes it starts afterwards join it.
+  bool assign(qint64 process_id);
+  // The processes in the job right now.
+  [[nodiscard]] std::vector<qint64> process_ids() const;
+  // Ends every process in the job.
+  void terminate();
+
+private:
+  void* job_{nullptr};
+};
+#endif
+
 // The helper executable for a plug-in architecture ("x86" or "x64"), next to
 // the running application.
 [[nodiscard]] QString legacy_plugin_helper_path(const std::string& architecture);
