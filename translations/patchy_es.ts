@@ -11569,6 +11569,45 @@ RGB: %2, %3, %4</translation>
         <source>All hidden layers</source>
         <translation>Todas las capas ocultas</translation>
     </message>
+    <message>
+        <source>The layers the filter works on. A filter made for one image is applied to each chosen layer in turn; a filter made for several layers, such as the Blend filters, combines them. Locked, text, shape and Smart Object layers are read but never changed.</source>
+        <translation>Las capas sobre las que actúa el filtro. Un filtro pensado para una sola imagen se aplica por turnos a cada capa elegida; un filtro pensado para varias capas, como los filtros Blend, las combina. Las capas bloqueadas, de texto, de forma y de objeto inteligente se leen, pero nunca se modifican.</translation>
+    </message>
+    <message>
+        <source>About G&apos;MIC...</source>
+        <translation>Acerca de G&apos;MIC...</translation>
+    </message>
+    <message>
+        <source>About G&apos;MIC</source>
+        <translation>Acerca de G&apos;MIC</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC %1</source>
+        <translation>G&apos;MIC %1</translation>
+    </message>
+    <message numerus="yes">
+        <source>G&apos;MIC (GREYC&apos;s Magic for Image Computing) is a free, open-source framework for image processing. Patchy includes its interpreter and %n of the filters from its standard library, and runs them in this Patchy dialog.</source>
+        <translation>
+            <numerusform>G&apos;MIC (GREYC&apos;s Magic for Image Computing) es un entorno libre y de código abierto para el procesamiento de imágenes. Patchy incluye su intérprete y %n filtro de su biblioteca estándar, y los ejecuta en este cuadro de diálogo de Patchy.</numerusform>
+            <numerusform>G&apos;MIC (GREYC&apos;s Magic for Image Computing) es un entorno libre y de código abierto para el procesamiento de imágenes. Patchy incluye su intérprete y %n filtros de su biblioteca estándar, y los ejecuta en este cuadro de diálogo de Patchy.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>G&apos;MIC is made by David Tschumperlé and the Image Team of the GREYC laboratory in Caen, France, with filters written by many contributors. Most filters name their authors at the end of their settings.</source>
+        <translation>G&apos;MIC lo desarrollan David Tschumperlé y el Image Team del laboratorio GREYC en Caen (Francia), con filtros escritos por muchos colaboradores. La mayoría de los filtros nombran a sus autores al final de sus ajustes.</translation>
+    </message>
+    <message>
+        <source>How to say it: its author pronounces it like the English word &quot;gimmick&quot;, a nod to the magic in its name, and says any pronunciation is fine.</source>
+        <translation>Cómo se pronuncia: su autor lo pronuncia como la palabra inglesa «gimmick», un guiño a la magia de su nombre, y dice que cualquier pronunciación vale.</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC is distributed under the CeCILL-C license, and its license text is included with Patchy. Questions about how Patchy runs a filter belong with Patchy, not the G&apos;MIC team.</source>
+        <translation>G&apos;MIC se distribuye bajo la licencia CeCILL-C, y su texto se incluye con Patchy. Las preguntas sobre cómo ejecuta Patchy un filtro corresponden a Patchy, no al equipo de G&apos;MIC.</translation>
+    </message>
+    <message>
+        <source>Visit the G&apos;MIC website (gmic.eu)</source>
+        <translation>Visitar el sitio web de G&apos;MIC (gmic.eu)</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::GmicParameterPanel</name>
@@ -20175,10 +20214,6 @@ Aún puede descargarla en su navegador.</translation>
         <translation>Se aplicó %1 (capas nuevas: %2)</translation>
     </message>
     <message>
-        <source>New layers on apply: %1</source>
-        <translation>Capas nuevas al aplicar: %1</translation>
-    </message>
-    <message>
         <source>No layer matches the chosen input layers.</source>
         <translation>Ninguna capa coincide con las capas de entrada elegidas.</translation>
     </message>
@@ -20209,6 +20244,61 @@ Aún puede descargarla en su navegador.</translation>
     <message>
         <source>How often Patchy looks for a new version when it starts. The About window always checks.</source>
         <translation>Con qué frecuencia Patchy busca una nueva versión al iniciarse. La ventana Acerca de siempre lo comprueba.</translation>
+    </message>
+    <message>
+        <source>None of the chosen layers can be changed. Locked, text, shape and Smart Object layers stay as they are.</source>
+        <translation>Ninguna de las capas elegidas se puede modificar. Las capas bloqueadas, de texto, de forma y de objeto inteligente se quedan como están.</translation>
+    </message>
+    <message>
+        <source>Combines the chosen layers into the active layer. The other layers stay as they are.</source>
+        <translation>Combina las capas elegidas en la capa activa. Las demás capas se quedan como están.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Changes %n layer(s).</source>
+        <translation>
+            <numerusform>Modifica %n capa.</numerusform>
+            <numerusform>Modifica %n capas.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Changes the layer size from %1 x %2 to %3 x %4 pixels.</source>
+        <translation>Cambia el tamaño de la capa de %1 x %2 a %3 x %4 píxeles.</translation>
+    </message>
+    <message>
+        <source>Part of the layer will lie outside the canvas. It is kept, and the Move tool brings it into view.</source>
+        <translation>Parte de la capa quedará fuera del lienzo. Se conserva, y la herramienta Mover la vuelve a poner a la vista.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Adds %n new layer(s) when applied. The preview shows only the layers it changes, so the final image can look different.</source>
+        <translation>
+            <numerusform>Añade %n capa nueva al aplicarlo. La vista previa solo muestra las capas que modifica, así que la imagen final puede verse distinta.</numerusform>
+            <numerusform>Añade %n capas nuevas al aplicarlo. La vista previa solo muestra las capas que modifica, así que la imagen final puede verse distinta.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n of the chosen layers cannot be changed (locked, text, shape or Smart Object) and stay as they are.</source>
+        <translation>
+            <numerusform>%n de las capas elegidas no se puede modificar (bloqueada, de texto, de forma o de objeto inteligente) y se queda como está.</numerusform>
+            <numerusform>%n de las capas elegidas no se pueden modificar (bloqueadas, de texto, de forma o de objeto inteligente) y se quedan como están.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Applied %1 to %n layer(s) (new layers: %2)</source>
+        <translation>
+            <numerusform>Se aplicó %1 a %n capa (capas nuevas: %2)</numerusform>
+            <numerusform>Se aplicó %1 a %n capas (capas nuevas: %2)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Applied %1 to %n layer(s)</source>
+        <translation>
+            <numerusform>Se aplicó %1 a %n capa</numerusform>
+            <numerusform>Se aplicó %1 a %n capas</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Applied %1. The layer is now %2 x %3 pixels.</source>
+        <translation>Se aplicó %1. La capa mide ahora %2 x %3 píxeles.</translation>
     </message>
 </context>
 <context>

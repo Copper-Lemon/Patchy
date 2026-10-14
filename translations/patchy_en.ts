@@ -11559,6 +11559,45 @@ RGB: %2, %3, %4</source>
         <source>All hidden layers</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>The layers the filter works on. A filter made for one image is applied to each chosen layer in turn; a filter made for several layers, such as the Blend filters, combines them. Locked, text, shape and Smart Object layers are read but never changed.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>About G&apos;MIC...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>About G&apos;MIC</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>G&apos;MIC %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <source>G&apos;MIC (GREYC&apos;s Magic for Image Computing) is a free, open-source framework for image processing. Patchy includes its interpreter and %n of the filters from its standard library, and runs them in this Patchy dialog.</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>G&apos;MIC is made by David Tschumperlé and the Image Team of the GREYC laboratory in Caen, France, with filters written by many contributors. Most filters name their authors at the end of their settings.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>How to say it: its author pronounces it like the English word &quot;gimmick&quot;, a nod to the magic in its name, and says any pronunciation is fine.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>G&apos;MIC is distributed under the CeCILL-C license, and its license text is included with Patchy. Questions about how Patchy runs a filter belong with Patchy, not the G&apos;MIC team.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Visit the G&apos;MIC website (gmic.eu)</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::GmicParameterPanel</name>
@@ -20114,15 +20153,12 @@ You can still download it in your browser.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>New layers on apply: %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>No layer matches the chosen input layers.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>%1 needs about %2 MB of memory for these layers, more than this computer can spare. Use fewer input layers or a smaller image.</source>
+        <translation></translation>
     </message>
     <message>
         <source>Don&apos;t ask again about version %1</source>
@@ -20146,6 +20182,61 @@ You can still download it in your browser.</source>
     </message>
     <message>
         <source>How often Patchy looks for a new version when it starts. The About window always checks.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>None of the chosen layers can be changed. Locked, text, shape and Smart Object layers stay as they are.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Combines the chosen layers into the active layer. The other layers stay as they are.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <source>Changes %n layer(s).</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Changes the layer size from %1 x %2 to %3 x %4 pixels.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Part of the layer will lie outside the canvas. It is kept, and the Move tool brings it into view.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <source>Adds %n new layer(s) when applied. The preview shows only the layers it changes, so the final image can look different.</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n of the chosen layers cannot be changed (locked, text, shape or Smart Object) and stay as they are.</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Applied %1 to %n layer(s) (new layers: %2)</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Applied %1 to %n layer(s)</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Applied %1. The layer is now %2 x %3 pixels.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

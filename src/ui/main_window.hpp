@@ -279,10 +279,10 @@ public:
   [[nodiscard]] ScriptEngineHost& script_engine_host();
   // Runs one G'MIC library filter (an id from the offered catalog, one value per
   // value-carrying parameter; missing values use the defaults) on the active layer:
-  // limited to the selection, one undo step. `input_mode` names the layers it reads
+  // limited to the selection, one undo step. `input_mode` names the layers it works on
   // ('.' active, '*' all, '+' active and below, '-' active and above, 'v' visible,
-  // 'i' hidden); 0 uses the filter's own. False when it was refused, failed or was
-  // cancelled. docs/gmic.md.
+  // 'i' hidden); 0 uses the filter's own. Every chosen layer that may be changed is.
+  // False when it was refused, failed or was cancelled. docs/gmic.md.
   bool apply_gmic_filter(const std::string& filter_id, const std::vector<std::string>& values,
                          char input_mode = 0);
   // The same run for a script: any open document's layer, no prompts, no status text and
@@ -1053,8 +1053,8 @@ private:
   [[nodiscard]] GmicRenderResult render_gmic_with_progress(const QString& name, const GmicRunInput& input,
                                                            const std::function<bool()>& keep_running = {});
   // Reports a failed run, or writes a finished one into the document as one undo step: the
-  // active layer's new pixels plus any layers the filter added above it.
-  bool commit_gmic_render(LayerId layer_id, const QString& name, GmicRenderResult& render, Rect bounds);
+  // changed layers' new pixels plus any layers the filter added. `active` stays active.
+  bool commit_gmic_render(LayerId active, const QString& name, GmicRenderResult& render);
   void populate_new_adjustment_layer_menu(QMenu* menu, const QString& object_name_prefix = {});
   void new_levels_adjustment_layer();
   void levels_dialog();

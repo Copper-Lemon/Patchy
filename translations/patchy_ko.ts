@@ -11539,6 +11539,44 @@ RGB: %2, %3, %4</translation>
         <source>All hidden layers</source>
         <translation>숨겨진 모든 레이어</translation>
     </message>
+    <message>
+        <source>The layers the filter works on. A filter made for one image is applied to each chosen layer in turn; a filter made for several layers, such as the Blend filters, combines them. Locked, text, shape and Smart Object layers are read but never changed.</source>
+        <translation>필터가 작업할 레이어입니다. 이미지 하나용 필터는 선택한 각 레이어에 차례로 적용되고, Blend 필터처럼 여러 레이어용 필터는 레이어를 합칩니다. 잠긴 레이어와 텍스트, 모양, 스마트 개체 레이어는 읽기만 하고 변경하지 않습니다.</translation>
+    </message>
+    <message>
+        <source>About G&apos;MIC...</source>
+        <translation>G&apos;MIC 정보...</translation>
+    </message>
+    <message>
+        <source>About G&apos;MIC</source>
+        <translation>G&apos;MIC 정보</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC %1</source>
+        <translation>G&apos;MIC %1</translation>
+    </message>
+    <message numerus="yes">
+        <source>G&apos;MIC (GREYC&apos;s Magic for Image Computing) is a free, open-source framework for image processing. Patchy includes its interpreter and %n of the filters from its standard library, and runs them in this Patchy dialog.</source>
+        <translation>
+            <numerusform>G&apos;MIC(GREYC&apos;s Magic for Image Computing)은 무료 오픈 소스 이미지 처리 프레임워크입니다. Patchy는 G&apos;MIC 인터프리터와 표준 라이브러리의 필터 %n개를 포함하며, 이 Patchy 대화 상자에서 실행합니다.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>G&apos;MIC is made by David Tschumperlé and the Image Team of the GREYC laboratory in Caen, France, with filters written by many contributors. Most filters name their authors at the end of their settings.</source>
+        <translation>G&apos;MIC은 프랑스 캉에 있는 GREYC 연구소의 Image Team과 David Tschumperlé가 만들며, 필터는 많은 기여자가 작성했습니다. 대부분의 필터는 설정 맨 끝에 작성자를 밝힙니다.</translation>
+    </message>
+    <message>
+        <source>How to say it: its author pronounces it like the English word &quot;gimmick&quot;, a nod to the magic in its name, and says any pronunciation is fine.</source>
+        <translation>읽는 법: 작성자는 이름 속 마법을 살려 영어 단어 &quot;gimmick&quot;(기믹)처럼 발음하며, 어떻게 발음해도 괜찮다고 합니다.</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC is distributed under the CeCILL-C license, and its license text is included with Patchy. Questions about how Patchy runs a filter belong with Patchy, not the G&apos;MIC team.</source>
+        <translation>G&apos;MIC은 CeCILL-C 라이선스로 배포되며, 라이선스 전문은 Patchy에 포함되어 있습니다. Patchy가 필터를 실행하는 방식에 관한 질문은 G&apos;MIC 팀이 아니라 Patchy에 문의해 주세요.</translation>
+    </message>
+    <message>
+        <source>Visit the G&apos;MIC website (gmic.eu)</source>
+        <translation>G&apos;MIC 웹사이트 방문 (gmic.eu)</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::GmicParameterPanel</name>
@@ -20118,10 +20156,6 @@ You can still download it in your browser.</source>
         <translation>%1을(를) 적용했습니다 (새 레이어: %2)</translation>
     </message>
     <message>
-        <source>New layers on apply: %1</source>
-        <translation>적용 시 추가되는 레이어: %1</translation>
-    </message>
-    <message>
         <source>No layer matches the chosen input layers.</source>
         <translation>선택한 입력 레이어에 해당하는 레이어가 없습니다.</translation>
     </message>
@@ -20152,6 +20186,56 @@ You can still download it in your browser.</source>
     <message>
         <source>How often Patchy looks for a new version when it starts. The About window always checks.</source>
         <translation>Patchy가 시작할 때 새 버전을 확인하는 빈도입니다. 정보 창에서는 항상 확인합니다.</translation>
+    </message>
+    <message>
+        <source>None of the chosen layers can be changed. Locked, text, shape and Smart Object layers stay as they are.</source>
+        <translation>선택한 레이어 중 변경할 수 있는 레이어가 없습니다. 잠긴 레이어와 텍스트, 모양, 스마트 개체 레이어는 그대로 유지됩니다.</translation>
+    </message>
+    <message>
+        <source>Combines the chosen layers into the active layer. The other layers stay as they are.</source>
+        <translation>선택한 레이어를 활성 레이어로 합칩니다. 다른 레이어는 그대로 유지됩니다.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Changes %n layer(s).</source>
+        <translation>
+            <numerusform>레이어 %n개를 변경합니다.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Changes the layer size from %1 x %2 to %3 x %4 pixels.</source>
+        <translation>레이어 크기를 %1 x %2에서 %3 x %4 픽셀로 바꿉니다.</translation>
+    </message>
+    <message>
+        <source>Part of the layer will lie outside the canvas. It is kept, and the Move tool brings it into view.</source>
+        <translation>레이어 일부가 캔버스 밖에 놓입니다. 그 부분은 유지되며 이동 도구로 다시 보이게 할 수 있습니다.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Adds %n new layer(s) when applied. The preview shows only the layers it changes, so the final image can look different.</source>
+        <translation>
+            <numerusform>적용하면 새 레이어 %n개가 추가됩니다. 미리 보기에는 변경되는 레이어만 표시되므로 최종 이미지는 다르게 보일 수 있습니다.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n of the chosen layers cannot be changed (locked, text, shape or Smart Object) and stay as they are.</source>
+        <translation>
+            <numerusform>선택한 레이어 중 %n개는 변경할 수 없어(잠금, 텍스트, 모양 또는 스마트 개체) 그대로 유지됩니다.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Applied %1 to %n layer(s) (new layers: %2)</source>
+        <translation>
+            <numerusform>%1을(를) 레이어 %n개에 적용했습니다 (새 레이어: %2)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Applied %1 to %n layer(s)</source>
+        <translation>
+            <numerusform>%1을(를) 레이어 %n개에 적용했습니다</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Applied %1. The layer is now %2 x %3 pixels.</source>
+        <translation>%1을(를) 적용했습니다. 이제 레이어 크기는 %2 x %3 픽셀입니다.</translation>
     </message>
 </context>
 <context>

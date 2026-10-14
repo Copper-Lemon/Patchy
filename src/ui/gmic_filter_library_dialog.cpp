@@ -43,7 +43,7 @@ constexpr int kFilterIdRole = Qt::UserRole + 1;
 
 GmicFilterLibraryDialog::GmicFilterLibraryDialog(const gmic::Catalog& catalog, const QString& engine_version,
                                                  QWidget* parent)
-    : QDialog(parent), catalog_(catalog) {
+    : QDialog(parent), catalog_(catalog), engine_version_(engine_version) {
   setObjectName(QStringLiteral("gmicFilterLibraryDialog"));
   setWindowTitle(tr("G'MIC Filter Library"));
   resize(880, 580);
@@ -85,6 +85,14 @@ GmicFilterLibraryDialog::GmicFilterLibraryDialog(const gmic::Catalog& catalog, c
   set_themed_style(*message_, QStringLiteral("color: @text_secondary;"));
   message_->hide();
   details_layout->addWidget(message_);
+  notes_ = new QLabel(details);
+  notes_->setObjectName(QStringLiteral("gmicResultNotes"));
+  notes_->setWordWrap(true);
+  set_themed_style(*notes_, QStringLiteral("QLabel#gmicResultNotes { background: @info_banner_bg; border: 1px solid "
+                                           "@info_banner_border; border-radius: 3px; color: @info_banner_text; "
+                                           "padding: 6px 8px; }"));
+  notes_->hide();
+  details_layout->addWidget(notes_);
   auto* input_row = new QHBoxLayout;
   auto* input_label = new QLabel(tr("Input layers:"), details);
   input_ = new QComboBox(details);
@@ -95,6 +103,9 @@ GmicFilterLibraryDialog::GmicFilterLibraryDialog(const gmic::Catalog& catalog, c
   input_->addItem(tr("All layers"), QChar(QLatin1Char('*')));
   input_->addItem(tr("All visible layers"), QChar(QLatin1Char('v')));
   input_->addItem(tr("All hidden layers"), QChar(QLatin1Char('i')));
+  input_->setToolTip(tr("The layers the filter works on. A filter made for one image is applied to each chosen "
+                        "layer in turn; a filter made for several layers, such as the Blend filters, combines them. "
+                        "Locked, text, shape and Smart Object layers are read but never changed."));
   input_label->setBuddy(input_);
   input_row->addWidget(input_label);
   input_row->addWidget(input_);
@@ -127,6 +138,10 @@ GmicFilterLibraryDialog::GmicFilterLibraryDialog(const gmic::Catalog& catalog, c
   preview_->setObjectName(QStringLiteral("gmicPreviewCheck"));
   preview_->setChecked(true);
   footer->addWidget(preview_);
+  auto* about = new QPushButton(tr("About G'MIC..."), this);
+  about->setObjectName(QStringLiteral("gmicAboutButton"));
+  about->setAutoDefault(false);
+  footer->addWidget(about);
   auto* credit = new QLabel(tr("Filters from G'MIC %1 (gmic.eu)").arg(engine_version), this);
   credit->setObjectName(QStringLiteral("gmicCreditLabel"));
   set_themed_style(*credit, QStringLiteral("color: @text_secondary;"));
@@ -143,8 +158,10 @@ GmicFilterLibraryDialog::GmicFilterLibraryDialog(const gmic::Catalog& catalog, c
     panel_->reset_to_defaults();
     request_preview(true);
   });
+  connect(about, &QPushButton::clicked, this, &GmicFilterLibraryDialog::show_about_gmic);
   connect(preview_, &QCheckBox::toggled, this, [this](bool) { request_preview(true); });
   connect(input_, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) {
+    set_result_notes({});
     request_preview(true);
     report_points();  // the image the percentages refer to changed
   });
@@ -251,6 +268,62 @@ void GmicFilterLibraryDialog::set_preview_message(const QString& text) {
   message_->setVisible(!text.isEmpty());
 }
 
+void GmicFilterLibraryDialog::set_result_notes(const QStringList& notes) {
+  notes_->setText(notes.join(QLatin1Char('\n')));
+  notes_->setVisible(!notes.isEmpty());
+}
+
+QStringList GmicFilterLibraryDialog::result_notes() const {
+  return notes_->text().split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+}
+
+void GmicFilterLibraryDialog::show_about_gmic() {
+  QDialog about(this);
+  about.setObjectName(QStringLiteral("gmicAboutDialog"));
+  about.setWindowTitle(tr("About G'MIC"));
+  auto* layout = new QVBoxLayout(&about);
+  auto* heading = new QLabel(tr("G'MIC %1").arg(engine_version_), &about);
+  heading->setObjectName(QStringLiteral("gmicAboutHeading"));
+  heading->setFont(offset_font(heading->font(), 3, true));
+  layout->addWidget(heading);
+  const QStringList paragraphs{
+      tr("G'MIC (GREYC's Magic for Image Computing) is a free, open-source framework for image processing. "
+         "Patchy includes its interpreter and %n of the filters from its standard library, and runs them in "
+         "this Patchy dialog.",
+         nullptr, static_cast<int>(catalog_.filters.size())),
+      tr("G'MIC is made by David Tschumperlé and the Image Team of the GREYC laboratory in Caen, France, "
+         "with filters written by many contributors. Most filters name their authors at the end of their "
+         "settings."),
+      tr("How to say it: its author pronounces it like the English word \"gimmick\", a nod to the magic in its "
+         "name, and says any pronunciation is fine."),
+      tr("G'MIC is distributed under the CeCILL-C license, and its license text is included with Patchy. "
+         "Questions about how Patchy runs a filter belong with Patchy, not the G'MIC team."),
+  };
+  auto* body = new QLabel(&about);
+  body->setObjectName(QStringLiteral("gmicAboutText"));
+  body->setTextFormat(Qt::RichText);
+  body->setWordWrap(true);
+  QString html;
+  for (const auto& paragraph : paragraphs) {
+    html += QStringLiteral("<p>%1</p>").arg(paragraph.toHtmlEscaped());
+  }
+  body->setText(html);
+  body->setMinimumWidth(420);
+  layout->addWidget(body);
+  auto* link = new QLabel(&about);
+  link->setObjectName(QStringLiteral("gmicAboutLink"));
+  link->setTextFormat(Qt::RichText);
+  link->setTextInteractionFlags(Qt::TextBrowserInteraction);
+  link->setOpenExternalLinks(true);
+  set_themed_label_text(*link, QStringLiteral("<a style=\"color:@accent\" href=\"https://gmic.eu\">%1</a>")
+                                   .arg(tr("Visit the G'MIC website (gmic.eu)").toHtmlEscaped()));
+  layout->addWidget(link);
+  auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok, &about);
+  connect(buttons, &QDialogButtonBox::accepted, &about, &QDialog::accept);
+  layout->addWidget(buttons);
+  exec_dialog(about);
+}
+
 void GmicFilterLibraryDialog::rebuild_tree() {
   tree_->clear();
   // Folder path -> item, created on first use so the tree keeps the library's order.
@@ -352,6 +425,7 @@ void GmicFilterLibraryDialog::show_filter(const gmic::Filter* filter, const std:
     folder_->clear();
     panel_->set_filter(gmic::Filter{});
     set_preview_message(QString());
+    set_result_notes({});
     request_preview(true);
     return;
   }
@@ -363,6 +437,7 @@ void GmicFilterLibraryDialog::show_filter(const gmic::Filter* filter, const std:
   folder_->setText(path.join(QStringLiteral(" / ")));
   panel_->set_filter(*filter, values);
   set_preview_message(QString());
+  set_result_notes({});
   request_preview(true);
 }
 

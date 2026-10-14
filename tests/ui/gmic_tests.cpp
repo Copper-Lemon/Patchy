@@ -34,6 +34,7 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QSlider>
+#include <QStatusBar>
 #include <QPoint>
 #include <QPointF>
 #include <QString>
@@ -44,6 +45,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -287,6 +289,28 @@ void ui_gmic_library_dialog_renders_in_the_app_theme() {
     CHECK(image.save(QDir::current().filePath(QStringLiteral("test-artifacts/gmic/%1.png").arg(QLatin1String(id)))));
     dialog.close();
   }
+  // The result notes banner and the About G'MIC box.
+  patchy::ui::GmicFilterLibraryDialog dialog(whole_catalog(), QStringLiteral("4.0.5"), &window);
+  CHECK(dialog.select_filter("fx_crt_scanlines"));
+  dialog.set_result_notes({QStringLiteral("Changes the layer size from 200 x 150 to 800 x 600 pixels."),
+                           QStringLiteral("Part of the layer will lie outside the canvas. It is kept, and the Move "
+                                          "tool brings it into view.")});
+  dialog.show();
+  QApplication::processEvents();
+  CHECK(dialog.grab().toImage().save(QDir::current().filePath(QStringLiteral("test-artifacts/gmic/notes.png"))));
+  bool captured = false;
+  QTimer::singleShot(0, &dialog, [&dialog, &captured] {
+    auto* about = dialog.findChild<QDialog*>(QStringLiteral("gmicAboutDialog"));
+    CHECK(about != nullptr);
+    if (about != nullptr) {
+      QApplication::processEvents();
+      captured = about->grab().toImage().save(QDir::current().filePath(QStringLiteral("test-artifacts/gmic/about.png")));
+      about->accept();
+    }
+  });
+  dialog.show_about_gmic();
+  CHECK(captured);
+  dialog.close();
 }
 
 QColor layer_pixel(patchy::ui::MainWindow& window, int x, int y) {
@@ -547,8 +571,8 @@ void ui_gmic_filter_adds_output_layers_in_one_undo_step() {
   CHECK(layer_pixel(window, 50, 50) == red);
 }
 
-// A filter that reads several layers gets them lined up in document space and
-// still changes only the active one.
+// A filter made for several layers gets them lined up on the document and, when it
+// combines them, puts the result on the active layer; the layers it read stay as they are.
 void ui_gmic_filter_reads_the_layers_its_input_mode_names() {
   if (!gmic::engine_available()) {
     return;
@@ -745,12 +769,52 @@ void ui_gmic_library_dialog_releases_a_button_after_the_run_that_read_it() {
   });
 }
 
-// Whatever layers a filter reads, it changes only the active one: a filter that works on
-// each layer gives the active layer its own result and adds nothing; layers that were only
-// read are never changed or duplicated; and with the active layer outside the input, the
-// results arrive as new layers. Hidden means hidden in the document, enclosing groups
-// included. Scripts get the menu command's gates as errors.
-void ui_gmic_filter_changes_only_the_active_layer_whatever_it_reads() {
+const patchy::Layer* find_named_layer(const std::vector<patchy::Layer>& layers, const std::string& name) {
+  for (const auto& layer : layers) {
+    if (layer.name() == name) {
+      return &layer;
+    }
+    if (const auto* inner = find_named_layer(layer.children(), name); inner != nullptr) {
+      return inner;
+    }
+  }
+  return nullptr;
+}
+
+bool has_named_layer(patchy::ui::MainWindow& window, const char* name) {
+  return find_named_layer(std::as_const(MainWindowTestAccess::document(window)).layers(), name) != nullptr;
+}
+
+const patchy::Layer* named_layer(patchy::ui::MainWindow& window, const char* name) {
+  const auto& document = std::as_const(MainWindowTestAccess::document(window));
+  const auto* layer = find_named_layer(document.layers(), name);
+  CHECK(layer != nullptr);
+  return layer;
+}
+
+QColor named_layer_pixel(patchy::ui::MainWindow& window, const char* name, int x, int y) {
+  const auto* layer = named_layer(window, name);
+  if (layer == nullptr) {
+    return {};
+  }
+  const auto bounds = layer->bounds();
+  if (x < bounds.x || y < bounds.y || x >= bounds.x + bounds.width || y >= bounds.y + bounds.height) {
+    return {};
+  }
+  const auto* px = layer->pixels().pixel(x - bounds.x, y - bounds.y);
+  return QColor(px[0], px[1], px[2]);
+}
+
+bool same_rect(const patchy::Rect& a, const patchy::Rect& b) {
+  return a.x == b.x && a.y == b.y && a.width == b.width && a.height == b.height;
+}
+
+// A filter changes every chosen layer it may change. A filter made for one image runs on
+// each chosen layer alone, at its own size, exactly as if it were applied to each in turn;
+// locked layers (like text, shape and Smart Object layers) are only read; hidden means
+// hidden in the document, enclosing groups included; the whole run is one undo step.
+// Scripts get the menu command's gates as errors.
+void ui_gmic_filter_changes_every_chosen_layer() {
   if (!gmic::engine_available()) {
     return;
   }
@@ -769,72 +833,230 @@ void ui_gmic_filter_changes_only_the_active_layer_whatever_it_reads() {
       "function L(name) { var l = find(doc.layers, name); if (!l) throw new Error('no layer ' + name); return l; }"
       "function count(list) { var n = 0; for (var i = 0; i < list.length; ++i)"
       "  n += list[i].children && list[i].children.length ? count(list[i].children) : 1; return n; }");
-  const auto script = [&](const char* body) { return run_script(window, prelude + QString::fromLatin1(body)); };
+  const auto script = [&](const QString& body) { return run_script(window, prelude + body); };
+  const QColor red(0xc0, 0x30, 0x20);
   const QColor green(0x20, 0xc0, 0x40);
-  CHECK(script("var bottom = doc.activeLayer; bottom.name = 'Bottom'; bottom.fillRect(0, 0, 200, 200, '#c03020');"
-               "var mid = doc.addLayer('Mid'); doc.activeLayer = mid; mid.fillRect(0, 0, 200, 200, '#20c040');"
-               "var top = doc.addLayer('Top'); doc.activeLayer = top; top.fillRect(0, 0, 200, 200, '#2040c0');"
-               "doc.activeLayer = mid;"));
-  auto& document = MainWindowTestAccess::document(window);
-  CHECK(layer_pixel(window, 50, 50) == green);
+  const QColor blue(0x20, 0x40, 0xc0);
+  CHECK(script(QStringLiteral(
+      "var bottom = doc.activeLayer; bottom.name = 'Bottom'; bottom.fillRect(0, 0, 200, 200, '#c03020');"
+      "var mid = doc.addLayer('Mid'); doc.activeLayer = mid; mid.fillRect(0, 0, 200, 200, '#20c040');"
+      "var top = doc.addLayer('Top'); doc.activeLayer = top; top.fillRect(0, 0, 200, 200, '#2040c0');"
+      "doc.activeLayer = mid;")));
+  const auto pixel = [&window](const char* name) { return named_layer_pixel(window, name, 50, 50); };
   const auto undo = [&window] {
     require_action_by_text(window, QStringLiteral("Undo"))->trigger();
     QApplication::processEvents();
   };
+  const auto untouched = [&] { return pixel("Bottom") == red && pixel("Mid") == green && pixel("Top") == blue; };
+  CHECK(untouched());
 
-  // Sepia on the active layer alone is the reference.
-  CHECK(script("if (L('Mid').applyGmic('fx_sepia') !== 0) throw new Error('added');"));
-  const QColor sepia_green = layer_pixel(window, 50, 50);
-  CHECK(sepia_green != green);
-  undo();
-  CHECK(layer_pixel(window, 50, 50) == green);
+  // The references: Sepia on each layer alone.
+  std::map<std::string, QColor> sepia;
+  for (const char* name : {"Bottom", "Mid", "Top"}) {
+    CHECK(script(QStringLiteral("if (L('%1').applyGmic('fx_sepia') !== 0) throw new Error('added');")
+                     .arg(QLatin1String(name))));
+    sepia[name] = pixel(name);
+    undo();
+  }
+  CHECK(untouched());
+  CHECK(sepia["Bottom"] != red && sepia["Mid"] != green && sepia["Top"] != blue);
 
-  // Over all three layers it is the same result on the active layer, and nothing is added.
-  CHECK(script("var before = count(doc.layers);"
-               "if (L('Mid').applyGmic('fx_sepia', [], {inputLayers: 'all'}) !== 0) throw new Error('added');"
-               "if (count(doc.layers) !== before) throw new Error('layer count');"));
-  CHECK(layer_pixel(window, 50, 50) == sepia_green);
+  // Over all three layers each gets its own result, nothing is added, and one undo puts
+  // every layer back.
+  CHECK(script(QStringLiteral(
+      "var before = count(doc.layers);"
+      "if (L('Mid').applyGmic('fx_sepia', [], {inputLayers: 'all'}) !== 0) throw new Error('added');"
+      "if (count(doc.layers) !== before) throw new Error('layer count');")));
+  CHECK(pixel("Bottom") == sepia["Bottom"] && pixel("Mid") == sepia["Mid"] && pixel("Top") == sepia["Top"]);
   undo();
-  CHECK(layer_pixel(window, 50, 50) == green);
+  CHECK(untouched());
+
+  // The active layer and the one below.
+  CHECK(script(QStringLiteral("L('Mid').applyGmic('fx_sepia', [], {inputLayers: 'activeAndBelow'});")));
+  CHECK(pixel("Bottom") == sepia["Bottom"] && pixel("Mid") == sepia["Mid"] && pixel("Top") == blue);
+  undo();
+
+  // A layer with locked pixels is chosen but stays as it is.
+  CHECK(script(QStringLiteral("L('Bottom').locked = true;")));
+  CHECK(script(QStringLiteral("L('Mid').applyGmic('fx_sepia', [], {inputLayers: 'all'});")));
+  CHECK(pixel("Bottom") == red && pixel("Mid") == sepia["Mid"] && pixel("Top") == sepia["Top"]);
+  undo();
+  CHECK(script(QStringLiteral("L('Bottom').locked = false; doc.activeLayer = L('Mid');")));
+
+  // A layer that covers part of the canvas keeps its own size: a filter that fills
+  // transparency (Edges turns it opaque) sees the layer alone, not a canvas-sized copy.
+  CHECK(script(QStringLiteral("var s = doc.addLayer('Small'); s.fillRect(20, 20, 60, 45, '#c03030');"
+                              "doc.activeLayer = L('Mid');")));
+  const auto* partial = named_layer(window, "Small");
+  const auto partial_bounds = partial != nullptr ? partial->bounds() : patchy::Rect{};
+  CHECK(partial_bounds.width == 60 && partial_bounds.height == 45);
+  CHECK(script(QStringLiteral("L('Mid').applyGmic('fx_edges', [], {inputLayers: 'all'});")));
+  partial = named_layer(window, "Small");
+  CHECK(partial != nullptr && same_rect(partial->bounds(), partial_bounds));
+  CHECK(pixel("Top") != blue);
+  undo();
+  undo();  // the Small layer itself
+  CHECK(!has_named_layer(window, "Small"));
+  CHECK(untouched());
 
   // Hidden layers: Top by its own eye, Bottom through its group. The active layer is not
-  // among them, so it keeps its pixels and each result is a new layer.
-  CHECK(script("L('Top').visible = false; doc.groupLayers([L('Bottom')], 'Folder').visible = false;"
-               "doc.activeLayer = L('Mid');"));
-  CHECK(script("var before = count(doc.layers);"
-               "var added = L('Mid').applyGmic('fx_sepia', [], {inputLayers: 'hidden'});"
-               "if (added !== 2) throw new Error('expected two new layers, got ' + added);"
-               "if (count(doc.layers) !== before + 2) throw new Error('layer count');"));
-  CHECK(document.active_layer_id().has_value());
-  CHECK(layer_pixel(window, 50, 50) == green);
+  // among them, so it keeps its pixels; they change in place and nothing is added.
+  CHECK(script(QStringLiteral("L('Top').visible = false; doc.groupLayers([L('Bottom')], 'Folder').visible = false;"
+                              "doc.activeLayer = L('Mid');")));
+  CHECK(script(QStringLiteral(
+      "var before = count(doc.layers);"
+      "var added = L('Mid').applyGmic('fx_sepia', [], {inputLayers: 'hidden'});"
+      "if (added !== 0) throw new Error('expected no new layers, got ' + added);"
+      "if (count(doc.layers) !== before) throw new Error('layer count');")));
+  CHECK(pixel("Mid") == green && pixel("Bottom") == sepia["Bottom"] && pixel("Top") == sepia["Top"]);
   undo();
-  // Visible layers: only the active one now, so it is filtered in place.
-  CHECK(script("if (L('Mid').applyGmic('fx_sepia', [], {inputLayers: 'visible'}) !== 0) throw new Error('added');"));
-  CHECK(layer_pixel(window, 50, 50) == sepia_green);
+  // Visible layers: only the active one now.
+  CHECK(script(QStringLiteral("if (L('Mid').applyGmic('fx_sepia', [], {inputLayers: 'visible'}) !== 0)"
+                              "  throw new Error('added');")));
+  CHECK(pixel("Mid") == sepia["Mid"] && pixel("Top") == blue && pixel("Bottom") == red);
   undo();
   // No hidden layer at all: refused, nothing changes.
-  CHECK(script("L('Top').visible = true; L('Folder').visible = true; doc.activeLayer = L('Mid');"));
-  CHECK(!script("L('Mid').applyGmic('fx_sepia', [], {inputLayers: 'hidden'});"));
-  CHECK(layer_pixel(window, 50, 50) == green);
+  CHECK(script(QStringLiteral("L('Top').visible = true; L('Folder').visible = true; doc.activeLayer = L('Mid');")));
+  CHECK(!script(QStringLiteral("L('Mid').applyGmic('fx_sepia', [], {inputLayers: 'hidden'});")));
+  CHECK(untouched());
 
   // A run that would not fit in memory is refused before anything is allocated.
   {
     const EnvironmentVariableRestorer restore_limit("PATCHY_GMIC_MEMORY_LIMIT_MB");
     qputenv("PATCHY_GMIC_MEMORY_LIMIT_MB", "1");
-    CHECK(!script("L('Mid').applyGmic('fx_sepia', [], {inputLayers: 'all'});"));
-    CHECK(layer_pixel(window, 50, 50) == green);
+    CHECK(!script(QStringLiteral("L('Mid').applyGmic('fx_sepia', [], {inputLayers: 'all'});")));
+    CHECK(untouched());
   }
-  CHECK(script("if (L('Mid').applyGmic('fx_sepia', [], {inputLayers: 'all'}) !== 0) throw new Error('added');"));
-  CHECK(layer_pixel(window, 50, 50) == sepia_green);
-  undo();
 
   // The menu command's gates, as script errors: locked pixels and text layers.
-  CHECK(script("L('Mid').locked = true;"));
-  CHECK(!script("L('Mid').applyGmic('fx_sepia');"));
-  CHECK(script("L('Mid').locked = false; doc.activeLayer = L('Mid');"));
-  CHECK(layer_pixel(window, 50, 50) == green);
-  CHECK(script("doc.addTextLayer('Type').name = 'Type';"));
-  CHECK(!script("L('Type').applyGmic('fx_sepia');"));
+  CHECK(script(QStringLiteral("L('Mid').locked = true;")));
+  CHECK(!script(QStringLiteral("L('Mid').applyGmic('fx_sepia');")));
+  CHECK(script(QStringLiteral("L('Mid').locked = false; doc.activeLayer = L('Mid');")));
+  CHECK(pixel("Mid") == green);
+  CHECK(script(QStringLiteral("doc.addTextLayer('Type').name = 'Type';")));
+  CHECK(!script(QStringLiteral("L('Type').applyGmic('fx_sepia');")));
+}
+
+// Runs `drive` on the About G'MIC box once the dialog's button opens it.
+template <typename Drive>
+void run_about_box(patchy::ui::GmicFilterLibraryDialog& dialog, Drive drive) {
+  bool driven = false;
+  QTimer::singleShot(0, &dialog, [&dialog, &driven, drive] {
+    auto* about = dialog.findChild<QDialog*>(QStringLiteral("gmicAboutDialog"));
+    CHECK(about != nullptr);
+    if (about != nullptr) {
+      driven = true;
+      drive(*about);
+      about->accept();
+    }
+  });
+  auto* button = dialog.findChild<QPushButton*>(QStringLiteral("gmicAboutButton"));
+  CHECK(button != nullptr);
+  if (button != nullptr) {
+    button->click();
+  }
+  CHECK(driven);
+}
+
+// The dialog previews on every chosen layer and spells out what applying will do beyond
+// what the canvas shows: several layers changed, a layer's new size (here partly outside
+// the canvas), layers added. Cancel puts every layer back. About G'MIC credits the project.
+void ui_gmic_library_dialog_previews_every_chosen_layer_and_explains_the_result() {
+  if (!gmic::engine_available()) {
+    return;
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+  const QColor red(0xc0, 0x30, 0x20);
+  const QColor blue(0x20, 0x40, 0xc0);
+  const QColor green(0x20, 0xc0, 0x40);
+  CHECK(run_script(window, QStringLiteral("var doc = app.activeDocument;"
+                                          "doc.activeLayer.name = 'Bottom';"
+                                          "doc.activeLayer.fillRect(0, 0, 200, 200, '#c03020');"
+                                          "var top = doc.addLayer('Top'); top.fillRect(0, 0, 200, 200, '#2040c0');"
+                                          "var small = doc.addLayer('Small'); small.fillRect(40, 40, 40, 30, '#20c040');"
+                                          "doc.activeLayer = small;")));
+  const auto pixel = [&window](const char* name, int x, int y) { return named_layer_pixel(window, name, x, y); };
+  const auto small_bounds = [&window] {
+    const auto* layer = named_layer(window, "Small");
+    return layer != nullptr ? layer->bounds() : patchy::Rect{};
+  };
+  const auto original_small = small_bounds();
+  CHECK(original_small.x == 40 && original_small.y == 40 && original_small.width == 40 &&
+        original_small.height == 30);
+  const auto untouched = [&] {
+    return pixel("Bottom", 20, 20) == red && pixel("Top", 20, 20) == blue && pixel("Small", 50, 50) == green &&
+           same_rect(small_bounds(), original_small);
+  };
+  CHECK(untouched());
+  const auto has_note = [](const patchy::ui::GmicFilterLibraryDialog& dialog, const QString& start) {
+    for (const auto& note : dialog.result_notes()) {
+      if (note.startsWith(start)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  run_library_dialog(window, [&](patchy::ui::GmicFilterLibraryDialog& dialog) {
+    CHECK(dialog.result_notes().isEmpty());
+    // Every layer previews its own Sepia.
+    CHECK(dialog.select_filter("fx_sepia", {}, '*'));
+    CHECK(wait_until([&] {
+      return pixel("Bottom", 20, 20) != red && pixel("Top", 20, 20) != blue && pixel("Small", 50, 50) != green;
+    }));
+    // The document's own Background layer is one of them.
+    const auto layer_count = std::as_const(MainWindowTestAccess::document(window)).layers().size();
+    CHECK(layer_count == 4U);
+    CHECK(wait_until([&] {
+      return has_note(dialog, QStringLiteral("Changes %1 layer(s).").arg(static_cast<qulonglong>(layer_count)));
+    }));
+    // A new filter clears the notes until its own result arrives.
+    CHECK(dialog.select_filter("fx_crt_scanlines"));
+    CHECK(!has_note(dialog, QStringLiteral("Changes ")));
+    // CRT Scanlines enlarges its image fourfold, centred on the layer.
+    CHECK(wait_until([&] { return small_bounds().width == 160; }));
+    CHECK(pixel("Bottom", 20, 20) == red && pixel("Top", 20, 20) == blue);
+    CHECK(wait_until(
+        [&] { return has_note(dialog, QStringLiteral("Changes the layer size from 40 x 30 to 160 x 120 pixels.")); }));
+    CHECK(has_note(dialog, QStringLiteral("Part of the layer will lie outside the canvas.")));
+    // Channels to Layers adds two layers, which the preview does not show.
+    CHECK(dialog.select_filter("fx_channels2layers"));
+    CHECK(wait_until([&] { return has_note(dialog, QStringLiteral("Adds 2 new layer(s) when applied.")); }));
+    CHECK(same_rect(small_bounds(), original_small));
+
+    run_about_box(dialog, [](QDialog& about) {
+      auto* heading = about.findChild<QLabel*>(QStringLiteral("gmicAboutHeading"));
+      auto* text = about.findChild<QLabel*>(QStringLiteral("gmicAboutText"));
+      auto* link = about.findChild<QLabel*>(QStringLiteral("gmicAboutLink"));
+      CHECK(heading != nullptr && text != nullptr && link != nullptr);
+      if (heading == nullptr || text == nullptr || link == nullptr) {
+        return;
+      }
+      CHECK(heading->text().contains(QString::fromStdString(gmic::engine_version())));
+      CHECK(text->text().contains(QStringLiteral("GREYC")));
+      CHECK(text->text().contains(QStringLiteral("gimmick")));
+      CHECK(text->text().contains(QStringLiteral("CeCILL-C")));
+      CHECK(link->text().contains(QStringLiteral("https://gmic.eu")));
+      CHECK(link->openExternalLinks());
+    });
+    dialog.reject();
+  });
+  CHECK(untouched());
+
+  // OK commits the size change and says what became of the layer.
+  run_library_dialog(window, [&](patchy::ui::GmicFilterLibraryDialog& dialog) {
+    CHECK(dialog.select_filter("fx_crt_scanlines", {}, '.'));
+    CHECK(wait_until([&] { return small_bounds().width == 160; }));
+    dialog.accept();
+  });
+  CHECK(small_bounds().width == 160 && small_bounds().height == 120);
+  CHECK(small_bounds().x == -20 && small_bounds().y == -5);
+  CHECK(window.statusBar()->currentMessage() ==
+        QStringLiteral("Applied CRT Scanlines. The layer is now 160 x 120 pixels."));
+  require_action_by_text(window, QStringLiteral("Undo"))->trigger();
+  QApplication::processEvents();
+  CHECK(untouched());
 }
 
 // patchy.gmic and layer.applyGmic: the list describes filters and parameters, a run
@@ -967,11 +1189,12 @@ void ui_gmic_library_dialog_puts_point_handles_on_the_canvas() {
                    QPointF(bounds.x + 0.25 * bounds.width, bounds.y + 0.75 * bounds.height), 0.01));
     CHECK(close_to(first_point(dialog), QPointF(25.0, 75.0), 0.01));
 
-    // Reading several layers puts the filter in document space, and the markers with it.
+    // A filter made for one image runs on each chosen layer at its own size, so with
+    // several layers the markers stay in the active layer's frame.
     CHECK(dialog.select_filter("fx_project_stereographic", {}, '*'));
     CHECK(canvas->preview_point_handle_count() == 2);
     CHECK(close_to(canvas->preview_point_handle(0),
-                   QPointF(document.width() * 0.25, document.height() * 0.75), 0.01));
+                   QPointF(bounds.x + 0.25 * bounds.width, bounds.y + 0.75 * bounds.height), 0.01));
 
     // Blur [Radial] and Blur [Angular] show their centre; the two blur filters held back
     // for review are not offered at all (docs/legal-constraints.md).
@@ -1007,8 +1230,9 @@ std::vector<patchy::test::TestCase> gmic_ui_tests() {
       {"ui_gmic_library_dialog_releases_a_button_after_the_run_that_read_it",
        ui_gmic_library_dialog_releases_a_button_after_the_run_that_read_it},
       {"ui_gmic_library_dialog_drafts_then_refines", ui_gmic_library_dialog_drafts_then_refines},
-      {"ui_gmic_filter_changes_only_the_active_layer_whatever_it_reads",
-       ui_gmic_filter_changes_only_the_active_layer_whatever_it_reads},
+      {"ui_gmic_filter_changes_every_chosen_layer", ui_gmic_filter_changes_every_chosen_layer},
+      {"ui_gmic_library_dialog_previews_every_chosen_layer_and_explains_the_result",
+       ui_gmic_library_dialog_previews_every_chosen_layer_and_explains_the_result},
       {"ui_gmic_library_dialog_puts_point_handles_on_the_canvas",
        ui_gmic_library_dialog_puts_point_handles_on_the_canvas},
   };

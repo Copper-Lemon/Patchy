@@ -4,13 +4,9 @@ Patchy vendors the G'MIC interpreter and its standard filter library so that G'M
 filters can run inside Patchy with Patchy's own interface (GitHub issue 87). The user-installed
 `.8bf` route in [plugins.md](plugins.md) is separate and unaffected.
 
-Status: the engine, the catalog, the allowlist and the G'MIC Filter Library dialog exist and are
-tested. `PATCHY_ENABLE_GMIC` is ON by default for desktop builds and OFF for the web build. A
-build without it still compiles the dialog code and its translations but has no engine, so the
-Filter menu command is absent. The dialog previews live
-on the active layer, reads the layers a filter asks for, and adds the extra layers a filter
-returns, puts point parameters on the canvas as draggable handles, and scripts can list and
-apply filters. The remaining gaps are under "Known gaps".
+Status: shipped in desktop builds (`PATCHY_ENABLE_GMIC` ON; OFF for the web build, which still
+compiles the dialog code and its translations but has no engine or Filter menu command).
+Remaining gaps are under "Known gaps".
 
 ## What is vendored
 
@@ -85,12 +81,10 @@ lists with the committed ones.
   thread that ends, and the next thread to enter a critical section crashes. The engine
   runs each filter on a thread of its own, so the second run crashed (`fill` in Dices). `make-dmg.sh` refuses a build
   whose cache lacks `PATCHY_GMIC_OPENMP_ENABLED=TRUE`. G'MIC compiles its in-loop abort
-  checks out on Apple platforms (`gmic.h`), so a stale run there stops at the next command. Measured on Windows over sixteen
-  filters at their defaults on a 3000x1975 photograph: 260 s single-threaded, 118 s with
-  OpenMP (Cartoon 21 s to 8.5 s, Local Histogram Equalization 31 s to 3.5 s, Poster Hope
-  62 s to 14 s; Rodilius and Frame [Painting] unchanged). The same set on the Mac host
-  (24 cores): 316 s with `OMP_NUM_THREADS=1`, 54 s with OpenMP (Cartoon 15.5 s to 3.9 s,
-  Unsharp Mask 38 s to 2.3 s). The thread count stays level across runs: each run's
+  checks out on Apple platforms (`gmic.h`), so a stale run there stops at the next command.
+  Sixteen filters at their defaults on a 3000x1975 photograph took 260 s single-threaded and
+  118 s with OpenMP on Windows, 316 s and 54 s on the 24-core Mac (Rodilius and Frame
+  [Painting] do not speed up). The thread count stays level across runs: each run's
   interpreter thread ends and its team with it.
   `patchy_stub/zlib.h` maps zlib onto the vendored miniz (G'MIC embeds palettes, shapes and
   fonts as compressed data), so the target links `patchy_psd`, which compiles miniz. It also
@@ -155,9 +149,11 @@ a document action, created only when `gmic::engine_available()`).
   Patchy's own labels around them are translated.
 - `src/ui/gmic_filter_library_dialog.{hpp,cpp}`: search field (every word must match the name
   or a folder; Enter picks the first match, and `keyPressEvent` keeps that Enter from the
-  default OK button), folder tree in library order, the panel in a scroll area, Reset, Preview, OK and
-  Cancel, plus an Input layers combo that starts from the filter's declared `input_mode` and
-  is part of the `GmicFilterChoice`. It never runs the engine: it reports a
+  default OK button), folder tree in library order, the panel in a scroll area, Reset, Preview,
+  About G'MIC, OK and Cancel, plus an Input layers combo (tooltip explains the layer rules)
+  that starts from the filter's declared `input_mode` and is part of the `GmicFilterChoice`.
+  About G'MIC (`gmicAboutDialog`) credits the GREYC team, the pronunciation (the author says
+  "gimmick" and accepts any, on discuss.pixls.us), the license and gmic.eu. It never runs the engine: it reports a
   `GmicPreviewRequest` (the chosen filter, values and input layers, or none, and whether
   Preview is checked) through `set_preview_callback` whenever
   the filter, a value or the Preview box changes. Slider drags are coalesced
@@ -171,46 +167,50 @@ a document action, created only when `gmic::engine_available()`).
     `GmicRunInput`: layers through `load_rgba_row` in the Encoded domain (every bit depth,
     0..255 floats), the engine, outputs back in layer formats (1, 2, 3 or 4 channels; no
     alpha means opaque).
-  - **Layers (a design decision, not G'MIC-Qt's in-place rule): a filter reads what its input
-    mode names and only ever changes the active layer.** Layers that were only read are never
-    modified, removed or duplicated, whatever the filter returned for them. Which output is
-    the active layer's (`render_gmic_filter`, with K layers read and M images returned):
-    - M >= K, a filter that works on each layer (Sepia over "All layers"): the image in the
-      active layer's place replaces it, the images in the other read layers' places are
-      dropped, and images beyond K become new layers above the active one, in order.
-    - M < K, a filter that merges its input (Blend [Average All]): the first image replaces
-      the active layer and the rest become new layers.
-    - The active layer is not among the input ("All hidden layers" on a visible layer): it
-      keeps its pixels and every image becomes a new layer. The selection plays no part.
-    - No layer matches the input mode: nothing runs ("No layer matches the chosen input
-      layers").
-    "Visible" and "hidden" mean shown in the document: the layer's eye and every enclosing
-    group's.
-  - **Memory.** A run holds float copies (16 bytes a pixel for RGBA): Patchy's planar
-    image of every layer read, the interpreter's copy, and the result. `gmic_run_memory_mb`
-    estimates three times the input and refuses a run above 60 percent of installed memory
-    before allocating anything (`PATCHY_GMIC_MEMORY_LIMIT_MB` overrides the budget for
-    tests). `render_gmic_filter` never throws: it runs on workers, where an escaped
-    exception would end the process. The waits for a worker sleep on a future; a bare
-    `processEvents` loop spins a core.
-    - Input mode `.` (active layer): the filter gets that layer alone at its own size, as
-      before. Any other mode (`*` all, `+` active and the one below, `-` active and the one
-      above, `v` visible, `i` hidden) is *document space*: each chosen layer (top of the
-      stack first, groups opened, adjustment layers skipped, text/shape/Smart Object layers
-      read as their pixels) is placed on a transparent document-sized RGBA image so the
-      layers line up, and results are cropped back to their non-transparent content
-      (`trim_to_content`) so a layer does not grow to the whole document.
+  - **Layers (Seth, October 2026): a filter changes every chosen layer it may change,
+    like G'MIC-Qt's "In place" output.** The input mode (`.` active, `*` all, `+` active and
+    the one below, `-` active and the one above, `v` visible, `i` hidden) picks layers from
+    `gmic_layer_snapshots`: top of the stack first, groups opened, adjustment layers skipped,
+    "visible" meaning the layer's eye and every enclosing group's. A layer is writable
+    (`gmic_layer_writable`) with editable RGB pixels and no pixel lock; text, shape and Smart
+    Object layers are read as their pixels and never changed. No layer chosen: "No layer
+    matches the chosen input layers"; none writable: refused too. How a run reads them
+    (`gmic_reads_layers_together`):
+    - **A filter made for one image** (declared input `.`; Sepia, CRT Scanlines) runs once
+      per writable chosen layer, alone at its own size (`render_gmic_each_layer`). Its first
+      image replaces that layer, the others become new layers above it. Never pad these onto
+      a document-sized image: about 140 fill transparency (Edges makes it opaque), so a small
+      layer came back canvas-sized.
+    - **A filter made for several layers** (declared `*`, `+` and so on: Blend, Morph, Align
+      Layers) reading more than one gets them lined up (`render_gmic_lined_up`): each on a
+      transparent document-sized image, results cropped to content (`trim_to_content`).
+      G'MIC's merge filters resize inputs to the largest and ignore `pos()`, so they need
+      equal frames. K read, M returned: M >= K, each writable layer takes the image in its
+      place; M < K, the first image replaces the active layer (`merged`); other images become
+      new layers above the active one, all of them when it is not among the input.
     - Output names carry layer settings (`gmic::parse_output_layer_name`):
       `mode(...)`, `opacity(...)`, `pos(x,y)`, `name(...)`. New layers take all four
       (`blend_mode_from_gmic` maps G'MIC's blend names; unknown ones, such as grainmerge,
-      become Normal). The active layer takes only the position. An output with no `pos` that
-      differs in size from what it replaces is centred on it.
-    - The selection applies to the active layer's result when it keeps its frame: pixels
-      outside are restored and the edge blended by coverage. A result that changes frame is
-      refused while a selection exists. New layers ignore the selection.
-    - The preview shows the active layer's result only; the dialog notes how many layers OK
-      will add. `commit_gmic_render` inserts them with `insert_layer_after_anchor` under the
-      same single undo snapshot and keeps the active layer active.
+      become Normal); a replaced layer takes only the position. An output with no `pos` that
+      differs in size from what it replaces is centred on it (a frame grows evenly; CRT
+      Scanlines multiplies the size by its Upscale Factor, 4 by default, past the canvas).
+    - The selection applies to each replaced layer in its own frame (outside restored, edge
+      blended by coverage); a result that changes frame is refused while a selection
+      exists. New layers ignore it.
+    - `commit_gmic_render` writes every changed layer and new one (`insert_layer_after_anchor`,
+      stacked in order) under one undo snapshot; the status bar gives the count or new size.
+  - **Memory.** A run holds float copies (16 bytes a pixel for RGBA): Patchy's planar
+    image, the interpreter's copy, and the result. `gmic_run_memory_mb` estimates three
+    times the largest layer (or every lined-up one) and refuses a run above 60 percent of
+    installed memory before allocating (`PATCHY_GMIC_MEMORY_LIMIT_MB` for tests).
+    `render_gmic_filter` never throws: it runs on workers, where an escaped exception would
+    end the process. The waits for a worker sleep on a future; a bare `processEvents` loop
+    spins a core.
+  - **Result notes.** The canvas previews changed layers, not added ones, so each full
+    preview's `gmic_result_notes` fills the dialog's info banner (`gmicResultNotes`): layers
+    changed or combined, a size change (and any part outside the canvas), layers added,
+    chosen layers that cannot change. Whether a filter adds layers depends on its settings,
+    so it is reported from a run, never guessed.
   - `gmic_target_layer` gates like Liquify (Quick Mask, editable RGB pixel layer, no Smart
     Object, locks, the rasterize prompt for text and shapes). The dialog command gates before
     it opens, since the preview needs the layer.
@@ -236,16 +236,18 @@ a document action, created only when `gmic::engine_available()`).
     preview... 42%"; the Apply progress box shows the same value as its bar.
     The preview runs the filter's apply command, not its G'MIC-Qt preview command, and OK
     only ever commits a full-resolution result.
-    `lock_preview_dialog_edits` and a scope guard restore the layer on every exit, and the
-    original always goes back before the commit so the undo snapshot is clean.
+    The snapshots taken when the dialog opens are the originals every run reads (previews
+    change the real layers); `Shown::layers` tracks which layers show a preview.
+    `lock_preview_dialog_edits` and a scope guard restore them on every exit, and the
+    originals always go back before the commit so the undo snapshot is clean.
   - **Draft, then full quality.** On an input above about 1.5 megapixels the preview runs
     twice (`Stage` in `gmic_filter_library_dialog`): a draft with `GmicRunInput::scale`
-    below 1 (the float images reduced to about a megapixel by `reduced_image`, the active
-    layer's result enlarged back to the full frame by `enlarged_image`, added layers left
-    out), shown at once, then the full run with the values the draft returned, under the
+    below 1 (the float images reduced to about a megapixel in all by `reduced_image`, each
+    changed layer's result enlarged back to its full frame by `enlarged_image`, added layers
+    left out), shown at once, then the full run with the values the draft returned, under the
     badge "Refining preview...". Sizes a filter takes in pixels are not rescaled, so a
-    draft looks somewhat stronger than the result. No draft when the active layer is not
-    among the input, or when this filter's last full run this session was quick
+    draft looks somewhat stronger than the result. No draft when no chosen layer is
+    writable, or when this filter's last full run this session was quick
     (`gmic_full_ms_per_megapixel_`, under 400 ms estimated). `PATCHY_GMIC_DRAFT_PIXELS`
     overrides the megapixel budget for tests. OK while the full run for the accepted
     settings is in flight waits for that run (`wait_for_gmic_run`) instead of starting
@@ -255,8 +257,9 @@ a document action, created only when `gmic::engine_available()`).
   - The dialog is non-modal (`run_non_modal_dialog`, like the other filter dialogs), so the
     canvas can be zoomed and panned to inspect a preview while it is open.
   - **Point handles.** `GmicParameterPanel::points()` lists the visible point parameters in
-    percent of the image the filter works on (the active layer, or the document in document
-    space); the dialog reports them through `set_points_callback` whenever the filter, a
+    percent of the image the filter works on (the active layer, each chosen layer taking the
+    same percentages of its own frame, or the document when layers are lined up); the
+    dialog reports them through `set_points_callback` whenever the filter, a
     position or the input layers change, and `move_point` is the way back. MainWindow turns
     them into `CanvasWidget::set_preview_point_handles` (canvas_widget_preview_points.cpp):
     markers in document coordinates that win the left press over the active tool within
@@ -362,19 +365,21 @@ layer and the one below; the read layer is untouched) cover layers. The first th
 render test run without the engine. `ui_gmic_script_api_lists_and_applies` covers the script
 API (list contents, values by name and by position, one undo entry, added-layer count, and
 eight kinds of rejected input). `ui_gmic_library_dialog_puts_point_handles_on_the_canvas`
-covers the handles (placement, a drag, a typed value, document space, the centre of Blur [Radial] and [Angular], the two blur filters not offered,
+covers the handles (placement, a drag, a typed value, several layers, the centre of Blur [Radial] and [Angular], the two blur filters not offered,
 gone on close). `ui_gmic_library_dialog_drafts_then_refines` covers the two-stage preview
 (a draft then the full result, the draft skipped for a filter measured as quick, OK waiting
 for the run in flight, a size-changing filter's draft bounds, Cancel).
-`ui_gmic_filter_changes_only_the_active_layer_whatever_it_reads` covers the
-output rule (a per-layer filter over all layers, hidden layers through a group, the active
-layer outside the input, no matching layer), the memory refusal and the script gates.
-Core: `gmic_output_layer_names_carry_layer_settings`.
+`ui_gmic_filter_changes_every_chosen_layer` covers the layer rule (each layer gets its own
+result in one undo, the layer below, a locked layer read only, a partial layer keeping its
+size under Edges, hidden layers through a group, no matching layer), the memory refusal and
+the script gates. `ui_gmic_library_dialog_previews_every_chosen_layer_and_explains_the_result`
+covers the multi-layer preview, the result notes, CRT Scanlines' centred 4x result and its
+status text, and About G'MIC. Core: `gmic_output_layer_names_carry_layer_settings`.
 
-Real-image sweep (October 2026, not automated): every offered filter was applied at its
-defaults through `layer.applyGmic` to a 900 px photograph in five setups (plain layer, a
-layer partly off the canvas, inside a selection, a 16-bit document, and three layers for
-the filters that declare multi-layer input).
+Sweeps (October 2026, not automated): every offered filter at its defaults through
+`layer.applyGmic` on a 900 px photograph (plain, partly off the canvas, in a selection,
+16-bit, three layers), and on a 60x45 layer in a 120x90 document, where a one-image
+filter's bounds match in `active` and `all` modes.
 
 ## Known gaps
 
@@ -385,7 +390,7 @@ the filters that declare multi-layer input).
 - A draft is the whole image reduced, never a 1:1 crop of what the canvas shows, so fine
   detail is only judged once the full run lands. G'MIC's own preview commands (guides,
   split views) are unused and untested.
-- Extra output layers are not shown in the preview, only counted.
+- Extra output layers are not shown in the preview, only described in the result notes.
 - Of the filters that declare multi-layer input, only Blend [Average All] has an automated
   test of its result; the others are covered by the run-everything core test and the
   three-layer real-image sweep, which check that they run, not what they produce.

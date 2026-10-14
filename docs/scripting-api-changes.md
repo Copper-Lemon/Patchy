@@ -7,6 +7,17 @@ attachment, palettes, vector automation, brushes, Slow mode and Pause) are in
 [scripting-api-changes-through-2026-09-11.md](scripting-api-changes-through-2026-09-11.md).
 Every entry below is API 1.
 
+2026-10-14 (behavioral, supersedes the entry below): `layer.applyGmic` changes every layer
+`inputLayers` chooses that it may change, in one undo step; locked, text, shape and Smart
+Object layers among them are only read. A filter made for one image (declared input
+`active`) runs on each chosen layer alone at its own size, as if applied to each in turn, and
+its further results become new layers above that layer; it no longer sees the layers padded
+onto a document-sized image, which turned a small layer canvas-sized for filters that fill
+transparency. A filter made for several layers still gets them lined up on the document and,
+when it combines them, replaces the layer it was called on. With `hidden` on a visible layer,
+the hidden layers now change in place instead of arriving as new layers. It throws when none
+of the chosen layers can be changed. Pinned by `ui_gmic_filter_changes_every_chosen_layer`
+(which replaces the test named below).
 2026-10-14 (behavioral): `layer.applyGmic` with several input layers. A filter that returns
 an image per layer it read now gives the layer its own result and drops the results for the
 layers that were only read (they used to arrive as duplicate layers, and the layer took the

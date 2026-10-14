@@ -11539,6 +11539,44 @@ RGB：%2, %3, %4</translation>
         <source>All hidden layers</source>
         <translation>所有隐藏图层</translation>
     </message>
+    <message>
+        <source>The layers the filter works on. A filter made for one image is applied to each chosen layer in turn; a filter made for several layers, such as the Blend filters, combines them. Locked, text, shape and Smart Object layers are read but never changed.</source>
+        <translation>滤镜处理的图层。为单张图像设计的滤镜会依次应用到每个所选图层；为多个图层设计的滤镜（如 Blend 滤镜）会把它们组合起来。锁定的图层以及文字、形状和智能对象图层只会被读取，绝不会被更改。</translation>
+    </message>
+    <message>
+        <source>About G&apos;MIC...</source>
+        <translation>关于 G&apos;MIC...</translation>
+    </message>
+    <message>
+        <source>About G&apos;MIC</source>
+        <translation>关于 G&apos;MIC</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC %1</source>
+        <translation>G&apos;MIC %1</translation>
+    </message>
+    <message numerus="yes">
+        <source>G&apos;MIC (GREYC&apos;s Magic for Image Computing) is a free, open-source framework for image processing. Patchy includes its interpreter and %n of the filters from its standard library, and runs them in this Patchy dialog.</source>
+        <translation>
+            <numerusform>G&apos;MIC（GREYC&apos;s Magic for Image Computing）是一个免费的开源图像处理框架。Patchy 内置了它的解释器和其标准库中的 %n 个滤镜，并在这个 Patchy 对话框中运行它们。</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>G&apos;MIC is made by David Tschumperlé and the Image Team of the GREYC laboratory in Caen, France, with filters written by many contributors. Most filters name their authors at the end of their settings.</source>
+        <translation>G&apos;MIC 由 David Tschumperlé 和法国卡昂 GREYC 实验室的 Image Team 开发，其中的滤镜由许多贡献者编写。大多数滤镜会在设置末尾注明作者。</translation>
+    </message>
+    <message>
+        <source>How to say it: its author pronounces it like the English word &quot;gimmick&quot;, a nod to the magic in its name, and says any pronunciation is fine.</source>
+        <translation>读法：作者把它读作英文单词“gimmick”，呼应名字中的“魔法”，并表示怎么读都可以。</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC is distributed under the CeCILL-C license, and its license text is included with Patchy. Questions about how Patchy runs a filter belong with Patchy, not the G&apos;MIC team.</source>
+        <translation>G&apos;MIC 以 CeCILL-C 许可证发布，其许可证文本随 Patchy 一同提供。关于 Patchy 如何运行滤镜的问题请向 Patchy 反馈，而不是 G&apos;MIC 团队。</translation>
+    </message>
+    <message>
+        <source>Visit the G&apos;MIC website (gmic.eu)</source>
+        <translation>访问 G&apos;MIC 网站 (gmic.eu)</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::GmicParameterPanel</name>
@@ -20118,10 +20156,6 @@ You can still download it in your browser.</source>
         <translation>已应用 %1 (新图层: %2)</translation>
     </message>
     <message>
-        <source>New layers on apply: %1</source>
-        <translation>应用时新增图层: %1</translation>
-    </message>
-    <message>
         <source>No layer matches the chosen input layers.</source>
         <translation>没有图层符合所选的输入图层。</translation>
     </message>
@@ -20152,6 +20186,56 @@ You can still download it in your browser.</source>
     <message>
         <source>How often Patchy looks for a new version when it starts. The About window always checks.</source>
         <translation>Patchy 启动时检查新版本的频率。“关于”窗口始终会检查。</translation>
+    </message>
+    <message>
+        <source>None of the chosen layers can be changed. Locked, text, shape and Smart Object layers stay as they are.</source>
+        <translation>所选图层都无法更改。锁定的图层以及文字、形状和智能对象图层保持不变。</translation>
+    </message>
+    <message>
+        <source>Combines the chosen layers into the active layer. The other layers stay as they are.</source>
+        <translation>将所选图层合成到当前图层中。其他图层保持不变。</translation>
+    </message>
+    <message numerus="yes">
+        <source>Changes %n layer(s).</source>
+        <translation>
+            <numerusform>更改 %n 个图层。</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Changes the layer size from %1 x %2 to %3 x %4 pixels.</source>
+        <translation>将图层大小从 %1 x %2 更改为 %3 x %4 像素。</translation>
+    </message>
+    <message>
+        <source>Part of the layer will lie outside the canvas. It is kept, and the Move tool brings it into view.</source>
+        <translation>图层的一部分会位于画布之外。这部分会保留，可用移动工具将其移回视图。</translation>
+    </message>
+    <message numerus="yes">
+        <source>Adds %n new layer(s) when applied. The preview shows only the layers it changes, so the final image can look different.</source>
+        <translation>
+            <numerusform>应用时会添加 %n 个新图层。预览只显示被更改的图层，因此最终图像可能看起来不同。</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n of the chosen layers cannot be changed (locked, text, shape or Smart Object) and stay as they are.</source>
+        <translation>
+            <numerusform>所选图层中有 %n 个无法更改（锁定、文字、形状或智能对象），将保持不变。</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Applied %1 to %n layer(s) (new layers: %2)</source>
+        <translation>
+            <numerusform>已将 %1 应用到 %n 个图层 (新图层: %2)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Applied %1 to %n layer(s)</source>
+        <translation>
+            <numerusform>已将 %1 应用到 %n 个图层</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Applied %1. The layer is now %2 x %3 pixels.</source>
+        <translation>已应用 %1。图层现在为 %2 x %3 像素。</translation>
     </message>
 </context>
 <context>

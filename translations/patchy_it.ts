@@ -11569,6 +11569,45 @@ RGB: %2, %3, %4</translation>
         <source>All hidden layers</source>
         <translation>Tutti i livelli nascosti</translation>
     </message>
+    <message>
+        <source>The layers the filter works on. A filter made for one image is applied to each chosen layer in turn; a filter made for several layers, such as the Blend filters, combines them. Locked, text, shape and Smart Object layers are read but never changed.</source>
+        <translation>I livelli su cui agisce il filtro. Un filtro pensato per una sola immagine viene applicato a turno a ciascun livello scelto; un filtro pensato per più livelli, come i filtri Blend, li combina. I livelli bloccati, di testo, di forma e gli oggetti avanzati vengono letti ma mai modificati.</translation>
+    </message>
+    <message>
+        <source>About G&apos;MIC...</source>
+        <translation>Informazioni su G&apos;MIC...</translation>
+    </message>
+    <message>
+        <source>About G&apos;MIC</source>
+        <translation>Informazioni su G&apos;MIC</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC %1</source>
+        <translation>G&apos;MIC %1</translation>
+    </message>
+    <message numerus="yes">
+        <source>G&apos;MIC (GREYC&apos;s Magic for Image Computing) is a free, open-source framework for image processing. Patchy includes its interpreter and %n of the filters from its standard library, and runs them in this Patchy dialog.</source>
+        <translation>
+            <numerusform>G&apos;MIC (GREYC&apos;s Magic for Image Computing) è un framework libero e open source per l&apos;elaborazione delle immagini. Patchy include il suo interprete e %n filtro della sua libreria standard, e li esegue in questa finestra di Patchy.</numerusform>
+            <numerusform>G&apos;MIC (GREYC&apos;s Magic for Image Computing) è un framework libero e open source per l&apos;elaborazione delle immagini. Patchy include il suo interprete e %n filtri della sua libreria standard, e li esegue in questa finestra di Patchy.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>G&apos;MIC is made by David Tschumperlé and the Image Team of the GREYC laboratory in Caen, France, with filters written by many contributors. Most filters name their authors at the end of their settings.</source>
+        <translation>G&apos;MIC è sviluppato da David Tschumperlé e dall&apos;Image Team del laboratorio GREYC di Caen, in Francia, con filtri scritti da molti collaboratori. La maggior parte dei filtri indica i propri autori alla fine delle impostazioni.</translation>
+    </message>
+    <message>
+        <source>How to say it: its author pronounces it like the English word &quot;gimmick&quot;, a nod to the magic in its name, and says any pronunciation is fine.</source>
+        <translation>Come si pronuncia: il suo autore lo pronuncia come la parola inglese &quot;gimmick&quot;, un richiamo alla magia del nome, e dice che qualsiasi pronuncia va bene.</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC is distributed under the CeCILL-C license, and its license text is included with Patchy. Questions about how Patchy runs a filter belong with Patchy, not the G&apos;MIC team.</source>
+        <translation>G&apos;MIC è distribuito con la licenza CeCILL-C, il cui testo è incluso in Patchy. Le domande su come Patchy esegue un filtro vanno rivolte a Patchy, non al team di G&apos;MIC.</translation>
+    </message>
+    <message>
+        <source>Visit the G&apos;MIC website (gmic.eu)</source>
+        <translation>Visita il sito di G&apos;MIC (gmic.eu)</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::GmicParameterPanel</name>
@@ -20175,10 +20214,6 @@ Puoi comunque scaricarlo nel browser.</translation>
         <translation>%1 applicato (nuovi livelli: %2)</translation>
     </message>
     <message>
-        <source>New layers on apply: %1</source>
-        <translation>Nuovi livelli all&apos;applicazione: %1</translation>
-    </message>
-    <message>
         <source>No layer matches the chosen input layers.</source>
         <translation>Nessun livello corrisponde ai livelli di input scelti.</translation>
     </message>
@@ -20209,6 +20244,61 @@ Puoi comunque scaricarlo nel browser.</translation>
     <message>
         <source>How often Patchy looks for a new version when it starts. The About window always checks.</source>
         <translation>Con quale frequenza Patchy cerca una nuova versione all&apos;avvio. La finestra Informazioni controlla sempre.</translation>
+    </message>
+    <message>
+        <source>None of the chosen layers can be changed. Locked, text, shape and Smart Object layers stay as they are.</source>
+        <translation>Nessuno dei livelli scelti può essere modificato. I livelli bloccati, di testo, di forma e gli oggetti avanzati restano come sono.</translation>
+    </message>
+    <message>
+        <source>Combines the chosen layers into the active layer. The other layers stay as they are.</source>
+        <translation>Combina i livelli scelti nel livello attivo. Gli altri livelli restano come sono.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Changes %n layer(s).</source>
+        <translation>
+            <numerusform>Modifica %n livello.</numerusform>
+            <numerusform>Modifica %n livelli.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Changes the layer size from %1 x %2 to %3 x %4 pixels.</source>
+        <translation>Cambia le dimensioni del livello da %1 x %2 a %3 x %4 pixel.</translation>
+    </message>
+    <message>
+        <source>Part of the layer will lie outside the canvas. It is kept, and the Move tool brings it into view.</source>
+        <translation>Una parte del livello finirà fuori dal quadro. Viene conservata, e lo strumento Sposta la riporta in vista.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Adds %n new layer(s) when applied. The preview shows only the layers it changes, so the final image can look different.</source>
+        <translation>
+            <numerusform>Aggiunge %n nuovo livello quando viene applicato. L&apos;anteprima mostra solo i livelli che modifica, quindi l&apos;immagine finale può apparire diversa.</numerusform>
+            <numerusform>Aggiunge %n nuovi livelli quando viene applicato. L&apos;anteprima mostra solo i livelli che modifica, quindi l&apos;immagine finale può apparire diversa.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n of the chosen layers cannot be changed (locked, text, shape or Smart Object) and stay as they are.</source>
+        <translation>
+            <numerusform>%n dei livelli scelti non può essere modificato (bloccato, testo, forma o oggetto avanzato) e resta com&apos;è.</numerusform>
+            <numerusform>%n dei livelli scelti non possono essere modificati (bloccati, testo, forma o oggetto avanzato) e restano come sono.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Applied %1 to %n layer(s) (new layers: %2)</source>
+        <translation>
+            <numerusform>%1 applicato a %n livello (nuovi livelli: %2)</numerusform>
+            <numerusform>%1 applicato a %n livelli (nuovi livelli: %2)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Applied %1 to %n layer(s)</source>
+        <translation>
+            <numerusform>%1 applicato a %n livello</numerusform>
+            <numerusform>%1 applicato a %n livelli</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Applied %1. The layer is now %2 x %3 pixels.</source>
+        <translation>%1 applicato. Il livello ora misura %2 x %3 pixel.</translation>
     </message>
 </context>
 <context>

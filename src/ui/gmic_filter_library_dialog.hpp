@@ -10,6 +10,7 @@
 #include <QDialog>
 #include <QPointF>
 #include <QString>
+#include <QStringList>
 
 #include <functional>
 #include <memory>
@@ -67,6 +68,14 @@ public:
   void release_buttons();
   // A line under the filter's name (a failed preview); empty hides it.
   void set_preview_message(const QString& text);
+  // What applying the previewed result will do beyond what the canvas shows (layers
+  // changed, resized or added), one sentence each, in a banner; empty hides it. Cleared
+  // whenever the filter or the input layers change.
+  void set_result_notes(const QStringList& notes);
+  [[nodiscard]] QStringList result_notes() const;
+  // About G'MIC: what it is, who makes it, how its name is said, and its website.
+  // Modal; the footer's About G'MIC button opens it.
+  void show_about_gmic();
   [[nodiscard]] bool preview_enabled() const;
 
   // The shown filter's point parameters as canvas handles: called with their positions
@@ -99,6 +108,7 @@ private:
   void report_points();
 
   const gmic::Catalog& catalog_;
+  QString engine_version_;
   const gmic::Filter* current_{nullptr};
   QLineEdit* search_{nullptr};
   QTreeWidget* tree_{nullptr};
@@ -110,6 +120,7 @@ private:
   QCheckBox* preview_{nullptr};
   QComboBox* input_{nullptr};
   QLabel* message_{nullptr};
+  QLabel* notes_{nullptr};
   std::function<void(const GmicPreviewRequest&)> preview_callback_;
   std::function<void(const std::vector<QPointF>&)> points_callback_;
   std::unique_ptr<CoalescedPreviewEmitter<GmicPreviewRequest>> preview_emitter_;

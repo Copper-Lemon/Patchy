@@ -11539,6 +11539,44 @@ Mixed selection</source>
         <source>All hidden layers</source>
         <translation>非表示のすべてのレイヤー</translation>
     </message>
+    <message>
+        <source>The layers the filter works on. A filter made for one image is applied to each chosen layer in turn; a filter made for several layers, such as the Blend filters, combines them. Locked, text, shape and Smart Object layers are read but never changed.</source>
+        <translation>フィルターが処理するレイヤーです。1 枚の画像用のフィルターは、選んだ各レイヤーに順番に適用されます。複数レイヤー用のフィルター (Blend フィルターなど) はレイヤーを組み合わせます。ロックされたレイヤー、テキスト、シェイプ、スマートオブジェクトのレイヤーは読み取られますが、変更されることはありません。</translation>
+    </message>
+    <message>
+        <source>About G&apos;MIC...</source>
+        <translation>G&apos;MIC について...</translation>
+    </message>
+    <message>
+        <source>About G&apos;MIC</source>
+        <translation>G&apos;MIC について</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC %1</source>
+        <translation>G&apos;MIC %1</translation>
+    </message>
+    <message numerus="yes">
+        <source>G&apos;MIC (GREYC&apos;s Magic for Image Computing) is a free, open-source framework for image processing. Patchy includes its interpreter and %n of the filters from its standard library, and runs them in this Patchy dialog.</source>
+        <translation>
+            <numerusform>G&apos;MIC (GREYC&apos;s Magic for Image Computing) は、画像処理のための無料のオープンソースフレームワークです。Patchy はそのインタープリターと標準ライブラリの %n 個のフィルターを搭載し、この Patchy のダイアログで実行します。</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>G&apos;MIC is made by David Tschumperlé and the Image Team of the GREYC laboratory in Caen, France, with filters written by many contributors. Most filters name their authors at the end of their settings.</source>
+        <translation>G&apos;MIC は、フランス・カーンにある GREYC 研究所の Image Team と David Tschumperlé が開発しており、フィルターは多くの貢献者が書いています。ほとんどのフィルターは、設定の最後に作者を記載しています。</translation>
+    </message>
+    <message>
+        <source>How to say it: its author pronounces it like the English word &quot;gimmick&quot;, a nod to the magic in its name, and says any pronunciation is fine.</source>
+        <translation>読み方: 作者は英語の「gimmick」(ギミック) のように発音しています。名前に含まれる「魔法」にちなんだもので、どの読み方でも構わないとのことです。</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC is distributed under the CeCILL-C license, and its license text is included with Patchy. Questions about how Patchy runs a filter belong with Patchy, not the G&apos;MIC team.</source>
+        <translation>G&apos;MIC は CeCILL-C ライセンスで配布されており、ライセンス文は Patchy に同梱されています。Patchy でのフィルターの実行に関する質問は、G&apos;MIC チームではなく Patchy へお寄せください。</translation>
+    </message>
+    <message>
+        <source>Visit the G&apos;MIC website (gmic.eu)</source>
+        <translation>G&apos;MIC の Web サイトを開く (gmic.eu)</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::GmicParameterPanel</name>
@@ -20118,10 +20156,6 @@ You can still download it in your browser.</source>
         <translation>%1 を適用しました (新しいレイヤー: %2)</translation>
     </message>
     <message>
-        <source>New layers on apply: %1</source>
-        <translation>適用時に追加されるレイヤー: %1</translation>
-    </message>
-    <message>
         <source>No layer matches the chosen input layers.</source>
         <translation>選択した入力レイヤーに該当するレイヤーがありません。</translation>
     </message>
@@ -20152,6 +20186,56 @@ You can still download it in your browser.</source>
     <message>
         <source>How often Patchy looks for a new version when it starts. The About window always checks.</source>
         <translation>Patchy が起動時に新しいバージョンを確認する頻度です。バージョン情報ウィンドウでは常に確認します。</translation>
+    </message>
+    <message>
+        <source>None of the chosen layers can be changed. Locked, text, shape and Smart Object layers stay as they are.</source>
+        <translation>選んだレイヤーはどれも変更できません。ロックされたレイヤー、テキスト、シェイプ、スマートオブジェクトのレイヤーはそのまま残ります。</translation>
+    </message>
+    <message>
+        <source>Combines the chosen layers into the active layer. The other layers stay as they are.</source>
+        <translation>選んだレイヤーをアクティブレイヤーに合成します。ほかのレイヤーはそのまま残ります。</translation>
+    </message>
+    <message numerus="yes">
+        <source>Changes %n layer(s).</source>
+        <translation>
+            <numerusform>%n 個のレイヤーを変更します。</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Changes the layer size from %1 x %2 to %3 x %4 pixels.</source>
+        <translation>レイヤーのサイズを %1 x %2 から %3 x %4 ピクセルに変更します。</translation>
+    </message>
+    <message>
+        <source>Part of the layer will lie outside the canvas. It is kept, and the Move tool brings it into view.</source>
+        <translation>レイヤーの一部がキャンバスの外に出ます。その部分は保持され、移動ツールで見える位置に戻せます。</translation>
+    </message>
+    <message numerus="yes">
+        <source>Adds %n new layer(s) when applied. The preview shows only the layers it changes, so the final image can look different.</source>
+        <translation>
+            <numerusform>適用すると %n 個の新しいレイヤーが追加されます。プレビューには変更されるレイヤーしか表示されないため、最終的な画像は異なって見える場合があります。</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n of the chosen layers cannot be changed (locked, text, shape or Smart Object) and stay as they are.</source>
+        <translation>
+            <numerusform>選んだレイヤーのうち %n 個は変更できないため (ロック、テキスト、シェイプ、スマートオブジェクト)、そのまま残ります。</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Applied %1 to %n layer(s) (new layers: %2)</source>
+        <translation>
+            <numerusform>%1 を %n 個のレイヤーに適用しました (新しいレイヤー: %2)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Applied %1 to %n layer(s)</source>
+        <translation>
+            <numerusform>%1 を %n 個のレイヤーに適用しました</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Applied %1. The layer is now %2 x %3 pixels.</source>
+        <translation>%1 を適用しました。レイヤーは %2 x %3 ピクセルになりました。</translation>
     </message>
 </context>
 <context>

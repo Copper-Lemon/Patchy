@@ -613,13 +613,16 @@ if (patchy.gmic.available) {
 }
 ```
 
-A filter only changes the layer it is applied to. `inputLayers` (`"active"`, `"activeAndBelow"`,
-`"activeAndAbove"`, `"all"`, `"visible"`, `"hidden"`) chooses which layers it reads. A filter that
-works on each layer gives the layer its own result, a filter that merges layers replaces it with
-the merged image, and any further results become new layers above it. If the layer is not among
-the layers read (a visible layer with `"hidden"`), it is left alone and every result is a new layer.
+`inputLayers` (`"active"`, `"activeAndBelow"`, `"activeAndAbove"`, `"all"`, `"visible"`,
+`"hidden"`) chooses the layers the filter works on, and every chosen layer it may change is
+changed in one undo step. A filter made for one image (Sepia, a blur) runs on each chosen layer
+by itself, at that layer's size, exactly as if you applied it to each in turn; any further
+results become new layers above the layer they came from. A filter made for several layers
+(the Blend filters) gets them lined up on the document, and when it combines them the result
+replaces the layer you called `applyGmic` on. Locked, text, shape and Smart Object layers among
+the chosen ones are read but never changed.
 `applyGmic` throws on a text, shape or Smart Object layer, on a layer with locked pixels, and when
-no layer matches `inputLayers`.
+no layer matches `inputLayers` or none of them can be changed.
 ### The script library (patchy.scripts)
 
 Scripts can manage scripts: list what the Scripts menu shows, write a new one into your scripts folder, and put it on a key. This is how an agent driving Patchy through MCP answers "make a script that does X and assign it to Ctrl+Alt+X":

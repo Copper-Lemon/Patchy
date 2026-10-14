@@ -7,9 +7,11 @@
 // (AsyncPixelPreviewState, the canvas "Rendering preview..." badge), and also
 // asks a run that newer settings have made stale to stop.
 //
-// Layers: a filter reads the layers its input mode names and only ever changes
-// the active one. Its first output replaces the active layer; every further
-// output becomes a new layer above it.
+// Layers: a filter changes every layer its input mode names that may be changed
+// (editable pixels, not locked); text, shape and Smart Object layers are only read.
+// A filter made for one image runs on each chosen layer alone, at its own size; a
+// filter made for several layers gets them lined up on the document. Outputs beyond
+// the ones that replace layers become new layers.
 
 #include "ui/main_window.hpp"
 #include "ui/main_window_shared.hpp"
@@ -40,6 +42,7 @@
 #include <QRegion>
 #include <QScopeGuard>
 #include <QStatusBar>
+#include <QStringList>
 #include <QTimer>
 
 #include <algorithm>
@@ -51,46 +54,59 @@
 #include <exception>
 #include <future>
 #include <limits>
+#include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <thread>
 #include <utility>
 #include <vector>
 
 namespace patchy::ui {
 
-// One layer a filter reads.
-struct GmicInputLayer {
+// A layer a filter may read, as it was before any preview touched it.
+struct GmicLayerSnapshot {
+  LayerId id{};
   std::shared_ptr<const PixelBuffer> pixels;
   Rect bounds{};
   std::string name;
+  bool visible{true};  // shown in the document: its own eye and every enclosing group's
+  // The filter may change it: editable RGB pixels, not locked. Text, shape and Smart
+  // Object layers and locked ones are only read.
+  bool writable{false};
 };
 
 // What one run needs, all immutable or copied so a worker can hold it.
 struct GmicRunInput {
-  // The active layer as it was before any preview touched it.
-  std::shared_ptr<const PixelBuffer> original;
-  Rect bounds{};
-  std::string layer_name;
-  // False: the filter gets the active layer alone, at its own size. True: it gets
-  // `layers` (top of the stack first), each placed on a document-sized image so
+  // False: the filter runs once on each writable layer of `layers`, alone and at its own
+  // size, as if applied to each in turn. True (a filter made for several layers reading
+  // several): it runs once on all of `layers`, each placed on a document-sized image so
   // they line up.
   bool document_space{false};
-  // Below 1: a draft. The filter runs on images reduced by this factor and the active
-  // layer's result is enlarged back to the full frame; layers a filter adds are left out.
+  // Below 1: a draft. The filter runs on images reduced by this factor and each changed
+  // layer's result is enlarged back to its full frame; layers a filter adds are left out.
   // Sizes a filter takes in pixels (a blur radius) are not rescaled, so a draft only
   // approximates the full run.
   double scale{1.0};
-  std::vector<GmicInputLayer> layers;
+  std::vector<GmicLayerSnapshot> layers;  // top of the stack first
   // Where the active layer sits in `layers`; none when the input mode leaves it out
   // (a visible active layer with "all hidden layers").
   std::optional<std::size_t> active_input;
+  LayerId active{};  // results with no layer of their own go above it
   std::int32_t document_width{0};
   std::int32_t document_height{0};
   FilterSelection selection;
   std::string command;
   std::string filter_name;      // names an output layer the filter left unnamed
   PixelFormat new_layer_format; // RGBA at the document's bit depth
+};
+
+// A layer's new pixels.
+struct GmicLayerResult {
+  LayerId id{};
+  PixelBuffer pixels;
+  Rect bounds{};
+  Rect original_bounds{};
 };
 
 // A further output of a filter, to be inserted as a new layer.
@@ -100,24 +116,31 @@ struct GmicNewLayer {
   std::string name;
   BlendMode blend_mode{BlendMode::Normal};
   float opacity{1.0F};
+  LayerId above{};  // the layer it goes above; several for one layer stack in order
 };
 
 // One filter run turned back into layer pixels. Built on a worker thread.
 struct GmicRenderResult {
   bool ok{false};
   bool aborted{false};
-  // The filter resized its image while a selection exists; nothing was produced.
+  // A filter resized its image while a selection exists; nothing was produced.
   bool size_refused{false};
   // The input mode named no layer; nothing ran.
   bool no_input{false};
+  // Every layer the input mode named is one the filter may not change; nothing ran.
+  bool nothing_writable{false};
   // The run would need more memory than the computer can spare; nothing ran.
   std::int64_t memory_refused_mb{0};
-  bool changed{true};  // false when the active layer's result equals the original
   std::string error;   // the interpreter's message when it failed
   std::string status;  // what the filter returned for its controls
-  PixelBuffer pixels;  // the active layer's new pixels
-  Rect bounds{};
-  std::vector<GmicNewLayer> new_layers;  // bottom of the new stack first
+  std::vector<GmicLayerResult> layers;   // the layers whose pixels changed, top first
+  std::vector<GmicNewLayer> new_layers;  // in insertion order
+  // Chosen layers left as they were because they may not be changed.
+  std::size_t read_only_layers{0};
+  // A filter made for several layers combined them into the active layer.
+  bool merged{false};
+
+  [[nodiscard]] bool changed() const { return !layers.empty() || !new_layers.empty(); }
 };
 
 namespace {
@@ -338,23 +361,42 @@ void trim_to_content(PixelBuffer& pixels, Rect& bounds) {
   return QString::fromUtf8(text.c_str(), static_cast<qsizetype>(text.size()));
 }
 
-// The float images a run holds at its start, in MB: Patchy's planar copy of every layer
-// it reads, the interpreter's own copy, and as much again for a result.
+// Pixels a run works through: each writable layer once when the filter runs on the
+// layers one at a time, every chosen layer at document size when they are lined up.
+[[nodiscard]] double gmic_input_pixels(const GmicRunInput& input) {
+  double pixels = 0.0;
+  for (const auto& layer : input.layers) {
+    if (input.document_space) {
+      pixels += static_cast<double>(input.document_width) * static_cast<double>(input.document_height);
+    } else if (layer.writable) {
+      pixels += static_cast<double>(layer.pixels->width()) * static_cast<double>(layer.pixels->height());
+    }
+  }
+  return pixels;
+}
+
+// The float images a run holds at its peak, in MB: Patchy's planar copy of what it
+// reads, the interpreter's own copy, and as much again for a result. A filter run on
+// the layers one at a time needs room for the largest; lined-up layers all at once.
 [[nodiscard]] std::int64_t gmic_run_memory_mb(const GmicRunInput& input) {
   std::int64_t samples = 0;
   if (input.document_space) {
     samples = static_cast<std::int64_t>(input.document_width) * input.document_height * 4 *
               static_cast<std::int64_t>(input.layers.size());
   } else {
-    samples = static_cast<std::int64_t>(input.original->width()) * input.original->height() *
-              (input.original->format().channels >= 4 ? 4 : 3);
+    for (const auto& layer : input.layers) {
+      if (layer.writable) {
+        samples = std::max(samples, static_cast<std::int64_t>(layer.pixels->width()) * layer.pixels->height() *
+                                        (layer.pixels->format().channels >= 4 ? 4 : 3));
+      }
+    }
   }
   const double scale = std::clamp(input.scale, 0.01, 1.0);
   return static_cast<std::int64_t>(static_cast<double>(samples) * scale * scale) *
          static_cast<std::int64_t>(sizeof(float)) * 3 / (1024 * 1024);
 }
 
-// The factor a draft of this run is reduced by: about a megapixel of input (or
+// The factor a draft of this run is reduced by: about a megapixel of input in all (or
 // PATCHY_GMIC_DRAFT_PIXELS, for tests). 1 when the input is already near that size.
 [[nodiscard]] double gmic_draft_scale(const GmicRunInput& input) {
   double budget = 1'000'000.0;
@@ -363,20 +405,18 @@ void trim_to_content(PixelBuffer& pixels, Rect& bounds) {
       budget = value;
     }
   }
-  const double pixels = input.document_space
-                            ? static_cast<double>(input.document_width) * static_cast<double>(input.document_height)
-                            : static_cast<double>(input.original->width()) *
-                                  static_cast<double>(input.original->height());
+  const double pixels = gmic_input_pixels(input);
   return pixels <= budget * 1.5 ? 1.0 : std::sqrt(budget / pixels);
 }
 
 [[nodiscard]] double gmic_input_megapixels(const GmicRunInput& input) {
-  const double pixels = input.document_space
-                            ? static_cast<double>(input.document_width) * static_cast<double>(input.document_height) *
-                                  static_cast<double>(std::max<std::size_t>(1U, input.layers.size()))
-                            : static_cast<double>(input.original->width()) *
-                                  static_cast<double>(input.original->height());
-  return pixels / 1'000'000.0;
+  return gmic_input_pixels(input) / 1'000'000.0;
+}
+
+// Whether a run can change anything a draft could show.
+[[nodiscard]] bool gmic_has_writable_input(const GmicRunInput& input) {
+  return std::any_of(input.layers.begin(), input.layers.end(),
+                     [](const GmicLayerSnapshot& layer) { return layer.writable; });
 }
 
 // What a run may take: 60 percent of the installed memory, or PATCHY_GMIC_MEMORY_LIMIT_MB
@@ -391,60 +431,174 @@ void trim_to_content(PixelBuffer& pixels, Rect& bounds) {
   return installed > 0 ? installed * 6 / 10 : std::numeric_limits<std::int64_t>::max();
 }
 
-[[nodiscard]] GmicRenderResult render_gmic_filter_unguarded(const GmicRunInput& input, gmic::RunControl* control);
-
-// The whole run: layers to float, the engine, float back to layer formats, and
-// the selection. Thread-safe; touches no widget and translates nothing. Never
-// throws: it runs on worker threads, where an escaped exception (a float copy
-// of a large document can exhaust memory) would end the process.
-[[nodiscard]] GmicRenderResult render_gmic_filter(const GmicRunInput& input, gmic::RunControl* control) {
-  try {
-    return render_gmic_filter_unguarded(input, control);
-  } catch (const std::exception& error) {
-    GmicRenderResult failed;
-    failed.bounds = input.bounds;
-    failed.error = error.what();
-    return failed;
-  } catch (...) {
-    GmicRenderResult failed;
-    failed.bounds = input.bounds;
-    failed.error = "Unknown G'MIC failure.";
-    return failed;
+// Where an output image lands, in document pixels: at the position its name states
+// (in the pixels of the image the filter ran on, from that image's corner), or centred
+// on that image when it changed size without stating one.
+[[nodiscard]] Rect gmic_output_bounds(const gmic::Image& image, const gmic::OutputLayerInfo& info, Rect frame,
+                                      double scale) {
+  Rect bounds{frame.x, frame.y, image.width, image.height};
+  if (info.position.has_value()) {
+    bounds.x += static_cast<int>(std::lround(info.position->first / scale));
+    bounds.y += static_cast<int>(std::lround(info.position->second / scale));
+  } else if (image.width != frame.width || image.height != frame.height) {
+    // A frame grows evenly around the layer; an upscale stays centred on it.
+    bounds.x += (frame.width - image.width) / 2;
+    bounds.y += (frame.height - image.height) / 2;
   }
+  return bounds;
 }
 
-[[nodiscard]] GmicRenderResult render_gmic_filter_unguarded(const GmicRunInput& input, gmic::RunControl* control) {
+// Turns what the filter returned for `layer` into its new pixels: back to the full frame
+// for a draft, limited to the selection, cropped to its content when the layers were
+// lined up. Kept in `render` only when it differs from the layer. False when it changes
+// the layer's frame while a selection exists.
+[[nodiscard]] bool add_gmic_layer_result(const GmicRunInput& input, const GmicLayerSnapshot& layer,
+                                         gmic::Image& image, Rect frame, int run_width, int run_height,
+                                         GmicRenderResult& render) {
+  const double scale = std::clamp(input.scale, 0.01, 1.0);
+  if (scale < 1.0) {
+    // Back to the full frame: exactly, when the filter kept its image's size.
+    const bool kept_size = image.width == run_width && image.height == run_height;
+    const int width = kept_size ? frame.width : std::max(1, static_cast<int>(std::lround(image.width / scale)));
+    const int height = kept_size ? frame.height : std::max(1, static_cast<int>(std::lround(image.height / scale)));
+    image = enlarged_image(image, width, height);
+  }
+  const PixelBuffer& original = *layer.pixels;
+  GmicLayerResult result;
+  result.id = layer.id;
+  result.original_bounds = layer.bounds;
+  result.pixels = pixels_from_gmic_image(image, original.format());
+  result.bounds = gmic_output_bounds(image, gmic::parse_output_layer_name(image.name), frame, scale);
+  const bool same_frame = result.bounds.x == frame.x && result.bounds.y == frame.y &&
+                          result.pixels.width() == frame.width && result.pixels.height() == frame.height;
+  if (!same_frame && !input.selection.isEmpty()) {
+    return false;
+  }
+  bool changed = true;
+  if (same_frame) {
+    // What the result is compared and blended against, in the same frame.
+    const PixelBuffer embedded = input.document_space
+                                     ? embed_in_document(original, layer.bounds, frame.width, frame.height)
+                                     : PixelBuffer();
+    const PixelBuffer& before = input.document_space ? embedded : original;
+    if (!input.selection.isEmpty()) {
+      const auto pixel_bytes = static_cast<std::size_t>(bytes_per_pixel(result.pixels.format()));
+      // Restore unselected spans in one region walk, then feather by coverage.
+      const auto outside = QRegion(to_qrect(frame)).subtracted(input.selection);
+      for (const auto& rect : outside) {
+        const auto local = rect.translated(-frame.x, -frame.y);
+        for (int y = local.top(); y <= local.bottom(); ++y) {
+          std::copy_n(before.pixel(local.left(), y), static_cast<std::size_t>(local.width()) * pixel_bytes,
+                      result.pixels.pixel(local.left(), y));
+        }
+      }
+      blend_by_selection_coverage(result.pixels, before, frame, input.selection);
+    }
+    changed = !pixel_buffers_equal(result.pixels, before);
+  }
+  if (input.document_space) {
+    trim_to_content(result.pixels, result.bounds);
+  }
+  if (changed) {
+    render.layers.push_back(std::move(result));
+  }
+  return true;
+}
+
+// A further output as a new layer above `above`, with the name, blend mode, opacity and
+// position the filter gave it. Never part of a draft.
+void add_gmic_new_layer(const GmicRunInput& input, const gmic::Image& image, Rect frame, LayerId above,
+                        GmicRenderResult& render) {
+  if (image.width <= 0 || image.height <= 0) {
+    return;
+  }
+  const auto info = gmic::parse_output_layer_name(image.name);
+  GmicNewLayer layer;
+  layer.pixels = pixels_from_gmic_image(image, input.new_layer_format);
+  layer.bounds = gmic_output_bounds(image, info, frame, 1.0);
+  if (input.document_space) {
+    trim_to_content(layer.pixels, layer.bounds);
+  }
+  layer.name = info.name.empty() ? input.filter_name : info.name;
+  layer.blend_mode = blend_mode_from_gmic(info.blend_mode);
+  layer.opacity = info.opacity.has_value() ? static_cast<float>(*info.opacity / 100.0) : 1.0F;
+  layer.above = above;
+  render.new_layers.push_back(std::move(layer));
+}
+
+// A filter made for one image, run on each writable chosen layer alone at its own size,
+// as if it were applied to each in turn. The first image a run returns replaces that
+// layer; the others become new layers above it.
+[[nodiscard]] GmicRenderResult render_gmic_each_layer(const GmicRunInput& input, gmic::RunControl* control) {
   GmicRenderResult render;
-  render.bounds = input.bounds;
-  const PixelBuffer& original = *input.original;
-  if (input.document_space && input.layers.empty()) {
-    render.no_input = true;
+  const double scale = std::clamp(input.scale, 0.01, 1.0);
+  const bool draft = scale < 1.0;
+  const gmic::Engine engine(gmic_library().commands);
+  bool have_status = false;
+  for (std::size_t index = 0; index < input.layers.size(); ++index) {
+    const auto& layer = input.layers[index];
+    if (!layer.writable) {
+      ++render.read_only_layers;
+      continue;
+    }
+    const Rect frame{layer.bounds.x, layer.bounds.y, layer.pixels->width(), layer.pixels->height()};
+    const int run_width = draft ? std::max(1, static_cast<int>(std::lround(frame.width * scale))) : frame.width;
+    const int run_height = draft ? std::max(1, static_cast<int>(std::lround(frame.height * scale))) : frame.height;
+    std::vector<gmic::Image> images;
+    auto image = gmic_image_from_pixels(*layer.pixels);
+    images.push_back(draft ? reduced_image(image, run_width, run_height) : std::move(image));
+    // Hosts name their layers; several filters read the name.
+    images.back().name = layer.name.empty() ? std::string("Layer") : layer.name;
+    const auto result = engine.run(input.command, images, control);
+    if (result.aborted) {
+      render.aborted = true;
+      return render;
+    }
+    if (!result.ok) {
+      render.error = result.error;
+      return render;
+    }
+    // The controls follow the active layer's run.
+    if (!have_status || input.active_input == index) {
+      render.status = result.status;
+      have_status = true;
+    }
+    if (images.empty() || images.front().width <= 0 || images.front().height <= 0) {
+      return render;  // ok stays false with no message: the filter returned no image
+    }
+    if (!add_gmic_layer_result(input, layer, images.front(), frame, run_width, run_height, render)) {
+      render.size_refused = true;
+      return render;
+    }
+    for (std::size_t extra = 1; !draft && extra < images.size(); ++extra) {
+      add_gmic_new_layer(input, images[extra], frame, layer.id, render);
+    }
+  }
+  if (render.read_only_layers == input.layers.size()) {
+    render.nothing_writable = true;
     return render;
   }
-  if (const auto needed_mb = gmic_run_memory_mb(input); needed_mb > gmic_memory_budget_mb()) {
-    render.memory_refused_mb = needed_mb;
-    return render;
-  }
-  // The image the filter worked on: the document, or the active layer alone.
-  const Rect frame = input.document_space ? Rect{0, 0, input.document_width, input.document_height} : input.bounds;
+  render.ok = true;
+  return render;
+}
+
+// A filter made for several layers, given them lined up on document-sized images. One
+// that returns an image per layer it read worked on each: each writable layer takes the
+// image in its place. One that returns fewer combined them: the first image replaces the
+// active layer. Any other image becomes a new layer above the active one.
+[[nodiscard]] GmicRenderResult render_gmic_lined_up(const GmicRunInput& input, gmic::RunControl* control) {
+  GmicRenderResult render;
+  const Rect frame{0, 0, input.document_width, input.document_height};
   const double scale = std::clamp(input.scale, 0.01, 1.0);
   const bool draft = scale < 1.0;
   const int run_width = draft ? std::max(1, static_cast<int>(std::lround(frame.width * scale))) : frame.width;
   const int run_height = draft ? std::max(1, static_cast<int>(std::lround(frame.height * scale))) : frame.height;
   std::vector<gmic::Image> images;
-  const auto add_image = [&](gmic::Image image, const std::string& name) {
+  images.reserve(input.layers.size());
+  for (const auto& layer : input.layers) {
+    auto image = gmic_document_image(*layer.pixels, layer.bounds, frame.width, frame.height);
     images.push_back(draft ? reduced_image(image, run_width, run_height) : std::move(image));
-    // Hosts name their layers; several filters read the name.
-    images.back().name = name.empty() ? std::string("Layer") : name;
-  };
-  if (input.document_space) {
-    images.reserve(input.layers.size());
-    for (const auto& layer : input.layers) {
-      add_image(gmic_document_image(*layer.pixels, layer.bounds, input.document_width, input.document_height),
-                layer.name);
-    }
-  } else {
-    add_image(gmic_image_from_pixels(original), input.layer_name);
+    images.back().name = layer.name.empty() ? std::string("Layer") : layer.name;
   }
   const gmic::Engine engine(gmic_library().commands);
   const auto result = engine.run(input.command, images, control);
@@ -457,217 +611,184 @@ void trim_to_content(PixelBuffer& pixels, Rect& bounds) {
   if (images.empty()) {
     return render;  // ok stays false with no message: the filter returned no image
   }
-  // Which outputs go where. A filter that returns at least one image per layer it read
-  // worked on each of them: the image in the active layer's place is its result, and the
-  // images in the places of the layers that were only read are dropped (those layers are
-  // never changed, and adding them again would duplicate them). A filter that returns
-  // fewer images merged its input: the first image is the result. With no active layer
-  // among the input, every image is a new layer and the active layer keeps its pixels.
-  const std::size_t input_count = input.document_space ? input.layers.size() : 1U;
-  const bool per_layer = images.size() >= input_count;
-  std::optional<std::size_t> active_output;
-  if (input.active_input.has_value()) {
-    active_output = per_layer ? *input.active_input : 0U;
-  }
-  const auto is_new_layer = [&](std::size_t index) {
-    if (!active_output.has_value()) {
-      return true;
+  const std::size_t input_count = input.layers.size();
+  std::size_t first_new = 0;
+  if (images.size() >= input_count) {
+    for (std::size_t index = 0; index < input_count; ++index) {
+      const auto& layer = input.layers[index];
+      if (!layer.writable) {
+        ++render.read_only_layers;
+        continue;
+      }
+      if (images[index].width <= 0 || images[index].height <= 0) {
+        continue;
+      }
+      if (!add_gmic_layer_result(input, layer, images[index], frame, run_width, run_height, render)) {
+        render.size_refused = true;
+        return render;
+      }
     }
-    return index != *active_output && !(per_layer && index < input_count);
-  };
-  if (active_output.has_value() &&
-      (images[*active_output].width <= 0 || images[*active_output].height <= 0)) {
-    return render;
-  }
-
-  const auto placed = [&frame, scale](const gmic::Image& image, const gmic::OutputLayerInfo& info) {
-    Rect bounds{frame.x, frame.y, image.width, image.height};
-    if (info.position.has_value()) {
-      // A position is in the pixels of the image the filter ran on.
-      bounds.x += static_cast<int>(std::lround(info.position->first / scale));
-      bounds.y += static_cast<int>(std::lround(info.position->second / scale));
-    } else if (image.width != frame.width || image.height != frame.height) {
-      // A resized result with no stated position stays centred on what it replaces.
-      bounds.x += (frame.width - image.width) / 2;
-      bounds.y += (frame.height - image.height) / 2;
-    }
-    return bounds;
-  };
-
-  bool same_frame = false;
-  if (active_output.has_value()) {
-    if (draft) {
-      // Back to the full frame: exactly, when the filter kept its image's size.
-      auto& reduced = images[*active_output];
-      const bool kept_size = reduced.width == run_width && reduced.height == run_height;
-      const int width = kept_size ? frame.width : std::max(1, static_cast<int>(std::lround(reduced.width / scale)));
-      const int height =
-          kept_size ? frame.height : std::max(1, static_cast<int>(std::lround(reduced.height / scale)));
-      reduced = enlarged_image(reduced, width, height);
-    }
-    const auto& result_image = images[*active_output];
-    render.pixels = pixels_from_gmic_image(result_image, original.format());
-    render.bounds = placed(result_image, gmic::parse_output_layer_name(result_image.name));
-    same_frame = render.bounds.x == frame.x && render.bounds.y == frame.y &&
-                 render.pixels.width() == frame.width && render.pixels.height() == frame.height;
-    if (!same_frame && !input.selection.isEmpty()) {
+    first_new = input_count;
+  } else if (input.active_input.has_value() && input.layers[*input.active_input].writable &&
+             images.front().width > 0 && images.front().height > 0) {
+    if (!add_gmic_layer_result(input, input.layers[*input.active_input], images.front(), frame, run_width,
+                               run_height, render)) {
       render.size_refused = true;
       return render;
     }
-  } else {
-    render.pixels = original;  // shared storage, no copy
-    render.changed = false;
+    render.merged = input_count > 1;
+    first_new = 1;
   }
-  if (same_frame) {
-    // What the result is compared and blended against, in the same frame.
-    const PixelBuffer embedded = input.document_space
-                                     ? embed_in_document(original, input.bounds, frame.width, frame.height)
-                                     : PixelBuffer();
-    const PixelBuffer& before = input.document_space ? embedded : original;
-    if (!input.selection.isEmpty()) {
-      const auto pixel_bytes = static_cast<std::size_t>(bytes_per_pixel(render.pixels.format()));
-      // Restore unselected spans in one region walk, then feather by coverage.
-      const auto outside = QRegion(to_qrect(frame)).subtracted(input.selection);
-      for (const auto& rect : outside) {
-        const auto local = rect.translated(-frame.x, -frame.y);
-        for (int y = local.top(); y <= local.bottom(); ++y) {
-          std::copy_n(before.pixel(local.left(), y), static_cast<std::size_t>(local.width()) * pixel_bytes,
-                      render.pixels.pixel(local.left(), y));
-        }
-      }
-      blend_by_selection_coverage(render.pixels, before, frame, input.selection);
-    }
-    render.changed = !pixel_buffers_equal(render.pixels, before);
+  for (std::size_t index = first_new; !draft && index < images.size(); ++index) {
+    add_gmic_new_layer(input, images[index], frame, input.active, render);
   }
-  if (input.document_space && active_output.has_value()) {
-    trim_to_content(render.pixels, render.bounds);
-  }
-
-  for (std::size_t index = 0; index < images.size(); ++index) {
-    const auto& image = images[index];
-    // A draft shows the active layer only.
-    if (draft || !is_new_layer(index) || image.width <= 0 || image.height <= 0) {
-      continue;
-    }
-    const auto info = gmic::parse_output_layer_name(image.name);
-    GmicNewLayer layer;
-    layer.pixels = pixels_from_gmic_image(image, input.new_layer_format);
-    layer.bounds = placed(image, info);
-    if (input.document_space) {
-      trim_to_content(layer.pixels, layer.bounds);
-    }
-    layer.name = info.name.empty() ? input.filter_name : info.name;
-    layer.blend_mode = blend_mode_from_gmic(info.blend_mode);
-    layer.opacity = info.opacity.has_value() ? static_cast<float>(*info.opacity / 100.0) : 1.0F;
-    render.new_layers.push_back(std::move(layer));
-  }
-  if (!render.new_layers.empty()) {
-    render.changed = true;
+  if (!render.changed() && render.read_only_layers == input_count) {
+    render.nothing_writable = true;
+    return render;
   }
   render.ok = true;
   return render;
 }
 
-struct GmicInputCandidate {
-  const Layer* layer{nullptr};
-  bool visible{true};  // shown in the document: its own eye and every enclosing group's
-};
+[[nodiscard]] GmicRenderResult render_gmic_filter_unguarded(const GmicRunInput& input, gmic::RunControl* control) {
+  if (input.layers.empty()) {
+    GmicRenderResult render;
+    render.no_input = true;
+    return render;
+  }
+  if (const auto needed_mb = gmic_run_memory_mb(input); needed_mb > gmic_memory_budget_mb()) {
+    GmicRenderResult render;
+    render.memory_refused_mb = needed_mb;
+    return render;
+  }
+  return input.document_space ? render_gmic_lined_up(input, control) : render_gmic_each_layer(input, control);
+}
+
+// The whole run: layers to float, the engine, float back to layer formats, and
+// the selection. Thread-safe; touches no widget and translates nothing. Never
+// throws: it runs on worker threads, where an escaped exception (a float copy
+// of a large document can exhaust memory) would end the process.
+[[nodiscard]] GmicRenderResult render_gmic_filter(const GmicRunInput& input, gmic::RunControl* control) {
+  try {
+    return render_gmic_filter_unguarded(input, control);
+  } catch (const std::exception& error) {
+    GmicRenderResult failed;
+    failed.error = error.what();
+    return failed;
+  } catch (...) {
+    GmicRenderResult failed;
+    failed.error = "Unknown G'MIC failure.";
+    return failed;
+  }
+}
+
+// A filter may change a layer with editable RGB pixels that are not locked. Text, shape
+// and Smart Object layers are read as their pixels and left as they are.
+[[nodiscard]] bool gmic_layer_writable(const Document& document, const Layer& layer) {
+  return editable_rgb_layer_any_depth(&layer) && !layer_is_smart_object(layer) && !layer_is_text(layer) &&
+         !layer_is_vector_shape(layer) &&
+         (layer_effective_lock_flags(document.layers(), layer.id()) & kLayerLockImagePixels) == kLayerLockNone;
+}
 
 // Bottom to top, groups opened: every layer that can be shown as RGB pixels.
-void collect_input_candidates(const std::vector<Layer>& layers, bool parents_visible,
-                              std::vector<GmicInputCandidate>& out) {
+void collect_gmic_layer_snapshots(const Document& document, const std::vector<Layer>& layers, bool parents_visible,
+                                  std::vector<GmicLayerSnapshot>& out) {
   for (const auto& layer : layers) {
     const bool visible = parents_visible && layer.visible();
     if (layer.kind() == LayerKind::Group) {
-      collect_input_candidates(layer.children(), visible, out);
+      collect_gmic_layer_snapshots(document, layer.children(), visible, out);
     } else if (layer.kind() != LayerKind::Adjustment && layer.pixels().width() > 0 && layer.pixels().height() > 0 &&
                layer.pixels().format().color_mode == ColorMode::RGB && layer.pixels().format().channels >= 3) {
-      out.push_back({&layer, visible});
+      out.push_back({layer.id(), std::make_shared<const PixelBuffer>(layer.pixels()), layer.bounds(), layer.name(),
+                     visible, gmic_layer_writable(document, layer)});
     }
   }
 }
 
-// Fills the layers a run reads, top of the stack first, and where the active layer is
-// among them. The active layer is taken as `input.original` (the document may be showing
-// a preview in its place).
-void set_gmic_input_layers(GmicRunInput& input, const Document& document, LayerId active, char mode) {
-  const auto& original = input.original;
-  const auto bounds = input.bounds;
-  const auto& layer_name = input.layer_name;
-  std::vector<GmicInputCandidate> candidates;
-  collect_input_candidates(document.layers(), true, candidates);
-  std::reverse(candidates.begin(), candidates.end());
+// Every layer a filter could read, top of the stack first. Shared, copy-on-write
+// buffers: this copies no pixels.
+[[nodiscard]] std::vector<GmicLayerSnapshot> gmic_layer_snapshots(const Document& document) {
+  std::vector<GmicLayerSnapshot> snapshots;
+  collect_gmic_layer_snapshots(document, document.layers(), true, snapshots);
+  std::reverse(snapshots.begin(), snapshots.end());
+  return snapshots;
+}
+
+// Picks the layers `mode` names from `snapshots` (top of the stack first) and where the
+// active layer is among them.
+void set_gmic_input_layers(GmicRunInput& input, const std::vector<GmicLayerSnapshot>& snapshots, LayerId active,
+                           char mode) {
   const auto active_at =
-      std::find_if(candidates.begin(), candidates.end(),
-                   [active](const GmicInputCandidate& candidate) { return candidate.layer->id() == active; });
-  auto& inputs = input.layers;
-  inputs.clear();
+      std::find_if(snapshots.begin(), snapshots.end(),
+                   [active](const GmicLayerSnapshot& snapshot) { return snapshot.id == active; });
+  input.layers.clear();
   input.active_input.reset();
-  const auto add = [&](const Layer* layer) {
-    if (layer->id() == active) {
-      input.active_input = inputs.size();
-      inputs.push_back({original, bounds, layer_name});
-    } else {
-      inputs.push_back({std::make_shared<const PixelBuffer>(layer->pixels()), layer->bounds(), layer->name()});
-    }
-  };
-  for (auto it = candidates.begin(); it != candidates.end(); ++it) {
+  input.active = active;
+  for (auto it = snapshots.begin(); it != snapshots.end(); ++it) {
     const bool is_active = it == active_at;
     bool wanted = false;
     switch (mode) {
       case '*': wanted = true; break;
       case 'v': wanted = it->visible; break;
       case 'i': wanted = !it->visible; break;
-      case '+': wanted = is_active || (active_at != candidates.end() && it == active_at + 1); break;
-      case '-': wanted = is_active || (active_at != candidates.end() && it + 1 == active_at); break;
+      case '+': wanted = is_active || (active_at != snapshots.end() && it == active_at + 1); break;
+      case '-': wanted = is_active || (active_at != snapshots.end() && it + 1 == active_at); break;
       default: wanted = is_active; break;
     }
     if (wanted) {
-      add(it->layer);
+      if (is_active) {
+        input.active_input = input.layers.size();
+      }
+      input.layers.push_back(*it);
     }
   }
 }
 
-// Puts a finished run into the document: the active layer's new pixels, then every
-// further output as a new layer stacked above it in the order the filter returned
-// them. Returns how many layers were added. The caller owns undo and refresh.
-std::size_t write_gmic_render(Document& document, LayerId layer_id, GmicRenderResult& render) {
-  auto* layer = document.find_layer(layer_id);
-  if (layer == nullptr) {
-    return 0;
+// Puts a finished run into the document: each changed layer's new pixels, then every
+// further output as a new layer above the layer it belongs to, several stacking in the
+// order the filter returned them. Returns how many layers were added. The caller owns
+// undo and refresh.
+std::size_t write_gmic_render(Document& document, GmicRenderResult& render) {
+  for (auto& result : render.layers) {
+    if (auto* layer = document.find_layer(result.id); layer != nullptr) {
+      const auto bounds = result.bounds;
+      set_layer_pixels_with_bounds(*layer, std::move(result.pixels), bounds);
+    }
   }
-  const auto bounds = render.bounds;
-  set_layer_pixels_with_bounds(*layer, std::move(render.pixels), bounds);
-  std::optional<LayerId> anchor = layer_id;
+  std::map<LayerId, LayerId> top_added;  // the layer each new one goes above -> the last one added there
+  std::size_t added = 0;
   for (auto& output : render.new_layers) {
+    const auto found = top_added.find(output.above);
+    const LayerId anchor = found != top_added.end() ? found->second : output.above;
     Layer added_layer(document.allocate_layer_id(), std::move(output.name), std::move(output.pixels));
     added_layer.set_bounds(output.bounds);
     added_layer.set_blend_mode(output.blend_mode);
     added_layer.set_opacity(output.opacity);
     const auto added_id = added_layer.id();
     insert_layer_after_anchor(document, std::move(added_layer), anchor);
-    anchor = added_id;
+    top_added[output.above] = added_id;
+    ++added;
   }
-  return render.new_layers.size();
+  return added;
+}
+
+// Whether a filter made for several layers gets the chosen ones together, lined up on
+// the document. A filter made for one image runs on each chosen layer alone instead.
+[[nodiscard]] bool gmic_reads_layers_together(const gmic::Filter& filter, char input_mode) {
+  return input_mode != '.' && filter.input_mode != '.';
 }
 
 // Everything a run reads, gathered on the UI thread (shared buffers, no pixel copies).
-[[nodiscard]] GmicRunInput make_gmic_run_input(const Document& document, const Layer& layer,
-                                               const std::shared_ptr<const PixelBuffer>& original,
-                                               const gmic::Filter& filter, const std::vector<std::string>& values,
-                                               char input_mode, FilterSelection selection) {
+[[nodiscard]] GmicRunInput make_gmic_run_input(const std::vector<GmicLayerSnapshot>& snapshots, LayerId active,
+                                               const Document& document, const gmic::Filter& filter,
+                                               const std::vector<std::string>& values, char input_mode,
+                                               FilterSelection selection) {
   GmicRunInput input;
-  input.original = original;
-  input.bounds = layer.bounds();
-  input.layer_name = layer.name();
-  input.document_space = input_mode != '.';
   input.document_width = document.width();
   input.document_height = document.height();
-  if (input.document_space) {
-    set_gmic_input_layers(input, document, layer.id(), input_mode);
-  } else {
-    input.active_input = 0U;
-  }
+  set_gmic_input_layers(input, snapshots, active, input_mode);
+  // One layer lines up with nothing: it runs at its own size like any single layer.
+  input.document_space = gmic_reads_layers_together(filter, input_mode) && input.layers.size() > 1;
   input.selection = std::move(selection);
   input.command = gmic::command_line(filter, values, false);
   input.filter_name = filter.name;
@@ -683,6 +804,10 @@ std::size_t write_gmic_render(Document& document, LayerId layer_id, GmicRenderRe
   if (render.no_input) {
     return MainWindow::tr("No layer matches the chosen input layers.");
   }
+  if (render.nothing_writable) {
+    return MainWindow::tr("None of the chosen layers can be changed. Locked, text, shape and Smart Object layers "
+                          "stay as they are.");
+  }
   if (render.memory_refused_mb > 0) {
     return MainWindow::tr("%1 needs about %2 MB of memory for these layers, more than this computer can spare. "
                           "Use fewer input layers or a smaller image.")
@@ -694,7 +819,55 @@ std::size_t write_gmic_render(Document& document, LayerId layer_id, GmicRenderRe
 
 // A refusal the user fixes by changing a setting, as opposed to a filter that failed.
 [[nodiscard]] bool gmic_run_was_refused(const GmicRenderResult& render) {
-  return render.size_refused || render.no_input || render.memory_refused_mb > 0;
+  return render.size_refused || render.no_input || render.nothing_writable || render.memory_refused_mb > 0;
+}
+
+// The result that says the most about a layer's size: the active layer's, else the first.
+[[nodiscard]] const GmicLayerResult* gmic_main_result(const GmicRenderResult& render, LayerId active) {
+  const auto found = std::find_if(render.layers.begin(), render.layers.end(),
+                                  [active](const GmicLayerResult& result) { return result.id == active; });
+  if (found != render.layers.end()) {
+    return &*found;
+  }
+  return render.layers.empty() ? nullptr : &render.layers.front();
+}
+
+// What applying a previewed result will do that the preview does not make obvious, one
+// sentence each: several layers changed or combined, a layer resized, layers added,
+// chosen layers that stay as they are.
+[[nodiscard]] QStringList gmic_result_notes(const GmicRenderResult& render, LayerId active, int document_width,
+                                            int document_height) {
+  QStringList notes;
+  if (render.merged) {
+    notes << MainWindow::tr("Combines the chosen layers into the active layer. The other layers stay as they are.");
+  } else if (render.layers.size() > 1) {
+    notes << MainWindow::tr("Changes %n layer(s).", nullptr, static_cast<int>(render.layers.size()));
+  }
+  if (const auto* result = gmic_main_result(render, active);
+      result != nullptr && (result->bounds.width != result->original_bounds.width ||
+                            result->bounds.height != result->original_bounds.height)) {
+    notes << MainWindow::tr("Changes the layer size from %1 x %2 to %3 x %4 pixels.")
+                 .arg(result->original_bounds.width)
+                 .arg(result->original_bounds.height)
+                 .arg(result->bounds.width)
+                 .arg(result->bounds.height);
+    if (result->bounds.x < 0 || result->bounds.y < 0 || result->bounds.x + result->bounds.width > document_width ||
+        result->bounds.y + result->bounds.height > document_height) {
+      notes << MainWindow::tr("Part of the layer will lie outside the canvas. It is kept, and the Move tool "
+                              "brings it into view.");
+    }
+  }
+  if (!render.new_layers.empty()) {
+    notes << MainWindow::tr("Adds %n new layer(s) when applied. The preview shows only the layers it changes, so "
+                            "the final image can look different.",
+                            nullptr, static_cast<int>(render.new_layers.size()));
+  }
+  if (render.read_only_layers > 0) {
+    notes << MainWindow::tr("%n of the chosen layers cannot be changed (locked, text, shape or Smart Object) and "
+                            "stay as they are.",
+                            nullptr, static_cast<int>(render.read_only_layers));
+  }
+  return notes;
 }
 
 [[nodiscard]] bool same_choice(const std::optional<GmicFilterChoice>& lhs, const GmicFilterChoice& rhs) {
@@ -812,12 +985,12 @@ GmicRenderResult MainWindow::render_gmic_with_progress(const QString& name, cons
   return render;
 }
 
-bool MainWindow::commit_gmic_render(LayerId layer_id, const QString& name, GmicRenderResult& render, Rect bounds) {
+bool MainWindow::commit_gmic_render(LayerId active, const QString& name, GmicRenderResult& render) {
   if (render.aborted) {
     statusBar()->showMessage(tr("Cancelled %1").arg(name));
     return false;
   }
-  if (render.size_refused || render.no_input) {
+  if (gmic_run_was_refused(render) && render.memory_refused_mb == 0) {
     show_status_error(gmic_failure_text(render, name));
     return false;
   }
@@ -827,28 +1000,47 @@ bool MainWindow::commit_gmic_render(LayerId layer_id, const QString& name, GmicR
                           QStringLiteral("gmicErrorMessageBox"));
     return false;
   }
-  if (!render.changed) {
+  if (!render.changed()) {
     statusBar()->showMessage(tr("%1 made no changes").arg(name));
     return true;
   }
   push_undo_snapshot(tr("Filter: %1").arg(name));
   auto& doc = document();
-  if (doc.find_layer(layer_id) == nullptr) {
-    return false;
+  const auto changed_layers = render.layers.size();
+  const auto* main_result = gmic_main_result(render, active);
+  const bool resized = main_result != nullptr && (main_result->bounds.width != main_result->original_bounds.width ||
+                                                  main_result->bounds.height != main_result->original_bounds.height);
+  const Rect new_size = main_result != nullptr ? main_result->bounds : Rect{};
+  QRect dirty;
+  for (const auto& result : render.layers) {
+    dirty = dirty.united(to_qrect(result.original_bounds)).united(to_qrect(result.bounds));
   }
-  const auto new_bounds = render.bounds;
-  const auto added = write_gmic_render(doc, layer_id, render);
+  const auto added = write_gmic_render(doc, render);
   if (added > 0) {
-    doc.set_active_layer(layer_id);
+    if (doc.find_layer(active) != nullptr) {
+      doc.set_active_layer(active);
+    }
     refresh_layer_list();
     refresh_layer_controls();
     canvas_->document_changed();
   } else {
-    canvas_->document_changed(to_qrect(bounds).united(to_qrect(new_bounds)));
+    canvas_->document_changed(dirty);
   }
   schedule_palette_compliance_check();
-  statusBar()->showMessage(added > 0 ? tr("Applied %1 (new layers: %2)").arg(name).arg(static_cast<qulonglong>(added))
-                                     : tr("Applied %1").arg(name));
+  QString message;
+  if (changed_layers > 1) {
+    message = added > 0 ? tr("Applied %1 to %n layer(s) (new layers: %2)", nullptr, static_cast<int>(changed_layers))
+                              .arg(name)
+                              .arg(static_cast<qulonglong>(added))
+                        : tr("Applied %1 to %n layer(s)", nullptr, static_cast<int>(changed_layers)).arg(name);
+  } else if (added > 0) {
+    message = tr("Applied %1 (new layers: %2)").arg(name).arg(static_cast<qulonglong>(added));
+  } else if (resized) {
+    message = tr("Applied %1. The layer is now %2 x %3 pixels.").arg(name).arg(new_size.width).arg(new_size.height);
+  } else {
+    message = tr("Applied %1").arg(name);
+  }
+  statusBar()->showMessage(message);
   return true;
 }
 
@@ -868,16 +1060,11 @@ bool MainWindow::apply_gmic_filter(const std::string& filter_id, const std::vect
     return false;
   }
   const auto& doc = std::as_const(document());
-  const auto* layer = doc.find_layer(*active);
-  if (layer == nullptr) {
-    return false;
-  }
   const char mode = input_mode != 0 ? input_mode : filter->input_mode;
-  const auto input = make_gmic_run_input(doc, *layer, std::make_shared<const PixelBuffer>(layer->pixels()), *filter,
-                                         values, mode, filter_selection(*canvas_));
-  const auto bounds = input.bounds;
+  const auto input = make_gmic_run_input(gmic_layer_snapshots(doc), *active, doc, *filter, values, mode,
+                                         filter_selection(*canvas_));
   auto render = render_gmic_with_progress(name, input);
-  return commit_gmic_render(*active, name, render, bounds);
+  return commit_gmic_render(*active, name, render);
 }
 
 MainWindow::GmicApplyStatus MainWindow::apply_gmic_filter_to_layer(DocumentSession& session, CanvasWidget* canvas,
@@ -917,9 +1104,8 @@ MainWindow::GmicApplyStatus MainWindow::apply_gmic_filter_to_layer(DocumentSessi
     return fail(tr("%1 is unavailable in Quick Mask mode").arg(name));
   }
   const char mode = input_mode != 0 ? input_mode : filter->input_mode;
-  const auto input =
-      make_gmic_run_input(doc, *layer, std::make_shared<const PixelBuffer>(layer->pixels()), *filter, values, mode,
-                          canvas != nullptr ? filter_selection(*canvas) : FilterSelection{});
+  const auto input = make_gmic_run_input(gmic_layer_snapshots(doc), layer_id, doc, *filter, values, mode,
+                                         canvas != nullptr ? filter_selection(*canvas) : FilterSelection{});
   GmicRenderResult render;
   if (show_progress && canvas_ != nullptr) {
     render = render_gmic_with_progress(name, input, keep_running);
@@ -953,7 +1139,7 @@ MainWindow::GmicApplyStatus MainWindow::apply_gmic_filter_to_layer(DocumentSessi
   if (!render.ok) {
     return fail(gmic_failure_text(render, name));
   }
-  if (!render.changed) {
+  if (!render.changed()) {
     return GmicApplyStatus::NoChange;
   }
   if (before_write) {
@@ -962,7 +1148,7 @@ MainWindow::GmicApplyStatus MainWindow::apply_gmic_filter_to_layer(DocumentSessi
   if (session.document.find_layer(layer_id) == nullptr) {
     return fail(tr("Select an editable RGB pixel layer"));
   }
-  const auto added = write_gmic_render(session.document, layer_id, render);
+  const auto added = write_gmic_render(session.document, render);
   if (added_layers != nullptr) {
     *added_layers = added;
   }
@@ -984,34 +1170,18 @@ void MainWindow::gmic_filter_library_dialog() {
     return;
   }
   const auto& catalog = gmic_library().catalog;
-  const auto original_pixels = std::make_shared<const PixelBuffer>(source_layer->pixels());
   const auto bounds = source_layer->bounds();
   const auto selection = filter_selection(*canvas_);
-  const std::string layer_name = source_layer->name();
-  const auto new_layer_format = with_bit_depth(PixelFormat::rgba8(), std::as_const(doc).color_state().bit_depth);
+  // Every layer a filter could read or change, as it is before any preview touches it.
+  // The dialog locks edits, so only its own previews change these layers while it is open.
+  const auto snapshots = std::make_shared<const std::vector<GmicLayerSnapshot>>(gmic_layer_snapshots(doc));
 
   // Built on the UI thread per request: the layers a choice reads are shared,
   // copy-on-write buffers, so this copies no pixels.
-  const auto run_input = [this, active, original_pixels, bounds, selection, layer_name,
-                          new_layer_format](const gmic::Filter& filter, const GmicFilterChoice& choice) {
-    const auto& current = std::as_const(document());
-    GmicRunInput input;
-    input.original = original_pixels;
-    input.bounds = bounds;
-    input.layer_name = layer_name;
-    input.document_space = choice.input_mode != '.';
-    input.document_width = current.width();
-    input.document_height = current.height();
-    if (input.document_space) {
-      set_gmic_input_layers(input, current, *active, choice.input_mode);
-    } else {
-      input.active_input = 0U;
-    }
-    input.selection = selection;
-    input.command = gmic::command_line(filter, choice.values, false);
-    input.filter_name = filter.name;
-    input.new_layer_format = new_layer_format;
-    return input;
+  const auto run_input = [this, active, snapshots, selection](const gmic::Filter& filter,
+                                                               const GmicFilterChoice& choice) {
+    return make_gmic_run_input(*snapshots, *active, std::as_const(document()), filter, choice.values,
+                               choice.input_mode, selection);
   };
 
   GmicFilterLibraryDialog dialog(catalog, gmic_text(gmic::engine_version()), this);
@@ -1027,7 +1197,8 @@ void MainWindow::gmic_filter_library_dialog() {
     // off, so turning it back on shows it again without a new run.
     std::shared_ptr<GmicRenderResult> preview;
     std::optional<GmicFilterChoice> preview_choice;
-    Rect bounds{};  // the bounds the layer shows now
+    // The layers showing a preview now, and the bounds each shows.
+    std::map<LayerId, Rect> layers;
     // The full-quality run in flight: OK for the same settings waits for it instead of
     // starting over.
     std::optional<GmicFilterChoice> full_choice;
@@ -1037,36 +1208,62 @@ void MainWindow::gmic_filter_library_dialog() {
     bool enabled{true};   // the Preview box
   };
   auto shown = std::make_shared<Shown>();
-  shown->bounds = bounds;
   auto preview_state = std::make_shared<AsyncPixelPreviewState<GmicPreviewRequest>>();
   // A stale run stops at the interpreter's next check, which can take seconds; the newest
   // settings start at once beside it. Beyond this many runs a new request waits.
   constexpr int kMaxLivePreviewRuns = 2;
 
   const QPointer<MainWindow> self(this);
-  const auto put_on_layer = [self, active, shown](const GmicRenderResult& render) {
-    if (self == nullptr) {
-      return;
-    }
-    if (auto* layer = self->document().find_layer(*active); layer != nullptr) {
-      set_layer_pixels_with_bounds(*layer, PixelBuffer(render.pixels), render.bounds);
-      if (self->canvas_ != nullptr) {
-        self->canvas_->document_changed(to_qrect(shown->bounds).united(to_qrect(render.bounds)));
+  // Puts the layers back that show a preview and are not in `keep`, and adds the area
+  // they covered to `dirty`.
+  const auto restore_layers = [self, snapshots, shown](const std::set<LayerId>& keep, QRect& dirty) {
+    for (auto it = shown->layers.begin(); it != shown->layers.end();) {
+      if (keep.count(it->first) > 0) {
+        ++it;
+        continue;
       }
-      shown->bounds = render.bounds;
+      const auto snapshot =
+          std::find_if(snapshots->begin(), snapshots->end(),
+                       [id = it->first](const GmicLayerSnapshot& candidate) { return candidate.id == id; });
+      if (auto* layer = self->document().find_layer(it->first); layer != nullptr && snapshot != snapshots->end()) {
+        set_layer_pixels_preserving_origin(*layer, *snapshot->pixels, snapshot->bounds);
+        dirty = dirty.united(to_qrect(it->second)).united(to_qrect(snapshot->bounds));
+      }
+      it = shown->layers.erase(it);
     }
   };
-  const auto show_original_pixels = [self, active, original_pixels, bounds, shown] {
+  const auto put_on_layer = [self, shown, restore_layers](const GmicRenderResult& render) {
     if (self == nullptr) {
       return;
     }
-    if (auto* layer = self->document().find_layer(*active); layer != nullptr) {
-      set_layer_pixels_preserving_origin(*layer, *original_pixels, bounds);
-      if (self->canvas_ != nullptr) {
-        self->canvas_->document_changed(to_qrect(shown->bounds).united(to_qrect(bounds)));
+    std::set<LayerId> changed;
+    for (const auto& result : render.layers) {
+      changed.insert(result.id);
+    }
+    QRect dirty;
+    restore_layers(changed, dirty);
+    for (const auto& result : render.layers) {
+      if (auto* layer = self->document().find_layer(result.id); layer != nullptr) {
+        set_layer_pixels_with_bounds(*layer, PixelBuffer(result.pixels), result.bounds);
+        const auto before = shown->layers.find(result.id);
+        dirty = dirty.united(to_qrect(before != shown->layers.end() ? before->second : result.original_bounds))
+                    .united(to_qrect(result.bounds));
+        shown->layers[result.id] = result.bounds;
       }
     }
-    shown->bounds = bounds;
+    if (self->canvas_ != nullptr && !dirty.isEmpty()) {
+      self->canvas_->document_changed(dirty);
+    }
+  };
+  const auto show_original_pixels = [self, restore_layers] {
+    if (self == nullptr) {
+      return;
+    }
+    QRect dirty;
+    restore_layers({}, dirty);
+    if (self->canvas_ != nullptr && !dirty.isEmpty()) {
+      self->canvas_->document_changed(dirty);
+    }
   };
   const auto show_original = [show_original_pixels, shown] {
     show_original_pixels();
@@ -1106,6 +1303,9 @@ void MainWindow::gmic_filter_library_dialog() {
       shown->full_result = promise->get_future().share();
     }
     const QString name = gmic_text(filter->name);
+    const LayerId active_id = input.active;
+    const int document_width = input.document_width;
+    const int document_height = input.document_height;
     auto* app = QCoreApplication::instance();
     const auto window = QPointer<MainWindow>(this);
     if (canvas_ != nullptr) {
@@ -1114,7 +1314,7 @@ void MainWindow::gmic_filter_library_dialog() {
     }
     run_tracked_background_worker([app, window, preview_state, shown, put_on_layer, show_original, dialog_guard,
                                    generation, control, choice, name, stage, megapixels, promise, weak_launch,
-                                   input = std::move(input)] {
+                                   active_id, document_width, document_height, input = std::move(input)] {
       const auto started = std::chrono::steady_clock::now();
       auto render = std::make_shared<GmicRenderResult>(render_gmic_filter(input, control.get()));
       const double elapsed_ms =
@@ -1126,7 +1326,7 @@ void MainWindow::gmic_filter_library_dialog() {
       QMetaObject::invokeMethod(
           app,
           [window, preview_state, shown, put_on_layer, show_original, dialog_guard, generation, control, choice,
-           name, stage, megapixels, elapsed_ms, weak_launch, render] {
+           name, stage, megapixels, elapsed_ms, weak_launch, active_id, document_width, document_height, render] {
             --shown->live_runs;
             preview_state->in_flight = shown->live_runs > 0;
             if (shown->running == control) {
@@ -1171,7 +1371,9 @@ void MainWindow::gmic_filter_library_dialog() {
                   if (shown->enabled) {
                     put_on_layer(*render);
                     ++window->gmic_draft_previews_shown_;
-                    window->gmic_last_draft_bounds_ = render->bounds;
+                    if (const auto* main = gmic_main_result(*render, active_id); main != nullptr) {
+                      window->gmic_last_draft_bounds_ = main->bounds;
+                    }
                   }
                 }
                 if (const auto relaunch = weak_launch.lock(); relaunch != nullptr) {
@@ -1183,13 +1385,11 @@ void MainWindow::gmic_filter_library_dialog() {
               shown->render = render;
               shown->choice = choice;
               if (dialog_guard != nullptr) {
-                // The canvas previews the active layer only; layers a filter adds
-                // appear when it is applied.
-                dialog_guard->set_preview_message(
-                    render->new_layers.empty()
-                        ? QString()
-                        : MainWindow::tr("New layers on apply: %1")
-                              .arg(static_cast<qulonglong>(render->new_layers.size())));
+                // The canvas shows the changed layers only; what else applying will do
+                // (layers added, a layer resized) is spelled out under the filter's name.
+                dialog_guard->set_preview_message(QString());
+                dialog_guard->set_result_notes(
+                    gmic_result_notes(*render, active_id, document_width, document_height));
                 if (untouched) {
                   // A filter may return new values for its own controls, and a pressed
                   // button has been used; what is shown is the result for those settings.
@@ -1212,6 +1412,7 @@ void MainWindow::gmic_filter_library_dialog() {
                 if (untouched) {
                   dialog_guard->release_buttons();
                 }
+                dialog_guard->set_result_notes({});
                 dialog_guard->set_preview_message(
                     gmic_run_was_refused(*render)
                         ? gmic_failure_text(*render, name)
@@ -1239,14 +1440,15 @@ void MainWindow::gmic_filter_library_dialog() {
       show_original();
       if (dialog_guard != nullptr) {
         dialog_guard->set_preview_message(QString());
+        dialog_guard->set_result_notes({});
       }
       return;
     }
     const auto generation = ++preview_state->generation;
-    // A draft is worth its extra run when the image is large, the active layer is among
-    // the input (a draft shows nothing else), and the full run is not known to be quick.
+    // A draft is worth its extra run when the image is large, the filter may change one of
+    // the layers (a draft shows nothing else), and the full run is not known to be quick.
     const auto input = run_input(*filter, *request.choice);
-    bool draft = gmic_draft_scale(input) < 1.0 && input.active_input.has_value();
+    bool draft = gmic_draft_scale(input) < 1.0 && gmic_has_writable_input(input);
     if (const auto measured = gmic_full_ms_per_megapixel_.find(request.choice->filter_id);
         draft && measured != gmic_full_ms_per_megapixel_.end()) {
       draft = measured->second * gmic_input_megapixels(input) >= 400.0;
@@ -1314,10 +1516,11 @@ void MainWindow::gmic_filter_library_dialog() {
   });
 
   // Point parameters become draggable markers on the canvas. A position is a percentage
-  // of the image the filter works on: the active layer, or the document when it reads
-  // several layers.
+  // of the image the filter works on: the active layer (each chosen layer gets the same
+  // percentages of its own), or the document when the layers are lined up.
   const QPointer<CanvasWidget> handle_canvas(canvas_);
-  dialog.set_points_callback([this, handle_canvas, dialog_guard, bounds](const std::vector<QPointF>& percent) {
+  dialog.set_points_callback([this, handle_canvas, dialog_guard, bounds, run_input,
+                              &catalog](const std::vector<QPointF>& percent) {
     if (handle_canvas == nullptr) {
       return;
     }
@@ -1326,9 +1529,11 @@ void MainWindow::gmic_filter_library_dialog() {
       handle_canvas->clear_preview_point_handles();
       return;
     }
-    const QRectF frame = choice->input_mode == '.'
-                             ? QRectF(bounds.x, bounds.y, bounds.width, bounds.height)
-                             : QRectF(0, 0, std::as_const(document()).width(), std::as_const(document()).height());
+    const auto* filter = catalog.find(choice->filter_id);
+    const bool lined_up = filter != nullptr && run_input(*filter, *choice).document_space;
+    const QRectF frame = lined_up
+                             ? QRectF(0, 0, std::as_const(document()).width(), std::as_const(document()).height())
+                             : QRectF(bounds.x, bounds.y, bounds.width, bounds.height);
     std::vector<QPointF> positions;
     positions.reserve(percent.size());
     for (const auto& point : percent) {
@@ -1367,11 +1572,13 @@ void MainWindow::gmic_filter_library_dialog() {
   progress_timer.start();
 
   auto preview_edit_lock = lock_preview_dialog_edits();
-  auto preview_cleanup = qScopeGuard([this, &doc, preview_state, shown, original = *source_layer] {
+  auto preview_cleanup = qScopeGuard([this, &doc, preview_state, shown, show_original_pixels,
+                                      original = *source_layer] {
     close_async_pixel_preview(preview_state);
     if (shown->running != nullptr) {
       shown->running->abort.store(true);
     }
+    show_original_pixels();
     if (auto* target = doc.find_layer(original.id()); target != nullptr) {
       *target = original;
       canvas_->document_changed();
@@ -1423,7 +1630,7 @@ void MainWindow::gmic_filter_library_dialog() {
   last_gmic_input_mode_ = choice->input_mode;
   const QString name = gmic_text(filter->name);
   if (ready != nullptr) {
-    commit_gmic_render(*active, name, *ready, bounds);
+    commit_gmic_render(*active, name, *ready);
     return;
   }
   if (adopted_control != nullptr) {
@@ -1432,11 +1639,11 @@ void MainWindow::gmic_filter_library_dialog() {
     });
     // The worker's own completion is ignored now (the preview is closed), so this result
     // has no other user.
-    commit_gmic_render(*active, name, *adopted_result.get(), bounds);
+    commit_gmic_render(*active, name, *adopted_result.get());
     return;
   }
   auto render = render_gmic_with_progress(name, run_input(*filter, *choice));
-  commit_gmic_render(*active, name, render, bounds);
+  commit_gmic_render(*active, name, render);
 }
 
 }  // namespace patchy::ui

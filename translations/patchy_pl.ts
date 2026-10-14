@@ -11599,6 +11599,46 @@ RGB: %2, %3, %4</translation>
         <source>All hidden layers</source>
         <translation>Wszystkie ukryte warstwy</translation>
     </message>
+    <message>
+        <source>The layers the filter works on. A filter made for one image is applied to each chosen layer in turn; a filter made for several layers, such as the Blend filters, combines them. Locked, text, shape and Smart Object layers are read but never changed.</source>
+        <translation>Warstwy, na których działa filtr. Filtr przeznaczony dla jednego obrazu jest stosowany kolejno do każdej wybranej warstwy; filtr przeznaczony dla wielu warstw, np. filtry Blend, łączy je. Warstwy zablokowane, tekstowe, kształtów i obiektów inteligentnych są odczytywane, ale nigdy nie są zmieniane.</translation>
+    </message>
+    <message>
+        <source>About G&apos;MIC...</source>
+        <translation>O G&apos;MIC...</translation>
+    </message>
+    <message>
+        <source>About G&apos;MIC</source>
+        <translation>O G&apos;MIC</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC %1</source>
+        <translation>G&apos;MIC %1</translation>
+    </message>
+    <message numerus="yes">
+        <source>G&apos;MIC (GREYC&apos;s Magic for Image Computing) is a free, open-source framework for image processing. Patchy includes its interpreter and %n of the filters from its standard library, and runs them in this Patchy dialog.</source>
+        <translation>
+            <numerusform>G&apos;MIC (GREYC&apos;s Magic for Image Computing) to darmowe środowisko open source do przetwarzania obrazów. Patchy zawiera jego interpreter i %n filtr z jego biblioteki standardowej i uruchamia je w tym oknie Patchy.</numerusform>
+            <numerusform>G&apos;MIC (GREYC&apos;s Magic for Image Computing) to darmowe środowisko open source do przetwarzania obrazów. Patchy zawiera jego interpreter i %n filtry z jego biblioteki standardowej i uruchamia je w tym oknie Patchy.</numerusform>
+            <numerusform>G&apos;MIC (GREYC&apos;s Magic for Image Computing) to darmowe środowisko open source do przetwarzania obrazów. Patchy zawiera jego interpreter i %n filtrów z jego biblioteki standardowej i uruchamia je w tym oknie Patchy.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>G&apos;MIC is made by David Tschumperlé and the Image Team of the GREYC laboratory in Caen, France, with filters written by many contributors. Most filters name their authors at the end of their settings.</source>
+        <translation>G&apos;MIC tworzą David Tschumperlé i Image Team laboratorium GREYC w Caen we Francji, a filtry napisało wielu współtwórców. Większość filtrów podaje swoich autorów na końcu ustawień.</translation>
+    </message>
+    <message>
+        <source>How to say it: its author pronounces it like the English word &quot;gimmick&quot;, a nod to the magic in its name, and says any pronunciation is fine.</source>
+        <translation>Wymowa: autor wymawia tę nazwę jak angielskie słowo „gimmick”, nawiązując do magii w nazwie, i mówi, że każda wymowa jest dobra.</translation>
+    </message>
+    <message>
+        <source>G&apos;MIC is distributed under the CeCILL-C license, and its license text is included with Patchy. Questions about how Patchy runs a filter belong with Patchy, not the G&apos;MIC team.</source>
+        <translation>G&apos;MIC jest rozpowszechniany na licencji CeCILL-C, a jej tekst jest dołączony do Patchy. Pytania o to, jak Patchy uruchamia filtr, należy kierować do Patchy, a nie do zespołu G&apos;MIC.</translation>
+    </message>
+    <message>
+        <source>Visit the G&apos;MIC website (gmic.eu)</source>
+        <translation>Odwiedź stronę G&apos;MIC (gmic.eu)</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::GmicParameterPanel</name>
@@ -20232,10 +20272,6 @@ Nadal możesz pobrać ją w przeglądarce.</translation>
         <translation>Zastosowano %1 (nowe warstwy: %2)</translation>
     </message>
     <message>
-        <source>New layers on apply: %1</source>
-        <translation>Nowe warstwy po zastosowaniu: %1</translation>
-    </message>
-    <message>
         <source>No layer matches the chosen input layers.</source>
         <translation>Żadna warstwa nie odpowiada wybranym warstwom wejściowym.</translation>
     </message>
@@ -20266,6 +20302,66 @@ Nadal możesz pobrać ją w przeglądarce.</translation>
     <message>
         <source>How often Patchy looks for a new version when it starts. The About window always checks.</source>
         <translation>Jak często Patchy szuka nowej wersji podczas uruchamiania. Okno „O programie” sprawdza zawsze.</translation>
+    </message>
+    <message>
+        <source>None of the chosen layers can be changed. Locked, text, shape and Smart Object layers stay as they are.</source>
+        <translation>Żadnej z wybranych warstw nie można zmienić. Warstwy zablokowane, tekstowe, kształtów i obiektów inteligentnych pozostają bez zmian.</translation>
+    </message>
+    <message>
+        <source>Combines the chosen layers into the active layer. The other layers stay as they are.</source>
+        <translation>Łączy wybrane warstwy w warstwie aktywnej. Pozostałe warstwy pozostają bez zmian.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Changes %n layer(s).</source>
+        <translation>
+            <numerusform>Zmienia %n warstwę.</numerusform>
+            <numerusform>Zmienia %n warstwy.</numerusform>
+            <numerusform>Zmienia %n warstw.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Changes the layer size from %1 x %2 to %3 x %4 pixels.</source>
+        <translation>Zmienia rozmiar warstwy z %1 x %2 na %3 x %4 pikseli.</translation>
+    </message>
+    <message>
+        <source>Part of the layer will lie outside the canvas. It is kept, and the Move tool brings it into view.</source>
+        <translation>Część warstwy znajdzie się poza płótnem. Zostanie zachowana, a narzędzie Przesunięcie pozwala ją z powrotem pokazać.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Adds %n new layer(s) when applied. The preview shows only the layers it changes, so the final image can look different.</source>
+        <translation>
+            <numerusform>Po zastosowaniu dodaje %n nową warstwę. Podgląd pokazuje tylko zmieniane warstwy, więc obraz końcowy może wyglądać inaczej.</numerusform>
+            <numerusform>Po zastosowaniu dodaje %n nowe warstwy. Podgląd pokazuje tylko zmieniane warstwy, więc obraz końcowy może wyglądać inaczej.</numerusform>
+            <numerusform>Po zastosowaniu dodaje %n nowych warstw. Podgląd pokazuje tylko zmieniane warstwy, więc obraz końcowy może wyglądać inaczej.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n of the chosen layers cannot be changed (locked, text, shape or Smart Object) and stay as they are.</source>
+        <translation>
+            <numerusform>%n z wybranych warstw nie można zmienić (zablokowana, tekst, kształt lub obiekt inteligentny), więc pozostaje bez zmian.</numerusform>
+            <numerusform>%n z wybranych warstw nie można zmienić (zablokowane, tekst, kształt lub obiekt inteligentny), więc pozostają bez zmian.</numerusform>
+            <numerusform>%n z wybranych warstw nie można zmienić (zablokowane, tekst, kształt lub obiekt inteligentny), więc pozostaje bez zmian.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Applied %1 to %n layer(s) (new layers: %2)</source>
+        <translation>
+            <numerusform>Zastosowano %1 do %n warstwy (nowe warstwy: %2)</numerusform>
+            <numerusform>Zastosowano %1 do %n warstw (nowe warstwy: %2)</numerusform>
+            <numerusform>Zastosowano %1 do %n warstw (nowe warstwy: %2)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Applied %1 to %n layer(s)</source>
+        <translation>
+            <numerusform>Zastosowano %1 do %n warstwy</numerusform>
+            <numerusform>Zastosowano %1 do %n warstw</numerusform>
+            <numerusform>Zastosowano %1 do %n warstw</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Applied %1. The layer is now %2 x %3 pixels.</source>
+        <translation>Zastosowano %1. Warstwa ma teraz %2 x %3 pikseli.</translation>
     </message>
 </context>
 <context>

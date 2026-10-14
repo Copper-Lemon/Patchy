@@ -417,19 +417,21 @@ interface PatchyLayer {
    * left out uses the filter's default. A value has the kind list() reports as the
    * default: a number, a boolean, a choice's index or label, "#rrggbb" / "#rrggbbaa" or
    * [r, g, b, a] for a color, [x, y] in percent for a point, a string for text.
-   * `inputLayers` names the layers the filter reads ("active", "activeAndBelow",
-   * "activeAndAbove", "all", "visible", "hidden"); the default is the filter's own.
-   * "visible" and "hidden" follow what the document shows, enclosing folders included.
-   * Only this layer is changed. A filter that works on each layer it reads gives this
-   * layer its own result; a filter that merges its input replaces this layer with the
-   * merged image; every further result becomes a new layer above it. Layers that were
-   * only read are never changed. When this layer is not among the layers read (a visible
-   * layer with "hidden"), it keeps its pixels and every result is a new layer. Returns
-   * the number of layers added.
+   * `inputLayers` names the layers the filter works on, counted from this layer
+   * ("active", "activeAndBelow", "activeAndAbove", "all", "visible", "hidden"); the
+   * default is the filter's own. "visible" and "hidden" follow what the document shows,
+   * enclosing folders included. Every chosen layer the filter may change is changed, as
+   * one undo step: a filter made for one image runs on each chosen layer alone, at its
+   * own size, as if applied to each in turn, and any further image it returns becomes a
+   * new layer above that layer. A filter made for several layers (its list() entry's
+   * `inputLayers` is not "active") gets them lined up on the document; if it combines
+   * them, the result replaces this layer and the others stay as they are. Locked, text,
+   * shape and Smart Object layers among the chosen ones are read but never changed.
+   * Returns the number of layers added.
    * Throws when the filter is unknown, a value does not fit, the filter fails, no layer
-   * matches `inputLayers`, the run would not fit in memory, the layer is a text, shape or
-   * Smart Object layer or has locked pixels, Quick Mask is on, or the build has no G'MIC
-   * engine (patchy.gmic.available).
+   * matches `inputLayers` or none of them may be changed, the run would not fit in memory,
+   * this layer is a text, shape or Smart Object layer or has locked pixels, Quick Mask is
+   * on, or the build has no G'MIC engine (patchy.gmic.available).
    */
   applyGmic(
     filterId: string,
