@@ -1,5 +1,6 @@
 #include "formats/animation_timing.hpp"
 #include "formats/webp_animation_io.hpp"
+#include "color/color_management.hpp"
 #include "ui/qt_paths.hpp"
 #include "unicode_path_names.hpp"
 #include "ui/canvas_widget.hpp"
@@ -173,6 +174,7 @@
 #include <QTextFragment>
 #include <QTextLayout>
 #include <QTimer>
+#include <QScopeGuard>
 #include <QToolBar>
 #include <QToolButton>
 #include <QTreeWidget>
@@ -686,6 +688,101 @@ void ui_image_save_options_defaults_and_dialogs() {
   CHECK(bmp_options->bmp_encoding == patchy::bmp::BmpEncoding::Indexed8);
   CHECK(bmp_options->bmp_palette_mode == patchy::bmp::BmpPaletteMode::PaletteFile);
   CHECK(bmp_options->bmp_palette_path == QStringLiteral("test-artifacts/other_palette.pal"));
+
+  settings.remove(QStringLiteral("saveOptions"));
+  settings.sync();
+}
+
+// The Export dialog's Color row (issue 90): offered for JPEG, TIFF and PDF, remembered per
+// format, never part of Save As.
+void ui_export_dialog_offers_cmyk_for_print_formats() {
+  auto settings = patchy::ui::app_settings();
+  settings.remove(QStringLiteral("saveOptions"));
+  settings.sync();
+  const auto previous = patchy::working_cmyk_space();
+  const auto restore = qScopeGuard([&previous] { patchy::set_working_cmyk_space(previous); });
+  patchy::set_working_cmyk_space(patchy::CmykWorkingSpace::from_icc_profile(
+      patchy::ui::bundled_cmyk_profile(), patchy::RenderingIntent::RelativeColorimetric, true));
+
+  const auto run_export_dialog = [](const QString& extension, const std::function<void(QDialog&)>& drive) {
+    bool seen = false;
+    QTimer::singleShot(0, [&] {
+      for (auto* widget : QApplication::topLevelWidgets()) {
+        auto* dialog = qobject_cast<QDialog*>(widget);
+        if (dialog != nullptr && dialog->isVisible()) {
+          seen = true;
+          drive(*dialog);
+          return;
+        }
+      }
+    });
+    auto result = patchy::ui::prompt_image_save_options(nullptr, extension, patchy::ui::ImageSaveOptions{}, true,
+                                                        QSize(40, 30));
+    CHECK(seen);
+    return result;
+  };
+
+  const auto jpeg = run_export_dialog(QStringLiteral("jpg"), [](QDialog& dialog) {
+    auto* color = dialog.findChild<QComboBox*>(QStringLiteral("exportColorCombo"));
+    CHECK(color != nullptr);
+    CHECK(color->count() == 2);
+    CHECK(color->currentData().toString() == QStringLiteral("rgb"));
+    CHECK(color->itemText(1).contains(QStringLiteral("ISO Coated v2")));
+    auto* black_ink_only = dialog.findChild<QCheckBox*>(QStringLiteral("exportBlackInkOnlyCheck"));
+    CHECK(black_ink_only != nullptr);
+    CHECK(!black_ink_only->isChecked() && !black_ink_only->isEnabled());
+    color->setCurrentIndex(1);
+    CHECK(black_ink_only->isEnabled());
+    black_ink_only->setChecked(true);
+    dialog.accept();
+  });
+  CHECK(jpeg.has_value() && jpeg->export_cmyk && jpeg->export_black_ink_only);
+  CHECK(settings.value(QStringLiteral("saveOptions/exportColorJpeg")).toString() == QStringLiteral("cmyk"));
+  CHECK(settings.value(QStringLiteral("saveOptions/exportBlackInkOnlyJpeg")).toBool());
+
+  // Remembered for JPEG, not carried over to TIFF.
+  const auto tiff = run_export_dialog(QStringLiteral("tif"), [](QDialog& dialog) {
+    auto* color = dialog.findChild<QComboBox*>(QStringLiteral("exportColorCombo"));
+    CHECK(color != nullptr);
+    CHECK(color->currentData().toString() == QStringLiteral("rgb"));
+    dialog.accept();
+  });
+  CHECK(tiff.has_value() && !tiff->export_cmyk && !tiff->export_black_ink_only);
+  const auto jpeg_again = run_export_dialog(QStringLiteral("jpeg"), [](QDialog& dialog) {
+    CHECK(dialog.findChild<QComboBox*>(QStringLiteral("exportColorCombo"))->currentData().toString() ==
+          QStringLiteral("cmyk"));
+    CHECK(dialog.findChild<QCheckBox*>(QStringLiteral("exportBlackInkOnlyCheck"))->isChecked());
+    dialog.accept();
+  });
+  CHECK(jpeg_again.has_value() && jpeg_again->export_cmyk && jpeg_again->export_black_ink_only);
+
+  // PNG has no CMYK form, and a Save As prompt never offers the row.
+  run_export_dialog(QStringLiteral("png"), [](QDialog& dialog) {
+    CHECK(dialog.findChild<QComboBox*>(QStringLiteral("exportColorCombo")) == nullptr);
+    dialog.accept();
+  });
+  bool save_as_seen = false;
+  QTimer::singleShot(0, [&save_as_seen] {
+    auto* dialog = find_top_level_dialog(QStringLiteral("jpegSaveOptionsDialog"));
+    CHECK(dialog != nullptr);
+    CHECK(dialog->findChild<QComboBox*>(QStringLiteral("exportColorCombo")) == nullptr);
+    save_as_seen = true;
+    dialog->accept();
+  });
+  const auto save_as = patchy::ui::prompt_image_save_options(nullptr, QStringLiteral("jpg"), *jpeg_again);
+  CHECK(save_as_seen);
+  CHECK(save_as.has_value() && !save_as->export_cmyk && !save_as->export_black_ink_only);
+
+  // Without a profile the CMYK entry is there but cannot be chosen.
+  patchy::set_working_cmyk_space(patchy::CmykWorkingSpace::formula());
+  const auto formula = run_export_dialog(QStringLiteral("jpg"), [](QDialog& dialog) {
+    auto* color = dialog.findChild<QComboBox*>(QStringLiteral("exportColorCombo"));
+    CHECK(color->currentData().toString() == QStringLiteral("rgb"));
+    auto* model = qobject_cast<QStandardItemModel*>(color->model());
+    CHECK(model != nullptr && !model->item(1)->isEnabled());
+    dialog.accept();
+  });
+  CHECK(formula.has_value() && !formula->export_cmyk);
 
   settings.remove(QStringLiteral("saveOptions"));
   settings.sync();
@@ -3041,6 +3138,7 @@ std::vector<patchy::test::TestCase> flat_image_format_tests() {
        ui_image_save_options_write_bmp_alpha_and_jpeg_quality},
       {"ui_flat_alpha_round_trips_as_editable_mask", ui_flat_alpha_round_trips_as_editable_mask},
       {"ui_image_save_options_defaults_and_dialogs", ui_image_save_options_defaults_and_dialogs},
+      {"ui_export_dialog_offers_cmyk_for_print_formats", ui_export_dialog_offers_cmyk_for_print_formats},
       {"ui_ico_export_dialog_sizes_and_resample", ui_ico_export_dialog_sizes_and_resample},
       {"ui_ico_real_world_fixtures_decode_png_entries", ui_ico_real_world_fixtures_decode_png_entries},
       {"ui_gif_export_round_trips_through_qt_reader", ui_gif_export_round_trips_through_qt_reader},

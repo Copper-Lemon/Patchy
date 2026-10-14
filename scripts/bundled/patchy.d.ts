@@ -661,6 +661,16 @@ interface PatchySaveOptions {
    *  copyright and creator contact fields; "none" writes no metadata. The color profile
    *  and resolution are always written. */
   metadata?: "all" | "copyright" | "none";
+  /** .jpg/.jpeg, .tif/.tiff, .pdf (flattened pages only): "cmyk" writes the image in CMYK
+   *  for print, separated through the working CMYK profile (app.cmykProfile) and with that
+   *  profile embedded; transparent areas become paper white and 16/32-bit documents are
+   *  written at 8 bits per ink. "rgb" is the default. Throws when the user chose no CMYK
+   *  profile. Meant for exportAs: Patchy opens a CMYK file as RGB again. */
+  colorMode?: "rgb" | "cmyk";
+  /** With colorMode "cmyk": black, grays and black-ink colors print with black ink alone
+   *  instead of four-ink rich black, so small text stays sharp. Colors still separate
+   *  through the profile. Default false; throws without colorMode "cmyk". */
+  blackInkOnly?: boolean;
 }
 
 /** File > File Info fields (doc.fileInfo, doc.setFileInfo). Strings are empty and arrays
@@ -993,6 +1003,29 @@ interface PatchyApp {
   /** Every registered command id, sorted. */
   commandIds(): string[];
   /**
+   * The working CMYK space: the profile Preferences > Application > CMYK selects. Patchy
+   * edits in RGB; this space is what CMYK numbers mean in the color picker, the Info
+   * panel, CMYK swatches, and the two conversions below. name is the profile's own
+   * description, empty when hasProfile is false (the user chose no profile, and conversions
+   * use an approximate formula). intent is "perceptual", "relative-colorimetric",
+   * "saturation" or "absolute-colorimetric".
+   */
+  readonly cmykProfile: {name: string; hasProfile: boolean; intent: string; blackPointCompensation: boolean};
+  /** Ink percentages (0 to 100, unrounded) for a color in the working CMYK space. Alpha is ignored. */
+  colorToCmyk(color: string): {c: number; m: number; y: number; k: number};
+  /**
+   * The "#rrggbb" color for ink percentages in the working CMYK space. Throws for a value
+   * outside 0 to 100. RGB cannot hold every ink mix, so colorToCmyk of the result can
+   * return different numbers.
+   */
+  cmykToColor(c: number, m: number, y: number, k: number): string;
+  /**
+   * Whether the working CMYK profile can reproduce a color: false for the colors View >
+   * Gamut Warning marks. The gamut edge is approximate. Always true when cmykProfile.hasProfile
+   * is false.
+   */
+  colorInCmykGamut(color: string): boolean;
+  /**
    * Downloads Object Selection's High Quality model (234 MB from GitHub, kept in Patchy's
    * per-user data folder) when it is missing; the call waits, showing progress in the status
    * bar. Returns true once the model is present (immediately if it already is). Throws on a
@@ -1163,6 +1196,18 @@ interface PatchyUi {
   zoom: number;
   /** View > Fit on Screen for the active document; throws with no document. */
   fitOnScreen(): void;
+  /**
+   * View > Proof Colors: shows every canvas as the working CMYK profile (app.cmykProfile)
+   * would print it. Application-wide, not saved, and a view only: pixels, previews, saves
+   * and exports are unchanged, so only window captures see it. Stays false when set
+   * without a CMYK profile.
+   */
+  proofColors: boolean;
+  /**
+   * View > Gamut Warning: paints colors the working CMYK profile cannot reproduce flat
+   * gray on the canvas. Same scope and limits as proofColors.
+   */
+  gamutWarning: boolean;
   /** Show completed edits now; optionally hold the frame for 0..1000 ms (default 0).
    * Services Stop and painting without reentering script callbacks or adding history.
    * Upload edited arrays with setPixels first. Headless work does not need pacing.

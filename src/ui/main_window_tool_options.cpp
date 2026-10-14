@@ -13,6 +13,7 @@
 
 #include "ui/main_window.hpp"
 #include "ui/main_window_shared.hpp"
+#include "ui/options_flow_layout.hpp"
 
 #include "core/blend_math.hpp"
 #include "core/layer_metadata.hpp"
@@ -2572,6 +2573,57 @@ void MainWindow::register_option_action(QWidget* widget, std::initializer_list<C
   option_actions_.emplace_back(widget, std::vector<CanvasTool>(tools.begin(), tools.end()));
 }
 
+void MainWindow::refresh_options_bar_rows(bool live_shape) {
+  if (options_flow_container_ == nullptr) {
+    return;
+  }
+  // The rows depend on the vector mode, the live shape layer, the crop style and
+  // the registered widgets; the active tool does not change them.
+  const auto key = static_cast<qint64>(live_shape) | (static_cast<qint64>(current_vector_tool_mode_) << 1) |
+                   (static_cast<qint64>(current_crop_style_) << 4) |
+                   (static_cast<qint64>(option_actions_.size()) << 8);
+  if (key == options_bar_rows_key_) {
+    return;
+  }
+  options_bar_rows_key_ = key;
+  std::vector<CanvasTool> tools;
+  for (const auto& [widget, widget_tools] : option_actions_) {
+    for (const auto tool : widget_tools) {
+      if (std::find(tools.begin(), tools.end(), tool) == tools.end()) {
+        tools.push_back(tool);
+      }
+    }
+  }
+  std::vector<QSet<QWidget*>> rows;
+  for (const auto tool : tools) {
+    const auto rules = vector_option_mode_rules(tool, live_shape);
+    QSet<QWidget*> row;
+    for (const auto& [widget, widget_tools] : option_actions_) {
+      const bool tool_matches =
+          widget_tools.empty() || std::find(widget_tools.begin(), widget_tools.end(), tool) != widget_tools.end();
+      if (widget != nullptr && tool_matches && vector_option_widget_visible(rules, widget, tool) &&
+          crop_option_widget_visible(widget)) {
+        row.insert(widget);
+      }
+    }
+    // Reserve room for the text session's apply/cancel pair, so opening an
+    // editor never grows the bar either.
+    if (tool == CanvasTool::Text) {
+      for (QWidget* button : {static_cast<QWidget*>(text_apply_button_), static_cast<QWidget*>(text_cancel_button_)}) {
+        if (button != nullptr) {
+          row.insert(button);
+        }
+      }
+    }
+    if (std::find(rows.begin(), rows.end(), row) == rows.end()) {
+      rows.push_back(std::move(row));
+    }
+  }
+  if (auto* flow = dynamic_cast<FlowLayout*>(options_flow_container_->layout()); flow != nullptr) {
+    flow->set_rows(std::move(rows));
+  }
+}
+
 void MainWindow::refresh_options_bar() {
   // Runs on every passive transform-box change (each Move-tool press), so it
   // reports under PATCHY_UI_PROFILE=1 like the other per-interaction refreshes.
@@ -2589,6 +2641,15 @@ void MainWindow::refresh_options_bar() {
   // per-mode hide of the shape tools' raster-only controls) wrapped the bar
   // onto a second row and pushed the canvas down for one painted frame.
   const auto mode_rules = vector_option_mode_rules();
+  // GitHub issue 91: the bar takes the height of the tallest tool row at this
+  // width, and the inline sliders that duplicate a spin box drop out first when
+  // a row carrying one would wrap.
+  bool collapse_sliders = false;
+  if (options_flow_container_ != nullptr) {
+    refresh_options_bar_rows(mode_rules.live_shape);
+    collapse_sliders = options_flow_container_->wants_collapse();
+    options_flow_container_->set_collapse_applied(collapse_sliders);
+  }
   const auto final_visibility = [&](QWidget* widget, const std::vector<CanvasTool>& tools) {
     // A transform/warp session owns the options bar (Photoshop behavior): the
     // tool's own controls are unusable while one runs (the canvas consumes every
@@ -2596,7 +2657,8 @@ void MainWindow::refresh_options_bar() {
     // wrapping the bar onto a second row (which shifted the canvas down).
     const auto tool_matches = tools.empty() || std::find(tools.begin(), tools.end(), current_tool_) != tools.end();
     return tool_matches && !transform_session_active && vector_option_widget_visible(mode_rules, widget) &&
-           crop_option_widget_visible(widget);
+           crop_option_widget_visible(widget) &&
+           !(collapse_sliders && widget->property(kOptionsBarCollapsibleProperty).toBool());
   };
   for (const auto& [widget, tools] : option_actions_) {
     if (widget != nullptr && !final_visibility(widget, tools) && !widget->isHidden()) {

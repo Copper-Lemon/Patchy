@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/icc">
+    <file alias="ISOcoated_v2_bas.ICC">../../third_party/icc/basiccolor/ISOcoated_v2_bas.ICC</file>
+    <file alias="LICENSE-ZLIB-bICC">../../third_party/icc/basiccolor/LICENSE-ZLIB-bICC</file>
+  </qresource>
+</RCC>

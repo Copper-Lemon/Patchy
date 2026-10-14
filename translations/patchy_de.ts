@@ -9844,6 +9844,30 @@ RGB: %2, %3, %4</translation>
         <translation>Einzuschließende Metadaten aus den Dateiinformationen. Farbprofil und Auflösung bleiben immer erhalten.</translation>
     </message>
     <message>
+        <source>CMYK export needs a CMYK profile. Choose one in Preferences.</source>
+        <translation>Der CMYK-Export benötigt ein CMYK-Profil. Wählen Sie eines in den Voreinstellungen.</translation>
+    </message>
+    <message>
+        <source>CMYK export is available for JPEG, TIFF and flattened PDF files only.</source>
+        <translation>Der CMYK-Export ist nur für JPEG-, TIFF- und reduzierte PDF-Dateien verfügbar.</translation>
+    </message>
+    <message>
+        <source>CMYK (%1)</source>
+        <translation>CMYK (%1)</translation>
+    </message>
+    <message>
+        <source>CMYK separates the image through the CMYK profile chosen in Preferences and embeds that profile. Transparent areas print as paper white. Patchy opens CMYK files as RGB again.</source>
+        <translation>CMYK separiert das Bild über das in den Voreinstellungen gewählte CMYK-Profil und bettet dieses Profil ein. Transparente Bereiche werden als Papierweiß gedruckt. Patchy öffnet CMYK-Dateien wieder als RGB.</translation>
+    </message>
+    <message>
+        <source>Black and grays in black ink only</source>
+        <translation>Schwarz und Grautöne nur mit Schwarz</translation>
+    </message>
+    <message>
+        <source>Prints black text and gray areas with black ink alone instead of a mix of all four inks, so small type stays sharp even when the press is slightly out of register. Colored areas are separated through the profile as usual.</source>
+        <translation>Druckt schwarzen Text und graue Flächen nur mit schwarzer Farbe statt mit einer Mischung aus allen vier Farben, sodass kleine Schrift auch bei leichtem Passerversatz scharf bleibt. Farbige Bereiche werden wie gewohnt über das Profil separiert.</translation>
+    </message>
+    <message>
         <source>The JPEG XL file is damaged or not supported</source>
         <translation>Die JPEG XL-Datei ist beschädigt oder wird nicht unterstützt</translation>
     </message>
@@ -11570,6 +11594,14 @@ RGB: %2, %3, %4</translation>
         <source>Delete channel</source>
         <translation>Kanal löschen</translation>
     </message>
+    <message>
+        <source>Preview this ink plate of the CMYK proof: darker means more ink. Plates come from the working CMYK profile and are read-only.</source>
+        <translation>Vorschau dieser Druckplatte des CMYK-Proofs: dunkler bedeutet mehr Farbe. Die Platten stammen aus dem CMYK-Arbeitsprofil und sind schreibgeschützt.</translation>
+    </message>
+    <message>
+        <source>%CTRL%-click to load where this plate has no ink as a selection.</source>
+        <translation>%CTRL%-Klick lädt die Bereiche ohne Farbe auf dieser Platte als Auswahl.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::FontPickerCombo</name>
@@ -12628,18 +12660,6 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>T</source>
         <translation>O</translation>
-    </message>
-    <message>
-        <source>L</source>
-        <translation>L</translation>
-    </message>
-    <message>
-        <source>C</source>
-        <translation>M</translation>
-    </message>
-    <message>
-        <source>R</source>
-        <translation>R</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -13762,16 +13782,8 @@ RGB: %2, %3, %4</translation>
         <translation>Windows</translation>
     </message>
     <message>
-        <source>Color:</source>
-        <translation>Farbe:</translation>
-    </message>
-    <message>
         <source>Text color</source>
         <translation>Textfarbe</translation>
-    </message>
-    <message>
-        <source>Align:</source>
-        <translation>Ausrichten:</translation>
     </message>
     <message>
         <source>Align Left</source>
@@ -20373,6 +20385,126 @@ Sie können es weiterhin im Browser herunterladen.</translation>
         </translation>
     </message>
     <message>
+        <source>CMYK: %1, %2, %3, %4</source>
+        <translation>CMYK: %1, %2, %3, %4</translation>
+    </message>
+    <message>
+        <source>CMYK</source>
+        <translation>CMYK</translation>
+    </message>
+    <message>
+        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel, and CMYK swatches.</source>
+        <translation>Patchy bearbeitet in RGB. Dieses Profil legt fest, was CMYK-Werte im Farbwähler, im Info-Bedienfeld und in CMYK-Farbfeldern bedeuten.</translation>
+    </message>
+    <message>
+        <source>Automatic</source>
+        <translation>Automatisch</translation>
+    </message>
+    <message>
+        <source>Automatic (%1)</source>
+        <translation>Automatisch (%1)</translation>
+    </message>
+    <message>
+        <source>No profile (approximate formula)</source>
+        <translation>Kein Profil (Näherungsformel)</translation>
+    </message>
+    <message>
+        <source>Choose Profile File...</source>
+        <translation>Profildatei wählen...</translation>
+    </message>
+    <message>
+        <source>Choose CMYK Profile</source>
+        <translation>CMYK-Profil wählen</translation>
+    </message>
+    <message>
+        <source>ICC profiles (*.icc *.icm)</source>
+        <translation>ICC-Profile (*.icc *.icm)</translation>
+    </message>
+    <message>
+        <source>CMYK Profile</source>
+        <translation>CMYK-Profil</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is not a CMYK profile Patchy can use.</source>
+        <translation>&quot;%1&quot; ist kein CMYK-Profil, das Patchy verwenden kann.</translation>
+    </message>
+    <message>
+        <source>CMYK profile:</source>
+        <translation>CMYK-Profil:</translation>
+    </message>
+    <message>
+        <source>Perceptual</source>
+        <translation>Perzeptiv</translation>
+    </message>
+    <message>
+        <source>Relative Colorimetric</source>
+        <translation>Relativ farbmetrisch</translation>
+    </message>
+    <message>
+        <source>Saturation</source>
+        <translation>Sättigung</translation>
+    </message>
+    <message>
+        <source>Absolute Colorimetric</source>
+        <translation>Absolut farbmetrisch</translation>
+    </message>
+    <message>
+        <source>Rendering intent:</source>
+        <translation>Renderpriorität:</translation>
+    </message>
+    <message>
+        <source>Black point compensation</source>
+        <translation>Tiefenkompensierung</translation>
+    </message>
+    <message>
+        <source>Proof Colors</source>
+        <translation>Farbproof</translation>
+    </message>
+    <message>
+        <source>Gamut Warning</source>
+        <translation>Farbumfang-Warnung</translation>
+    </message>
+    <message>
+        <source>Proof Colors and Gamut Warning need a CMYK profile. Choose one in Preferences.</source>
+        <translation>Farbproof und Farbumfang-Warnung benötigen ein CMYK-Profil. Wählen Sie eines in den Voreinstellungen.</translation>
+    </message>
+    <message>
+        <source>Canvas view uses the CMYK profile %1. Documents and exports are unchanged.</source>
+        <translation>Die Arbeitsflächenansicht verwendet das CMYK-Profil %1. Dokumente und Exporte bleiben unverändert.</translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation>Cyan</translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation>Magenta</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>Gelb</translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation>Schwarz</translation>
+    </message>
+    <message>
+        <source>Previewing Cyan plate (read-only)</source>
+        <translation>Vorschau der Platte Cyan (schreibgeschützt)</translation>
+    </message>
+    <message>
+        <source>Previewing Magenta plate (read-only)</source>
+        <translation>Vorschau der Platte Magenta (schreibgeschützt)</translation>
+    </message>
+    <message>
+        <source>Previewing Yellow plate (read-only)</source>
+        <translation>Vorschau der Platte Gelb (schreibgeschützt)</translation>
+    </message>
+    <message>
+        <source>Previewing Black plate (read-only)</source>
+        <translation>Vorschau der Platte Schwarz (schreibgeschützt)</translation>
+    </message>
+    <message>
         <source>Saved animated JPEG XL copy %1</source>
         <translation>Kopie der JPEG XL-Animation gespeichert: %1</translation>
     </message>
@@ -20750,6 +20882,54 @@ Sie können es weiterhin im Browser herunterladen.</translation>
     <message>
         <source>File: %1</source>
         <translation>Datei: %1</translation>
+    </message>
+    <message>
+        <source>C:</source>
+        <translation>C:</translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation>Cyan</translation>
+    </message>
+    <message>
+        <source>M:</source>
+        <translation>M:</translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation>Magenta</translation>
+    </message>
+    <message>
+        <source>Y:</source>
+        <translation>Y:</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>Gelb</translation>
+    </message>
+    <message>
+        <source>K:</source>
+        <translation>K:</translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation>Schwarz</translation>
+    </message>
+    <message>
+        <source>Ink percentages in the working CMYK space: %1. Choose the profile in Preferences.</source>
+        <translation>Farbauftrag in Prozent im CMYK-Arbeitsfarbraum: %1. Das Profil wird in den Voreinstellungen gewählt.</translation>
+    </message>
+    <message>
+        <source>no profile (approximate)</source>
+        <translation>kein Profil (Näherung)</translation>
+    </message>
+    <message>
+        <source>Use the closest printable color</source>
+        <translation>Nächste druckbare Farbe verwenden</translation>
+    </message>
+    <message>
+        <source>This color is outside the gamut of %1 and prints as the color shown here. Click to use it.</source>
+        <translation>Diese Farbe liegt außerhalb des Farbumfangs von %1 und wird wie die hier gezeigte Farbe gedruckt. Klicken Sie, um sie zu verwenden.</translation>
     </message>
 </context>
 <context>
@@ -22023,6 +22203,10 @@ Sie können es weiterhin im Browser herunterladen.</translation>
         <source>G&apos;MIC filter %1 failed: %2</source>
         <translation>G&apos;MIC-Filter %1 ist fehlgeschlagen: %2</translation>
     </message>
+    <message>
+        <source>CMYK values are percentages from 0 to 100</source>
+        <translation>CMYK-Werte sind Prozentangaben von 0 bis 100</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ScriptSaveOptions</name>
@@ -22057,6 +22241,10 @@ Sie können es weiterhin im Browser herunterladen.</translation>
     <message>
         <source>%1: options must be an object such as {quality: 85}.</source>
         <translation>%1: Die Optionen müssen ein Objekt wie {quality: 85} sein.</translation>
+    </message>
+    <message>
+        <source>%1: blackInkOnly needs colorMode: &quot;cmyk&quot;.</source>
+        <translation>%1: blackInkOnly erfordert colorMode: &quot;cmyk&quot;.</translation>
     </message>
 </context>
 <context>

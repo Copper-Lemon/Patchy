@@ -66,6 +66,11 @@ void configure_toolbar_spinbox(QDoubleSpinBox* spin, int width);
 // spin box's maximum (the spin box itself keeps accepting larger typed values; the
 // slider extends to the current value when it already sits above the cap).
 inline constexpr char kToolbarSpinboxSliderMaxProperty[] = "patchy.popupSliderMax";
+// Set this double property on a toolbar QDoubleSpinBox (before configure_toolbar_spinbox)
+// to size it for that value's text instead of the min/max, for a field whose display
+// drops trailing zeros (UnitSpinBox::set_trim_trailing_zeros) so the max text is not
+// its widest realistic value.
+inline constexpr char kToolbarSpinboxWidthSampleProperty[] = "patchy.toolbarSpinboxWidthSample";
 // Set this bool property on an integer toolbar spin box to give its popup slider the
 // SliderCurve::FineLowEnd response (curved_slider.hpp) for size-like ranges.
 inline constexpr char kToolbarSpinboxSliderCurvedProperty[] = "patchy.popupSliderCurved";

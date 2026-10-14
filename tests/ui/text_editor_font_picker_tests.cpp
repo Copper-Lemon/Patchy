@@ -2230,12 +2230,12 @@ void ui_text_size_popup_slider_caps_at_200pt() {
   };
 
   // The spin box accepts up to 10000 pt typed, but the slider caps at 200 pt
-  // (decimals=3, so slider units are thousandths of a point).
+  // (decimals=2, Photoshop's precision, so slider units are hundredths of a point).
   const double value_before = text_size->value();
   auto* slider = open_popup();
-  CHECK(slider->maximum() == 200000);
+  CHECK(slider->maximum() == 20000);
   CHECK(text_size->value() == value_before);
-  slider->setValue(150000);
+  slider->setValue(15000);
   CHECK(text_size->value() == 150.0);
   close_popup();
 
@@ -2243,8 +2243,8 @@ void ui_text_size_popup_slider_caps_at_200pt() {
   // clamping the value down when the popup opens.
   text_size->setValue(500.0);
   slider = open_popup();
-  CHECK(slider->maximum() == 500000);
-  CHECK(slider->value() == 500000);
+  CHECK(slider->maximum() == 50000);
+  CHECK(slider->value() == 50000);
   CHECK(text_size->value() == 500.0);
   close_popup();
 

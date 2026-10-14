@@ -124,6 +124,7 @@ struct ImageSequenceNaming;
 // create_actions() build-phase context (main_window_actions_internal.hpp).
 struct ActionBuildContext;
 class BrushDynamicsButton;
+class OptionsFlowContainer;
 class BrushTipLibrary;
 class BrushAutomationLibrary;
 class BrushTipPicker;
@@ -879,6 +880,9 @@ private:
   void choose_custom_canvas_backdrop_color();
   void apply_canvas_aid_settings(CanvasWidget* canvas) const;
   void refresh_vector_preview_action();
+  // Rebuilds the canvas proof view (View > Proof Colors / Gamut Warning, docs/cmyk.md)
+  // from the two toggles and the working CMYK space, and hands it to every canvas.
+  void refresh_proof_display();
   void apply_pen_input_settings(CanvasWidget* canvas) const;
   void load_pen_input_settings();
   void save_pen_input_settings() const;
@@ -1265,8 +1269,13 @@ private:
     bool shape_mode{false};
   };
   [[nodiscard]] VectorOptionModeRules vector_option_mode_rules();
+  // The rules for `tool` as if it were active (the Options bar measures every
+  // tool's row to keep one height across tool switches, GitHub issue 91).
+  [[nodiscard]] VectorOptionModeRules vector_option_mode_rules(CanvasTool tool, bool live_shape) const;
   [[nodiscard]] bool vector_option_widget_visible(const VectorOptionModeRules& rules,
                                                   QWidget* widget) const;
+  [[nodiscard]] bool vector_option_widget_visible(const VectorOptionModeRules& rules, QWidget* widget,
+                                                  CanvasTool tool) const;
   [[nodiscard]] QBrush vector_fill_preview_brush(const patchy::VectorFill& fill) const;
   // Fill/stroke editing (main_window_vector.cpp): the live-preview appearance
   // dialog for the active shape layer, and Layer > New Fill Layer creation
@@ -1869,6 +1878,9 @@ private:
   // the box's current proportion when the link button is down.
   void handle_crop_size_value_changed(bool horizontal, int value);
   [[nodiscard]] bool crop_option_widget_visible(QWidget* widget) const;
+  // Hands the Options bar every tool's row so it can keep one height across tool
+  // switches (GitHub issue 91).
+  void refresh_options_bar_rows(bool live_shape);
   // The open sessions, in creation order (ui/document_session_store.hpp owns the
   // list and the lookups; session_for_canvas / session_with_id forward to it).
   DocumentSessionStore sessions_;
@@ -2123,6 +2135,7 @@ private:
   // sticks (last used, like Photoshop).
   double text_size_auto_points_{48.0};
   [[nodiscard]] int automatic_text_size_px(std::optional<int> box_height) const;
+  // The Paragraph panel's Direction combo; null while the panel is closed.
   QComboBox* text_direction_combo_{nullptr};
   // Toggling Vertical with nothing to convert arms the NEXT new type layer once; a new session
   // always starts horizontal otherwise (never persisted: a sticky default surprised users).
@@ -2165,6 +2178,9 @@ private:
   QPointer<QDialog> text_paragraph_dialog_;
   QLabel* text_paragraph_hint_label_{nullptr};
   QComboBox* text_paragraph_align_combo_{nullptr};
+  // The panel's mirror of the options bar's Vertical toggle; text_direction_combo_ lives in the
+  // panel too. Both are null while it is closed.
+  QCheckBox* text_paragraph_vertical_check_{nullptr};
   UnitSpinBox* text_paragraph_first_line_indent_spin_{nullptr};
   UnitSpinBox* text_paragraph_start_indent_spin_{nullptr};
   UnitSpinBox* text_paragraph_end_indent_spin_{nullptr};
@@ -2194,6 +2210,9 @@ private:
   QAction* redo_action_{nullptr};
   QAction* view_rulers_action_{nullptr};
   QAction* view_vector_preview_action_{nullptr};
+  QAction* view_proof_colors_action_{nullptr};
+  QAction* view_gamut_warning_action_{nullptr};
+  std::shared_ptr<const CmykProofTransform> proof_display_transform_;
   QAction* view_grid_action_{nullptr};
   QAction* view_guides_action_{nullptr};
   QAction* view_snap_action_{nullptr};
@@ -2530,7 +2549,9 @@ private:
   std::vector<QWidget*> transform_option_actions_;
   std::vector<QWidget*> warp_option_actions_;
   std::vector<QWidget*> transform_session_actions_;
-  QWidget* options_flow_container_{nullptr};
+  OptionsFlowContainer* options_flow_container_{nullptr};
+  // refresh_options_bar_rows() rebuilds the per-tool rows only when this key changes.
+  qint64 options_bar_rows_key_{-1};
   std::vector<std::function<void()>> retranslation_callbacks_;
   bool updating_transform_controls_{false};
   bool updating_layer_controls_{false};

@@ -365,6 +365,13 @@ public:
   Q_INVOKABLE bool exportPdf(const QJSValue& documents, const QString& path, const QJSValue& options = QJSValue());
   Q_INVOKABLE QStringList commandIds();
   Q_INVOKABLE QJSValue listFonts();
+  // The working CMYK space (docs/cmyk.md): what it is, and single colors through it.
+  Q_PROPERTY(QJSValue cmykProfile READ cmyk_profile)
+  [[nodiscard]] QJSValue cmyk_profile();
+  Q_INVOKABLE QJSValue colorToCmyk(const QString& color);
+  Q_INVOKABLE QJSValue cmykToColor(double cyan, double magenta, double yellow, double black);
+  // Whether the working CMYK profile can hold the color: the Gamut Warning test.
+  Q_INVOKABLE bool colorInCmykGamut(const QString& color);
   // Downloads Object Selection's High Quality model when it is missing (desktop only;
   // script_ai_selection.cpp). True once it is present; throws on failure.
   Q_INVOKABLE bool downloadObjectSelectionModel();
@@ -562,6 +569,14 @@ public:
   void set_zoom(double percent);
   // View > Fit on Screen for the active document; throws with no document.
   Q_INVOKABLE void fitOnScreen();
+  // View > Proof Colors and View > Gamut Warning (docs/cmyk.md): application-wide canvas
+  // views through the working CMYK profile. Only window captures see them.
+  Q_PROPERTY(bool proofColors READ proof_colors WRITE set_proof_colors)
+  [[nodiscard]] bool proof_colors() const;
+  void set_proof_colors(bool enabled);
+  Q_PROPERTY(bool gamutWarning READ gamut_warning WRITE set_gamut_warning)
+  [[nodiscard]] bool gamut_warning() const;
+  void set_gamut_warning(bool enabled);
   Q_INVOKABLE void present(const QJSValue& delayMs = QJSValue());
   Q_PROPERTY(bool slowMode READ slow_mode WRITE set_slow_mode)
   [[nodiscard]] bool slow_mode() const;

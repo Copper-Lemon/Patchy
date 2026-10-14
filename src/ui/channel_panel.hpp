@@ -34,7 +34,12 @@ public:
     Blue,
     Alpha,
     Spot,
-    QuickMask
+    QuickMask,
+    // Ink plates of the CMYK proof (docs/cmyk.md); listed only while Proof Colors is on.
+    Cyan,
+    Magenta,
+    Yellow,
+    Black
   };
 
   struct Row {

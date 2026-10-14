@@ -1,8 +1,24 @@
 #include "ui/app_settings.hpp"
 
+#include "ui/qt_paths.hpp"
+
+#include <QFile>
+
+#include <mutex>
+
 #include <QString>
 
 #include <algorithm>
+
+// Q_INIT_RESOURCE must run from outside any namespace; naming the initializer here also
+// keeps the resource object in executables that link the static patchy_ui library.
+static void ensure_color_profile_resources_registered() {
+  static const bool registered = [] {
+    Q_INIT_RESOURCE(color_profiles);
+    return true;
+  }();
+  (void)registered;
+}
 
 namespace patchy::ui {
 namespace {
@@ -19,6 +35,9 @@ QString update_check_interval_key() { return QStringLiteral("updates/checkInterv
 QString update_last_check_key() { return QStringLiteral("updates/lastCheckSecsSinceEpoch"); }
 QString update_skipped_version_key() { return QStringLiteral("updates/skippedVersion"); }
 QString preferences_dialog_size_key() { return QStringLiteral("preferences/dialogSize"); }
+QString cmyk_profile_key() { return QStringLiteral("color/cmykProfile"); }
+QString cmyk_intent_key() { return QStringLiteral("color/cmykIntent"); }
+QString cmyk_black_point_key() { return QStringLiteral("color/cmykBlackPointCompensation"); }
 
 }  // namespace
 
@@ -180,6 +199,72 @@ void set_stored_legacy_plugin_screen_size(std::pair<int, int> size) {
   settings.setValue(legacy_plugin_screen_size_key(),
                     size.first == 0 ? QStringLiteral("monitor")
                                     : QStringLiteral("%1x%2").arg(size.first).arg(size.second));
+}
+
+CmykWorkingSettings stored_cmyk_working_settings() {
+  const auto settings = app_settings();
+  CmykWorkingSettings stored;
+  stored.profile = settings.value(cmyk_profile_key()).toString();
+  stored.intent = rendering_intent_from_token(settings.value(cmyk_intent_key()).toString().toStdString())
+                      .value_or(RenderingIntent::RelativeColorimetric);
+  stored.black_point_compensation = settings.value(cmyk_black_point_key(), true).toBool();
+  return stored;
+}
+
+void set_stored_cmyk_working_settings(const CmykWorkingSettings& stored) {
+  auto settings = app_settings();
+  settings.setValue(cmyk_profile_key(), stored.profile);
+  const auto token = rendering_intent_token(stored.intent);
+  settings.setValue(cmyk_intent_key(), QString::fromLatin1(token.data(), static_cast<qsizetype>(token.size())));
+  settings.setValue(cmyk_black_point_key(), stored.black_point_compensation);
+}
+
+const std::vector<std::uint8_t>& bundled_cmyk_profile() {
+  static const auto profile = [] {
+    ensure_color_profile_resources_registered();
+    QFile file(QStringLiteral(":/icc/ISOcoated_v2_bas.ICC"));
+    std::vector<std::uint8_t> bytes;
+    if (file.open(QIODevice::ReadOnly)) {
+      const auto data = file.readAll();
+      const auto* first = reinterpret_cast<const std::uint8_t*>(data.constData());
+      bytes.assign(first, first + data.size());
+    }
+    return bytes;
+  }();
+  return profile;
+}
+
+std::shared_ptr<const CmykProofTransform> cmyk_gamut_check() {
+  static std::mutex mutex;
+  static std::shared_ptr<const CmykWorkingSpace> built_for;
+  static std::shared_ptr<const CmykProofTransform> check;
+  const auto space = working_cmyk_space();
+  const std::scoped_lock lock(mutex);
+  if (space != built_for) {
+    built_for = space;
+    check = CmykProofTransform::create(*space, true, true);
+  }
+  return check;
+}
+
+std::shared_ptr<const CmykWorkingSpace> cmyk_working_space_for(const CmykWorkingSettings& settings) {
+  if (settings.profile == QLatin1String(kCmykProfileFormula)) {
+    return CmykWorkingSpace::formula();
+  }
+  const auto load = [&settings](const std::filesystem::path& path) {
+    return path.empty() ? nullptr
+                        : CmykWorkingSpace::from_profile_file(path, settings.intent,
+                                                              settings.black_point_compensation);
+  };
+  auto space = load(to_filesystem_path(settings.profile));
+  if (space == nullptr) {
+    space = load(automatic_cmyk_profile_path());
+  }
+  if (space == nullptr) {
+    space = CmykWorkingSpace::from_icc_profile(bundled_cmyk_profile(), settings.intent,
+                                               settings.black_point_compensation);
+  }
+  return space != nullptr ? space : CmykWorkingSpace::formula();
 }
 
 }  // namespace patchy::ui

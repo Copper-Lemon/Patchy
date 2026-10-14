@@ -1114,6 +1114,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/main_window_actions_internal.hpp
       src/ui/main_window_actions_menus.cpp
       src/ui/main_window_actions_options_bar.cpp
+      src/ui/options_flow_layout.hpp
+      src/ui/options_flow_layout.cpp
       src/ui/main_window_actions_tool_palette.cpp
       src/ui/main_window_adjustments.cpp
       src/ui/main_window_channels.cpp
@@ -1311,6 +1313,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/icons.qrc
       src/ui/textures.qrc
       src/ui/themes.qrc
+      src/ui/color_profiles.qrc
     )
     # The G'MIC Filter Library (docs/gmic.md). Its interface compiles in every build;
     # the filter library text is embedded only when the engine is built.

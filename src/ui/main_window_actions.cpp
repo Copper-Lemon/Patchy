@@ -400,6 +400,8 @@ void MainWindow::bind_action_translations(ActionBuildContext& ctx) {
       {tiling_mode_action_, QT_TR_NOOP("Seamless Tiling in &Window")},
       {view_rulers_action_, QT_TR_NOOP("&Rulers")},
       {view_vector_preview_action_, QT_TR_NOOP("Dynamic Vector Preview")},
+      {view_proof_colors_action_, QT_TR_NOOP("Proof Colors")},
+      {view_gamut_warning_action_, QT_TR_NOOP("Gamut Warning")},
       {view_grid_action_, QT_TR_NOOP("&Grid")},
       {view_guides_action_, QT_TR_NOOP("&Guides")},
       {view_snap_action_, QT_TR_NOOP("&Snap")},
@@ -459,9 +461,6 @@ void MainWindow::bind_action_translations(ActionBuildContext& ctx) {
       {remove_background_button_, QT_TR_NOOP("Remove Background")},
       {ctx.fill_shapes, QT_TR_NOOP("Fill")},
       {text_color_button_, QT_TR_NOOP("T")},
-      {text_align_left_button_, QT_TR_NOOP("L")},
-      {text_align_center_button_, QT_TR_NOOP("C")},
-      {text_align_right_button_, QT_TR_NOOP("R")},
   };
   for (const auto& [widget, source] : translated_widgets) {
     bind_widget_text(widget, source);

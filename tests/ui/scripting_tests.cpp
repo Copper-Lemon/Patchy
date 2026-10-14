@@ -74,6 +74,9 @@
 #include <QLabel>
 #include <QMenu>
 #include <QMessageBox>
+#ifdef PATCHY_HAVE_QT_PDF
+#include <QPdfDocument>
+#endif
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScopeGuard>
@@ -112,6 +115,8 @@ using patchy::test::ui::accept_levels_dialog;
 using patchy::test::ui::color_close;
 using patchy::test::ui::require_action;
 using patchy::test::ui::require_canvas;
+using patchy::test::ui::send_mouse;
+using patchy::test::ui::drag_document_path;
 using patchy::test::ui::solid_pixels;
 
 patchy::ui::ScriptEngineHost& start_script(patchy::ui::MainWindow& window, const QString& source) {
@@ -1892,6 +1897,343 @@ void ui_script_text_auto_leading_ignores_spacer_paragraphs() {
 
 // app.listFonts() reports what addTextLayer can resolve: a family registered in this process
 // shows up with its face names and writing systems, and Qt's private families stay out.
+// The scripted conversions go through the working CMYK space (docs/cmyk.md).
+void ui_script_cmyk_conversions_use_working_space() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  const auto previous = patchy::working_cmyk_space();
+  const auto restore = qScopeGuard([&previous] { patchy::set_working_cmyk_space(previous); });
+  patchy::set_working_cmyk_space(patchy::CmykWorkingSpace::formula());
+  CHECK(run_script(window, QStringLiteral(R"JS(
+    var profile = app.cmykProfile;
+    console.log('profile=' + JSON.stringify(profile));
+    var ink = app.colorToCmyk('#ff0000');
+    console.log('ink=' + [ink.c, ink.m, ink.y, ink.k].join(','));
+    console.log('named=' + JSON.stringify(app.colorToCmyk('black')));
+    console.log('color=' + app.cmykToColor(50, 100, 100, 0));
+    console.log('white=' + app.cmykToColor(0, 0, 0, 0));
+    try { app.cmykToColor(0, 0, 0, 101); console.log('range=accepted'); } catch (e) { console.log('range=' + e.message); }
+  )JS")));
+  CHECK(backlog_contains(
+      window, QStringLiteral("profile={\"name\":\"\",\"hasProfile\":false,\"intent\":\"relative-colorimetric\","
+                             "\"blackPointCompensation\":true}")));
+  CHECK(backlog_contains(window, QStringLiteral("ink=0,100,100,0")));
+  CHECK(backlog_contains(window, QStringLiteral("named={\"c\":0,\"m\":0,\"y\":0,\"k\":100}")));
+  CHECK(backlog_contains(window, QStringLiteral("color=#800000")));
+  CHECK(backlog_contains(window, QStringLiteral("white=#ffffff")));
+  CHECK(backlog_contains(window, QStringLiteral("range=CMYK values are percentages from 0 to 100")));
+}
+
+// View > Proof Colors and Gamut Warning (issue 90) change what the canvas shows and
+// nothing else: the pixel readout stays the document's color.
+void ui_proof_colors_and_gamut_warning_change_only_the_view() {
+  const auto previous = patchy::working_cmyk_space();
+  const auto restore = qScopeGuard([&previous] { patchy::set_working_cmyk_space(previous); });
+  patchy::ui::MainWindow window;
+  show_window(window);
+  // The bundled profile, whatever this machine has installed.
+  patchy::set_working_cmyk_space(patchy::CmykWorkingSpace::from_icc_profile(
+      patchy::ui::bundled_cmyk_profile(), patchy::RenderingIntent::RelativeColorimetric, true));
+  auto* canvas = require_canvas(window);
+  auto* proof_action = window.findChild<QAction*>(QStringLiteral("viewProofColorsAction"));
+  auto* gamut_action = window.findChild<QAction*>(QStringLiteral("viewGamutWarningAction"));
+  CHECK(proof_action != nullptr && gamut_action != nullptr);
+  CHECK(proof_action->isCheckable() && !proof_action->isChecked());
+  CHECK(gamut_action->isCheckable() && !gamut_action->isChecked());
+
+  // Left half pure green (no offset press can print it), right half a muted in-gamut tone.
+  CHECK(run_script(window, QStringLiteral(R"JS(
+    var doc = app.activeDocument;
+    doc.activeLayer.fill('#966e5a');
+    doc.activeLayer.fillRect(0, 0, Math.floor(doc.width / 2), doc.height, '#00ff00');
+    patchy.ui.fitOnScreen();
+    console.log('gamut=' + app.colorInCmykGamut('#00ff00') + ',' + app.colorInCmykGamut('#966e5a'));
+    console.log('views=' + patchy.ui.proofColors + ',' + patchy.ui.gamutWarning);
+  )JS")));
+  CHECK(backlog_contains(window, QStringLiteral("gamut=false,true")));
+  CHECK(backlog_contains(window, QStringLiteral("views=false,false")));
+  const auto& document = patchy::ui::MainWindowTestAccess::document(window);
+  const QPoint green_point(document.width() / 4, document.height() / 2);
+  const QPoint muted_point(document.width() * 3 / 4, document.height() / 2);
+  const auto shown = [&](QPoint document_point) {
+    QApplication::processEvents();
+    return canvas->grab().toImage().pixelColor(canvas->widget_position_for_document_point(document_point));
+  };
+  const QColor green(0, 255, 0);
+  const QColor muted(0x96, 0x6e, 0x5a);
+  CHECK(color_close(shown(green_point), green, 2));
+  CHECK(color_close(shown(muted_point), muted, 2));
+
+  // Proof Colors: the green dulls, the in-gamut tone barely moves.
+  CHECK(run_script(window, QStringLiteral("patchy.ui.proofColors = true; console.log('proof=' + patchy.ui.proofColors);")));
+  CHECK(backlog_contains(window, QStringLiteral("proof=true")));
+  CHECK(proof_action->isChecked());
+  CHECK(window.statusBar()->currentMessage().contains(QStringLiteral("ISO Coated v2")));
+  const auto proofed_green = shown(green_point);
+  CHECK(!color_close(proofed_green, green, 12));
+  CHECK(proofed_green.green() > proofed_green.red() && proofed_green.green() > proofed_green.blue());
+  CHECK(color_close(shown(muted_point), muted, 8));
+  save_widget_artifact("ui_proof_colors", *canvas);
+
+  // The readout under the pointer is still the document's color.
+  auto* info = window.findChild<QLabel*>(QStringLiteral("canvasInfoLabel"));
+  patchy::test::ui::send_mouse(*canvas, QEvent::MouseMove, canvas->widget_position_for_document_point(green_point), Qt::NoButton,
+             Qt::NoButton);
+  CHECK(info->text().contains(QStringLiteral("RGB: 0, 255, 0")));
+
+  // Gamut Warning on top: the green becomes the flat warning gray.
+  gamut_action->trigger();
+  CHECK(gamut_action->isChecked());
+  const QColor warning(patchy::kGamutWarningColor.red, patchy::kGamutWarningColor.green,
+                       patchy::kGamutWarningColor.blue);
+  CHECK(color_close(shown(green_point), warning, 1));
+  CHECK(color_close(shown(muted_point), muted, 8));
+  save_widget_artifact("ui_gamut_warning", *canvas);
+
+  // An edit made under the view is shown through it too.
+  CHECK(run_script(window, QStringLiteral(
+      "var d = app.activeDocument; d.activeLayer.fillRect(0, 0, d.width, d.height, '#00ff00');")));
+  CHECK(color_close(shown(muted_point), warning, 1));
+  CHECK(run_script(window, QStringLiteral("app.activeDocument.undo();")));
+
+  // Gamut Warning alone leaves in-gamut colors exactly as they are.
+  proof_action->trigger();
+  CHECK(!proof_action->isChecked());
+  CHECK(color_close(shown(green_point), warning, 1));
+  CHECK(color_close(shown(muted_point), muted, 2));
+
+  gamut_action->trigger();
+  CHECK(color_close(shown(green_point), green, 2));
+  CHECK(canvas->proof_display_transform() == nullptr);
+
+  // A new document opened while the view is on gets it as well.
+  proof_action->trigger();
+  CHECK(run_script(window, QStringLiteral("var n = app.newDocument(64, 64); n.activeLayer.fill('#00ff00');")));
+  CHECK(require_canvas(window)->proof_display_transform() != nullptr);
+  proof_action->trigger();
+
+  // Without a profile there is nothing to proof against: the toggles refuse and say why.
+  patchy::set_working_cmyk_space(patchy::CmykWorkingSpace::formula());
+  CHECK(run_script(window, QStringLiteral(
+      "patchy.ui.proofColors = true; patchy.ui.gamutWarning = true;"
+      "console.log('formula=' + patchy.ui.proofColors + ',' + patchy.ui.gamutWarning + ',' + app.colorInCmykGamut('#00ff00'));")));
+  CHECK(backlog_contains(window, QStringLiteral("formula=false,false,true")));
+  CHECK(window.statusBar()->currentMessage().contains(QStringLiteral("need a CMYK profile")));
+}
+
+// CMYK export for print (issue 90): JPEG, TIFF and flat PDF separated through the working
+// profile, which each file embeds; other formats refuse the option.
+void ui_script_export_cmyk_writes_jpeg_tiff_and_pdf() {
+  const auto previous = patchy::working_cmyk_space();
+  const auto restore = qScopeGuard([&previous] { patchy::set_working_cmyk_space(previous); });
+  // The 16-bit export below needs deep editing, which the suite leaves off by default.
+  patchy::set_deep_editing_override(true);
+  const auto restore_depth = qScopeGuard([] { patchy::set_deep_editing_override(std::nullopt); });
+  patchy::ui::MainWindow window;
+  show_window(window);
+  const auto space = patchy::CmykWorkingSpace::from_icc_profile(patchy::ui::bundled_cmyk_profile(),
+                                                                patchy::RenderingIntent::RelativeColorimetric, true);
+  patchy::set_working_cmyk_space(space);
+  QTemporaryDir directory;
+  CHECK(directory.isValid());
+  auto& host = window.script_engine_host();
+  patchy::ui::ScriptEngineHost::RunOptions options;
+  options.name = QStringLiteral("cmyk-export");
+  options.args = QStringList{QStringLiteral("base=") + directory.path() + QStringLiteral("/print")};
+  // Unattended, as from the command line: a failed save reaches the script instead of an
+  // error box waiting for a click.
+  options.unattended = true;
+  const bool export_run = host.run_source(QStringLiteral(R"JS(
+    var d = app.newDocument(40, 30);
+    d.activeLayer.fill('#00a0e0');
+    d.activeLayer.fillRect(0, 0, 20, 30, 'transparent');
+    d.activeLayer.fillRect(0, 0, 10, 30, '#000000');
+    var p = patchy.args.base;
+    if (!d.exportAs(p + '.jpg', {colorMode: 'cmyk', quality: 95})) throw Error('jpg');
+    if (!d.exportAs(p + '.tif', {colorMode: 'cmyk'})) throw Error('tif');
+    if (!d.exportAs(p + '-k.tif', {colorMode: 'cmyk', blackInkOnly: true})) throw Error('black ink tif');
+    try { d.exportAs(p + '-bad.tif', {blackInkOnly: true}); console.log('k-without-cmyk=accepted'); }
+    catch (e) { console.log('k-without-cmyk=refused'); }
+    var deep = app.newDocument(16, 16);
+    deep.convertBitDepth(16);
+    deep.activeLayer.fill('#00a0e0');
+    if (!deep.exportAs(p + '-16.tif', {colorMode: 'cmyk'})) throw Error('16-bit tif');
+    if (!d.exportAs(p + '.pdf', {colorMode: 'cmyk'})) throw Error('pdf');
+    if (!d.exportAs(p + '-rgb.jpg', {colorMode: 'rgb'})) throw Error('rgb jpg');
+    try { d.exportAs(p + '.png', {colorMode: 'cmyk'}); console.log('png=accepted'); }
+    catch (e) { console.log('png=refused'); }
+  )JS"), options);
+  if (!export_run) {
+    for (const auto& line : host.message_backlog()) std::cerr << line.toStdString() << '\n';
+  }
+  CHECK(export_run);
+  // A run that opened documents finishes a moment later; the next run_source must wait.
+  const auto wait_for_run = [&host] {
+    QElapsedTimer timer;
+    timer.start();
+    while (host.run_active() && timer.elapsed() < 60000) {
+      QApplication::processEvents(QEventLoop::AllEvents, 20);
+    }
+    QApplication::processEvents();
+  };
+  wait_for_run();
+  CHECK(!host.last_run_had_error());
+  CHECK(backlog_contains(window, QStringLiteral("png=refused")));
+  CHECK(backlog_contains(window, QStringLiteral("k-without-cmyk=refused")));
+  const auto base = directory.path() + QStringLiteral("/print");
+
+  // The ink values the working space gives the fill, and paper white where it was clear.
+  const auto expected = space->separate_rgba8(std::array<std::uint8_t, 4>{0x00, 0xa0, 0xe0, 255});
+  const auto read_cmyk = [](const QString& path) {
+    QImageReader reader(path);
+    return reader.read();
+  };
+  for (const auto& extension : {QStringLiteral(".jpg"), QStringLiteral(".tif")}) {
+    const auto image = read_cmyk(base + extension);
+    CHECK(image.format() == QImage::Format_CMYK8888);
+    CHECK(image.size() == QSize(40, 30));
+    const auto* ink = image.constScanLine(15) + 30 * 4;
+    const int tolerance = extension == QStringLiteral(".jpg") ? 6 : 0;
+    for (std::size_t channel = 0; channel < 4; ++channel) {
+      CHECK(std::abs(static_cast<int>(ink[channel]) - static_cast<int>(expected[channel])) <= tolerance);
+    }
+    const auto* paper = image.constScanLine(15) + 15 * 4;
+    CHECK(paper[0] <= tolerance && paper[1] <= tolerance && paper[2] <= tolerance && paper[3] <= tolerance);
+    QFile file(base + extension);
+    CHECK(file.open(QIODevice::ReadOnly));
+    CHECK(file.readAll().contains("ISO Coated v2 (basICColor)"));
+  }
+  // Black through the profile is rich black; with blackInkOnly it is the K plate alone.
+  {
+    const auto rich = read_cmyk(base + QStringLiteral(".tif"));
+    const auto* rich_black = rich.constScanLine(15) + 5 * 4;
+    CHECK(rich_black[0] > 100 && rich_black[3] > 200);
+    const auto plain = read_cmyk(base + QStringLiteral("-k.tif"));
+    CHECK(plain.format() == QImage::Format_CMYK8888);
+    const auto* plain_black = plain.constScanLine(15) + 5 * 4;
+    CHECK(plain_black[0] == 0 && plain_black[1] == 0 && plain_black[2] == 0 && plain_black[3] == 255);
+    const auto* plain_blue = plain.constScanLine(15) + 30 * 4;
+    for (std::size_t channel = 0; channel < 4; ++channel) {
+      CHECK(plain_blue[channel] == expected[channel]);
+    }
+  }
+  QFile pdf(base + QStringLiteral(".pdf"));
+  CHECK(pdf.open(QIODevice::ReadOnly));
+  const auto pdf_bytes = pdf.readAll();
+  CHECK(pdf_bytes.contains("/N 4 /Alternate /DeviceCMYK"));
+  CHECK(pdf_bytes.contains("/OutputIntents [<< /Type /OutputIntent /S /GTS_PDFX"));
+  CHECK(pdf_bytes.contains("/ICCBased"));
+  CHECK(pdf_bytes.contains("ISO Coated v2 (basICColor)"));
+  CHECK(read_cmyk(base + QStringLiteral("-rgb.jpg")).format() != QImage::Format_CMYK8888);
+  // A 16-bit document separates at 8 bits per ink.
+  {
+    const auto deep = read_cmyk(base + QStringLiteral("-16.tif"));
+    CHECK(deep.format() == QImage::Format_CMYK8888);
+    const auto* ink = deep.constScanLine(8) + 8 * 4;
+    for (std::size_t channel = 0; channel < 4; ++channel) {
+      CHECK(std::abs(static_cast<int>(ink[channel]) - static_cast<int>(expected[channel])) <= 1);
+    }
+  }
+#ifdef PATCHY_HAVE_QT_PDF
+  // A real PDF renderer (Qt PDF, PDFium) reads the CMYK page back through its embedded
+  // profile: an in-gamut color returns to about the color it came from.
+  {
+    QPdfDocument rendered;
+    CHECK(rendered.load(base + QStringLiteral(".pdf")) == QPdfDocument::Error::None);
+    const auto page = rendered.render(0, QSize(40, 30));
+    CHECK(!page.isNull());
+    const auto seen = page.pixelColor(30, 15);
+    CHECK(color_close(seen, QColor(0x00, 0xa0, 0xe0), 8));
+    // Proof Colors shows the inks as Photoshop does: this file's 75/20/0/0 converted back to
+    // sRGB relative colorimetric with black point compensation reads 8,159,218 in Photoshop
+    // 2026 (34,161,219 without compensation). PDFium converts back perceptually, so it
+    // lands a few levels away.
+    const auto proof = patchy::CmykProofTransform::create(*patchy::working_cmyk_space(), true, false);
+    CHECK(proof != nullptr);
+    if (proof != nullptr) {
+      const auto printed = proof->printed(patchy::RgbColor{0x00, 0xa0, 0xe0});
+      const QColor proofed(printed.red, printed.green, printed.blue);
+      CHECK(color_close(proofed, QColor(8, 159, 218), 2));
+      CHECK(color_close(seen, proofed, 10));
+    }
+    // The soft mask keeps the clear area transparent, as in an RGB PDF; rich black prints black.
+    CHECK(page.pixelColor(15, 15).alpha() == 0);
+    CHECK(color_close(page.pixelColor(5, 15), QColor(0, 0, 0), 12));
+  }
+#endif
+
+  // With no profile there is nothing to describe the inks by.
+  patchy::set_working_cmyk_space(patchy::CmykWorkingSpace::formula());
+  CHECK(host.run_source(QStringLiteral(R"JS(
+    var written = 'threw';
+    try { written = app.activeDocument.exportAs(patchy.args.base + '-formula.jpg', {colorMode: 'cmyk'}); } catch (e) {}
+    console.log('formula=' + written);
+  )JS"), options));
+  wait_for_run();
+  // Unattended, the export reports failure (its reason goes to the run's error output).
+  CHECK(!backlog_contains(window, QStringLiteral("formula=true")));
+  CHECK(backlog_contains(window, QStringLiteral("formula=false")) || backlog_contains(window, QStringLiteral("formula=threw")));
+  CHECK(!QFile::exists(base + QStringLiteral("-formula.jpg")));
+}
+
+// The proof view follows live edits (issue 90): a brush stroke lands through the render
+// cache's partial patches, and a Move drag draws its base and patches through the view.
+void ui_proof_colors_follow_brush_strokes_and_move_drags() {
+  const auto previous = patchy::working_cmyk_space();
+  const auto restore = qScopeGuard([&previous] { patchy::set_working_cmyk_space(previous); });
+  patchy::ui::MainWindow window;
+  show_window(window);
+  patchy::set_working_cmyk_space(patchy::CmykWorkingSpace::from_icc_profile(
+      patchy::ui::bundled_cmyk_profile(), patchy::RenderingIntent::RelativeColorimetric, true));
+  auto* canvas = require_canvas(window);
+  CHECK(run_script(window, QStringLiteral(R"JS(
+    var doc = app.activeDocument;
+    doc.activeLayer.fill('#966e5a');
+    var top = doc.addLayer('Green square');
+    top.fillRect(40, 300, 120, 120, '#00ff00');
+    patchy.ui.fitOnScreen();
+  )JS")));
+  window.findChild<QAction*>(QStringLiteral("viewProofColorsAction"))->trigger();
+  QApplication::processEvents();
+  const auto view = canvas->proof_display_transform();
+  CHECK(view != nullptr);
+  const auto printed_green = view->printed({0, 255, 0});
+  const QColor proofed_green(printed_green.red, printed_green.green, printed_green.blue);
+  CHECK(!color_close(proofed_green, QColor(0, 255, 0), 12));
+  const auto shown = [&](QPoint document_point) {
+    QApplication::processEvents();
+    return canvas->grab().toImage().pixelColor(canvas->widget_position_for_document_point(document_point));
+  };
+  CHECK(color_close(shown(QPoint(100, 360)), proofed_green, 3));
+
+  // A hard round brush stroke in pure green across the muted background.
+  canvas->set_tool(patchy::ui::CanvasTool::Brush);
+  canvas->set_primary_color(QColor(0, 255, 0));
+  canvas->set_brush_size(40);
+  const auto patches_before = canvas->render_cache_diagnostics().partial_patches;
+  drag_document_path(*canvas, {QPoint(300, 100), QPoint(700, 100)}, 12);
+  QApplication::processEvents();
+  CHECK(canvas->render_cache_diagnostics().partial_patches > patches_before);
+  CHECK(color_close(shown(QPoint(500, 100)), proofed_green, 4));
+  CHECK(!color_close(shown(QPoint(500, 100)), QColor(0, 255, 0), 12));
+
+  // Mid-drag, the moved square still shows in proof colors.
+  canvas->set_tool(patchy::ui::CanvasTool::Move);
+  const auto from = canvas->widget_position_for_document_point(QPoint(100, 360));
+  const auto to = canvas->widget_position_for_document_point(QPoint(500, 560));
+  send_mouse(*canvas, QEvent::MouseButtonPress, from, Qt::LeftButton, Qt::LeftButton);
+  for (int step = 1; step <= 8; ++step) {
+    send_mouse(*canvas, QEvent::MouseMove, from + (to - from) * step / 8, Qt::LeftButton, Qt::LeftButton);
+  }
+  QApplication::processEvents();
+  CHECK(color_close(shown(QPoint(500, 560)), proofed_green, 4));
+  save_widget_artifact("ui_proof_colors_move_drag", *canvas);
+  send_mouse(*canvas, QEvent::MouseButtonRelease, to, Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(color_close(shown(QPoint(500, 560)), proofed_green, 4));
+  window.findChild<QAction*>(QStringLiteral("viewProofColorsAction"))->trigger();
+}
+
 void ui_script_list_fonts_reports_registered_families() {
   patchy::ui::MainWindow window;
   show_window(window);
@@ -4910,6 +5252,10 @@ std::vector<patchy::test::TestCase> scripting_tests() {
       {"ui_script_text_paragraph_reads_and_sets_metrics", ui_script_text_paragraph_reads_and_sets_metrics},
       {"ui_script_text_auto_leading_ignores_spacer_paragraphs", ui_script_text_auto_leading_ignores_spacer_paragraphs},
       {"ui_script_list_fonts_reports_registered_families", ui_script_list_fonts_reports_registered_families},
+      {"ui_script_cmyk_conversions_use_working_space", ui_script_cmyk_conversions_use_working_space},
+      {"ui_script_export_cmyk_writes_jpeg_tiff_and_pdf", ui_script_export_cmyk_writes_jpeg_tiff_and_pdf},
+      {"ui_proof_colors_and_gamut_warning_change_only_the_view", ui_proof_colors_and_gamut_warning_change_only_the_view},
+      {"ui_proof_colors_follow_brush_strokes_and_move_drags", ui_proof_colors_follow_brush_strokes_and_move_drags},
       {"ui_script_text_font_without_glyphs_warns_with_the_real_cause",
        ui_script_text_font_without_glyphs_warns_with_the_real_cause},
       {"ui_script_text_setters_warn_about_fonts", ui_script_text_setters_warn_about_fonts},

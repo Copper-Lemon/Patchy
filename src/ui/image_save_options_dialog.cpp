@@ -41,6 +41,7 @@
 #include <QSize>
 #include <QSlider>
 #include <QSpinBox>
+#include <QStandardItemModel>
 #include <QVBoxLayout>
 
 #include <algorithm>
@@ -294,6 +295,10 @@ struct ExportSectionWidgets {
   QCheckBox* trim_check{nullptr};
   QCheckBox* reveal_check{nullptr};
   QComboBox* metadata_combo{nullptr};  // null for formats that carry no metadata
+  QComboBox* color_combo{nullptr};     // RGB or CMYK; null for formats without a CMYK form
+  QString color_key;                   // its saveOptions/exportColor* key
+  QCheckBox* black_ink_only_check{nullptr};  // beside color_combo
+  QString black_ink_only_key;                // its saveOptions/exportBlackInkOnly* key
   bool resize_offered{false};              // false without a document size: the row is hidden
   bool transparency_choice_offered{true};  // false for JPEG: the fill is forced, never persisted
 };
@@ -576,6 +581,62 @@ ExportSectionWidgets add_export_options_section(QVBoxLayout* content, QDialog& d
     widgets.metadata_combo = metadata_combo;
   }
 
+  // CMYK output for print (docs/cmyk.md), remembered per format.
+  const auto color_key = is_jpeg_extension(lower_extension) ? QStringLiteral("saveOptions/exportColorJpeg")
+                         : lower_extension == QStringLiteral("tif") || lower_extension == QStringLiteral("tiff")
+                             ? QStringLiteral("saveOptions/exportColorTiff")
+                         : is_pdf_extension(lower_extension) ? QStringLiteral("saveOptions/exportColorPdf")
+                                                             : QString();
+  if (!color_key.isEmpty()) {
+    auto* color_row = new QWidget(&dialog);
+    auto* color_layout = new QHBoxLayout(color_row);
+    color_layout->setContentsMargins(0, 0, 0, 0);
+    color_layout->addWidget(new QLabel(QObject::tr("Color:"), color_row));
+    auto* color_combo = new QComboBox(color_row);
+    color_combo->setObjectName(QStringLiteral("exportColorCombo"));
+    color_combo->addItem(QObject::tr("RGB"), QStringLiteral("rgb"));
+    const auto space = working_cmyk_space();
+    const auto profile = QString::fromStdString(space->profile_description());
+    color_combo->addItem(space->has_profile() && !profile.isEmpty() ? QObject::tr("CMYK (%1)").arg(profile)
+                                                                    : QObject::tr("CMYK"),
+                         QStringLiteral("cmyk"));
+    if (!space->has_profile()) {
+      // The formula cannot describe the inks to a print shop.
+      if (auto* model = qobject_cast<QStandardItemModel*>(color_combo->model())) {
+        model->item(1)->setEnabled(false);
+      }
+    }
+    color_combo->setToolTip(QObject::tr(
+        "CMYK separates the image through the CMYK profile chosen in Preferences and embeds that profile. "
+        "Transparent areas print as paper white. Patchy opens CMYK files as RGB again."));
+    const bool stored_cmyk = settings.value(color_key).toString() == QStringLiteral("cmyk") && space->has_profile();
+    color_combo->setCurrentIndex(stored_cmyk ? 1 : 0);
+    color_layout->addWidget(color_combo);
+    auto* black_ink_only = new QCheckBox(QObject::tr("Black and grays in black ink only"), color_row);
+    black_ink_only->setObjectName(QStringLiteral("exportBlackInkOnlyCheck"));
+    black_ink_only->setToolTip(QObject::tr(
+        "Prints black text and gray areas with black ink alone instead of a mix of all four inks, so "
+        "small type stays sharp even when the press is slightly out of register. Colored areas are "
+        "separated through the profile as usual."));
+    // Same per-format key family as the color choice, Color becoming BlackInkOnly.
+    const auto black_ink_only_key = QString(color_key).replace(QStringLiteral("exportColor"),
+                                                               QStringLiteral("exportBlackInkOnly"));
+    black_ink_only->setChecked(settings.value(black_ink_only_key, false).toBool());
+    const auto sync_black_ink_only = [color_combo, black_ink_only] {
+      black_ink_only->setEnabled(color_combo->isEnabled() &&
+                                 color_combo->currentData().toString() == QStringLiteral("cmyk"));
+    };
+    QObject::connect(color_combo, &QComboBox::currentIndexChanged, &dialog, [sync_black_ink_only] { sync_black_ink_only(); });
+    sync_black_ink_only();
+    color_layout->addWidget(black_ink_only);
+    color_layout->addStretch(1);
+    content->addWidget(color_row);
+    widgets.color_combo = color_combo;
+    widgets.color_key = color_key;
+    widgets.black_ink_only_check = black_ink_only;
+    widgets.black_ink_only_key = black_ink_only_key;
+  }
+
   auto* reveal_check = new QCheckBox(reveal_check_label(), &dialog);
   reveal_check->setObjectName(QStringLiteral("exportRevealCheck"));
   reveal_check->setChecked(
@@ -623,6 +684,17 @@ void apply_export_section(ImageSaveOptions& options, const ExportSectionWidgets&
     options.export_trim_transparent = widgets.trim_check->isChecked();
     settings.setValue(QStringLiteral("saveOptions/exportTrim"), options.export_trim_transparent);
   }
+  if (widgets.color_combo != nullptr) {
+    options.export_cmyk = widgets.color_combo->isEnabled() &&
+                          widgets.color_combo->currentData().toString() == QStringLiteral("cmyk");
+    if (widgets.color_combo->isEnabled()) {
+      settings.setValue(widgets.color_key, widgets.color_combo->currentData().toString());
+    }
+    options.export_black_ink_only = options.export_cmyk && widgets.black_ink_only_check->isChecked();
+    if (options.export_cmyk) {
+      settings.setValue(widgets.black_ink_only_key, widgets.black_ink_only_check->isChecked());
+    }
+  }
   if (widgets.metadata_combo != nullptr) {
     const auto key = widgets.metadata_combo->currentData().toString();
     options.metadata_policy = metadata_policy_from_key(key).value_or(metadata::MetadataPolicy::None);
@@ -644,6 +716,8 @@ void reset_export_options(ImageSaveOptions& options) {
   options.export_height = 0;
   options.export_fill_transparent = false;
   options.export_reveal_in_file_explorer = false;
+  options.export_cmyk = false;
+  options.export_black_ink_only = false;
   options.metadata_policy = metadata::MetadataPolicy::All;
 }
 
@@ -1710,6 +1784,12 @@ std::optional<ImageSaveOptions> prompt_image_save_options(QWidget* parent, const
       // Vectors and text scale with the page; the pixel transforms (resize, scale, trim,
       // background fill) only apply to the flattened image.
       section->transform_section->setEnabled(!keep_layers);
+      if (section->color_combo != nullptr && keep_layers) {
+        // Editable layers go through Qt's PDF engine, which writes RGB only.
+        section->color_combo->setCurrentIndex(0);
+        section->color_combo->setEnabled(false);
+        section->black_ink_only_check->setEnabled(false);
+      }
     }
 
     if (exec_dialog(dialog) != QDialog::Accepted) {

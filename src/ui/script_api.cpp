@@ -2881,6 +2881,61 @@ bool ScriptAppObject::runCommand(const QString& commandId) {
 
 QStringList ScriptAppObject::commandIds() { const ScriptApiCall api_call(host_); return host_.app_command_ids(); }
 
+QJSValue ScriptAppObject::cmyk_profile() {
+  const ScriptApiCall api_call(host_);
+  const auto space = working_cmyk_space();
+  const auto intent = rendering_intent_token(space->intent());
+  auto result = host_.engine()->newObject();
+  result.setProperty(QStringLiteral("name"), QString::fromStdString(space->profile_description()));
+  result.setProperty(QStringLiteral("hasProfile"), space->has_profile());
+  result.setProperty(QStringLiteral("intent"),
+                     QString::fromLatin1(intent.data(), static_cast<qsizetype>(intent.size())));
+  result.setProperty(QStringLiteral("blackPointCompensation"), space->black_point_compensation());
+  return result;
+}
+
+QJSValue ScriptAppObject::colorToCmyk(const QString& color) {
+  const ScriptApiCall api_call(host_);
+  QColor parsed;
+  if (!parse_color(host_, color, &parsed)) {
+    return {};
+  }
+  const auto ink = working_cmyk_space()->cmyk_from_rgb({static_cast<std::uint8_t>(parsed.red()),
+                                                        static_cast<std::uint8_t>(parsed.green()),
+                                                        static_cast<std::uint8_t>(parsed.blue())});
+  auto result = host_.engine()->newObject();
+  result.setProperty(QStringLiteral("c"), ink.cyan);
+  result.setProperty(QStringLiteral("m"), ink.magenta);
+  result.setProperty(QStringLiteral("y"), ink.yellow);
+  result.setProperty(QStringLiteral("k"), ink.black);
+  return result;
+}
+
+bool ScriptAppObject::colorInCmykGamut(const QString& color) {
+  const ScriptApiCall api_call(host_);
+  QColor parsed;
+  if (!parse_color(host_, color, &parsed)) {
+    return false;
+  }
+  const auto table = cmyk_gamut_check();
+  // Without a profile there is no gamut to leave.
+  return table == nullptr || !table->out_of_gamut({static_cast<std::uint8_t>(parsed.red()),
+                                                   static_cast<std::uint8_t>(parsed.green()),
+                                                   static_cast<std::uint8_t>(parsed.blue())});
+}
+
+QJSValue ScriptAppObject::cmykToColor(double cyan, double magenta, double yellow, double black) {
+  const ScriptApiCall api_call(host_);
+  for (const auto percent : {cyan, magenta, yellow, black}) {
+    if (!(percent >= 0.0 && percent <= 100.0)) {
+      host_.throw_js_error(ScriptEngineHost::tr("CMYK values are percentages from 0 to 100"));
+      return {};
+    }
+  }
+  const auto rgb = working_cmyk_space()->rgb_from_cmyk({cyan, magenta, yellow, black});
+  return QColor(rgb.red, rgb.green, rgb.blue).name(QColor::HexRgb);
+}
+
 QJSValue ScriptAppObject::listFonts() {
   const ScriptApiCall api_call(host_);
   ensure_headless_system_fonts_loaded();
@@ -3326,6 +3381,10 @@ void ScriptUiObject::set_zoom(double percent) {
 }
 
 void ScriptUiObject::fitOnScreen() { const ScriptApiCall api_call(host_); host_.fit_view_on_screen(); }
+bool ScriptUiObject::proof_colors() const { const ScriptApiCall api_call(host_); return host_.view_proof_colors(); }
+void ScriptUiObject::set_proof_colors(bool enabled) { const ScriptApiCall api_call(host_); host_.set_view_proof_colors(enabled); }
+bool ScriptUiObject::gamut_warning() const { const ScriptApiCall api_call(host_); return host_.view_gamut_warning(); }
+void ScriptUiObject::set_gamut_warning(bool enabled) { const ScriptApiCall api_call(host_); host_.set_view_gamut_warning(enabled); }
 bool ScriptUiObject::slow_mode() const { return host_.slow_mode(); }
 void ScriptUiObject::set_slow_mode(bool enabled) { host_.set_slow_mode(enabled); }
 bool ScriptUiObject::paused() const { return host_.paused(); }

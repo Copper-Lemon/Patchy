@@ -111,6 +111,12 @@ void ChannelPanel::set_rows(std::vector<Row> rows, std::optional<Row> selected) 
                        resolve_modifier_names(tr("%CTRL%-click to load this channel as a selection.")));
     } else if (row.kind == RowKind::QuickMask) {
       item->setToolTip(tr("Temporary selection mask. White selects, black masks, and gray creates partial selection."));
+    } else if (row.kind == RowKind::Cyan || row.kind == RowKind::Magenta || row.kind == RowKind::Yellow ||
+               row.kind == RowKind::Black) {
+      item->setToolTip(tr("Preview this ink plate of the CMYK proof: darker means more ink. Plates come from "
+                          "the working CMYK profile and are read-only.") +
+                       QLatin1Char('\n') +
+                       resolve_modifier_names(tr("%CTRL%-click to load where this plate has no ink as a selection.")));
     } else {
       const auto preview_tip = row.kind == RowKind::Composite
                                    ? tr("Show the normal composite image.")
@@ -287,19 +293,18 @@ void ChannelPanel::handle_rows_moved() {
   if (updating_) {
     return;
   }
-  const bool expects_quick_mask =
-      committed_rows_.size() >= 5 &&
-      committed_rows_[4].kind == RowKind::QuickMask;
-  const bool derived_rows_moved =
-      list_->count() < 4 ||
-      static_cast<RowKind>(list_->item(0)->data(kKindRole).toInt()) != RowKind::Composite ||
-      static_cast<RowKind>(list_->item(1)->data(kKindRole).toInt()) != RowKind::Red ||
-      static_cast<RowKind>(list_->item(2)->data(kKindRole).toInt()) != RowKind::Green ||
-      static_cast<RowKind>(list_->item(3)->data(kKindRole).toInt()) != RowKind::Blue ||
-      (expects_quick_mask &&
-       (list_->count() < 5 ||
-        static_cast<RowKind>(list_->item(4)->data(kKindRole).toInt()) !=
-            RowKind::QuickMask));
+  // The derived rows (Composite, the components, any ink plates and Quick Mask) lead the
+  // list in a fixed order; only saved channels move.
+  std::size_t fixed_rows = 0;
+  while (fixed_rows < committed_rows_.size() && committed_rows_[fixed_rows].kind != RowKind::Alpha &&
+         committed_rows_[fixed_rows].kind != RowKind::Spot) {
+    ++fixed_rows;
+  }
+  bool derived_rows_moved = list_->count() < static_cast<int>(fixed_rows);
+  for (std::size_t row = 0; !derived_rows_moved && row < fixed_rows; ++row) {
+    derived_rows_moved = static_cast<RowKind>(list_->item(static_cast<int>(row))->data(kKindRole).toInt()) !=
+                         committed_rows_[row].kind;
+  }
   const auto order = saved_channel_order();
   const auto spot_moved = std::any_of(fixed_spot_positions_.begin(), fixed_spot_positions_.end(),
                                       [&order](const auto& fixed) {

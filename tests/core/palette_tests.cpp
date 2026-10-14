@@ -20,6 +20,7 @@
 #include "formats/ilbm_document_io.hpp"
 #include "formats/image_density_probe.hpp"
 #include "formats/palette_io.hpp"
+#include "formats/pdf_image_writer.hpp"
 #include "formats/pcx_document_io.hpp"
 #include "formats/raw_document_io.hpp"
 #include "formats/raw_tone.hpp"
@@ -841,10 +842,365 @@ void document_palette_editing_copies_and_syncs_indexed_mirror() {
   CHECK(untouched.indexed_palette()->colors[0].red == 9);
 }
 
+// Installs a working CMYK space for one test and puts the previous one back.
+class ScopedWorkingCmykSpace {
+public:
+  explicit ScopedWorkingCmykSpace(std::shared_ptr<const patchy::CmykWorkingSpace> space)
+      : previous_(patchy::working_cmyk_space()) {
+    patchy::set_working_cmyk_space(std::move(space));
+  }
+  ~ScopedWorkingCmykSpace() { patchy::set_working_cmyk_space(previous_); }
+  ScopedWorkingCmykSpace(const ScopedWorkingCmykSpace&) = delete;
+  ScopedWorkingCmykSpace& operator=(const ScopedWorkingCmykSpace&) = delete;
+
+private:
+  std::shared_ptr<const patchy::CmykWorkingSpace> previous_;
+};
+
+void cmyk_working_space_formula_converts_both_ways() {
+  const auto formula = patchy::CmykWorkingSpace::formula();
+  CHECK(formula != nullptr);
+  CHECK(!formula->has_profile());
+  CHECK(formula->profile_description().empty());
+  CHECK(formula->profile_bytes().empty());
+
+  CHECK((formula->cmyk_from_rgb({255, 255, 255}) == patchy::CmykPercent{0.0, 0.0, 0.0, 0.0}));
+  CHECK((formula->cmyk_from_rgb({0, 0, 0}) == patchy::CmykPercent{0.0, 0.0, 0.0, 100.0}));
+  CHECK((formula->cmyk_from_rgb({255, 0, 0}) == patchy::CmykPercent{0.0, 100.0, 100.0, 0.0}));
+  // Half-strength green: the ink common to all three channels becomes black.
+  const auto green = formula->cmyk_from_rgb({0, 102, 0});
+  CHECK(green.cyan == 100.0 && green.magenta == 0.0 && green.yellow == 100.0);
+  CHECK(std::abs(green.black - 60.0) < 1e-9);
+
+  CHECK((formula->rgb_from_cmyk({0.0, 100.0, 100.0, 0.0}) == patchy::RgbColor{255, 0, 0}));
+  CHECK((formula->rgb_from_cmyk({0.0, 0.0, 0.0, 100.0}) == patchy::RgbColor{0, 0, 0}));
+  CHECK((formula->rgb_from_cmyk({50.0, 0.0, 0.0, 0.0}) == patchy::RgbColor{128, 255, 255}));
+  // Out-of-range and not-a-number inputs clamp rather than wrap.
+  CHECK((formula->rgb_from_cmyk({-20.0, 250.0, std::nan(""), 0.0}) == patchy::RgbColor{255, 0, 255}));
+  // Every 8-bit color survives the formula round trip exactly.
+  for (int value = 0; value < 256; value += 5) {
+    const patchy::RgbColor color{static_cast<std::uint8_t>(value), static_cast<std::uint8_t>(255 - value),
+                                 static_cast<std::uint8_t>((value * 7) % 256)};
+    CHECK(formula->rgb_from_cmyk(formula->cmyk_from_rgb(color)) == color);
+  }
+
+  // The tokens are persisted (settings, scripting): pin their spelling.
+  CHECK(patchy::rendering_intent_token(patchy::RenderingIntent::Perceptual) == "perceptual");
+  CHECK(patchy::rendering_intent_token(patchy::RenderingIntent::RelativeColorimetric) == "relative-colorimetric");
+  CHECK(patchy::rendering_intent_token(patchy::RenderingIntent::Saturation) == "saturation");
+  CHECK(patchy::rendering_intent_token(patchy::RenderingIntent::AbsoluteColorimetric) == "absolute-colorimetric");
+  CHECK(patchy::rendering_intent_from_token("saturation") == patchy::RenderingIntent::Saturation);
+  CHECK(!patchy::rendering_intent_from_token("Saturation").has_value());
+
+  // Bytes that are not a CMYK profile are refused, and a null install means the formula.
+  CHECK(patchy::CmykWorkingSpace::from_icc_profile({}, patchy::RenderingIntent::Perceptual, true) == nullptr);
+  CHECK(patchy::CmykWorkingSpace::from_icc_profile(std::vector<std::uint8_t>(512, 0x41),
+                                                    patchy::RenderingIntent::Perceptual, true) == nullptr);
+  CHECK(patchy::CmykWorkingSpace::from_profile_file("test-artifacts/no-such-profile.icc",
+                                                     patchy::RenderingIntent::Perceptual, true) == nullptr);
+  {
+    const ScopedWorkingCmykSpace scoped(nullptr);
+    CHECK(patchy::working_cmyk_space() == formula);
+  }
+}
+
+// The bundled ISO Coated v2 profile, copied into the test scratch folder under a Unicode
+// name first so the loader's path handling is covered too.
+void cmyk_working_space_reads_profile_from_unicode_path() {
+  const std::filesystem::path installed = PATCHY_SOURCE_DIR "/third_party/icc/basiccolor/ISOcoated_v2_bas.ICC";
+  const auto dir = patchy::test::unicode_artifact_dir(u8"cmyk-profile");
+  const auto path = dir / patchy::test::unicode_path_piece(std::u8string(patchy::test::kUnicodeCombinedStem) + u8".icc");
+  std::filesystem::copy_file(installed, path);
+
+  const auto space =
+      patchy::CmykWorkingSpace::from_profile_file(path, patchy::RenderingIntent::RelativeColorimetric, true);
+  CHECK(space != nullptr);
+  CHECK(space->has_profile());
+  CHECK(space->profile_bytes().size() == 1052608U);
+  CHECK(space->profile_description() == "ISO Coated v2 (basICColor)");
+  CHECK(space->intent() == patchy::RenderingIntent::RelativeColorimetric);
+  CHECK(space->black_point_compensation());
+
+  // Paper white carries no ink, and black ink alone prints a dark neutral, not RGB black.
+  const auto white = space->cmyk_from_rgb({255, 255, 255});
+  CHECK(white.cyan < 1.0 && white.magenta < 1.0 && white.yellow < 1.0 && white.black < 1.0);
+  const auto black_ink = space->rgb_from_cmyk({0.0, 0.0, 0.0, 100.0});
+  CHECK(black_ink.red > 10 && black_ink.red < 90);
+  CHECK(std::abs(black_ink.red - black_ink.green) < 16 && std::abs(black_ink.green - black_ink.blue) < 16);
+  // A real profile separates RGB black into all four inks.
+  const auto rich_black = space->cmyk_from_rgb({0, 0, 0});
+  CHECK(rich_black.black > 50.0 && rich_black.cyan > 30.0);
+
+  // An in-gamut color comes back within rounding of where it started.
+  const patchy::RgbColor muted{150, 110, 90};
+  const auto returned = space->rgb_from_cmyk(space->cmyk_from_rgb(muted));
+  CHECK(std::abs(returned.red - muted.red) <= 3 && std::abs(returned.green - muted.green) <= 3 &&
+        std::abs(returned.blue - muted.blue) <= 3);
+
+  // Same answer, within rounding, as the import transform built on the same profile.
+  const auto import_transform = patchy::CmykToRgbTransform::from_icc_profile(space->profile_bytes());
+  CHECK(import_transform.has_value());
+  const auto imported = import_transform->convert_single(255, 0, 0, 255);  // inverted: 100% magenta + yellow
+  const auto converted = space->rgb_from_cmyk({0.0, 100.0, 100.0, 0.0});
+  CHECK(std::abs(imported.red - converted.red) <= 2 && std::abs(imported.green - converted.green) <= 2 &&
+        std::abs(imported.blue - converted.blue) <= 2);
+
+  // The intent is part of the space: perceptual and absolute differ somewhere on a real profile.
+  const auto absolute =
+      patchy::CmykWorkingSpace::from_profile_file(path, patchy::RenderingIntent::AbsoluteColorimetric, false);
+  CHECK(absolute != nullptr);
+  CHECK(absolute->intent() == patchy::RenderingIntent::AbsoluteColorimetric);
+  CHECK(!absolute->black_point_compensation());
+
+  // Whatever the machine has installed, the scan names every profile and sorts them.
+  const auto profiles = patchy::installed_cmyk_profiles();
+  CHECK(std::all_of(profiles.begin(), profiles.end(),
+                    [](const auto& profile) { return !profile.description.empty(); }));
+  CHECK(std::is_sorted(profiles.begin(), profiles.end(), [](const auto& left, const auto& right) {
+    return left.description < right.description;
+  }));
+}
+
+// The canvas proof view (docs/cmyk.md), on the bundled ISO Coated v2 profile.
+void cmyk_proof_transform_simulates_colors_and_marks_gamut() {
+  const auto space = patchy::CmykWorkingSpace::from_profile_file(
+      PATCHY_SOURCE_DIR "/third_party/icc/basiccolor/ISOcoated_v2_bas.ICC",
+      patchy::RenderingIntent::RelativeColorimetric, true);
+  CHECK(space != nullptr);
+  // Nothing requested, or no profile to proof against: no transform.
+  CHECK(patchy::CmykProofTransform::create(*space, false, false) == nullptr);
+  CHECK(patchy::CmykProofTransform::create(*patchy::CmykWorkingSpace::formula(), true, true) == nullptr);
+
+  const auto channel_near = [](std::uint8_t value, int expected, int tolerance) {
+    return std::abs(static_cast<int>(value) - expected) <= tolerance;
+  };
+  // Pure green (far outside an offset press), a muted in-gamut tone, paper white.
+  const std::array<std::uint8_t, 12> source = {0, 255, 0, 200, 150, 110, 90, 77, 255, 255, 255, 0};
+
+  const auto proof = patchy::CmykProofTransform::create(*space, true, false);
+  CHECK(proof != nullptr);
+  CHECK(proof->simulates_colors() && !proof->marks_out_of_gamut());
+  CHECK(!proof->out_of_gamut({0, 255, 0}));
+  auto proofed = source;
+  proof->apply(proofed.data(), 3);
+  // The green loses saturation; the in-gamut tone and the white barely move; alpha stays.
+  CHECK(proofed[0] > 20 || proofed[1] < 235 || proofed[2] > 20);
+  CHECK(proofed[1] > proofed[0] && proofed[1] > proofed[2]);
+  CHECK(channel_near(proofed[4], 150, 6) && channel_near(proofed[5], 110, 6) && channel_near(proofed[6], 90, 6));
+  CHECK(channel_near(proofed[8], 255, 2) && channel_near(proofed[9], 255, 2) && channel_near(proofed[10], 255, 2));
+  CHECK(proofed[3] == 200 && proofed[7] == 77 && proofed[11] == 0);
+
+  const auto gamut = patchy::CmykProofTransform::create(*space, false, true);
+  CHECK(gamut != nullptr);
+  CHECK(!gamut->simulates_colors() && gamut->marks_out_of_gamut());
+  CHECK(gamut->out_of_gamut({0, 255, 0}));
+  CHECK(gamut->out_of_gamut({0, 0, 255}));
+  CHECK(!gamut->out_of_gamut({150, 110, 90}));
+  CHECK(!gamut->out_of_gamut({128, 128, 128}));
+  CHECK(!gamut->out_of_gamut({255, 255, 255}));
+  // Black point compensation prints black and deep shadows as the press's own black, so
+  // they are printable; without compensation they clip, as Little CMS's check reports.
+  CHECK(!gamut->out_of_gamut({0, 0, 0}));
+  CHECK(!gamut->out_of_gamut({20, 20, 20}));
+  CHECK(!gamut->out_of_gamut({40, 30, 25}));
+  const auto uncompensated = patchy::CmykWorkingSpace::from_profile_file(
+      PATCHY_SOURCE_DIR "/third_party/icc/basiccolor/ISOcoated_v2_bas.ICC",
+      patchy::RenderingIntent::RelativeColorimetric, false);
+  CHECK(uncompensated != nullptr);
+  const auto clipped = patchy::CmykProofTransform::create(*uncompensated, false, true);
+  CHECK(clipped != nullptr && clipped->out_of_gamut({0, 0, 0}));
+  CHECK(clipped->out_of_gamut({0, 255, 0}) && !clipped->out_of_gamut({150, 110, 90}));
+  auto marked = source;
+  gamut->apply(marked.data(), 3);
+  // Only the out-of-gamut pixel changes, to the warning color, keeping its alpha.
+  CHECK(marked[0] == patchy::kGamutWarningColor.red && marked[1] == patchy::kGamutWarningColor.green &&
+        marked[2] == patchy::kGamutWarningColor.blue && marked[3] == 200);
+  CHECK(std::equal(marked.begin() + 4, marked.end(), source.begin() + 4));
+
+  const auto both = patchy::CmykProofTransform::create(*space, true, true);
+  CHECK(both != nullptr);
+  auto combined = source;
+  both->apply(combined.data(), 3);
+  CHECK(std::equal(combined.begin(), combined.begin() + 4, marked.begin()));
+  CHECK(std::equal(combined.begin() + 4, combined.end(), proofed.begin() + 4));
+
+  // A long row crosses the internal chunk size; every pixel is handled, and the result
+  // does not depend on how the row is split.
+  std::vector<std::uint8_t> row(3000U * 4U);
+  for (std::size_t pixel = 0; pixel < 3000U; ++pixel) {
+    row[pixel * 4U] = static_cast<std::uint8_t>(pixel % 256U);
+    row[pixel * 4U + 1U] = static_cast<std::uint8_t>((pixel * 7U) % 256U);
+    row[pixel * 4U + 2U] = static_cast<std::uint8_t>((pixel * 13U) % 256U);
+    row[pixel * 4U + 3U] = 255;
+  }
+  auto whole = row;
+  both->apply(whole.data(), 3000U);
+  auto split = row;
+  both->apply(split.data(), 1500U);
+  both->apply(split.data() + 1500U * 4U, 1500U);
+  CHECK(whole == split);
+  CHECK(whole != row);
+}
+
+// CMYK export separates whole rows (docs/cmyk.md) and the PDF image writer tags them.
+void cmyk_working_space_separates_rows_for_export() {
+  const auto formula = patchy::CmykWorkingSpace::formula();
+  const std::array<std::uint8_t, 12> rgba = {255, 0, 0, 255, 0, 0, 0, 0, 255, 255, 255, 128};
+  const auto formula_inks = formula->separate_rgba8(rgba);
+  // 255 = full ink; alpha plays no part.
+  CHECK((formula_inks == std::vector<std::uint8_t>{0, 255, 255, 0, 0, 0, 0, 255, 0, 0, 0, 0}));
+  CHECK(formula->separate_rgba8({}).empty());
+
+  const auto space = patchy::CmykWorkingSpace::from_profile_file(
+      PATCHY_SOURCE_DIR "/third_party/icc/basiccolor/ISOcoated_v2_bas.ICC",
+      patchy::RenderingIntent::RelativeColorimetric, true);
+  CHECK(space != nullptr);
+  // A row of varied colors: the optimized row transform agrees with the single-color one.
+  std::vector<std::uint8_t> row;
+  for (int index = 0; index < 64; ++index) {
+    row.push_back(static_cast<std::uint8_t>(index * 4));
+    row.push_back(static_cast<std::uint8_t>(255 - index * 3));
+    row.push_back(static_cast<std::uint8_t>((index * 37) % 256));
+    row.push_back(255);
+  }
+  const auto inks = space->separate_rgba8(row);
+  CHECK(inks.size() == row.size());
+  for (std::size_t pixel = 0; pixel < 64; ++pixel) {
+    const auto single = space->cmyk_from_rgb({row[pixel * 4U], row[pixel * 4U + 1U], row[pixel * 4U + 2U]});
+    const std::array<double, 4> expected{single.cyan, single.magenta, single.yellow, single.black};
+    for (std::size_t ink = 0; ink < 4; ++ink) {
+      CHECK(std::abs(inks[pixel * 4U + ink] * 100.0 / 255.0 - expected[ink]) < 2.5);
+    }
+  }
+
+  // Four-component ICC images name DeviceCMYK as their alternate.
+  std::filesystem::create_directories("test-artifacts");
+  const std::filesystem::path path = "test-artifacts/pdf_image_writer_cmyk.pdf";
+  std::filesystem::remove(path);
+  {
+    patchy::pdf::ImageWriter writer(path);
+    patchy::pdf::ImagePage page;
+    page.width_points = 72.0;
+    page.height_points = 72.0;
+    page.image.width = 1;
+    page.image.height = 1;
+    page.image.bytes = {0, 255, 255, 0};
+    page.image.icc_profile = std::make_shared<const std::vector<std::uint8_t>>(space->profile_bytes());
+    page.image.icc_components = 4;
+    writer.add_page(page);
+    // A separate copy of the same bytes: still one profile object in the file.
+    writer.set_output_intent(std::make_shared<const std::vector<std::uint8_t>>(space->profile_bytes()), 4,
+                             space->profile_description());
+    writer.finish();
+  }
+  std::ifstream input(path, std::ios::binary);
+  const std::string text((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
+  CHECK(text.find("<< /N 4 /Alternate /DeviceCMYK /Length ") != std::string::npos);
+  const auto icc_at = text.find("/ColorSpace [/ICCBased ");
+  CHECK(icc_at != std::string::npos);
+  const auto icc_object = text.substr(icc_at + 23, text.find(' ', icc_at + 23) - (icc_at + 23));
+  // The catalog names the print condition by the very object the image uses.
+  const auto intent_at = text.find("/OutputIntents [<< /Type /OutputIntent /S /GTS_PDFX /OutputConditionIdentifier (Custom)");
+  CHECK(intent_at != std::string::npos);
+  CHECK(text.find("/DestOutputProfile " + icc_object + " 0 R >>]", intent_at) != std::string::npos);
+  CHECK(text.find("/N 4 ") == text.rfind("/N 4 "));
+  CHECK(text.find("GTS_PDFXVersion") == std::string::npos);
+}
+
+// Black ink only (docs/cmyk.md): black, grays and black-ink colors separate to K alone;
+// colors still go through the profile.
+void cmyk_black_ink_only_keeps_black_and_grays_on_the_black_plate() {
+  const auto space = patchy::CmykWorkingSpace::from_profile_file(
+      PATCHY_SOURCE_DIR "/third_party/icc/basiccolor/ISOcoated_v2_bas.ICC",
+      patchy::RenderingIntent::RelativeColorimetric, true);
+  CHECK(space != nullptr);
+  const auto k100 = space->rgb_from_cmyk({0.0, 0.0, 0.0, 100.0});  // what the picker stores for 0/0/0/100
+  const auto blend = [](std::uint8_t ink, std::uint8_t paper) {
+    return static_cast<std::uint8_t>((static_cast<int>(ink) + static_cast<int>(paper) + 1) / 2);
+  };
+  const std::vector<std::uint8_t> pixels = {
+      0,   0,   0,   255,  // RGB black
+      128, 128, 128, 255,  // a neutral gray
+      255, 255, 255, 255,  // paper
+      k100.red, k100.green, k100.blue, 255,  // a color typed as K100
+      blend(k100.red, 255), blend(k100.green, 255), blend(k100.blue, 255), 255,  // its antialiased edge
+      0,   160, 224, 255,  // a blue
+      150, 128, 128, 255,  // a warm gray: a color, not a gray
+  };
+  const auto profile = space->separate_rgba8(pixels);
+  const auto black = space->separate_rgba8(pixels, patchy::SeparationOptions{true});
+  CHECK(black.size() == profile.size());
+  const auto ink = [](const std::vector<std::uint8_t>& inks, std::size_t pixel, std::size_t plate) {
+    return static_cast<int>(inks[pixel * 4U + plate]);
+  };
+  const auto black_only = [&](std::size_t pixel) {
+    return ink(black, pixel, 0) == 0 && ink(black, pixel, 1) == 0 && ink(black, pixel, 2) == 0;
+  };
+  // Through the profile, RGB black is a four-ink rich black.
+  CHECK(ink(profile, 0, 0) > 100 && ink(profile, 0, 3) > 200);
+  CHECK(black_only(0) && ink(black, 0, 3) == 255);
+  CHECK(black_only(1) && ink(black, 1, 3) > 60 && ink(black, 1, 3) < 200);
+  CHECK(black_only(2) && ink(black, 2, 3) == 0);
+  CHECK(black_only(3) && ink(black, 3, 3) >= 250);
+  CHECK(black_only(4) && ink(black, 4, 3) > 60 && ink(black, 4, 3) < 200);
+  // Colors are untouched.
+  for (const std::size_t pixel : {std::size_t{5}, std::size_t{6}}) {
+    for (std::size_t plate = 0; plate < 4; ++plate) {
+      CHECK(ink(black, pixel, plate) == ink(profile, pixel, plate));
+    }
+  }
+  CHECK(!black_only(6));
+
+  // The formula has a black-ink curve too: grays become pure K.
+  const auto formula = patchy::CmykWorkingSpace::formula()->separate_rgba8(
+      std::vector<std::uint8_t>{64, 64, 64, 255}, patchy::SeparationOptions{true});
+  CHECK((formula == std::vector<std::uint8_t>{0, 0, 0, 191}));
+}
+
+void palette_io_converts_cmyk_swatches_through_working_space() {
+  const ScopedWorkingCmykSpace scoped(patchy::CmykWorkingSpace::formula());
+
+  // A version-1 .aco with an RGB entry, a CMYK entry (0 = full ink) and a Lab entry.
+  const std::array<std::uint8_t, 4 + 3 * 10> aco = {
+      0x00, 0x01, 0x00, 0x03,                                      // version 1, three colors
+      0x00, 0x00, 0x10, 0x10, 0x20, 0x20, 0x30, 0x30, 0x00, 0x00,  // RGB 16, 32, 48
+      0x00, 0x02, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF,  // CMYK 0, 100, 100, 0
+      0x00, 0x07, 0x13, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Lab: still skipped
+  };
+  const auto aco_parsed = patchy::palette_io::read_palette_bytes(aco);
+  CHECK(aco_parsed.colors.size() == 2);
+  CHECK((aco_parsed.colors[0] == patchy::RgbColor{16, 32, 48}));
+  CHECK((aco_parsed.colors[1] == patchy::RgbColor{255, 0, 0}));
+
+  // A single-color .ase with a CMYK block: 1.0 cyan, 0 magenta, 0 yellow, 0.5 black.
+  const std::array<std::uint8_t, 12 + 6 + 28> ase = {
+      'A', 'S', 'E', 'F', 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,  // header + block count 1
+      0x00, 0x01, 0x00, 0x00, 0x00, 28,                                    // color block, length 28
+      0x00, 0x02, 0x00, 0x41, 0x00, 0x00,                                  // name "A" + terminator
+      'C', 'M', 'Y', 'K',                                                  //
+      0x3F, 0x80, 0x00, 0x00,                                              // 1.0f
+      0x00, 0x00, 0x00, 0x00,                                              // 0.0f
+      0x00, 0x00, 0x00, 0x00,                                              // 0.0f
+      0x3F, 0x00, 0x00, 0x00,                                              // 0.5f
+      0x00, 0x02,                                                          // global color type
+  };
+  const auto ase_parsed = patchy::palette_io::read_palette_bytes(ase);
+  CHECK(ase_parsed.colors.size() == 1);
+  CHECK((ase_parsed.colors[0] == patchy::RgbColor{0, 128, 128}));
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> palette_tests() {
   return {
+      {"cmyk_working_space_formula_converts_both_ways", cmyk_working_space_formula_converts_both_ways},
+      {"cmyk_working_space_reads_profile_from_unicode_path", cmyk_working_space_reads_profile_from_unicode_path},
+      {"cmyk_proof_transform_simulates_colors_and_marks_gamut", cmyk_proof_transform_simulates_colors_and_marks_gamut},
+      {"cmyk_working_space_separates_rows_for_export", cmyk_working_space_separates_rows_for_export},
+      {"cmyk_black_ink_only_keeps_black_and_grays_on_the_black_plate",
+       cmyk_black_ink_only_keeps_black_and_grays_on_the_black_plate},
+      {"palette_io_converts_cmyk_swatches_through_working_space",
+       palette_io_converts_cmyk_swatches_through_working_space},
       {"palette_names_round_trip_gpl_and_psd", palette_names_round_trip_gpl_and_psd},
       {"palette_lut_snaps_within_quantization_bound_and_is_idempotent",
        palette_lut_snaps_within_quantization_bound_and_is_idempotent},

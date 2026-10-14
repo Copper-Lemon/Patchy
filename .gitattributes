@@ -26,6 +26,9 @@ CMakeLists.txt text
 *.jxl binary -eol
 *.ico binary -eol
 *.icns binary -eol
+*.icc binary -eol
+*.ICC binary -eol
+*.icm binary -eol
 
 # Preserve vendored libheif source byte-for-byte apart from Patchy's documented
 # WebCodecs adapter changes; upstream files contain intentional whitespace quirks.

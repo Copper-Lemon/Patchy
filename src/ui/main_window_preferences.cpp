@@ -975,6 +975,116 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
   });
   application_layout->addWidget(application_group);
 
+  // CMYK: the working space behind the picker's ink fields, the Info readout and CMYK
+  // swatches (docs/cmyk.md). Applied on OK.
+  auto* cmyk_group = new QFrame(application_page);
+  cmyk_group->setObjectName(QStringLiteral("preferencesCmykGroup"));
+  configure_panel(cmyk_group);
+  auto* cmyk_form = new QFormLayout(cmyk_group);
+  configure_form(cmyk_form);
+  auto* cmyk_header = new QLabel(tr("CMYK"), cmyk_group);
+  auto cmyk_header_font = cmyk_header->font();
+  cmyk_header_font.setBold(true);
+  cmyk_header->setFont(cmyk_header_font);
+  cmyk_form->addRow(cmyk_header);
+  auto* cmyk_info = new QLabel(
+      tr("Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, "
+         "the Info panel, and CMYK swatches."),
+      cmyk_group);
+  cmyk_info->setWordWrap(true);
+  cmyk_form->addRow(cmyk_info);
+  const auto entry_cmyk_settings = stored_cmyk_working_settings();
+  auto* cmyk_profile_combo = new QComboBox(cmyk_group);
+  cmyk_profile_combo->setObjectName(QStringLiteral("preferencesCmykProfileCombo"));
+  cmyk_profile_combo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+  cmyk_profile_combo->setMinimumContentsLength(24);
+  // Item data is the stored `color/cmykProfile` value: empty for Automatic,
+  // kCmykProfileFormula, or a profile path. The file-picker row carries kCmykChooseFile
+  // and never stays selected.
+  static const auto kCmykChooseFile = QStringLiteral("choose-file");
+  const auto add_cmyk_profile_entry = [cmyk_profile_combo](int row, const QString& path, QString description) {
+    if (description.isEmpty()) {
+      description = QFileInfo(path).completeBaseName();
+    }
+    cmyk_profile_combo->insertItem(row, description, path);
+    cmyk_profile_combo->setItemData(row, QDir::toNativeSeparators(path), Qt::ToolTipRole);
+  };
+  {
+    const auto automatic_name =
+        QString::fromStdString(cmyk_working_space_for(CmykWorkingSettings{})->profile_description());
+    cmyk_profile_combo->addItem(automatic_name.isEmpty() ? tr("Automatic") : tr("Automatic (%1)").arg(automatic_name),
+                                QString());
+    for (const auto& installed : installed_cmyk_profiles()) {
+      add_cmyk_profile_entry(cmyk_profile_combo->count(), to_qstring(installed.path),
+                             QString::fromStdString(installed.description));
+    }
+    cmyk_profile_combo->addItem(tr("No profile (approximate formula)"), QLatin1String(kCmykProfileFormula));
+#ifndef Q_OS_WASM
+    // A picked file would not outlive the page in the browser, which has the bundled
+    // profile and the formula.
+    cmyk_profile_combo->insertSeparator(cmyk_profile_combo->count());
+    cmyk_profile_combo->addItem(tr("Choose Profile File..."), kCmykChooseFile);
+#endif
+  }
+  // A chosen file outside the scanned folders gets its own row just above "No profile".
+  const auto select_cmyk_profile = [cmyk_profile_combo, add_cmyk_profile_entry](const QString& stored) {
+    auto index = cmyk_profile_combo->findData(stored);
+    if (index < 0 && !stored.isEmpty()) {
+      const auto space = CmykWorkingSpace::from_profile_file(to_filesystem_path(stored),
+                                                             RenderingIntent::RelativeColorimetric, true);
+      if (space != nullptr) {
+        index = cmyk_profile_combo->findData(QLatin1String(kCmykProfileFormula));
+        add_cmyk_profile_entry(index, stored, QString::fromStdString(space->profile_description()));
+      }
+    }
+    const QSignalBlocker blocker(cmyk_profile_combo);
+    cmyk_profile_combo->setCurrentIndex(std::max(index, 0));
+  };
+  select_cmyk_profile(entry_cmyk_settings.profile);
+  auto last_cmyk_profile = std::make_shared<QString>(cmyk_profile_combo->currentData().toString());
+  connect(cmyk_profile_combo, &QComboBox::currentIndexChanged, &dialog,
+          [&dialog, cmyk_profile_combo, select_cmyk_profile, last_cmyk_profile](int index) {
+            const auto choice = cmyk_profile_combo->itemData(index).toString();
+            if (choice != kCmykChooseFile) {
+              *last_cmyk_profile = choice;
+              return;
+            }
+            // The action row never stays selected: restore the real choice, then run the
+            // file dialog once the popup has closed.
+            select_cmyk_profile(*last_cmyk_profile);
+            QTimer::singleShot(0, &dialog, [&dialog, select_cmyk_profile, last_cmyk_profile] {
+              const auto path = get_open_file_name(&dialog, tr("Choose CMYK Profile"), QString(),
+                                                   tr("ICC profiles (*.icc *.icm)"));
+              if (path.isEmpty()) {
+                return;
+              }
+              if (CmykWorkingSpace::from_profile_file(to_filesystem_path(path), RenderingIntent::RelativeColorimetric,
+                                                      true) == nullptr) {
+                show_critical_message(&dialog, tr("CMYK Profile"),
+                                      tr("\"%1\" is not a CMYK profile Patchy can use.").arg(path),
+                                      QStringLiteral("preferencesCmykProfileFailedMessageBox"));
+                return;
+              }
+              select_cmyk_profile(path);
+              *last_cmyk_profile = path;
+            });
+          });
+  cmyk_form->addRow(tr("CMYK profile:"), cmyk_profile_combo);
+  auto* cmyk_intent_combo = new QComboBox(cmyk_group);
+  cmyk_intent_combo->setObjectName(QStringLiteral("preferencesCmykIntentCombo"));
+  cmyk_intent_combo->addItem(tr("Perceptual"), static_cast<int>(RenderingIntent::Perceptual));
+  cmyk_intent_combo->addItem(tr("Relative Colorimetric"), static_cast<int>(RenderingIntent::RelativeColorimetric));
+  cmyk_intent_combo->addItem(tr("Saturation"), static_cast<int>(RenderingIntent::Saturation));
+  cmyk_intent_combo->addItem(tr("Absolute Colorimetric"), static_cast<int>(RenderingIntent::AbsoluteColorimetric));
+  cmyk_intent_combo->setCurrentIndex(
+      std::max(cmyk_intent_combo->findData(static_cast<int>(entry_cmyk_settings.intent)), 0));
+  cmyk_form->addRow(tr("Rendering intent:"), cmyk_intent_combo);
+  auto* cmyk_black_point_check = new QCheckBox(tr("Black point compensation"), cmyk_group);
+  cmyk_black_point_check->setObjectName(QStringLiteral("preferencesCmykBlackPointCheck"));
+  cmyk_black_point_check->setChecked(entry_cmyk_settings.black_point_compensation);
+  cmyk_form->addRow(cmyk_black_point_check);
+  application_layout->addWidget(cmyk_group);
+
   // Development: the profiling stress test (see main_window_stress_test.cpp).
   auto* development_group = new QFrame(application_page);
   development_group->setObjectName(QStringLiteral("preferencesDevelopmentGroup"));
@@ -1714,6 +1824,15 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
       set_stored_legacy_plugin_screen_size({chosen_screen.width(), chosen_screen.height()});
     }
 #endif
+    if (const CmykWorkingSettings chosen_cmyk{cmyk_profile_combo->currentData().toString(),
+                                              static_cast<RenderingIntent>(cmyk_intent_combo->currentData().toInt()),
+                                              cmyk_black_point_check->isChecked()};
+        chosen_cmyk != entry_cmyk_settings) {
+      set_stored_cmyk_working_settings(chosen_cmyk);
+      set_working_cmyk_space(cmyk_working_space_for(chosen_cmyk));
+      refresh_color_picker_cmyk_fields();
+      refresh_proof_display();
+    }
     settings.setValue(QStringLiteral("imports/showPsdWarningsAndInfo"), psd_import_warnings_check->isChecked());
     settings.setValue(QStringLiteral("imports/showRawDevelopDialog"), raw_develop_check->isChecked());
     settings.setValue(QStringLiteral("imports/adoptIndexedPalette"), indexed_open_combo->currentData().toString());
@@ -2067,6 +2186,41 @@ void MainWindow::apply_canvas_aid_settings(CanvasWidget* canvas) const {
   canvas->set_guide_color(view_guide_color_);
   canvas->set_target_path_visible(view_target_path_visible_);
   canvas->set_vector_preview_enabled(view_vector_preview_enabled_);
+  canvas->set_proof_display_transform(proof_display_transform_);
+}
+
+void MainWindow::refresh_proof_display() {
+  const bool proof = view_proof_colors_action_ != nullptr && view_proof_colors_action_->isChecked();
+  const bool gamut = view_gamut_warning_action_ != nullptr && view_gamut_warning_action_->isChecked();
+  std::shared_ptr<const CmykProofTransform> transform;
+  if (proof || gamut) {
+    const auto space = working_cmyk_space();
+    transform = CmykProofTransform::create(*space, proof, gamut);
+    if (transform == nullptr) {
+      // The formula has no gamut and nothing to simulate.
+      for (auto* action : {view_proof_colors_action_, view_gamut_warning_action_}) {
+        const QSignalBlocker blocker(action);
+        action->setChecked(false);
+      }
+      show_status_error(tr("Proof Colors and Gamut Warning need a CMYK profile. Choose one in Preferences."));
+    } else {
+      statusBar()->showMessage(
+          tr("Canvas view uses the CMYK profile %1. Documents and exports are unchanged.")
+              .arg(QString::fromStdString(space->profile_description())),
+          6000);
+    }
+  }
+  proof_display_transform_ = std::move(transform);
+  for (const auto& session : sessions_) {
+    session->canvas->set_proof_display_transform(proof_display_transform_);
+    // The ink plates exist only under the proof (docs/cmyk.md).
+    const bool plates_listed = proof_display_transform_ != nullptr && proof_display_transform_->simulates_colors();
+    if (!plates_listed && CanvasWidget::is_cmyk_plate(session->canvas->layer_edit_target())) {
+      session->canvas->set_component_channel_preview(CanvasWidget::LayerEditTarget::Content);
+    }
+  }
+  refresh_channel_panel();
+  update_document_action_state();
 }
 
 void MainWindow::refresh_vector_preview_action() {
