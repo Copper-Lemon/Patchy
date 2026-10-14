@@ -17,13 +17,13 @@ rem log. See docs/release-process.md.
 rem
 rem The dev box has VS Community 2026 at the fixed path below. Other machines (the
 rem Windows offload box's VS 2026 Build Tools, see docs/platform.md) are found through
-rem vswhere instead. The
+rem vswhere instead, VS 18 or newer only (an older VS on the same box must not win). The
 rem lookup uses goto rather than an if-block because %ProgramFiles(x86)%'s closing
 rem parenthesis would end a parenthesized block early.
 set "PATH=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer;%PATH%"
 set "PATCHY_VS_DEV_CMD=C:\Program Files\Microsoft Visual Studio\18\Community\Common7\Tools\VsDevCmd.bat"
 if exist "%PATCHY_VS_DEV_CMD%" goto :found
-for /f "usebackq delims=" %%i in (`vswhere.exe -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath 2^>nul`) do set "PATCHY_VS_DEV_CMD=%%i\Common7\Tools\VsDevCmd.bat"
+for /f "usebackq delims=" %%i in (`vswhere.exe -latest -products * -version 18.0 -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath 2^>nul`) do set "PATCHY_VS_DEV_CMD=%%i\Common7\Tools\VsDevCmd.bat"
 if exist "%PATCHY_VS_DEV_CMD%" goto :found
 rem stderr, so a caller that redirects stdout to nul still sees this.
 echo VsDevCmd.bat was not found (no VS 2026 Community, and vswhere found no VC tools); using the current command environment.>&2

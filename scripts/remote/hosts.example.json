@@ -1,6 +1,9 @@
 {
-  "//": "Copy to hosts.local.json (gitignored) in the main checkout and fill in the ssh targets this machine can reach. Omit targets you do not have. See docs/platform.md.",
+  "//": "Copy to hosts.local.json (gitignored) in the main checkout and fill in the ssh targets this machine can reach. Omit targets you do not have. windows may be one entry or a list in order of preference; optional jobs sets its build parallelism (default 8). See docs/platform.md.",
   "mac": { "ssh": "user@mac-build-host.local" },
   "linux": { "ssh": "user@linux-build-host.local" },
-  "windows": { "ssh": "windows-build-host", "workTree": "C:/patchy/src" }
+  "windows": [
+    { "ssh": "windows-build-host", "workTree": "C:/patchy/src" },
+    { "ssh": "second-windows-build-host", "workTree": "C:/patchy/src", "jobs": 14 }
+  ]
 }

@@ -11,7 +11,8 @@ are elevated). -Root picks where the work tree and tools go; it must match the
 Installs, skipping anything already present:
   - VS 2026 Build Tools (MSVC x64, Windows SDK 10.0.26100, VS-bundled CMake + Ninja),
     the same toolset and SDK the dev box's release preset uses
-  - Git for Windows (winget, machine scope), so pushes over ssh reach git receive-pack
+  - Git for Windows (winget, machine scope; an older Git than 2.35 is upgraded), so pushes
+    over ssh reach git receive-pack; a broken winget source (0x8a15000f) is repaired first
   - Python 3.13 (winget, machine scope), which the release configure requires
   - the bare repo ~\patchy.git and the work tree <Root>\src (build output goes there)
 Qt is not downloaded here: copying the dev box's .deps\Qt\6.8.3\msvc2022_64 guarantees
@@ -39,9 +40,31 @@ function Refresh-Path {
   $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
 }
 
+# winget in an ssh session can fail every search with 0x8a15000f ("Data required by the
+# source is missing") because the account has no Microsoft.Winget.Source package, and
+# `winget source reset` does not bring it back. Install the signed index package winget
+# itself downloads, once, before the first winget install.
+$script:wingetChecked = $false
+function Repair-WingetSource {
+  if ($script:wingetChecked) { return }
+  $script:wingetChecked = $true
+  winget search --id Git.Git --source winget --accept-source-agreements --disable-interactivity *> $null
+  if ($LASTEXITCODE -eq 0) { return }
+  Write-Host '== winget source is broken: installing its source package =='
+  $msix = Join-Path $tools 'winget-source2.msix'
+  Invoke-WebRequest -UseBasicParsing 'https://cdn.winget.microsoft.com/cache/source2.msix' -OutFile $msix
+  $sig = Get-AuthenticodeSignature $msix
+  if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') {
+    Write-Error "winget source package signature is $($sig.Status) ($($sig.SignerCertificate.Subject)); not installing it"; exit 1
+  }
+  Add-AppxPackage -Path $msix
+}
+
 function Find-VcInstall {
   if (-not (Test-Path $vswhere)) { return $null }
-  $p = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+  # -version 18.0 (a minimum): an older VS with VC tools (2019, 2022) must not count as
+  # installed, or the VS 2026 Build Tools install is skipped and the build uses the old toolset.
+  $p = & $vswhere -latest -products * -version 18.0 -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
   if ($p) { return $p.Trim() } else { return $null }
 }
 
@@ -69,9 +92,17 @@ Write-Host "VS: $vs"
 
 # --- 2. Git for Windows ----------------------------------------------------------------
 Refresh-Path
-if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+# An existing Git older than 2.35 is upgraded too: those keep git-receive-pack out of
+# Git\cmd (remote-snapshot.ps1 copes, but other tools that push over ssh do not).
+$gitOld = $false
+if (Get-Command git -ErrorAction SilentlyContinue) {
+  $gv = [regex]::Match((git --version), '(\d+)\.(\d+)')
+  $gitOld = $gv.Success -and ([version]"$($gv.Groups[1].Value).$($gv.Groups[2].Value)" -lt [version]'2.35')
+}
+if ($gitOld -or -not (Get-Command git -ErrorAction SilentlyContinue)) {
   Write-Host '== Installing Git for Windows (winget) =='
-  winget install --id Git.Git -e --scope machine --silent --accept-source-agreements --accept-package-agreements --disable-interactivity
+  Repair-WingetSource
+  winget install --id Git.Git -e --scope machine --force --silent --accept-source-agreements --accept-package-agreements --disable-interactivity
   Refresh-Path
   if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Write-Error 'git still not on PATH after winget install'; exit 1 }
 }
@@ -84,13 +115,24 @@ function Find-Python {
   foreach ($c in @(Get-Command python -All -ErrorAction SilentlyContinue)) {
     if ($c.Source -notlike '*\WindowsApps\*') { return $c.Source }
   }
+  # CMake's FindPython3 also reads the PEP 514 registry entries, so a registered 3.8+ install
+  # that is not on PATH is enough, and saves a winget run (winget's source can fail in an
+  # ssh session on older Windows builds: 0x8a15000f).
+  foreach ($root in 'HKLM:\SOFTWARE\Python\PythonCore', 'HKCU:\SOFTWARE\Python\PythonCore') {
+    foreach ($k in @(Get-ChildItem $root -ErrorAction SilentlyContinue)) {
+      $exe = (Get-ItemProperty (Join-Path $k.PSPath 'InstallPath') -ErrorAction SilentlyContinue).ExecutablePath
+      $v = $k.PSChildName -as [version]
+      if ($exe -and (Test-Path $exe) -and $v -and $v -ge [version]'3.8') { return $exe }
+    }
+  }
   return $null
 }
 if (-not (Find-Python)) {
   Write-Host '== Installing Python 3.13 (winget) =='
+  Repair-WingetSource
   winget install --id Python.Python.3.13 -e --scope machine --silent --accept-source-agreements --accept-package-agreements --disable-interactivity --override '/quiet InstallAllUsers=1 PrependPath=1 Include_test=0'
   Refresh-Path
-  if (-not (Find-Python)) { Write-Error 'python still not on PATH after winget install'; exit 1 }
+  if (-not (Find-Python)) { Write-Error 'no Python 3.8+ after the winget install: install Python 3.13 for all users by hand and rerun'; exit 1 }
 }
 
 # --- 3. Bare repo + work tree ----------------------------------------------------------

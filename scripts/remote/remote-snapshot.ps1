@@ -38,7 +38,10 @@ function Push-PatchySnapshot {
   }
 
   Write-Host "== pushing snapshot $($snap.Substring(0, 12)) to $RemoteHost ($Ref) =="
-  git push --force --quiet "${RemoteHost}:patchy.git" "${snap}:${Ref}"
+  # 'git receive-pack' (the git subcommand) instead of the git-receive-pack executable: Git for
+  # Windows before about 2.35 keeps that executable only under mingw64\bin, which is not on
+  # PATH, while git.exe always is. Works the same in sh and in Windows PowerShell.
+  git push --force --quiet --receive-pack='git receive-pack' "${RemoteHost}:patchy.git" "${snap}:${Ref}"
   if ($LASTEXITCODE -ne 0) { throw 'git push to the remote bare repo failed (run the setup script first?)' }
   return $snap
 }

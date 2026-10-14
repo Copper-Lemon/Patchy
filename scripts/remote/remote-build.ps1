@@ -5,6 +5,7 @@ and runs the test suites there.
   scripts\remote\remote-build.ps1 -Target mac [-TestFilter ui_palette] [-SkipTests] [-FetchArtifacts]
   scripts\remote\remote-build.ps1 -Target linux [-NativeQt] [-TestFilter ui_palette] [-SkipTests]
   scripts\remote\remote-build.ps1 -Target windows [-TestFilter ui_palette] [-CoreTestFilter psd] [-SkipTests]
+                                  [-WindowsHost <ssh target>] [-WaitMinutes 30]
 
 Mechanism: a temporary-index git snapshot of the working tree is force-pushed to
 refs/snapshots/dev on the remote's bare repo (~/patchy.git). No commit or branch is
@@ -24,6 +25,13 @@ request. Its work tree comes from the host config (setup-windows.ps1 creates it)
 remote half is build-and-test.ps1, and the preset is the real `release` preset. The
 local build\release stays the release gate and the packaging source.
 
+The windows host config may list several machines in order of preference. Each is
+probed over ssh in that order: an unreachable one (switched off) is skipped, one that
+is already compiling or testing is busy, and the first idle one builds. When every
+reachable host is busy the run stops (exit 75) rather than start another build beside
+them; -WaitMinutes N re-probes every minute for up to N minutes instead. -WindowsHost
+picks one configured host by its ssh target and skips the probing.
+
 The ssh target of each machine comes from scripts\remote\hosts.local.json (gitignored;
 see remote-hosts.ps1 and hosts.example.json).
 
@@ -38,7 +46,11 @@ param(
   [switch]$SkipTests,
   [switch]$FetchArtifacts,
   # linux only: build against the aqt Qt in .deps instead of the Flatpak SDK's Qt.
-  [switch]$NativeQt
+  [switch]$NativeQt,
+  # windows only: build on this configured host (its ssh target) instead of the first idle one.
+  [string]$WindowsHost = '',
+  # windows only: when every reachable host is busy, keep re-probing for this many minutes.
+  [int]$WaitMinutes = 0
 )
 
 # 'Continue', not 'Stop': under Windows PowerShell 5.1 any native stderr line
@@ -47,7 +59,51 @@ param(
 $ErrorActionPreference = 'Continue'
 
 . "$PSScriptRoot\remote-hosts.ps1"
-$remote = Get-PatchyRemoteHost $Target
+if (($WindowsHost -or $WaitMinutes) -and $Target -ne 'windows') { throw '-WindowsHost and -WaitMinutes are only supported for -Target windows' }
+
+# Probes one windows host. Returns 'idle', 'busy: <process names>', or 'unreachable'.
+# The remote shell is Windows PowerShell 5.1 (setup-windows-ssh.ps1 sets it). Get-Process
+# with absent names sets a failing exit code, so the marker line, not the exit code, says
+# whether the probe ran. Single quotes only: no local expansion, no embedded double quotes.
+function Get-WindowsHostState([string]$sshTarget) {
+  $probe = 'Get-Process cl,link,ninja,cmake,patchy_core_tests,patchy_ui_visual_tests -ErrorAction SilentlyContinue | ForEach-Object { $_.Name } | Sort-Object -Unique; ''patchy-probe-ok'''
+  $out = @(ssh -o ConnectTimeout=8 -o BatchMode=yes $sshTarget $probe 2>$null)
+  if ($out -notcontains 'patchy-probe-ok') { return 'unreachable' }
+  $busy = @($out | Where-Object { $_ -and $_ -ne 'patchy-probe-ok' })
+  if ($busy.Count -gt 0) { return "busy: $($busy -join ', ')" }
+  return 'idle'
+}
+
+if ($Target -eq 'windows') {
+  $candidates = Get-PatchyWindowsHosts
+  if ($WindowsHost) {
+    $remote = $candidates | Where-Object { $_.ssh -eq $WindowsHost } | Select-Object -First 1
+    if (-not $remote) { throw "-WindowsHost '$WindowsHost' is not a windows entry in hosts.local.json ($(($candidates | ForEach-Object { $_.ssh }) -join ', '))" }
+  }
+  else {
+    $remote = $null
+    $deadline = (Get-Date).AddMinutes($WaitMinutes)
+    while (-not $remote) {
+      $anyReachable = $false
+      foreach ($c in $candidates) {
+        $state = Get-WindowsHostState $c.ssh
+        Write-Host "== windows host $($c.ssh): $state =="
+        if ($state -eq 'idle') { $remote = $c; break }
+        if ($state -ne 'unreachable') { $anyReachable = $true }
+      }
+      if ($remote) { break }
+      if (-not $anyReachable) { throw 'no windows build host is reachable (all switched off, or ssh is not set up)' }
+      if ((Get-Date) -ge $deadline) {
+        Write-Host 'every reachable windows build host is busy; not starting another build beside them (-WaitMinutes N waits)'
+        exit 75
+      }
+      Start-Sleep -Seconds 60
+    }
+  }
+}
+else {
+  $remote = Get-PatchyRemoteHost $Target
+}
 $remoteHost = $remote.ssh
 $preset = if ($Target -eq 'windows') { 'release' }
   elseif ($Target -eq 'linux' -and -not $NativeQt) { 'linux-flatpak-qt' }
@@ -73,6 +129,8 @@ try {
     if ($TestFilter) { $psArgs += @('-Filter', "'$TestFilter'") }
     if ($CoreTestFilter) { $psArgs += @('-CoreFilter', "'$CoreTestFilter'") }
     if ($SkipTests) { $psArgs += '-SkipTests' }
+    # Optional per-host parallelism from the host config; build-and-test.ps1 defaults to 8.
+    if ($remote.jobs) { $psArgs += @('-Jobs', [int]$remote.jobs) }
     $wt = $remote.workTree.Replace('\', '/')
     $remoteCmd = "git -C $wt fetch -q origin +refs/snapshots/dev; " + 'if ($LASTEXITCODE) { exit $LASTEXITCODE }; ' +
       "git -C $wt checkout -q -f --detach FETCH_HEAD; " + 'if ($LASTEXITCODE) { exit $LASTEXITCODE }; ' +
