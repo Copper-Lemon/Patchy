@@ -2081,5 +2081,14 @@ if(PATCHY_BUILD_TESTS)
     patchy_copy_qt_runtime(patchy_perf_tests)
     patchy_copy_bundled_fonts(patchy_perf_tests)
     add_test(NAME patchy_perf_tests COMMAND patchy_perf_tests)
+
+    # GitHub issue 95: the patched cocoa plugin's table-cell lifetime. Needs the real
+    # cocoa platform, so it is not a ctest; scripts/remote/build-and-test.sh runs it with
+    # the plugin from scripts/setup-qt-cocoa-patch-mac.sh (docs/building.md).
+    if(APPLE)
+      add_executable(patchy_mac_a11y_tests tests/macos/cocoa_a11y_cell_lifetime_test.mm)
+      target_link_libraries(patchy_mac_a11y_tests PRIVATE Qt6::Widgets "-framework AppKit")
+      patchy_configure_target(patchy_mac_a11y_tests)
+    endif()
   endif()
 endif()

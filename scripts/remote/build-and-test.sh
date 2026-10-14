@@ -71,3 +71,13 @@ if [ -n "$FILTER" ]; then
 else
   (cd "$BUILD_DIR" && QT_QPA_PLATFORM=offscreen nice -n 10 ./patchy_ui_visual_tests)
 fi
+
+# GitHub issue 95: the shipped cocoa plugin is a patched build (docs/building.md, "Patched
+# Qt cocoa plugin"). The setup script is a no-op until the patch changes; the test needs
+# the real cocoa platform, which the logged-in console session provides.
+if [ "$(uname -s)" = "Darwin" ]; then
+  echo "== patched Qt cocoa plugin =="
+  bash scripts/setup-qt-cocoa-patch-mac.sh
+  echo "== patchy_mac_a11y_tests (cocoa) =="
+  (cd "$BUILD_DIR" && ./patchy_mac_a11y_tests "$PWD/../../.deps/qt-cocoa-6.8.3-patched")
+fi

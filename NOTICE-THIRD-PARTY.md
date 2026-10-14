@@ -38,6 +38,14 @@ This local zip uses dynamic Qt DLLs and includes the Qt module SPDX notice files
 under `licenses/qt/` so downstream review can see the exact Qt build metadata,
 third-party components, and license text extracted by Qt.
 
+The macOS app's Qt cocoa platform plugin (`platforms/libqcocoa.dylib`) is a
+modified build of Qt 6.8.3, used under the GNU Lesser General Public License
+v3. The complete change is
+`packaging/macos/qt-patches/qtbase-6.8.3-cocoa-a11y-cell-retain.patch` in this
+repository, applied to the unmodified qtbase 6.8.3 source release by
+`scripts/setup-qt-cocoa-patch-mac.sh`. It fixes an accessibility crash (Qt bug
+QTBUG-134784). The other Qt libraries and plugins are the unmodified Qt builds.
+
 ## Microsoft Visual C++ Runtime DLLs
 
 The Windows package includes the app-local Microsoft Visual C++ runtime DLLs

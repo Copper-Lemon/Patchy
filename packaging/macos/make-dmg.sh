@@ -76,6 +76,28 @@ echo "== copy Qt offscreen platform plugin =="
 mkdir -p "$STAGE/Patchy.app/Contents/PlugIns/platforms"
 cp "$QT_OFFSCREEN_PLUGIN" "$STAGE/Patchy.app/Contents/PlugIns/platforms/libqoffscreen.dylib"
 
+# The kit's cocoa plugin crashes when an accessibility client has read a list that is
+# then reset (GitHub issue 95); the bundle carries the patched build instead
+# (docs/building.md, "Patched Qt cocoa plugin"). Before codesign, like the plugin above.
+PATCHED_COCOA_PLUGIN=".deps/qt-cocoa-6.8.3-patched/platforms/libqcocoa.dylib"
+BUNDLED_COCOA_PLUGIN="$STAGE/Patchy.app/Contents/PlugIns/platforms/libqcocoa.dylib"
+if [ ! -f "$PATCHED_COCOA_PLUGIN" ]; then
+  echo "ERROR: $PATCHED_COCOA_PLUGIN not found; run bash scripts/setup-qt-cocoa-patch-mac.sh." >&2
+  exit 1
+fi
+[ -f "$BUNDLED_COCOA_PLUGIN" ] || { echo "ERROR: macdeployqt bundled no cocoa plugin." >&2; exit 1; }
+echo "== replace the Qt cocoa platform plugin with the patched build =="
+cp "$PATCHED_COCOA_PLUGIN" "$BUNDLED_COCOA_PLUGIN"
+cmp -s "$PATCHED_COCOA_PLUGIN" "$BUNDLED_COCOA_PLUGIN" || { echo "ERROR: the bundled cocoa plugin is not the patched build." >&2; exit 1; }
+APP_ARCHS=$(lipo -archs "$STAGE/Patchy.app/Contents/MacOS/Patchy")
+PLUGIN_ARCHS=$(lipo -archs "$BUNDLED_COCOA_PLUGIN")
+for arch in $APP_ARCHS; do
+  case " $PLUGIN_ARCHS " in
+    *" $arch "*) ;;
+    *) echo "ERROR: the patched cocoa plugin ($PLUGIN_ARCHS) has no $arch slice for the app." >&2; exit 1 ;;
+  esac
+done
+
 if [ -n "${PATCHY_MAC_SIGN_IDENTITY:-}" ]; then
   if [ -n "${PATCHY_KEYCHAIN_PASSWORD:-}" ]; then
     # Disable Security.framework interaction before touching the keychain. A

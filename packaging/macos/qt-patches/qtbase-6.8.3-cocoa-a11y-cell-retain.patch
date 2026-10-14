@@ -1,0 +1,49 @@
+Patchy patch for the macOS Qt 6.8.3 cocoa platform plugin (libqcocoa.dylib).
+
+QTBUG-134784: a placeholder table cell element is put into QAccessibleCache
+without a reference, but -invalidate releases one when the cell's interface is
+deleted. A model reset (QListWidget::clear, which every Layers panel refresh
+does) then frees cells a row's columns array still holds, and releasing the row
+crashes in -[QMacAccessibilityElement dealloc] (GitHub issue 95). The upstream
+fix (qtbase 0ee6ee5) is in Qt 6.8.4, which is commercial-only, and it also
+changes QtGui; this patch fixes the reference count in the plugin alone.
+Applied by scripts/setup-qt-cocoa-patch-mac.sh. Drop it at the next Qt bump
+(docs/building.md, "Patched Qt cocoa plugin").
+
+Qt is licensed under LGPL-3.0 (among other options); this file is the complete
+source change to the shipped libqcocoa.dylib.
+
+diff --git a/src/plugins/platforms/cocoa/qcocoaaccessibilityelement.mm b/src/plugins/platforms/cocoa/qcocoaaccessibilityelement.mm
+index a07c9fe..93c0efe 100644
+--- a/src/plugins/platforms/cocoa/qcocoaaccessibilityelement.mm
++++ b/src/plugins/platforms/cocoa/qcocoaaccessibilityelement.mm
+@@ -355,7 +355,8 @@ static void convertLineOffset(QAccessibleTextInterface *text, int *line, int *of
+         synthesizedRole = nil;
+ 
+         QAccessibleCache *cache = QAccessibleCache::instance();
+-        if (QMacAccessibilityElement *cellElement = cache->elementForId(axid)) {
++        QMacAccessibilityElement *cellElement = cache->elementForId(axid);
++        if (cellElement) {
+             // there already is another, non-placeholder element in the cache
+             Q_ASSERT(cellElement->synthesizedRole == nil);
+             // we have to release it if it's not us
+@@ -365,7 +366,18 @@ static void convertLineOffset(QAccessibleTextInterface *text, int *line, int *of
+             }
+         }
+ 
+-        cache->insertElement(axid, self);
++        // Patchy (QTBUG-134784): the cache owns one reference to each element it holds,
++        // which -invalidate releases when the cell interface is deleted (a model reset
++        // deletes them all). A placeholder is owned only by its row's columns array, so
++        // the cache takes its own reference here; without it, deleting the cell interface
++        // frees a cell the array still holds, and releasing the row later crashes. An
++        // element the cache already holds for this cell gives its reference up first.
++        if (cellElement != self) {
++            if (cellElement)
++                [cellElement invalidate];
++            cache->insertElement(axid, self);
++            [self retain];
++        }
+     }
+     return iface;
+ }
