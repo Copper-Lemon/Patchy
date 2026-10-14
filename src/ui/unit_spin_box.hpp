@@ -107,6 +107,10 @@ class UnitSpinBox : public QDoubleSpinBox {
   // through set_display_unit alone and stays this field's choice. No-op unless
   // switchable.
   void pick_display_unit(SpinUnit unit);
+  // Shows "12 pt" instead of "12.000 pt": trailing zeros after the decimal point
+  // (and a bare point) drop from the display while decimals() keeps the precision.
+  void set_trim_trailing_zeros(bool enabled);
+  [[nodiscard]] bool trims_trailing_zeros() const noexcept { return trim_trailing_zeros_; }
 
  signals:
   // Every display-unit change, whatever caused it (the linked transform W/H pair
@@ -129,6 +133,7 @@ class UnitSpinBox : public QDoubleSpinBox {
   SpinUnit native_;
   SpinUnit display_;
   bool switchable_{false};
+  bool trim_trailing_zeros_{false};
   // The presentation the field was built with, captured when a display unit first
   // replaces the native one and restored when the native unit comes back.
   std::optional<int> native_decimals_;

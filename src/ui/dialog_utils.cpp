@@ -1270,6 +1270,13 @@ QString spinbox_value_text(const QDoubleSpinBox* spin, double value) {
 template <typename SpinBox>
 void refresh_toolbar_spinbox_width(SpinBox* spin) {
   const int width = spin->property(kToolbarSpinboxMinWidthProperty).toInt();
+  if constexpr (std::is_same_v<SpinBox, QDoubleSpinBox>) {
+    if (const auto sample = spin->property(kToolbarSpinboxWidthSampleProperty); sample.isValid()) {
+      const auto text = spinbox_value_text(spin, sample.toDouble());
+      spin->setFixedWidth(toolbar_spinbox_width(width, spin->fontMetrics(), text, text));
+      return;
+    }
+  }
   spin->setFixedWidth(toolbar_spinbox_width(width, spin->fontMetrics(),
                                             spinbox_value_text(spin, spin->minimum()),
                                             spinbox_value_text(spin, spin->maximum())));

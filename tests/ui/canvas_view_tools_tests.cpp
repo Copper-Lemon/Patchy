@@ -35,6 +35,7 @@
 #include "ui/dialog_utils.hpp"
 #include "ui/document_float_window.hpp"
 #include "ui/compatibility_report.hpp"
+#include "ui/curved_slider.hpp"
 #include "ui/curves_editor.hpp"
 #include "ui/curves_presets.hpp"
 #include "ui/filter_workflows.hpp"
@@ -54,6 +55,7 @@
 #include "ui/layer_style_dialog.hpp"
 #include "ui/localization.hpp"
 #include "ui/main_window.hpp"
+#include "ui/options_flow_layout.hpp"
 #include "ui/print_dialog.hpp"
 #include "ui/selection_outline.hpp"
 #include "ui/sprite_sheet_dialog.hpp"
@@ -78,6 +80,7 @@
 #include <QAbstractItemView>
 #include <QAbstractTextDocumentLayout>
 #include <QAction>
+#include <QActionGroup>
 #include <QApplication>
 #include <QBuffer>
 #include <QByteArray>
@@ -334,6 +337,16 @@ void ui_options_bar_spinboxes_fit_widest_value() {
       continue;
     }
     const auto locale = spin->locale();
+    // A box sized from a sample value (Text Size drops trailing zeros, so its max shows
+    // as "10000 pt") must fit that sample and the text it really shows at the extremes.
+    if (const auto sample = spin->property(patchy::ui::kToolbarSpinboxWidthSampleProperty); sample.isValid()) {
+      require_fits(spin, spin->prefix() + locale.toString(sample.toDouble(), 'f', spin->decimals()) +
+                             spin->suffix());
+      require_fits(spin, spin->prefix() + spin->textFromValue(spin->minimum()) + spin->suffix());
+      require_fits(spin, spin->prefix() + spin->textFromValue(spin->maximum()) + spin->suffix());
+      ++checked;
+      continue;
+    }
     require_fits(spin, spin->prefix() + locale.toString(spin->minimum(), 'f', spin->decimals()) +
                            spin->suffix());
     require_fits(spin, spin->prefix() + locale.toString(spin->maximum(), 'f', spin->decimals()) +
@@ -389,6 +402,204 @@ void ui_options_bar_spinboxes_show_their_extremes_unclipped() {
     }
   }
   CHECK(checked >= 4);
+}
+
+// Every tool action in the palette, in CanvasTool order. Object Selection is left out:
+// choosing it can start the model download offer.
+std::vector<QAction*> options_bar_test_tool_actions(patchy::ui::MainWindow& window) {
+  auto* brush = require_action(window, "toolBrushAction");
+  std::vector<QAction*> tools;
+  if (brush->actionGroup() == nullptr) {
+    return tools;
+  }
+  for (auto* action : brush->actionGroup()->actions()) {
+    if (action->data().toInt() != static_cast<int>(patchy::ui::CanvasTool::ObjectSelect)) {
+      tools.push_back(action);
+    }
+  }
+  std::sort(tools.begin(), tools.end(),
+            [](QAction* a, QAction* b) { return a->data().toInt() < b->data().toInt(); });
+  return tools;
+}
+
+// The right edge of the active tool's controls and how many lines they take.
+std::pair<int, int> options_row_extent(QWidget& options) {
+  int right = 0;
+  std::vector<int> tops;
+  for (auto* child : options.findChildren<QWidget*>(Qt::FindDirectChildrenOnly)) {
+    if (!child->isVisible()) {
+      continue;
+    }
+    right = std::max(right, child->geometry().right() + 1);
+    const int top = child->geometry().top();
+    if (std::none_of(tops.begin(), tops.end(), [top](int other) { return std::abs(other - top) < 8; })) {
+      tops.push_back(top);
+    }
+  }
+  return {right, static_cast<int>(tops.size())};
+}
+
+void ui_options_bar_keeps_one_height_across_tools() {
+  // GitHub issue 91: on a 1366 px laptop screen the Brush and Text rows wrapped onto a
+  // second line, so every switch to or from them moved the tool palette, the canvas and
+  // the docks. The bar now takes the tallest tool row's height at the current width, and
+  // at 1366 px every row fits on one line.
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* options_bar = window.findChild<QToolBar*>(QStringLiteral("Options"));
+  auto* options = window.findChild<QWidget*>(QStringLiteral("OptionsContent"));
+  CHECK(options_bar != nullptr && options != nullptr);
+  const auto tools = options_bar_test_tool_actions(window);
+  CHECK(tools.size() >= 30);
+
+  const auto settle = [] {
+    QApplication::processEvents();
+    process_events_for(20);
+  };
+  window.resize(2600, 800);
+  settle();
+  int single_row_height = 0;
+  int widest_row = 0;
+  for (auto* action : tools) {
+    action->trigger();
+    settle();
+    const auto [right, lines] = options_row_extent(*options);
+    std::printf("  %-28s natural row %4d px\n", qPrintable(action->objectName()), right);
+    CHECK(lines <= 1);
+    widest_row = std::max(widest_row, right);
+    if (single_row_height == 0) {
+      single_row_height = options_bar->height();
+    }
+    CHECK(options_bar->height() == single_row_height);
+  }
+  std::printf("  widest row %d px; single-row bar %d px\n", widest_row, single_row_height);
+
+  int wrapped_rows = 0;
+  for (const int width : {1366, 1024, 800}) {
+    window.resize(width, 738);
+    settle();
+    int common_height = 0;
+    for (auto* action : tools) {
+      action->trigger();
+      settle();
+      if (common_height == 0) {
+        common_height = options_bar->height();
+      }
+      if (options_bar->height() != common_height) {
+        std::fprintf(stderr, "  %d px: %s makes the bar %d px, others %d px\n", width,
+                     qPrintable(action->objectName()), options_bar->height(), common_height);
+      }
+      CHECK(options_bar->height() == common_height);
+      if (width == 1366) {
+        const auto [right, lines] = options_row_extent(*options);
+        if (lines > 1) {
+          // Name every control in the row so the overrun is easy to budget.
+          std::fprintf(stderr, "  1366 px: %s wraps onto %d lines (container %d px):",
+                       qPrintable(action->objectName()), lines, options->width());
+          for (auto* child : options->findChildren<QWidget*>(Qt::FindDirectChildrenOnly)) {
+            if (child->isVisible()) {
+              const auto* label = qobject_cast<QLabel*>(child);
+              const auto name = !child->objectName().isEmpty() ? child->objectName()
+                                : label != nullptr            ? QStringLiteral("\"%1\"").arg(label->text())
+                                                              : QString::fromLatin1(child->metaObject()->className());
+              std::fprintf(stderr, " %s=%d", qPrintable(name), child->width());
+            }
+          }
+          std::fprintf(stderr, "\n");
+          ++wrapped_rows;
+        }
+      }
+    }
+    std::printf("  %4d px window: bar %d px\n", width, common_height);
+    if (width == 1366) {
+      CHECK(wrapped_rows == 0);
+      CHECK(common_height == single_row_height);
+    }
+  }
+}
+
+void ui_options_bar_drops_duplicate_sliders_before_wrapping() {
+  // GitHub issue 91: the inline Size/Opacity/Soft sliders repeat the spin box beside them
+  // (popup slider and scrub label), so they are the first thing a narrow bar drops.
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* size_spin = window.findChild<QSpinBox*>(QStringLiteral("brushSizeSpin"));
+  auto* size_slider = window.findChild<QSlider*>(QStringLiteral("brushSizeSlider"));
+  auto* opacity_slider = window.findChild<QSlider*>(QStringLiteral("brushOpacitySlider"));
+  auto* gradient_slider = window.findChild<QSlider*>(QStringLiteral("gradientOpacitySlider"));
+  CHECK(size_spin != nullptr && size_slider != nullptr && opacity_slider != nullptr && gradient_slider != nullptr);
+  for (const auto* slider : {size_slider, opacity_slider, gradient_slider}) {
+    CHECK(slider->property(patchy::ui::kOptionsBarCollapsibleProperty).toBool());
+  }
+  const auto settle = [] {
+    QApplication::processEvents();
+    process_events_for(20);
+  };
+  require_action(window, "toolBrushAction")->trigger();
+  window.resize(2600, 800);
+  settle();
+  CHECK(size_spin->isVisible() && size_slider->isVisible() && opacity_slider->isVisible());
+
+  window.resize(1000, 800);
+  settle();
+  CHECK(size_spin->isVisible());
+  CHECK(!size_slider->isVisible() && !opacity_slider->isVisible());
+  // The decision covers every tool at this width, not just the active one.
+  require_action(window, "toolGradientAction")->trigger();
+  settle();
+  CHECK(!gradient_slider->isVisible());
+  // The spin box still drives the value.
+  require_action(window, "toolBrushAction")->trigger();
+  settle();
+  size_spin->setValue(40);
+  CHECK(patchy::ui::slider_value(*size_slider) == 40);
+
+  window.resize(2600, 800);
+  settle();
+  CHECK(size_slider->isVisible() && opacity_slider->isVisible());
+}
+
+void ui_text_options_bar_size_shows_photoshop_precision() {
+  // Photoshop's type size shows at most two decimals and drops trailing zeros. Patchy
+  // stores whole pixels, so the third decimal ("14.446 pt") was false precision.
+  patchy::ui::MainWindow window;
+  show_window(window);
+  require_action(window, "toolTypeAction")->trigger();
+  QApplication::processEvents();
+  auto* size = window.findChild<QDoubleSpinBox*>(QStringLiteral("textSizeSpin"));
+  CHECK(size != nullptr);
+  CHECK(size->decimals() == 2);
+  const QSignalBlocker blocker(size);
+  size->setValue(12.0);
+  CHECK(size->text() == QStringLiteral("12 pt"));
+  size->setValue(14.446);
+  CHECK(std::abs(size->value() - 14.45) < 1e-9);
+  CHECK(size->text() == QStringLiteral("14.45 pt"));
+  size->setValue(13.5);
+  CHECK(size->text() == QStringLiteral("13.5 pt"));
+  // Typed values with trailing zeros still parse.
+  auto* editor = size->findChild<QLineEdit*>();
+  CHECK(editor != nullptr);
+  editor->setText(QStringLiteral("18.50 pt"));
+  size->interpretText();
+  CHECK(std::abs(size->value() - 18.5) < 1e-9);
+  CHECK(size->text() == QStringLiteral("18.5 pt"));
+
+  // The rest of the GitHub issue 91 trims: glyph align buttons instead of L / C / R behind an
+  // "Align:" label, no "Color:" label, and paragraph direction moved to the Paragraph panel.
+  for (const auto* name : {"textAlignLeftButton", "textAlignCenterButton", "textAlignRightButton"}) {
+    auto* button = window.findChild<QPushButton*>(QString::fromLatin1(name));
+    CHECK(button != nullptr && button->text().isEmpty() && !button->icon().isNull() && !button->toolTip().isEmpty());
+  }
+  CHECK(window.findChild<QComboBox*>(QStringLiteral("textDirectionCombo")) == nullptr);
+  auto* options = window.findChild<QWidget*>(QStringLiteral("OptionsContent"));
+  CHECK(options != nullptr);
+  for (auto* label : options->findChildren<QLabel*>()) {
+    if (label->isVisible()) {
+      CHECK(label->text() != QStringLiteral("Color:") && label->text() != QStringLiteral("Align:") &&
+            label->text() != QStringLiteral("Direction:"));
+    }
+  }
 }
 
 void ui_canvas_wheel_matches_photoshop_navigation() {
@@ -2227,6 +2438,10 @@ void ui_options_bar_tracks_active_tool() {
   settings.sync();
   patchy::ui::MainWindow window;
   show_window(window);
+  // Wide enough that no row wraps, so the inline sliders that a narrow bar drops
+  // (ui_options_bar_drops_duplicate_sliders_before_wrapping) follow the tool alone.
+  window.resize(2600, 900);
+  QApplication::processEvents();
   auto* canvas = require_canvas(window);
   auto* move_auto_select = window.findChild<QCheckBox*>(QStringLiteral("moveAutoSelectCheck"));
   auto* move_show_transform_controls = window.findChild<QCheckBox*>(QStringLiteral("moveShowTransformControlsCheck"));
@@ -4074,6 +4289,10 @@ std::vector<patchy::test::TestCase> canvas_view_tools_tests() {
       {"ui_fill_of_wand_selection_with_many_spans_is_fast", ui_fill_of_wand_selection_with_many_spans_is_fast},
       {"ui_gradient_toolbar_preset_popup_applies_stops", ui_gradient_toolbar_preset_popup_applies_stops},
       {"ui_options_bar_spinboxes_fit_widest_value", ui_options_bar_spinboxes_fit_widest_value},
+      {"ui_options_bar_keeps_one_height_across_tools", ui_options_bar_keeps_one_height_across_tools},
+      {"ui_options_bar_drops_duplicate_sliders_before_wrapping",
+       ui_options_bar_drops_duplicate_sliders_before_wrapping},
+      {"ui_text_options_bar_size_shows_photoshop_precision", ui_text_options_bar_size_shows_photoshop_precision},
       {"ui_options_bar_spinboxes_show_their_extremes_unclipped",
        ui_options_bar_spinboxes_show_their_extremes_unclipped},
       {"ui_right_docks_collapse_layers_show_metadata_and_info_updates",

@@ -1,5 +1,6 @@
 // MainWindow::build_options_bar(): the Options-bar phase of create_actions()
-// (the top toolbar, its FlowLayout/OptionsFlowContainer hosts and every
+// (the top toolbar, its FlowLayout/OptionsFlowContainer hosts from
+// options_flow_layout.hpp, and every
 // per-tool option control), split out of main_window_actions.cpp along with
 // the anonymous-namespace widget helpers only this phase uses.
 // Pure function move; behavior must stay identical, and the construction
@@ -9,6 +10,7 @@
 #include "ui/appearance_edits.hpp"
 #include "ui/main_window_shared.hpp"
 #include "ui/main_window_actions_internal.hpp"
+#include "ui/options_flow_layout.hpp"
 
 #include "ai/segmentation_engine.hpp"
 #include "ui/object_selection_model_download.hpp"
@@ -256,119 +258,18 @@ namespace patchy::ui {
 
 namespace {
 
-// A left-to-right layout that wraps its items onto additional rows when the
-// available width is too small, skipping hidden widgets so the active tool's
-// options pack tightly. Used by the Options bar so controls fold to a second
-// line instead of being clipped.
-class FlowLayout final : public QLayout {
-public:
-  explicit FlowLayout(QWidget* parent, int horizontal_spacing = 6, int vertical_spacing = 4)
-      : QLayout(parent), horizontal_spacing_(horizontal_spacing), vertical_spacing_(vertical_spacing) {
-    setContentsMargins(0, 0, 0, 0);
-  }
-  ~FlowLayout() override {
-    while (QLayoutItem* item = takeAt(0)) {
-      delete item;
-    }
-  }
-
-  void addItem(QLayoutItem* item) override { items_.append(item); }
-  int count() const override { return static_cast<int>(items_.size()); }
-  QLayoutItem* itemAt(int index) const override { return items_.value(index); }
-  QLayoutItem* takeAt(int index) override {
-    return (index >= 0 && index < items_.size()) ? items_.takeAt(index) : nullptr;
-  }
-  Qt::Orientations expandingDirections() const override { return {}; }
-  bool hasHeightForWidth() const override { return true; }
-  int heightForWidth(int width) const override { return do_layout(QRect(0, 0, width, 0), true); }
-  void setGeometry(const QRect& rect) override {
-    QLayout::setGeometry(rect);
-    do_layout(rect, false);
-  }
-  QSize sizeHint() const override { return minimumSize(); }
-  QSize minimumSize() const override {
-    QSize size;
-    for (auto* item : items_) {
-      const QWidget* widget = item->widget();
-      if (widget != nullptr && widget->isHidden()) {
-        continue;
-      }
-      size = size.expandedTo(item->minimumSize());
-    }
-    const auto margins = contentsMargins();
-    size += QSize(margins.left() + margins.right(), margins.top() + margins.bottom());
-    return size;
-  }
-
-private:
-  int do_layout(const QRect& rect, bool test_only) const {
-    const auto margins = contentsMargins();
-    const QRect effective = rect.adjusted(margins.left(), margins.top(), -margins.right(), -margins.bottom());
-    int x = effective.x();
-    int y = effective.y();
-    int line_height = 0;
-    for (auto* item : items_) {
-      QWidget* widget = item->widget();
-      if (widget != nullptr && widget->isHidden()) {
-        continue;
-      }
-      const QSize hint = item->sizeHint();
-      int next_x = x + hint.width() + horizontal_spacing_;
-      if (next_x - horizontal_spacing_ > effective.right() + 1 && line_height > 0) {
-        x = effective.x();
-        y = y + line_height + vertical_spacing_;
-        next_x = x + hint.width() + horizontal_spacing_;
-        line_height = 0;
-      }
-      if (!test_only) {
-        item->setGeometry(QRect(QPoint(x, y), hint));
-      }
-      x = next_x;
-      line_height = std::max(line_height, hint.height());
-    }
-    return y + line_height - rect.y() + margins.bottom();
-  }
-
-  QList<QLayoutItem*> items_;
-  int horizontal_spacing_;
-  int vertical_spacing_;
-};
-
-// Hosts the Options bar controls in a FlowLayout and reports the wrapped height
-// for its current width so the surrounding QToolBar grows to a second row.
-class OptionsFlowContainer final : public QWidget {
-public:
-  using QWidget::QWidget;
-
-  QSize sizeHint() const override {
-    const int available = width() > 0 ? width() : 1200;
-    const int height = layout() != nullptr ? layout()->heightForWidth(available) : 0;
-    return QSize(available, height);
-  }
-  QSize minimumSizeHint() const override {
-    const int available = width() > 0 ? width() : 0;
-    const int height = layout() != nullptr ? layout()->heightForWidth(std::max(available, 1)) : 0;
-    return QSize(layout() != nullptr ? layout()->minimumSize().width() : 0, height);
-  }
-
-protected:
-  void resizeEvent(QResizeEvent* event) override {
-    QWidget::resizeEvent(event);
-    // Width changed: the wrapped height may differ, so ask the toolbar to relayout.
-    updateGeometry();
-  }
-};
-
 class CheckGlyphBox final : public QCheckBox {
 public:
   explicit CheckGlyphBox(const QString& text, QWidget* parent = nullptr) : QCheckBox(text, parent) {
     setMinimumHeight(24);
   }
 
+  // Text plus the glyph; the 58 px floor keeps a one-word box from looking cramped. The old
+  // 92 px floor (chip-era) left "End" or "Stroke" wider than their text and pushed long
+  // rows onto a second line at 1366 px (GitHub issue 91).
   QSize sizeHint() const override {
     const auto text_width = fontMetrics().horizontalAdvance(text());
-    const auto minimum = objectName() == QStringLiteral("shapeFillCheck") ? 58 : 92;
-    return QSize(std::max(minimum, text_width + 34), 24);
+    return QSize(std::max(58, text_width + 34), 24);
   }
 
 protected:
@@ -516,12 +417,15 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   auto* options_content = new OptionsFlowContainer(toolbar);
   options_content->setObjectName(QStringLiteral("OptionsContent"));
   options_content->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-  auto* options_flow = new FlowLayout(options_content, 5, 4);
+  // 4 px between controls (was 5): every long row must fit one line at 1366 px (GitHub issue 91).
+  auto* options_flow = new FlowLayout(options_content, 4, 4);
   // Side padding so the first control does not butt against the window edge.
   options_flow->setContentsMargins(6, 3, 0, 3);
   options_content->setLayout(options_flow);
   toolbar->addWidget(options_content);
   options_flow_container_ = options_content;
+  // A resize across the slider-collapse width re-runs the visibility pass.
+  options_content->set_collapse_changed_callback([this] { refresh_options_bar(); });
 
   option_actions_.clear();
   transform_option_actions_.clear();
@@ -1526,6 +1430,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
                      CanvasTool::Eraser, CanvasTool::Line, CanvasTool::Rectangle, CanvasTool::Ellipse});
   auto* brush_size_slider = new QSlider(Qt::Horizontal, toolbar);
   brush_size_slider->setObjectName(QStringLiteral("brushSizeSlider"));
+  brush_size_slider->setProperty(kOptionsBarCollapsibleProperty, true);
   bind_curved_slider(*brush_size_slider, *brush_size);
   // 130 (was 150): the Brush row must keep one Options-bar line at ordinary
   // window widths now that it also carries the Smoothing spin and gear
@@ -1554,6 +1459,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
                      CanvasTool::Eraser, CanvasTool::Line, CanvasTool::Rectangle, CanvasTool::Ellipse});
   auto* brush_opacity_slider = new QSlider(Qt::Horizontal, toolbar);
   brush_opacity_slider->setObjectName(QStringLiteral("brushOpacitySlider"));
+  brush_opacity_slider->setProperty(kOptionsBarCollapsibleProperty, true);
   brush_opacity_slider->setRange(1, 100);
   brush_opacity_slider->setValue(canvas_defaults->brush_opacity());
   brush_opacity_slider->setFixedWidth(100);  // was 120; see the size-slider note
@@ -1581,6 +1487,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
                      CanvasTool::Eraser, CanvasTool::Line, CanvasTool::Rectangle, CanvasTool::Ellipse});
   auto* brush_softness_slider = new QSlider(Qt::Horizontal, toolbar);
   brush_softness_slider->setObjectName(QStringLiteral("brushSoftnessSlider"));
+  brush_softness_slider->setProperty(kOptionsBarCollapsibleProperty, true);
   brush_softness_slider->setRange(0, 100);
   brush_softness_slider->setValue(canvas_defaults->brush_softness());
   brush_softness_slider->setFixedWidth(96);  // was 110; see the size-slider note
@@ -2063,6 +1970,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   add_option_widget(gradient_opacity_spin_, {CanvasTool::Gradient});
   gradient_opacity_slider_ = new QSlider(Qt::Horizontal, toolbar);
   gradient_opacity_slider_->setObjectName(QStringLiteral("gradientOpacitySlider"));
+  gradient_opacity_slider_->setProperty(kOptionsBarCollapsibleProperty, true);
   gradient_opacity_slider_->setRange(0, 100);
   gradient_opacity_slider_->setValue(canvas_defaults->gradient_opacity());
   gradient_opacity_slider_->setFixedWidth(110);
@@ -2346,6 +2254,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   add_option_widget(quick_select_size, {CanvasTool::QuickSelect});
   auto* quick_select_size_slider = new QSlider(Qt::Horizontal, toolbar);
   quick_select_size_slider->setObjectName(QStringLiteral("quickSelectSizeSlider"));
+  quick_select_size_slider->setProperty(kOptionsBarCollapsibleProperty, true);
   bind_curved_slider(*quick_select_size_slider, *quick_select_size);
   quick_select_size_slider->setFixedWidth(150);
   bind_tooltip(quick_select_size_slider, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Quick Select brush size: press [ or ]"));
@@ -2763,7 +2672,8 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   vector_combine_combo->addItems(
       {tr("New Layer"), tr("Add"), tr("Subtract"), tr("Intersect"), tr("Exclude")});
   vector_combine_combo->setCurrentIndex(0);
-  vector_combine_combo->setFixedWidth(96);
+  vector_combine_combo->setFixedWidth(88);
+  widen_combo_popup_to_items(vector_combine_combo);
   bind_tooltip(vector_combine_combo, QT_TR_NOOP("How the next shape combines with the active shape layer or work path"));
   QPointer<QComboBox> vector_combine_combo_pointer(vector_combine_combo);
   register_retranslation([vector_combine_combo_pointer] {
@@ -3022,6 +2932,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   add_option_widget(fill_opacity, {CanvasTool::Fill});
   auto* fill_opacity_slider = new QSlider(Qt::Horizontal, toolbar);
   fill_opacity_slider->setObjectName(QStringLiteral("fillOpacitySlider"));
+  fill_opacity_slider->setProperty(kOptionsBarCollapsibleProperty, true);
   fill_opacity_slider->setRange(1, 100);
   fill_opacity_slider->setValue(canvas_defaults->fill_opacity());
   fill_opacity_slider->setFixedWidth(120);
@@ -3037,6 +2948,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   add_option_widget(fill_softness, {CanvasTool::Fill});
   auto* fill_softness_slider = new QSlider(Qt::Horizontal, toolbar);
   fill_softness_slider->setObjectName(QStringLiteral("fillSoftnessSlider"));
+  fill_softness_slider->setProperty(kOptionsBarCollapsibleProperty, true);
   fill_softness_slider->setRange(0, 100);
   fill_softness_slider->setValue(canvas_defaults->fill_softness());
   fill_softness_slider->setFixedWidth(110);
@@ -3173,7 +3085,9 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   text_font_combo_ = new FontPickerCombo(toolbar);
   text_font_combo_->setObjectName(QStringLiteral("textFontCombo"));
   text_font_combo_->setCurrentFont(font());
-  text_font_combo_->setFixedWidth(210);
+  // GitHub issue 91: narrower closed controls keep the Text row on one line at
+  // 1366 px; the family popup sizes itself, and the style list opens wider.
+  text_font_combo_->setFixedWidth(160);
   add_option_widget(text_font_combo_, {CanvasTool::Text});
   // Photoshop's style picker: the family's OWN face list, and the only face control in the bar
   // (no B/I buttons, like Photoshop). A family with no italic simply does not offer one, and
@@ -3182,7 +3096,8 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   text_style_combo_ = new QComboBox(toolbar);
   text_style_combo_->setObjectName(QStringLiteral("textStyleCombo"));
   bind_tooltip(text_style_combo_, QT_TR_NOOP("Font style"));
-  text_style_combo_->setFixedWidth(132);
+  text_style_combo_->setFixedWidth(104);
+  text_style_combo_->view()->setMinimumWidth(170);
   refresh_text_style_combo(text_font_combo_->currentFont().family(), QString());
   add_option_widget(text_style_combo_, {CanvasTool::Text});
   add_option_label(QT_TR_NOOP("Size:"), {CanvasTool::Text});
@@ -3191,7 +3106,11 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   text_size_spin_->set_context_provider([this] {
     return UnitConversionContext{has_active_document() ? text_size_ppi(document()) : 300.0, 0.0};
   });
-  text_size_spin_->setDecimals(3);
+  // Photoshop's type size shows at most two decimals and drops trailing zeros ("12 pt",
+  // "14.45 pt"). Text sizes are whole pixels underneath (text_points_to_pixels), so two
+  // decimals round-trip every pixel size below 7200 ppi; a third was false precision.
+  text_size_spin_->setDecimals(2);
+  text_size_spin_->set_trim_trailing_zeros(true);
   text_size_spin_->setRange(0.01, 10000.0);
   // Applies on Enter, focus loss or a step, like the Character panel fields: with no session
   // every value change commits a re-render of each selected text layer as an undo step, so
@@ -3204,7 +3123,9 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   // no document open).
   text_size_spin_->setValue(has_active_document() ? text_pixels_to_points(48, document()) : 48.0);
   text_size_auto_points_ = text_size_spin_->value();
-  configure_toolbar_spinbox(text_size_spin_, 74);
+  // Sized for a realistic widest value; the trimmed max ("10000 pt") is narrower.
+  text_size_spin_->setProperty(kToolbarSpinboxWidthSampleProperty, 888.88);
+  configure_toolbar_spinbox(text_size_spin_, 60);
   add_option_widget(text_size_spin_, {CanvasTool::Text});
   add_option_label(QT_TR_NOOP("Smoothing:"), {CanvasTool::Text});
   text_smoothing_combo_ = new QComboBox(toolbar);
@@ -3223,21 +3144,25 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
                              QT_TR_NOOP("Strong"), QT_TR_NOOP("Smooth"), QT_TR_NOOP("Windows LCD"), QT_TR_NOOP("Windows")};
     for (int index = 0; index < 7; ++index) text_smoothing_combo_->setItemText(index, tr(sources[index]));
   });
-  text_smoothing_combo_->setFixedWidth(116);
+  text_smoothing_combo_->setFixedWidth(104);
   set_text_smoothing_combo_value(
       text_smoothing_combo_,
       app_settings().value(QStringLiteral("tools/textSmoothing"), kDefaultTextAntiAlias).toInt());
   add_option_widget(text_smoothing_combo_, {CanvasTool::Text});
-  add_option_label(QT_TR_NOOP("Color:"), {CanvasTool::Text});
+  // No "Color:" label (Photoshop has none either): the colored "T" swatch and its
+  // tooltip name it, and the Type row must fit one line at 1366 px (GitHub issue 91).
   text_color_button_ = new QPushButton(tr("T"), toolbar);
   text_color_button_->setObjectName(QStringLiteral("textColorButton"));
   bind_tooltip(text_color_button_, QT_TR_NOOP("Text color"));
   text_color_button_->setFixedSize(30, 26);
   add_option_widget(text_color_button_, {CanvasTool::Text});
-  add_option_label(QT_TR_NOOP("Align:"), {CanvasTool::Text});
+  // Ragged-lines glyphs instead of L / C / R letters, which needed an "Align:" label to
+  // read; sync_text_orientation_controls_from_editor swaps in the column glyphs for
+  // vertical type.
   auto* text_alignment_group = new QButtonGroup(toolbar);
   text_alignment_group->setExclusive(true);
-  text_align_left_button_ = new QPushButton(tr("L"), toolbar);
+  text_align_left_button_ = new QPushButton(toolbar);
+  text_align_left_button_->setIcon(text_alignment_icon(Qt::AlignLeft, false));
   text_align_left_button_->setObjectName(QStringLiteral("textAlignLeftButton"));
   text_align_left_button_->setCheckable(true);
   text_align_left_button_->setChecked(true);
@@ -3245,14 +3170,16 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   text_align_left_button_->setFixedSize(30, 26);
   text_alignment_group->addButton(text_align_left_button_);
   add_option_widget(text_align_left_button_, {CanvasTool::Text});
-  text_align_center_button_ = new QPushButton(tr("C"), toolbar);
+  text_align_center_button_ = new QPushButton(toolbar);
+  text_align_center_button_->setIcon(text_alignment_icon(Qt::AlignHCenter, false));
   text_align_center_button_->setObjectName(QStringLiteral("textAlignCenterButton"));
   text_align_center_button_->setCheckable(true);
   bind_tooltip(text_align_center_button_, QT_TR_NOOP("Align Center"));
   text_align_center_button_->setFixedSize(30, 26);
   text_alignment_group->addButton(text_align_center_button_);
   add_option_widget(text_align_center_button_, {CanvasTool::Text});
-  text_align_right_button_ = new QPushButton(tr("R"), toolbar);
+  text_align_right_button_ = new QPushButton(toolbar);
+  text_align_right_button_->setIcon(text_alignment_icon(Qt::AlignRight, false));
   text_align_right_button_->setObjectName(QStringLiteral("textAlignRightButton"));
   text_align_right_button_->setCheckable(true);
   bind_tooltip(text_align_right_button_, QT_TR_NOOP("Align Right"));
@@ -3269,20 +3196,6 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   bind_tooltip(text_orientation_button_, QT_TR_NOOP("Vertical text: columns read top to bottom, right to left"));
   text_orientation_button_->setFocusPolicy(Qt::NoFocus);
   add_option_widget(text_orientation_button_, {CanvasTool::Text});
-  add_option_label(QT_TR_NOOP("Direction:"), {CanvasTool::Text});
-  text_direction_combo_ = new QComboBox(toolbar);
-  text_direction_combo_->setObjectName(QStringLiteral("textDirectionCombo"));
-  bind_tooltip(text_direction_combo_, QT_TR_NOOP("Paragraph direction (auto follows the first strong character)"));
-  text_direction_combo_->addItem(tr("Auto"), static_cast<int>(Qt::LayoutDirectionAuto));
-  text_direction_combo_->addItem(tr("Left to right"), static_cast<int>(Qt::LeftToRight));
-  text_direction_combo_->addItem(tr("Right to left"), static_cast<int>(Qt::RightToLeft));
-  register_retranslation([this] {
-    const QSignalBlocker blocker(text_direction_combo_);
-    const char* sources[] = {QT_TR_NOOP("Auto"), QT_TR_NOOP("Left to right"), QT_TR_NOOP("Right to left")};
-    for (int index = 0; index < 3; ++index) text_direction_combo_->setItemText(index, tr(sources[index]));
-  });
-  text_direction_combo_->setFixedWidth(116);
-  add_option_widget(text_direction_combo_, {CanvasTool::Text});
   text_warp_button_ = new QPushButton(tr("Warp..."), toolbar);
   bind_widget_text(text_warp_button_, QT_TR_NOOP("Warp..."));
   text_warp_button_->setObjectName(QStringLiteral("textWarpButton"));
@@ -3335,13 +3248,6 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   connect(text_warp_button_, &QPushButton::clicked, this, [this] { request_warp_text_dialog(); });
   connect(text_orientation_button_, &QPushButton::toggled, this,
           [this](bool checked) { apply_text_orientation(checked); });
-  connect(text_direction_combo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index) {
-    if (index < 0) {
-      return;
-    }
-    apply_text_direction_to_active_editor(
-        static_cast<Qt::LayoutDirection>(text_direction_combo_->itemData(index).toInt()));
-  });
   // Session apply/cancel, shown only while an inline text editor is open (the
   // text controls above stay visible too -- they apply live to the editor, so
   // unlike a transform session the bar keeps them).  Qt::NoFocus is load-bearing:

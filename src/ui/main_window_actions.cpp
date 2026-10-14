@@ -459,9 +459,6 @@ void MainWindow::bind_action_translations(ActionBuildContext& ctx) {
       {remove_background_button_, QT_TR_NOOP("Remove Background")},
       {ctx.fill_shapes, QT_TR_NOOP("Fill")},
       {text_color_button_, QT_TR_NOOP("T")},
-      {text_align_left_button_, QT_TR_NOOP("L")},
-      {text_align_center_button_, QT_TR_NOOP("C")},
-      {text_align_right_button_, QT_TR_NOOP("R")},
   };
   for (const auto& [widget, source] : translated_widgets) {
     bind_widget_text(widget, source);

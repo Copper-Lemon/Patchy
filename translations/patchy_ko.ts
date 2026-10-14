@@ -12687,18 +12687,6 @@ RGB: %2, %3, %4</translation>
         <translation>T</translation>
     </message>
     <message>
-        <source>L</source>
-        <translation>L</translation>
-    </message>
-    <message>
-        <source>C</source>
-        <translation>C</translation>
-    </message>
-    <message>
-        <source>R</source>
-        <translation>R</translation>
-    </message>
-    <message>
         <source>&amp;File</source>
         <translation>파일(&amp;F)</translation>
     </message>
@@ -14071,16 +14059,8 @@ RGB: %2, %3, %4</translation>
         <translation>윈도우</translation>
     </message>
     <message>
-        <source>Color:</source>
-        <translation>색상:</translation>
-    </message>
-    <message>
         <source>Text color</source>
         <translation>텍스트 색상</translation>
-    </message>
-    <message>
-        <source>Align:</source>
-        <translation>정렬:</translation>
     </message>
     <message>
         <source>Vertical</source>

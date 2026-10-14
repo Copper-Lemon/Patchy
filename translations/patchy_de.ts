@@ -12558,18 +12558,6 @@ RGB: %2, %3, %4</translation>
         <translation>O</translation>
     </message>
     <message>
-        <source>L</source>
-        <translation>L</translation>
-    </message>
-    <message>
-        <source>C</source>
-        <translation>M</translation>
-    </message>
-    <message>
-        <source>R</source>
-        <translation>R</translation>
-    </message>
-    <message>
         <source>&amp;File</source>
         <translation>&amp;Datei</translation>
     </message>
@@ -13690,16 +13678,8 @@ RGB: %2, %3, %4</translation>
         <translation>Windows</translation>
     </message>
     <message>
-        <source>Color:</source>
-        <translation>Farbe:</translation>
-    </message>
-    <message>
         <source>Text color</source>
         <translation>Textfarbe</translation>
-    </message>
-    <message>
-        <source>Align:</source>
-        <translation>Ausrichten:</translation>
     </message>
     <message>
         <source>Align Left</source>

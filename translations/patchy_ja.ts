@@ -13841,10 +13841,6 @@ Either way Patchy writes a copy; the open document keeps its layers and unsaved 
         <translation>Windows</translation>
     </message>
     <message>
-        <source>Color:</source>
-        <translation>色:</translation>
-    </message>
-    <message>
         <source>T</source>
         <translation>T</translation>
     </message>
@@ -13853,28 +13849,12 @@ Either way Patchy writes a copy; the open document keeps its layers and unsaved 
         <translation>テキスト色</translation>
     </message>
     <message>
-        <source>Align:</source>
-        <translation>整列:</translation>
-    </message>
-    <message>
-        <source>L</source>
-        <translation>左</translation>
-    </message>
-    <message>
         <source>Align Left</source>
         <translation>左揃え</translation>
     </message>
     <message>
-        <source>C</source>
-        <translation>中</translation>
-    </message>
-    <message>
         <source>Align Center</source>
         <translation>中央揃え</translation>
-    </message>
-    <message>
-        <source>R</source>
-        <translation>右</translation>
     </message>
     <message>
         <source>Align Right</source>

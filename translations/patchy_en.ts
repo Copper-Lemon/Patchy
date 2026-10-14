@@ -12548,18 +12548,6 @@ RGB: %2, %3, %4</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>L</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>C</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>R</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>&amp;File</source>
         <translation type="unfinished"></translation>
     </message>
@@ -13680,15 +13668,7 @@ RGB: %2, %3, %4</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Color:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Text color</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Align:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

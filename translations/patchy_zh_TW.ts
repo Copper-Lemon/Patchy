@@ -12527,18 +12527,6 @@ RGB：%2, %3, %4</translation>
         <translation>T</translation>
     </message>
     <message>
-        <source>L</source>
-        <translation>左</translation>
-    </message>
-    <message>
-        <source>C</source>
-        <translation>中</translation>
-    </message>
-    <message>
-        <source>R</source>
-        <translation>右</translation>
-    </message>
-    <message>
         <source>&amp;File</source>
         <translation>檔案(&amp;F)</translation>
     </message>
@@ -13659,16 +13647,8 @@ RGB：%2, %3, %4</translation>
         <translation>Windows</translation>
     </message>
     <message>
-        <source>Color:</source>
-        <translation>顏色:</translation>
-    </message>
-    <message>
         <source>Text color</source>
         <translation>文字顏色</translation>
-    </message>
-    <message>
-        <source>Align:</source>
-        <translation>對齊:</translation>
     </message>
     <message>
         <source>Align Left</source>

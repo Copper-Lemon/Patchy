@@ -5,6 +5,7 @@
 #include <QAction>
 #include <QChar>
 #include <QEvent>
+#include <QLineEdit>
 #include <QMenu>
 #include <QStringList>
 
@@ -416,20 +417,42 @@ double UnitSpinBox::valueFromText(const QString& text) const {
   return std::clamp(*converted, minimum(), maximum());
 }
 
+void UnitSpinBox::set_trim_trailing_zeros(bool enabled) {
+  if (trim_trailing_zeros_ == enabled) {
+    return;
+  }
+  trim_trailing_zeros_ = enabled;
+  // Re-render the current value in the new form.
+  lineEdit()->setText(prefix() + textFromValue(value()) + suffix());
+}
+
 QString UnitSpinBox::textFromValue(double value) const {
+  const auto trimmed = [this](QString text) {
+    const auto point = locale().decimalPoint();
+    if (!trim_trailing_zeros_ || !text.contains(point)) {
+      return text;
+    }
+    while (text.endsWith(QLatin1Char('0'))) {
+      text.chop(1);
+    }
+    if (text.endsWith(point)) {
+      text.chop(point.size());
+    }
+    return text;
+  };
   if (display_ == native_) {
-    return QDoubleSpinBox::textFromValue(value);
+    return trimmed(QDoubleSpinBox::textFromValue(value));
   }
   const auto shown = convert_unit_entry(UnitEntry{value, native_}, display_, conversion_context());
   if (!shown.has_value()) {
-    return QDoubleSpinBox::textFromValue(value);
+    return trimmed(QDoubleSpinBox::textFromValue(value));
   }
   // Mirror the stock formatting: fixed decimals, group separators only when shown.
   auto text = locale().toString(*shown, 'f', decimals());
   if (!isGroupSeparatorShown() && std::abs(*shown) >= 1000.0) {
     text.remove(locale().groupSeparator());
   }
-  return text;
+  return trimmed(text);
 }
 
 void UnitSpinBox::fixup(QString& input) const {

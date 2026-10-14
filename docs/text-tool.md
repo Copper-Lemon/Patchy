@@ -265,7 +265,9 @@ the session contract.
   persisted, a fresh session starts horizontal. With no session it reads the first layer of
   `text_character_target_layer_ids()`, so a selected vertical row keeps it checked even with no
   active layer; only Deselect Layers makes it read the armed default
-  (`ui_new_text_starts_horizontal_after_vertical_layer`). `textDirectionCombo` is per paragraph.
+  (`ui_new_text_starts_horizontal_after_vertical_layer`). `textDirectionCombo` (per paragraph)
+  and `textParagraphVerticalCheck`, the toggle's mirror, live in the Paragraph panel and exist
+  only while it is open (issue 91).
 - **The plan is the authority, again.** `vertical_text_layout_plan` (ui/text_layout.hpp)
   re-places every grapheme cluster of the horizontally shaped NoWrap document into a cell;
   `TextLineGeometry::from_vertical_plan` answers caret, selection and hit-testing from the plan
