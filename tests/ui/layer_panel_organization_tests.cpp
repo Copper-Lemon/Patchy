@@ -2839,6 +2839,62 @@ void ui_layer_fill_opacity_control_updates_active_layer() {
   CHECK(std::abs(layer->fill_opacity() - 0.37F) < 0.001F);
 }
 
+// GitHub issue 96: Opacity and Fill wrap under the blend combo when the stack
+// is narrower than the one-line row, so long translated prefixes (Russian
+// "Непрозрачность:", Polish "Wypełnienie:") no longer hold the right dock
+// wider than the rest of the panel needs.
+void ui_layer_blend_row_wraps_in_narrow_panel() {
+  auto& manager = patchy::ui::LocalizationManager::instance();
+  const auto restore_language = qScopeGuard([&manager] { manager.set_language(QStringLiteral("en"), false); });
+  for (const auto& code : {QStringLiteral("ru"), QStringLiteral("pl"), QStringLiteral("en")}) {
+    CHECK(manager.set_language(code, false));
+    patchy::ui::MainWindow window;
+    show_window(window);
+    QApplication::processEvents();
+    auto* dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
+    auto* combo = window.findChild<QComboBox*>(QStringLiteral("layerBlendModeCombo"));
+    auto* opacity = window.findChild<QSpinBox*>(QStringLiteral("layerOpacitySpin"));
+    auto* fill = window.findChild<QSpinBox*>(QStringLiteral("layerFillOpacitySpin"));
+    auto* filter = window.findChild<QLineEdit*>(QStringLiteral("layerNameFilterEdit"));
+    CHECK(dock != nullptr && combo != nullptr && opacity != nullptr && fill != nullptr && filter != nullptr);
+    const auto one_line_width = combo->width() + opacity->width() + fill->width() + 12;
+
+    patchy::ui::MainWindowTestAccess::set_right_dock_stack_width(window, dock->minimumWidth());
+    QApplication::processEvents();
+    QApplication::processEvents();
+    CHECK(dock->width() == dock->minimumWidth());
+    // The name filter stretches to the panel's right inset, the edge every row
+    // must stay inside.
+    const auto content_right = filter->geometry().right();
+    const auto content_width = content_right + 1 - combo->x();
+    const auto wrapped = one_line_width > content_width;
+    if (code != QStringLiteral("en")) {
+      CHECK(wrapped);
+    }
+    if (wrapped) {
+      CHECK(opacity->y() > combo->geometry().bottom());
+      CHECK(opacity->x() == combo->x());
+      CHECK(fill->y() == opacity->y());
+    }
+    CHECK(combo->geometry().right() <= content_right);
+    CHECK(fill->geometry().right() <= content_right);
+    CHECK(filter->y() > fill->geometry().bottom());
+    save_widget_artifact("ui_layer_blend_row_wraps_" + code.toStdString(), *dock);
+
+    // Wide enough for the whole row: back on one line.
+    patchy::ui::MainWindowTestAccess::set_right_dock_stack_width(
+        window, dock->minimumWidth() + std::max(0, one_line_width - content_width) + 40);
+    QApplication::processEvents();
+    QApplication::processEvents();
+    const auto wide_right = filter->geometry().right();
+    CHECK(std::abs(opacity->geometry().center().y() - combo->geometry().center().y()) <= 1);
+    CHECK(fill->geometry().center().y() == opacity->geometry().center().y());
+    CHECK(opacity->x() > combo->geometry().right());
+    CHECK(fill->geometry().right() <= wide_right);
+    CHECK(filter->y() > combo->geometry().bottom());
+  }
+}
+
 patchy::Document make_name_filter_document() {
   patchy::Document document(48, 48, patchy::PixelFormat::rgb8());
   document.add_pixel_layer("Background",
@@ -3851,6 +3907,7 @@ std::vector<patchy::test::TestCase> layer_panel_organization_tests() {
       {"ui_folder_visibility_preserves_layer_panel_scroll", ui_folder_visibility_preserves_layer_panel_scroll},
       {"ui_layer_fill_opacity_control_updates_active_layer",
        ui_layer_fill_opacity_control_updates_active_layer},
+      {"ui_layer_blend_row_wraps_in_narrow_panel", ui_layer_blend_row_wraps_in_narrow_panel},
       {"ui_layer_filter_shows_matching_rows_and_ancestor_folders",
        ui_layer_filter_shows_matching_rows_and_ancestor_folders},
       {"ui_layer_filter_reveals_matches_inside_collapsed_folders",

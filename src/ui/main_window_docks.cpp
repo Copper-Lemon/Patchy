@@ -277,6 +277,131 @@ const std::array<QString, 7>& right_dock_stack_names() {
   return names;
 }
 
+// The Layers panel's blend/opacity row (GitHub issue 96): the first item (the
+// blend combo) and the rest (Opacity, Fill) share one line when the panel is
+// wide enough and the rest wrap onto a second line when it is not. Every item
+// keeps its natural width, packed left. The minimum width is the wrapped
+// width, so long translated prefixes no longer set the right dock's minimum;
+// the minimum height follows the line count of the last laid-out width.
+class WrappingBlendRowLayout final : public QLayout {
+public:
+  explicit WrappingBlendRowLayout(int spacing) {
+    setContentsMargins(0, 0, 0, 0);
+    setSpacing(spacing);
+  }
+  ~WrappingBlendRowLayout() override {
+    while (auto* item = WrappingBlendRowLayout::takeAt(0)) {
+      delete item;
+    }
+  }
+
+  void addItem(QLayoutItem* item) override { items_.push_back(item); }
+  [[nodiscard]] int count() const override { return static_cast<int>(items_.size()); }
+  [[nodiscard]] QLayoutItem* itemAt(int index) const override {
+    return index >= 0 && index < count() ? items_[static_cast<std::size_t>(index)] : nullptr;
+  }
+  QLayoutItem* takeAt(int index) override {
+    if (index < 0 || index >= count()) {
+      return nullptr;
+    }
+    auto* item = items_[static_cast<std::size_t>(index)];
+    items_.erase(items_.begin() + index);
+    return item;
+  }
+  [[nodiscard]] Qt::Orientations expandingDirections() const override { return {}; }
+  [[nodiscard]] bool hasHeightForWidth() const override { return true; }
+  [[nodiscard]] int heightForWidth(int width) const override {
+    return lines_height(wraps(width - horizontal_margins())) + vertical_margins();
+  }
+  [[nodiscard]] QSize minimumSize() const override {
+    return {wrapped_width() + horizontal_margins(), lines_height(wrapped_) + vertical_margins()};
+  }
+  [[nodiscard]] QSize sizeHint() const override {
+    return {one_line_width() + horizontal_margins(), lines_height(false) + vertical_margins()};
+  }
+
+  void setGeometry(const QRect& rect) override {
+    QLayout::setGeometry(rect);
+    const auto area = contentsRect();
+    const auto wrapped = wraps(area.width());
+    const auto first_height = line_height(0, wrapped ? 1 : count());
+    auto x = area.x();
+    auto y = area.y();
+    auto height = first_height;
+    for (int index = 0; index < count(); ++index) {
+      auto* item = items_[static_cast<std::size_t>(index)];
+      if (item->isEmpty()) {
+        continue;
+      }
+      if (wrapped && index == 1) {
+        x = area.x();
+        y += first_height + spacing();
+        height = line_height(1, count());
+      }
+      const auto hint = item->sizeHint();
+      const auto width = std::min(hint.width(), std::max(0, area.right() + 1 - x));
+      item->setGeometry(QRect(x, y + (height - hint.height()) / 2, width, hint.height()));
+      x += width + spacing();
+    }
+    if (wrapped != wrapped_) {
+      // The line count changed, so the minimum height did too. Re-request the
+      // enclosing layout once this pass is over; the next pass is stable
+      // because the wrap depends on the width alone.
+      wrapped_ = wrapped;
+      QTimer::singleShot(0, this, [this] { invalidate(); });
+    }
+  }
+
+private:
+  [[nodiscard]] int horizontal_margins() const {
+    const auto margins = contentsMargins();
+    return margins.left() + margins.right();
+  }
+  [[nodiscard]] int vertical_margins() const {
+    const auto margins = contentsMargins();
+    return margins.top() + margins.bottom();
+  }
+  // Natural width of items [first, last) on one line.
+  [[nodiscard]] int run_width(int first, int last) const {
+    int width = 0;
+    int shown = 0;
+    for (int index = first; index < last; ++index) {
+      const auto* item = items_[static_cast<std::size_t>(index)];
+      if (!item->isEmpty()) {
+        width += item->sizeHint().width();
+        ++shown;
+      }
+    }
+    return width + std::max(0, shown - 1) * spacing();
+  }
+  [[nodiscard]] int line_height(int first, int last) const {
+    int height = 0;
+    for (int index = first; index < last; ++index) {
+      const auto* item = items_[static_cast<std::size_t>(index)];
+      if (!item->isEmpty()) {
+        height = std::max(height, item->sizeHint().height());
+      }
+    }
+    return height;
+  }
+  [[nodiscard]] int one_line_width() const { return run_width(0, count()); }
+  [[nodiscard]] int wrapped_width() const {
+    return std::max(run_width(0, std::min(1, count())), run_width(1, count()));
+  }
+  [[nodiscard]] bool wraps(int content_width) const {
+    return count() > 1 && content_width < one_line_width();
+  }
+  [[nodiscard]] int lines_height(bool wrapped) const {
+    if (!wrapped) {
+      return line_height(0, count());
+    }
+    return line_height(0, 1) + spacing() + line_height(1, count());
+  }
+
+  std::vector<QLayoutItem*> items_;
+  bool wrapped_{false};
+};
+
 // The QDockWidgetGroupWindow class name is reliable (it has Q_OBJECT); the
 // patchy.dockGroupWindow property is a seam for tests, which cannot construct
 // the private Qt type.
@@ -529,11 +654,9 @@ void MainWindow::update_right_dock_minimum_width() {
     blend_combo_->setMinimumWidth(blend_combo_->minimumSizeHint().width() + scroll_extent + 8);
   }
   // The platform styles the dock frame, so the chrome around the panel can
-  // only be trusted once the dock has been laid out. An estimate that is off
-  // in either direction breaks the minimum-width geometry: too small lets the
-  // blend/opacity row overflow past the panel's right inset, too large leaves
-  // slack that the row's trailing stretch absorbs, pulling the Fill spin box
-  // out of line with the filter edit's right edge.
+  // only be trusted once the dock has been laid out. An estimate that is too
+  // small lets the widest row (the footer buttons, or the wrapped blend row)
+  // overflow past the panel's right inset at the minimum width.
   auto* layers_dock = findChild<QDockWidget*>(QStringLiteral("layersDock"));
   if (layers_dock != nullptr && layers_panel->isVisible() && layers_panel->width() > 0 &&
       layers_dock->width() >= layers_panel->width()) {
@@ -541,10 +664,10 @@ void MainWindow::update_right_dock_minimum_width() {
   }
   const auto chrome =
       right_dock_chrome_width_ >= 0 ? right_dock_chrome_width_ : kRightDockChromeWidth;
-  // The blend/opacity row is the widest content in the stack, and its spin
-  // boxes re-measure for the translated prefixes, so a stack narrowed to the
-  // hardcoded floor can clip the Fill spin box and the popup chevrons. The
-  // panel layout's own minimum already accounts for those fixed widths.
+  // The panel layout's minimum covers the footer buttons and the blend row at
+  // its wrapped width, whose spin boxes re-measure for the translated
+  // prefixes, so a stack at this width clips neither the Fill spin box nor
+  // the popup chevrons.
   const auto minimum =
       std::max(kRightDockMinimumWidth, panel_layout->minimumSize().width() + chrome);
   if (minimum == right_dock_minimum_width_) {
@@ -1290,13 +1413,12 @@ void MainWindow::create_docks() {
 
   // One compact row (Photoshop-style): the blend combo hugs its longest mode
   // name and Opacity/Fill are prefixed spin boxes with the toolbar popup
-  // slider, so the panel spends one line here instead of three. No extra side
-  // insets: the panel margin alone places the row, so at the minimum stack
-  // width the Fill spin box's right edge lines up with the name filter and
-  // the layer list below.
-  auto* blend_opacity_row = new QHBoxLayout();
-  blend_opacity_row->setContentsMargins(0, 0, 0, 0);
-  blend_opacity_row->setSpacing(6);
+  // slider, so the panel spends one line here instead of three. When the
+  // stack is narrower than that line (long translated prefixes make it wider
+  // than the footer buttons), Opacity and Fill wrap onto a second line
+  // instead of raising the dock's minimum width. No extra side insets: the
+  // panel margin alone places the row.
+  auto* blend_opacity_row = new WrappingBlendRowLayout(6);
   blend_combo_ = new QComboBox(layers_panel);
   add_blend_mode_items(blend_combo_);
   blend_combo_->setObjectName(QStringLiteral("layerBlendModeCombo"));
@@ -1333,7 +1455,6 @@ void MainWindow::create_docks() {
   connect(fill_opacity_spin_, &QSpinBox::editingFinished, this,
           [this] { finish_pending_layer_fill_opacity_edit(); });
   register_document_widget(fill_opacity_spin_);
-  blend_opacity_row->addStretch(1);
   register_retranslation([this] {
     if (opacity_spin_ == nullptr || fill_opacity_spin_ == nullptr) {
       return;
