@@ -9873,6 +9873,78 @@ RGB: %2, %3, %4</translation>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation>Metadane z Informacji o pliku do dołączenia. Profil kolorów i rozdzielczość są zawsze zachowywane.</translation>
     </message>
+    <message>
+        <source>The JPEG XL file is damaged or not supported</source>
+        <translation>Plik JPEG XL jest uszkodzony lub nieobsługiwany</translation>
+    </message>
+    <message>
+        <source>The file is not a JPEG XL image</source>
+        <translation>Plik nie jest obrazem JPEG XL</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is truncated</source>
+        <translation>Plik JPEG XL jest niekompletny</translation>
+    </message>
+    <message>
+        <source>The JPEG XL image is too large to open</source>
+        <translation>Obraz JPEG XL jest zbyt duży, aby go otworzyć</translation>
+    </message>
+    <message>
+        <source>JPEG XL: extra channels other than alpha were not imported</source>
+        <translation>JPEG XL: dodatkowe kanały inne niż alfa nie zostały zaimportowane</translation>
+    </message>
+    <message>
+        <source>The JPEG XL animation is too large to open</source>
+        <translation>Animacja JPEG XL jest zbyt duża, aby ją otworzyć</translation>
+    </message>
+    <message>
+        <source>Could not encode the JPEG XL image</source>
+        <translation>Nie można zakodować obrazu JPEG XL</translation>
+    </message>
+    <message>
+        <source>The document has no pixels to save</source>
+        <translation>Dokument nie zawiera pikseli do zapisania</translation>
+    </message>
+    <message>
+        <source>The document has no visible top-level layers to export as an animated JPEG XL.</source>
+        <translation>Dokument nie ma widocznych warstw najwyższego poziomu do eksportu jako animowany JPEG XL.</translation>
+    </message>
+    <message>
+        <source>Invalid animated JPEG XL frame or duration.</source>
+        <translation>Nieprawidłowa klatka lub czas trwania animowanego JPEG XL.</translation>
+    </message>
+    <message>
+        <source>Could not open JPEG XL file for writing</source>
+        <translation>Nie można otworzyć pliku JPEG XL do zapisu</translation>
+    </message>
+    <message>
+        <source>Could not write JPEG XL file</source>
+        <translation>Nie można zapisać pliku JPEG XL</translation>
+    </message>
+    <message>
+        <source>JPEG XL Options</source>
+        <translation>Opcje JPEG XL</translation>
+    </message>
+    <message>
+        <source>Higher effort makes smaller files and takes longer to save.</source>
+        <translation>Większy nakład daje mniejsze pliki, ale zapis trwa dłużej.</translation>
+    </message>
+    <message>
+        <source>Effort:</source>
+        <translation>Nakład:</translation>
+    </message>
+    <message>
+        <source>Patchy does not use JPEG XL&apos;s patch and dot coding tools, so images with repeated text or small dots can be somewhat larger than with other encoders.</source>
+        <translation>Patchy nie używa narzędzi kodowania łatek i punktów formatu JPEG XL, dlatego obrazy z powtarzającym się tekstem lub małymi punktami mogą być nieco większe niż w innych koderach.</translation>
+    </message>
+    <message>
+        <source>JPEG XL Image</source>
+        <translation>Obraz JPEG XL</translation>
+    </message>
+    <message>
+        <source>Animated JPEG XL: imported %1 frames as layers</source>
+        <translation>Animowany JPEG XL: zaimportowano %1 klatek jako warstwy</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -20362,6 +20434,10 @@ Nadal możesz pobrać ją w przeglądarce.</translation>
             <numerusform>Dodaje %n nowe warstwy. Podgląd już je pokazuje na płótnie i w panelu Warstwy.</numerusform>
             <numerusform>Dodaje %n nowych warstw. Podgląd już je pokazuje na płótnie i w panelu Warstwy.</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Saved animated JPEG XL copy %1</source>
+        <translation>Zapisano kopię animowanego JPEG XL: %1</translation>
     </message>
 </context>
 <context>

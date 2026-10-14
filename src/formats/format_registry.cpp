@@ -6,6 +6,7 @@
 #include "formats/heif_document_io.hpp"
 #include "formats/ico_document_io.hpp"
 #include "formats/ilbm_document_io.hpp"
+#include "formats/jxl_document_io.hpp"
 #include "formats/jxr_document_io.hpp"
 #include "formats/pcx_document_io.hpp"
 #include "formats/raw_document_io.hpp"
@@ -165,6 +166,14 @@ void register_builtin_formats(FormatRegistry& registry) {
                              [](std::span<const std::uint8_t> bytes) { return dds::read_dds(bytes); },
                              [](const Document& document) { return dds::write_dds(document); },
                              [](std::span<const std::uint8_t> bytes) { return dds::sniff(bytes); }});
+  // JPEG XL through the vendored libjxl on every platform (docs/jxl.md). The encoder's
+  // patches and dots stay off on every write (docs/legal-constraints.md).
+  registry.register_handler({"patchy.formats.jxl",
+                             "JPEG XL Image",
+                             jxl::jxl_extensions(),
+                             [](std::span<const std::uint8_t> bytes) { return jxl::read_jxl(bytes); },
+                             [](const Document& document) { return jxl::write_jxl(document); },
+                             [](std::span<const std::uint8_t> bytes) { return jxl::sniff(bytes); }});
   // Affinity's native container is a read-only source (write stays null). The 2.x
   // .afphoto/.afdesign/.afpub generations share the .af magic and wire grammar, so
   // one handler covers them all; pre-2.x files that fail the tree parse fall back

@@ -135,7 +135,7 @@ Read the linked document before working on the feature; it owns the detailed con
 - **Palette mode:** [docs/palette-mode.md](docs/palette-mode.md).
 - **16/32-bit editing (on; `PATCHY_DEEP_EDITING=0` off):** [docs/high-bit-depth.md](docs/high-bit-depth.md).
 - **File formats, PSB, HEIF/HEIC, and flat-image alpha:** [docs/file-formats.md](docs/file-formats.md); Camera Raw in [docs/camera-raw.md](docs/camera-raw.md), Affinity in [docs/af-format.md](docs/af-format.md), animated GIF/WebP in [docs/animation.md](docs/animation.md). Image metadata (File Info): [docs/file-info.md](docs/file-info.md).
-- **JPEG XR (.jxr) and the HDR tone map:** [docs/jxr.md](docs/jxr.md), plus the no-vendored-codec rule in [docs/legal-constraints.md](docs/legal-constraints.md).
+- **JPEG XR (.jxr, HDR tone map) and JPEG XL (.jxl):** [docs/jxr.md](docs/jxr.md), [docs/jxl.md](docs/jxl.md); codec rules in [docs/legal-constraints.md](docs/legal-constraints.md).
 - **Proton (.rttex) and DDS (.dds) textures:** [docs/rttex.md](docs/rttex.md), [docs/dds.md](docs/dds.md).
 - **PDF import/export (editable layers, flat, the image-page writer and quality presets, pass-through of imported pages, `pdfopen`/`pdfsave` profiling):** [docs/pdf.md](docs/pdf.md).
 - **Document channels:** [docs/channels.md](docs/channels.md).
@@ -149,7 +149,7 @@ Read the linked document before working on the feature; it owns the detailed con
 - **Gradients and GRD:** [docs/gradients.md](docs/gradients.md).
 - **Text tool, Character panel and Paragraph panel:** [docs/text-tool.md](docs/text-tool.md), text inside shapes in [docs/area-text.md](docs/area-text.md), with the Photoshop layout/measurement calibration in [docs/text-render-calibration.md](docs/text-render-calibration.md).
 - **Photoshop's Txt2 text engine block:** [docs/txt2.md](docs/txt2.md). Read it before any Txt2, text-run or list-style work. Vertical type and paragraph direction (Photoshop's vertical text model, the Ornt/WritingDirection encoding, the v4 paragraph column) are in both.
-- **Bundled fonts, wasm font aliases, and user-added fonts:** [docs/fonts.md](docs/fonts.md).
+- **Bundled, wasm-aliased and user-added fonts:** [docs/fonts.md](docs/fonts.md).
 - **Selection tools:** [docs/selection-tools.md](docs/selection-tools.md) and [docs/legal-constraints.md](docs/legal-constraints.md). ML Select Subject and Object Selection: [docs/ai-selection.md](docs/ai-selection.md); one prompt per solve, no negative points or mask feedback. Select Subject/Background and Remove Background are held back (CMake `PATCHY_ENABLE_SELECT_SUBJECT`, default off) pending patent review of US 12051225.
 - **Shape tools, the Fill tool (Paint Bucket tolerance, Contiguous, opacity, soft edge) and Fill command, Free Transform modifiers, pixel-grid snapping (Photoshop's whole-pixel rule, `core/pixel_grid.hpp`), and Merge Down:** [docs/tools.md](docs/tools.md); vector merges in [docs/layer-merging.md](docs/layer-merging.md); the Crop tool in [docs/crop-tool.md](docs/crop-tool.md); tool palette layout, flyouts and icons in [docs/tool-palette.md](docs/tool-palette.md).
 - **Zoom tool, Scrubby Zoom, pen and wheel zoom:** [docs/view-navigation.md](docs/view-navigation.md).
@@ -165,7 +165,7 @@ Read the linked document before working on the feature; it owns the detailed con
 - **JavaScript scripting and bundled scripts:** [docs/scripting.md](docs/scripting.md). The MCP connector and patchy-control skill: [docs/ai-control.md](docs/ai-control.md).
 - **Automatic document recovery and atomic file writes:** [docs/document-recovery.md](docs/document-recovery.md). Recovery copies live per running instance under a QLockFile.
 - **Single-instance forwarding, CLI screenshots, and `--headless` runs:** `src/app/main.cpp`, [docs/testing.md](docs/testing.md), and the CLI section of [docs/scripting.md](docs/scripting.md).
-- **Logo and icon source art:** `packaging/branding/`.
+- **Logo and icon art:** `packaging/branding/`.
 - **Performance and the stress harness:** [docs/performance.md](docs/performance.md); the Move/Free Transform drag-preview machinery is in [docs/interactive-previews.md](docs/interactive-previews.md).
 - **Testy PSD benchmark:** [docs/testy.md](docs/testy.md).
-- **Flatpak packaging and its update repository:** [packaging/linux/README.md](packaging/linux/README.md).
+- **Flatpak packaging and update repository:** [packaging/linux/README.md](packaging/linux/README.md).

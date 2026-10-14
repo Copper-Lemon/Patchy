@@ -15,6 +15,7 @@
 #include "core/palette.hpp"
 #include "core/pixel_depth.hpp"
 #include "formats/document_flatten.hpp"
+#include "formats/jxl_document_io.hpp"
 #include "formats/webp_animation_io.hpp"
 #include <QImageReader>
 #include "formats/pdf_document_io.hpp"
@@ -2198,6 +2199,57 @@ void ui_script_save_as_options_write_dds_and_jpeg() {
   CHECK(bc3.valid);
   CHECK(bc3.four_cc == QByteArray("DXT5"));
   CHECK(bc3.mip_count == 0);  // level 0 only: the count field stays 0 (docs/dds.md)
+}
+
+// JPEG XL through the script API: still and animated exports, the effort key, 16-bit
+// saves and reopening (docs/jxl.md).
+void ui_script_save_as_options_write_jxl() {
+  patchy::set_deep_editing_override(true);
+  patchy::ui::MainWindow window;
+  show_window(window);
+  QTemporaryDir directory;
+  CHECK(directory.isValid());
+  const auto base = directory.path() + QStringLiteral("/jxl");
+  auto& host = window.script_engine_host();
+  patchy::ui::ScriptEngineHost::RunOptions options;
+  options.name = QStringLiteral("save-options-jxl");
+  options.args = QStringList{QStringLiteral("base=") + base};
+  const auto source = QStringLiteral(R"JS(
+    var d = app.newDocument(48, 32);
+    d.activeLayer.fill('#ff3366');
+    d.addLayer('second 0.25s').fill('#3366ff');
+    var p = patchy.args.base;
+    if (!d.exportAs(p + '-q20.jxl', {quality: 20, effort: 3})) throw Error('q20');
+    if (!d.exportAs(p + '-anim.jxl', {animate: true, frameDelayMs: 80, loopCount: 4, lossless: true})) throw Error('anim');
+    var a = app.open(p + '-anim.jxl');
+    if (a.layers.length !== 2) throw Error('frames ' + a.layers.length);
+    var bad = false;
+    try { d.exportAs(p + '-bad.jxl', {effort: 12}); } catch (e) { bad = true; }
+    if (!bad) throw Error('effort 12 was accepted');
+    d.convertBitDepth(16);
+    if (!d.saveAs(p + '-16.jxl', {lossless: true, effort: 1})) throw Error('16');
+    var e = app.open(p + '-16.jxl');
+    if (e.bitDepth !== 16) throw Error('reopened at ' + e.bitDepth + ' bits');
+    console.log('done');
+  )JS");
+  (void)host.run_source(source, std::move(options));
+  wait_for_run_end(host);
+  patchy::set_deep_editing_override(std::nullopt);
+  CHECK(!host.run_active());
+  if (host.last_run_had_error()) {
+    for (const auto& line : host.message_backlog()) std::cerr << line.toStdString() << '\n';
+  }
+  CHECK(!host.last_run_had_error());
+  CHECK(!QFileInfo::exists(base + QStringLiteral("-bad.jxl")));
+  QFile animated(base + QStringLiteral("-anim.jxl"));
+  CHECK(animated.open(QIODevice::ReadOnly));
+  const auto bytes = animated.readAll();
+  const auto read = patchy::jxl::read_jxl_detailed(std::vector<std::uint8_t>(bytes.begin(), bytes.end()));
+  CHECK(read.frame_count == 2);
+  CHECK(read.read.document.metadata().values.at(patchy::jxl::kLoopCountMetadata) == "4");
+  // The top layer is frame 1 and its name token wins over frameDelayMs.
+  CHECK(read.read.document.layers().back().name() == "Frame 1 0.25s");
+  CHECK(read.read.document.layers().front().name() == "Frame 2 0.08s");
 }
 
 // Option objects are strict, and a scripted save never rewrites the user's persisted
@@ -4868,6 +4920,7 @@ std::vector<patchy::test::TestCase> scripting_tests() {
       {"ui_script_editor_status_shows_running_and_ready", ui_script_editor_status_shows_running_and_ready},
       {"ui_script_canvas_window_renders_frames", ui_script_canvas_window_renders_frames},
       {"ui_script_save_as_options_write_dds_and_jpeg", ui_script_save_as_options_write_dds_and_jpeg},
+      {"ui_script_save_as_options_write_jxl", ui_script_save_as_options_write_jxl},
       {"ui_script_save_as_options_are_strict", ui_script_save_as_options_are_strict},
       {"ui_script_hotkey_runs_user_script", ui_script_hotkey_runs_user_script},
       {"ui_script_hotkey_ids_follow_relative_path", ui_script_hotkey_ids_follow_relative_path},

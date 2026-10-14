@@ -9843,6 +9843,78 @@ RVB : %2, %3, %4</translation>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation>Métadonnées des informations sur le fichier à inclure. Le profil colorimétrique et la résolution sont toujours conservés.</translation>
     </message>
+    <message>
+        <source>The JPEG XL file is damaged or not supported</source>
+        <translation>Le fichier JPEG XL est endommagé ou non pris en charge</translation>
+    </message>
+    <message>
+        <source>The file is not a JPEG XL image</source>
+        <translation>Le fichier n’est pas une image JPEG XL</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is truncated</source>
+        <translation>Le fichier JPEG XL est tronqué</translation>
+    </message>
+    <message>
+        <source>The JPEG XL image is too large to open</source>
+        <translation>L’image JPEG XL est trop grande pour être ouverte</translation>
+    </message>
+    <message>
+        <source>JPEG XL: extra channels other than alpha were not imported</source>
+        <translation>JPEG XL : les canaux supplémentaires autres que l’alpha n’ont pas été importés</translation>
+    </message>
+    <message>
+        <source>The JPEG XL animation is too large to open</source>
+        <translation>L’animation JPEG XL est trop grande pour être ouverte</translation>
+    </message>
+    <message>
+        <source>Could not encode the JPEG XL image</source>
+        <translation>Impossible d’encoder l’image JPEG XL</translation>
+    </message>
+    <message>
+        <source>The document has no pixels to save</source>
+        <translation>Le document ne contient aucun pixel à enregistrer</translation>
+    </message>
+    <message>
+        <source>The document has no visible top-level layers to export as an animated JPEG XL.</source>
+        <translation>Le document ne contient aucun calque visible de premier niveau à exporter en JPEG XL animé.</translation>
+    </message>
+    <message>
+        <source>Invalid animated JPEG XL frame or duration.</source>
+        <translation>Image ou durée du JPEG XL animé non valide.</translation>
+    </message>
+    <message>
+        <source>Could not open JPEG XL file for writing</source>
+        <translation>Impossible d’ouvrir le fichier JPEG XL en écriture</translation>
+    </message>
+    <message>
+        <source>Could not write JPEG XL file</source>
+        <translation>Impossible d’écrire le fichier JPEG XL</translation>
+    </message>
+    <message>
+        <source>JPEG XL Options</source>
+        <translation>Options JPEG XL</translation>
+    </message>
+    <message>
+        <source>Higher effort makes smaller files and takes longer to save.</source>
+        <translation>Un effort plus élevé produit des fichiers plus petits et allonge l’enregistrement.</translation>
+    </message>
+    <message>
+        <source>Effort:</source>
+        <translation>Effort :</translation>
+    </message>
+    <message>
+        <source>Patchy does not use JPEG XL&apos;s patch and dot coding tools, so images with repeated text or small dots can be somewhat larger than with other encoders.</source>
+        <translation>Patchy n’utilise pas les outils de codage par motifs et par points de JPEG XL : les images contenant du texte répété ou de petits points peuvent donc être un peu plus volumineuses qu’avec d’autres encodeurs.</translation>
+    </message>
+    <message>
+        <source>JPEG XL Image</source>
+        <translation>Image JPEG XL</translation>
+    </message>
+    <message>
+        <source>Animated JPEG XL: imported %1 frames as layers</source>
+        <translation>JPEG XL animé : %1 images importées comme calques</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -20299,6 +20371,10 @@ Vous pouvez toujours la télécharger dans votre navigateur.</translation>
             <numerusform>Ajoute %n nouveau calque. L&apos;aperçu l&apos;affiche déjà sur la zone de travail et dans le panneau Calques.</numerusform>
             <numerusform>Ajoute %n nouveaux calques. L&apos;aperçu les affiche déjà sur la zone de travail et dans le panneau Calques.</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Saved animated JPEG XL copy %1</source>
+        <translation>Copie JPEG XL animée enregistrée : %1</translation>
     </message>
 </context>
 <context>

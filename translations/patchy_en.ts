@@ -9833,6 +9833,78 @@ RGB: %2, %3, %4</source>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>The JPEG XL file is damaged or not supported</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The file is not a JPEG XL image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is truncated</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The JPEG XL image is too large to open</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>JPEG XL: extra channels other than alpha were not imported</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The JPEG XL animation is too large to open</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not encode the JPEG XL image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The document has no pixels to save</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The document has no visible top-level layers to export as an animated JPEG XL.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid animated JPEG XL frame or duration.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not open JPEG XL file for writing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not write JPEG XL file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>JPEG XL Options</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Higher effort makes smaller files and takes longer to save.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Effort:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Patchy does not use JPEG XL&apos;s patch and dot coding tools, so images with repeated text or small dots can be somewhat larger than with other encoders.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>JPEG XL Image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Animated JPEG XL: imported %1 frames as layers</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -20238,6 +20310,10 @@ You can still download it in your browser.</source>
             <numerusform></numerusform>
             <numerusform></numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Saved animated JPEG XL copy %1</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

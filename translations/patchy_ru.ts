@@ -9873,6 +9873,78 @@ RGB: %2, %3, %4</translation>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation>Какие метаданные из сведений о файле включать. Цветовой профиль и разрешение сохраняются всегда.</translation>
     </message>
+    <message>
+        <source>The JPEG XL file is damaged or not supported</source>
+        <translation>Файл JPEG XL поврежден или не поддерживается</translation>
+    </message>
+    <message>
+        <source>The file is not a JPEG XL image</source>
+        <translation>Файл не является изображением JPEG XL</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is truncated</source>
+        <translation>Файл JPEG XL обрезан</translation>
+    </message>
+    <message>
+        <source>The JPEG XL image is too large to open</source>
+        <translation>Изображение JPEG XL слишком велико для открытия</translation>
+    </message>
+    <message>
+        <source>JPEG XL: extra channels other than alpha were not imported</source>
+        <translation>JPEG XL: дополнительные каналы, кроме альфа-канала, не импортированы</translation>
+    </message>
+    <message>
+        <source>The JPEG XL animation is too large to open</source>
+        <translation>Анимация JPEG XL слишком велика для открытия</translation>
+    </message>
+    <message>
+        <source>Could not encode the JPEG XL image</source>
+        <translation>Не удалось закодировать изображение JPEG XL</translation>
+    </message>
+    <message>
+        <source>The document has no pixels to save</source>
+        <translation>В документе нет пикселей для сохранения</translation>
+    </message>
+    <message>
+        <source>The document has no visible top-level layers to export as an animated JPEG XL.</source>
+        <translation>В документе нет видимых слоёв верхнего уровня для экспорта в анимированный JPEG XL.</translation>
+    </message>
+    <message>
+        <source>Invalid animated JPEG XL frame or duration.</source>
+        <translation>Неверный кадр или длительность анимированного JPEG XL.</translation>
+    </message>
+    <message>
+        <source>Could not open JPEG XL file for writing</source>
+        <translation>Не удалось открыть файл JPEG XL для записи</translation>
+    </message>
+    <message>
+        <source>Could not write JPEG XL file</source>
+        <translation>Не удалось записать файл JPEG XL</translation>
+    </message>
+    <message>
+        <source>JPEG XL Options</source>
+        <translation>Параметры JPEG XL</translation>
+    </message>
+    <message>
+        <source>Higher effort makes smaller files and takes longer to save.</source>
+        <translation>Большее усилие уменьшает файл, но сохранение занимает больше времени.</translation>
+    </message>
+    <message>
+        <source>Effort:</source>
+        <translation>Усилие:</translation>
+    </message>
+    <message>
+        <source>Patchy does not use JPEG XL&apos;s patch and dot coding tools, so images with repeated text or small dots can be somewhat larger than with other encoders.</source>
+        <translation>Patchy не использует инструменты кодирования патчей и точек JPEG XL, поэтому изображения с повторяющимся текстом или мелкими точками могут быть немного больше, чем при сохранении другими кодировщиками.</translation>
+    </message>
+    <message>
+        <source>JPEG XL Image</source>
+        <translation>Изображение JPEG XL</translation>
+    </message>
+    <message>
+        <source>Animated JPEG XL: imported %1 frames as layers</source>
+        <translation>Анимированный JPEG XL: %1 кадров импортировано как слои</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -20362,6 +20434,10 @@ You can still download it in your browser.</source>
             <numerusform>Добавляет %n новых слоя. Предпросмотр уже показывает их на холсте и в панели «Слои».</numerusform>
             <numerusform>Добавляет %n новых слоёв. Предпросмотр уже показывает их на холсте и в панели «Слои».</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Saved animated JPEG XL copy %1</source>
+        <translation>Сохранена копия анимированного JPEG XL: %1</translation>
     </message>
 </context>
 <context>

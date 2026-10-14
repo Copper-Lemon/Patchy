@@ -9843,6 +9843,78 @@ RGB: %2, %3, %4</translation>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation>Metadatos de Información de archivo que se incluyen. El perfil de color y la resolución siempre se conservan.</translation>
     </message>
+    <message>
+        <source>The JPEG XL file is damaged or not supported</source>
+        <translation>El archivo JPEG XL está dañado o no es compatible</translation>
+    </message>
+    <message>
+        <source>The file is not a JPEG XL image</source>
+        <translation>El archivo no es una imagen JPEG XL</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is truncated</source>
+        <translation>El archivo JPEG XL está truncado</translation>
+    </message>
+    <message>
+        <source>The JPEG XL image is too large to open</source>
+        <translation>La imagen JPEG XL es demasiado grande para abrirla</translation>
+    </message>
+    <message>
+        <source>JPEG XL: extra channels other than alpha were not imported</source>
+        <translation>JPEG XL: no se importaron los canales adicionales distintos de alfa</translation>
+    </message>
+    <message>
+        <source>The JPEG XL animation is too large to open</source>
+        <translation>La animación JPEG XL es demasiado grande para abrirla</translation>
+    </message>
+    <message>
+        <source>Could not encode the JPEG XL image</source>
+        <translation>No se pudo codificar la imagen JPEG XL</translation>
+    </message>
+    <message>
+        <source>The document has no pixels to save</source>
+        <translation>El documento no tiene píxeles para guardar</translation>
+    </message>
+    <message>
+        <source>The document has no visible top-level layers to export as an animated JPEG XL.</source>
+        <translation>El documento no tiene capas visibles de nivel superior para exportar como JPEG XL animado.</translation>
+    </message>
+    <message>
+        <source>Invalid animated JPEG XL frame or duration.</source>
+        <translation>Fotograma o duración del JPEG XL animado no válidos.</translation>
+    </message>
+    <message>
+        <source>Could not open JPEG XL file for writing</source>
+        <translation>No se pudo abrir el archivo JPEG XL para escribir</translation>
+    </message>
+    <message>
+        <source>Could not write JPEG XL file</source>
+        <translation>No se pudo escribir el archivo JPEG XL</translation>
+    </message>
+    <message>
+        <source>JPEG XL Options</source>
+        <translation>Opciones de JPEG XL</translation>
+    </message>
+    <message>
+        <source>Higher effort makes smaller files and takes longer to save.</source>
+        <translation>Un mayor esfuerzo genera archivos más pequeños y tarda más en guardar.</translation>
+    </message>
+    <message>
+        <source>Effort:</source>
+        <translation>Esfuerzo:</translation>
+    </message>
+    <message>
+        <source>Patchy does not use JPEG XL&apos;s patch and dot coding tools, so images with repeated text or small dots can be somewhat larger than with other encoders.</source>
+        <translation>Patchy no usa las herramientas de codificación de parches y puntos de JPEG XL, por lo que las imágenes con texto repetido o puntos pequeños pueden ser algo más grandes que con otros codificadores.</translation>
+    </message>
+    <message>
+        <source>JPEG XL Image</source>
+        <translation>Imagen JPEG XL</translation>
+    </message>
+    <message>
+        <source>Animated JPEG XL: imported %1 frames as layers</source>
+        <translation>JPEG XL animado: %1 fotogramas importados como capas</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -20299,6 +20371,10 @@ Aún puede descargarla en su navegador.</translation>
             <numerusform>Añade %n capa nueva. La vista previa ya la muestra en el lienzo y en el panel Capas.</numerusform>
             <numerusform>Añade %n capas nuevas. La vista previa ya las muestra en el lienzo y en el panel Capas.</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Saved animated JPEG XL copy %1</source>
+        <translation>Copia de JPEG XL animado guardada: %1</translation>
     </message>
 </context>
 <context>

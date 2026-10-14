@@ -9813,6 +9813,78 @@ RGB: %2, %3, %4</translation>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation>포함할 파일 정보 메타데이터입니다. 색상 프로필과 해상도는 항상 유지됩니다.</translation>
     </message>
+    <message>
+        <source>The JPEG XL file is damaged or not supported</source>
+        <translation>JPEG XL 파일이 손상되었거나 지원되지 않습니다</translation>
+    </message>
+    <message>
+        <source>The file is not a JPEG XL image</source>
+        <translation>이 파일은 JPEG XL 이미지가 아닙니다</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is truncated</source>
+        <translation>JPEG XL 파일이 잘려 있습니다</translation>
+    </message>
+    <message>
+        <source>The JPEG XL image is too large to open</source>
+        <translation>JPEG XL 이미지가 너무 커서 열 수 없습니다</translation>
+    </message>
+    <message>
+        <source>JPEG XL: extra channels other than alpha were not imported</source>
+        <translation>JPEG XL: 알파 이외의 추가 채널은 가져오지 않았습니다</translation>
+    </message>
+    <message>
+        <source>The JPEG XL animation is too large to open</source>
+        <translation>JPEG XL 애니메이션이 너무 커서 열 수 없습니다</translation>
+    </message>
+    <message>
+        <source>Could not encode the JPEG XL image</source>
+        <translation>JPEG XL 이미지를 인코딩할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>The document has no pixels to save</source>
+        <translation>문서에 저장할 픽셀이 없습니다</translation>
+    </message>
+    <message>
+        <source>The document has no visible top-level layers to export as an animated JPEG XL.</source>
+        <translation>문서에 애니메이션 JPEG XL로 내보낼 표시된 최상위 레이어가 없습니다.</translation>
+    </message>
+    <message>
+        <source>Invalid animated JPEG XL frame or duration.</source>
+        <translation>애니메이션 JPEG XL의 프레임 또는 시간이 잘못되었습니다.</translation>
+    </message>
+    <message>
+        <source>Could not open JPEG XL file for writing</source>
+        <translation>JPEG XL 파일을 쓰기용으로 열 수 없습니다</translation>
+    </message>
+    <message>
+        <source>Could not write JPEG XL file</source>
+        <translation>JPEG XL 파일을 쓸 수 없습니다</translation>
+    </message>
+    <message>
+        <source>JPEG XL Options</source>
+        <translation>JPEG XL 옵션</translation>
+    </message>
+    <message>
+        <source>Higher effort makes smaller files and takes longer to save.</source>
+        <translation>노력 값을 높이면 파일이 작아지지만 저장 시간이 길어집니다.</translation>
+    </message>
+    <message>
+        <source>Effort:</source>
+        <translation>노력:</translation>
+    </message>
+    <message>
+        <source>Patchy does not use JPEG XL&apos;s patch and dot coding tools, so images with repeated text or small dots can be somewhat larger than with other encoders.</source>
+        <translation>Patchy는 JPEG XL의 패치 및 점 코딩 도구를 사용하지 않으므로 반복되는 텍스트나 작은 점이 있는 이미지는 다른 인코더보다 다소 커질 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>JPEG XL Image</source>
+        <translation>JPEG XL 이미지</translation>
+    </message>
+    <message>
+        <source>Animated JPEG XL: imported %1 frames as layers</source>
+        <translation>애니메이션 JPEG XL: %1개 프레임을 레이어로 가져왔습니다</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -20236,6 +20308,10 @@ You can still download it in your browser.</source>
         <translation>
             <numerusform>새 레이어 %n개를 추가합니다. 미리 보기에서 이미 캔버스와 레이어 패널에 표시됩니다.</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Saved animated JPEG XL copy %1</source>
+        <translation>애니메이션 JPEG XL 사본 저장됨: %1</translation>
     </message>
 </context>
 <context>

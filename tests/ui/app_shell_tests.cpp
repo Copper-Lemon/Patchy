@@ -1632,6 +1632,7 @@ void ui_open_dialog_hides_name_filter_details() {
     CHECK(!filters.isEmpty());
     CHECK(filters.first().contains(QStringLiteral("*.psd")));
     CHECK(filters.first().contains(QStringLiteral("*.tif")));
+    CHECK(filters.first().contains(QStringLiteral("*.jxl")));
     auto* type_combo = dialog->findChild<QComboBox*>(QStringLiteral("fileTypeCombo"));
     CHECK(type_combo != nullptr);
     QStringList displayed;
@@ -1643,6 +1644,7 @@ void ui_open_dialog_hides_name_filter_details() {
     CHECK(!displayed.first().contains(QStringLiteral("*.tif")));
     CHECK(displayed.contains(QStringLiteral("Photoshop Document (*.psd *.psb)")));
     CHECK(displayed.contains(QStringLiteral("TIFF Image (*.tif *.tiff)")));
+    CHECK(displayed.contains(QStringLiteral("JPEG XL Image (*.jxl)")));
     CHECK(displayed.contains(QStringLiteral("Affinity Document (*.af *.afphoto *.afdesign *.afpub)")));
     CHECK(displayed.last() == QStringLiteral("All Files (*.*)"));
     saw_open_dialog = true;

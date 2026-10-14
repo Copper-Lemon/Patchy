@@ -23,6 +23,7 @@
 #include "formats/ico_document_io.hpp"
 #include "formats/ilbm_document_io.hpp"
 #include "formats/image_density_probe.hpp"
+#include "formats/jxl_document_io.hpp"
 #include "formats/jxr_document_io.hpp"
 #include "formats/pcx_document_io.hpp"
 #include "formats/dds_document_io.hpp"
@@ -2112,7 +2113,7 @@ std::vector<RenderedDocumentPatch> qimage_patch_from_document_rect_with_layer_pi
 bool image_format_preserves_alpha(std::string_view extension) noexcept {
   const auto lower = lower_extension(extension);
   return lower == "png" || lower == "tif" || lower == "tiff" || lower == "webp" || lower == "jxr" ||
-         lower == "wdp" || lower == "hdp";
+         lower == "wdp" || lower == "hdp" || lower == "jxl";
 }
 
 namespace {
@@ -2557,7 +2558,7 @@ void write_bytes_with_save_file(const QString& path, std::span<const std::uint8_
 // (the encoder's bytes are then written untouched) or the format has no container for it.
 std::optional<metadata::SaveMetadata> save_metadata_for(const Document& document, const ImageSaveOptions& options,
                                                         std::string_view format, int width, int height) {
-  static const std::set<std::string_view> kCarriers{"jpg", "jpeg", "jpe", "jfif", "png", "tif", "tiff", "webp", "gif"};
+  static const std::set<std::string_view> kCarriers{"jpg", "jpeg", "jpe", "jfif", "png", "tif", "tiff", "webp", "gif", "jxl"};
   if (!kCarriers.contains(format)) {
     return std::nullopt;
   }
@@ -2613,16 +2614,37 @@ void write_flat_qimage(const Document& document, const ImageSaveOptions& options
                           save_metadata_for(document, options, format, image.width(), image.height()));
 }
 
-// The native flat writers, the animated GIF/WebP writers and the export-transform
+// The native flat writers, the animated GIF/WebP/JPEG XL writers and the export-transform
 // stand-in composite at 8 bits per channel, so a 16/32-bit document reaches them
-// narrowed. PNG and TIFF keep deep samples; JPEG, WebP, PDF and the other Qt-encoded
-// formats narrow the deep composite in flat_export_qimage.
+// narrowed. PNG, TIFF and still JPEG XL keep deep samples; JPEG, WebP, PDF and the other
+// Qt-encoded formats narrow the deep composite in flat_export_qimage.
 [[nodiscard]] bool flat_writer_needs_8bit_document(const std::string& lower, std::string_view extension,
                                                    const ImageSaveOptions& options) {
   return export_transform_requested(options) || lower == "gif" || (lower == "webp" && options.webp_animate) ||
+         (jxl::is_jxl_extension(lower) && options.jxl_animate) ||
          lower == "tga" || lower == "pcx" || lower == "lbm" || lower == "iff" || lower == "bbm" ||
          lower == "ico" || lower == "cur" || jxr::is_jxr_extension(lower) || rttex::is_rttex_extension(lower) ||
          dds::is_dds_extension(lower) || is_bmp_extension(extension);
+}
+
+// The JPEG XL writer settings from the dialog's options, with the File Info boxes the save
+// carries (docs/file-info.md).
+jxl::WriteOptions jxl_write_options(const Document& document, const ImageSaveOptions& options, int width,
+                                    int height) {
+  jxl::WriteOptions jxl_options;
+  jxl_options.quality = std::clamp(options.jxl_quality, 1, 100);
+  jxl_options.lossless = options.jxl_lossless;
+  jxl_options.effort = std::clamp(options.jxl_effort, 1, 9);
+  if (const auto metadata = save_metadata_for(document, options, "jxl", width, height)) {
+    jxl_options.exif = metadata->exif;
+    jxl_options.xmp.assign(metadata->xmp.begin(), metadata->xmp.end());
+  }
+  return jxl_options;
+}
+
+void write_jxl_with_metadata(const Document& document, const QString& path, const ImageSaveOptions& options) {
+  jxl::write_jxl_file(document, to_filesystem_path(path),
+                      jxl_write_options(document, options, document.width(), document.height()));
 }
 
 }  // namespace
@@ -2659,6 +2681,10 @@ void write_flat_image_file(const Document& document, const QString& path, const 
     write_animated_webp_file(document, path, options, notices);
     return;
   }
+  if (jxl::is_jxl_extension(lower) && options.jxl_animate) {
+    write_animated_jxl_file(document, path, options, notices);
+    return;
+  }
   if (lower == "gif" && options.gif_animate) {
     // Before the export-transform re-entry: export_stand_in_document flattens the layers
     // this writer needs, so the animated writer applies the transforms per frame itself.
@@ -2693,6 +2719,11 @@ void write_flat_image_file(const Document& document, const QString& path, const 
     // elsewhere only through a hand-typed path, where the writer throws a clear message).
     jxr::write_jxr_file(document, to_filesystem_path(path),
                         jxr::WriteOptions{std::clamp(options.jxr_quality, 1, 100), options.jxr_lossless});
+    return;
+  }
+  if (jxl::is_jxl_extension(lower)) {
+    // Every platform, at the document's depth (docs/jxl.md).
+    write_jxl_with_metadata(document, path, options);
     return;
   }
   if (rttex::is_rttex_extension(lower)) {
@@ -2788,8 +2819,14 @@ void write_flat_image_file(const Document& document, const QString& path, const 
                     path, lower, quality);
 }
 
+namespace {
+enum class AnimatedFormat : std::uint8_t { Gif, Webp, Jxl };
+}  // namespace
+
 static void write_animated_layers(const Document& document, const QString& path, const ImageSaveOptions& options,
-                                  std::vector<std::string>* notices, bool as_webp) {
+                                  std::vector<std::string>* notices, AnimatedFormat format) {
+  const bool as_webp = format == AnimatedFormat::Webp;
+  const bool as_jxl = format == AnimatedFormat::Jxl;
   const bool palette_mode =
       document.palette_editing().has_value() && !document.palette_editing()->palette.colors.empty();
   const auto default_delay_cs =
@@ -2803,8 +2840,10 @@ static void write_animated_layers(const Document& document, const QString& path,
     }
   }
   if (visible_layers.empty()) {
-    throw std::runtime_error(as_webp ? PATCHY_TRANSLATE_NOOP("QObject", "The document has no visible top-level layers to export as an animated WebP.")
-                                    : "The document has no visible top-level layers to export as an animated GIF.");
+    throw std::runtime_error(
+        as_webp  ? PATCHY_TRANSLATE_NOOP("QObject", "The document has no visible top-level layers to export as an animated WebP.")
+        : as_jxl ? PATCHY_TRANSLATE_NOOP("QObject", "The document has no visible top-level layers to export as an animated JPEG XL.")
+                 : "The document has no visible top-level layers to export as an animated GIF.");
   }
 
   // One transform for every frame. Trim needs every frame up front: it crops to the UNION
@@ -2839,6 +2878,7 @@ static void write_animated_layers(const Document& document, const QString& path,
   transform.scale = std::max(1, options.export_scale);
 
   std::unique_ptr<webp::AnimationEncoder> webp_encoder;
+  std::unique_ptr<jxl::AnimationEncoder> jxl_encoder;
   std::vector<gif::GifFrame> frames;
   frames.reserve(visible_layers.size());
   std::int32_t frame_width = canvas_width;
@@ -2867,6 +2907,21 @@ static void write_animated_layers(const Document& document, const QString& path,
           static_cast<std::uint32_t>(options.animation_frame_delay_ms)));
       continue;
     }
+    if (as_jxl) {
+      if (!jxl_encoder) {
+        if (options.jxl_loop_count < 0 || options.jxl_loop_count > 65535 || options.animation_frame_delay_ms < 0 ||
+            options.animation_frame_delay_ms > static_cast<int>(animation::kMaxFrameDelayMs)) {
+          throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "Invalid animated JPEG XL frame or duration."));
+        }
+        jxl_encoder = std::make_unique<jxl::AnimationEncoder>(
+            frame_width, frame_height, BitDepth::UInt8, static_cast<std::uint16_t>(options.jxl_loop_count),
+            jxl_write_options(document, options, frame_width, frame_height),
+            document.color_state().embedded_icc_profile);
+      }
+      jxl_encoder->add(rgba, animation::parse_layer_name_delay_ms(layer.name()).value_or(
+          static_cast<std::uint32_t>(options.animation_frame_delay_ms)));
+      continue;
+    }
     auto indexed = palette_mode
                        ? indexed_rgba8_with_palette(rgba, document.palette_editing()->palette.colors,
                                                     document.palette_editing()->alpha_threshold)
@@ -2877,6 +2932,12 @@ static void write_animated_layers(const Document& document, const QString& path,
     frame.indexes = std::move(indexed.indexes);
     frame.delay_cs = gif::parse_layer_name_delay_cs(layer.name()).value_or(default_delay_cs);
     frames.push_back(std::move(frame));
+  }
+  if (as_jxl) {
+    write_file_bytes_atomically(to_filesystem_path(path), jxl_encoder->finish(),
+        PATCHY_TRANSLATE_NOOP("QObject", "Could not open JPEG XL file for writing"),
+        PATCHY_TRANSLATE_NOOP("QObject", "Could not write JPEG XL file"));
+    return;
   }
   const auto metadata = save_metadata_for(document, options, as_webp ? "webp" : "gif", frame_width, frame_height);
   if (as_webp) {
@@ -2897,12 +2958,17 @@ static void write_animated_layers(const Document& document, const QString& path,
 
 void write_animated_gif_file(const Document& document, const QString& path, const ImageSaveOptions& options,
                              std::vector<std::string>* notices) {
-  write_animated_layers(document, path, options, notices, false);
+  write_animated_layers(document, path, options, notices, AnimatedFormat::Gif);
 }
 
 void write_animated_webp_file(const Document& document, const QString& path, const ImageSaveOptions& options,
                               std::vector<std::string>* notices) {
-  write_animated_layers(document, path, options, notices, true);
+  write_animated_layers(document, path, options, notices, AnimatedFormat::Webp);
+}
+
+void write_animated_jxl_file(const Document& document, const QString& path, const ImageSaveOptions& options,
+                             std::vector<std::string>* notices) {
+  write_animated_layers(document, path, options, notices, AnimatedFormat::Jxl);
 }
 
 }  // namespace patchy::ui

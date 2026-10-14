@@ -53,6 +53,7 @@
 #include "formats/ico_document_io.hpp"
 #include "formats/tga_document_io.hpp"
 #include "ui/image_document_io.hpp"
+#include "formats/jxl_document_io.hpp"
 #include "formats/jxr_document_io.hpp"
 #include "formats/dds_document_io.hpp"
 #include "formats/rttex_document_io.hpp"
@@ -2762,7 +2763,7 @@ void ui_webp_animation_options_and_empty_layers() {
   patchy::ui::MainWindow window;
   show_window(window);
   patchy::ui::ImageSaveOptions seed;
-  seed.webp_offer_animation = true; seed.webp_loop_count = 3; seed.animation_frame_delay_ms = 33;
+  seed.offer_animation = true; seed.webp_loop_count = 3; seed.animation_frame_delay_ms = 33;
   std::exception_ptr failure;
   QTimer::singleShot(0, [&] {
     auto* dialog = find_top_level_dialog(QStringLiteral("webpSaveOptionsDialog"));
@@ -2788,7 +2789,7 @@ void ui_webp_animation_options_and_empty_layers() {
   patchy::ui::save_image_save_option_defaults(*chosen);
   CHECK(patchy::ui::load_image_save_option_defaults().animation_frame_delay_ms == 67);
   CHECK(patchy::ui::load_image_save_option_defaults().webp_loop_count == 0);
-  seed.webp_has_visible_frames = false;
+  seed.has_visible_frames = false;
   QTimer::singleShot(0, [&] {
     auto* dialog = find_top_level_dialog(QStringLiteral("webpSaveOptionsDialog"));
     try {
@@ -2801,7 +2802,7 @@ void ui_webp_animation_options_and_empty_layers() {
   const auto flat = patchy::ui::prompt_image_save_options(&window, QStringLiteral("webp"), seed);
   if (failure) std::rethrow_exception(failure);
   CHECK(flat.has_value() && !flat->webp_animate);
-  seed.webp_offer_animation = false;
+  seed.offer_animation = false;
   seed.webp_animate = true;
   QTimer::singleShot(0, [&] {
     auto* dialog = find_top_level_dialog(QStringLiteral("webpSaveOptionsDialog"));
@@ -2818,6 +2819,215 @@ void ui_webp_animation_options_and_empty_layers() {
   if (failure) std::rethrow_exception(failure);
   CHECK(animated.has_value() && animated->webp_animate);
   settings.remove(QStringLiteral("saveOptions"));
+}
+
+// A translucent RGBA gradient with a distinct corner, for the JPEG XL round trips.
+patchy::PixelBuffer jxl_test_gradient(std::int32_t width, std::int32_t height) {
+  patchy::PixelBuffer pixels(width, height, patchy::PixelFormat::rgba8());
+  for (std::int32_t y = 0; y < height; ++y) {
+    for (std::int32_t x = 0; x < width; ++x) {
+      auto* px = pixels.row(y).data() + static_cast<std::size_t>(x) * 4U;
+      px[0] = static_cast<std::uint8_t>(x * 20);
+      px[1] = static_cast<std::uint8_t>(y * 25);
+      px[2] = static_cast<std::uint8_t>(90 + x + y);
+      px[3] = static_cast<std::uint8_t>(x == 0 ? 0 : 60 + x * 15);
+    }
+  }
+  return pixels;
+}
+
+void ui_jxl_opens_and_saves_as_a_read_write_format() {
+  ensure_artifact_dir();
+  CHECK(patchy::ui::image_format_preserves_alpha("jxl"));
+  const QString source_path = QStringLiteral("test-artifacts/jxl_source.jxl");
+  const auto source = jxl_test_gradient(12, 9);
+  {
+    patchy::Document document(12, 9, patchy::PixelFormat::rgba8());
+    document.add_pixel_layer("Background", source);
+    patchy::jxl::WriteOptions options;
+    options.lossless = true;
+    patchy::jxl::write_jxl_file(document, patchy::ui::to_filesystem_path(source_path), options);
+  }
+
+  patchy::ui::MainWindow window;
+  show_window(window);
+  patchy::ui::MainWindowTestAccess::open_document_path(window, source_path);
+  QApplication::processEvents();
+  auto& document = patchy::ui::MainWindowTestAccess::document(window);
+  CHECK(document.width() == 12);
+  CHECK(document.height() == 9);
+  CHECK(std::as_const(document).file_info().source_format == "JXL");
+  // Flat-image alpha becomes an editable document-alpha mask, as for PNG and WebP.
+  const auto& layer = std::as_const(document).layers().front();
+  CHECK(layer.name() == "Background");
+  CHECK(layer.mask().has_value());
+  CHECK(patchy::layer_mask_is_document_alpha(layer));
+  CHECK(patchy::ui::MainWindowTestAccess::active_session_path(window) == source_path);
+  CHECK(!patchy::ui::MainWindowTestAccess::active_session_is_modified(window));
+
+  // The registry row has a writer, so Save writes .jxl in place; lossless gives the exact
+  // pixels back, alpha included.
+  const QString saved = QStringLiteral("test-artifacts/jxl_round_trip.jxl");
+  QFile::remove(saved);
+  patchy::ui::ImageSaveOptions options;
+  options.jxl_lossless = true;
+  CHECK(patchy::ui::MainWindowTestAccess::save_document_to_path(window, saved, options));
+  const auto reread = patchy::jxl::read_jxl_file(patchy::ui::to_filesystem_path(saved));
+  const auto& pixels = std::as_const(reread.document.layers().front()).pixels();
+  CHECK(pixels.format() == patchy::PixelFormat::rgba8());
+  for (std::int32_t y = 0; y < 9; ++y) {
+    for (std::int32_t x = 1; x < 12; ++x) {  // column 0 is fully transparent
+      CHECK(std::equal(pixels.pixel(x, y), pixels.pixel(x, y) + 4, source.pixel(x, y)));
+    }
+    CHECK(pixels.pixel(0, y)[3] == 0);
+  }
+
+  // A 16-bit file opens at 16 bits and saves back at 16 bits.
+  patchy::set_deep_editing_override(true);
+  const QString deep_path = QStringLiteral("test-artifacts/jxl_source16.jxl");
+  {
+    patchy::PixelBuffer deep(4, 3, patchy::with_bit_depth(patchy::PixelFormat::rgb8(), patchy::BitDepth::UInt16));
+    auto* samples = reinterpret_cast<std::uint16_t*>(deep.data().data());
+    for (std::size_t i = 0; i < 36; ++i) {
+      samples[i] = static_cast<std::uint16_t>(i * 1801U + 7U);
+    }
+    patchy::Document deep_document(4, 3, deep.format());
+    deep_document.color_state().bit_depth = patchy::BitDepth::UInt16;
+    deep_document.add_pixel_layer("Background", std::move(deep));
+    patchy::jxl::WriteOptions deep_options;
+    deep_options.lossless = true;
+    patchy::jxl::write_jxl_file(deep_document, patchy::ui::to_filesystem_path(deep_path), deep_options);
+  }
+  patchy::ui::MainWindow deep_window;
+  show_window(deep_window);
+  patchy::ui::MainWindowTestAccess::open_document_path(deep_window, deep_path);
+  QApplication::processEvents();
+  CHECK(patchy::ui::MainWindowTestAccess::document(deep_window).color_state().bit_depth ==
+        patchy::BitDepth::UInt16);
+  const QString deep_saved = QStringLiteral("test-artifacts/jxl_round_trip16.jxl");
+  QFile::remove(deep_saved);
+  CHECK(patchy::ui::MainWindowTestAccess::save_document_to_path(deep_window, deep_saved, options));
+  CHECK(patchy::jxl::read_jxl_file(patchy::ui::to_filesystem_path(deep_saved)).document.color_state().bit_depth ==
+        patchy::BitDepth::UInt16);
+  patchy::set_deep_editing_override(std::nullopt);
+}
+
+void ui_jxl_save_options_persist_and_dialog() {
+  auto settings = patchy::ui::app_settings();
+  settings.remove(QStringLiteral("saveOptions"));
+  settings.sync();
+  auto defaults = patchy::ui::load_image_save_option_defaults();
+  CHECK(defaults.jxl_quality == 90);
+  CHECK(!defaults.jxl_lossless);
+  CHECK(defaults.jxl_effort == 7);
+  CHECK(patchy::ui::image_save_options_apply_to_extension(QStringLiteral("jxl")));
+  CHECK(patchy::ui::image_save_options_apply_to_extension(QStringLiteral(".JXL")));
+
+  defaults.jxl_quality = 70;
+  defaults.jxl_lossless = true;
+  defaults.jxl_effort = 3;
+  patchy::ui::save_image_save_option_defaults(defaults);
+  auto reloaded = patchy::ui::load_image_save_option_defaults();
+  CHECK(reloaded.jxl_quality == 70);
+  CHECK(reloaded.jxl_lossless);
+  CHECK(reloaded.jxl_effort == 3);
+  // Out-of-range stored values clamp instead of reaching the encoder.
+  settings.setValue(QStringLiteral("saveOptions/jxlEffort"), 40);
+  settings.setValue(QStringLiteral("saveOptions/jxlQuality"), 0);
+  settings.sync();
+  reloaded = patchy::ui::load_image_save_option_defaults();
+  CHECK(reloaded.jxl_effort == 9);
+  CHECK(reloaded.jxl_quality == 1);
+
+  patchy::ui::MainWindow window;
+  show_window(window);
+  patchy::ui::ImageSaveOptions seed;
+  seed.offer_animation = true;
+  std::exception_ptr failure;
+  QTimer::singleShot(0, [&] {
+    auto* dialog = find_top_level_dialog(QStringLiteral("jxlSaveOptionsDialog"));
+    try {
+      CHECK(dialog != nullptr);
+      auto* quality = dialog->findChild<QSpinBox*>(QStringLiteral("jxlQualitySpin"));
+      auto* effort = dialog->findChild<QSpinBox*>(QStringLiteral("jxlEffortSpin"));
+      auto* lossless = dialog->findChild<QCheckBox*>(QStringLiteral("jxlLosslessCheck"));
+      auto* mode = dialog->findChild<QRadioButton*>(QStringLiteral("jxlAnimationRadio"));
+      CHECK(quality && effort && lossless && mode);
+      CHECK(dialog->findChild<QLabel*>(QStringLiteral("jxlSaveNote")) != nullptr);
+      CHECK(quality->value() == 90);
+      CHECK(effort->value() == 7);
+      CHECK(no_clipped_labels(*dialog));
+      patchy::test::ui::save_widget_artifact("jxl-save-options", *dialog);
+      effort->setValue(4);
+      lossless->setChecked(true);
+      CHECK(!quality->parentWidget()->isEnabled());
+      dialog->accept();
+    } catch (...) {
+      failure = std::current_exception();
+      if (dialog) dialog->reject();
+    }
+  });
+  const auto chosen = patchy::ui::prompt_image_save_options(&window, QStringLiteral("jxl"), seed);
+  if (failure) std::rethrow_exception(failure);
+  CHECK(chosen.has_value());
+  CHECK(chosen->jxl_effort == 4);
+  CHECK(chosen->jxl_lossless);
+  CHECK(chosen->jxl_animate);
+  settings.remove(QStringLiteral("saveOptions"));
+  settings.sync();
+}
+
+void ui_jxl_animated_save_round_trips() {
+  ensure_artifact_dir();
+  patchy::Document document(6, 4, patchy::PixelFormat::rgba8());
+  const char* names[] = {"bottom 0.1s", "middle 0.2s", "top"};
+  for (int i = 0; i < 3; ++i) {
+    patchy::PixelBuffer pixels(6, 4, patchy::PixelFormat::rgba8());
+    for (std::int32_t y = 0; y < 4; ++y) {
+      for (std::int32_t x = 0; x < 6; ++x) {
+        auto* px = pixels.row(y).data() + static_cast<std::size_t>(x) * 4U;
+        px[0] = static_cast<std::uint8_t>(80 * i);
+        px[1] = static_cast<std::uint8_t>(x * 30);
+        px[2] = static_cast<std::uint8_t>(y * 50);
+        px[3] = 255;
+      }
+    }
+    document.add_pixel_layer(names[i], std::move(pixels));
+  }
+  const QString path = QStringLiteral("test-artifacts/jxl_animation.jxl");
+  QFile::remove(path);
+  patchy::ui::ImageSaveOptions options;
+  options.jxl_animate = true;
+  options.jxl_lossless = true;
+  options.jxl_loop_count = 2;
+  options.animation_frame_delay_ms = 50;
+  patchy::ui::write_flat_image_file(document, path, QStringLiteral("jxl"), options);
+
+  // Frame 1 is the top layer; a name's time token overrides the default delay.
+  const auto bytes = patchy::jxl::read_jxl_detailed(
+      [&] {
+        QFile file(path);
+        CHECK(file.open(QIODevice::ReadOnly));
+        const auto data = file.readAll();
+        return std::vector<std::uint8_t>(data.begin(), data.end());
+      }());
+  CHECK(bytes.frame_count == 3);
+  const auto& layers = bytes.read.document.layers();
+  CHECK(layers.size() == 3);
+  CHECK(layers.back().name() == "Frame 1 0.05s");
+  CHECK(layers[1].name() == "Frame 2 0.2s");
+  CHECK(layers.front().name() == "Frame 3 0.1s");
+  CHECK(std::as_const(layers.back()).pixels().pixel(0, 0)[0] == 160);
+  CHECK(bytes.read.document.metadata().values.at(patchy::jxl::kLoopCountMetadata) == "2");
+
+  patchy::ui::MainWindow window;
+  show_window(window);
+  patchy::ui::MainWindowTestAccess::open_document_path(window, path);
+  QApplication::processEvents();
+  const auto& reopened = std::as_const(patchy::ui::MainWindowTestAccess::document(window));
+  CHECK(reopened.layers().size() == 3);
+  CHECK(QString::fromStdString(reopened.layers().back().name()).startsWith(QStringLiteral("Frame 1")));
+  CHECK(reopened.metadata().values.at(patchy::jxl::kLoopCountMetadata) == "2");
 }
 
 }  // namespace
@@ -2846,6 +3056,9 @@ std::vector<patchy::test::TestCase> flat_image_format_tests() {
       {"ui_jxr_opens_and_saves_as_a_read_write_format", ui_jxr_opens_and_saves_as_a_read_write_format},
       {"ui_jxr_save_options_persist_quality_and_lossless",
        ui_jxr_save_options_persist_quality_and_lossless},
+      {"ui_jxl_opens_and_saves_as_a_read_write_format", ui_jxl_opens_and_saves_as_a_read_write_format},
+      {"ui_jxl_save_options_persist_and_dialog", ui_jxl_save_options_persist_and_dialog},
+      {"ui_jxl_animated_save_round_trips", ui_jxl_animated_save_round_trips},
       {"ui_rttex_opens_and_saves_as_a_read_write_format", ui_rttex_opens_and_saves_as_a_read_write_format},
       {"ui_rttex_jpeg_save_round_trips_through_qt_encoder", ui_rttex_jpeg_save_round_trips_through_qt_encoder},
       {"ui_rttex_save_options_persist_and_dialog_prefills_from_source",

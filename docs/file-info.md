@@ -37,7 +37,8 @@ Both are undoable (`push_undo_snapshot`) and change the file only on the next sa
   `extract_file_info_from_path` on the file after the document is built. Files over 512 MB
   are scanned from their first 64 MB.
 - An RGB source profile becomes the embedded profile only when the decoder left the pixels
-  in the file's color space (Qt's PNG/JPEG/TIFF/WebP/GIF readers, the BMP reader). WIC
+  in the file's color space (Qt's PNG/JPEG/TIFF/WebP/GIF readers, the BMP reader, the JPEG XL
+  reader for 8 and 16-bit RGB). WIC
   HEIF/JPEG XR, LibRaw and the HEIF Qt fallback convert to sRGB, so their profile is
   display-only, as are gray and CMYK profiles; `source_icc_note` says why.
 - When the decoder applied the orientation (Qt `autoTransform` reported a transformation,
@@ -53,6 +54,7 @@ Both are undoable (`push_undo_snapshot`) and change the file only on the next sa
 | PNG | tEXt/zTXt/iTXt (zlib capped at 16 MB), `XML:com.adobe.xmp`, ImageMagick `Raw profile type exif/xmp/iptc/8bim/icc`, eXIf, iCCP, sRGB/gAMA/cHRM/cICP/mDCV/cLLI/sBIT, tIME, caBX |
 | TIFF and TIFF-based raw | IFD0 descriptive tags, 700, 33723, 34377, 34675, Exif/GPS/Interop IFDs, SubIFD previews, 37724 layer data; image-structure tags stay out of the EXIF slot |
 | WebP | ICCP, EXIF (with or without the `Exif\0\0` prefix), `XMP `, C2PA |
+| JPEG XL | `Exif` and `xml ` boxes (also `brob`-compressed), the original color profile (libjxl synthesizes one for an encoded color space; none for plain sRGB), the box layout |
 | HEIF/AVIF/CR3 | `Exif` and `mime` XMP items (iloc versions 0-2, idat), primary `colr` (ICC or nclx), irot/imir, thumbnail and auxiliary items, XMP and C2PA uuid boxes, CR3 CMT1/2/4 |
 | RAF | the embedded preview JPEG's EXIF/XMP/ICC |
 | GIF | Comment extensions, `XMP DataXMP` with its 258-byte trailer, `ICCRGBG1012` |
@@ -88,7 +90,7 @@ copyright flag.
 - Save and Save As write everything (`MetadataPolicy::All`). Export's shared section has a
   Metadata combo (`exportMetadataCombo`; None, Copyright and Contact Info, All), persisted
   as `saveOptions/exportMetadata` with tokens `none`/`copyright`/`all` (default `none`) and
-  shown only for JPEG, PNG, TIFF, WebP and GIF. `reset_export_options` puts every prompt
+  shown only for JPEG, PNG, TIFF, WebP, GIF and JPEG XL. `reset_export_options` puts every prompt
   back to All. Scripts pass `metadata: "all" | "copyright" | "none"` to `saveAs`/`exportAs`.
 - `prepare_save_metadata` always writes EXIF Orientation and XMP `tiff:Orientation` as 1,
   sets PixelX/YDimension and XMP pixel sizes where present to the output size, rewrites
@@ -110,6 +112,8 @@ copyright flag.
   - WebP: libwebpmux chunks, also for animated WebP.
   - GIF: Comment and XMP extensions after the global color table (the header becomes
     GIF89a), also for animated GIF.
+  - JPEG XL: no injection; the writer gets EXIF and XMP from `save_metadata_for` and emits
+    uncompressed `Exif` and `xml ` boxes itself, also for animated JPEG XL (docs/jxl.md).
 - PSD: `image_resources_for_document` writes the lifted resources (XMP still goes through
   `repair_xmp_date_timezones`) plus resource 4213 (`'PtcM'`, v1, big-endian: u32 count,
   then per entry u8 FileInfoTextKind and key/value/language as u32 length + UTF-8) for PNG

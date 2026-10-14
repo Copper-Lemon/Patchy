@@ -27,6 +27,7 @@
 #include "formats/aseprite_document_io.hpp"
 #include "formats/bmp_document_io.hpp"
 #include "formats/heif_document_io.hpp"
+#include "formats/jxl_document_io.hpp"
 #include "formats/jxr_document_io.hpp"
 #include "formats/metadata/metadata_containers.hpp"
 #include "formats/metadata/metadata_edit.hpp"
@@ -664,6 +665,12 @@ const QList<FileFormatEntry>& file_format_entries() {
                     jxr::is_available() ? jxr_extensions : QStringList{},
                     jxr::is_available(),
                     jxr::is_available()});
+    // JPEG XL reads and writes everywhere through the vendored libjxl (docs/jxl.md).
+    QStringList jxl_extensions;
+    for (const auto& extension : jxl::jxl_extensions()) {
+      jxl_extensions.push_back(QString::fromStdString(extension));
+    }
+    list.push_back({QT_TRANSLATE_NOOP("QObject", "JPEG XL Image"), jxl_extensions, jxl_extensions, true, true});
     // Proton SDK textures read and write on every platform: the codec is Patchy's own (raw
     // pixels or an embedded JPEG inside a zlib container), so nothing gates the row.
     QStringList rttex_extensions;
@@ -1206,6 +1213,25 @@ OpenDocumentResult load_document_from_path(QString path) {
     for (int i = 0; i < link_notices.size(); ++i) {
       import_notices.insert(i, link_notices.at(i));
     }
+  } else if (jxl::is_jxl_extension(extension.toStdString())) {
+    // Before the registry row so animation frames get translated layer names and the
+    // decoder's color and orientation facts reach File Info.
+    jxl::ReadOptions read_options;
+    read_options.frame_name = [](int index, std::uint32_t delay) {
+      return (QObject::tr("Frame %1").arg(index) + QLatin1Char(' ') +
+              QString::fromStdString(animation::format_delay_seconds_token(delay)))
+          .toStdString();
+    };
+    auto result = jxl::read_jxl_detailed(read_all_file_bytes(path), read_options);
+    opened = std::move(result.read.document);
+    for (const auto& notice : result.read.notices) {
+      import_notices.push_back(translated_file_message(notice));
+    }
+    if (result.frame_count > 1) {
+      import_notices.push_back(QObject::tr("Animated JPEG XL: imported %1 frames as layers").arg(result.frame_count));
+    }
+    pixels_in_source_space = result.pixels_in_source_space;
+    orientation_applied = result.orientation_applied;
   } else if (raw::is_camera_raw_extension(extension.toStdString())) {
     const auto settings = load_raw_develop_settings(path);
     auto result = raw::read_camera_raw(read_all_file_bytes(path), settings.params);
@@ -3607,21 +3633,23 @@ bool MainWindow::save_document_as() {
       if (!pdf_editable_layers.has_value()) {
         return false;
       }
-    } else if ((extension == QStringLiteral("gif") || extension == QStringLiteral("webp")) &&
+    } else if ((extension == QStringLiteral("gif") || extension == QStringLiteral("webp") ||
+                extension == QStringLiteral("jxl")) &&
                std::as_const(document()).layers().size() >= 2) {
       // GIF asks animation-or-flatten instead of the plain flatten warning; an explicit
       // animation choice needs no warning (the frames round-trip through reopening).
       auto defaults = image_save_defaults_for_document();
-      defaults.webp_offer_animation = true;
-      defaults.webp_has_visible_frames = has_visible_top_level_layer(std::as_const(document()));
-      auto gif_options = extension == QStringLiteral("webp")
+      defaults.offer_animation = true;
+      defaults.has_visible_frames = has_visible_top_level_layer(std::as_const(document()));
+      auto gif_options = extension != QStringLiteral("gif")
           ? prompt_image_save_options(this, extension, defaults)
           : prompt_gif_save_options(this, defaults, /*offer_flatten_choice*/ true,
-                                    /*for_export*/ false, defaults.webp_has_visible_frames);
+                                    /*for_export*/ false, defaults.has_visible_frames);
       if (!gif_options.has_value()) {
         return false;
       }
-      if (!gif_options->gif_animate && !gif_options->webp_animate && !confirm_flatten_layers_for_save(extension)) {
+      if (!gif_options->gif_animate && !gif_options->webp_animate && !gif_options->jxl_animate &&
+          !confirm_flatten_layers_for_save(extension)) {
         return false;
       }
       image_options = std::move(gif_options);
@@ -3873,6 +3901,8 @@ bool MainWindow::save_document_to_path(QString path, std::optional<ImageSaveOpti
                                     ? tr("Saved animated GIF copy %1")
                                 : extension == QStringLiteral("webp") && effective_image_options.webp_animate
                                     ? tr("Saved animated WebP copy %1")
+                                : extension == QStringLiteral("jxl") && effective_image_options.jxl_animate
+                                    ? tr("Saved animated JPEG XL copy %1")
                                     : tr("Saved flattened copy %1"))
                                    .arg(path) +
                                export_notes_suffix);
@@ -3938,8 +3968,8 @@ void MainWindow::export_flat_image() {
     std::optional<ImageSaveOptions> image_options;
     if (!is_photoshop_document_extension(extension) && !svg_export) {
       auto defaults = image_save_defaults_for_document();
-      defaults.webp_offer_animation = std::as_const(document()).layers().size() >= 2;
-      defaults.webp_has_visible_frames = has_visible_top_level_layer(std::as_const(document()));
+      defaults.offer_animation = std::as_const(document()).layers().size() >= 2;
+      defaults.has_visible_frames = has_visible_top_level_layer(std::as_const(document()));
       if (is_pdf_extension(extension) && flat_save_discards_layers(std::as_const(document()))) {
         // Flatten or keep layers editable: the remembered policy or the question.
         const auto pdf_editable_layers = resolve_pdf_layer_choice(/*for_export*/ true, /*allow_prompt*/ true);

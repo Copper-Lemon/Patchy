@@ -9843,6 +9843,78 @@ RGB: %2, %3, %4</translation>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation>Metadados de Informações do arquivo a incluir. O perfil de cor e a resolução são sempre mantidos.</translation>
     </message>
+    <message>
+        <source>The JPEG XL file is damaged or not supported</source>
+        <translation>O arquivo JPEG XL está danificado ou não é compatível</translation>
+    </message>
+    <message>
+        <source>The file is not a JPEG XL image</source>
+        <translation>O arquivo não é uma imagem JPEG XL</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is truncated</source>
+        <translation>O arquivo JPEG XL está truncado</translation>
+    </message>
+    <message>
+        <source>The JPEG XL image is too large to open</source>
+        <translation>A imagem JPEG XL é grande demais para ser aberta</translation>
+    </message>
+    <message>
+        <source>JPEG XL: extra channels other than alpha were not imported</source>
+        <translation>JPEG XL: os canais extras além do alfa não foram importados</translation>
+    </message>
+    <message>
+        <source>The JPEG XL animation is too large to open</source>
+        <translation>A animação JPEG XL é grande demais para ser aberta</translation>
+    </message>
+    <message>
+        <source>Could not encode the JPEG XL image</source>
+        <translation>Não foi possível codificar a imagem JPEG XL</translation>
+    </message>
+    <message>
+        <source>The document has no pixels to save</source>
+        <translation>O documento não tem pixels para salvar</translation>
+    </message>
+    <message>
+        <source>The document has no visible top-level layers to export as an animated JPEG XL.</source>
+        <translation>O documento não tem camadas visíveis de nível superior para exportar como JPEG XL animado.</translation>
+    </message>
+    <message>
+        <source>Invalid animated JPEG XL frame or duration.</source>
+        <translation>Quadro ou duração do JPEG XL animado inválidos.</translation>
+    </message>
+    <message>
+        <source>Could not open JPEG XL file for writing</source>
+        <translation>Não foi possível abrir o arquivo JPEG XL para gravação</translation>
+    </message>
+    <message>
+        <source>Could not write JPEG XL file</source>
+        <translation>Não foi possível gravar o arquivo JPEG XL</translation>
+    </message>
+    <message>
+        <source>JPEG XL Options</source>
+        <translation>Opções JPEG XL</translation>
+    </message>
+    <message>
+        <source>Higher effort makes smaller files and takes longer to save.</source>
+        <translation>Um esforço maior gera arquivos menores e demora mais para salvar.</translation>
+    </message>
+    <message>
+        <source>Effort:</source>
+        <translation>Esforço:</translation>
+    </message>
+    <message>
+        <source>Patchy does not use JPEG XL&apos;s patch and dot coding tools, so images with repeated text or small dots can be somewhat larger than with other encoders.</source>
+        <translation>O Patchy não usa as ferramentas de codificação de patches e pontos do JPEG XL, então imagens com texto repetido ou pontos pequenos podem ficar um pouco maiores do que com outros codificadores.</translation>
+    </message>
+    <message>
+        <source>JPEG XL Image</source>
+        <translation>Imagem JPEG XL</translation>
+    </message>
+    <message>
+        <source>Animated JPEG XL: imported %1 frames as layers</source>
+        <translation>JPEG XL animado: %1 quadros importados como camadas</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -20299,6 +20371,10 @@ Você ainda pode baixá-la no navegador.</translation>
             <numerusform>Adiciona %n nova camada. A visualização já a mostra na tela e no painel Camadas.</numerusform>
             <numerusform>Adiciona %n novas camadas. A visualização já as mostra na tela e no painel Camadas.</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Saved animated JPEG XL copy %1</source>
+        <translation>Cópia de JPEG XL animado salva: %1</translation>
     </message>
 </context>
 <context>

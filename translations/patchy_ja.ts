@@ -9813,6 +9813,78 @@ Mixed selection</source>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation>含めるファイル情報のメタデータです。カラープロファイルと解像度は常に保持されます。</translation>
     </message>
+    <message>
+        <source>The JPEG XL file is damaged or not supported</source>
+        <translation>JPEG XL ファイルが破損しているか、サポートされていません</translation>
+    </message>
+    <message>
+        <source>The file is not a JPEG XL image</source>
+        <translation>このファイルは JPEG XL 画像ではありません</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is truncated</source>
+        <translation>JPEG XL ファイルが途中で切れています</translation>
+    </message>
+    <message>
+        <source>The JPEG XL image is too large to open</source>
+        <translation>JPEG XL 画像が大きすぎるため開けません</translation>
+    </message>
+    <message>
+        <source>JPEG XL: extra channels other than alpha were not imported</source>
+        <translation>JPEG XL: アルファ以外の追加チャンネルは読み込まれませんでした</translation>
+    </message>
+    <message>
+        <source>The JPEG XL animation is too large to open</source>
+        <translation>JPEG XL アニメーションが大きすぎるため開けません</translation>
+    </message>
+    <message>
+        <source>Could not encode the JPEG XL image</source>
+        <translation>JPEG XL 画像をエンコードできませんでした</translation>
+    </message>
+    <message>
+        <source>The document has no pixels to save</source>
+        <translation>保存するピクセルがドキュメントにありません</translation>
+    </message>
+    <message>
+        <source>The document has no visible top-level layers to export as an animated JPEG XL.</source>
+        <translation>アニメーション JPEG XL として書き出せる、表示中の最上位レイヤーがありません。</translation>
+    </message>
+    <message>
+        <source>Invalid animated JPEG XL frame or duration.</source>
+        <translation>アニメーション JPEG XL のフレームまたは表示時間が無効です。</translation>
+    </message>
+    <message>
+        <source>Could not open JPEG XL file for writing</source>
+        <translation>JPEG XL ファイルを書き込み用に開けませんでした</translation>
+    </message>
+    <message>
+        <source>Could not write JPEG XL file</source>
+        <translation>JPEG XL ファイルに書き込めませんでした</translation>
+    </message>
+    <message>
+        <source>JPEG XL Options</source>
+        <translation>JPEG XL オプション</translation>
+    </message>
+    <message>
+        <source>Higher effort makes smaller files and takes longer to save.</source>
+        <translation>労力を上げるとファイルは小さくなりますが、保存に時間がかかります。</translation>
+    </message>
+    <message>
+        <source>Effort:</source>
+        <translation>労力:</translation>
+    </message>
+    <message>
+        <source>Patchy does not use JPEG XL&apos;s patch and dot coding tools, so images with repeated text or small dots can be somewhat larger than with other encoders.</source>
+        <translation>Patchy は JPEG XL のパッチおよびドット符号化ツールを使用しないため、繰り返しのテキストや小さな点を含む画像は、他のエンコーダーよりやや大きくなることがあります。</translation>
+    </message>
+    <message>
+        <source>JPEG XL Image</source>
+        <translation>JPEG XL 画像</translation>
+    </message>
+    <message>
+        <source>Animated JPEG XL: imported %1 frames as layers</source>
+        <translation>アニメーション JPEG XL: %1 フレームをレイヤーとして読み込みました</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -20236,6 +20308,10 @@ You can still download it in your browser.</source>
         <translation>
             <numerusform>%n 個の新しいレイヤーを追加します。プレビューでは、すでにキャンバスとレイヤーパネルに表示されています。</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Saved animated JPEG XL copy %1</source>
+        <translation>アニメーション JPEG XL のコピーを保存しました: %1</translation>
     </message>
 </context>
 <context>

@@ -9813,6 +9813,78 @@ RGB：%2, %3, %4</translation>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation>要包含的文件简介元数据。颜色配置文件和分辨率始终会保留。</translation>
     </message>
+    <message>
+        <source>The JPEG XL file is damaged or not supported</source>
+        <translation>JPEG XL 文件已损坏或不受支持</translation>
+    </message>
+    <message>
+        <source>The file is not a JPEG XL image</source>
+        <translation>该文件不是 JPEG XL 图像</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is truncated</source>
+        <translation>JPEG XL 文件不完整</translation>
+    </message>
+    <message>
+        <source>The JPEG XL image is too large to open</source>
+        <translation>JPEG XL 图像太大，无法打开</translation>
+    </message>
+    <message>
+        <source>JPEG XL: extra channels other than alpha were not imported</source>
+        <translation>JPEG XL: 未导入 Alpha 以外的额外通道</translation>
+    </message>
+    <message>
+        <source>The JPEG XL animation is too large to open</source>
+        <translation>JPEG XL 动画太大，无法打开</translation>
+    </message>
+    <message>
+        <source>Could not encode the JPEG XL image</source>
+        <translation>无法编码 JPEG XL 图像</translation>
+    </message>
+    <message>
+        <source>The document has no pixels to save</source>
+        <translation>文档没有可保存的像素</translation>
+    </message>
+    <message>
+        <source>The document has no visible top-level layers to export as an animated JPEG XL.</source>
+        <translation>文档没有可导出为动画 JPEG XL 的可见顶层图层。</translation>
+    </message>
+    <message>
+        <source>Invalid animated JPEG XL frame or duration.</source>
+        <translation>动画 JPEG XL 的帧或时长无效。</translation>
+    </message>
+    <message>
+        <source>Could not open JPEG XL file for writing</source>
+        <translation>无法打开 JPEG XL 文件进行写入</translation>
+    </message>
+    <message>
+        <source>Could not write JPEG XL file</source>
+        <translation>无法写入 JPEG XL 文件</translation>
+    </message>
+    <message>
+        <source>JPEG XL Options</source>
+        <translation>JPEG XL 选项</translation>
+    </message>
+    <message>
+        <source>Higher effort makes smaller files and takes longer to save.</source>
+        <translation>更高的压缩力度可生成更小的文件，但保存时间更长。</translation>
+    </message>
+    <message>
+        <source>Effort:</source>
+        <translation>压缩力度:</translation>
+    </message>
+    <message>
+        <source>Patchy does not use JPEG XL&apos;s patch and dot coding tools, so images with repeated text or small dots can be somewhat larger than with other encoders.</source>
+        <translation>Patchy 不使用 JPEG XL 的补丁和点编码工具，因此包含重复文字或小点的图像可能比使用其他编码器时稍大。</translation>
+    </message>
+    <message>
+        <source>JPEG XL Image</source>
+        <translation>JPEG XL 图像</translation>
+    </message>
+    <message>
+        <source>Animated JPEG XL: imported %1 frames as layers</source>
+        <translation>动画 JPEG XL: 已将 %1 帧导入为图层</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -20236,6 +20308,10 @@ You can still download it in your browser.</source>
         <translation>
             <numerusform>添加 %n 个新图层。预览已在画布和图层面板中显示它们。</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Saved animated JPEG XL copy %1</source>
+        <translation>已保存动画 JPEG XL 副本 %1</translation>
     </message>
 </context>
 <context>

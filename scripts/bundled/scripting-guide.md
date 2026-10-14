@@ -387,6 +387,7 @@ doc.exportAs("page.pdf", {imageQuality: "high", editableLayers: true});
 | `.jpg`, `.jpeg` | `quality` (0 to 100) |
 | `.webp` | `quality` (0 to 100), `lossless` |
 | `.jxr` | `quality` (1 to 100), `lossless` |
+| `.jxl` | `quality` (1 to 100), `lossless`, `effort` (1 to 9), `animate` (visible top-level layers become frames, top first), `frameDelayMs`, `loopCount` (0 loops forever) |
 | `.dds` | `compression` (`"auto"`, `"uncompressed"`, `"bc1"`, `"bc3"`, `"bc4"`, `"bc5"`, `"bc7"`), `mipmaps` (`"auto"`, `"on"`, `"off"`). Automatic keeps an opened .dds file's format and otherwise picks BC1 for opaque images and BC3 with transparency. |
 | `.ico`, `.cur` | `sizes` (an array from 16, 24, 32, 48, 64, 128, 256), `resample` (`"auto"`, `"nearest"`, `"smooth"`); `.cur` also `hotspot: {x, y}` |
 | `.bmp` | `encoding` (`"rgba32"`, `"rgb24"`, `"indexed8"`, `"indexed4"`, `"indexed2"`), `paletteMode` (`"exact"`, `"quantize"`, `"paletteFile"`), `palettePath` |
@@ -394,7 +395,7 @@ doc.exportAs("page.pdf", {imageQuality: "high", editableLayers: true});
 | `.pdf` | the `app.exportPdf` keys: `imageQuality`, `lossless`, `editableLayers`, `keepOriginalImageData`, `missingFontsAsImages` |
 | `.gif` | `animate` (visible top-level layers become frames, top first), `frameDelayMs` |
 
-`.jpg`, `.png`, `.tif`, `.webp` and `.gif` also take `metadata` (`"all"`, the default; `"copyright"`; `"none"`): the File Info metadata written with the image. The color profile and resolution are always written.
+`.jpg`, `.png`, `.tif`, `.webp`, `.gif` and `.jxl` also take `metadata` (`"all"`, the default; `"copyright"`; `"none"`): the File Info metadata written with the image. The color profile and resolution are always written.
 
 Keys you leave out follow your Save Options defaults and the document (a document opened from a .dds keeps that file's format under `"auto"`). The object is strict: a key that does not apply to the extension, an unknown key, a wrong type or an out-of-range value throws and nothing is written, so a typo never saves with defaults. A scripted save never changes your Save Options defaults. Formats without options (`.psd`, `.png`, `.tif`, ...) accept no keys.
 

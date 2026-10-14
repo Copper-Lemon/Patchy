@@ -7,6 +7,11 @@ attachment, palettes, vector automation, brushes, Slow mode and Pause) are in
 [scripting-api-changes-through-2026-09-11.md](scripting-api-changes-through-2026-09-11.md).
 Every entry below is API 1.
 
+2026-10-15 (additive): JPEG XL. `app.open`, `doc.saveAs` and `doc.exportAs` handle `.jxl`
+(docs/jxl.md). `PatchySaveOptions` gains `effort` (1 to 9) and `loopCount` (0 to 65535) for
+`.jxl`, and `.jxl` also takes `quality` (1 to 100), `lossless`, `animate`, `frameDelayMs` and
+`metadata`. Pinned by `ui_script_save_as_options_write_jxl`.
+
 2026-10-14 (behavioral, supersedes the entry below): `layer.applyGmic` changes every layer
 `inputLayers` chooses that it may change, in one undo step; locked, text, shape and Smart
 Object layers among them are only read. A filter made for one image (declared input

@@ -9843,6 +9843,78 @@ RGB: %2, %3, %4</translation>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation>Metadati delle informazioni file da includere. Il profilo colore e la risoluzione vengono sempre mantenuti.</translation>
     </message>
+    <message>
+        <source>The JPEG XL file is damaged or not supported</source>
+        <translation>Il file JPEG XL è danneggiato o non supportato</translation>
+    </message>
+    <message>
+        <source>The file is not a JPEG XL image</source>
+        <translation>Il file non è un’immagine JPEG XL</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is truncated</source>
+        <translation>Il file JPEG XL è troncato</translation>
+    </message>
+    <message>
+        <source>The JPEG XL image is too large to open</source>
+        <translation>L’immagine JPEG XL è troppo grande per essere aperta</translation>
+    </message>
+    <message>
+        <source>JPEG XL: extra channels other than alpha were not imported</source>
+        <translation>JPEG XL: i canali aggiuntivi diversi dall’alfa non sono stati importati</translation>
+    </message>
+    <message>
+        <source>The JPEG XL animation is too large to open</source>
+        <translation>L’animazione JPEG XL è troppo grande per essere aperta</translation>
+    </message>
+    <message>
+        <source>Could not encode the JPEG XL image</source>
+        <translation>Impossibile codificare l’immagine JPEG XL</translation>
+    </message>
+    <message>
+        <source>The document has no pixels to save</source>
+        <translation>Il documento non ha pixel da salvare</translation>
+    </message>
+    <message>
+        <source>The document has no visible top-level layers to export as an animated JPEG XL.</source>
+        <translation>Il documento non ha livelli visibili di primo livello da esportare come JPEG XL animato.</translation>
+    </message>
+    <message>
+        <source>Invalid animated JPEG XL frame or duration.</source>
+        <translation>Fotogramma o durata del JPEG XL animato non validi.</translation>
+    </message>
+    <message>
+        <source>Could not open JPEG XL file for writing</source>
+        <translation>Impossibile aprire il file JPEG XL in scrittura</translation>
+    </message>
+    <message>
+        <source>Could not write JPEG XL file</source>
+        <translation>Impossibile scrivere il file JPEG XL</translation>
+    </message>
+    <message>
+        <source>JPEG XL Options</source>
+        <translation>Opzioni JPEG XL</translation>
+    </message>
+    <message>
+        <source>Higher effort makes smaller files and takes longer to save.</source>
+        <translation>Un impegno maggiore produce file più piccoli e richiede più tempo per il salvataggio.</translation>
+    </message>
+    <message>
+        <source>Effort:</source>
+        <translation>Impegno:</translation>
+    </message>
+    <message>
+        <source>Patchy does not use JPEG XL&apos;s patch and dot coding tools, so images with repeated text or small dots can be somewhat larger than with other encoders.</source>
+        <translation>Patchy non usa gli strumenti di codifica a patch e a punti di JPEG XL, quindi le immagini con testo ripetuto o piccoli punti possono risultare un po’ più grandi che con altri codificatori.</translation>
+    </message>
+    <message>
+        <source>JPEG XL Image</source>
+        <translation>Immagine JPEG XL</translation>
+    </message>
+    <message>
+        <source>Animated JPEG XL: imported %1 frames as layers</source>
+        <translation>JPEG XL animato: %1 fotogrammi importati come livelli</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -20299,6 +20371,10 @@ Puoi comunque scaricarlo nel browser.</translation>
             <numerusform>Aggiunge %n nuovo livello. L&apos;anteprima lo mostra già nel quadro e nel pannello Livelli.</numerusform>
             <numerusform>Aggiunge %n nuovi livelli. L&apos;anteprima li mostra già nel quadro e nel pannello Livelli.</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Saved animated JPEG XL copy %1</source>
+        <translation>Copia JPEG XL animata salvata: %1</translation>
     </message>
 </context>
 <context>

@@ -9843,6 +9843,78 @@ RGB: %2, %3, %4</translation>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation>Einzuschließende Metadaten aus den Dateiinformationen. Farbprofil und Auflösung bleiben immer erhalten.</translation>
     </message>
+    <message>
+        <source>The JPEG XL file is damaged or not supported</source>
+        <translation>Die JPEG XL-Datei ist beschädigt oder wird nicht unterstützt</translation>
+    </message>
+    <message>
+        <source>The file is not a JPEG XL image</source>
+        <translation>Die Datei ist kein JPEG XL-Bild</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is truncated</source>
+        <translation>Die JPEG XL-Datei ist unvollständig</translation>
+    </message>
+    <message>
+        <source>The JPEG XL image is too large to open</source>
+        <translation>Das JPEG XL-Bild ist zu groß zum Öffnen</translation>
+    </message>
+    <message>
+        <source>JPEG XL: extra channels other than alpha were not imported</source>
+        <translation>JPEG XL: Zusatzkanäle außer Alpha wurden nicht importiert</translation>
+    </message>
+    <message>
+        <source>The JPEG XL animation is too large to open</source>
+        <translation>Die JPEG XL-Animation ist zu groß zum Öffnen</translation>
+    </message>
+    <message>
+        <source>Could not encode the JPEG XL image</source>
+        <translation>Das JPEG XL-Bild konnte nicht kodiert werden</translation>
+    </message>
+    <message>
+        <source>The document has no pixels to save</source>
+        <translation>Das Dokument enthält keine Pixel zum Speichern</translation>
+    </message>
+    <message>
+        <source>The document has no visible top-level layers to export as an animated JPEG XL.</source>
+        <translation>Das Dokument hat keine sichtbaren Ebenen auf oberster Ebene für den Export als JPEG XL-Animation.</translation>
+    </message>
+    <message>
+        <source>Invalid animated JPEG XL frame or duration.</source>
+        <translation>Ungültiges Bild oder ungültige Dauer der JPEG XL-Animation.</translation>
+    </message>
+    <message>
+        <source>Could not open JPEG XL file for writing</source>
+        <translation>JPEG XL-Datei konnte nicht zum Schreiben geöffnet werden</translation>
+    </message>
+    <message>
+        <source>Could not write JPEG XL file</source>
+        <translation>JPEG XL-Datei konnte nicht geschrieben werden</translation>
+    </message>
+    <message>
+        <source>JPEG XL Options</source>
+        <translation>JPEG XL-Optionen</translation>
+    </message>
+    <message>
+        <source>Higher effort makes smaller files and takes longer to save.</source>
+        <translation>Höherer Aufwand erzeugt kleinere Dateien und verlängert das Speichern.</translation>
+    </message>
+    <message>
+        <source>Effort:</source>
+        <translation>Aufwand:</translation>
+    </message>
+    <message>
+        <source>Patchy does not use JPEG XL&apos;s patch and dot coding tools, so images with repeated text or small dots can be somewhat larger than with other encoders.</source>
+        <translation>Patchy verwendet die Patch- und Punkt-Kodierwerkzeuge von JPEG XL nicht, daher können Bilder mit wiederholtem Text oder kleinen Punkten etwas größer werden als mit anderen Encodern.</translation>
+    </message>
+    <message>
+        <source>JPEG XL Image</source>
+        <translation>JPEG XL-Bild</translation>
+    </message>
+    <message>
+        <source>Animated JPEG XL: imported %1 frames as layers</source>
+        <translation>JPEG XL-Animation: %1 Bilder als Ebenen importiert</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -20299,6 +20371,10 @@ Sie können es weiterhin im Browser herunterladen.</translation>
             <numerusform>Fügt %n neue Ebene hinzu. Die Vorschau zeigt sie bereits auf der Arbeitsfläche und im Ebenenbedienfeld.</numerusform>
             <numerusform>Fügt %n neue Ebenen hinzu. Die Vorschau zeigt sie bereits auf der Arbeitsfläche und im Ebenenbedienfeld.</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Saved animated JPEG XL copy %1</source>
+        <translation>Kopie der JPEG XL-Animation gespeichert: %1</translation>
     </message>
 </context>
 <context>

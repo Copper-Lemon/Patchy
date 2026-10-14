@@ -11,12 +11,12 @@
 
 // Reads every metadata block a flat image file carries into DocumentFileInfo
 // (docs/file-info.md): JPEG, PNG, TIFF and TIFF-based raws, WebP, GIF, ISOBMFF
-// (HEIF/HEIC/AVIF, Canon CR3), Fujifilm RAF, BMP, PDF and SVG. PSD/PSB metadata is
+// (HEIF/HEIC/AVIF, Canon CR3), Fujifilm RAF, BMP, JPEG XL, PDF and SVG. PSD/PSB metadata is
 // lifted by the PSD reader instead (src/psd). Qt-free; tolerant of damaged input:
 // a malformed block is skipped, never fatal.
 namespace patchy::metadata {
 
-// "JPEG", "PNG", "TIFF", "WebP", "GIF", "HEIF", "AVIF", "CR3", "RAF", "BMP", "PDF",
+// "JPEG", "PNG", "TIFF", "WebP", "GIF", "JXL", "HEIF", "AVIF", "CR3", "RAF", "BMP", "PDF",
 // "SVG", "PSD", or empty when unrecognized.
 [[nodiscard]] std::string sniff_metadata_format(std::span<const std::uint8_t> bytes);
 

@@ -199,7 +199,7 @@ bool apply_key(KeyReader& reader, const QString& extension, const QString& key, 
   if (key == QStringLiteral("metadata") &&
       (is_jpeg_extension(extension) || is_webp_extension(extension) || extension == QStringLiteral("png") ||
        extension == QStringLiteral("tif") || extension == QStringLiteral("tiff") ||
-       extension == QStringLiteral("gif"))) {
+       extension == QStringLiteral("gif") || is_jxl_extension(extension))) {
     reader.read_token(key, value, {QStringLiteral("all"), QStringLiteral("copyright"), QStringLiteral("none")},
                       [&](const QString& token) {
                         options.metadata_policy =
@@ -232,6 +232,33 @@ bool apply_key(KeyReader& reader, const QString& extension, const QString& key, 
     }
     if (key == QStringLiteral("lossless")) {
       reader.read_bool(key, value, options.jxr_lossless);
+      return true;
+    }
+    return false;
+  }
+  if (is_jxl_extension(extension)) {
+    if (key == QStringLiteral("quality")) {
+      reader.read_int(key, value, 1, 100, options.jxl_quality);
+      return true;
+    }
+    if (key == QStringLiteral("lossless")) {
+      reader.read_bool(key, value, options.jxl_lossless);
+      return true;
+    }
+    if (key == QStringLiteral("effort")) {
+      reader.read_int(key, value, 1, 9, options.jxl_effort);
+      return true;
+    }
+    if (key == QStringLiteral("animate")) {
+      reader.read_bool(key, value, options.jxl_animate);
+      return true;
+    }
+    if (key == QStringLiteral("frameDelayMs")) {
+      reader.read_int(key, value, 0, static_cast<int>(animation::kMaxFrameDelayMs), options.animation_frame_delay_ms);
+      return true;
+    }
+    if (key == QStringLiteral("loopCount")) {
+      reader.read_int(key, value, 0, 65535, options.jxl_loop_count);
       return true;
     }
     return false;
