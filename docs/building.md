@@ -73,6 +73,31 @@ separate Qt PDF 6.140.x package is downloadable for Windows, mac and Linux; skip
   6.12's extensions). macOS and Linux kits are unaffected.
 - A new Qt bundles newer FreeType/HarfBuzz, so expect offscreen text pins (text re-edit
   rasters, area-text render digests) to need re-verification, not blind re-pinning.
+- The bump retires the patched cocoa plugin below (6.9.1+ carries the upstream fix).
+  Check QTBUG-149612 first: it was an open crash in that fixed code on 6.11 (October 2026).
+
+### Patched Qt cocoa plugin (macOS)
+
+The macOS app ships a `libqcocoa.dylib` built from qtbase 6.8.3 with
+`packaging/macos/qt-patches/*.patch`, in place of the aqt kit's own. Stock 6.8.3 has
+QTBUG-134784: a table cell element that an accessibility client (VoiceOver, Accessibility
+Inspector, Computer Use agents) has read is cached without a reference, and the next model
+reset frees it while its row still holds it. Every Layers panel refresh is a
+`QListWidget::clear()`, so the next layer edit crashed (GitHub issue 95). The upstream fix
+is in 6.8.4 (commercial-only) and also changes QtGui; the patch fixes the reference count in
+the plugin alone, so the kit's frameworks stay as shipped.
+
+- `bash scripts/setup-qt-cocoa-patch-mac.sh` builds it into
+  `.deps/qt-cocoa-6.8.3-patched/platforms/` (about 90 s; reruns are a no-op until a patch
+  changes). It needs a macOS 15 SDK, which the Command Line Tools carry: 6.8.3 links AGL,
+  which the macOS 26 SDK dropped. The script refuses a build whose QtCore/QtGui feature
+  headers, rpaths, or linked Qt libraries differ from the kit's, or that imports a symbol
+  the kit's frameworks do not export. `setup-mac.sh` and the remote `build-and-test.sh` run it.
+- `make-dmg.sh` refuses to package without it and swaps it in after `macdeployqt`, before
+  codesign. Local dev runs from `build/mac-release` still load the kit's plugin.
+- `patchy_mac_a11y_tests <plugin folder>` (tests/macos) drives the cocoa accessibility
+  elements of a `QListWidget` in-process, so it needs no Accessibility permission, only
+  the logged-in console session. `--stock` runs the kit's plugin, which must fail.
 
 macOS produces `build/mac-release/Patchy.app`; Linux produces
 `build/linux-release/patchy`. `packaging/macos/make-dmg.sh` and

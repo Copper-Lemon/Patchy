@@ -35,6 +35,9 @@ fi
 echo "== OpenMP runtime for the G'MIC engine (docs/gmic.md, Threads) =="
 PATH="$TOOLS/bin:$PATH" bash "$SRC/scripts/setup-openmp-mac.sh" "$SRC/.deps"
 
+echo "== Patched Qt cocoa platform plugin (docs/building.md, GitHub issue 95) =="
+PATH="$TOOLS/bin:$PATH" bash "$SRC/scripts/setup-qt-cocoa-patch-mac.sh" "$SRC/.deps"
+
 echo "== Versions =="
 "$TOOLS/bin/cmake" --version | head -1
 printf 'ninja %s\n' "$("$TOOLS/bin/ninja" --version)"
