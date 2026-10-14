@@ -23,6 +23,13 @@ rem reports exit 0 for a failed build once stdin hits EOF (September 25, 2026: a
 rem failed build-wasm.bat parked a remote session for two hours this way). The
 rem wrapper below applies it, so callers pass the batch file as-is.
 rem
+rem A `cmake --build` (any argument is exactly --build) first runs build-busy-check.ps1
+rem and exits 3 without building when another build is already compiling on this machine:
+rem several AI sessions share the dev box, and a second build beside the first slows both.
+rem The message says what is running and how to build on the offload host instead.
+rem PATCHY_ALLOW_CONCURRENT_BUILD=1 skips the check. `shift /1` keeps %0 (this script's
+rem path) for %~dp0, and %* is never affected by shift, so the command runs unchanged.
+rem
 rem No setlocal: nothing here needs to be undone, and %ERRORLEVEL% must survive.
 if "%~1"=="" (
   echo usage: scripts\run-throttled.bat ^<command^> [args...]>&2
@@ -30,6 +37,17 @@ if "%~1"=="" (
 )
 if /i "%~x1"==".bat" goto batch
 if /i "%~x1"==".cmd" goto batch
+:scan
+if "%~1"=="" goto run
+if "%~1"=="--build" goto busy_check
+shift /1
+goto scan
+
+:busy_check
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build-busy-check.ps1"
+if not "%ERRORLEVEL%"=="0" exit /b 3
+
+:run
 start "" /b /wait /belownormal %*
 exit /b %ERRORLEVEL%
 
