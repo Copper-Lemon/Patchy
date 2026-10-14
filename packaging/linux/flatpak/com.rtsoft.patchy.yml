@@ -44,6 +44,7 @@ modules:
       - -DCMAKE_BUILD_TYPE=Release
       - -DPATCHY_BUILD_TESTS=OFF
       - -DPATCHY_REQUIRE_AI_SELECTION=ON
+      - -DPATCHY_GMIC_THREADS=ON
       - -DPATCHY_ONNXRUNTIME_DIR=/app/onnxruntime
       - -DPATCHY_AI_MODELS_DIR=/run/build/patchy/ai-models-pinned
     sources:

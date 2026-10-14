@@ -212,6 +212,16 @@ Technology; BSD 3-Clause License. The license text is
 `src/filters/gmic/pocketfft/LICENSE.md` and ships beside the G'MIC texts as
 `pocketfft-LICENSE.md`.
 
+## LLVM OpenMP runtime (macOS)
+
+The macOS app carries `libomp.dylib` in `Contents/Frameworks`: the OpenMP
+runtime the G'MIC engine runs its loops with, built by
+`scripts/setup-openmp-mac.sh` from the LLVM
+21.1.8 release source (https://github.com/llvm/llvm-project). Copyright the
+LLVM project contributors; Apache License 2.0 with LLVM Exceptions. The
+Windows package's OpenMP runtime is part of the Visual C++ runtime above, and
+the Linux build uses the Flatpak runtime's `libgomp`.
+
 ## ONNX Runtime (desktop builds)
 
 Automatic selection (the Object Selection tool, and Select > Subject in builds that include it) runs on ONNX

@@ -32,6 +32,9 @@ if [ ! -d "$QT_DIR" ]; then
   "$TOOLS/bin/aqt" install-qt mac desktop "$QT_VER" -m qtimageformats qtpdf -O "$SRC/.deps/Qt"
 fi
 
+echo "== OpenMP runtime for the G'MIC engine (docs/gmic.md, Threads) =="
+PATH="$TOOLS/bin:$PATH" bash "$SRC/scripts/setup-openmp-mac.sh" "$SRC/.deps"
+
 echo "== Versions =="
 "$TOOLS/bin/cmake" --version | head -1
 printf 'ninja %s\n' "$("$TOOLS/bin/ninja" --version)"

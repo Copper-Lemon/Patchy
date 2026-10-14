@@ -82,7 +82,7 @@ for %%E in (patchy.exe patchy-mcp.exe patchy-8bf-host32.exe patchy-8bf-host64.ex
 )
 
 echo Configuring release build...
-"%CMAKE_EXE%" --preset release -DPATCHY_BUILD_APP=ON -DPATCHY_REQUIRE_AI_SELECTION=ON -DCMAKE_PREFIX_PATH="%QT_PREFIX%"
+"%CMAKE_EXE%" --preset release -DPATCHY_BUILD_APP=ON -DPATCHY_REQUIRE_AI_SELECTION=ON -DPATCHY_GMIC_THREADS=ON -DCMAKE_PREFIX_PATH="%QT_PREFIX%"
 if not "!ERRORLEVEL!"=="0" goto fail
 
 echo Building release preset...

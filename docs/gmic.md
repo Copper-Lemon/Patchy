@@ -70,18 +70,28 @@ lists with the committed ones.
   `cimg_display=0`, `cimg_use_abort`, `cimg_use_zlib`, `gmic_noexec`, `cimg_no_system_calls`,
   `patchy_gmic_no_patch_algorithms`, `patchy_gmic_use_pocketfft`. No FFTW, curl, OpenCV, PNG,
   JPEG or TIFF.
-- **Threads.** Option `PATCHY_GMIC_OPENMP` (ON where CMake finds OpenMP for the C++
-  compiler) adds `cimg_use_openmp` to `patchy_gmic_vendor` alone, so CImg's loops and the
-  math parser run on every core. Windows: MSVC `/openmp`, and `build-release.bat`
-  (`:CopyMsvcRuntimeDlls`) stages `vcomp140.dll` from the redist's `Microsoft.VC*.OpenMP`
-  folder beside the CRT. Linux: `libgomp`, part of the Flatpak runtime. macOS: OFF. Apple's
-  compiler ships no OpenMP runtime and Homebrew's `libomp` is built for the build host's
-  macOS (26), newer than the 12.0 deployment target; turning it on there needs a `libomp`
-  built for 12.0 and linked statically or bundled. Measured on Windows over sixteen
+- **Threads.** `PATCHY_GMIC_THREADS` (AUTO, ON or OFF; the release builds pass ON) adds
+  `cimg_use_openmp` to `patchy_gmic_vendor` alone, so CImg's loops and the math parser run
+  on every core. Windows: MSVC `/openmp`, and `build-release.bat` (`:CopyMsvcRuntimeDlls`)
+  stages `vcomp140.dll` from the redist's `Microsoft.VC*.OpenMP` folder beside the CRT.
+  Linux: `libgomp`, part of the Flatpak runtime. macOS: Apple's compiler ships no OpenMP
+  runtime and Homebrew's `libomp` is built for the build host's macOS, newer than the 12.0
+  deployment target, so `scripts/setup-openmp-mac.sh` (run once per build host;
+  `setup-mac.sh` calls it) builds libomp from the pinned LLVM release source for the
+  deployment target into `.deps/libomp-<version>-macos<target>/`. The engine compiles with
+  `-Xclang -fopenmp` and links `libomp.dylib`, which the bundle carries in
+  `Contents/Frameworks` (rpath `@executable_path/../Frameworks`; the test binaries use the
+  `.deps` folder). Never link libomp statically: a static libomp does not unregister a
+  thread that ends, and the next thread to enter a critical section crashes. The engine
+  runs each filter on a thread of its own, so the second run crashed (`fill` in Dices). `make-dmg.sh` refuses a build
+  whose cache lacks `PATCHY_GMIC_OPENMP_ENABLED=TRUE`. G'MIC compiles its in-loop abort
+  checks out on Apple platforms (`gmic.h`), so a stale run there stops at the next command. Measured on Windows over sixteen
   filters at their defaults on a 3000x1975 photograph: 260 s single-threaded, 118 s with
   OpenMP (Cartoon 21 s to 8.5 s, Local Histogram Equalization 31 s to 3.5 s, Poster Hope
-  62 s to 14 s; Rodilius and Frame [Painting] unchanged). The thread count stays level
-  across runs: each run's interpreter thread ends and its team with it.
+  62 s to 14 s; Rodilius and Frame [Painting] unchanged). The same set on the Mac host
+  (24 cores): 316 s with `OMP_NUM_THREADS=1`, 54 s with OpenMP (Cartoon 15.5 s to 3.9 s,
+  Unsharp Mask 38 s to 2.3 s). The thread count stays level across runs: each run's
+  interpreter thread ends and its team with it.
   `patchy_stub/zlib.h` maps zlib onto the vendored miniz (G'MIC embeds palettes, shapes and
   fonts as compressed data), so the target links `patchy_psd`, which compiles miniz. It also
   defines `PATCHY_HAVE_GMIC=1` and adds `src/ui/gmic.qrc`, which embeds the library text and

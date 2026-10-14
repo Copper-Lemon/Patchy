@@ -42,6 +42,11 @@ PACKAGE_DIR="$ROOT/build/package"
 
 [ -d "$APP" ] || { echo "ERROR: $APP not found; build the mac-release preset first."; exit 1; }
 [ -x "$QT_BIN/macdeployqt" ] || { echo "ERROR: $QT_BIN/macdeployqt not found."; exit 1; }
+# The G'MIC engine must be multithreaded in a release (docs/gmic.md, "Threads").
+grep -q '^PATCHY_GMIC_OPENMP_ENABLED:INTERNAL=TRUE$' "$BUILD_DIR/CMakeCache.txt" || {
+  echo "ERROR: $BUILD_DIR has a single-threaded G'MIC engine; run bash scripts/setup-openmp-mac.sh, then rebuild."
+  exit 1
+}
 
 VERSION=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$APP/Contents/Info.plist")
 DMG="$PACKAGE_DIR/Patchy-$VERSION.dmg"

@@ -1719,6 +1719,15 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
           COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PATCHY_ONNXRUNTIME_RUNTIME_FILES}
                   "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Frameworks/")
       endif()
+      # The G'MIC engine's OpenMP runtime (cmake/patchy_gmic.cmake), found through the
+      # executables' @executable_path/../Frameworks rpath.
+      if(APPLE AND PATCHY_LIBOMP_DYLIB)
+        list(APPEND PATCHY_BUNDLE_AI_COMMANDS
+          COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Frameworks"
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PATCHY_LIBOMP_DYLIB}"
+                  "$<TARGET_BUNDLE_CONTENT_DIR:patchy>/Frameworks/")
+        list(APPEND PATCHY_BUNDLE_RESOURCE_DEPS "${PATCHY_LIBOMP_DYLIB}")
+      endif()
       # License texts the bundle carries: Patchy's own, the third-party notice and,
       # with the G'MIC engine, the CeCILL and pocketfft texts.
       set(PATCHY_BUNDLE_LICENSE_COMMANDS
