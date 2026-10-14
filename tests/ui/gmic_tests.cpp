@@ -532,6 +532,54 @@ void ui_gmic_filter_applies_inside_selection_and_undoes() {
 // A filter that returns several images: the first replaces the active layer, the
 // others become new layers above it with the name and blend mode the filter gave
 // them, all in one undo step.
+// A filter that returns transparency (Ball draws a sphere on a clear square) keeps it on a
+// layer that has no alpha channel, such as a flattened JPEG's: the layer gains one instead
+// of the clear area turning black. A result with no transparency leaves the format alone.
+void ui_gmic_filter_keeps_transparency_on_a_layer_without_alpha() {
+  if (!gmic::engine_available()) {
+    return;
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto& document = MainWindowTestAccess::document(window);
+  const auto active = document.active_layer_id();
+  CHECK(active.has_value());
+  if (!active.has_value()) {
+    return;
+  }
+  const auto make_opaque_rgb = [&] {
+    patchy::PixelBuffer pixels(240, 160, patchy::PixelFormat::rgb8());
+    for (int y = 0; y < pixels.height(); ++y) {
+      for (int x = 0; x < pixels.width(); ++x) {
+        auto* px = pixels.pixel(x, y);
+        px[0] = 0x30;
+        px[1] = 0x60;
+        px[2] = 0xa0;
+      }
+    }
+    auto* layer = document.find_layer(*active);
+    layer->set_pixels(std::move(pixels));
+    layer->set_bounds(patchy::Rect{0, 0, 240, 160});
+  };
+  const auto layer = [&]() -> const patchy::Layer& { return *std::as_const(document).find_layer(*active); };
+  make_opaque_rgb();
+  CHECK(layer().pixels().format().channels == 3);
+
+  CHECK(window.apply_gmic_filter("fx_ball", {}, '.'));
+  CHECK(layer().pixels().format().channels == 4);
+  CHECK(layer().bounds().width == 200 && layer().bounds().height == 200);
+  // The corner is outside the sphere: clear, not black.
+  CHECK(std::as_const(layer().pixels()).pixel(0, 0)[3] == 0);
+  CHECK(std::as_const(layer().pixels()).pixel(100, 100)[3] == 255);
+  require_action_by_text(window, QStringLiteral("Undo"))->trigger();
+  QApplication::processEvents();
+  CHECK(layer().pixels().format().channels == 3);
+
+  // Sepia returns an opaque image: the layer keeps its format.
+  CHECK(window.apply_gmic_filter("fx_sepia", {}, '.'));
+  CHECK(layer().pixels().format().channels == 3);
+}
+
 void ui_gmic_filter_adds_output_layers_in_one_undo_step() {
   if (!gmic::engine_available()) {
     return;
@@ -1362,6 +1410,8 @@ std::vector<patchy::test::TestCase> gmic_ui_tests() {
       {"ui_gmic_library_dialog_previews_on_the_layer_and_commits",
        ui_gmic_library_dialog_previews_on_the_layer_and_commits},
       {"ui_gmic_filter_adds_output_layers_in_one_undo_step", ui_gmic_filter_adds_output_layers_in_one_undo_step},
+      {"ui_gmic_filter_keeps_transparency_on_a_layer_without_alpha",
+       ui_gmic_filter_keeps_transparency_on_a_layer_without_alpha},
       {"ui_gmic_filter_reads_the_layers_its_input_mode_names", ui_gmic_filter_reads_the_layers_its_input_mode_names},
       {"ui_gmic_script_api_lists_and_applies", ui_gmic_script_api_lists_and_applies},
       {"ui_gmic_library_dialog_releases_a_button_after_the_run_that_read_it",

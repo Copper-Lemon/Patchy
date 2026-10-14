@@ -34,6 +34,7 @@
 #include "ui/default_brush_tips.hpp"
 #include "ui/dialog_utils.hpp"
 #include "ui/document_float_window.hpp"
+#include "ui/theme_qss.hpp"
 #include "ui/compatibility_report.hpp"
 #include "ui/curves_editor.hpp"
 #include "ui/curves_presets.hpp"
@@ -371,6 +372,41 @@ void ui_color_picker_closes_with_parent_dialog() {
   const auto second = patchy::ui::request_patchy_color(nullptr, QColor(3, 2, 1), QStringLiteral("Fresh"));
   CHECK(second_picker_opened);
   CHECK(second.has_value());
+}
+
+// A picker opened from a dialog styled with dialog_spinbox_button_style() (the G'MIC
+// Filter Library's color swatches) keeps room for its digits: that style reserves 54 px
+// on the right for -/+ buttons, and the picker's 44 px fields have none.
+void ui_color_picker_fields_keep_their_digits_in_a_styled_dialog() {
+  QDialog parent;
+  parent.setObjectName(QStringLiteral("testStyledPickerParent"));
+  patchy::ui::append_themed_style(parent, patchy::ui::dialog_spinbox_button_style());
+  parent.show();
+  QApplication::processEvents();
+  bool checked = false;
+  QTimer::singleShot(0, &parent, [&] {
+    for (auto* widget : QApplication::topLevelWidgets()) {
+      if (widget->objectName() != QStringLiteral("patchyColorDialog") || !widget->isVisible()) {
+        continue;
+      }
+      QApplication::processEvents();
+      for (const char* name : {"patchyColorHueSpin", "patchyColorSaturationSpin", "patchyColorValueSpin",
+                               "patchyColorRedSpin", "patchyColorGreenSpin", "patchyColorBlueSpin"}) {
+        auto* spin = widget->findChild<QSpinBox*>(QString::fromLatin1(name));
+        CHECK(spin != nullptr);
+        auto* edit = spin != nullptr ? spin->findChild<QLineEdit*>() : nullptr;
+        CHECK(edit != nullptr);
+        if (edit != nullptr) {
+          CHECK(edit->width() >= edit->fontMetrics().horizontalAdvance(QStringLiteral("359")));
+        }
+      }
+      checked = true;
+      qobject_cast<QDialog*>(widget)->reject();
+      return;
+    }
+  });
+  (void)patchy::ui::request_patchy_color(&parent, QColor(0x5a, 0x2d, 0x25), QStringLiteral("Styled parent"));
+  CHECK(checked);
 }
 
 void ui_color_picker_wheel_and_sliders_modes() {
@@ -3032,6 +3068,8 @@ std::vector<patchy::test::TestCase> pickers_notices_hotkeys_tests() {
       {"ui_color_picker_changes_foreground_color", ui_color_picker_changes_foreground_color},
       {"ui_color_picker_ignores_reentrant_requests", ui_color_picker_ignores_reentrant_requests},
       {"ui_color_picker_closes_with_parent_dialog", ui_color_picker_closes_with_parent_dialog},
+      {"ui_color_picker_fields_keep_their_digits_in_a_styled_dialog",
+       ui_color_picker_fields_keep_their_digits_in_a_styled_dialog},
       {"ui_color_picker_wheel_and_sliders_modes", ui_color_picker_wheel_and_sliders_modes},
       {"ui_dialog_position_memory_restores_last_position", ui_dialog_position_memory_restores_last_position},
       {"ui_dialog_position_memory_centers_unmoved_dialogs_on_parent",

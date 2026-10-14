@@ -463,6 +463,35 @@ void trim_to_content(PixelBuffer& pixels, Rect& bounds) {
   return bounds;
 }
 
+// Whether `image` has a pixel that is not fully opaque while `layer` has no alpha channel.
+[[nodiscard]] bool original_needs_alpha_for(const PixelBuffer& layer, const gmic::Image& image) {
+  if (layer.format().channels >= 4 || (image.channels != 2 && image.channels < 4)) {
+    return false;
+  }
+  const int alpha_channel = image.channels == 2 ? 1 : 3;
+  for (int y = 0; y < image.height; ++y) {
+    for (int x = 0; x < image.width; ++x) {
+      if (image.at(x, y, alpha_channel) < 255.0F) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// `source` with an opaque alpha channel added, at its own bit depth.
+[[nodiscard]] PixelBuffer with_alpha_channel(const PixelBuffer& source) {
+  PixelFormat format = source.format();
+  format.channels = 4;
+  PixelBuffer out(source.width(), source.height(), format);
+  std::vector<float> row(static_cast<std::size_t>(source.width()) * 4U);
+  for (int y = 0; y < source.height(); ++y) {
+    load_rgba_row(source, y, 0, source.width(), DeepDomain::Encoded, row);
+    store_rgba_row(out, y, 0, source.width(), DeepDomain::Encoded, row);
+  }
+  return out;
+}
+
 // Turns what the filter returned for `layer` into its new pixels: back to the full frame
 // for a draft, limited to the selection, cropped to its content when the layers were
 // lined up. Kept in `render` only when it differs from the layer. False when it changes
@@ -478,7 +507,14 @@ void trim_to_content(PixelBuffer& pixels, Rect& bounds) {
     const int height = kept_size ? frame.height : std::max(1, static_cast<int>(std::lround(image.height / scale)));
     image = enlarged_image(image, width, height);
   }
-  const PixelBuffer& original = *layer.pixels;
+  // A result with transparency (Ball's sphere, a speech bubble) keeps it: a layer without an
+  // alpha channel (a flattened JPEG) gains one instead of the clear area turning black.
+  // The original is compared and blended against in that format too.
+  PixelBuffer promoted;
+  if (original_needs_alpha_for(*layer.pixels, image)) {
+    promoted = with_alpha_channel(*layer.pixels);
+  }
+  const PixelBuffer& original = promoted.empty() ? *layer.pixels : promoted;
   GmicLayerResult result;
   result.id = layer.id;
   result.original_bounds = layer.bounds;

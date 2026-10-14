@@ -64,11 +64,11 @@ Placement clamps the full frame to the screen's available area, excluding taskba
 
 Fields typing replaces (hex, ratios) call `select_all_on_focus`: select-all on focus-in, queued past the click. The color picker focuses its HTML field on show (Ctrl+V, Return pastes a hex) (GitHub issue 68; `ui_color_picker_opens_with_hex_field_selected_for_paste`).
 
-Dialog spin boxes that retain their minus/plus buttons must append `dialog_spinbox_button_style()` from `src/ui/dialog_utils` to the dialog stylesheet after all children exist.
+Dialog spin boxes that retain their minus/plus buttons must append `dialog_spinbox_button_style()` from `src/ui/dialog_utils` to the dialog stylesheet after all children exist. Child dialogs inherit it; the color picker's buttonless fields reset its padding.
 
 A slider row that wants one-unit steppers passes `step_buttons = true` to `add_dialog_slider_spin_row` (every Layer Style effect slider does). The pair comes from `add_spin_step_buttons` (`src/ui/dialog_utils.hpp`): compact 22 px `-` / `+` push buttons that auto-repeat and disable at the range ends, also used by the Blend If fields. `wrap_spin_with_step_buttons` makes a `[spin] - +` form row. The buttons are named `<spin objectName>DecreaseButton` and `<spin objectName>IncreaseButton`, with the shared `Decrease %1` / `Increase %1` accessible names plus the field label.
 
-A font derived from another one (a smaller detail line, a larger headline) goes through `scale_font_size`, `scaled_font`, or `offset_font` in `src/ui/dialog_utils.hpp`. Never write `font.setPointSizeF(font.pointSizeF() * k)` directly: the size lives in points or pixels and the unused accessor returns -1, so that line is a no-op plus a Qt warning wherever the inherited font is pixel-defined (macOS). See the cross-platform rules in [platform.md](platform.md).
+A font derived from another one (a smaller detail line, a larger headline) goes through `scale_font_size`, `scaled_font`, or `offset_font` in `src/ui/dialog_utils.hpp`. Never write `font.setPointSizeF(font.pointSizeF() * k)`: on a pixel-defined font (macOS) the accessor returns -1, so it is a no-op plus a Qt warning. See the cross-platform rules in [platform.md](platform.md).
 
 ## Item-widget rows and selection
 

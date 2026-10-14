@@ -1435,6 +1435,12 @@ QSpinBox* PatchyColorPickerPrivate::create_spin(QWidget* parent, const QString& 
   spin->setObjectName(object_name);
   spin->setRange(0, maximum);
   configure_dialog_spinbox(spin, 44);
+  // The picker opens as a child of whichever dialog asked for a color, and a dialog's
+  // dialog_spinbox_button_style() reserves 54 px on the right for -/+ buttons these
+  // fields do not have: inherited, it left no room for the digits (the G'MIC Filter
+  // Library's color swatches showed blank Hue to Blue fields). A widget's own sheet wins
+  // over every ancestor's, so this keeps the fields the same wherever the picker opens.
+  spin->setStyleSheet(QStringLiteral("QSpinBox { padding-left: 2px; padding-right: 2px; }"));
   return spin;
 }
 

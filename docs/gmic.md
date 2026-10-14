@@ -197,7 +197,9 @@ a document action, created only when `gmic::engine_available()`).
     - Output names carry layer settings (`gmic::parse_output_layer_name`):
       `mode(...)`, `opacity(...)`, `pos(x,y)`, `name(...)`. New layers take all four
       (`blend_mode_from_gmic` maps G'MIC's blend names; unknown ones, such as grainmerge,
-      become Normal); a replaced layer takes only the position. An output with no `pos` that
+      become Normal); a replaced layer takes only the position, and gains an alpha channel
+      when it has none and the result has a transparent pixel (Ball on a JPEG layer was
+      black around the sphere; `original_needs_alpha_for`). An output with no `pos` that
       differs in size from what it replaces is centred on it (a frame grows evenly; CRT
       Scanlines multiplies the size by its Upscale Factor, 4 by default, past the canvas).
     - The selection applies to each replaced layer in its own frame (outside restored, edge
