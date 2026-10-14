@@ -146,6 +146,7 @@
 #include <QStackedWidget>
 #include <QRadioButton>
 #include <QSpinBox>
+#include <QScopeGuard>
 #include <QStringList>
 #include <QScrollBar>
 #include <QScreen>
@@ -2977,6 +2978,212 @@ void ui_hotkey_editor_reset_all_clears_overrides() {
 }  // namespace
 
 
+// Stores a working CMYK choice for one test, so every MainWindow it builds starts from it,
+// and puts the default (Automatic) back afterwards for the tests that follow.
+class ScopedCmykWorkingSettings {
+public:
+  explicit ScopedCmykWorkingSettings(const patchy::ui::CmykWorkingSettings& settings) { apply(settings); }
+  ~ScopedCmykWorkingSettings() { apply(patchy::ui::CmykWorkingSettings{}); }
+  ScopedCmykWorkingSettings(const ScopedCmykWorkingSettings&) = delete;
+  ScopedCmykWorkingSettings& operator=(const ScopedCmykWorkingSettings&) = delete;
+
+private:
+  static void apply(const patchy::ui::CmykWorkingSettings& settings) {
+    patchy::ui::set_stored_cmyk_working_settings(settings);
+    patchy::set_working_cmyk_space(patchy::ui::cmyk_working_space_for(settings));
+    patchy::ui::refresh_color_picker_cmyk_fields();
+  }
+};
+
+// Issue 90: the picker shows and accepts ink percentages in the working CMYK space, and
+// the Info panel reads the pixel under the pointer the same way.
+void ui_color_picker_cmyk_fields_follow_working_space() {
+  ensure_artifact_dir();
+  const ScopedCmykWorkingSettings formula(patchy::ui::CmykWorkingSettings{QLatin1String(patchy::ui::kCmykProfileFormula)});
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* canvas = require_canvas(window);
+  CHECK(!patchy::working_cmyk_space()->has_profile());
+
+  window.findChild<QPushButton*>(QStringLiteral("foregroundColorButton"))->click();
+  QApplication::processEvents();
+  auto* dialog = find_top_level_dialog(QStringLiteral("patchyColorDialog"));
+  CHECK(dialog != nullptr);
+  auto* picker = dialog->findChild<patchy::ui::PatchyColorPicker*>(QStringLiteral("patchyAdvancedColorPicker"));
+  CHECK(picker != nullptr);
+  std::array<QSpinBox*, 4> ink{};
+  const std::array<const char*, 4> names{"patchyColorCyanSpin", "patchyColorMagentaSpin", "patchyColorYellowSpin",
+                                         "patchyColorBlackSpin"};
+  for (std::size_t index = 0; index < ink.size(); ++index) {
+    ink[index] = picker->findChild<QSpinBox*>(QLatin1String(names[index]));
+    CHECK(ink[index] != nullptr);
+    CHECK(ink[index]->minimum() == 0 && ink[index]->maximum() == 100);
+    CHECK(ink[index]->toolTip().contains(QStringLiteral("no profile")));
+    CHECK(!ink[index]->accessibleName().isEmpty());
+  }
+  const auto values = [&ink] {
+    return std::array<int, 4>{ink[0]->value(), ink[1]->value(), ink[2]->value(), ink[3]->value()};
+  };
+
+  // Any color change fills the fields from the working space.
+  picker->setCurrentColor(QColor(255, 0, 0));
+  QApplication::processEvents();
+  CHECK((values() == std::array<int, 4>{0, 100, 100, 0}));
+
+  // A typed ink value sets the color and stays as typed, even though the same RGB reads
+  // back as a different mix (0, 100, 100, 50 here).
+  ink[0]->setValue(50);
+  QApplication::processEvents();
+  CHECK(canvas->primary_color() == QColor(128, 0, 0));
+  CHECK((values() == std::array<int, 4>{50, 100, 100, 0}));
+  ink[3]->setValue(20);
+  QApplication::processEvents();
+  CHECK(canvas->primary_color() == QColor(102, 0, 0));
+  CHECK((values() == std::array<int, 4>{50, 100, 100, 20}));
+
+  // Editing another model recomputes them.
+  picker->findChild<QSpinBox*>(QStringLiteral("patchyColorRedSpin"))->setValue(200);
+  QApplication::processEvents();
+  CHECK(canvas->primary_color() == QColor(200, 0, 0));
+  CHECK((values() == std::array<int, 4>{0, 100, 100, 22}));
+
+  dialog->grab().save(QStringLiteral("test-artifacts/ui_color_picker_cmyk.png"));
+  // The four fields sit inside the picker, clear of the RGB column.
+  const auto* blue = picker->findChild<QSpinBox*>(QStringLiteral("patchyColorBlueSpin"));
+  for (const auto* spin : ink) {
+    const auto top_left = spin->mapTo(picker, QPoint(0, 0));
+    CHECK(spin->isVisible());
+    CHECK(top_left.x() > blue->mapTo(picker, QPoint(0, 0)).x() + blue->width());
+    CHECK(top_left.x() + spin->width() <= picker->width());
+  }
+
+  // Automatic always has a profile (the bundled one when Adobe's is not installed): the
+  // same color reads differently and the tooltip names the profile.
+  {
+    patchy::set_working_cmyk_space(patchy::ui::cmyk_working_space_for(patchy::ui::CmykWorkingSettings{}));
+    patchy::ui::refresh_color_picker_cmyk_fields();
+    CHECK(patchy::working_cmyk_space()->has_profile());
+    CHECK(!ink[0]->toolTip().contains(QStringLiteral("no profile")));
+    CHECK((values() != std::array<int, 4>{0, 100, 100, 22}));
+    CHECK(canvas->primary_color() == QColor(200, 0, 0));
+    patchy::set_working_cmyk_space(patchy::CmykWorkingSpace::formula());
+    patchy::ui::refresh_color_picker_cmyk_fields();
+  }
+  CHECK((values() == std::array<int, 4>{0, 100, 100, 22}));
+
+  auto* info = window.findChild<QLabel*>(QStringLiteral("canvasInfoLabel"));
+  CHECK(info != nullptr);
+  send_mouse(*canvas, QEvent::MouseMove, canvas->widget_position_for_document_point(QPoint(64, 48)), Qt::NoButton,
+             Qt::NoButton);
+  CHECK(info->text().contains(QStringLiteral("RGB:")));
+  CHECK(info->text().contains(QStringLiteral("CMYK: ")));
+  dialog->close();
+  QApplication::processEvents();
+}
+
+// The picker warns when a color cannot print in the working CMYK space and offers the
+// color it would print as (issue 90).
+void ui_color_picker_warns_when_a_color_cannot_print() {
+  ensure_artifact_dir();
+  const auto previous = patchy::working_cmyk_space();
+  const auto restore = qScopeGuard([&previous] {
+    patchy::set_working_cmyk_space(previous);
+    patchy::ui::refresh_color_picker_cmyk_fields();
+  });
+  patchy::set_working_cmyk_space(patchy::CmykWorkingSpace::from_icc_profile(
+      patchy::ui::bundled_cmyk_profile(), patchy::RenderingIntent::RelativeColorimetric, true));
+  patchy::ui::PatchyColorPicker picker(QColor(150, 110, 90));
+  picker.resize(640, 400);
+  picker.show();
+  QApplication::processEvents();
+  auto* warning = picker.findChild<QPushButton*>(QStringLiteral("patchyColorGamutWarningButton"));
+  CHECK(warning != nullptr);
+  CHECK(!warning->isVisible());
+
+  // Pure green is far outside an offset press.
+  picker.setCurrentColor(QColor(0, 255, 0));
+  QApplication::processEvents();
+  CHECK(warning->isVisible());
+  CHECK(warning->toolTip().contains(QStringLiteral("ISO Coated v2")));
+  CHECK(!warning->accessibleName().isEmpty());
+  picker.grab().save(QStringLiteral("test-artifacts/ui_color_picker_gamut_warning.png"));
+  const auto check = patchy::ui::cmyk_gamut_check();
+  CHECK(check != nullptr);
+  const auto printed = check->printed({0, 255, 0});
+  CHECK(!(printed == patchy::RgbColor{0, 255, 0}));
+  warning->click();
+  QApplication::processEvents();
+  CHECK(picker.currentColor() == QColor(printed.red, printed.green, printed.blue));
+
+  // An in-gamut color has no warning, and neither does anything under the formula.
+  picker.setCurrentColor(QColor(150, 110, 90));
+  QApplication::processEvents();
+  CHECK(!warning->isVisible());
+  patchy::set_working_cmyk_space(patchy::CmykWorkingSpace::formula());
+  patchy::ui::refresh_color_picker_cmyk_fields();
+  picker.setCurrentColor(QColor(0, 255, 0));
+  QApplication::processEvents();
+  CHECK(!warning->isVisible());
+  CHECK(patchy::ui::cmyk_gamut_check() == nullptr);
+}
+
+// Preferences > Application > CMYK stores the profile, intent and black point choice and
+// applies them on OK.
+void ui_preferences_cmyk_settings_persist_and_apply() {
+  const ScopedCmykWorkingSettings defaults(patchy::ui::CmykWorkingSettings{});
+  patchy::ui::MainWindow window;
+  show_window(window);
+
+  bool saw_dialog = false;
+  QTimer::singleShot(0, [&] {
+    auto* dialog = find_top_level_dialog(QStringLiteral("patchyPreferencesDialog"));
+    CHECK(dialog != nullptr);
+    auto* profile = dialog->findChild<QComboBox*>(QStringLiteral("preferencesCmykProfileCombo"));
+    auto* intent = dialog->findChild<QComboBox*>(QStringLiteral("preferencesCmykIntentCombo"));
+    auto* black_point = dialog->findChild<QCheckBox*>(QStringLiteral("preferencesCmykBlackPointCheck"));
+    CHECK(profile != nullptr && intent != nullptr && black_point != nullptr);
+    // Automatic first, relative colorimetric with black point compensation by default.
+    CHECK(profile->currentIndex() == 0);
+    CHECK(profile->currentData().toString().isEmpty());
+    CHECK(profile->itemText(0).startsWith(QStringLiteral("Automatic (")));
+    CHECK(intent->currentData().toInt() == static_cast<int>(patchy::RenderingIntent::RelativeColorimetric));
+    CHECK(intent->count() == 4);
+    CHECK(black_point->isChecked());
+    const auto formula_index = profile->findData(QLatin1String(patchy::ui::kCmykProfileFormula));
+    CHECK(formula_index > 0);
+    profile->setCurrentIndex(formula_index);
+    intent->setCurrentIndex(intent->findData(static_cast<int>(patchy::RenderingIntent::Perceptual)));
+    black_point->setChecked(false);
+    saw_dialog = true;
+    dialog->accept();
+  });
+  require_action(window, "filePreferencesAction")->trigger();
+  QApplication::processEvents();
+  CHECK(saw_dialog);
+
+  const auto stored = patchy::ui::stored_cmyk_working_settings();
+  CHECK(stored.profile == QLatin1String(patchy::ui::kCmykProfileFormula));
+  CHECK(stored.intent == patchy::RenderingIntent::Perceptual);
+  CHECK(!stored.black_point_compensation);
+  CHECK(!patchy::working_cmyk_space()->has_profile());
+  // The keys are a compatibility contract.
+  const auto settings = patchy::ui::app_settings();
+  CHECK(settings.value(QStringLiteral("color/cmykProfile")).toString() == QStringLiteral("formula"));
+  CHECK(settings.value(QStringLiteral("color/cmykIntent")).toString() == QStringLiteral("perceptual"));
+  CHECK(!settings.value(QStringLiteral("color/cmykBlackPointCompensation")).toBool());
+
+  // A stored file that no longer exists falls back instead of failing.
+  const patchy::ui::CmykWorkingSettings missing{QStringLiteral("test-artifacts/no-such-profile.icc")};
+  CHECK(patchy::ui::cmyk_working_space_for(missing) != nullptr);
+  CHECK(patchy::ui::cmyk_working_space_for(missing)->has_profile());
+  // The bundled profile is compiled in, unmodified.
+  CHECK(patchy::ui::bundled_cmyk_profile().size() == 1052608U);
+  const auto bundled = patchy::CmykWorkingSpace::from_icc_profile(
+      patchy::ui::bundled_cmyk_profile(), patchy::RenderingIntent::RelativeColorimetric, true);
+  CHECK(bundled != nullptr);
+  CHECK(bundled->profile_description() == "ISO Coated v2 (basICColor)");
+}
+
 void ui_color_picker_accepts_css_rgba_and_names() {
   patchy::ui::PatchyColorPicker picker(Qt::black);
   auto* edit = picker.findChild<QLineEdit*>(QStringLiteral("patchyColorHtmlEdit"));
@@ -3148,6 +3355,9 @@ std::vector<patchy::test::TestCase> pickers_notices_hotkeys_tests() {
       {"ui_hotkey_editor_lists_scripts_category", ui_hotkey_editor_lists_scripts_category},
       {"ui_color_picker_accepts_css_rgba_and_names", ui_color_picker_accepts_css_rgba_and_names},
       {"ui_color_picker_opens_with_hex_field_selected_for_paste", ui_color_picker_opens_with_hex_field_selected_for_paste},
+      {"ui_color_picker_cmyk_fields_follow_working_space", ui_color_picker_cmyk_fields_follow_working_space},
+      {"ui_preferences_cmyk_settings_persist_and_apply", ui_preferences_cmyk_settings_persist_and_apply},
+      {"ui_color_picker_warns_when_a_color_cannot_print", ui_color_picker_warns_when_a_color_cannot_print},
       {"ui_hotkey_duplicate_ids_fail_without_replacing_the_command", ui_hotkey_duplicate_ids_fail_without_replacing_the_command},
   };
 }

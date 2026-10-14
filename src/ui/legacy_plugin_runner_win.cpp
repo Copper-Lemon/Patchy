@@ -67,16 +67,46 @@ void send_frame(QLocalSocket& socket, std::uint32_t type, const std::vector<std:
 struct WindowScan {
   DWORD pid{0};
   std::vector<HWND> windows;
+  // Standard dialogs (class #32770) the helper owns that Windows reports as not
+  // visible; see dialogs_can_be_hidden().
+  std::vector<HWND> hidden_dialogs;
 };
 
 BOOL CALLBACK collect_helper_windows(HWND hwnd, LPARAM lparam) {
   auto* scan = reinterpret_cast<WindowScan*>(lparam);
   DWORD pid = 0;
   GetWindowThreadProcessId(hwnd, &pid);
-  if (pid == scan->pid && IsWindowVisible(hwnd)) {
+  if (pid != scan->pid) {
+    return TRUE;
+  }
+  if (IsWindowVisible(hwnd)) {
     scan->windows.push_back(hwnd);
+    return TRUE;
+  }
+  wchar_t class_name[16] = {};
+  GetClassNameW(hwnd, class_name, 16);
+  RECT rect{};
+  if (std::wcscmp(class_name, L"#32770") == 0 && GetWindowRect(hwnd, &rect) && rect.right > rect.left &&
+      rect.bottom > rect.top) {
+    scan->hidden_dialogs.push_back(hwnd);
   }
   return TRUE;
+}
+
+// True when Patchy runs on a non-interactive window station: a service, or an ssh
+// session (session 0, "Service-0x0-...$"). There a plug-in's modal dialog is created
+// and runs its message loop, but Windows never reports it visible, so an unattended
+// run that only answered visible windows waited on it forever (October 2026, the
+// Windows offload host). On the interactive station (WinSta0) a hidden dialog is one
+// the plug-in has not shown yet and is left alone.
+bool dialogs_can_be_hidden() {
+  static const bool hidden = [] {
+    wchar_t name[64] = {};
+    DWORD needed = 0;
+    return GetUserObjectInformationW(GetProcessWindowStation(), UOI_NAME, name, sizeof(name), &needed) != FALSE &&
+           _wcsicmp(name, L"WinSta0") != 0;
+  }();
+  return hidden;
 }
 
 BOOL CALLBACK find_ok_button(HWND hwnd, LPARAM lparam) {
@@ -187,12 +217,16 @@ struct DialogAcceptor {
     scan.pid = pid;
     EnumWindows(collect_helper_windows, reinterpret_cast<LPARAM>(&scan));
     const auto now = clock.elapsed();
+    // Off the interactive window station the dialog never counts as visible, so the
+    // helper's standard dialogs are answered as if they were.
+    const bool use_hidden = scan.windows.empty() && dialogs_can_be_hidden();
+    const auto& candidates = use_hidden ? scan.hidden_dialogs : scan.windows;
     // Plug-in UIs can start as a small stub and grow into a full-screen
     // canvas a moment later (KPT's MetaOS); the largest visible window is the
     // dialog, and only it is captured and answered.
     HWND largest = nullptr;
     long largest_area = 0;
-    for (HWND hwnd : scan.windows) {
+    for (HWND hwnd : candidates) {
       RECT rect{};
       GetWindowRect(hwnd, &rect);
       const long area = static_cast<long>(rect.right - rect.left) * static_cast<long>(rect.bottom - rect.top);
@@ -203,9 +237,9 @@ struct DialogAcceptor {
           wchar_t title[128] = {};
           GetClassNameW(hwnd, class_name, 64);
           GetWindowTextW(hwnd, title, 128);
-          std::fprintf(stderr, "[8bf] window %p class '%ls' title '%ls' %ldx%ld\n", static_cast<void*>(hwnd),
+          std::fprintf(stderr, "[8bf] window %p class '%ls' title '%ls' %ldx%ld%s\n", static_cast<void*>(hwnd),
                        class_name, title, static_cast<long>(rect.right - rect.left),
-                       static_cast<long>(rect.bottom - rect.top));
+                       static_cast<long>(rect.bottom - rect.top), use_hidden ? " (not visible)" : "");
           std::fflush(stderr);
         }
       }
@@ -235,7 +269,8 @@ struct DialogAcceptor {
     if (now < seen.settled_at_ms) {
       return;
     }
-    if (!captured && !capture_path.isEmpty()) {
+    // A window Windows does not show has nothing to capture.
+    if (!captured && !capture_path.isEmpty() && !use_hidden) {
       captured = capture_window_to_png(largest, capture_path);
     }
     if (!accept || now < seen.next_action_ms) {

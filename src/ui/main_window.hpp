@@ -880,6 +880,9 @@ private:
   void choose_custom_canvas_backdrop_color();
   void apply_canvas_aid_settings(CanvasWidget* canvas) const;
   void refresh_vector_preview_action();
+  // Rebuilds the canvas proof view (View > Proof Colors / Gamut Warning, docs/cmyk.md)
+  // from the two toggles and the working CMYK space, and hands it to every canvas.
+  void refresh_proof_display();
   void apply_pen_input_settings(CanvasWidget* canvas) const;
   void load_pen_input_settings();
   void save_pen_input_settings() const;
@@ -2207,6 +2210,9 @@ private:
   QAction* redo_action_{nullptr};
   QAction* view_rulers_action_{nullptr};
   QAction* view_vector_preview_action_{nullptr};
+  QAction* view_proof_colors_action_{nullptr};
+  QAction* view_gamut_warning_action_{nullptr};
+  std::shared_ptr<const CmykProofTransform> proof_display_transform_;
   QAction* view_grid_action_{nullptr};
   QAction* view_guides_action_{nullptr};
   QAction* view_snap_action_{nullptr};

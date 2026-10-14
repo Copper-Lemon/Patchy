@@ -607,9 +607,7 @@ void CanvasWidget::document_changed_impl(QRegion document_region, bool includes_
   cancel_async_render_cache_refresh();
   refresh_free_transform_preview_caches();
   if (mask_display_mode_ != MaskDisplayMode::None) {
-    const bool component_preview = layer_edit_target_ == LayerEditTarget::ComponentRed ||
-                                   layer_edit_target_ == LayerEditTarget::ComponentGreen ||
-                                   layer_edit_target_ == LayerEditTarget::ComponentBlue;
+    const bool component_preview = CanvasWidget::is_component_preview(layer_edit_target_);
     if (document_region.isEmpty() || component_preview) {
       mask_display_image_ = QImage();
       mask_display_image_layer_ = 0;
@@ -772,7 +770,7 @@ void CanvasWidget::paintEvent(QPaintEvent* event) {
   const auto draw_scaled_image = [&painter, &target_rect, pixel_aligned_view,
                                   &pixel_aligned_target_rect, this, exposed_rect](const QImage& image) {
     if (!image.isNull()) {
-      const QImage& display_image =
+      const QImage& unproofed_image =
           (&image == &render_cache_ && zoom_ < 1.0)
               ? display_image_for_zoom()
               : (&image == &curves_clipping_preview_image_ && zoom_ < 1.0)
@@ -784,6 +782,9 @@ void CanvasWidget::paintEvent(QPaintEvent* event) {
                                 : (&image == &warp_base_cache_ && zoom_ < 1.0)
                                       ? warp_base_display_image_for_zoom()
                                       : image;
+      // The clipping preview is a diagnostic picture of the composite, not artwork.
+      const QImage& display_image =
+          &image == &curves_clipping_preview_image_ ? unproofed_image : proof_display_image(unproofed_image);
       if (uses_deep_zoom_pixel_renderer(view_zoom())) {
         draw_deep_zoom_image(painter, display_image, exposed_rect);
       } else if (pixel_aligned_view) {
@@ -794,10 +795,12 @@ void CanvasWidget::paintEvent(QPaintEvent* event) {
     }
   };
   const auto draw_document_patch = [&painter, &target_rect, pixel_aligned_view, this,
-                                    exposed_rect](const RenderedDocumentPatch& patch, bool clear_under_patch) {
-    if (patch.image.isNull() || patch.document_rect.isEmpty()) {
+                                    exposed_rect](const RenderedDocumentPatch& source_patch, bool clear_under_patch) {
+    if (source_patch.image.isNull() || source_patch.document_rect.isEmpty()) {
       return;
     }
+    // A cheap shallow copy unless the proof view is on.
+    const RenderedDocumentPatch patch{source_patch.document_rect, proof_display_image(source_patch.image)};
 
     const auto patch_target = widget_rect_for_document_rect(QRectF(patch.document_rect));
     const auto patch_exposed = patch_target.toAlignedRect().intersected(exposed_rect);
@@ -931,7 +934,8 @@ void CanvasWidget::paintEvent(QPaintEvent* event) {
       // case).
       const auto proxy_target =
           widget_rect_for_document_rect(QRectF(move_proxy_document_rect_.translated(move_preview_delta_)));
-      painter.drawImage(proxy_target, move_proxy_image_, QRectF(move_proxy_image_.rect()));
+      const QImage& proxy_image = proof_display_image(move_proxy_image_);
+      painter.drawImage(proxy_target, proxy_image, QRectF(proxy_image.rect()));
     } else {
       for (const auto& patch : move_preview_patches_) {
         draw_document_patch(patch, !base_excludes_layer);
@@ -946,13 +950,15 @@ void CanvasWidget::paintEvent(QPaintEvent* event) {
     // per-pixel renderer like the transform hold does.
     draw_scaled_image(move_commit_hold_base_);
     if (!move_commit_hold_proxy_.isNull()) {
-      painter.drawImage(widget_rect_for_document_rect(QRectF(move_commit_hold_proxy_rect_)), move_commit_hold_proxy_,
-                        QRectF(move_commit_hold_proxy_.rect()));
+      const QImage& hold_proxy = proof_display_image(move_commit_hold_proxy_);
+      painter.drawImage(widget_rect_for_document_rect(QRectF(move_commit_hold_proxy_rect_)), hold_proxy,
+                        QRectF(hold_proxy.rect()));
     } else {
       for (const auto& patch : move_commit_hold_patches_) {
         if (!patch.image.isNull() && !patch.document_rect.isEmpty()) {
-          painter.drawImage(widget_rect_for_document_rect(QRectF(patch.document_rect)), patch.image,
-                            QRectF(patch.image.rect()));
+          const QImage& hold_patch = proof_display_image(patch.image);
+          painter.drawImage(widget_rect_for_document_rect(QRectF(patch.document_rect)), hold_patch,
+                            QRectF(hold_patch.rect()));
         }
       }
     }
@@ -1095,9 +1101,7 @@ void CanvasWidget::ensure_render_cache() {
   ++render_cache_diagnostics_.full_refreshes;
   invalidate_display_mip_cache();
   refresh_curves_clipping_preview();
-  if (layer_edit_target_ == LayerEditTarget::ComponentRed ||
-      layer_edit_target_ == LayerEditTarget::ComponentGreen ||
-      layer_edit_target_ == LayerEditTarget::ComponentBlue) {
+  if (CanvasWidget::is_component_preview(layer_edit_target_)) {
     mask_display_image_ = QImage();
   }
 }
@@ -1214,9 +1218,7 @@ void CanvasWidget::start_async_render_cache_refresh() {
           ++widget->render_cache_diagnostics_.full_refreshes;
           widget->invalidate_display_mip_cache();
           widget->refresh_curves_clipping_preview();
-          if (widget->layer_edit_target_ == LayerEditTarget::ComponentRed ||
-              widget->layer_edit_target_ == LayerEditTarget::ComponentGreen ||
-              widget->layer_edit_target_ == LayerEditTarget::ComponentBlue) {
+          if (CanvasWidget::is_component_preview(widget->layer_edit_target_)) {
             widget->mask_display_image_ = QImage();
           }
           if (widget->isVisible()) {
@@ -1439,16 +1441,39 @@ bool CanvasWidget::patch_render_cache_patches(const std::vector<RenderedDocument
   }
 
   const auto palette_display = document_->palette_editing().has_value();
-  QPainter painter(&render_cache_);
-  painter.setCompositionMode(QPainter::CompositionMode_Source);
-  for (const auto& patch : patches) {
-    if (palette_display) {
-      QImage quantized = patch.image;
-      quantize_image_for_palette_display(quantized);
-      painter.drawImage(patch.document_rect.topLeft(), quantized);
-    } else {
-      painter.drawImage(patch.document_rect.topLeft(), patch.image);
+  // A proofed copy of the full composite is patched alongside it and re-keyed, so a brush
+  // stroke under the proof view costs its own rect, not the whole document.
+  const auto proofed_composite =
+      std::find_if(proofed_images_.begin(), proofed_images_.end(),
+                   [key = render_cache_.cacheKey()](const ProofedImage& entry) { return entry.source_key == key; });
+  const bool patch_proofed_composite = proof_display_transform_ != nullptr &&
+                                       proofed_composite != proofed_images_.end() &&
+                                       proofed_composite->image.size() == render_cache_.size();
+  {
+    QPainter painter(&render_cache_);
+    painter.setCompositionMode(QPainter::CompositionMode_Source);
+    std::optional<QPainter> proofed_painter;
+    if (patch_proofed_composite) {
+      proofed_painter.emplace(&proofed_composite->image);
+      proofed_painter->setCompositionMode(QPainter::CompositionMode_Source);
     }
+    for (const auto& patch : patches) {
+      QImage shown = patch.image;
+      if (palette_display) {
+        quantize_image_for_palette_display(shown);
+      }
+      painter.drawImage(patch.document_rect.topLeft(), shown);
+      if (proofed_painter.has_value()) {
+        QImage proofed = shown.convertToFormat(QImage::Format_RGBA8888);
+        for (int y = 0; y < proofed.height(); ++y) {
+          proof_display_transform_->apply(proofed.scanLine(y), static_cast<std::size_t>(proofed.width()));
+        }
+        proofed_painter->drawImage(patch.document_rect.topLeft(), proofed);
+      }
+    }
+  }
+  if (patch_proofed_composite) {
+    proofed_composite->source_key = render_cache_.cacheKey();
   }
   render_cache_dirty_ = false;
   render_cache_diagnostics_.partial_patches += static_cast<int>(patches.size());
@@ -2019,7 +2044,7 @@ void CanvasWidget::draw_tiling_preview(QPainter& painter, const QRectF& target_r
   if (!tiling_ghosts_visible(exposed_rect)) {
     return;
   }
-  const QImage& display_image = zoom_ < 1.0 ? display_image_for_zoom() : render_cache_;
+  const QImage& display_image = proof_display_image(zoom_ < 1.0 ? display_image_for_zoom() : render_cache_);
   if (display_image.isNull()) {
     return;
   }
@@ -2612,9 +2637,7 @@ void CanvasWidget::refresh_mask_display_image(QRegion document_region) {
 
   const bool component_preview =
       !quick_mask_active_ &&
-      (layer_edit_target_ == LayerEditTarget::ComponentRed ||
-       layer_edit_target_ == LayerEditTarget::ComponentGreen ||
-       layer_edit_target_ == LayerEditTarget::ComponentBlue);
+      (CanvasWidget::is_component_preview(layer_edit_target_));
   const bool smart_filter_mask_target =
       !quick_mask_active_ && layer_edit_target_ == LayerEditTarget::SmartFilterMask;
   const bool smart_filter_mask = smart_filter_mask_target && editing_smart_filter_mask();
@@ -2670,6 +2693,48 @@ void CanvasWidget::refresh_mask_display_image(QRegion document_region) {
 
   if (component_preview) {
     if (render_cache_.isNull() || render_cache_.size() != document_size) {
+      return;
+    }
+    if (is_cmyk_plate(layer_edit_target_)) {
+      // An ink plate (docs/cmyk.md): the composite over white paper, separated once per
+      // composite and working space, drawn dark where the plate prints ink.
+      const auto space = working_cmyk_space();
+      const auto width = static_cast<std::size_t>(document_size.width());
+      const auto pixel_count = width * static_cast<std::size_t>(document_size.height());
+      if (plate_inks_.size() != pixel_count * 4U || plate_inks_source_key_ != render_cache_.cacheKey() ||
+          plate_inks_space_ != space) {
+        const auto straight = render_cache_.convertToFormat(QImage::Format_RGBA8888);
+        std::vector<std::uint8_t> on_paper(pixel_count * 4U);
+        for (int y = 0; y < document_size.height(); ++y) {
+          const auto* from = straight.constScanLine(y);
+          auto* to = on_paper.data() + static_cast<std::size_t>(y) * width * 4U;
+          for (std::size_t x = 0; x < width; ++x) {
+            const auto alpha = static_cast<int>(from[x * 4U + 3U]);
+            for (std::size_t color = 0; color < 3; ++color) {
+              to[x * 4U + color] = static_cast<std::uint8_t>(
+                  (static_cast<int>(from[x * 4U + color]) * alpha + 255 * (255 - alpha) + 127) / 255);
+            }
+            to[x * 4U + 3U] = 255;
+          }
+        }
+        plate_inks_ = space->separate_rgba8(on_paper);
+        plate_inks_source_key_ = render_cache_.cacheKey();
+        plate_inks_space_ = space;
+      }
+      const std::size_t plate = layer_edit_target_ == LayerEditTarget::ComponentCyan      ? 0
+                                : layer_edit_target_ == LayerEditTarget::ComponentMagenta ? 1
+                                : layer_edit_target_ == LayerEditTarget::ComponentYellow  ? 2
+                                                                                          : 3;
+      for (const auto& rect : document_region) {
+        for (int y = rect.top(); y <= rect.bottom(); ++y) {
+          const auto* inks = plate_inks_.data() + static_cast<std::size_t>(y) * width * 4U;
+          auto* row = reinterpret_cast<QRgb*>(mask_display_image_.scanLine(y));
+          for (int x = rect.left(); x <= rect.right(); ++x) {
+            const auto value = 255 - static_cast<int>(inks[static_cast<std::size_t>(x) * 4U + plate]);
+            row[x] = qRgb(value, value, value);
+          }
+        }
+      }
       return;
     }
     const auto source = render_cache_.convertToFormat(QImage::Format_RGBA8888);
@@ -2784,9 +2849,7 @@ void CanvasWidget::draw_mask_display_overlay(QPainter& painter, const QRectF& ta
     if (active_document_channel_const() == nullptr) {
       return;
     }
-  } else if (layer_edit_target_ != LayerEditTarget::ComponentRed &&
-             layer_edit_target_ != LayerEditTarget::ComponentGreen &&
-             layer_edit_target_ != LayerEditTarget::ComponentBlue) {
+  } else if (!is_component_preview(layer_edit_target_)) {
     return;
   }
 

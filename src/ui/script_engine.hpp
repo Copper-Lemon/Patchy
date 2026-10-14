@@ -500,6 +500,12 @@ public:
   // view; document previews never do. Available in connector sessions.
   [[nodiscard]] double view_zoom_percent() const;
   void set_view_zoom_percent(double percent);
+  // View > Proof Colors / Gamut Warning (docs/cmyk.md). Setting one on without a CMYK
+  // profile leaves it off, as the menu does.
+  [[nodiscard]] bool view_proof_colors() const;
+  void set_view_proof_colors(bool enabled);
+  [[nodiscard]] bool view_gamut_warning() const;
+  void set_view_gamut_warning(bool enabled);
   void fit_view_on_screen();
   void present_script_view(int delay_ms = 0, bool slow_hold = false);
   [[nodiscard]] bool slow_mode() const;

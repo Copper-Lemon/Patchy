@@ -1766,6 +1766,19 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
     save_view_settings();
     refresh_vector_preview_action();
   });
+  // Views of the canvas through the working CMYK profile (docs/cmyk.md). Application-wide
+  // and deliberately not remembered: a forgotten proof view would make every document
+  // look dull on the next start.
+  view_proof_colors_action_ = view_menu->addAction(tr("Proof Colors"));
+  view_proof_colors_action_->setObjectName(QStringLiteral("viewProofColorsAction"));
+  view_proof_colors_action_->setCheckable(true);
+  register_hotkey(view_proof_colors_action_, "view.proof_colors");
+  connect(view_proof_colors_action_, &QAction::toggled, this, [this] { refresh_proof_display(); });
+  view_gamut_warning_action_ = view_menu->addAction(tr("Gamut Warning"));
+  view_gamut_warning_action_->setObjectName(QStringLiteral("viewGamutWarningAction"));
+  view_gamut_warning_action_->setCheckable(true);
+  register_hotkey(view_gamut_warning_action_, "view.gamut_warning");
+  connect(view_gamut_warning_action_, &QAction::toggled, this, [this] { refresh_proof_display(); });
   auto* selection_edges_action = view_menu->addAction(tr("Show Selection &Edges"));
   auto* target_path_action = view_menu->addAction(tr("Show Target &Path"));
   view_menu->addSeparator();

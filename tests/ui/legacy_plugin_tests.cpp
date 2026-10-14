@@ -54,7 +54,26 @@
 #include <utility>
 #include <vector>
 
+#ifdef Q_OS_WIN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 namespace {
+
+#ifdef Q_OS_WIN
+// False in a service or an ssh session (session 0): a plug-in's dialog is created there
+// but never shown, so nothing can be captured or seen waiting. Unattended runs still
+// answer it (docs/plugins.md).
+bool on_interactive_window_station() {
+  wchar_t name[64] = {};
+  DWORD needed = 0;
+  return GetUserObjectInformationW(GetProcessWindowStation(), UOI_NAME, name, sizeof(name), &needed) != FALSE &&
+         _wcsicmp(name, L"WinSta0") == 0;
+}
+#endif
 
 using namespace patchy::test::ui;
 using patchy::ui::MainWindowTestAccess;
@@ -365,6 +384,10 @@ void ui_legacy_plugin_mehdi_dialog_capture_if_available() {
   const auto mehdi = patchy::test::source_root_path() / "local-test-fixtures" / "photoshop-plugins" / "mehdi";
   if (!std::filesystem::exists(mehdi)) {
     std::cout << "[SKIP] local-test-fixtures/photoshop-plugins/mehdi not present\n";
+    return;
+  }
+  if (!on_interactive_window_station()) {
+    std::cout << "[SKIP] plug-in dialog capture needs the interactive desktop (not a service or ssh session)\n";
     return;
   }
   patchy::ui::MainWindow window;

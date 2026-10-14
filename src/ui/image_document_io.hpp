@@ -86,6 +86,15 @@ struct ImageSaveOptions {
   // is opaque and drops the document-alpha mask structure.
   bool export_fill_transparent{false};
   QColor export_background_color{Qt::white};
+  // JPEG, TIFF and flat PDF: write CMYK separated through the working CMYK space and
+  // embed its profile (docs/cmyk.md). Composited over white paper first, at 8 bits per
+  // ink. Offered by the Export dialog only (persisted per format as
+  // saveOptions/exportColorJpeg, ...Tiff, ...Pdf); scripts pass colorMode: "cmyk".
+  bool export_cmyk{false};
+  // With export_cmyk: black and grays print with black ink alone (SeparationOptions).
+  // Persisted per format as saveOptions/exportBlackInkOnlyJpeg, ...Tiff, ...Pdf; scripts pass
+  // blackInkOnly: true.
+  bool export_black_ink_only{false};
   // UI-only: MainWindow reveals the written file afterwards; the writers ignore it.
   bool export_reveal_in_file_explorer{false};
   // WebP: 0-100 through QImageWriter::setQuality (75 is Qt's own default, so an unset

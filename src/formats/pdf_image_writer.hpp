@@ -41,7 +41,7 @@ struct ImageStream {
   std::string decode_parms;
   std::string color_space;  // may be empty only for JPXDecode, which carries its own
   std::string decode;
-  // An ICC profile (decoded bytes) and its component count. When set it IS the colour
+  // An ICC profile (decoded bytes) and its component count (1, 3 or 4). When set it IS the colour
   // space: the writer emits the profile stream once per distinct profile, shares it
   // across pages, and ignores `color_space`.
   std::shared_ptr<const std::vector<std::uint8_t>> icc_profile;
@@ -84,6 +84,13 @@ public:
   // Extra /Info entries (key without the slash, UTF-8 value), such as Title and Author from
   // File Info (docs/file-info.md). Empty values are skipped; Creator and Producer stay Patchy.
   void set_document_info(std::vector<std::pair<std::string, std::string>> entries);
+  // The print condition the pages were separated for (a CMYK export, docs/cmyk.md):
+  // finish() names `profile` in the catalog's /OutputIntents with the GTS_PDFX subtype that
+  // preflight tools read, sharing the profile object the pages already use. No
+  // GTS_PDFXVersion is written, so the file makes no PDF/X conformance claim. `condition`
+  // (UTF-8) goes in /Info.
+  void set_output_intent(std::shared_ptr<const std::vector<std::uint8_t>> profile, int components,
+                         std::string condition);
   // Writes the page tree, catalog, cross-reference table, and trailer, then renames the
   // finished file over `path`. At least one page must have been added.
   void finish();
@@ -100,6 +107,9 @@ private:
   std::uint32_t icc_profile_object(const ImageStream& image);
   void write(std::string_view text);
   std::vector<std::pair<std::string, std::string>> document_info_;
+  std::shared_ptr<const std::vector<std::uint8_t>> output_intent_profile_;
+  int output_intent_components_{0};
+  std::string output_intent_condition_;
   void write(const std::vector<std::uint8_t>& bytes);
 
   // Declared before file_ so the stream closes before the temporary is removed.
