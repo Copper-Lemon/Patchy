@@ -179,16 +179,21 @@ a document action, created only when `gmic::engine_available()`).
     (`gmic_reads_layers_together`):
     - **A filter made for one image** (declared input `.`; Sepia, CRT Scanlines) runs once
       per writable chosen layer, alone at its own size (`render_gmic_each_layer`). Its first
-      image replaces that layer, the others become new layers above it. Never pad these onto
-      a document-sized image: about 140 fill transparency (Edges makes it opaque), so a small
-      layer came back canvas-sized.
+      image replaces that layer, the others become new layers. Never pad these onto a
+      document-sized image: about 140 fill transparency, so a small layer came back
+      canvas-sized.
     - **A filter made for several layers** (declared `*`, `+` and so on: Blend, Morph, Align
       Layers) reading more than one gets them lined up (`render_gmic_lined_up`): each on a
       transparent document-sized image, results cropped to content (`trim_to_content`).
       G'MIC's merge filters resize inputs to the largest and ignore `pos()`, so they need
       equal frames. K read, M returned: M >= K, each writable layer takes the image in its
       place; M < K, the first image replaces the active layer (`merged`); other images become
-      new layers above the active one, all of them when it is not among the input.
+      new layers (anchored on the lowest read layer, or the active one).
+    - **Stacking.** G'MIC lists images top of the stack first (Ball moves its sphere to
+      `[0]` over the original), so `insert_gmic_new_layers` puts new layers below their
+      anchor, each below the last. A layer named Background stays at the bottom (Photoshop's
+      rule; the PSD reader takes a top full-canvas Background as a reversed legacy file):
+      they go above it instead, same order.
     - Output names carry layer settings (`gmic::parse_output_layer_name`):
       `mode(...)`, `opacity(...)`, `pos(x,y)`, `name(...)`. New layers take all four
       (`blend_mode_from_gmic` maps G'MIC's blend names; unknown ones, such as grainmerge,
@@ -198,19 +203,21 @@ a document action, created only when `gmic::engine_available()`).
     - The selection applies to each replaced layer in its own frame (outside restored, edge
       blended by coverage); a result that changes frame is refused while a selection
       exists. New layers ignore it.
-    - `commit_gmic_render` writes every changed layer and new one (`insert_layer_after_anchor`,
-      stacked in order) under one undo snapshot; the status bar gives the count or new size.
+    - `commit_gmic_render` writes every changed layer and new one under one undo snapshot;
+      the status bar gives the count or new size.
   - **Memory.** A run holds float copies (16 bytes a pixel for RGBA): Patchy's planar
     image, the interpreter's copy, and the result. `gmic_run_memory_mb` estimates three
     times the largest layer (or every lined-up one) and refuses a run above 60 percent of
     installed memory before allocating (`PATCHY_GMIC_MEMORY_LIMIT_MB` for tests).
-    `render_gmic_filter` never throws: it runs on workers, where an escaped exception would
-    end the process. The waits for a worker sleep on a future; a bare `processEvents` loop
-    spins a core.
-  - **Added layers in the preview.** A full preview inserts them where OK will
-    (`insert_gmic_new_layers`, ids in `Shown::added`; the Layers panel is disabled while the
-    dialog is open); drafts add none. They come out when the shown result changes, Preview
-    goes off or the dialog closes, always before the commit inserts its own.
+    `render_gmic_filter` never throws (an exception escaping a worker ends the process).
+    Worker waits sleep on a future; a bare `processEvents` loop spins a core.
+  - **Added layers in the preview.** A full preview inserts them where OK will (ids in
+    `Shown::added`); drafts add none. They come out when the shown result changes, Preview
+    goes off or the dialog closes, always before the commit inserts its own. The Layers
+    panel keeps only its eyes (`preview_lock_allows_layer_visibility_`,
+    `LayerListWidget::set_visibility_only`) to inspect them; a preview layer's eye carries
+    to the next result with as many layers and to the layer OK adds. Eyes do not change
+    which layers "visible" reads: those are fixed when the dialog opens.
   - **Result notes.** Each full preview's `gmic_result_notes` fills the dialog's info banner
     (`gmicResultNotes`): layers changed or combined, a size change (and any part outside
     the canvas), layers added, chosen layers that cannot change. Whether a filter adds
@@ -351,30 +358,20 @@ abort, the FFT at sizes that are not powers of two (an impulse's flat spectrum a
 inverse round trips, whole and per axis), and `gmic_allowlisted_filters_run_with_defaults`, which runs every allowed filter on
 a 48x40 image (about 40 s on the dev box).
 
-UI (`tests/ui/gmic_tests.cpp`, filter `ui_gmic`): the panel over all 440 declared filters
-(values equal the declared defaults), reading and restoring every control type, the dialog's
-tree, search, selection and Reset, renders of five filters into `test-artifacts/gmic/` for
-visual QA, and, with the engine, Sepia inside a selection with undo plus the refusal of an
-excluded filter, and `ui_gmic_library_dialog_previews_on_the_layer_and_commits`: picking a
-filter returns before anything changes, the preview arrives inside the selection only, Preview
-off restores the layer, a changed value re-renders, OK commits the previewed pixels as one undo
-step, and Cancel restores. `ui_gmic_filter_adds_output_layers_in_one_undo_step` (Channels to
-Layers: two new layers with G'MIC's names and `mode(add)` as Linear Dodge, one undo) and
-`ui_gmic_filter_reads_the_layers_its_input_mode_names` (Blend [Average All] over the active
-layer and the one below; the read layer is untouched) cover layers. The first three and the
-render test run without the engine. `ui_gmic_script_api_lists_and_applies` covers the script
-API (list contents, values by name and by position, one undo entry, added-layer count, and
-eight kinds of rejected input). `ui_gmic_library_dialog_puts_point_handles_on_the_canvas`
-covers the handles (placement, a drag, a typed value, several layers, the centre of Blur [Radial] and [Angular], the two blur filters not offered,
-gone on close). `ui_gmic_library_dialog_drafts_then_refines` covers the two-stage preview
-(a draft then the full result, the draft skipped for a filter measured as quick, OK waiting
-for the run in flight, a size-changing filter's draft bounds, Cancel).
-`ui_gmic_filter_changes_every_chosen_layer` covers the layer rule (each layer gets its own
-result in one undo, the layer below, a locked layer read only, a partial layer keeping its
-size under Edges, hidden layers through a group, no matching layer), the memory refusal and
-the script gates. `ui_gmic_library_dialog_previews_every_chosen_layer_and_explains_the_result`
-covers the multi-layer preview, previewed added layers (Preview off, Cancel, OK as one
-undo), the notes, CRT Scanlines' centred 4x result and status text, and About G'MIC. Core: `gmic_output_layer_names_carry_layer_settings`.
+UI (`tests/ui/gmic_tests.cpp`, filter `ui_gmic`; the panel, tree and render tests also run
+without the engine): the panel over all 440 declared filters and every control type; the
+dialog's tree, search and Reset; renders into `test-artifacts/gmic/` (five filters, the
+notes banner, About G'MIC) for visual QA; Sepia in a selection; the live preview and its
+commit (`..._previews_on_the_layer_and_commits`); output layers' names, modes and stacking
+(Background included) in one undo (`..._adds_output_layers_in_one_undo_step`); Blend
+[Average All] over two layers; the script API and its eight rejections; point handles; the
+draft-then-full preview; `ui_gmic_filter_changes_every_chosen_layer` (each layer its own
+result, a locked layer read only, a partial layer keeping its size, hidden layers through a
+group, memory refusal, script gates); and
+`ui_gmic_library_dialog_previews_every_chosen_layer_and_explains_the_result` (multi-layer
+preview, previewed added layers below their source, eyes-only Layers panel, Preview off,
+Cancel, OK carrying eyes, Ball's sphere on top, the notes, CRT Scanlines, About G'MIC).
+Core: `gmic_output_layer_names_carry_layer_settings`.
 
 Sweeps (October 2026, manual): every filter at defaults via `layer.applyGmic` on a 900 px
 photo (plain, off-canvas, selection, 16-bit, three layers) and on a 60x45 layer in a 120x90

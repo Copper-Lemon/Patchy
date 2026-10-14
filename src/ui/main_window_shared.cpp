@@ -1127,6 +1127,17 @@ void insert_layer_after_anchor(Document& document, Layer layer, std::optional<La
   document.add_layer(std::move(layer));
 }
 
+void insert_layer_below_anchor(Document& document, Layer layer, std::optional<LayerId> anchor_id) {
+  std::size_t index = 0;
+  auto* siblings =
+      anchor_id.has_value() ? layer_siblings_containing(document.layers(), *anchor_id, index) : nullptr;
+  if (siblings == nullptr) {
+    siblings = &document.layers();
+    index = 0;
+  }
+  siblings->insert(siblings->begin() + static_cast<std::ptrdiff_t>(index), std::move(layer));
+}
+
 void offset_copied_layer_tree(Layer& layer, std::int32_t dx, std::int32_t dy, std::int32_t document_width,
                               std::int32_t document_height) {
   if (!layer.bounds().empty()) {

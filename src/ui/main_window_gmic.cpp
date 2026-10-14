@@ -46,6 +46,7 @@
 #include <QTimer>
 
 #include <algorithm>
+#include <cctype>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -92,7 +93,7 @@ struct GmicRunInput {
   // Where the active layer sits in `layers`; none when the input mode leaves it out
   // (a visible active layer with "all hidden layers").
   std::optional<std::size_t> active_input;
-  LayerId active{};  // results with no layer of their own go above it
+  LayerId active{};  // results with no layer of their own go below it
   std::int32_t document_width{0};
   std::int32_t document_height{0};
   FilterSelection selection;
@@ -116,7 +117,12 @@ struct GmicNewLayer {
   std::string name;
   BlendMode blend_mode{BlendMode::Normal};
   float opacity{1.0F};
-  LayerId above{};  // the layer it goes above; several for one layer stack in order
+  // G'MIC lists images top of the stack first, so a further output goes below the layer
+  // it belongs to, several for one layer each below the last (insert_gmic_new_layers).
+  LayerId anchor{};
+  // A previewed copy's eye (the Layers panel stays clickable for eyes during a preview);
+  // the layer OK adds keeps it.
+  bool visible{true};
 };
 
 // One filter run turned back into layer pixels. Built on a worker thread.
@@ -514,9 +520,9 @@ void trim_to_content(PixelBuffer& pixels, Rect& bounds) {
   return true;
 }
 
-// A further output as a new layer above `above`, with the name, blend mode, opacity and
+// A further output as a new layer below `anchor`, with the name, blend mode, opacity and
 // position the filter gave it. Never part of a draft.
-void add_gmic_new_layer(const GmicRunInput& input, const gmic::Image& image, Rect frame, LayerId above,
+void add_gmic_new_layer(const GmicRunInput& input, const gmic::Image& image, Rect frame, LayerId anchor,
                         GmicRenderResult& render) {
   if (image.width <= 0 || image.height <= 0) {
     return;
@@ -531,13 +537,13 @@ void add_gmic_new_layer(const GmicRunInput& input, const gmic::Image& image, Rec
   layer.name = info.name.empty() ? input.filter_name : info.name;
   layer.blend_mode = blend_mode_from_gmic(info.blend_mode);
   layer.opacity = info.opacity.has_value() ? static_cast<float>(*info.opacity / 100.0) : 1.0F;
-  layer.above = above;
+  layer.anchor = anchor;
   render.new_layers.push_back(std::move(layer));
 }
 
 // A filter made for one image, run on each writable chosen layer alone at its own size,
 // as if it were applied to each in turn. The first image a run returns replaces that
-// layer; the others become new layers above it.
+// layer; the others become new layers below it (Ball's sphere over the original).
 [[nodiscard]] GmicRenderResult render_gmic_each_layer(const GmicRunInput& input, gmic::RunControl* control) {
   GmicRenderResult render;
   const double scale = std::clamp(input.scale, 0.01, 1.0);
@@ -594,7 +600,8 @@ void add_gmic_new_layer(const GmicRunInput& input, const gmic::Image& image, Rec
 // A filter made for several layers, given them lined up on document-sized images. One
 // that returns an image per layer it read worked on each: each writable layer takes the
 // image in its place. One that returns fewer combined them: the first image replaces the
-// active layer. Any other image becomes a new layer above the active one.
+// active layer. Any other image becomes a new layer: below the lowest layer read when
+// each layer took its own, below the active layer otherwise.
 [[nodiscard]] GmicRenderResult render_gmic_lined_up(const GmicRunInput& input, gmic::RunControl* control) {
   GmicRenderResult render;
   const Rect frame{0, 0, input.document_width, input.document_height};
@@ -648,8 +655,9 @@ void add_gmic_new_layer(const GmicRunInput& input, const gmic::Image& image, Rec
     render.merged = input_count > 1;
     first_new = 1;
   }
+  const LayerId anchor = images.size() >= input_count ? input.layers.back().id : input.active;
   for (std::size_t index = first_new; !draft && index < images.size(); ++index) {
-    add_gmic_new_layer(input, images[index], frame, input.active, render);
+    add_gmic_new_layer(input, images[index], frame, anchor, render);
   }
   if (!render.changed() && render.read_only_layers == input_count) {
     render.nothing_writable = true;
@@ -753,23 +761,45 @@ void set_gmic_input_layers(GmicRunInput& input, const std::vector<GmicLayerSnaps
   }
 }
 
-// Inserts a run's further outputs as new layers, each above the layer it belongs to and
-// several for one layer stacking in the order the filter returned them. The pixels are
-// shared, copy-on-write: the preview shows the very layers OK will add. Returns their ids.
+// A layer named Background (any case) stays at the bottom of the stack: Photoshop keeps it
+// there, and Patchy's PSD reader takes a file whose top layer is a full-canvas Background
+// for a legacy top-to-bottom one and reverses it.
+[[nodiscard]] bool gmic_keeps_at_bottom(const Document& document, LayerId id) {
+  const auto* layer = document.find_layer(id);
+  if (layer == nullptr) {
+    return false;
+  }
+  std::string name = layer->name();
+  std::transform(name.begin(), name.end(), name.begin(),
+                 [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
+  return name == "background";
+}
+
+// Inserts a run's further outputs as new layers in G'MIC's order (top of the stack first):
+// each below the layer it belongs to, several for one layer each below the last. Under a
+// Background layer they go above it instead, still in that order among themselves. The
+// pixels are shared, copy-on-write: the preview shows the very layers OK will add.
+// Returns their ids.
 std::vector<LayerId> insert_gmic_new_layers(Document& document, const std::vector<GmicNewLayer>& outputs) {
-  std::map<LayerId, LayerId> top_added;  // the layer each new one goes above -> the last one added there
+  std::map<LayerId, LayerId> lowest_added;  // anchor -> the last layer inserted below it
   std::vector<LayerId> added;
   added.reserve(outputs.size());
   for (const auto& output : outputs) {
-    const auto found = top_added.find(output.above);
-    const LayerId anchor = found != top_added.end() ? found->second : output.above;
     Layer added_layer(document.allocate_layer_id(), output.name, output.pixels);
     added_layer.set_bounds(output.bounds);
     added_layer.set_blend_mode(output.blend_mode);
     added_layer.set_opacity(output.opacity);
+    added_layer.set_visible(output.visible);
     const auto added_id = added_layer.id();
-    insert_layer_after_anchor(document, std::move(added_layer), anchor);
-    top_added[output.above] = added_id;
+    if (gmic_keeps_at_bottom(std::as_const(document), output.anchor)) {
+      // Each goes directly above the Background, under the ones added before it.
+      insert_layer_after_anchor(document, std::move(added_layer), output.anchor);
+    } else {
+      const auto found = lowest_added.find(output.anchor);
+      insert_layer_below_anchor(document, std::move(added_layer),
+                                found != lowest_added.end() ? found->second : output.anchor);
+      lowest_added[output.anchor] = added_id;
+    }
     added.push_back(added_id);
   }
   return added;
@@ -1258,10 +1288,22 @@ void MainWindow::gmic_filter_library_dialog() {
       return;
     }
     auto& document = self->document();
+    // Eyes the user turned off on the previewed layers stay off when the next result
+    // brings as many layers (a slider moved, not a different filter).
+    std::vector<bool> eyes;
     for (const auto id : shown->added) {
+      const auto* layer = std::as_const(document).find_layer(id);
+      eyes.push_back(layer == nullptr || layer->visible());
       (void)document.remove_layer(id);
     }
     shown->added = insert_gmic_new_layers(document, outputs);
+    if (eyes.size() == shown->added.size()) {
+      for (std::size_t index = 0; index < eyes.size(); ++index) {
+        if (auto* layer = document.find_layer(shown->added[index]); layer != nullptr) {
+          layer->set_visible(eyes[index]);
+        }
+      }
+    }
     if (document.find_layer(*active) != nullptr) {
       document.set_active_layer(*active);
     }
@@ -1612,6 +1654,13 @@ void MainWindow::gmic_filter_library_dialog() {
   });
   progress_timer.start();
 
+  // The Layers panel's eyes stay usable while the dialog is open, so the layers a filter
+  // adds (or the ones under them) can be hidden to inspect the result; nothing else there.
+  preview_lock_allows_layer_visibility_ = true;
+  const auto end_layer_visibility_lock = qScopeGuard([this] {
+    preview_lock_allows_layer_visibility_ = false;
+    update_document_action_state();
+  });
   auto preview_edit_lock = lock_preview_dialog_edits();
   auto preview_cleanup = qScopeGuard([this, &doc, preview_state, shown, show_original_pixels,
                                       original = *source_layer] {
@@ -1655,6 +1704,19 @@ void MainWindow::gmic_filter_library_dialog() {
   if (shown->running != nullptr && shown->running != adopted_control) {
     shown->running->abort.store(true);
   }
+  // The eyes the previewed layers had, for the layers OK adds in their place.
+  std::vector<bool> added_eyes;
+  for (const auto id : shown->added) {
+    const auto* layer = std::as_const(doc).find_layer(id);
+    added_eyes.push_back(layer == nullptr || layer->visible());
+  }
+  const auto keep_added_eyes = [&added_eyes](GmicRenderResult& render) {
+    if (render.new_layers.size() == added_eyes.size()) {
+      for (std::size_t index = 0; index < added_eyes.size(); ++index) {
+        render.new_layers[index].visible = added_eyes[index];
+      }
+    }
+  };
   show_original();
   preview_cleanup.dismiss();
   preview_edit_lock.release();
@@ -1671,6 +1733,7 @@ void MainWindow::gmic_filter_library_dialog() {
   last_gmic_input_mode_ = choice->input_mode;
   const QString name = gmic_text(filter->name);
   if (ready != nullptr) {
+    keep_added_eyes(*ready);
     commit_gmic_render(*active, name, *ready);
     return;
   }
@@ -1680,10 +1743,12 @@ void MainWindow::gmic_filter_library_dialog() {
     });
     // The worker's own completion is ignored now (the preview is closed), so this result
     // has no other user.
+    keep_added_eyes(*adopted_result.get());
     commit_gmic_render(*active, name, *adopted_result.get());
     return;
   }
   auto render = render_gmic_with_progress(name, run_input(*filter, *choice));
+  keep_added_eyes(render);
   commit_gmic_render(*active, name, render);
 }
 

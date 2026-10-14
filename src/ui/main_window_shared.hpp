@@ -298,6 +298,9 @@ std::optional<Layer> clone_layer_tree_with_document_ids(
 // main_window_layer_ops.cpp and the text-editor preview plumbing in
 // main_window.cpp.
 void insert_layer_after_anchor(Document& document, Layer layer, std::optional<LayerId> anchor_id);
+// The sibling directly below anchor_id instead (the bottom of the top level when the
+// anchor is absent).
+void insert_layer_below_anchor(Document& document, Layer layer, std::optional<LayerId> anchor_id);
 
 // Moves a copied subtree by (dx, dy) in its new document: bounds, the
 // text/vector/smart-object metadata the Move tool shifts too (linked masks ride

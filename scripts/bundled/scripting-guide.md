@@ -617,7 +617,8 @@ if (patchy.gmic.available) {
 `"hidden"`) chooses the layers the filter works on, and every chosen layer it may change is
 changed in one undo step. A filter made for one image (Sepia, a blur) runs on each chosen layer
 by itself, at that layer's size, exactly as if you applied it to each in turn; any further
-results become new layers above the layer they came from. A filter made for several layers
+results become new layers below the layer they came from (above it when that layer is named
+Background, which stays at the bottom). A filter made for several layers
 (the Blend filters) gets them lined up on the document, and when it combines them the result
 replaces the layer you called `applyGmic` on. Locked, text, shape and Smart Object layers among
 the chosen ones are read but never changed.

@@ -423,7 +423,8 @@ interface PatchyLayer {
    * enclosing folders included. Every chosen layer the filter may change is changed, as
    * one undo step: a filter made for one image runs on each chosen layer alone, at its
    * own size, as if applied to each in turn, and any further image it returns becomes a
-   * new layer above that layer. A filter made for several layers (its list() entry's
+   * new layer below that layer (G'MIC lists images top first; under a layer named
+   * Background they go above it instead). A filter made for several layers (its list() entry's
    * `inputLayers` is not "active") gets them lined up on the document; if it combines
    * them, the result replaces this layer and the others stay as they are. Locked, text,
    * shape and Smart Object layers among the chosen ones are read but never changed.

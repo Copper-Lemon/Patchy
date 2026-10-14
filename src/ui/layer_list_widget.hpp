@@ -81,6 +81,12 @@ public:
   // Photoshop's eye sweep: press an eye and drag along the column; every eye
   // crossed adopts the state the first toggle produced.
   void set_visibility_sweep_callback(std::function<void(LayerId, bool)> callback);
+  // While true the list answers its visibility eyes (click, sweep, Alt-click) and
+  // scrolling only: selection, drags, renames, editors, the context menu, keys and drops
+  // are swallowed. A preview dialog that lets the user inspect layers (the G'MIC Filter
+  // Library) keeps the list enabled in this mode instead of disabling it.
+  void set_visibility_only(bool visibility_only);
+  [[nodiscard]] bool visibility_only() const noexcept { return visibility_only_; }
   void set_ctrl_click_callback(std::function<void(QListWidgetItem*, LayerCtrlClickTarget)> callback);
   void set_thumbnail_click_callback(
       std::function<void(QListWidgetItem*, LayerCtrlClickTarget, Qt::KeyboardModifiers)> callback);
@@ -227,6 +233,7 @@ private:
   std::vector<LayerId> editor_click_selection_;
   std::optional<LayerId> editor_click_layer_;
   QElapsedTimer editor_click_time_;
+  bool visibility_only_{false};
   bool visibility_sweep_active_{false};
   bool visibility_sweep_target_visible_{false};
   int visibility_sweep_min_x_{0};

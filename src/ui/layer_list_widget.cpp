@@ -285,6 +285,18 @@ void LayerListWidget::set_visibility_sweep_callback(std::function<void(LayerId, 
   visibility_sweep_callback_ = std::move(callback);
 }
 
+void LayerListWidget::set_visibility_only(bool visibility_only) {
+  if (visibility_only_ == visibility_only) {
+    return;
+  }
+  visibility_only_ = visibility_only;
+  // Nothing half-started (a drag candidate, a pending selection) survives the switch.
+  end_visibility_sweep();
+  row_widget_drag_candidate_ = false;
+  pending_single_select_on_release_ = false;
+  drag_anchor_layer_id_.reset();
+}
+
 bool LayerListWidget::handle_visibility_eye_press(QWidget* eye_button, const QMouseEvent* event) {
   const auto viewport_pos = viewport()->mapFromGlobal(eye_button->mapToGlobal(event->pos()));
   auto* item = itemAt(viewport_pos);
@@ -725,6 +737,57 @@ bool LayerListWidget::eventFilter(QObject* watched, QEvent* event) {
         return QListWidget::eventFilter(watched, event);
       default:
         break;
+    }
+  }
+  if (visibility_only_) {
+    auto* target = qobject_cast<QWidget*>(watched);
+    const bool in_list = target != nullptr && (target == this || isAncestorOf(target));
+    const bool scroll_bar = target != nullptr && (qobject_cast<QScrollBar*>(target) != nullptr ||
+                                                  qobject_cast<QScrollBar*>(target->parentWidget()) != nullptr);
+    if (in_list && !scroll_bar) {
+      switch (event->type()) {
+        case QEvent::MouseButtonPress:
+        case QEvent::MouseButtonDblClick: {
+          auto* mouse_event = static_cast<QMouseEvent*>(event);
+          if (redirect_mouse_event_to_scroll_bar(watched, mouse_event)) {
+            return true;
+          }
+          end_visibility_sweep();
+          // Plain click and drag-sweep, or Alt-click isolation; nothing else.
+          if (mouse_event->button() == Qt::LeftButton &&
+              target->objectName() == QLatin1String("layerVisibilityCheck") &&
+              (mouse_event->modifiers() & (Qt::ControlModifier | Qt::ShiftModifier)) == 0) {
+            (void)handle_visibility_eye_press(target, mouse_event);
+          }
+          event->accept();
+          return true;
+        }
+        case QEvent::MouseMove: {
+          auto* mouse_event = static_cast<QMouseEvent*>(event);
+          if (redirect_mouse_event_to_scroll_bar(watched, mouse_event)) {
+            return true;
+          }
+          (void)handle_visibility_sweep_move(viewport()->mapFromGlobal(target->mapToGlobal(mouse_event->pos())),
+                                             mouse_event);
+          return true;
+        }
+        case QEvent::MouseButtonRelease:
+          if (redirect_mouse_event_to_scroll_bar(watched, static_cast<QMouseEvent*>(event))) {
+            return true;
+          }
+          end_visibility_sweep();
+          return true;
+        case QEvent::KeyPress:
+        case QEvent::KeyRelease:
+        case QEvent::ContextMenu:
+        case QEvent::DragEnter:
+        case QEvent::DragMove:
+        case QEvent::Drop:
+          event->ignore();
+          return true;
+        default:
+          break;  // wheel scrolling, hover, paint and the rest as usual
+      }
     }
   }
   if (!inline_rename_edit_.isNull() && watched == inline_rename_edit_.data()) {

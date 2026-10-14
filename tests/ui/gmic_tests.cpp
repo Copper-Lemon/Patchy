@@ -11,6 +11,7 @@
 #include "ui/gmic_filter_library_dialog.hpp"
 #include "ui/gmic_library.hpp"
 #include "ui/gmic_parameter_panel.hpp"
+#include "ui/layer_list_widget.hpp"
 #include "ui/main_window.hpp"
 #include "ui/script_engine.hpp"
 
@@ -32,6 +33,7 @@
 #include <QElapsedTimer>
 #include <QLabel>
 #include <QLineEdit>
+#include <QListWidget>
 #include <QPushButton>
 #include <QSlider>
 #include <QStatusBar>
@@ -40,6 +42,7 @@
 #include <QString>
 #include <QTest>
 #include <QTimer>
+#include <QToolButton>
 #include <QTreeWidget>
 
 #include <cmath>
@@ -572,6 +575,24 @@ void ui_gmic_filter_adds_output_layers_in_one_undo_step() {
   QApplication::processEvents();
   CHECK(document.layers().size() == layers_before);
   CHECK(layer_pixel(window, 50, 50) == red);
+
+  // G'MIC lists images top of the stack first, so they go below the source layer, except
+  // under a Background layer, which stays at the bottom: they go above it, in that order.
+  CHECK(run_script(window, QStringLiteral("var d = app.activeDocument;"
+                                          "for (var i = 0; i < d.layers.length; ++i)"
+                                          "  if (d.layers[i].name === 'Background') d.activeLayer = d.layers[i];")));
+  const auto background = document.active_layer_id();
+  CHECK(background.has_value() && std::as_const(document).find_layer(*background)->name() == "Background");
+  CHECK(window.apply_gmic_filter("fx_channels2layers", {}));
+  const auto& layers = std::as_const(document).layers();
+  CHECK(layers.size() == layers_before + 2U);
+  if (layers.size() == layers_before + 2U) {
+    CHECK(layers[0].name() == "Background");
+    CHECK(layers[1].name() == "Background [blue]" && layers[2].name() == "Background [green]");
+  }
+  require_action_by_text(window, QStringLiteral("Undo"))->trigger();
+  QApplication::processEvents();
+  CHECK(document.layers().size() == layers_before);
 }
 
 // A filter made for several layers gets them lined up on the document and, when it
@@ -1024,7 +1045,8 @@ void ui_gmic_library_dialog_previews_every_chosen_layer_and_explains_the_result(
         [&] { return has_note(dialog, QStringLiteral("Changes the layer size from 40 x 30 to 160 x 120 pixels.")); }));
     CHECK(has_note(dialog, QStringLiteral("Part of the layer will lie outside the canvas.")));
     // Channels to Layers adds two layers, and the preview shows them where OK will put them:
-    // above the layer they came from, in the document and so in the Layers panel.
+    // G'MIC lists images top of the stack first, so below the layer they came from, in the
+    // document and so in the Layers panel.
     CHECK(dialog.select_filter("fx_channels2layers"));
     CHECK(wait_until([&] { return has_note(dialog, QStringLiteral("Adds 2 new layer(s).")); }));
     CHECK(same_rect(small_bounds(), original_small));
@@ -1036,10 +1058,45 @@ void ui_gmic_library_dialog_previews_every_chosen_layer_and_explains_the_result(
       }
       return names;
     };
-    CHECK(top_names() == (std::vector<std::string>{"Background", "Bottom", "Top", "Small", "Small [green]",
-                                                    "Small [blue]"}));
-    CHECK(document.active_layer_id().has_value() &&
-          std::as_const(document).find_layer(*document.active_layer_id())->name() == "Small");
+    CHECK(top_names() == (std::vector<std::string>{"Background", "Bottom", "Top", "Small [blue]", "Small [green]",
+                                                    "Small"}));
+    const auto active_name = [&document] {
+      const auto id = document.active_layer_id();
+      const auto* layer = id.has_value() ? document.find_layer(*id) : nullptr;
+      return layer != nullptr ? layer->name() : std::string();
+    };
+    CHECK(active_name() == "Small");
+
+    // The Layers panel answers its eyes during the preview, and nothing else: a click on
+    // another row's name selects nothing.
+    auto* layer_list = dynamic_cast<patchy::ui::LayerListWidget*>(window.findChild<QListWidget*>(QStringLiteral("layerList")));
+    CHECK(layer_list != nullptr && layer_list->isEnabled() && layer_list->visibility_only());
+    const auto row_widget = [layer_list](const QString& name) -> QWidget* {
+      for (int row = 0; layer_list != nullptr && row < layer_list->count(); ++row) {
+        if (layer_list->item(row)->text() == name) {
+          return layer_list->itemWidget(layer_list->item(row));
+        }
+      }
+      return nullptr;
+    };
+    auto* green_row = row_widget(QStringLiteral("Small [green]"));
+    auto* green_eye = green_row != nullptr ? green_row->findChild<QToolButton*>(QStringLiteral("layerVisibilityCheck"))
+                                           : nullptr;
+    CHECK(green_eye != nullptr);
+    if (green_eye != nullptr) {
+      QTest::mouseClick(green_eye, Qt::LeftButton);
+      QApplication::processEvents();
+    }
+    CHECK(wait_until([&] { return has_named_layer(window, "Small [green]") &&
+                                  !named_layer(window, "Small [green]")->visible(); }));
+    auto* top_row = row_widget(QStringLiteral("Top"));
+    auto* top_name = top_row != nullptr ? top_row->findChild<QLabel*>(QStringLiteral("layerRowName")) : nullptr;
+    CHECK(top_name != nullptr);
+    if (top_name != nullptr) {
+      QTest::mouseClick(top_name, Qt::LeftButton);
+      QApplication::processEvents();
+    }
+    CHECK(active_name() == "Small");
     // Preview off takes them away with the rest of the preview; on brings them back.
     auto* preview = dialog.findChild<QCheckBox*>(QStringLiteral("gmicPreviewCheck"));
     CHECK(preview != nullptr);
@@ -1054,6 +1111,20 @@ void ui_gmic_library_dialog_previews_every_chosen_layer_and_explains_the_result(
     CHECK(wait_until([&] { return top_names().size() == layer_count; }));
     CHECK(dialog.select_filter("fx_channels2layers"));
     CHECK(wait_until([&] { return top_names().size() == layer_count + 2U; }));
+
+    // Ball returns its sphere first and the original second: the original goes below the
+    // sphere, so the preview shows the sphere.
+    CHECK(dialog.select_filter("fx_ball"));
+    CHECK(wait_until([&] {
+      const auto& layers = document.layers();
+      return layers.size() == layer_count + 1U && layers.back().bounds().width == 200;
+    }));
+    {
+      const auto& layers = document.layers();
+      CHECK(layers.back().name() == "Small" && layers.back().bounds().height == 200);
+      CHECK(layers[layers.size() - 2U].name() == "Small" && same_rect(layers[layers.size() - 2U].bounds(),
+                                                                      original_small));
+    }
 
     run_about_box(dialog, [](QDialog& about) {
       auto* heading = about.findChild<QLabel*>(QStringLiteral("gmicAboutHeading"));
@@ -1077,14 +1148,34 @@ void ui_gmic_library_dialog_previews_every_chosen_layer_and_explains_the_result(
   CHECK(std::as_const(MainWindowTestAccess::document(window)).layers().size() == 4U);
   CHECK(!has_named_layer(window, "Small [green]"));
 
-  // OK adds the previewed layers for real, as one undo step that leaves no preview behind.
+  // OK adds the previewed layers for real, as one undo step that leaves no preview behind,
+  // with the eyes the user set on them in the preview.
   run_library_dialog(window, [&](patchy::ui::GmicFilterLibraryDialog& dialog) {
     CHECK(dialog.select_filter("fx_channels2layers", {}, '.'));
     CHECK(wait_until([&] { return has_named_layer(window, "Small [blue]"); }));
+    auto* layer_list = dynamic_cast<patchy::ui::LayerListWidget*>(window.findChild<QListWidget*>(QStringLiteral("layerList")));
+    QToolButton* blue_eye = nullptr;
+    for (int row = 0; layer_list != nullptr && row < layer_list->count(); ++row) {
+      if (layer_list->item(row)->text() == QStringLiteral("Small [blue]")) {
+        blue_eye = layer_list->itemWidget(layer_list->item(row))
+                       ->findChild<QToolButton*>(QStringLiteral("layerVisibilityCheck"));
+      }
+    }
+    CHECK(blue_eye != nullptr);
+    if (blue_eye != nullptr) {
+      QTest::mouseClick(blue_eye, Qt::LeftButton);
+    }
+    CHECK(wait_until([&] { return !named_layer(window, "Small [blue]")->visible(); }));
     dialog.accept();
   });
   CHECK(std::as_const(MainWindowTestAccess::document(window)).layers().size() == 6U);
   CHECK(has_named_layer(window, "Small [green]") && has_named_layer(window, "Small [blue]"));
+  CHECK(named_layer(window, "Small [green]")->visible() && !named_layer(window, "Small [blue]")->visible());
+  // The panel is whole again once the dialog is gone.
+  if (auto* layer_list = dynamic_cast<patchy::ui::LayerListWidget*>(window.findChild<QListWidget*>(QStringLiteral("layerList")));
+      layer_list != nullptr) {
+    CHECK(layer_list->isEnabled() && !layer_list->visibility_only());
+  }
   require_action_by_text(window, QStringLiteral("Undo"))->trigger();
   QApplication::processEvents();
   CHECK(std::as_const(MainWindowTestAccess::document(window)).layers().size() == 4U);

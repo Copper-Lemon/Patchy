@@ -11,7 +11,9 @@ Every entry below is API 1.
 `inputLayers` chooses that it may change, in one undo step; locked, text, shape and Smart
 Object layers among them are only read. A filter made for one image (declared input
 `active`) runs on each chosen layer alone at its own size, as if applied to each in turn, and
-its further results become new layers above that layer; it no longer sees the layers padded
+its further results become new layers below that layer in G'MIC's top-first order (above
+it, in the same order, when it is named Background), where they used to go above and cover
+it (Ball's sphere hidden under the original); it no longer sees the layers padded
 onto a document-sized image, which turned a small layer canvas-sized for filters that fill
 transparency. A filter made for several layers still gets them lined up on the document and,
 when it combines them, replaces the layer it was called on. With `hidden` on a visible layer,

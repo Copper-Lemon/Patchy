@@ -14064,7 +14064,12 @@ void MainWindow::update_document_action_state() {
     secondary_color_button_->setEnabled(has_document && !locked);
   }
   if (layer_list_ != nullptr) {
-    layer_list_->setEnabled(has_document && !locked);
+    auto* layer_list = dynamic_cast<LayerListWidget*>(layer_list_);
+    const bool eyes_only = locked && preview_lock_allows_layer_visibility_ && layer_list != nullptr;
+    if (layer_list != nullptr) {
+      layer_list->set_visibility_only(eyes_only);
+    }
+    layer_list_->setEnabled(has_document && (!locked || eyes_only));
   }
   refresh_add_layer_mask_button_state();
   update_legacy_plugin_repeat_actions();

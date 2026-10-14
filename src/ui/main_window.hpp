@@ -2280,6 +2280,10 @@ private:
   std::vector<QWidget*> document_widgets_;
   HotkeyRegistry hotkey_registry_;
   int preview_dialog_edit_lock_depth_{0};
+  // Set by a preview dialog that lets the user inspect layers while it is open (the
+  // G'MIC Filter Library): the edit lock then leaves the Layers panel's visibility eyes
+  // working (LayerListWidget::set_visibility_only) instead of disabling the list.
+  bool preview_lock_allows_layer_visibility_{false};
   bool scanner_import_active_{false};
   QPointer<QDialog> tile_preview_window_;
   QPointer<AnimationPreviewWindow> animation_preview_window_;
