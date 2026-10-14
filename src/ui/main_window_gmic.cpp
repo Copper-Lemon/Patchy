@@ -431,6 +431,15 @@ void trim_to_content(PixelBuffer& pixels, Rect& bounds) {
   return installed > 0 ? installed * 6 / 10 : std::numeric_limits<std::int64_t>::max();
 }
 
+// The name a layer goes to G'MIC under. Filters read a layer's name from the `name(...)`
+// field of the host's layer description (G'MIC's gui_layer_name); a bare name reads as
+// "[unnamed]", so Channels to Layers named its layers "[unnamed] [green]". No `pos()`:
+// a filter that echoes the name back would then pin a resized result to the corner
+// instead of centring it.
+[[nodiscard]] std::string gmic_input_name(const std::string& layer_name) {
+  return "name(" + (layer_name.empty() ? std::string("Layer") : layer_name) + ")";
+}
+
 // Where an output image lands, in document pixels: at the position its name states
 // (in the pixels of the image the filter ran on, from that image's corner), or centred
 // on that image when it changed size without stating one.
@@ -548,7 +557,7 @@ void add_gmic_new_layer(const GmicRunInput& input, const gmic::Image& image, Rec
     auto image = gmic_image_from_pixels(*layer.pixels);
     images.push_back(draft ? reduced_image(image, run_width, run_height) : std::move(image));
     // Hosts name their layers; several filters read the name.
-    images.back().name = layer.name.empty() ? std::string("Layer") : layer.name;
+    images.back().name = gmic_input_name(layer.name);
     const auto result = engine.run(input.command, images, control);
     if (result.aborted) {
       render.aborted = true;
@@ -598,7 +607,7 @@ void add_gmic_new_layer(const GmicRunInput& input, const gmic::Image& image, Rec
   for (const auto& layer : input.layers) {
     auto image = gmic_document_image(*layer.pixels, layer.bounds, frame.width, frame.height);
     images.push_back(draft ? reduced_image(image, run_width, run_height) : std::move(image));
-    images.back().name = layer.name.empty() ? std::string("Layer") : layer.name;
+    images.back().name = gmic_input_name(layer.name);
   }
   const gmic::Engine engine(gmic_library().commands);
   const auto result = engine.run(input.command, images, control);
@@ -744,10 +753,30 @@ void set_gmic_input_layers(GmicRunInput& input, const std::vector<GmicLayerSnaps
   }
 }
 
-// Puts a finished run into the document: each changed layer's new pixels, then every
-// further output as a new layer above the layer it belongs to, several stacking in the
-// order the filter returned them. Returns how many layers were added. The caller owns
-// undo and refresh.
+// Inserts a run's further outputs as new layers, each above the layer it belongs to and
+// several for one layer stacking in the order the filter returned them. The pixels are
+// shared, copy-on-write: the preview shows the very layers OK will add. Returns their ids.
+std::vector<LayerId> insert_gmic_new_layers(Document& document, const std::vector<GmicNewLayer>& outputs) {
+  std::map<LayerId, LayerId> top_added;  // the layer each new one goes above -> the last one added there
+  std::vector<LayerId> added;
+  added.reserve(outputs.size());
+  for (const auto& output : outputs) {
+    const auto found = top_added.find(output.above);
+    const LayerId anchor = found != top_added.end() ? found->second : output.above;
+    Layer added_layer(document.allocate_layer_id(), output.name, output.pixels);
+    added_layer.set_bounds(output.bounds);
+    added_layer.set_blend_mode(output.blend_mode);
+    added_layer.set_opacity(output.opacity);
+    const auto added_id = added_layer.id();
+    insert_layer_after_anchor(document, std::move(added_layer), anchor);
+    top_added[output.above] = added_id;
+    added.push_back(added_id);
+  }
+  return added;
+}
+
+// Puts a finished run into the document: each changed layer's new pixels, then the new
+// layers. Returns how many layers were added. The caller owns undo and refresh.
 std::size_t write_gmic_render(Document& document, GmicRenderResult& render) {
   for (auto& result : render.layers) {
     if (auto* layer = document.find_layer(result.id); layer != nullptr) {
@@ -755,21 +784,7 @@ std::size_t write_gmic_render(Document& document, GmicRenderResult& render) {
       set_layer_pixels_with_bounds(*layer, std::move(result.pixels), bounds);
     }
   }
-  std::map<LayerId, LayerId> top_added;  // the layer each new one goes above -> the last one added there
-  std::size_t added = 0;
-  for (auto& output : render.new_layers) {
-    const auto found = top_added.find(output.above);
-    const LayerId anchor = found != top_added.end() ? found->second : output.above;
-    Layer added_layer(document.allocate_layer_id(), std::move(output.name), std::move(output.pixels));
-    added_layer.set_bounds(output.bounds);
-    added_layer.set_blend_mode(output.blend_mode);
-    added_layer.set_opacity(output.opacity);
-    const auto added_id = added_layer.id();
-    insert_layer_after_anchor(document, std::move(added_layer), anchor);
-    top_added[output.above] = added_id;
-    ++added;
-  }
-  return added;
+  return insert_gmic_new_layers(document, render.new_layers).size();
 }
 
 // Whether a filter made for several layers gets the chosen ones together, lined up on
@@ -858,8 +873,8 @@ std::size_t write_gmic_render(Document& document, GmicRenderResult& render) {
     }
   }
   if (!render.new_layers.empty()) {
-    notes << MainWindow::tr("Adds %n new layer(s) when applied. The preview shows only the layers it changes, so "
-                            "the final image can look different.",
+    notes << MainWindow::tr("Adds %n new layer(s). The preview already shows them on the canvas and in the Layers "
+                            "panel.",
                             nullptr, static_cast<int>(render.new_layers.size()));
   }
   if (render.read_only_layers > 0) {
@@ -1199,6 +1214,9 @@ void MainWindow::gmic_filter_library_dialog() {
     std::optional<GmicFilterChoice> preview_choice;
     // The layers showing a preview now, and the bounds each shows.
     std::map<LayerId, Rect> layers;
+    // The layers a result adds, inserted while it is shown and removed before anything
+    // else touches the document (a commit inserts its own).
+    std::vector<LayerId> added;
     // The full-quality run in flight: OK for the same settings waits for it instead of
     // starting over.
     std::optional<GmicFilterChoice> full_choice;
@@ -1232,10 +1250,32 @@ void MainWindow::gmic_filter_library_dialog() {
       it = shown->layers.erase(it);
     }
   };
-  const auto put_on_layer = [self, shown, restore_layers](const GmicRenderResult& render) {
+  // Replaces the previewed new layers with `outputs` (none puts the document's layer stack
+  // back), keeping the active layer active. The Layers panel lists them while they show;
+  // it is disabled while the dialog is open, so nobody can select or edit one.
+  const auto show_added_layers = [self, shown, active](const std::vector<GmicNewLayer>& outputs) {
+    if (self == nullptr || (shown->added.empty() && outputs.empty())) {
+      return;
+    }
+    auto& document = self->document();
+    for (const auto id : shown->added) {
+      (void)document.remove_layer(id);
+    }
+    shown->added = insert_gmic_new_layers(document, outputs);
+    if (document.find_layer(*active) != nullptr) {
+      document.set_active_layer(*active);
+    }
+    self->refresh_layer_list();
+    self->refresh_layer_controls();
+    if (self->canvas_ != nullptr) {
+      self->canvas_->document_changed();
+    }
+  };
+  const auto put_on_layer = [self, shown, restore_layers, show_added_layers](const GmicRenderResult& render) {
     if (self == nullptr) {
       return;
     }
+    show_added_layers(render.new_layers);
     std::set<LayerId> changed;
     for (const auto& result : render.layers) {
       changed.insert(result.id);
@@ -1255,10 +1295,11 @@ void MainWindow::gmic_filter_library_dialog() {
       self->canvas_->document_changed(dirty);
     }
   };
-  const auto show_original_pixels = [self, restore_layers] {
+  const auto show_original_pixels = [self, restore_layers, show_added_layers] {
     if (self == nullptr) {
       return;
     }
+    show_added_layers({});
     QRect dirty;
     restore_layers({}, dirty);
     if (self->canvas_ != nullptr && !dirty.isEmpty()) {
@@ -1385,8 +1426,8 @@ void MainWindow::gmic_filter_library_dialog() {
               shown->render = render;
               shown->choice = choice;
               if (dialog_guard != nullptr) {
-                // The canvas shows the changed layers only; what else applying will do
-                // (layers added, a layer resized) is spelled out under the filter's name.
+                // What applying will do that a glance at the canvas may miss (layers
+                // added, a layer resized) is spelled out under the filter's name.
                 dialog_guard->set_preview_message(QString());
                 dialog_guard->set_result_notes(
                     gmic_result_notes(*render, active_id, document_width, document_height));

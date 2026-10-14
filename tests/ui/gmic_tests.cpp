@@ -545,14 +545,17 @@ void ui_gmic_filter_adds_output_layers_in_one_undo_step() {
     return;
   }
   const auto active_bounds = std::as_const(document).find_layer(*active_before)->bounds();
+  const auto active_name = std::as_const(document).find_layer(*active_before)->name();
 
   CHECK(window.apply_gmic_filter("fx_channels2layers", {}));
   CHECK(document.layers().size() == layers_before + 2U);
   CHECK(document.active_layer_id() == active_before);
-  // G'MIC names them "<layer> [green]" and "<layer> [blue]" with mode(add).
+  // G'MIC names them "<layer> [green]" and "<layer> [blue]" with mode(add): the layer's
+  // own name reaches the filter (it read "[unnamed]" before Patchy passed name(...)).
   int additive = 0;
   for (const auto& layer : std::as_const(document).layers()) {
     if (active_before.has_value() && layer.id() != *active_before && layer.name().find('[') != std::string::npos) {
+      CHECK(layer.name() == active_name + " [green]" || layer.name() == active_name + " [blue]");
       CHECK(layer.blend_mode() == patchy::BlendMode::LinearDodge);
       // Same place and size as the layer they were split from.
       CHECK(layer.bounds().x == active_bounds.x && layer.bounds().y == active_bounds.y &&
@@ -1020,10 +1023,37 @@ void ui_gmic_library_dialog_previews_every_chosen_layer_and_explains_the_result(
     CHECK(wait_until(
         [&] { return has_note(dialog, QStringLiteral("Changes the layer size from 40 x 30 to 160 x 120 pixels.")); }));
     CHECK(has_note(dialog, QStringLiteral("Part of the layer will lie outside the canvas.")));
-    // Channels to Layers adds two layers, which the preview does not show.
+    // Channels to Layers adds two layers, and the preview shows them where OK will put them:
+    // above the layer they came from, in the document and so in the Layers panel.
     CHECK(dialog.select_filter("fx_channels2layers"));
-    CHECK(wait_until([&] { return has_note(dialog, QStringLiteral("Adds 2 new layer(s) when applied.")); }));
+    CHECK(wait_until([&] { return has_note(dialog, QStringLiteral("Adds 2 new layer(s).")); }));
     CHECK(same_rect(small_bounds(), original_small));
+    const auto& document = std::as_const(MainWindowTestAccess::document(window));
+    const auto top_names = [&document] {
+      std::vector<std::string> names;
+      for (const auto& layer : document.layers()) {
+        names.push_back(layer.name());
+      }
+      return names;
+    };
+    CHECK(top_names() == (std::vector<std::string>{"Background", "Bottom", "Top", "Small", "Small [green]",
+                                                    "Small [blue]"}));
+    CHECK(document.active_layer_id().has_value() &&
+          std::as_const(document).find_layer(*document.active_layer_id())->name() == "Small");
+    // Preview off takes them away with the rest of the preview; on brings them back.
+    auto* preview = dialog.findChild<QCheckBox*>(QStringLiteral("gmicPreviewCheck"));
+    CHECK(preview != nullptr);
+    if (preview != nullptr) {
+      preview->setChecked(false);
+      CHECK(top_names().size() == layer_count);
+      preview->setChecked(true);
+      CHECK(top_names().size() == layer_count + 2U);
+    }
+    // A filter that adds nothing takes them away too.
+    CHECK(dialog.select_filter("fx_sepia", {}, '.'));
+    CHECK(wait_until([&] { return top_names().size() == layer_count; }));
+    CHECK(dialog.select_filter("fx_channels2layers"));
+    CHECK(wait_until([&] { return top_names().size() == layer_count + 2U; }));
 
     run_about_box(dialog, [](QDialog& about) {
       auto* heading = about.findChild<QLabel*>(QStringLiteral("gmicAboutHeading"));
@@ -1042,6 +1072,22 @@ void ui_gmic_library_dialog_previews_every_chosen_layer_and_explains_the_result(
     });
     dialog.reject();
   });
+  CHECK(untouched());
+  // Cancel removed the previewed layers.
+  CHECK(std::as_const(MainWindowTestAccess::document(window)).layers().size() == 4U);
+  CHECK(!has_named_layer(window, "Small [green]"));
+
+  // OK adds the previewed layers for real, as one undo step that leaves no preview behind.
+  run_library_dialog(window, [&](patchy::ui::GmicFilterLibraryDialog& dialog) {
+    CHECK(dialog.select_filter("fx_channels2layers", {}, '.'));
+    CHECK(wait_until([&] { return has_named_layer(window, "Small [blue]"); }));
+    dialog.accept();
+  });
+  CHECK(std::as_const(MainWindowTestAccess::document(window)).layers().size() == 6U);
+  CHECK(has_named_layer(window, "Small [green]") && has_named_layer(window, "Small [blue]"));
+  require_action_by_text(window, QStringLiteral("Undo"))->trigger();
+  QApplication::processEvents();
+  CHECK(std::as_const(MainWindowTestAccess::document(window)).layers().size() == 4U);
   CHECK(untouched());
 
   // OK commits the size change and says what became of the layer.

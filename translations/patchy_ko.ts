@@ -20210,12 +20210,6 @@ You can still download it in your browser.</source>
         <translation>레이어 일부가 캔버스 밖에 놓입니다. 그 부분은 유지되며 이동 도구로 다시 보이게 할 수 있습니다.</translation>
     </message>
     <message numerus="yes">
-        <source>Adds %n new layer(s) when applied. The preview shows only the layers it changes, so the final image can look different.</source>
-        <translation>
-            <numerusform>적용하면 새 레이어 %n개가 추가됩니다. 미리 보기에는 변경되는 레이어만 표시되므로 최종 이미지는 다르게 보일 수 있습니다.</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
         <source>%n of the chosen layers cannot be changed (locked, text, shape or Smart Object) and stay as they are.</source>
         <translation>
             <numerusform>선택한 레이어 중 %n개는 변경할 수 없어(잠금, 텍스트, 모양 또는 스마트 개체) 그대로 유지됩니다.</numerusform>
@@ -20236,6 +20230,12 @@ You can still download it in your browser.</source>
     <message>
         <source>Applied %1. The layer is now %2 x %3 pixels.</source>
         <translation>%1을(를) 적용했습니다. 이제 레이어 크기는 %2 x %3 픽셀입니다.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Adds %n new layer(s). The preview already shows them on the canvas and in the Layers panel.</source>
+        <translation>
+            <numerusform>새 레이어 %n개를 추가합니다. 미리 보기에서 이미 캔버스와 레이어 패널에 표시됩니다.</numerusform>
+        </translation>
     </message>
 </context>
 <context>

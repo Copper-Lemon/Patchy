@@ -20210,12 +20210,6 @@ You can still download it in your browser.</source>
         <translation>圖層的一部分會位於版面之外。這部分會保留，可用移動工具將其移回視野。</translation>
     </message>
     <message numerus="yes">
-        <source>Adds %n new layer(s) when applied. The preview shows only the layers it changes, so the final image can look different.</source>
-        <translation>
-            <numerusform>套用時會新增 %n 個新圖層。預覽只顯示被變更的圖層，因此最終影像看起來可能不同。</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
         <source>%n of the chosen layers cannot be changed (locked, text, shape or Smart Object) and stay as they are.</source>
         <translation>
             <numerusform>所選圖層中有 %n 個無法變更（鎖定、文字、形狀或智慧型物件），會保持不變。</numerusform>
@@ -20236,6 +20230,12 @@ You can still download it in your browser.</source>
     <message>
         <source>Applied %1. The layer is now %2 x %3 pixels.</source>
         <translation>已套用 %1。圖層現在為 %2 x %3 像素。</translation>
+    </message>
+    <message numerus="yes">
+        <source>Adds %n new layer(s). The preview already shows them on the canvas and in the Layers panel.</source>
+        <translation>
+            <numerusform>新增 %n 個新圖層。預覽已在版面和圖層面板中顯示它們。</numerusform>
+        </translation>
     </message>
 </context>
 <context>

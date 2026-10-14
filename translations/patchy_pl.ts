@@ -20328,14 +20328,6 @@ Nadal możesz pobrać ją w przeglądarce.</translation>
         <translation>Część warstwy znajdzie się poza płótnem. Zostanie zachowana, a narzędzie Przesunięcie pozwala ją z powrotem pokazać.</translation>
     </message>
     <message numerus="yes">
-        <source>Adds %n new layer(s) when applied. The preview shows only the layers it changes, so the final image can look different.</source>
-        <translation>
-            <numerusform>Po zastosowaniu dodaje %n nową warstwę. Podgląd pokazuje tylko zmieniane warstwy, więc obraz końcowy może wyglądać inaczej.</numerusform>
-            <numerusform>Po zastosowaniu dodaje %n nowe warstwy. Podgląd pokazuje tylko zmieniane warstwy, więc obraz końcowy może wyglądać inaczej.</numerusform>
-            <numerusform>Po zastosowaniu dodaje %n nowych warstw. Podgląd pokazuje tylko zmieniane warstwy, więc obraz końcowy może wyglądać inaczej.</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
         <source>%n of the chosen layers cannot be changed (locked, text, shape or Smart Object) and stay as they are.</source>
         <translation>
             <numerusform>%n z wybranych warstw nie można zmienić (zablokowana, tekst, kształt lub obiekt inteligentny), więc pozostaje bez zmian.</numerusform>
@@ -20362,6 +20354,14 @@ Nadal możesz pobrać ją w przeglądarce.</translation>
     <message>
         <source>Applied %1. The layer is now %2 x %3 pixels.</source>
         <translation>Zastosowano %1. Warstwa ma teraz %2 x %3 pikseli.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Adds %n new layer(s). The preview already shows them on the canvas and in the Layers panel.</source>
+        <translation>
+            <numerusform>Dodaje %n nową warstwę. Podgląd już ją pokazuje na płótnie i w panelu Warstwy.</numerusform>
+            <numerusform>Dodaje %n nowe warstwy. Podgląd już je pokazuje na płótnie i w panelu Warstwy.</numerusform>
+            <numerusform>Dodaje %n nowych warstw. Podgląd już je pokazuje na płótnie i w panelu Warstwy.</numerusform>
+        </translation>
     </message>
 </context>
 <context>

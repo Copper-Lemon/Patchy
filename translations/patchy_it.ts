@@ -20269,13 +20269,6 @@ Puoi comunque scaricarlo nel browser.</translation>
         <translation>Una parte del livello finirà fuori dal quadro. Viene conservata, e lo strumento Sposta la riporta in vista.</translation>
     </message>
     <message numerus="yes">
-        <source>Adds %n new layer(s) when applied. The preview shows only the layers it changes, so the final image can look different.</source>
-        <translation>
-            <numerusform>Aggiunge %n nuovo livello quando viene applicato. L&apos;anteprima mostra solo i livelli che modifica, quindi l&apos;immagine finale può apparire diversa.</numerusform>
-            <numerusform>Aggiunge %n nuovi livelli quando viene applicato. L&apos;anteprima mostra solo i livelli che modifica, quindi l&apos;immagine finale può apparire diversa.</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
         <source>%n of the chosen layers cannot be changed (locked, text, shape or Smart Object) and stay as they are.</source>
         <translation>
             <numerusform>%n dei livelli scelti non può essere modificato (bloccato, testo, forma o oggetto avanzato) e resta com&apos;è.</numerusform>
@@ -20299,6 +20292,13 @@ Puoi comunque scaricarlo nel browser.</translation>
     <message>
         <source>Applied %1. The layer is now %2 x %3 pixels.</source>
         <translation>%1 applicato. Il livello ora misura %2 x %3 pixel.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Adds %n new layer(s). The preview already shows them on the canvas and in the Layers panel.</source>
+        <translation>
+            <numerusform>Aggiunge %n nuovo livello. L&apos;anteprima lo mostra già nel quadro e nel pannello Livelli.</numerusform>
+            <numerusform>Aggiunge %n nuovi livelli. L&apos;anteprima li mostra già nel quadro e nel pannello Livelli.</numerusform>
+        </translation>
     </message>
 </context>
 <context>

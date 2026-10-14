@@ -20269,13 +20269,6 @@ Vous pouvez toujours la télécharger dans votre navigateur.</translation>
         <translation>Une partie du calque se trouvera hors de la zone de travail. Elle est conservée, et l&apos;outil Déplacement la ramène en vue.</translation>
     </message>
     <message numerus="yes">
-        <source>Adds %n new layer(s) when applied. The preview shows only the layers it changes, so the final image can look different.</source>
-        <translation>
-            <numerusform>Ajoute %n nouveau calque une fois appliqué. L&apos;aperçu ne montre que les calques modifiés : l&apos;image finale peut donc être différente.</numerusform>
-            <numerusform>Ajoute %n nouveaux calques une fois appliqué. L&apos;aperçu ne montre que les calques modifiés : l&apos;image finale peut donc être différente.</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
         <source>%n of the chosen layers cannot be changed (locked, text, shape or Smart Object) and stay as they are.</source>
         <translation>
             <numerusform>%n des calques choisis ne peut pas être modifié (verrouillé, texte, forme ou objet dynamique) et reste tel quel.</numerusform>
@@ -20299,6 +20292,13 @@ Vous pouvez toujours la télécharger dans votre navigateur.</translation>
     <message>
         <source>Applied %1. The layer is now %2 x %3 pixels.</source>
         <translation>%1 appliqué. Le calque mesure maintenant %2 x %3 pixels.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Adds %n new layer(s). The preview already shows them on the canvas and in the Layers panel.</source>
+        <translation>
+            <numerusform>Ajoute %n nouveau calque. L&apos;aperçu l&apos;affiche déjà sur la zone de travail et dans le panneau Calques.</numerusform>
+            <numerusform>Ajoute %n nouveaux calques. L&apos;aperçu les affiche déjà sur la zone de travail et dans le panneau Calques.</numerusform>
+        </translation>
     </message>
 </context>
 <context>

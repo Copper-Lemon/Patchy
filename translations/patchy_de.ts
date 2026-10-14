@@ -20269,13 +20269,6 @@ Sie können es weiterhin im Browser herunterladen.</translation>
         <translation>Ein Teil der Ebene liegt dann außerhalb der Arbeitsfläche. Er bleibt erhalten, und das Verschieben-Werkzeug holt ihn wieder ins Bild.</translation>
     </message>
     <message numerus="yes">
-        <source>Adds %n new layer(s) when applied. The preview shows only the layers it changes, so the final image can look different.</source>
-        <translation>
-            <numerusform>Fügt beim Anwenden %n neue Ebene hinzu. Die Vorschau zeigt nur die geänderten Ebenen, daher kann das fertige Bild anders aussehen.</numerusform>
-            <numerusform>Fügt beim Anwenden %n neue Ebenen hinzu. Die Vorschau zeigt nur die geänderten Ebenen, daher kann das fertige Bild anders aussehen.</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
         <source>%n of the chosen layers cannot be changed (locked, text, shape or Smart Object) and stay as they are.</source>
         <translation>
             <numerusform>%n der gewählten Ebenen kann nicht verändert werden (gesperrt, Text, Form oder Smartobjekt) und bleibt unverändert.</numerusform>
@@ -20299,6 +20292,13 @@ Sie können es weiterhin im Browser herunterladen.</translation>
     <message>
         <source>Applied %1. The layer is now %2 x %3 pixels.</source>
         <translation>%1 angewendet. Die Ebene ist jetzt %2 x %3 Pixel groß.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Adds %n new layer(s). The preview already shows them on the canvas and in the Layers panel.</source>
+        <translation>
+            <numerusform>Fügt %n neue Ebene hinzu. Die Vorschau zeigt sie bereits auf der Arbeitsfläche und im Ebenenbedienfeld.</numerusform>
+            <numerusform>Fügt %n neue Ebenen hinzu. Die Vorschau zeigt sie bereits auf der Arbeitsfläche und im Ebenenbedienfeld.</numerusform>
+        </translation>
     </message>
 </context>
 <context>

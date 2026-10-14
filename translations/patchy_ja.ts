@@ -20210,12 +20210,6 @@ You can still download it in your browser.</source>
         <translation>レイヤーの一部がキャンバスの外に出ます。その部分は保持され、移動ツールで見える位置に戻せます。</translation>
     </message>
     <message numerus="yes">
-        <source>Adds %n new layer(s) when applied. The preview shows only the layers it changes, so the final image can look different.</source>
-        <translation>
-            <numerusform>適用すると %n 個の新しいレイヤーが追加されます。プレビューには変更されるレイヤーしか表示されないため、最終的な画像は異なって見える場合があります。</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
         <source>%n of the chosen layers cannot be changed (locked, text, shape or Smart Object) and stay as they are.</source>
         <translation>
             <numerusform>選んだレイヤーのうち %n 個は変更できないため (ロック、テキスト、シェイプ、スマートオブジェクト)、そのまま残ります。</numerusform>
@@ -20236,6 +20230,12 @@ You can still download it in your browser.</source>
     <message>
         <source>Applied %1. The layer is now %2 x %3 pixels.</source>
         <translation>%1 を適用しました。レイヤーは %2 x %3 ピクセルになりました。</translation>
+    </message>
+    <message numerus="yes">
+        <source>Adds %n new layer(s). The preview already shows them on the canvas and in the Layers panel.</source>
+        <translation>
+            <numerusform>%n 個の新しいレイヤーを追加します。プレビューでは、すでにキャンバスとレイヤーパネルに表示されています。</numerusform>
+        </translation>
     </message>
 </context>
 <context>

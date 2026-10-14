@@ -16,8 +16,10 @@ onto a document-sized image, which turned a small layer canvas-sized for filters
 transparency. A filter made for several layers still gets them lined up on the document and,
 when it combines them, replaces the layer it was called on. With `hidden` on a visible layer,
 the hidden layers now change in place instead of arriving as new layers. It throws when none
-of the chosen layers can be changed. Pinned by `ui_gmic_filter_changes_every_chosen_layer`
-(which replaces the test named below).
+of the chosen layers can be changed. Filters now receive each layer's name the way G'MIC
+expects it, so a new layer is named after its source ("Layer 1 [green]", not "[unnamed]
+[green]"). Pinned by `ui_gmic_filter_changes_every_chosen_layer` (which replaces the test
+named below) and `ui_gmic_filter_adds_output_layers_in_one_undo_step`.
 2026-10-14 (behavioral): `layer.applyGmic` with several input layers. A filter that returns
 an image per layer it read now gives the layer its own result and drops the results for the
 layers that were only read (they used to arrive as duplicate layers, and the layer took the

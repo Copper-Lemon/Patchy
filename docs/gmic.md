@@ -126,7 +126,8 @@ compiles under Emscripten.
     `gmic::stdlib` before a run, so every `Engine` should be given the same text.
   - `RunControl` carries abort and progress as atomics; a watcher thread mirrors them to the
     plain `bool` and `float` the interpreter's API takes.
-  - Hosts must name their layers: several filters parse the image names and fail on an empty one.
+  - Patchy names input images `name(<layer>)` as G'MIC-Qt does (`gmic_input_name`): a bare
+    name reads "[unnamed]", an empty one fails some filters. No `pos()` (see centring).
 
 ## The Filter Library dialog
 
@@ -206,11 +207,14 @@ a document action, created only when `gmic::engine_available()`).
     `render_gmic_filter` never throws: it runs on workers, where an escaped exception would
     end the process. The waits for a worker sleep on a future; a bare `processEvents` loop
     spins a core.
-  - **Result notes.** The canvas previews changed layers, not added ones, so each full
-    preview's `gmic_result_notes` fills the dialog's info banner (`gmicResultNotes`): layers
-    changed or combined, a size change (and any part outside the canvas), layers added,
-    chosen layers that cannot change. Whether a filter adds layers depends on its settings,
-    so it is reported from a run, never guessed.
+  - **Added layers in the preview.** A full preview inserts them where OK will
+    (`insert_gmic_new_layers`, ids in `Shown::added`; the Layers panel is disabled while the
+    dialog is open); drafts add none. They come out when the shown result changes, Preview
+    goes off or the dialog closes, always before the commit inserts its own.
+  - **Result notes.** Each full preview's `gmic_result_notes` fills the dialog's info banner
+    (`gmicResultNotes`): layers changed or combined, a size change (and any part outside
+    the canvas), layers added, chosen layers that cannot change. Whether a filter adds
+    layers depends on its settings, so it is reported from a run, never guessed.
   - `gmic_target_layer` gates like Liquify (Quick Mask, editable RGB pixel layer, no Smart
     Object, locks, the rasterize prompt for text and shapes). The dialog command gates before
     it opens, since the preview needs the layer.
@@ -220,22 +224,20 @@ a document action, created only when `gmic::engine_available()`).
     `end_preview_render` (the canvas "Rendering preview..." badge), and whose queued completion
     writes the result into the real layer only when its generation is still current and nothing
     newer is pending. Departures from that pattern, all in the dialog's preview callback:
-    - New settings ask the run in flight to stop and start at once beside it, without
-      waiting: a stale run stops only at the interpreter's next check, which takes up to
-      about 10 s for some filters on a 12 MP image. At most two runs live
+    - New settings ask the run in flight to stop and start at once beside it: a stale run
+      stops only at the interpreter's next check (up to about 10 s on 12 MP). At most two live
       (`kMaxLivePreviewRuns`); beyond that the newest request waits as `pending`. Showing a
-      result bumps the generation, so a stale run can never replace it.
+      result bumps the generation, so stale runs never replace it.
     - Preview off only puts the original back: the run carries on, and its result (draft
       or full, `Shown::preview`) is kept, so Preview on shows it at once with no new run.
       A run for settings other than the dialog's is stopped while Preview is off.
     - The last full result is kept with the choice it belongs to, so OK commits that very
       result instead of running the filter again, and returning to those settings shows it
-      without a run. A timer on the dialog copies the running
-    preview's `RunControl::progress` (G'MIC's `progress`, 0..100, which only some filters
-    report) to `CanvasWidget::set_preview_render_progress`, so the badge reads "Rendering
-    preview... 42%"; the Apply progress box shows the same value as its bar.
-    The preview runs the filter's apply command, not its G'MIC-Qt preview command, and OK
-    only ever commits a full-resolution result.
+      without a run. A dialog timer copies the running preview's `RunControl::progress`
+    (G'MIC's `progress`, 0..100, from some filters only) to the canvas badge ("Rendering
+    preview... 42%") through `set_preview_render_progress`; the Apply progress box shows it too.
+    The preview runs the filter's apply command (never its preview command); OK commits
+    only a full-resolution result.
     The snapshots taken when the dialog opens are the originals every run reads (previews
     change the real layers); `Shown::layers` tracks which layers show a preview.
     `lock_preview_dialog_edits` and a scope guard restore them on every exit, and the
@@ -251,11 +253,9 @@ a document action, created only when `gmic::engine_available()`).
     (`gmic_full_ms_per_megapixel_`, under 400 ms estimated). `PATCHY_GMIC_DRAFT_PIXELS`
     overrides the megapixel budget for tests. OK while the full run for the accepted
     settings is in flight waits for that run (`wait_for_gmic_run`) instead of starting
-    another; a request that repeats what is already rendering is dropped. Measured on a
-    3000x1975 photograph: Cartoon draft 1.9 s, full 23 s; Brushify 14 s and 118 s; Sepia
-    0.4 s and 1.4 s.
-  - The dialog is non-modal (`run_non_modal_dialog`, like the other filter dialogs), so the
-    canvas can be zoomed and panned to inspect a preview while it is open.
+    another; a request that repeats what is already rendering is dropped. Cartoon on
+    3000x1975: draft 1.9 s, full 23 s.
+  - Non-modal (`run_non_modal_dialog`): the canvas can be zoomed and panned.
   - **Point handles.** `GmicParameterPanel::points()` lists the visible point parameters in
     percent of the image the filter works on (the active layer, each chosen layer taking the
     same percentages of its own frame, or the document when layers are lined up); the
@@ -373,13 +373,12 @@ for the run in flight, a size-changing filter's draft bounds, Cancel).
 result in one undo, the layer below, a locked layer read only, a partial layer keeping its
 size under Edges, hidden layers through a group, no matching layer), the memory refusal and
 the script gates. `ui_gmic_library_dialog_previews_every_chosen_layer_and_explains_the_result`
-covers the multi-layer preview, the result notes, CRT Scanlines' centred 4x result and its
-status text, and About G'MIC. Core: `gmic_output_layer_names_carry_layer_settings`.
+covers the multi-layer preview, previewed added layers (Preview off, Cancel, OK as one
+undo), the notes, CRT Scanlines' centred 4x result and status text, and About G'MIC. Core: `gmic_output_layer_names_carry_layer_settings`.
 
-Sweeps (October 2026, not automated): every offered filter at its defaults through
-`layer.applyGmic` on a 900 px photograph (plain, partly off the canvas, in a selection,
-16-bit, three layers), and on a 60x45 layer in a 120x90 document, where a one-image
-filter's bounds match in `active` and `all` modes.
+Sweeps (October 2026, manual): every filter at defaults via `layer.applyGmic` on a 900 px
+photo (plain, off-canvas, selection, 16-bit, three layers) and on a 60x45 layer in a 120x90
+document (a one-image filter's bounds match in `active` and `all`).
 
 ## Known gaps
 
@@ -390,7 +389,6 @@ filter's bounds match in `active` and `all` modes.
 - A draft is the whole image reduced, never a 1:1 crop of what the canvas shows, so fine
   detail is only judged once the full run lands. G'MIC's own preview commands (guides,
   split views) are unused and untested.
-- Extra output layers are not shown in the preview, only described in the result notes.
 - Of the filters that declare multi-layer input, only Blend [Average All] has an automated
   test of its result; the others are covered by the run-everything core test and the
   three-layer real-image sweep, which check that they run, not what they produce.

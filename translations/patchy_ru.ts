@@ -20328,14 +20328,6 @@ You can still download it in your browser.</source>
         <translation>Часть слоя окажется за пределами холста. Она сохранится, и инструмент «Перемещение» вернёт её в поле зрения.</translation>
     </message>
     <message numerus="yes">
-        <source>Adds %n new layer(s) when applied. The preview shows only the layers it changes, so the final image can look different.</source>
-        <translation>
-            <numerusform>При применении добавляет %n новый слой. Предпросмотр показывает только изменяемые слои, поэтому итоговое изображение может выглядеть иначе.</numerusform>
-            <numerusform>При применении добавляет %n новых слоя. Предпросмотр показывает только изменяемые слои, поэтому итоговое изображение может выглядеть иначе.</numerusform>
-            <numerusform>При применении добавляет %n новых слоёв. Предпросмотр показывает только изменяемые слои, поэтому итоговое изображение может выглядеть иначе.</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
         <source>%n of the chosen layers cannot be changed (locked, text, shape or Smart Object) and stay as they are.</source>
         <translation>
             <numerusform>%n из выбранных слоёв нельзя изменить (заблокирован, текст, фигура или смарт-объект), он остаётся без изменений.</numerusform>
@@ -20362,6 +20354,14 @@ You can still download it in your browser.</source>
     <message>
         <source>Applied %1. The layer is now %2 x %3 pixels.</source>
         <translation>Применено %1. Теперь размер слоя %2 x %3 пикселей.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Adds %n new layer(s). The preview already shows them on the canvas and in the Layers panel.</source>
+        <translation>
+            <numerusform>Добавляет %n новый слой. Предпросмотр уже показывает его на холсте и в панели «Слои».</numerusform>
+            <numerusform>Добавляет %n новых слоя. Предпросмотр уже показывает их на холсте и в панели «Слои».</numerusform>
+            <numerusform>Добавляет %n новых слоёв. Предпросмотр уже показывает их на холсте и в панели «Слои».</numerusform>
+        </translation>
     </message>
 </context>
 <context>

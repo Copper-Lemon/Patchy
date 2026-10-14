@@ -20269,13 +20269,6 @@ Você ainda pode baixá-la no navegador.</translation>
         <translation>Parte da camada ficará fora da tela. Ela é mantida, e a ferramenta Mover a traz de volta à vista.</translation>
     </message>
     <message numerus="yes">
-        <source>Adds %n new layer(s) when applied. The preview shows only the layers it changes, so the final image can look different.</source>
-        <translation>
-            <numerusform>Adiciona %n nova camada ao aplicar. A visualização mostra só as camadas que ele altera, então a imagem final pode ficar diferente.</numerusform>
-            <numerusform>Adiciona %n novas camadas ao aplicar. A visualização mostra só as camadas que ele altera, então a imagem final pode ficar diferente.</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
         <source>%n of the chosen layers cannot be changed (locked, text, shape or Smart Object) and stay as they are.</source>
         <translation>
             <numerusform>%n das camadas escolhidas não pode ser alterada (bloqueada, texto, forma ou objeto inteligente) e fica como está.</numerusform>
@@ -20299,6 +20292,13 @@ Você ainda pode baixá-la no navegador.</translation>
     <message>
         <source>Applied %1. The layer is now %2 x %3 pixels.</source>
         <translation>Aplicado %1. A camada agora tem %2 x %3 pixels.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Adds %n new layer(s). The preview already shows them on the canvas and in the Layers panel.</source>
+        <translation>
+            <numerusform>Adiciona %n nova camada. A visualização já a mostra na tela e no painel Camadas.</numerusform>
+            <numerusform>Adiciona %n novas camadas. A visualização já as mostra na tela e no painel Camadas.</numerusform>
+        </translation>
     </message>
 </context>
 <context>

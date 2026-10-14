@@ -20269,13 +20269,6 @@ Aún puede descargarla en su navegador.</translation>
         <translation>Parte de la capa quedará fuera del lienzo. Se conserva, y la herramienta Mover la vuelve a poner a la vista.</translation>
     </message>
     <message numerus="yes">
-        <source>Adds %n new layer(s) when applied. The preview shows only the layers it changes, so the final image can look different.</source>
-        <translation>
-            <numerusform>Añade %n capa nueva al aplicarlo. La vista previa solo muestra las capas que modifica, así que la imagen final puede verse distinta.</numerusform>
-            <numerusform>Añade %n capas nuevas al aplicarlo. La vista previa solo muestra las capas que modifica, así que la imagen final puede verse distinta.</numerusform>
-        </translation>
-    </message>
-    <message numerus="yes">
         <source>%n of the chosen layers cannot be changed (locked, text, shape or Smart Object) and stay as they are.</source>
         <translation>
             <numerusform>%n de las capas elegidas no se puede modificar (bloqueada, de texto, de forma o de objeto inteligente) y se queda como está.</numerusform>
@@ -20299,6 +20292,13 @@ Aún puede descargarla en su navegador.</translation>
     <message>
         <source>Applied %1. The layer is now %2 x %3 pixels.</source>
         <translation>Se aplicó %1. La capa mide ahora %2 x %3 píxeles.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Adds %n new layer(s). The preview already shows them on the canvas and in the Layers panel.</source>
+        <translation>
+            <numerusform>Añade %n capa nueva. La vista previa ya la muestra en el lienzo y en el panel Capas.</numerusform>
+            <numerusform>Añade %n capas nuevas. La vista previa ya las muestra en el lienzo y en el panel Capas.</numerusform>
+        </translation>
     </message>
 </context>
 <context>
