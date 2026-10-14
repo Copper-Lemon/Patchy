@@ -1692,9 +1692,7 @@ void MainWindow::set_layer_edit_target_ui(CanvasWidget::LayerEditTarget target, 
     }
   }
   const bool leaving_document_channel = previous_target == CanvasWidget::LayerEditTarget::DocumentChannel ||
-                                        previous_target == CanvasWidget::LayerEditTarget::ComponentRed ||
-                                        previous_target == CanvasWidget::LayerEditTarget::ComponentGreen ||
-                                        previous_target == CanvasWidget::LayerEditTarget::ComponentBlue;
+                                        CanvasWidget::is_component_preview(previous_target);
   if (leaving_document_channel ||
       (target == CanvasWidget::LayerEditTarget::Content &&
        canvas_->mask_display_mode() == CanvasWidget::MaskDisplayMode::Grayscale)) {
@@ -3361,9 +3359,7 @@ void MainWindow::fill_active_layer_with_color(QColor color, QString label) {
   }
   const auto edit_target = canvas_ != nullptr ? canvas_->layer_edit_target() : CanvasWidget::LayerEditTarget::Content;
   const bool document_channel = edit_target == CanvasWidget::LayerEditTarget::DocumentChannel;
-  const bool component_channel = edit_target == CanvasWidget::LayerEditTarget::ComponentRed ||
-                                 edit_target == CanvasWidget::LayerEditTarget::ComponentGreen ||
-                                 edit_target == CanvasWidget::LayerEditTarget::ComponentBlue;
+  const bool component_channel = CanvasWidget::is_component_preview(edit_target);
   if (component_channel || (document_channel && !canvas_->document_channel_is_editable())) {
     show_status_error(tr("This channel is read-only"));
     return;
@@ -3474,9 +3470,7 @@ void MainWindow::clear_active_layer() {
   }
   const auto edit_target = canvas_ != nullptr ? canvas_->layer_edit_target() : CanvasWidget::LayerEditTarget::Content;
   const bool document_channel = edit_target == CanvasWidget::LayerEditTarget::DocumentChannel;
-  const bool component_channel = edit_target == CanvasWidget::LayerEditTarget::ComponentRed ||
-                                 edit_target == CanvasWidget::LayerEditTarget::ComponentGreen ||
-                                 edit_target == CanvasWidget::LayerEditTarget::ComponentBlue;
+  const bool component_channel = CanvasWidget::is_component_preview(edit_target);
   if (component_channel || (document_channel && !canvas_->document_channel_is_editable())) {
     show_status_error(tr("This channel is read-only"));
     return;
@@ -4318,9 +4312,7 @@ bool MainWindow::refuse_layer_alignment_command() {
   }
   const auto target = canvas_->layer_edit_target();
   if (target == CanvasWidget::LayerEditTarget::DocumentChannel ||
-      target == CanvasWidget::LayerEditTarget::ComponentRed ||
-      target == CanvasWidget::LayerEditTarget::ComponentGreen ||
-      target == CanvasWidget::LayerEditTarget::ComponentBlue) {
+      CanvasWidget::is_component_preview(target)) {
     show_status_error(tr("Return to the layer view to align layers"));
     return true;
   }
@@ -4409,9 +4401,7 @@ void MainWindow::flip_active_layer_horizontal() {
   if (canvas_ != nullptr) {
     const auto target = canvas_->layer_edit_target();
     if (target == CanvasWidget::LayerEditTarget::DocumentChannel ||
-        target == CanvasWidget::LayerEditTarget::ComponentRed ||
-        target == CanvasWidget::LayerEditTarget::ComponentGreen ||
-        target == CanvasWidget::LayerEditTarget::ComponentBlue) {
+        CanvasWidget::is_component_preview(target)) {
       return;
     }
   }
@@ -4448,9 +4438,7 @@ void MainWindow::flip_active_layer_vertical() {
   if (canvas_ != nullptr) {
     const auto target = canvas_->layer_edit_target();
     if (target == CanvasWidget::LayerEditTarget::DocumentChannel ||
-        target == CanvasWidget::LayerEditTarget::ComponentRed ||
-        target == CanvasWidget::LayerEditTarget::ComponentGreen ||
-        target == CanvasWidget::LayerEditTarget::ComponentBlue) {
+        CanvasWidget::is_component_preview(target)) {
       return;
     }
   }

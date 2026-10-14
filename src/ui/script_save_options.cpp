@@ -207,6 +207,20 @@ bool apply_key(KeyReader& reader, const QString& extension, const QString& key, 
                       });
     return true;
   }
+  // CMYK output (docs/cmyk.md), for the formats that can carry it.
+  if (key == QStringLiteral("colorMode") &&
+      (is_jpeg_extension(extension) || extension == QStringLiteral("tif") || extension == QStringLiteral("tiff") ||
+       extension == QStringLiteral("pdf"))) {
+    reader.read_token(key, value, {QStringLiteral("rgb"), QStringLiteral("cmyk")},
+                      [&](const QString& token) { options.export_cmyk = token == QStringLiteral("cmyk"); });
+    return true;
+  }
+  if (key == QStringLiteral("blackInkOnly") &&
+      (is_jpeg_extension(extension) || extension == QStringLiteral("tif") || extension == QStringLiteral("tiff") ||
+       extension == QStringLiteral("pdf"))) {
+    reader.read_bool(key, value, options.export_black_ink_only);
+    return true;
+  }
   if (is_jpeg_extension(extension)) {
     if (key == QStringLiteral("quality")) {
       reader.read_int(key, value, 0, 100, options.jpeg_quality);
@@ -404,6 +418,11 @@ QString apply_script_image_save_options(const QString& method, const QString& ex
     if (!reader.error.isEmpty()) {
       return reader.error;
     }
+  }
+  if (options.export_black_ink_only && !options.export_cmyk) {
+    return QCoreApplication::translate("patchy::ui::ScriptSaveOptions",
+                                       "%1: blackInkOnly needs colorMode: \"cmyk\".")
+        .arg(method);
   }
   return {};
 }

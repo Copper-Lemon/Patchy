@@ -1,11 +1,13 @@
 #include "ui/color_panel.hpp"
 
 #include "core/palette_presets.hpp"
+#include "ui/action_icons.hpp"
 #include "ui/app_settings.hpp"
 #include "ui/palette_panel.hpp"
 
 #include "ui/dialog_utils.hpp"
 #include "ui/tool_cursors.hpp"
+#include "ui/theme_palette.hpp"
 #include "ui/theme_qss.hpp"
 #include "ui/localization.hpp"
 
@@ -34,6 +36,8 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPolygonF>
+#include <QPen>
 #include <QPixmap>
 #include <QPointer>
 #include <QShowEvent>
@@ -64,6 +68,8 @@ namespace patchy::ui {
 
 namespace {
 
+// Wide enough for the footer's three field blocks (HSV, RGB, CMYK) beside the preview.
+constexpr QSize kColorDialogSize{640, 450};
 constexpr int kColorPlaneSize = 188;
 constexpr int kHueSliderWidth = 16;
 constexpr int kColorWheelSize = 188;
@@ -350,6 +356,10 @@ public:
   std::optional<QColor> paste_color_from_clipboard();
   QColor cut_color_to_clipboard(bool& cleared_custom_slot);
   void focus_html_edit();
+  // The working CMYK space changed: the same color now has other ink numbers.
+  void working_cmyk_space_changed();
+  // Shows or hides the gamut warning for the current color.
+  void refresh_gamut_warning();
 
   [[nodiscard]] QColor current_color() const { return color_; }
   [[nodiscard]] int hue() const { return hue_; }
@@ -368,6 +378,7 @@ private:
   void refresh_custom_controls();
   void sample_screen_color(QPoint global_position);
   void set_html_color();
+  void set_cmyk_channel(std::size_t index, int percent);
   void populate_palette_combo();
   void select_initial_palette();
   void refresh_palette_grid();
@@ -402,6 +413,8 @@ private:
   std::array<ColorChannelSlider*, 6> channel_sliders_{};
   std::vector<QWidget*> live_views_;
   QFrame* preview_{nullptr};
+  QPushButton* gamut_warning_{nullptr};
+  QColor gamut_printable_;
   QSpinBox* hue_spin_{nullptr};
   QSpinBox* saturation_spin_{nullptr};
   QSpinBox* value_spin_{nullptr};
@@ -409,6 +422,13 @@ private:
   QSpinBox* green_spin_{nullptr};
   QSpinBox* blue_spin_{nullptr};
   QLineEdit* html_edit_{nullptr};
+  // The CMYK fields keep what the user typed: RGB cannot hold every ink mix, so
+  // recomputing them from color_ would change a value under the cursor. They are
+  // recomputed only when color_ stops being the color those numbers produced.
+  std::array<QSpinBox*, 4> cmyk_spins_{};
+  std::array<int, 4> cmyk_{};
+  QColor cmyk_color_;
+  std::shared_ptr<const CmykWorkingSpace> cmyk_space_;
   QLabel* color_name_label_{nullptr};
   QPushButton* set_custom_button_{nullptr};
   std::array<QPushButton*, kCustomColorCount> custom_buttons_{};
@@ -1343,10 +1363,37 @@ void PatchyColorPickerPrivate::build_ui() {
   auto* footer_row = new QHBoxLayout();
   footer_row->setContentsMargins(0, 0, 0, 0);
   footer_row->setSpacing(10);
+  // The preview with, under it, the gamut warning: shown when the color cannot print in
+  // the working CMYK space, filled with the color it would print as; a click takes that.
+  auto* preview_column = new QVBoxLayout();
+  preview_column->setContentsMargins(0, 0, 0, 0);
+  preview_column->setSpacing(4);
   preview_ = new ColorPreviewFrame(*this, picker_column);
   preview_->setObjectName(QStringLiteral("patchyColorPreview"));
-  preview_->setFixedSize(52, 116);
-  footer_row->addWidget(preview_);
+  preview_->setFixedSize(52, 90);
+  preview_column->addWidget(preview_);
+  gamut_warning_ = new QPushButton(picker_column);
+  gamut_warning_->setObjectName(QStringLiteral("patchyColorGamutWarningButton"));
+  gamut_warning_->setFixedSize(52, 22);
+  gamut_warning_->setIconSize(QSize(16, 16));
+  gamut_warning_->setIcon(themed_glyph_icon(
+      QStringLiteral("cmyk-gamut-warning"), 16.0, &ThemePalette::warning_banner_text,
+      [](QPainter& painter, const QColor& ink) {
+        painter.setRenderHint(QPainter::Antialiasing);
+        painter.setPen(QPen(ink, 1.4, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+        painter.setBrush(Qt::NoBrush);
+        painter.drawPolygon(QPolygonF{QPointF(8.0, 2.0), QPointF(15.0, 14.5), QPointF(1.0, 14.5)});
+        painter.drawLine(QPointF(8.0, 6.5), QPointF(8.0, 10.0));
+        painter.drawPoint(QPointF(8.0, 12.3));
+      }));
+  gamut_warning_->setAccessibleName(PatchyColorPicker::tr("Use the closest printable color"));
+  QSizePolicy keep_space = gamut_warning_->sizePolicy();
+  keep_space.setRetainSizeWhenHidden(true);
+  gamut_warning_->setSizePolicy(keep_space);
+  gamut_warning_->hide();
+  preview_column->addWidget(gamut_warning_);
+  preview_column->addStretch(1);
+  footer_row->addLayout(preview_column);
 
   hue_spin_ = create_spin(picker_column, QStringLiteral("patchyColorHueSpin"), 359);
   saturation_spin_ = create_spin(picker_column, QStringLiteral("patchyColorSaturationSpin"), 255);
@@ -1380,6 +1427,22 @@ void PatchyColorPickerPrivate::build_ui() {
   fields_grid->addWidget(blue_spin_, 2, 4);
   fields_grid->addWidget(new QLabel(PatchyColorPicker::tr("HTML:"), picker_column), 3, 0);
   fields_grid->addWidget(html_edit_, 3, 1, 1, 4);
+  // Ink percentages in the working CMYK space, in columns 6-7 (column 5 is a gap).
+  fields_grid->setColumnMinimumWidth(5, 12);
+  const std::array<std::pair<QString, QString>, 4> cmyk_fields{{
+      {PatchyColorPicker::tr("C:"), PatchyColorPicker::tr("Cyan")},
+      {PatchyColorPicker::tr("M:"), PatchyColorPicker::tr("Magenta")},
+      {PatchyColorPicker::tr("Y:"), PatchyColorPicker::tr("Yellow")},
+      {PatchyColorPicker::tr("K:"), PatchyColorPicker::tr("Black")},
+  }};
+  static constexpr std::array<const char*, 4> kCmykSpinNames{"patchyColorCyanSpin", "patchyColorMagentaSpin",
+                                                             "patchyColorYellowSpin", "patchyColorBlackSpin"};
+  for (std::size_t index = 0; index < cmyk_spins_.size(); ++index) {
+    cmyk_spins_[index] = create_spin(picker_column, QLatin1String(kCmykSpinNames[index]), 100);
+    cmyk_spins_[index]->setAccessibleName(cmyk_fields[index].second);
+    fields_grid->addWidget(new QLabel(cmyk_fields[index].first, picker_column), static_cast<int>(index), 6);
+    fields_grid->addWidget(cmyk_spins_[index], static_cast<int>(index), 7);
+  }
   color_name_label_ = new QLabel(picker_column);
   color_name_label_->setObjectName(QStringLiteral("patchyColorNameLabel"));
   color_name_label_->setTextFormat(Qt::PlainText);
@@ -1486,6 +1549,18 @@ void PatchyColorPickerPrivate::connect_controls() {
       set_html_color();
     }
   });
+  QObject::connect(gamut_warning_, &QPushButton::clicked, &owner_, [this] {
+    if (gamut_printable_.isValid()) {
+      set_color(gamut_printable_, ColorChangeNotification::Yes);
+    }
+  });
+  for (std::size_t index = 0; index < cmyk_spins_.size(); ++index) {
+    QObject::connect(cmyk_spins_[index], &QSpinBox::valueChanged, &owner_, [this, index](int percent) {
+      if (!syncing_) {
+        set_cmyk_channel(index, percent);
+      }
+    });
+  }
 }
 
 void PatchyColorPickerPrivate::set_color(QColor color, ColorChangeNotification notification) {
@@ -1603,6 +1678,32 @@ void PatchyColorPickerPrivate::sync_controls() {
   const QSignalBlocker blue_blocker(blue_spin_);
   const QSignalBlocker html_blocker(html_edit_);
 
+  if (const auto space = working_cmyk_space(); space != cmyk_space_ || cmyk_color_ != color_) {
+    if (space != cmyk_space_) {
+      cmyk_space_ = space;
+      const auto profile = QString::fromStdString(space->profile_description());
+      const auto tip = PatchyColorPicker::tr("Ink percentages in the working CMYK space: %1. "
+                                             "Choose the profile in Preferences.")
+                           .arg(space->has_profile() && !profile.isEmpty()
+                                    ? profile
+                                    : PatchyColorPicker::tr("no profile (approximate)"));
+      for (auto* spin : cmyk_spins_) {
+        spin->setToolTip(tip);
+      }
+    }
+    const auto ink = space->cmyk_from_rgb({static_cast<std::uint8_t>(color_.red()),
+                                           static_cast<std::uint8_t>(color_.green()),
+                                           static_cast<std::uint8_t>(color_.blue())});
+    cmyk_ = {static_cast<int>(std::lround(ink.cyan)), static_cast<int>(std::lround(ink.magenta)),
+             static_cast<int>(std::lround(ink.yellow)), static_cast<int>(std::lround(ink.black))};
+    cmyk_color_ = color_;
+  }
+  for (std::size_t index = 0; index < cmyk_spins_.size(); ++index) {
+    const QSignalBlocker blocker(cmyk_spins_[index]);
+    cmyk_spins_[index]->setValue(cmyk_[index]);
+  }
+  refresh_gamut_warning();
+
   hue_spin_->setValue(hue_);
   saturation_spin_->setValue(saturation_);
   value_spin_->setValue(value_);
@@ -1619,6 +1720,45 @@ void PatchyColorPickerPrivate::sync_controls() {
   }
 
   syncing_ = false;
+}
+
+void PatchyColorPickerPrivate::set_cmyk_channel(std::size_t index, int percent) {
+  cmyk_[index] = std::clamp(percent, 0, 100);
+  const auto rgb = working_cmyk_space()->rgb_from_cmyk(
+      {static_cast<double>(cmyk_[0]), static_cast<double>(cmyk_[1]), static_cast<double>(cmyk_[2]),
+       static_cast<double>(cmyk_[3])});
+  // Marks the typed numbers as the source of this color, so sync_controls keeps them.
+  cmyk_color_ = normalized_rgb_color(QColor(rgb.red, rgb.green, rgb.blue));
+  set_color(cmyk_color_, ColorChangeNotification::Yes);
+}
+
+void PatchyColorPickerPrivate::refresh_gamut_warning() {
+  const RgbColor rgb{static_cast<std::uint8_t>(color_.red()), static_cast<std::uint8_t>(color_.green()),
+                     static_cast<std::uint8_t>(color_.blue())};
+  const auto check = cmyk_gamut_check();
+  if (check == nullptr || !check->out_of_gamut(rgb)) {
+    gamut_printable_ = QColor();
+    gamut_warning_->hide();
+    return;
+  }
+  const auto printed = check->printed(rgb);
+  gamut_printable_ = QColor(printed.red, printed.green, printed.blue);
+  // The printable color fills the button; the glyph keeps its theme ink on top.
+  set_themed_style(*gamut_warning_, ThemedQss(QStringLiteral(
+                                         "QPushButton#patchyColorGamutWarningButton { background: rgb(%1, %2, %3); "
+                                         "border: 1px solid @warning_banner_border; border-radius: 3px; padding: 0; }")
+                                                      .arg(printed.red)
+                                                      .arg(printed.green)
+                                                      .arg(printed.blue)));
+  gamut_warning_->setToolTip(PatchyColorPicker::tr("This color is outside the gamut of %1 and prints as the color "
+                                                   "shown here. Click to use it.")
+                                 .arg(QString::fromStdString(cmyk_space_->profile_description())));
+  gamut_warning_->show();
+}
+
+void PatchyColorPickerPrivate::working_cmyk_space_changed() {
+  cmyk_color_ = QColor();
+  sync_controls();
 }
 
 void PatchyColorPickerPrivate::set_html_color() {
@@ -2149,7 +2289,7 @@ QDialog* create_patchy_color_panel(QWidget* parent, QColor initial, const QStrin
   dialog->setModal(false);
   dialog->setWindowModality(Qt::NonModal);
   dialog->setAttribute(Qt::WA_DeleteOnClose, true);
-  dialog->resize(540, 450);
+  dialog->resize(kColorDialogSize);
 
   auto* layout = install_dark_dialog_chrome(*dialog, new QVBoxLayout(dialog), title);
   auto* picker = new PatchyColorPicker(normalized_rgb_color(initial), dialog);
@@ -2191,7 +2331,7 @@ std::optional<QColor> request_patchy_color(QWidget* parent, QColor initial, cons
   // color panel's group would open them wherever the panel was last dragged
   // (possibly another monitor) instead of near the dialog that launched them.
   set_dialog_position_memory_id(dialog, QStringLiteral("patchyColorRequestDialog"));
-  dialog.resize(540, 450);
+  dialog.resize(kColorDialogSize);
   g_open_request_picker = &dialog;
 
   auto* layout = install_dark_dialog_chrome(dialog, new QVBoxLayout(&dialog), title);
@@ -2225,6 +2365,12 @@ void set_color_picker_document_palette(std::vector<QColor> colors, bool palette_
   state.names = std::move(names);
   for (auto* picker : picker_palette_registry()) {
     picker->document_palette_changed(mode_turned_on);
+  }
+}
+
+void refresh_color_picker_cmyk_fields() {
+  for (auto* picker : picker_palette_registry()) {
+    picker->working_cmyk_space_changed();
   }
 }
 

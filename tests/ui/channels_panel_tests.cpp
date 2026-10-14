@@ -1,4 +1,5 @@
 #include "ui/canvas_widget.hpp"
+#include "color/color_management.hpp"
 #include "core/adjustment_layer.hpp"
 #include "core/contour_presets.hpp"
 #include "core/gradient_presets.hpp"
@@ -162,6 +163,7 @@
 #include <QTextFragment>
 #include <QTextLayout>
 #include <QTimer>
+#include <QScopeGuard>
 #include <QToolBar>
 #include <QToolButton>
 #include <QTreeWidget>
@@ -993,6 +995,95 @@ void ui_save_layered_flat_format_routes_to_save_as_with_psd_default() {
   CHECK(patchy::ui::MainWindowTestAccess::active_session_path(window) == jpg_path);
 }
 
+// Issue 90: while View > Proof Colors is on, the Channels panel lists the CMYK proof's ink
+// plates. They are read-only views like the color components.
+void ui_channels_panel_shows_cmyk_plates_under_proof_colors() {
+  const auto previous = patchy::working_cmyk_space();
+  const auto restore = qScopeGuard([&previous] { patchy::set_working_cmyk_space(previous); });
+  const auto space = patchy::CmykWorkingSpace::from_icc_profile(patchy::ui::bundled_cmyk_profile(),
+                                                                patchy::RenderingIntent::RelativeColorimetric, true);
+
+  // Left half a blue, right half black.
+  patchy::Document document(64, 48, patchy::PixelFormat::rgb8());
+  auto pixels = solid_pixels(64, 48, patchy::PixelFormat::rgb8(), QColor(0, 160, 224));
+  fill_pixel_rect(pixels, QRect(32, 0, 32, 48), QColor(0, 0, 0));
+  document.add_pixel_layer("Artwork", std::move(pixels));
+  patchy::ui::MainWindow window;
+  // After the window exists: its constructor installs the stored profile choice.
+  patchy::set_working_cmyk_space(space);
+  window.add_document_session(std::move(document), QStringLiteral("Plates"));
+  show_window(window);
+  auto* canvas = require_canvas(window);
+  canvas->set_zoom(1.0);
+  QApplication::processEvents();
+  auto* channels = window.findChild<QListWidget*>(QStringLiteral("channelList"));
+  auto* proof = window.findChild<QAction*>(QStringLiteral("viewProofColorsAction"));
+  CHECK(channels != nullptr && proof != nullptr);
+  CHECK(channels->count() == 4);
+
+  proof->trigger();
+  QApplication::processEvents();
+  CHECK(proof->isChecked());
+  CHECK(channels->count() == 8);
+  const QStringList plates{QStringLiteral("Cyan"), QStringLiteral("Magenta"), QStringLiteral("Yellow"),
+                           QStringLiteral("Black")};
+  for (int index = 0; index < 4; ++index) {
+    CHECK(channels->item(4 + index)->text() == plates[index]);
+    CHECK(channels->item(4 + index)->toolTip().contains(QStringLiteral("ink plate")));
+  }
+
+  // What each plate should show: 255 - ink, from the working space's separation.
+  const auto inks = space->separate_rgba8(std::vector<std::uint8_t>{0, 160, 224, 255, 0, 0, 0, 255});
+  const auto shown = [&](QPoint document_point) {
+    QApplication::processEvents();
+    return canvas->grab().toImage().pixelColor(canvas->widget_position_for_document_point(document_point));
+  };
+  const std::array<patchy::ui::CanvasWidget::LayerEditTarget, 4> targets{
+      patchy::ui::CanvasWidget::LayerEditTarget::ComponentCyan, patchy::ui::CanvasWidget::LayerEditTarget::ComponentMagenta,
+      patchy::ui::CanvasWidget::LayerEditTarget::ComponentYellow, patchy::ui::CanvasWidget::LayerEditTarget::ComponentBlack};
+  for (std::size_t plate = 0; plate < 4; ++plate) {
+    channels->setCurrentRow(4 + static_cast<int>(plate));
+    QApplication::processEvents();
+    CHECK(canvas->layer_edit_target() == targets[plate]);
+    const auto blue = shown(QPoint(10, 20));
+    const auto black = shown(QPoint(50, 20));
+    CHECK(blue.red() == blue.green() && blue.green() == blue.blue());
+    CHECK(std::abs(blue.red() - (255 - inks[plate])) <= 1);
+    CHECK(std::abs(black.red() - (255 - inks[4 + plate])) <= 1);
+  }
+  save_widget_artifact("ui_channels_black_plate", *canvas);
+  CHECK(window.statusBar()->currentMessage().contains(QStringLiteral("Black plate")));
+  auto* chip = window.findChild<QWidget*>(QStringLiteral("maskEditModeChip"));
+  CHECK(chip != nullptr && chip->isVisible());
+
+  // A plate is a view: the painting and moving tools are unavailable, as for Red/Green/Blue.
+  CHECK(!require_action_by_text(window, QStringLiteral("Brush"))->isEnabled());
+  CHECK(!require_action_by_text(window, QStringLiteral("Move"))->isEnabled());
+  CHECK(!require_hotkey_action(window, QStringLiteral("layer.flip_horizontal"))->isEnabled());
+  CHECK(!require_action(window, "filterAction_patchy_filters_edge_detect")->isEnabled());
+
+  // Ctrl-click loads where the plate prints no ink as a selection.
+  const auto point = channels->visualItemRect(channels->item(4)).center();
+  send_mouse(*channels->viewport(), QEvent::MouseButtonPress, point, Qt::LeftButton, Qt::LeftButton,
+             Qt::ControlModifier);
+  send_mouse(*channels->viewport(), QEvent::MouseButtonRelease, point, Qt::LeftButton, Qt::NoButton,
+             Qt::ControlModifier);
+  QApplication::processEvents();
+  CHECK(std::abs(canvas->selection_alpha_at(QPoint(10, 20)) - (255 - inks[0])) <= 1);
+  CHECK(std::abs(canvas->selection_alpha_at(QPoint(50, 20)) - (255 - inks[4])) <= 1);
+
+  // Turning the proof off removes the plates and returns to the composite.
+  channels->setCurrentRow(7);
+  QApplication::processEvents();
+  proof->trigger();
+  QApplication::processEvents();
+  CHECK(!proof->isChecked());
+  CHECK(channels->count() == 4);
+  CHECK(canvas->layer_edit_target() == patchy::ui::CanvasWidget::LayerEditTarget::Content);
+  CHECK(channels->currentRow() == 0);
+}
+
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> channels_panel_tests() {
@@ -1007,6 +1098,7 @@ std::vector<patchy::test::TestCase> channels_panel_tests() {
       {"ui_save_fragmented_selection_as_channel_stays_responsive",
        ui_save_fragmented_selection_as_channel_stays_responsive},
       {"ui_channels_target_survives_document_switch", ui_channels_target_survives_document_switch},
+      {"ui_channels_panel_shows_cmyk_plates_under_proof_colors", ui_channels_panel_shows_cmyk_plates_under_proof_colors},
       {"ui_non_psd_save_warns_before_discarding_channels",
        ui_non_psd_save_warns_before_discarding_channels},
       {"ui_save_layered_flat_format_routes_to_save_as_with_psd_default",

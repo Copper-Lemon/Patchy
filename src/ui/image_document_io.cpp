@@ -44,6 +44,7 @@
 #include <QImage>
 #include <QImageWriter>
 #include <QObject>
+#include <QPainter>
 #include <QSaveFile>
 #include <QString>
 #include <QtGlobal>
@@ -2606,6 +2607,39 @@ void write_qimage_atomically(const QImage& image, const QString& path, const std
   }
 }
 
+// The working space a CMYK export separates through; throws when there is no profile to
+// separate with or describe the result by (the user chose the formula).
+std::shared_ptr<const CmykWorkingSpace> cmyk_export_space() {
+  auto space = working_cmyk_space();
+  if (!space->has_profile()) {
+    throw std::runtime_error(
+        PATCHY_TRANSLATE_NOOP("QObject", "CMYK export needs a CMYK profile. Choose one in Preferences."));
+  }
+  return space;
+}
+
+// The composite over white paper, separated to Format_CMYK8888 (255 = full ink).
+QImage cmyk_export_qimage(const Document& document, const CmykWorkingSpace& space, SeparationOptions separation) {
+  const auto composite = flat_export_qimage(document, true).convertToFormat(QImage::Format_ARGB32_Premultiplied);
+  QImage paper(composite.size(), QImage::Format_RGBA8888);
+  paper.fill(Qt::white);
+  {
+    QPainter painter(&paper);
+    painter.drawImage(0, 0, composite);
+  }
+  const auto width = static_cast<std::size_t>(paper.width());
+  std::vector<std::uint8_t> rgba(width * static_cast<std::size_t>(paper.height()) * 4U);
+  for (int y = 0; y < paper.height(); ++y) {
+    std::memcpy(rgba.data() + static_cast<std::size_t>(y) * width * 4U, paper.constScanLine(y), width * 4U);
+  }
+  const auto inks = space.separate_rgba8(rgba, separation);
+  QImage cmyk(paper.size(), QImage::Format_CMYK8888);
+  for (int y = 0; y < cmyk.height(); ++y) {
+    std::memcpy(cmyk.scanLine(y), inks.data() + static_cast<std::size_t>(y) * width * 4U, width * 4U);
+  }
+  return cmyk;
+}
+
 // Encodes `image`, then embeds the document's metadata when the format carries any.
 void write_flat_qimage(const Document& document, const ImageSaveOptions& options, const QImage& image,
                        const QString& path, const std::string& format, int quality) {
@@ -2619,7 +2653,8 @@ void write_flat_qimage(const Document& document, const ImageSaveOptions& options
 // formats narrow the deep composite in flat_export_qimage.
 [[nodiscard]] bool flat_writer_needs_8bit_document(const std::string& lower, std::string_view extension,
                                                    const ImageSaveOptions& options) {
-  return export_transform_requested(options) || lower == "gif" || (lower == "webp" && options.webp_animate) ||
+  return export_transform_requested(options) || options.export_cmyk || lower == "gif" ||
+         (lower == "webp" && options.webp_animate) ||
          lower == "tga" || lower == "pcx" || lower == "lbm" || lower == "iff" || lower == "bbm" ||
          lower == "ico" || lower == "cur" || jxr::is_jxr_extension(lower) || rttex::is_rttex_extension(lower) ||
          dds::is_dds_extension(lower) || is_bmp_extension(extension);
@@ -2640,6 +2675,11 @@ void write_flat_image_file(const Document& document, const QString& path, const 
                            const ImageSaveOptions& options, std::vector<std::string>* notices) {
   const auto extension_bytes = extension.toStdString();
   const auto lower = lower_extension(extension_bytes);
+  if (options.export_cmyk && !(is_jpeg_extension(extension_bytes) || lower == "tif" || lower == "tiff" ||
+                               (lower == "pdf" && !options.pdf_editable_layers))) {
+    throw std::runtime_error(PATCHY_TRANSLATE_NOOP(
+        "QObject", "CMYK export is available for JPEG, TIFF and flattened PDF files only."));
+  }
   if (lower == "pdf" && options.pdf_editable_layers) {
     // The layered writer needs the real document (export_stand_in_document would flatten
     // it first); vectors and text scale by the page, so the export transforms do not apply.
@@ -2748,7 +2788,24 @@ void write_flat_image_file(const Document& document, const QString& path, const 
   if (lower == "pdf") {
     PdfExportOptions pdf_options{options.pdf_lossless, false, false, options.pdf_jpeg_quality};
     pdf_options.keep_original_image_data = options.pdf_keep_original_images;
+    if (options.export_cmyk) {
+      pdf_options.cmyk_space = cmyk_export_space();
+      pdf_options.cmyk_black_ink_only = options.export_black_ink_only;
+    }
     write_pdf_document_file(document, path, pdf_options, notices);
+    return;
+  }
+  if (options.export_cmyk) {
+    // JPEG or TIFF: Qt writes both in CMYK (Adobe-style inverted JPEG, separated TIFF);
+    // the working profile replaces any RGB profile in the metadata.
+    const auto space = cmyk_export_space();
+    const auto image = cmyk_export_qimage(document, *space, SeparationOptions{options.export_black_ink_only});
+    auto metadata = save_metadata_for(document, options, lower, image.width(), image.height())
+                        .value_or(metadata::SaveMetadata{});
+    metadata.icc = space->profile_bytes();
+    write_qimage_atomically(image, path, lower,
+                            is_jpeg_extension(extension_bytes) ? std::clamp(options.jpeg_quality, 0, 100) : -1,
+                            metadata);
     return;
   }
   if (is_bmp_extension(extension_bytes)) {

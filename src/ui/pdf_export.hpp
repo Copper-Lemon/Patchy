@@ -1,5 +1,6 @@
 #pragma once
 
+#include "color/color_management.hpp"
 #include "core/document.hpp"
 #include "formats/pdf_image_writer.hpp"
 #include "support/atomic_file_write.hpp"
@@ -56,6 +57,12 @@ struct PdfExportOptions {
   // size. Off forces every page through the chosen quality. Persists as
   // saveOptions/pdfKeepOriginalImages.
   bool keep_original_image_data{true};
+  // Image pages in CMYK (docs/cmyk.md): separated through this working space and tagged
+  // with its profile as a four-component ICCBased space. Null writes RGB or gray. The
+  // editable-layers writer has no CMYK form; original image data is not carried over.
+  std::shared_ptr<const CmykWorkingSpace> cmyk_space{};
+  // With cmyk_space: black and grays separate to black ink alone (SeparationOptions).
+  bool cmyk_black_ink_only{false};
 };
 
 // The "did this page change since import" fingerprint: the size and RGBA bytes of

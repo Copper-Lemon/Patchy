@@ -356,9 +356,7 @@ void CanvasWidget::set_document_internal(Document* document, bool preserve_frame
           : ChannelId{0};
   const auto restore_component_target =
       preserve_frame_for_same_size &&
-              (layer_edit_target_ == LayerEditTarget::ComponentRed ||
-               layer_edit_target_ == LayerEditTarget::ComponentGreen ||
-               layer_edit_target_ == LayerEditTarget::ComponentBlue)
+              (CanvasWidget::is_component_preview(layer_edit_target_))
           ? layer_edit_target_
           : LayerEditTarget::Content;
   const auto restore_channel_display_mode = mask_display_mode_;
@@ -592,8 +590,13 @@ void CanvasWidget::set_layer_edit_target(LayerEditTarget target) noexcept {
   if (target != LayerEditTarget::DocumentChannel) {
     active_document_channel_id_ = 0;
   }
-  if (target == LayerEditTarget::ComponentRed || target == LayerEditTarget::ComponentGreen ||
-      target == LayerEditTarget::ComponentBlue) {
+  if (!is_cmyk_plate(target)) {
+    // Up to four bytes per document pixel: kept only while a plate is shown.
+    plate_inks_ = {};
+    plate_inks_source_key_ = 0;
+    plate_inks_space_.reset();
+  }
+  if (CanvasWidget::is_component_preview(target)) {
     mask_display_mode_ = MaskDisplayMode::Grayscale;
     mask_display_image_ = QImage();
     mask_display_image_layer_ = 0;
@@ -632,8 +635,7 @@ void CanvasWidget::set_document_channel_edit_target(ChannelId id, MaskDisplayMod
 }
 
 void CanvasWidget::set_component_channel_preview(LayerEditTarget component) {
-  if (component != LayerEditTarget::ComponentRed && component != LayerEditTarget::ComponentGreen &&
-      component != LayerEditTarget::ComponentBlue) {
+  if (!is_component_preview(component)) {
     set_layer_edit_target(LayerEditTarget::Content);
     set_mask_display_mode(MaskDisplayMode::None);
     return;
@@ -1155,6 +1157,55 @@ void CanvasWidget::clear_transient_read_interaction() {
 
 bool CanvasWidget::has_transient_read_interaction() const noexcept {
   return static_cast<bool>(transient_read_callback_);
+}
+
+void CanvasWidget::set_proof_display_transform(std::shared_ptr<const CmykProofTransform> transform) {
+  if (transform == proof_display_transform_) {
+    return;
+  }
+  proof_display_transform_ = std::move(transform);
+  proofed_images_.clear();
+  // The tiling tile pixmap is built from what the canvas displays.
+  tiling_tile_pixmap_ = QPixmap();
+  tiling_tile_pixmap_size_ = QSize();
+  update();
+}
+
+const QImage& CanvasWidget::proof_display_image(const QImage& image) {
+  if (proof_display_transform_ == nullptr || image.isNull()) {
+    return image;
+  }
+  const auto key = image.cacheKey();
+  const auto found = std::find_if(proofed_images_.begin(), proofed_images_.end(),
+                                  [key](const ProofedImage& entry) { return entry.source_key == key; });
+  if (found != proofed_images_.end()) {
+    std::rotate(found, found + 1, proofed_images_.end());
+    return proofed_images_.back().image;
+  }
+  // Straight alpha, so the transform sees the colors themselves.
+  QImage proofed = image.convertToFormat(QImage::Format_RGBA8888);
+  for (int y = 0; y < proofed.height(); ++y) {
+    proof_display_transform_->apply(proofed.scanLine(y), static_cast<std::size_t>(proofed.width()));
+  }
+  // The full composite, a drag base and its mip, and a frame's patches fit comfortably;
+  // the byte bound drops stale full-size copies. The most recently drawn entry always
+  // stays, so a drag base larger than the bound is not re-proofed for every patch.
+#ifdef Q_OS_WASM
+  constexpr qsizetype kMaxBytes = qsizetype{128} * 1024 * 1024;
+#else
+  constexpr qsizetype kMaxBytes = qsizetype{512} * 1024 * 1024;
+#endif
+  constexpr std::size_t kMaxEntries = 24;
+  auto bytes = proofed.sizeInBytes();
+  for (const auto& entry : proofed_images_) {
+    bytes += entry.image.sizeInBytes();
+  }
+  while (proofed_images_.size() > 1 && (proofed_images_.size() >= kMaxEntries || bytes > kMaxBytes)) {
+    bytes -= proofed_images_.front().image.sizeInBytes();
+    proofed_images_.erase(proofed_images_.begin());
+  }
+  proofed_images_.push_back(ProofedImage{key, std::move(proofed)});
+  return proofed_images_.back().image;
 }
 
 void CanvasWidget::set_curves_clipping_preview(std::optional<CurvesClippingMode> mode,

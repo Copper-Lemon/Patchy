@@ -9813,6 +9813,30 @@ Mixed selection</source>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation>含めるファイル情報のメタデータです。カラープロファイルと解像度は常に保持されます。</translation>
     </message>
+    <message>
+        <source>CMYK export needs a CMYK profile. Choose one in Preferences.</source>
+        <translation>CMYK で書き出すには CMYK プロファイルが必要です。環境設定で選択してください。</translation>
+    </message>
+    <message>
+        <source>CMYK export is available for JPEG, TIFF and flattened PDF files only.</source>
+        <translation>CMYK 書き出しは JPEG、TIFF、統合された PDF ファイルでのみ使用できます。</translation>
+    </message>
+    <message>
+        <source>CMYK (%1)</source>
+        <translation>CMYK (%1)</translation>
+    </message>
+    <message>
+        <source>CMYK separates the image through the CMYK profile chosen in Preferences and embeds that profile. Transparent areas print as paper white. Patchy opens CMYK files as RGB again.</source>
+        <translation>CMYK では、環境設定で選択した CMYK プロファイルで画像を分版し、そのプロファイルを埋め込みます。透明な部分は紙の白として印刷されます。Patchy は CMYK ファイルを再び RGB として開きます。</translation>
+    </message>
+    <message>
+        <source>Black and grays in black ink only</source>
+        <translation>黒とグレーをブラックインキのみで</translation>
+    </message>
+    <message>
+        <source>Prints black text and gray areas with black ink alone instead of a mix of all four inks, so small type stays sharp even when the press is slightly out of register. Colored areas are separated through the profile as usual.</source>
+        <translation>黒い文字やグレーの部分を 4 色の混合ではなくブラックインキだけで印刷するため、印刷機の見当が少しずれても小さな文字がシャープなままです。カラーの部分は通常どおりプロファイルで分版されます。</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -11467,6 +11491,14 @@ Mixed selection</source>
     <message>
         <source>Temporary selection mask. White selects, black masks, and gray creates partial selection.</source>
         <translation>一時的な選択マスクです。白で選択、黒でマスク、グレーで部分選択を作成します。</translation>
+    </message>
+    <message>
+        <source>Preview this ink plate of the CMYK proof: darker means more ink. Plates come from the working CMYK profile and are read-only.</source>
+        <translation>CMYK 校正のこの版をプレビューします。暗いほどインキが多くなります。版は作業用 CMYK プロファイルから作られ、読み取り専用です。</translation>
+    </message>
+    <message>
+        <source>%CTRL%-click to load where this plate has no ink as a selection.</source>
+        <translation>%CTRL%+クリックで、この版のインキがない部分を選択範囲として読み込みます。</translation>
     </message>
 </context>
 <context>
@@ -20237,6 +20269,126 @@ You can still download it in your browser.</source>
             <numerusform>%n 個の新しいレイヤーを追加します。プレビューでは、すでにキャンバスとレイヤーパネルに表示されています。</numerusform>
         </translation>
     </message>
+    <message>
+        <source>CMYK: %1, %2, %3, %4</source>
+        <translation>CMYK: %1, %2, %3, %4</translation>
+    </message>
+    <message>
+        <source>CMYK</source>
+        <translation>CMYK</translation>
+    </message>
+    <message>
+        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel, and CMYK swatches.</source>
+        <translation>Patchy は RGB で編集します。このプロファイルは、カラーピッカー、情報パネル、CMYK スウォッチでの CMYK 値の意味を決めます。</translation>
+    </message>
+    <message>
+        <source>Automatic</source>
+        <translation>自動</translation>
+    </message>
+    <message>
+        <source>Automatic (%1)</source>
+        <translation>自動（%1）</translation>
+    </message>
+    <message>
+        <source>No profile (approximate formula)</source>
+        <translation>プロファイルなし（近似式）</translation>
+    </message>
+    <message>
+        <source>Choose Profile File...</source>
+        <translation>プロファイルファイルを選択...</translation>
+    </message>
+    <message>
+        <source>Choose CMYK Profile</source>
+        <translation>CMYK プロファイルを選択</translation>
+    </message>
+    <message>
+        <source>ICC profiles (*.icc *.icm)</source>
+        <translation>ICC プロファイル (*.icc *.icm)</translation>
+    </message>
+    <message>
+        <source>CMYK Profile</source>
+        <translation>CMYK プロファイル</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is not a CMYK profile Patchy can use.</source>
+        <translation>「%1」は Patchy で使用できる CMYK プロファイルではありません。</translation>
+    </message>
+    <message>
+        <source>CMYK profile:</source>
+        <translation>CMYK プロファイル:</translation>
+    </message>
+    <message>
+        <source>Perceptual</source>
+        <translation>知覚的</translation>
+    </message>
+    <message>
+        <source>Relative Colorimetric</source>
+        <translation>相対的な色域を維持</translation>
+    </message>
+    <message>
+        <source>Saturation</source>
+        <translation>彩度</translation>
+    </message>
+    <message>
+        <source>Absolute Colorimetric</source>
+        <translation>絶対的な色域を維持</translation>
+    </message>
+    <message>
+        <source>Rendering intent:</source>
+        <translation>マッチング方法:</translation>
+    </message>
+    <message>
+        <source>Black point compensation</source>
+        <translation>黒点の補正</translation>
+    </message>
+    <message>
+        <source>Proof Colors</source>
+        <translation>色の校正</translation>
+    </message>
+    <message>
+        <source>Gamut Warning</source>
+        <translation>色域外警告</translation>
+    </message>
+    <message>
+        <source>Proof Colors and Gamut Warning need a CMYK profile. Choose one in Preferences.</source>
+        <translation>色の校正と色域外警告には CMYK プロファイルが必要です。環境設定で選択してください。</translation>
+    </message>
+    <message>
+        <source>Canvas view uses the CMYK profile %1. Documents and exports are unchanged.</source>
+        <translation>カンバスの表示に CMYK プロファイル %1 を使用しています。ドキュメントと書き出しは変わりません。</translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation>シアン</translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation>マゼンタ</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>イエロー</translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation>ブラック</translation>
+    </message>
+    <message>
+        <source>Previewing Cyan plate (read-only)</source>
+        <translation>シアン 版をプレビュー中 (読み取り専用)</translation>
+    </message>
+    <message>
+        <source>Previewing Magenta plate (read-only)</source>
+        <translation>マゼンタ 版をプレビュー中 (読み取り専用)</translation>
+    </message>
+    <message>
+        <source>Previewing Yellow plate (read-only)</source>
+        <translation>イエロー 版をプレビュー中 (読み取り専用)</translation>
+    </message>
+    <message>
+        <source>Previewing Black plate (read-only)</source>
+        <translation>ブラック 版をプレビュー中 (読み取り専用)</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20610,6 +20762,54 @@ You can still download it in your browser.</source>
     <message>
         <source>Blue</source>
         <translation>青</translation>
+    </message>
+    <message>
+        <source>C:</source>
+        <translation>C:</translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation>シアン</translation>
+    </message>
+    <message>
+        <source>M:</source>
+        <translation>M:</translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation>マゼンタ</translation>
+    </message>
+    <message>
+        <source>Y:</source>
+        <translation>Y:</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>イエロー</translation>
+    </message>
+    <message>
+        <source>K:</source>
+        <translation>K:</translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation>ブラック</translation>
+    </message>
+    <message>
+        <source>Ink percentages in the working CMYK space: %1. Choose the profile in Preferences.</source>
+        <translation>作業用 CMYK スペースでのインキ使用率: %1。プロファイルは環境設定で選択します。</translation>
+    </message>
+    <message>
+        <source>no profile (approximate)</source>
+        <translation>プロファイルなし（近似）</translation>
+    </message>
+    <message>
+        <source>Use the closest printable color</source>
+        <translation>最も近い印刷可能な色を使用</translation>
+    </message>
+    <message>
+        <source>This color is outside the gamut of %1 and prints as the color shown here. Click to use it.</source>
+        <translation>この色は %1 の色域外で、ここに表示された色で印刷されます。クリックするとその色を使用します。</translation>
     </message>
 </context>
 <context>
@@ -21883,6 +22083,10 @@ You can still download it in your browser.</source>
         <source>G&apos;MIC filter %1 failed: %2</source>
         <translation>G&apos;MIC フィルター %1 が失敗しました: %2</translation>
     </message>
+    <message>
+        <source>CMYK values are percentages from 0 to 100</source>
+        <translation>CMYK 値は 0 から 100 までのパーセントです</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ScriptSaveOptions</name>
@@ -21917,6 +22121,10 @@ You can still download it in your browser.</source>
     <message>
         <source>%1: options must be an object such as {quality: 85}.</source>
         <translation>%1: オプションは {quality: 85} のようなオブジェクトでなければなりません。</translation>
+    </message>
+    <message>
+        <source>%1: blackInkOnly needs colorMode: &quot;cmyk&quot;.</source>
+        <translation>%1: blackInkOnly には colorMode: &quot;cmyk&quot; が必要です。</translation>
     </message>
 </context>
 <context>

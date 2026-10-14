@@ -4168,6 +4168,13 @@ void MainWindow::update_canvas_info(CanvasInfoState info) {
                      .arg(color.green(), 2, 16, QLatin1Char('0'))
                      .arg(color.blue(), 2, 16, QLatin1Char('0'))
                      .toUpper();
+    // The same pixel in the working CMYK space (docs/cmyk.md).
+    const auto ink = working_cmyk_space()->cmyk_from_rgb({static_cast<std::uint8_t>(color.red()),
+                                                          static_cast<std::uint8_t>(color.green()),
+                                                          static_cast<std::uint8_t>(color.blue())});
+    color_line += QLatin1Char('\n') + tr("CMYK: %1, %2, %3, %4")
+                                          .arg(format_percent(ink.cyan, 0), format_percent(ink.magenta, 0),
+                                               format_percent(ink.yellow, 0), format_percent(ink.black, 0));
     if (has_active_document() && color.alpha() > 0) {
       const auto name = palette_color_name(std::as_const(document()),
           {static_cast<std::uint8_t>(color.red()), static_cast<std::uint8_t>(color.green()), static_cast<std::uint8_t>(color.blue())});

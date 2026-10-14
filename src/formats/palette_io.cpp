@@ -1,5 +1,6 @@
 #include "formats/palette_io.hpp"
 
+#include "color/color_management.hpp"
 #include "formats/bmp_document_io.hpp"
 #include "support/atomic_file_write.hpp"
 #include "support/translate_noop.hpp"
@@ -304,6 +305,7 @@ void require_color_count(std::size_t count) {
     const auto w = read_u16be(bytes, offset + 2);
     const auto x = read_u16be(bytes, offset + 4);
     const auto y = read_u16be(bytes, offset + 6);
+    const auto z = read_u16be(bytes, offset + 8);
     offset += 10;
     if (version == 2) {
       // Version-2 entries append a UTF-16BE name: u32 length in characters
@@ -326,8 +328,13 @@ void require_color_count(std::size_t count) {
         data.colors.push_back(RgbColor{gray, gray, gray});
         break;
       }
+      case 2: {  // CMYK, 0 = full ink and 65535 = none; through the working CMYK space
+        const auto ink = [](std::uint16_t stored) { return 100.0 - static_cast<double>(stored) * 100.0 / 65535.0; };
+        data.colors.push_back(working_cmyk_space()->rgb_from_cmyk({ink(w), ink(x), ink(y), ink(z)}));
+        break;
+      }
       default:
-        break;  // HSB/CMYK/Lab entries are skipped
+        break;  // HSB/Lab entries are skipped
     }
   }
   require_color_count(data.colors.size());
@@ -367,8 +374,13 @@ void require_color_count(std::size_t count) {
     } else if (model == "Gray") {
       const auto gray = float_channel(read_f32be(bytes, model_offset + 4));
       data.colors.push_back(RgbColor{gray, gray, gray});
+    } else if (model == "CMYK") {  // four ink fractions, through the working CMYK space
+      const auto ink = [&bytes, model_offset](std::size_t index) {
+        return static_cast<double>(read_f32be(bytes, model_offset + 4 + index * 4U)) * 100.0;
+      };
+      data.colors.push_back(working_cmyk_space()->rgb_from_cmyk({ink(0), ink(1), ink(2), ink(3)}));
     }
-    // CMYK/LAB entries are skipped.
+    // LAB entries are skipped.
     if (data.colors.size() > kMaxColors) {
       throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "Palette file has more than 256 colors"));
     }

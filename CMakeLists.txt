@@ -1309,6 +1309,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/icons.qrc
       src/ui/textures.qrc
       src/ui/themes.qrc
+      src/ui/color_profiles.qrc
     )
     # The G'MIC Filter Library (docs/gmic.md). Its interface compiles in every build;
     # the filter library text is embedded only when the engine is built.

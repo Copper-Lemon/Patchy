@@ -110,8 +110,11 @@ std::uint32_t ImageWriter::icc_profile_object(const ImageStream& image) {
     }
   }
   const auto number = begin_object();
-  write("<< /N " + std::to_string(image.icc_components) + " /Length " + std::to_string(image.icc_profile->size()) +
-        " >>\nstream\n");
+  // A CMYK export names DeviceCMYK for readers without color management; gray and RGB
+  // profiles keep the dictionary they always had.
+  write("<< /N " + std::to_string(image.icc_components) +
+        (image.icc_components == 4 ? " /Alternate /DeviceCMYK" : "") + " /Length " +
+        std::to_string(image.icc_profile->size()) + " >>\nstream\n");
   write(*image.icc_profile);
   write("\nendstream\nendobj\n");
   icc_objects_.emplace_back(image.icc_profile, number);
@@ -162,7 +165,7 @@ void ImageWriter::add_page(const ImagePage& page) {
   if (image.width <= 0 || image.height <= 0 || image.bytes.empty() || !(page.width_points > 0.0) ||
       !(page.height_points > 0.0) ||
       (page.rotate != 0 && page.rotate != 90 && page.rotate != 180 && page.rotate != 270) ||
-      (has_profile && image.icc_components != 1 && image.icc_components != 3) ||
+      (has_profile && image.icc_components != 1 && image.icc_components != 3 && image.icc_components != 4) ||
       (image.color_space.empty() && !has_profile && image.filter != "JPXDecode")) {
     throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "The document could not be rendered for PDF export."));
   }
@@ -260,6 +263,13 @@ void ImageWriter::set_document_info(std::vector<std::pair<std::string, std::stri
   document_info_ = std::move(entries);
 }
 
+void ImageWriter::set_output_intent(std::shared_ptr<const std::vector<std::uint8_t>> profile, int components,
+                                    std::string condition) {
+  output_intent_profile_ = std::move(profile);
+  output_intent_components_ = components;
+  output_intent_condition_ = std::move(condition);
+}
+
 void ImageWriter::finish() {
   if (!open_ || finished_) {
     // A caller bug (the writer was finished or aborted), reported like any write failure.
@@ -274,8 +284,21 @@ void ImageWriter::finish() {
     kids += std::to_string(page_object) + " 0 R ";
   }
   write("<< /Type /Pages /Count " + std::to_string(page_objects_.size()) + " /Kids [ " + kids + "] >>\nendobj\n");
+  std::string output_intents;
+  if (output_intent_profile_ != nullptr && !output_intent_profile_->empty()) {
+    ImageStream profile_holder;
+    profile_holder.icc_profile = output_intent_profile_;
+    profile_holder.icc_components = output_intent_components_;
+    const auto profile_object = icc_profile_object(profile_holder);
+    // "Custom": the profile is not one of the registered characterizations by name.
+    output_intents = " /OutputIntents [<< /Type /OutputIntent /S /GTS_PDFX /OutputConditionIdentifier (Custom)";
+    if (!output_intent_condition_.empty()) {
+      output_intents += " /Info " + utf16_hex_string(output_intent_condition_);
+    }
+    output_intents += " /DestOutputProfile " + std::to_string(profile_object) + " 0 R >>]";
+  }
   begin_reserved_object(kCatalogObject);
-  write("<< /Type /Catalog /Pages " + std::to_string(kPagesObject) + " 0 R >>\nendobj\n");
+  write("<< /Type /Catalog /Pages " + std::to_string(kPagesObject) + " 0 R" + output_intents + " >>\nendobj\n");
   const auto info_object = begin_object();
   std::string info = "<< /Creator (Patchy) /Producer (Patchy)";
   for (const auto& [key, value] : document_info_) {

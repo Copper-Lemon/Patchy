@@ -9843,6 +9843,30 @@ RGB: %2, %3, %4</translation>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation>Metadatos de Información de archivo que se incluyen. El perfil de color y la resolución siempre se conservan.</translation>
     </message>
+    <message>
+        <source>CMYK export needs a CMYK profile. Choose one in Preferences.</source>
+        <translation>La exportación CMYK necesita un perfil CMYK. Elija uno en Preferencias.</translation>
+    </message>
+    <message>
+        <source>CMYK export is available for JPEG, TIFF and flattened PDF files only.</source>
+        <translation>La exportación CMYK solo está disponible para archivos JPEG, TIFF y PDF acoplados.</translation>
+    </message>
+    <message>
+        <source>CMYK (%1)</source>
+        <translation>CMYK (%1)</translation>
+    </message>
+    <message>
+        <source>CMYK separates the image through the CMYK profile chosen in Preferences and embeds that profile. Transparent areas print as paper white. Patchy opens CMYK files as RGB again.</source>
+        <translation>CMYK separa la imagen con el perfil CMYK elegido en Preferencias e incrusta ese perfil. Las zonas transparentes se imprimen como blanco del papel. Patchy vuelve a abrir los archivos CMYK como RGB.</translation>
+    </message>
+    <message>
+        <source>Black and grays in black ink only</source>
+        <translation>Negro y grises solo con tinta negra</translation>
+    </message>
+    <message>
+        <source>Prints black text and gray areas with black ink alone instead of a mix of all four inks, so small type stays sharp even when the press is slightly out of register. Colored areas are separated through the profile as usual.</source>
+        <translation>Imprime el texto negro y las zonas grises solo con tinta negra en lugar de una mezcla de las cuatro tintas, para que el texto pequeño se mantenga nítido aunque el registro de la prensa se desvíe un poco. Las zonas de color se separan con el perfil como de costumbre.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -11497,6 +11521,14 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Delete channel</source>
         <translation>Eliminar canal</translation>
+    </message>
+    <message>
+        <source>Preview this ink plate of the CMYK proof: darker means more ink. Plates come from the working CMYK profile and are read-only.</source>
+        <translation>Vista previa de esta plancha de tinta de la prueba CMYK: más oscuro significa más tinta. Las planchas proceden del perfil CMYK de trabajo y son de solo lectura.</translation>
+    </message>
+    <message>
+        <source>%CTRL%-click to load where this plate has no ink as a selection.</source>
+        <translation>%CTRL%+clic carga como selección las zonas sin tinta de esta plancha.</translation>
     </message>
 </context>
 <context>
@@ -20300,6 +20332,126 @@ Aún puede descargarla en su navegador.</translation>
             <numerusform>Añade %n capas nuevas. La vista previa ya las muestra en el lienzo y en el panel Capas.</numerusform>
         </translation>
     </message>
+    <message>
+        <source>CMYK: %1, %2, %3, %4</source>
+        <translation>CMYK: %1, %2, %3, %4</translation>
+    </message>
+    <message>
+        <source>CMYK</source>
+        <translation>CMYK</translation>
+    </message>
+    <message>
+        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel, and CMYK swatches.</source>
+        <translation>Patchy edita en RGB. Este perfil define qué significan los valores CMYK en el selector de color, el panel Información y las muestras CMYK.</translation>
+    </message>
+    <message>
+        <source>Automatic</source>
+        <translation>Automático</translation>
+    </message>
+    <message>
+        <source>Automatic (%1)</source>
+        <translation>Automático (%1)</translation>
+    </message>
+    <message>
+        <source>No profile (approximate formula)</source>
+        <translation>Sin perfil (fórmula aproximada)</translation>
+    </message>
+    <message>
+        <source>Choose Profile File...</source>
+        <translation>Elegir archivo de perfil...</translation>
+    </message>
+    <message>
+        <source>Choose CMYK Profile</source>
+        <translation>Elegir perfil CMYK</translation>
+    </message>
+    <message>
+        <source>ICC profiles (*.icc *.icm)</source>
+        <translation>Perfiles ICC (*.icc *.icm)</translation>
+    </message>
+    <message>
+        <source>CMYK Profile</source>
+        <translation>Perfil CMYK</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is not a CMYK profile Patchy can use.</source>
+        <translation>&quot;%1&quot; no es un perfil CMYK que Patchy pueda usar.</translation>
+    </message>
+    <message>
+        <source>CMYK profile:</source>
+        <translation>Perfil CMYK:</translation>
+    </message>
+    <message>
+        <source>Perceptual</source>
+        <translation>Perceptual</translation>
+    </message>
+    <message>
+        <source>Relative Colorimetric</source>
+        <translation>Relativo colorimétrico</translation>
+    </message>
+    <message>
+        <source>Saturation</source>
+        <translation>Saturación</translation>
+    </message>
+    <message>
+        <source>Absolute Colorimetric</source>
+        <translation>Absoluto colorimétrico</translation>
+    </message>
+    <message>
+        <source>Rendering intent:</source>
+        <translation>Propósito de interpretación:</translation>
+    </message>
+    <message>
+        <source>Black point compensation</source>
+        <translation>Compensación de punto negro</translation>
+    </message>
+    <message>
+        <source>Proof Colors</source>
+        <translation>Colores de prueba</translation>
+    </message>
+    <message>
+        <source>Gamut Warning</source>
+        <translation>Aviso de gama</translation>
+    </message>
+    <message>
+        <source>Proof Colors and Gamut Warning need a CMYK profile. Choose one in Preferences.</source>
+        <translation>Colores de prueba y Aviso de gama necesitan un perfil CMYK. Elija uno en Preferencias.</translation>
+    </message>
+    <message>
+        <source>Canvas view uses the CMYK profile %1. Documents and exports are unchanged.</source>
+        <translation>La vista del lienzo usa el perfil CMYK %1. Los documentos y las exportaciones no cambian.</translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation>Cian</translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation>Magenta</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>Amarillo</translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation>Negro</translation>
+    </message>
+    <message>
+        <source>Previewing Cyan plate (read-only)</source>
+        <translation>Vista previa de la plancha Cian (solo lectura)</translation>
+    </message>
+    <message>
+        <source>Previewing Magenta plate (read-only)</source>
+        <translation>Vista previa de la plancha Magenta (solo lectura)</translation>
+    </message>
+    <message>
+        <source>Previewing Yellow plate (read-only)</source>
+        <translation>Vista previa de la plancha Amarillo (solo lectura)</translation>
+    </message>
+    <message>
+        <source>Previewing Black plate (read-only)</source>
+        <translation>Vista previa de la plancha Negro (solo lectura)</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20674,6 +20826,54 @@ Aún puede descargarla en su navegador.</translation>
     <message>
         <source>File: %1</source>
         <translation>Archivo: %1</translation>
+    </message>
+    <message>
+        <source>C:</source>
+        <translation>C:</translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation>Cian</translation>
+    </message>
+    <message>
+        <source>M:</source>
+        <translation>M:</translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation>Magenta</translation>
+    </message>
+    <message>
+        <source>Y:</source>
+        <translation>Y:</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>Amarillo</translation>
+    </message>
+    <message>
+        <source>K:</source>
+        <translation>K:</translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation>Negro</translation>
+    </message>
+    <message>
+        <source>Ink percentages in the working CMYK space: %1. Choose the profile in Preferences.</source>
+        <translation>Porcentajes de tinta en el espacio de trabajo CMYK: %1. Elija el perfil en Preferencias.</translation>
+    </message>
+    <message>
+        <source>no profile (approximate)</source>
+        <translation>sin perfil (aproximado)</translation>
+    </message>
+    <message>
+        <source>Use the closest printable color</source>
+        <translation>Usar el color imprimible más cercano</translation>
+    </message>
+    <message>
+        <source>This color is outside the gamut of %1 and prints as the color shown here. Click to use it.</source>
+        <translation>Este color está fuera de la gama de %1 y se imprime como el color que se muestra aquí. Haga clic para usarlo.</translation>
     </message>
 </context>
 <context>
@@ -21947,6 +22147,10 @@ Aún puede descargarla en su navegador.</translation>
         <source>G&apos;MIC filter %1 failed: %2</source>
         <translation>Error en el filtro de G&apos;MIC %1: %2</translation>
     </message>
+    <message>
+        <source>CMYK values are percentages from 0 to 100</source>
+        <translation>Los valores CMYK son porcentajes de 0 a 100</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ScriptSaveOptions</name>
@@ -21981,6 +22185,10 @@ Aún puede descargarla en su navegador.</translation>
     <message>
         <source>%1: options must be an object such as {quality: 85}.</source>
         <translation>%1: las opciones deben ser un objeto como {quality: 85}.</translation>
+    </message>
+    <message>
+        <source>%1: blackInkOnly needs colorMode: &quot;cmyk&quot;.</source>
+        <translation>%1: blackInkOnly necesita colorMode: &quot;cmyk&quot;.</translation>
     </message>
 </context>
 <context>

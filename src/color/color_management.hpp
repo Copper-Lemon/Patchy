@@ -10,6 +10,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace patchy {
@@ -142,5 +143,136 @@ public:
 // are preserved separately. Nullopt means the profile cannot be used.
 [[nodiscard]] std::optional<PixelBuffer> rgb_to_native_color_space(
     const PixelBuffer& rgb, ColorMode mode, std::span<const std::uint8_t> profile);
+
+// How out-of-gamut colors map into a profile. The tokens are persisted in settings and
+// used by the scripting API, so they never change.
+enum class RenderingIntent { Perceptual, RelativeColorimetric, Saturation, AbsoluteColorimetric };
+[[nodiscard]] std::string_view rendering_intent_token(RenderingIntent intent) noexcept;
+[[nodiscard]] std::optional<RenderingIntent> rendering_intent_from_token(std::string_view token) noexcept;
+
+// Choices for CmykWorkingSpace::separate_rgba8 beyond the profile's own separation.
+struct SeparationOptions {
+  // Black and grays print with black ink alone (docs/cmyk.md): neutral pixels, and pixels
+  // within kBlackInkOnlyTolerance of the color black ink alone prints, separate to
+  // 0/0/0/K. Everything else goes through the profile. Off, the profile decides, which
+  // turns black text into four-ink rich black.
+  bool black_ink_only{false};
+};
+// Per channel, in 8-bit sRGB steps. Wide enough for antialiased black text over white
+// (blends between black ink and paper sit a little off the black-ink curve), narrow
+// enough that a tinted gray keeps its color.
+inline constexpr int kBlackInkOnlyTolerance = 3;
+
+// Ink amounts as a print shop writes them: 0 = no ink, 100 = full ink.
+struct CmykPercent {
+  double cyan{0.0};
+  double magenta{0.0};
+  double yellow{0.0};
+  double black{0.0};
+
+  friend bool operator==(const CmykPercent&, const CmykPercent&) = default;
+};
+
+// The CMYK space that numbers typed or shown in the interface refer to: the color
+// picker's C/M/Y/K fields, the Info panel readout, CMYK swatches in palette files and the
+// script conversions. Patchy still edits in sRGB (docs/cmyk.md); this only converts single
+// colors. With a profile the conversion runs through Little CMS; without one it is the
+// profile-free formula (black = the ink common to all three, the rest scaled), which is
+// a rough guide only.
+// Instances are immutable and safe to share across threads.
+class CmykWorkingSpace {
+public:
+  // Null when the bytes are not a usable CMYK profile with both directions.
+  [[nodiscard]] static std::shared_ptr<const CmykWorkingSpace> from_icc_profile(
+      std::vector<std::uint8_t> profile_bytes, RenderingIntent intent, bool black_point_compensation);
+  // The same from a profile file; null too when the file is missing, unreadable or
+  // larger than 16 MiB. The path keeps its native encoding.
+  [[nodiscard]] static std::shared_ptr<const CmykWorkingSpace> from_profile_file(
+      const std::filesystem::path& path, RenderingIntent intent, bool black_point_compensation);
+  // The profile-free formula. Never null.
+  [[nodiscard]] static std::shared_ptr<const CmykWorkingSpace> formula();
+
+  CmykWorkingSpace(const CmykWorkingSpace&) = delete;
+  CmykWorkingSpace& operator=(const CmykWorkingSpace&) = delete;
+  ~CmykWorkingSpace();
+
+  [[nodiscard]] bool has_profile() const noexcept;
+  // The profile's own description tag; empty for the formula.
+  [[nodiscard]] const std::string& profile_description() const noexcept;
+  [[nodiscard]] const std::vector<std::uint8_t>& profile_bytes() const noexcept;
+  [[nodiscard]] RenderingIntent intent() const noexcept;
+  [[nodiscard]] bool black_point_compensation() const noexcept;
+
+  [[nodiscard]] CmykPercent cmyk_from_rgb(RgbColor color) const;
+  // Values outside 0..100 are clamped.
+  [[nodiscard]] RgbColor rgb_from_cmyk(CmykPercent cmyk) const;
+  // Separates whole rows for CMYK export: straight-alpha RGBA8 in (alpha ignored), four
+  // 8-bit inks per pixel out, 255 = full ink (Qt's Format_CMYK8888 and a PDF DeviceCMYK
+  // sample). With a profile this builds one optimized transform per call, so pass large
+  // spans; without one it is the formula.
+  [[nodiscard]] std::vector<std::uint8_t> separate_rgba8(std::span<const std::uint8_t> rgba,
+                                                       SeparationOptions options = {}) const;
+
+private:
+  struct Impl;
+  explicit CmykWorkingSpace(std::unique_ptr<Impl> impl);
+  std::unique_ptr<Impl> impl_;
+};
+
+// The process-wide working space. Never null: the formula until the application installs
+// the user's choice at startup. Replacing it is thread-safe; holders of the old pointer
+// keep a valid space.
+[[nodiscard]] std::shared_ptr<const CmykWorkingSpace> working_cmyk_space();
+void set_working_cmyk_space(std::shared_ptr<const CmykWorkingSpace> space);
+
+// The fill for out-of-gamut pixels under the gamut warning: a flat mid gray, the
+// convention print tools use. It depicts a state of the artwork, not interface chrome,
+// so it does not follow the color scheme.
+inline constexpr RgbColor kGamutWarningColor{128, 128, 128};
+
+// A display-only view of sRGB pixels as a CMYK working space would print them
+// (docs/cmyk.md): the soft proof converts each color to the profile and back for the
+// screen, and the gamut warning replaces colors the profile cannot hold with
+// kGamutWarningColor. Either part can be off. Built once per setting change (it samples
+// the profile into tables), then applied to whole rows; immutable and thread-safe.
+class CmykProofTransform {
+public:
+  // Null when the space has no profile, or neither part is requested.
+  [[nodiscard]] static std::shared_ptr<const CmykProofTransform> create(const CmykWorkingSpace& space,
+                                                                        bool simulate_colors,
+                                                                        bool mark_out_of_gamut);
+
+  CmykProofTransform(const CmykProofTransform&) = delete;
+  CmykProofTransform& operator=(const CmykProofTransform&) = delete;
+  ~CmykProofTransform();
+
+  [[nodiscard]] bool simulates_colors() const noexcept;
+  [[nodiscard]] bool marks_out_of_gamut() const noexcept;
+  // Whether the gamut warning marks this color; false when that part is off. The test is
+  // Little CMS's own (a round trip through the profile, or its gamut tag), sampled on a
+  // 33-step grid per channel, so the edge of the gamut is approximate by design.
+  [[nodiscard]] bool out_of_gamut(RgbColor color) const noexcept;
+  // In place over straight-alpha RGBA8 pixels; alpha is left alone.
+  void apply(std::uint8_t* rgba, std::size_t pixel_count) const;
+  // How `color` prints: the soft proof alone, without the gamut warning's gray. The color
+  // itself when this transform does not simulate colors.
+  [[nodiscard]] RgbColor printed(RgbColor color) const;
+
+private:
+  struct Impl;
+  explicit CmykProofTransform(std::unique_ptr<Impl> impl);
+  std::unique_ptr<Impl> impl_;
+};
+
+// CMYK profiles found in the operating system's and Adobe's profile folders, sorted by
+// description then path. Nothing is read beyond each file's header and description.
+struct InstalledCmykProfile {
+  std::filesystem::path path;
+  std::string description;
+};
+[[nodiscard]] std::vector<InstalledCmykProfile> installed_cmyk_profiles();
+// U.S. Web Coated (SWOP) v2 where Adobe software installed it: the automatic choice when
+// present, ahead of the profile Patchy bundles (docs/cmyk.md). Empty path when absent.
+[[nodiscard]] std::filesystem::path automatic_cmyk_profile_path();
 
 }  // namespace patchy

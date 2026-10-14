@@ -30,6 +30,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <deque>
 #include <future>
 #include <stdexcept>
@@ -170,6 +171,10 @@ bool write_image_pages(std::span<const Document* const> pages, const QString& pa
     for (const auto& keyword : fields.keywords) {
       keywords += (keywords.empty() ? "" : "; ") + keyword;
     }
+    if (options.cmyk_space != nullptr) {
+      writer.set_output_intent(std::make_shared<const std::vector<std::uint8_t>>(options.cmyk_space->profile_bytes()),
+                               4, options.cmyk_space->profile_description());
+    }
     writer.set_document_info({{"Title", fields.title}, {"Author", authors}, {"Subject", fields.description},
                               {"Keywords", keywords}});
   }
@@ -198,7 +203,8 @@ bool write_image_pages(std::span<const Document* const> pages, const QString& pa
     if (image.isNull()) {
       throw std::runtime_error("The document could not be rendered for PDF export.");
     }
-    if (options.keep_original_image_data && document_matches_pdf_source(document, image)) {
+    if (options.keep_original_image_data && options.cmyk_space == nullptr &&
+        document_matches_pdf_source(document, image)) {
       // Nothing visible changed since this page came out of a PDF: its own bytes go
       // back, in order behind whatever is still encoding.
       const UiProfileScope profile_scope("pdf_export.pass_through", profile_detail);
@@ -380,8 +386,10 @@ pdf::ImagePage encode_page_image(const QImage& composite, double width_points, d
     throw std::runtime_error("The document could not be rendered for PDF export.");
   }
   // One pass decides both questions. A fully transparent pixel has no colour to speak
-  // of, so it never makes a gray page RGB.
-  bool gray = options.auto_grayscale;
+  // of, so it never makes a gray page RGB. A CMYK page stays CMYK even when gray: the
+  // profile decides how a gray prints.
+  const bool cmyk = options.cmyk_space != nullptr;
+  bool gray = options.auto_grayscale && !cmyk;
   bool opaque = true;
   for (int y = 0; y < height && (gray || opaque); ++y) {
     const auto* row = rgba.constScanLine(y);
@@ -398,7 +406,7 @@ pdf::ImagePage encode_page_image(const QImage& composite, double width_points, d
       }
     }
   }
-  const int channels = gray ? 1 : 3;
+  const int channels = cmyk ? 4 : gray ? 1 : 3;
   pdf::ImagePage page;
   page.width_points = width_points;
   page.height_points = height_points;
@@ -407,7 +415,31 @@ pdf::ImagePage encode_page_image(const QImage& composite, double width_points, d
   page.image.bits_per_component = 8;
   page.image.color_space = gray ? "/DeviceGray" : "/DeviceRGB";
 
-  if (options.lossless) {
+  if (cmyk) {
+    std::vector<std::uint8_t> straight(static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4U);
+    for (int y = 0; y < height; ++y) {
+      std::memcpy(straight.data() + static_cast<std::size_t>(y) * static_cast<std::size_t>(width) * 4U,
+                  rgba.constScanLine(y), static_cast<std::size_t>(width) * 4U);
+    }
+    auto inks = options.cmyk_space->separate_rgba8(straight, SeparationOptions{options.cmyk_black_ink_only});
+    page.image.icc_profile = std::make_shared<const std::vector<std::uint8_t>>(options.cmyk_space->profile_bytes());
+    page.image.icc_components = 4;
+    if (options.lossless) {
+      page.image.bytes = flate_with_up_predictor(inks, width, height, 4);
+      page.image.filter = "FlateDecode";
+      page.image.decode_parms = up_predictor_parms(width, 4);
+    } else {
+      QImage source(width, height, QImage::Format_CMYK8888);
+      for (int y = 0; y < height; ++y) {
+        std::memcpy(source.scanLine(y), inks.data() + static_cast<std::size_t>(y) * static_cast<std::size_t>(width) * 4U,
+                    static_cast<std::size_t>(width) * 4U);
+      }
+      page.image.bytes = jpeg_bytes(source, options.jpeg_quality);
+      page.image.filter = "DCTDecode";
+      // Qt writes Adobe-style CMYK JPEG, which stores every ink inverted.
+      page.image.decode = "[1 0 1 0 1 0 1 0]";
+    }
+  } else if (options.lossless) {
     std::vector<std::uint8_t> samples(static_cast<std::size_t>(width) * static_cast<std::size_t>(height) *
                                       static_cast<std::size_t>(channels));
     auto* out = samples.data();

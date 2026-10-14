@@ -7416,6 +7416,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
   tool_settings_save_timer_->setInterval(kToolSettingsSaveDelayMs);
   connect(tool_settings_save_timer_, &QTimer::timeout, this, [this] { save_tool_settings(); });
   load_pen_input_settings();
+  set_working_cmyk_space(cmyk_working_space_for(stored_cmyk_working_settings()));
   // Startup opens with an empty workspace (the start panel); no document is
   // auto-created. The one-time load_tool_settings() runs when the first
   // document session brings a canvas (startup_tool_settings_pending_).
@@ -14116,9 +14117,7 @@ void MainWindow::update_document_action_state() {
   const bool channel_view = canvas_ != nullptr &&
                             (quick_mask_view || smart_filter_mask_view ||
                              canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::DocumentChannel ||
-                             canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentRed ||
-                             canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentGreen ||
-                             canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentBlue);
+                             CanvasWidget::is_component_preview(canvas_->layer_edit_target()));
   const bool writable_channel =
       quick_mask_view || smart_filter_mask_view ||
       (channel_view && canvas_->document_channel_is_editable());
@@ -14252,9 +14251,7 @@ void MainWindow::refresh_convert_for_smart_filters_action_state() {
       canvas_ != nullptr &&
       (canvas_->quick_mask_active() || canvas_->editing_smart_filter_mask() ||
        canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::DocumentChannel ||
-       canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentRed ||
-       canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentGreen ||
-       canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentBlue);
+       CanvasWidget::is_component_preview(canvas_->layer_edit_target()));
   const Layer* active_layer = nullptr;
   if (has_document) {
     const auto active_id = std::as_const(document()).active_layer_id();

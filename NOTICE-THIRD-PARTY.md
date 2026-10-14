@@ -141,7 +141,8 @@ Patchy uses it under the BSD-3-Clause license, included at
 
 `src/color/lcms2/` vendors the Little CMS 2.17 core library
 (https://github.com/mm2/Little-CMS), used to convert CMYK PSD documents through
-their embedded ICC color profile on import. Only the MIT-licensed core is
+their embedded ICC color profile on import and to convert single colors through
+the CMYK profile chosen in Preferences. Only the MIT-licensed core is
 vendored (the optional lcms2 speed plugins are GPL-licensed and are not
 included); the license text is included at `src/color/lcms2/LICENSE`.
 
@@ -191,6 +192,18 @@ non-restricted portions), the BSD-licensed DCB demosaic and FBDD denoise
 Adobe DNG SDK fragments. The license texts are included at
 `src/formats/libraw/LICENSE.CDDL`, `src/formats/libraw/LICENSE.LGPL`, and
 `src/formats/libraw/COPYRIGHT`.
+
+## ISO Coated v2 CMYK profile (basICColor)
+
+`third_party/icc/basiccolor/ISOcoated_v2_bas.ICC` is the "ISO Coated v2
+(basICColor)" ICC profile from basICColor GmbH's Offset 2009 set
+(http://www.basiccolor.de, http://colormanagement.org), taken unmodified from the
+OpenICC project's `icc-profiles-basiccolor-printing2009-1.2.0` package
+(https://sourceforge.net/projects/openicc/files/basICColor-Profiles/), fetched
+October 14, 2026. Copyright (c) 2007-2010 basICColor GmbH, zlib/libpng License;
+the license text is at `third_party/icc/basiccolor/LICENSE-ZLIB-bICC`. Patchy
+compiles the profile and that license text into the application and uses the
+profile as the default for CMYK color numbers.
 
 ## G'MIC and CImg (desktop builds)
 
