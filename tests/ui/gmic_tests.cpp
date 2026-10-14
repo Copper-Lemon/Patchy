@@ -8,6 +8,7 @@
 #include "filters/gmic/gmic_catalog.hpp"
 #include "filters/gmic/gmic_engine.hpp"
 #include "ui/canvas_widget.hpp"
+#include "ui/color_panel.hpp"
 #include "ui/gmic_filter_library_dialog.hpp"
 #include "ui/gmic_library.hpp"
 #include "ui/gmic_parameter_panel.hpp"
@@ -376,6 +377,71 @@ bool wait_until(Predicate predicate, int timeout_ms = 30000) {
 // The dialog previews on the real layer from a background run: picking a filter
 // returns at once, the result arrives later inside the selection only, Preview
 // off puts the original back, and OK commits what was previewed as one undo step.
+// A color swatch previews every color picked while the picker is still open (coalesced
+// like a slider drag), and Cancel in the picker puts the original color back.
+void ui_gmic_color_swatch_previews_while_picking() {
+  // The first filter with a color that refreshes the preview, and where its value sits.
+  const gmic::Filter* filter = nullptr;
+  const gmic::Parameter* color_parameter = nullptr;
+  std::size_t value_index = 0;
+  for (const auto& candidate : whole_catalog().filters) {
+    std::size_t index = 0;
+    for (const auto& parameter : candidate.parameters) {
+      if (parameter.type == gmic::ParameterType::Color && parameter.updates_preview) {
+        filter = &candidate;
+        color_parameter = &parameter;
+        value_index = index;
+        break;
+      }
+      index += parameter.carries_value() ? 1U : 0U;
+    }
+    if (filter != nullptr) {
+      break;
+    }
+  }
+  CHECK(filter != nullptr);
+  if (filter == nullptr) {
+    return;
+  }
+  patchy::ui::GmicFilterLibraryDialog dialog(whole_catalog(), QStringLiteral("4.0.5"));
+  CHECK(dialog.select_filter(filter->id));
+  dialog.show();
+  QApplication::processEvents();
+  int requests = 0;
+  dialog.set_preview_callback([&requests](const patchy::ui::GmicPreviewRequest&) { ++requests; });
+  QPushButton* swatch = nullptr;
+  for (auto* button : dialog.findChildren<QPushButton*>()) {
+    if (button->accessibleName() == QString::fromStdString(color_parameter->name)) {
+      swatch = button;
+    }
+  }
+  CHECK(swatch != nullptr);
+  if (swatch == nullptr) {
+    return;
+  }
+  const auto value = [&dialog, value_index] {
+    const auto choice = dialog.choice();
+    return choice.has_value() && value_index < choice->values.size() ? choice->values[value_index] : std::string();
+  };
+  const auto original = value();
+  bool picked = false;
+  QTimer::singleShot(0, &dialog, [&] {
+    const int before = requests;
+    CHECK(patchy::ui::apply_color_to_open_color_picker(QColor(10, 200, 30)));
+    CHECK(value().rfind("10,200,30", 0) == 0);
+    CHECK(wait_until([&] { return requests > before; }, 5000));
+    picked = true;
+    for (auto* widget : QApplication::topLevelWidgets()) {
+      if (widget->objectName() == QStringLiteral("patchyColorDialog") && widget->isVisible()) {
+        qobject_cast<QDialog*>(widget)->reject();
+      }
+    }
+  });
+  swatch->click();
+  CHECK(picked);
+  CHECK(value() == original);
+}
+
 void ui_gmic_library_dialog_previews_on_the_layer_and_commits() {
   if (!gmic::engine_available()) {
     return;
@@ -1409,6 +1475,7 @@ std::vector<patchy::test::TestCase> gmic_ui_tests() {
       {"ui_gmic_filter_applies_inside_selection_and_undoes", ui_gmic_filter_applies_inside_selection_and_undoes},
       {"ui_gmic_library_dialog_previews_on_the_layer_and_commits",
        ui_gmic_library_dialog_previews_on_the_layer_and_commits},
+      {"ui_gmic_color_swatch_previews_while_picking", ui_gmic_color_swatch_previews_while_picking},
       {"ui_gmic_filter_adds_output_layers_in_one_undo_step", ui_gmic_filter_adds_output_layers_in_one_undo_step},
       {"ui_gmic_filter_keeps_transparency_on_a_layer_without_alpha",
        ui_gmic_filter_keeps_transparency_on_a_layer_without_alpha},

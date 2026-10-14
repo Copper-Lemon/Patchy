@@ -139,7 +139,7 @@ a document action, created only when `gmic::engine_available()`).
 - `src/ui/gmic_parameter_panel.{hpp,cpp}`: `GmicParameterPanel::set_filter` generates one form
   row per declared parameter. Float and int are a slider with a fixed-width spin box (float
   decimals follow the range and are never coarser than the declaration writes its numbers),
-  choice a combo, bool a check box, color a swatch through `request_patchy_color` plus an
+  choice a combo, bool a check box, color a swatch through `request_patchy_color` (each pick previews live, picker Cancel restores) plus an
   Alpha spin when declared, text a line or multi-line edit, point two percent fields, button
   a one-shot flag (1 for the run after its press; `release_buttons` puts it back once a
   run has read it, and `gmic::release_button_values` does the same for remembered values),

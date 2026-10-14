@@ -17,6 +17,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPlainTextEdit>
+#include <QPointer>
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QSignalBlocker>
@@ -256,12 +257,22 @@ void GmicParameterPanel::set_filter(const gmic::Filter& filter, const std::vecto
           connect(alpha, qOverload<int>(&QSpinBox::valueChanged), this, [this, live](int) { changed(live); });
         }
         row->addStretch(1);
-        connect(swatch, &QPushButton::clicked, this, [this, live, color, show, label] {
-          if (const auto picked = request_patchy_color(this, *color, label); picked.has_value()) {
-            *color = *picked;
+        connect(swatch, &QPushButton::clicked, this, [this, live, color, show, label, swatch] {
+          // Every color picked while the picker is open previews at once (coalesced like a
+          // slider drag), and Cancel puts the original back. The picker is non-modal: if the
+          // panel moves to another filter meanwhile, this swatch is gone and picks are dropped.
+          const QPointer<QPushButton> alive(swatch);
+          const QColor original = *color;
+          const auto apply = [this, live, color, show, alive](QColor picked) {
+            if (alive == nullptr || picked == *color) {
+              return;
+            }
+            *color = picked;
             show();
             changed(live);
-          }
+          };
+          const auto picked = request_patchy_color(this, original, label, apply);
+          apply(picked.value_or(original));
         });
         binding.read = [color, alpha] {
           std::string value = std::to_string(color->red()) + "," + std::to_string(color->green()) + "," +
