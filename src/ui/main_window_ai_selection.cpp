@@ -112,8 +112,11 @@ void configure_automatic_selection_models() {
 
 namespace {
 
-// Persisted settings key (never rename): the first-use offer was shown.
+#if !defined(Q_OS_WASM)
+// Persisted settings key (never rename): the first-use offer was shown. The web build
+// never offers the download.
 constexpr auto kHighQualityOfferedKey = "automaticSelection/highQualityModelOffered";
+#endif
 
 // Decimal megabytes, as download sizes are usually given.
 int megabytes(qint64 bytes) {
