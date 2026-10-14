@@ -10,6 +10,8 @@
 #include "formats/jxl_symbols.hpp"
 
 #include "core_test_support.hpp"
+#include "formats/stb/stb_image.h"
+#include "local_psd_fixtures.hpp"
 #include "test_harness.hpp"
 #include "unicode_path_names.hpp"
 
@@ -21,6 +23,8 @@
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <iostream>
 #include <optional>
 #include <stdexcept>
@@ -89,6 +93,11 @@ public:
   const auto left = std::as_const(a).data();
   const auto right = std::as_const(b).data();
   return std::equal(left.begin(), left.end(), right.begin(), right.end());
+}
+
+[[nodiscard]] std::vector<std::uint8_t> file_bytes(const std::filesystem::path& path) {
+  std::ifstream stream(path, std::ios::binary);
+  return {std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
 }
 
 [[nodiscard]] jxl::WriteOptions lossless() {
@@ -492,6 +501,63 @@ void jxl_rejects_damaged_and_truncated_files() {
   CHECK(jxl::read_metadata(garbled).exif.empty());
 }
 
+void jxl_decodes_conformance_files_that_use_patches() {
+  // The encoder never writes patches (docs/legal-constraints.md), but files made elsewhere
+  // with them must open. Both inputs are the libjxl conformance suite's CC0 "patches" cases
+  // (test-fixtures/jxl, provenance in NOTICE-THIRD-PARTY.md); the PNGs are the suite's 8-bit
+  // renderings of its float references.
+  struct Case {
+    const char* stem;
+    int max_difference;
+  };
+  for (const auto& test_case : {Case{"conformance-patches", 3}, Case{"conformance-patches-lossless", 1}}) {
+    const auto jxl_bytes =
+        file_bytes(patchy::test::committed_format_fixture_path("jxl", std::string(test_case.stem) + ".jxl"));
+    const auto png_bytes = file_bytes(
+        patchy::test::committed_format_fixture_path("jxl", std::string(test_case.stem) + "-ref.png"));
+    CHECK(!jxl_bytes.empty() && !png_bytes.empty());
+    const auto read = jxl::read_jxl_detailed(jxl_bytes);
+    const auto& document = read.read.document;
+    int width = 0;
+    int height = 0;
+    int channels = 0;
+    auto* reference = stbi_load_from_memory(png_bytes.data(), static_cast<int>(png_bytes.size()), &width, &height,
+                                            &channels, 4);
+    CHECK(reference != nullptr);
+    if (reference == nullptr) {
+      continue;
+    }
+    CHECK(document.width() == width);
+    CHECK(document.height() == height);
+    const auto& pixels = top_pixels(document);
+    const std::size_t decoded_channels = pixels.format().channels;
+    int worst = 0;
+    std::uint64_t total = 0;
+    for (std::int32_t y = 0; y < std::min(height, document.height()); ++y) {
+      const auto row = std::as_const(pixels).row(y);
+      for (std::int32_t x = 0; x < std::min(width, document.width()); ++x) {
+        const auto* want = reference + (static_cast<std::size_t>(y) * static_cast<std::size_t>(width) + x) * 4U;
+        const auto* got = row.data() + static_cast<std::size_t>(x) * decoded_channels;
+        const int alpha = decoded_channels == 4 ? got[3] : 255;
+        worst = std::max(worst, std::abs(alpha - want[3]));
+        if (want[3] == 0) {
+          continue;  // color under full transparency is not meaningful
+        }
+        for (int c = 0; c < 3; ++c) {
+          const int difference = std::abs(static_cast<int>(got[c]) - want[c]);
+          worst = std::max(worst, difference);
+          total += static_cast<std::uint64_t>(difference);
+        }
+      }
+    }
+    stbi_image_free(reference);
+    if (worst > test_case.max_difference) {
+      std::cout << "  " << test_case.stem << ": worst difference " << worst << ", total " << total << "\n";
+    }
+    CHECK(worst <= test_case.max_difference);
+  }
+}
+
 void jxl_writer_bytes_are_stable() {
   // Pins the default lossless writer output (effort 7, the patches and dots settings, the
   // codestream layout) by an FNV-1a hash. Re-pin only for a deliberate encoder change, such
@@ -548,6 +614,7 @@ std::vector<patchy::test::TestCase> jxl_tests() {
       {"jxl_gray_premultiplied_and_oriented_sources_decode", jxl_gray_premultiplied_and_oriented_sources_decode},
       {"jxl_pq_sources_open_with_sdr_white_at_one", jxl_pq_sources_open_with_sdr_white_at_one},
       {"jxl_rejects_damaged_and_truncated_files", jxl_rejects_damaged_and_truncated_files},
+      {"jxl_decodes_conformance_files_that_use_patches", jxl_decodes_conformance_files_that_use_patches},
       {"jxl_writer_bytes_are_stable", jxl_writer_bytes_are_stable},
       {"jxl_unicode_path_round_trips", jxl_unicode_path_round_trips},
   };

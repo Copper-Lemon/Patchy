@@ -23,6 +23,7 @@ CMakeLists.txt text
 *.png binary -eol
 *.jpg binary -eol
 *.jpeg binary -eol
+*.jxl binary -eol
 *.ico binary -eol
 *.icns binary -eol
 

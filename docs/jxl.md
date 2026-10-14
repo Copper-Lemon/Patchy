@@ -36,6 +36,9 @@ through `last_encoder_tool_settings()`.
 
 Decoding is unrestricted: files that use patches, dots, splines or noise open normally
 (the caution is encoder-side only; Google's grant covers libjxl's decoder as shipped).
+`jxl_decodes_conformance_files_that_use_patches` opens the libjxl conformance suite's CC0
+`patches` and `patches_lossless` cases (`test-fixtures/jxl/conformance-*`) and compares them
+with the suite's 8-bit reference renderings (within 3 and 1 code values).
 
 ## Decode
 
@@ -50,7 +53,10 @@ Decoding is unrestricted: files that use patches, dots, splines or noise open no
   converted by libjxl's CMS to the original encoded space or ICC; lossless files are
   already there. `pixels_in_source_space` is true, so `capture_file_info` keeps the file's
   profile as the document's embedded profile (the PNG/TIFF convention, docs/file-info.md).
-  A plain sRGB file reports no profile.
+  A plain sRGB file reports no profile. When the CMS cannot render an XYB file into its own
+  ICC profile (skcms fails on the conformance "patches" profile: `JxlDecoderProcessInput`
+  errors), the reader decodes once more to sRGB and the profile becomes reference only
+  (`SourceSpaceTargetFailed`).
 - Color, 32-bit: always linear sRGB primaries (Patchy's 32-bit model), so the file's profile
   is reference only.
 - HDR: libjxl linearizes PQ and HLG so that 1.0 is the file's intensity target; the reader
@@ -98,6 +104,15 @@ Decoding is unrestricted: files that use patches, dots, splines or noise open no
 - `jxl_writer_bytes_are_stable` pins lossless effort-7 output for two small gradients.
   libjxl's output does not depend on the thread count; re-pin only for a deliberate change
   such as a libjxl upgrade.
+
+## Interoperability (checked 2026-10-15)
+
+Patchy's lossless 8-bit (with alpha), lossy, 16-bit, float and animated output decoded in
+Chrome 155 (jxl-rs, a separate implementation), GIMP 3.2.6, Krita 5.3.2 and Photoshop 2026
+(27.10). Lossless 8 and 16-bit came back exact (16-bit and float within 1 after each app's
+8-bit export), every app showed animation frame 1, and the lossy file decoded identically
+(within 1) everywhere. Windows' own JPEG XL WIC decoder needs the Store "JPEG XL Image
+Extension" and was not tested.
 
 ## File Info
 

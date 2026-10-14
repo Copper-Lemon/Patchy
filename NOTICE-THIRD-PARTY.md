@@ -494,6 +494,16 @@ fixture encoded with Pillow: three 32 by 24 transparent frames with red, green a
 blue rectangles, delays 100/230/50 ms, disposal to background and infinite looping.
 It verifies GIF to lossless WebP to GIF conversion alongside the original GIF fixture.
 
+## JPEG XL conformance fixtures (tests only)
+
+`test-fixtures/jxl/conformance-patches.jxl`, `conformance-patches-lossless.jxl` and their
+`-ref.png` renderings are the `patches` and `patches_lossless` test cases of the libjxl
+conformance suite (https://github.com/libjxl/conformance, commit
+b1d0f990b03e57bf6d137c365cd5dc8b470b9191, BSD-3-Clause repository; the suite's README lists
+both source images as CC0). SHA-256: `3d8d3847ba40844b1d829366065261f34cc4b4acc3d9006342c64127c1052a3e`
+(patches), `2a47b6766264ac6243a43bbb85684688717591bb3bd9b4c2db56226192418b4e`
+(patches_lossless). They are test data only and are not distributed with Patchy.
+
 ## libjxl 0.12.0 with Highway, Brotli and skcms
 
 JPEG XL import and export statically links the libjxl 0.12.0 codec from

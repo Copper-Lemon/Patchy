@@ -198,6 +198,11 @@ struct DecodedFrame {
   std::uint32_t delay_ms{0};
 };
 
+// Thrown when a lossy (XYB) file fails to render into its own color space: the CMS could not
+// build that transform (the libjxl conformance "patches" case's ICC profile does this with
+// skcms). The reader then decodes once more to sRGB.
+struct SourceSpaceTargetFailed {};
+
 }  // namespace
 
 const std::vector<std::string>& jxl_extensions() {
@@ -216,7 +221,9 @@ bool sniff(std::span<const std::uint8_t> bytes) {
   return signature == JXL_SIG_CODESTREAM || signature == JXL_SIG_CONTAINER;
 }
 
-ReadResult read_jxl_detailed(std::span<const std::uint8_t> bytes, const ReadOptions& options) {
+namespace {
+
+ReadResult decode_jxl(std::span<const std::uint8_t> bytes, const ReadOptions& options, bool prefer_source_space) {
   if (!sniff(bytes)) {
     throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "The file is not a JPEG XL image"));
   }
@@ -250,10 +257,14 @@ ReadResult read_jxl_detailed(std::span<const std::uint8_t> bytes, const ReadOpti
   std::vector<DecodedFrame> frames;
   std::uint32_t pending_delay_ms = 0;
   std::uint64_t decoded_pixels = 0;
+  bool targeted_source_space = false;
 
   for (;;) {
     const auto status = JxlDecoderProcessInput(dec);
     if (status == JXL_DEC_ERROR) {
+      if (targeted_source_space) {
+        throw SourceSpaceTargetFailed{};
+      }
       fail_damaged();
     }
     if (status == JXL_DEC_NEED_MORE_INPUT) {
@@ -309,22 +320,35 @@ ReadResult read_jxl_detailed(std::span<const std::uint8_t> bytes, const ReadOpti
       } else if (plan.gray) {
         JxlColorEncodingSetToSRGB(&target, JXL_TRUE);
         set_target = true;
-      } else if (!info.uses_original_profile) {
+      }
+      bool source_space = !plan.gray && plan.type != JXL_TYPE_FLOAT;
+      if (!plan.gray && plan.type != JXL_TYPE_FLOAT && !info.uses_original_profile) {
         // XYB: hand the pixels back in the file's own space so its profile describes them.
-        if (encoded) {
+        // A profile the CMS cannot target falls back to sRGB, and the profile is then shown
+        // for reference only.
+        if (!prefer_source_space) {
+          JxlColorEncodingSetToSRGB(&target, JXL_FALSE);
+          set_target = true;
+          source_space = false;
+        } else if (encoded) {
           target = original;
           set_target = true;
+          targeted_source_space = true;
         } else {
           const auto icc = original_icc(dec);
-          if (icc.empty() || JxlDecoderSetOutputColorProfile(dec, nullptr, icc.data(), icc.size()) != JXL_DEC_SUCCESS) {
-            fail_damaged();
+          if (!icc.empty() && JxlDecoderSetOutputColorProfile(dec, nullptr, icc.data(), icc.size()) == JXL_DEC_SUCCESS) {
+            targeted_source_space = true;
+          } else {
+            JxlColorEncodingSetToSRGB(&target, JXL_FALSE);
+            set_target = true;
+            source_space = false;
           }
         }
       }
       if (set_target && JxlDecoderSetOutputColorProfile(dec, &target, nullptr, 0) != JXL_DEC_SUCCESS) {
         fail_damaged();
       }
-      result.pixels_in_source_space = !plan.gray && plan.type != JXL_TYPE_FLOAT;
+      result.pixels_in_source_space = source_space;
     } else if (status == JXL_DEC_FRAME) {
       JxlFrameHeader header{};
       if (JxlDecoderGetFrameHeader(dec, &header) != JXL_DEC_SUCCESS) {
@@ -384,6 +408,16 @@ ReadResult read_jxl_detailed(std::span<const std::uint8_t> bytes, const ReadOpti
   result.frame_count = static_cast<std::uint32_t>(frames.size());
   result.read.document = std::move(document);
   return result;
+}
+
+}  // namespace
+
+ReadResult read_jxl_detailed(std::span<const std::uint8_t> bytes, const ReadOptions& options) {
+  try {
+    return decode_jxl(bytes, options, true);
+  } catch (const SourceSpaceTargetFailed&) {
+    return decode_jxl(bytes, options, false);
+  }
 }
 
 FormatReadResult read_jxl(std::span<const std::uint8_t> bytes) {
