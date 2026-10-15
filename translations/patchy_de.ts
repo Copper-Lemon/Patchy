@@ -20704,6 +20704,19 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
         <source>%1 returns a %2 x %3 pixel image. Only the part over the selection is applied, and the layer keeps its size. Deselect to apply the whole result.</source>
         <translation>%1 liefert ein Bild mit %2 x %3 Pixeln. Nur der Teil über der Auswahl wird angewendet, und die Ebene behält ihre Größe. Heben Sie die Auswahl auf, um das ganze Ergebnis anzuwenden.</translation>
     </message>
+    <message>
+        <source>Last Filter</source>
+        <translation>Letzter Filter</translation>
+    </message>
+    <message>
+        <source>Apply the last filter again with the same settings</source>
+        <translation>Den letzten Filter mit denselben Einstellungen erneut anwenden</translation>
+    </message>
+    <message>
+        <source>Last Filter: %1</source>
+        <extracomment>Filter menu; %1 is the filter that ran last. Runs it again with the same settings, no dialog.</extracomment>
+        <translation>Letzter Filter: %1</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

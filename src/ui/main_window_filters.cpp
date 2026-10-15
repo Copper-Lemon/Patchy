@@ -2214,7 +2214,7 @@ bool MainWindow::prompt_rasterize_procedural_layer(LayerId layer_id,
   return converted != nullptr && layer_is_smart_object(*converted);
 }
 
-void MainWindow::apply_filter(const QString& identifier) {
+void MainWindow::apply_filter(const QString& identifier, const FilterInvocation* repeat) {
   if (canvas_ != nullptr && canvas_->quick_mask_active()) {
     show_status_error(
         tr("Filters are unavailable in Quick Mask mode"));
@@ -2357,7 +2357,12 @@ void MainWindow::apply_filter(const QString& identifier) {
     // start callback holds a self shared_ptr cycle that only
     // close_async_pixel_preview breaks.
     std::optional<FilterInvocation> applied_settings;
-    if (filter_applies_without_settings_dialog(identifier_text)) {
+    if (repeat != nullptr) {
+      // Last Filter: the remembered settings, with today's colors like a fresh run.
+      applied_settings = *repeat;
+      applied_settings->foreground = initial_invocation.foreground;
+      applied_settings->background = initial_invocation.background;
+    } else if (filter_applies_without_settings_dialog(identifier_text)) {
       applied_settings = std::move(initial_invocation);
     } else {
       auto preview_registry = std::make_shared<FilterRegistry>(filters_);
@@ -2519,6 +2524,14 @@ void MainWindow::apply_filter(const QString& identifier) {
       statusBar()->showMessage(tr("Cancelled %1").arg(display_name));
       return;
     }
+    if (!is_adjustment_only_filter(*filter)) {
+      // A completed run (changed pixels or not) is what Last Filter runs again.
+      last_filter_ = LastFilter{};
+      last_filter_.kind = LastFilter::Kind::Catalog;
+      last_filter_.name = display_name;
+      last_filter_.invocation = *applied_settings;
+      update_last_filter_action();
+    }
     if (pixel_buffers_equal(final_pixels, *original_pixels)) {
       statusBar()->showMessage(tr("%1 made no changes").arg(display_name));
       return;
@@ -2551,6 +2564,48 @@ void MainWindow::apply_filter(const QString& identifier) {
     show_critical_message(this, tr("Filter failed"), translate_data_text(error.what()),
                           QStringLiteral("filterFailedMessageBox"));
   }
+}
+
+void MainWindow::apply_last_filter() {
+  if (!has_active_document() || canvas_ == nullptr || preview_dialog_edit_locked()) {
+    return;
+  }
+  // Copied first: the run records itself as the last filter again.
+  const auto last = last_filter_;
+  switch (last.kind) {
+    case LastFilter::Kind::None:
+      return;
+    case LastFilter::Kind::Catalog:
+      apply_filter(QString::fromStdString(last.invocation.filter_id), &last.invocation);
+      return;
+    case LastFilter::Kind::Gallery:
+      visual_filter_gallery_dialog(&last.recipe);
+      return;
+    case LastFilter::Kind::Gmic:
+      apply_gmic_filter(last.gmic_id, last.gmic_values, last.gmic_input_mode);
+      return;
+    case LastFilter::Kind::Plugin: {
+      const auto* entry = find_legacy_plugin(last.plugin_id);
+      if (entry == nullptr || !entry->probe.supported) {
+        show_status_error(tr("The last plug-in is no longer available"));
+        return;
+      }
+      run_legacy_plugin(QString::fromStdString(last.plugin_id), /*show_dialog=*/false);
+      return;
+    }
+  }
+}
+
+void MainWindow::update_last_filter_action() {
+  if (last_filter_action_ == nullptr) {
+    return;
+  }
+  const bool recorded = last_filter_.kind != LastFilter::Kind::None;
+  //: Filter menu; %1 is the filter that ran last. Runs it again with the same settings, no dialog.
+  last_filter_action_->setText(recorded ? tr("Last Filter: %1").arg(escape_qaction_ampersands(last_filter_.name))
+                                        : tr("Last Filter"));
+  last_filter_action_->setEnabled(recorded && has_active_document() && !preview_dialog_edit_locked());
+  refresh_action_tooltip(last_filter_action_);
 }
 
 void MainWindow::auto_all_adjustments() {
@@ -2819,7 +2874,7 @@ void MainWindow::liquify_dialog() {
   statusBar()->showMessage(tr("Applied Liquify"));
 }
 
-void MainWindow::visual_filter_gallery_dialog() {
+void MainWindow::visual_filter_gallery_dialog(const FilterRecipe* repeat) {
   if (canvas_ != nullptr && canvas_->quick_mask_active()) {
     show_status_error(
         tr("Filters are unavailable in Quick Mask mode"));
@@ -3199,11 +3254,17 @@ void MainWindow::visual_filter_gallery_dialog() {
     auto preview_edit_lock = lock_preview_dialog_edits();
     VisualFilterGalleryResult result;
     try {
-      result = request_visual_filter_gallery(
-          this, *original_pixels, bounds, selection, filters_, foreground,
-          background, preview_changed, nullptr,
-          std::move(exact_recipe_renderer), std::move(exact_preview_ready),
-          std::move(gallery_target));
+      if (repeat != nullptr) {
+        // Last Filter: the Look accepted last time, with no gallery.
+        result.outcome = VisualFilterGalleryOutcome::Filter;
+        result.recipe = *repeat;
+      } else {
+        result = request_visual_filter_gallery(
+            this, *original_pixels, bounds, selection, filters_, foreground,
+            background, preview_changed, nullptr,
+            std::move(exact_recipe_renderer), std::move(exact_preview_ready),
+            std::move(gallery_target));
+      }
     } catch (...) {
       close_latest_cancellable_pixel_preview(preview_state);
       restore_original();
@@ -3243,6 +3304,12 @@ void MainWindow::visual_filter_gallery_dialog() {
     if (display_name.isEmpty()) {
       display_name = tr("Filter Stack");
     }
+    // An accepted Look is what Last Filter applies again, whatever this layer does with it.
+    last_filter_ = LastFilter{};
+    last_filter_.kind = LastFilter::Kind::Gallery;
+    last_filter_.name = display_name;
+    last_filter_.recipe = *result.recipe;
+    update_last_filter_action();
 
     bool rasterize_smart_object_for_recipe = false;
     if (smart_object_target) {

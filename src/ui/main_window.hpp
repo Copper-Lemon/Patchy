@@ -998,7 +998,13 @@ private:
   // re-renders through the normal commit pipeline. Returns the number of layers
   // mutated; pixel-locked text layers are skipped. CLI automation only (run_cli_export).
   int cli_append_text_to_text_layers(const QString& suffix);
-  void apply_filter(const QString& identifier);
+  // Runs a catalog filter on the active layer and selection. With `repeat` (Filter >
+  // Last Filter) its settings are used as they are and no dialog opens.
+  void apply_filter(const QString& identifier, const FilterInvocation* repeat = nullptr);
+  // Filter > Last Filter (docs/filters.md): runs the filter that last completed again with
+  // the same settings, on the active layer and selection, without a dialog.
+  void apply_last_filter();
+  void update_last_filter_action();
   // Applies Auto Tone, Auto Contrast, and Auto Color as one recipe pass and a
   // single undo step, with no settings dialog.
   void auto_all_adjustments();
@@ -1067,7 +1073,8 @@ private:
   void move_smart_filter(LayerId layer_id, std::size_t execution_index,
                          int visual_direction);
   void delete_smart_filter(LayerId layer_id, std::size_t execution_index);
-  void visual_filter_gallery_dialog();
+  // With `repeat` (Filter > Last Filter) the Look is applied without opening the gallery.
+  void visual_filter_gallery_dialog(const FilterRecipe* repeat = nullptr);
   // The G'MIC Filter Library (main_window_gmic.cpp, docs/gmic.md).
   void gmic_filter_library_dialog();
   // The active layer when a G'MIC filter may run on it; otherwise reports why not.
@@ -2401,6 +2408,21 @@ private:
   Rect gmic_last_draft_bounds_{};
   QAction* plugins_repeat_last_action_{nullptr};
   QAction* plugins_last_settings_action_{nullptr};
+  // What Filter > Last Filter runs again: the filter that last completed this session,
+  // with its settings. Image > Adjustments, Liquify and Smart Filter edits are not recorded.
+  struct LastFilter {
+    enum class Kind { None, Catalog, Gallery, Gmic, Plugin };
+    Kind kind{Kind::None};
+    QString name;  // shown in the menu
+    FilterInvocation invocation;           // Catalog
+    FilterRecipe recipe;                   // Gallery
+    std::string gmic_id;                   // Gmic
+    std::vector<std::string> gmic_values;  // Gmic
+    char gmic_input_mode{0};               // Gmic
+    std::string plugin_id;                 // Plugin
+  };
+  LastFilter last_filter_;
+  QAction* last_filter_action_{nullptr};
   QPageLayout print_page_layout_;
   std::optional<ClipboardPayload> clipboard_;
   struct LayerStyleClipboard {

@@ -1781,6 +1781,14 @@ void MainWindow::gmic_filter_library_dialog() {
   gmic::release_button_values(*filter, last_gmic_values_);
   last_gmic_input_mode_ = choice->input_mode;
   const QString name = gmic_text(filter->name);
+  // Last Filter runs the accepted choice again on whichever layer is active then.
+  last_filter_ = LastFilter{};
+  last_filter_.kind = LastFilter::Kind::Gmic;
+  last_filter_.name = name;
+  last_filter_.gmic_id = last_gmic_filter_id_;
+  last_filter_.gmic_values = last_gmic_values_;
+  last_filter_.gmic_input_mode = last_gmic_input_mode_;
+  update_last_filter_action();
   if (ready != nullptr) {
     keep_added_eyes(*ready);
     commit_gmic_render(*active, name, *ready);

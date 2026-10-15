@@ -437,8 +437,8 @@ void ui_legacy_plugin_mehdi_dialog_capture_if_available() {
   CHECK(image.width() > 200 && image.height() > 100);
 }
 
-// Plugins > Repeat Last Plug-in (Ctrl+F) and Last Plug-in Settings...
-// (Ctrl+Alt+F): disabled until a plug-in completes a run, then named after it,
+// Plugins > Repeat Last Plug-in (Ctrl+F) and Last Plug-in Settings... (no default
+// key: Ctrl+Alt+F is Filter > Last Filter, which repeats plug-ins too): disabled until a plug-in completes a run, then named after it,
 // repeating it on the active layer with its own undo step; gone with the
 // plug-in's folder.
 void ui_legacy_plugin_repeat_last_commands() {
@@ -458,7 +458,7 @@ void ui_legacy_plugin_repeat_last_commands() {
     CHECK(command != nullptr && command->default_shortcuts.contains(QKeySequence(Qt::CTRL | Qt::Key_F)));
     const auto* command2 = window.hotkey_registry().find_command(QStringLiteral("plugins.last_settings"));
     CHECK(command2 != nullptr);
-    CHECK(command2 != nullptr && command2->default_shortcuts.contains(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_F)));
+    CHECK(command2 != nullptr && command2->default_shortcuts.isEmpty());
   }
 
   // A folder of its own, so the plug-in can be taken away again below.

@@ -769,6 +769,11 @@ MainWindow::LegacyPluginApplyStatus MainWindow::apply_legacy_plugin(DocumentSess
     // run again; a cancelled or failed one is not.
     last_legacy_plugin_identifier_ = entry.identifier;
     update_legacy_plugin_repeat_actions();
+    last_filter_ = LastFilter{};
+    last_filter_.kind = LastFilter::Kind::Plugin;
+    last_filter_.name = legacy_plugin_sentence_name(entry.probe.display_name);
+    last_filter_.plugin_id = entry.identifier;
+    update_last_filter_action();
   }
   if (result.status == LegacyPluginRunStatus::Cancelled) {
     return LegacyPluginApplyStatus::Cancelled;

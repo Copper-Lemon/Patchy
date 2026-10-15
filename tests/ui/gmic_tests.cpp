@@ -680,6 +680,56 @@ void ui_gmic_size_changing_filter_stays_inside_the_selection() {
   CHECK(outside_untouched());
 }
 
+// Filter > Last Filter repeats the choice the G'MIC Filter Library last accepted (filter,
+// values and input layers) on the active layer and selection, without the dialog.
+void ui_gmic_last_filter_repeats_the_accepted_choice() {
+  if (!gmic::engine_available()) {
+    return;
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* canvas = require_canvas(window);
+  const QColor red(0xc0, 0x30, 0x20);
+  CHECK(run_script(window, QStringLiteral("app.activeDocument.activeLayer.fillRect(0, 0, 200, 200, '#c03020');")));
+  auto* last_filter = require_hotkey_action(window, QStringLiteral("filter.last"));
+  QColor applied;
+  run_library_dialog(window, [&](patchy::ui::GmicFilterLibraryDialog& dialog) {
+    CHECK(dialog.select_filter("fx_sepia", {"40", "0", "0"}));
+    CHECK(wait_until([&] { return layer_pixel(window, 50, 50) != red; }));
+    applied = layer_pixel(window, 50, 50);
+    dialog.accept();
+  });
+  CHECK(applied.isValid() && applied != red);
+  CHECK(layer_pixel(window, 50, 50) == applied);
+  CHECK(last_filter->isEnabled());
+  CHECK(last_filter->text() == QStringLiteral("Last Filter: Sepia"));
+  require_action_by_text(window, QStringLiteral("Undo"))->trigger();
+  QApplication::processEvents();
+  CHECK(layer_pixel(window, 50, 50) == red);
+
+  auto& document = MainWindowTestAccess::document(window);
+  patchy::PixelBuffer mask(document.width(), document.height(), patchy::PixelFormat::gray8());
+  for (int y = 0; y < mask.height(); ++y) {
+    auto row = mask.row(y);
+    for (int x = 0; x < mask.width(); ++x) {
+      row[static_cast<std::size_t>(x)] = (x < 100 && y < 100) ? 255 : 0;
+    }
+  }
+  canvas->replace_selection_from_grayscale(mask, QStringLiteral("Square selection"));
+  bool dialog_opened = false;
+  QTimer::singleShot(0, [&] {
+    if (auto* dialog = window.findChild<patchy::ui::GmicFilterLibraryDialog*>(); dialog != nullptr) {
+      dialog_opened = true;
+      dialog->reject();
+    }
+  });
+  last_filter->trigger();
+  QApplication::processEvents();
+  CHECK(!dialog_opened);
+  CHECK(layer_pixel(window, 50, 50) == applied);
+  CHECK(layer_pixel(window, 150, 150) == red);
+}
+
 // A filter that returns several images: the first replaces the active layer, the
 // others become new layers above it with the name and blend mode the filter gave
 // them, all in one undo step.
@@ -1597,6 +1647,7 @@ std::vector<patchy::test::TestCase> gmic_ui_tests() {
       {"ui_gmic_filter_applies_inside_selection_and_undoes", ui_gmic_filter_applies_inside_selection_and_undoes},
       {"ui_gmic_size_changing_filter_stays_inside_the_selection",
        ui_gmic_size_changing_filter_stays_inside_the_selection},
+      {"ui_gmic_last_filter_repeats_the_accepted_choice", ui_gmic_last_filter_repeats_the_accepted_choice},
       {"ui_gmic_library_dialog_previews_on_the_layer_and_commits",
        ui_gmic_library_dialog_previews_on_the_layer_and_commits},
       {"ui_gmic_color_swatch_previews_while_picking", ui_gmic_color_swatch_previews_while_picking},

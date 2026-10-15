@@ -1053,6 +1053,194 @@ void ui_canvas_filling_filter_helpers_cover_union_and_predicate() {
   CHECK(patchy::ui::filter_recipe_fills_entire_canvas(registry, recipe));
 }
 
+// Filter > Last Filter (Ctrl+Alt+F, Photoshop's key): disabled until a filter completes,
+// then named after it and run again with the settings it was given, with no dialog, on
+// whichever layer is active and inside the current selection, as one undo step. A Filter
+// Gallery Look is repeated the same way.
+void ui_last_filter_repeats_catalog_filters_and_gallery_looks() {
+  GallerySettingsRestorer gallery_settings;
+  // A dialog is driven once it is actually showing: opening one can first wait out a
+  // render in flight, so a zero-delay timer may fire before it exists.
+  const auto when_shown = [](const QString& name, std::function<void(QDialog&)> drive) {
+    auto* timer = new QTimer;
+    auto tries = std::make_shared<int>(0);
+    timer->setInterval(20);
+    QObject::connect(timer, &QTimer::timeout, [timer, tries, name, drive] {
+      auto* dialog = find_top_level_dialog(name);
+      if (dialog != nullptr && dialog->isVisible()) {
+        timer->stop();
+        timer->deleteLater();
+        drive(*dialog);
+      } else if (++*tries > 1500) {
+        timer->stop();
+        timer->deleteLater();
+        CHECK(false);
+      }
+    });
+    timer->start();
+  };
+  // Watches for a dialog that must not open during `run`, closing it if it does.
+  const auto opens_dialog = [](const QString& name, const std::function<void()>& run) {
+    bool opened = false;
+    QTimer watch;
+    watch.setInterval(20);
+    QObject::connect(&watch, &QTimer::timeout, [&opened, name] {
+      if (auto* dialog = find_top_level_dialog(name); dialog != nullptr && dialog->isVisible()) {
+        opened = true;
+        dialog->reject();
+      }
+    });
+    watch.start();
+    run();
+    QApplication::processEvents();
+    watch.stop();
+    return opened;
+  };
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* canvas = require_canvas(window);
+  auto* last_filter = require_hotkey_action(window, QStringLiteral("filter.last"));
+  CHECK(last_filter->objectName() == QStringLiteral("filterLastFilterAction"));
+  CHECK(!last_filter->isEnabled());
+  CHECK(last_filter->text() == QStringLiteral("Last Filter"));
+  {
+    const auto* command = window.hotkey_registry().find_command(QStringLiteral("filter.last"));
+    CHECK(command != nullptr);
+#ifdef Q_OS_MACOS
+    const QKeySequence photoshop_key(Qt::META | Qt::CTRL | Qt::Key_F);
+#else
+    const QKeySequence photoshop_key(Qt::CTRL | Qt::ALT | Qt::Key_F);
+#endif
+    CHECK(command != nullptr && command->default_shortcuts.contains(photoshop_key));
+  }
+  auto& document = patchy::ui::MainWindowTestAccess::document(window);
+  // Red left of x = 100, blue right of it: a blur shows at the edge between them.
+  {
+    const auto active = document.active_layer_id();
+    auto* layer = active.has_value() ? document.find_layer(*active) : nullptr;
+    CHECK(layer != nullptr && layer->bounds().x == 0 && layer->bounds().width >= 200 &&
+          layer->bounds().height >= 200);
+    if (layer == nullptr) {
+      return;
+    }
+    auto& pixels = layer->pixels();
+    const int channels = pixels.format().channels;
+    for (int y = 0; y < pixels.height(); ++y) {
+      for (int x = 0; x < pixels.width(); ++x) {
+        auto* px = pixels.pixel(x, y);
+        const bool left = x < 100;
+        px[0] = left ? 0xc0 : 0x20;
+        px[1] = left ? 0x30 : 0x40;
+        px[2] = left ? 0x20 : 0xc0;
+        if (channels >= 4) {
+          px[3] = 255;
+        }
+      }
+    }
+    canvas->document_changed();
+  }
+  process_events_for(200);
+  const auto pixel = [&document](int x, int y) {
+    const auto active = document.active_layer_id();
+    const auto* layer = active.has_value() ? std::as_const(document).find_layer(*active) : nullptr;
+    if (layer == nullptr) {
+      return QColor();
+    }
+    const auto* px = layer->pixels().pixel(x - layer->bounds().x, y - layer->bounds().y);
+    return QColor(px[0], px[1], px[2]);
+  };
+  const auto edge_row = [&pixel](int y) {
+    std::vector<QRgb> row;
+    for (int x = 85; x < 115; ++x) {
+      row.push_back(pixel(x, y).rgb());
+    }
+    return row;
+  };
+  const auto original_row = edge_row(50);
+  const auto undo = [&window] {
+    require_hotkey_action(window, QStringLiteral("edit.undo"))->trigger();
+    QApplication::processEvents();
+  };
+
+  // Gaussian Blur with a radius of its own, through its dialog.
+  double chosen_radius = 0.0;
+  bool drove_dialog = false;
+  when_shown(QStringLiteral("patchyFilterDialog"), [&](QDialog& shown) {
+    auto* dialog = &shown;
+    const auto spins = dialog->findChildren<QDoubleSpinBox*>();
+    CHECK(!spins.isEmpty());
+    if (!spins.isEmpty()) {
+      chosen_radius = spins.front()->value() * 2.0 + 3.0;
+      spins.front()->setValue(chosen_radius);
+    }
+    drove_dialog = true;
+    auto* buttons = dialog->findChild<QDialogButtonBox*>();
+    CHECK(buttons != nullptr && buttons->button(QDialogButtonBox::Ok) != nullptr);
+    if (buttons != nullptr && buttons->button(QDialogButtonBox::Ok) != nullptr) {
+      buttons->button(QDialogButtonBox::Ok)->click();
+    } else {
+      dialog->reject();
+    }
+  });
+  require_action(window, "filterAction_patchy_filters_gaussian_blur")->trigger();
+  QApplication::processEvents();
+  CHECK(drove_dialog);
+  const auto blurred_row = edge_row(50);
+  CHECK(blurred_row != original_row);
+  CHECK(last_filter->isEnabled());
+  CHECK(last_filter->text() == QStringLiteral("Last Filter: Gaussian Blur"));
+  undo();
+  CHECK(edge_row(50) == original_row);
+
+  // Repeated inside a selection of the top half: no dialog, the same radius.
+  patchy::PixelBuffer mask(document.width(), document.height(), patchy::PixelFormat::gray8());
+  for (int y = 0; y < mask.height(); ++y) {
+    auto row = mask.row(y);
+    for (int x = 0; x < mask.width(); ++x) {
+      row[static_cast<std::size_t>(x)] = y < 100 ? 255 : 0;
+    }
+  }
+  canvas->replace_selection_from_grayscale(mask, QStringLiteral("Top half"));
+  CHECK(canvas->has_selection());
+  const auto undo_before = patchy::ui::MainWindowTestAccess::active_session_undo_depth(window);
+  CHECK(!opens_dialog(QStringLiteral("patchyFilterDialog"), [&] { last_filter->trigger(); }));
+  CHECK(patchy::ui::MainWindowTestAccess::active_session_undo_depth(window) == undo_before + 1U);
+  CHECK(edge_row(50) == blurred_row);
+  CHECK(edge_row(150) == original_row);
+  undo();
+  CHECK(edge_row(50) == original_row);
+  canvas->clear_selection();
+
+  // A Look accepted in the Filter Gallery becomes the last filter and repeats without it.
+  bool drove_gallery = false;
+  when_shown(QStringLiteral("filterGalleryDialog"), [&](QDialog& shown) {
+    auto* dialog = &shown;
+    auto* looks = dialog->findChild<QListWidget*>(QStringLiteral("filterGalleryLooksList"));
+    auto* preview = dialog->findChild<QWidget*>(QStringLiteral("filterGalleryPreview"));
+    CHECK(looks != nullptr && preview != nullptr);
+    if (looks == nullptr || preview == nullptr) {
+      dialog->reject();
+      return;
+    }
+    looks->setCurrentItem(require_gallery_filter_item(*looks, QStringLiteral("patchy.filters.gaussian_blur")));
+    process_events_for(300);
+    auto* buttons = dialog->findChild<QDialogButtonBox*>(QStringLiteral("filterGalleryButtonBox"));
+    CHECK(buttons != nullptr && buttons->button(QDialogButtonBox::Ok) != nullptr);
+    drove_gallery = true;
+    buttons->button(QDialogButtonBox::Ok)->click();
+  });
+  require_action(window, "filterGalleryAction")->trigger();
+  QApplication::processEvents();
+  CHECK(drove_gallery);
+  const auto gallery_row = edge_row(50);
+  CHECK(gallery_row != original_row);
+  CHECK(last_filter->text() == QStringLiteral("Last Filter: Gaussian Blur"));
+  undo();
+  CHECK(edge_row(50) == original_row);
+  CHECK(!opens_dialog(QStringLiteral("filterGalleryDialog"), [&] { last_filter->trigger(); }));
+  CHECK(edge_row(50) == gallery_row);
+}
+
 void ui_filter_gallery_clouds_recipe_fills_canvas_and_plain_thumbnails_stay_proxy() {
   GallerySettingsRestorer gallery_settings;
   patchy::LayerId layer_id{};
@@ -2658,6 +2846,8 @@ std::vector<patchy::test::TestCase> destructive_filters_gallery_tests_part1() {
        ui_clouds_skips_canvas_embed_for_locked_or_rgb_layers},
       {"ui_canvas_filling_filter_helpers_cover_union_and_predicate",
        ui_canvas_filling_filter_helpers_cover_union_and_predicate},
+      {"ui_last_filter_repeats_catalog_filters_and_gallery_looks",
+       ui_last_filter_repeats_catalog_filters_and_gallery_looks},
       {"ui_filter_gallery_clouds_recipe_fills_canvas_and_plain_thumbnails_stay_proxy",
        ui_filter_gallery_clouds_recipe_fills_canvas_and_plain_thumbnails_stay_proxy},
       {"ui_filter_look_library_round_trips_and_isolates_bad_records",

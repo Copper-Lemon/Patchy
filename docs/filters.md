@@ -83,9 +83,13 @@ Liquify is a top-level Filter menu action under Filter Gallery, outside this cat
 
 ## Text and shape layer gate
 
-Text (`layer_is_text`) and shape (`layer_is_vector_shape`) layers re-create their pixels from source data, so a destructive pixel edit would vanish on the next edit. Every destructive entry point routes through `MainWindow::prompt_rasterize_procedural_layer` first: direct catalog filter actions (Image > Adjustments included), the Filter Gallery, Liquify, and the destructive Levels/Curves/Hue/Saturation/Color Balance dialogs. Legacy plug-ins keep their older hard refusal; smart objects are untouched (docs/smart-objects.md).
+Text and shape layers re-create their pixels from source data, so a destructive edit would vanish on the next edit. Every destructive entry point calls `MainWindow::prompt_rasterize_procedural_layer` first: catalog filter actions (Image > Adjustments included), the Filter Gallery, Liquify, and the destructive Levels/Curves/Hue/Saturation/Color Balance dialogs. Legacy plug-ins keep their hard refusal; smart objects are untouched (docs/smart-objects.md).
 
-The prompt (`rasterizeOrConvertMessageBox`) offers Convert To Smart Object (AcceptRole, the default when present), Rasterize (DestructiveRole), and Cancel. Convert appears only when the follow-on can succeed: a direct filter needs a native Smart Filter mapping (`native_smart_filter_kind_for`), the gallery always qualifies, and both need the document under the 64-megapixel editable-mask cap; Liquify and the adjustment dialogs never offer it. Rasterize commits its own "Rasterize layer" undo step, kept even when the follow-on dialog is cancelled (Photoshop behavior); Convert runs Convert to Smart Object and re-enters the smart-object routing; Cancel leaves the layer untouched. The gate commits an active inline text edit first; CLI automation keeps the plug-in path's status refusal instead of a blocking prompt. Coverage: `ui_filter*_on_*_layer_*`, `ui_levels_on_text_layer_*`.
+The prompt (`rasterizeOrConvertMessageBox`) offers Convert To Smart Object (AcceptRole, the default when present), Rasterize (DestructiveRole), and Cancel. Convert appears only when the follow-on can succeed: a direct filter needs a native Smart Filter mapping (`native_smart_filter_kind_for`), the gallery always qualifies, and both need the document under the 64-megapixel editable-mask cap; Liquify and the adjustment dialogs never offer it. Rasterize commits its own "Rasterize layer" undo step, kept when the follow-on dialog is cancelled (as Photoshop); Convert converts and re-enters the smart-object routing. The gate commits an active inline text edit first; CLI automation keeps the plug-in path's status refusal instead of a blocking prompt. Coverage: `ui_filter*_on_*_layer_*`, `ui_levels_on_text_layer_*`.
+
+## Last Filter
+
+Filter > Last Filter (`filter.last`; Photoshop's Ctrl+Alt+F, Control+Command+F on macOS; `MainWindow::apply_last_filter`) reruns the last completed filter with its settings, no dialog, on the active layer and selection. `last_filter_` holds a catalog `FilterInvocation` (colors re-read), a Gallery recipe, the G'MIC Library's accepted choice, or an 8BF id. Adjustments, Liquify and Smart Filter dialogs are not recorded; on a Smart Object a natively mapped filter still opens its dialog. Tests: `last_filter`.
 
 ## Auto adjustments
 
@@ -98,7 +102,7 @@ The three autos share one Qt-free kernel, `src/filters/auto_levels_math.{hpp,cpp
 - **Auto Color** (`auto_color`, Ctrl+Shift+B): the per-channel scan plus a neutral-midtone snap. The channel's whole-image mean, normalized into the stretched range, selects the integer `gamma_percent` in [10, 999] whose curve maps it closest to 128, ties preferring the smaller gamma. Every result is a Levels dialog state.
 - Whole-layer analysis even with a selection; the wrapper restores unselected pixels afterward. Alpha untouched; UInt8 buffers with 3+ channels only.
 - Menu, hotkey, and scripting invocations of the three autos apply immediately at the catalog defaults with no dialog. `amount` remains a catalog contract for recipes, Saved Looks, and explicit scripting invocations; `apply_filter` special-cases the immediate path (`filter_applies_without_settings_dialog`).
-- **Auto All** (`imageAdjustAutoAllAction`, persisted command ID `image.auto_all`, no default shortcut) applies Tone, Contrast, then Color as one three-entry recipe pass and one undo step (`MainWindow::auto_all_adjustments`). A MainWindow command, not a catalog filter, so the eight-ID hotkey contract is unchanged. With a selection it follows the recipe contract (unselected pixels restore once at the end), which can differ from three sequential menu applies; with no selection the two are byte-identical.
+- **Auto All** (`imageAdjustAutoAllAction`, persisted command ID `image.auto_all`, no default shortcut) applies Tone, Contrast, then Color as one three-entry recipe pass and one undo step (`MainWindow::auto_all_adjustments`), a MainWindow command, not a catalog filter. With a selection it follows the recipe contract (unselected pixels restore once at the end) and can differ from three menu applies; without one they are byte-identical.
 - Photoshop calibration deltas: [adjustments-calibration.md](adjustments-calibration.md).
 
 ## Filter Gallery
@@ -106,15 +110,15 @@ The three autos share one Qt-free kernel, `src/filters/auto_levels_math.{hpp,cpp
 `Filter > Filter Gallery...` is the shared browsing entry point; persisted hotkey command ID `filter.gallery`, no default shortcut. Direct Filter-menu actions keep their IDs, defaults and output.
 
 - Original is a UI sentinel (no filter ID or invocation), always listed first. Real items carry their ID in `Qt::UserRole + 1` (Original: empty) and a session-only SF badge flag in `Qt::UserRole + 6`. Items are pre-created in catalog order and filtered in place. Thumbnail readiness is the ready role (`Qt::UserRole + 2`), never icon nullity.
-- Search: case-insensitive, matching translated and English filter and category names. Hiding the selected filter returns selection to Original without clearing the recipe; clicking Original clears it, even when already selected by filtering.
-- Favorites persist by filter ID in catalog order; loading drops missing/duplicate IDs and rewrites; toggling writes immediately (not undone by Cancel).
+- Search: case-insensitive over translated and English filter and category names. Hiding the selected filter selects Original without clearing the recipe; clicking Original clears it.
+- Favorites persist by ID in catalog order; loading drops missing/duplicate IDs; toggling writes at once (Cancel keeps it).
 - Settings keys (prefix `filters/gallery/`): `favorites` (ordered list of valid IDs), `category` (one of the eleven tokens; unknown falls back to `all`), `lastFilterId` (empty = Original; restored only when still visible), `liveCanvasPreview` (bool), `size` (880x560..3200x2400, default 1120x720). Search, zoom, pan and parameter edits are session-only.
 
 Widget object names are test contracts, prefixed `filterGallery` (list in the dialog source); catalog-generated controls keep their catalog roots. The center/radius overlay lives inside `filterGalleryPreview`, not a separate child widget.
 
 Outcome surfacing (before Apply): an unlocalized "SF" thumbnail chip marks filters with a native Smart Filter mapping (`native_smart_filter_kind_for`, the single decision point), explained in the row tooltip. `filterGalleryOutcomeLabel` states what Apply will do; for a Smart Object it mirrors the caller's whole-recipe predicate (`smart_filter_stack_with_recipe`, which adds the 64-entry native stack cap); an empty recipe keeps the positive text. Rows whose single entry fails the real mapper (parameter gates like Emboss Amount 0 included) get a warning icon and tooltip; mapping is all-or-nothing over disabled entries too, so disabling a blocking row clears nothing. A recipe rejected only by the entry cap flips the outcome line but marks no row.
 
-The angle dial syncs with the numeric controls; its hand wraps visually but Twirl keeps the full -720..720 value. The Wave graph syncs amplitude (vertical drag), phase (horizontal drag), and wavelength (wheel). Both also appear in the direct dialogs (the Motion Blur Smart Filter dialog included) as `filterAngleDial` and `filterWaveformControl`.
+The angle dial syncs with the numeric controls; its hand wraps but Twirl keeps the full -720..720 value. The Wave graph drags amplitude (vertical) and phase (horizontal), wheel for wavelength. Both appear in the direct dialogs too (`filterAngleDial`, `filterWaveformControl`).
 
 Overlay controls:
 
@@ -129,8 +133,8 @@ Preview pipeline:
 - A plain-layer recipe with an enabled, nonzero-opacity Clouds entry previews (center and canvas) through the full-resolution exact path from the embedded document-wide source, as Smart Object targets do, so preview matches Apply; other recipes keep the bounded proxy. Thumbnails use the exact renderer only for Smart Object targets.
 - Thumbnails generate lazily, one visible filter per timer turn; editing a filter refreshes its row icon. The session-local cache prioritizes newly visible missing thumbnails and never invalidates completed ones.
 - Live-canvas preview requests carry increasing generations: only the newest finished worker updates the canvas, only while the dialog is open; one runs at a time, the newest pending wins. Past the standard overlay delay an in-flight worker shows the "Rendering preview..." canvas badge (`CanvasWidget::begin/end_preview_render`, as in the adjustment dialogs). The center preview follows the same rule on its own debounced worker.
-- The momentary Before button shows the immutable source aligned to the current result bounds (zoom and pan kept) without touching the live canvas preview. Live Canvas Preview defaults on; re-enabling restores or reapplies the current result without changing selection.
-- Cancel restores the original pixels and bounds exactly, adds no undo entry, and leaves a clean document clean. Apply renders the recipe once more from the immutable original as one undo entry. Original, an empty recipe, or one with no enabled nonzero-opacity entries close without an undo entry.
+- The momentary Before button shows the immutable source aligned to the current result bounds (zoom and pan kept) without touching the live canvas preview. Live Canvas Preview defaults on; re-enabling reapplies the current result.
+- Cancel restores the original pixels and bounds exactly, adds no undo entry, and leaves a clean document clean. Apply renders the recipe once more from the immutable original as one undo entry. Original or a recipe with no enabled nonzero-opacity entry closes without one.
 
 ## Direct filter dialog preview
 
@@ -219,6 +223,6 @@ Writes use `QSaveFile`; memory state changes only after the atomic commit. Loadi
 
 ## Regression coverage
 
-Keep separate coverage for: legacy wrapper output per built-in ID; version-1 defaults and explicit parameters; the exact catalog (IDs, categories, parameters, scaling, bounds); missing or unknown parameters, unsupported IDs and schemas, recipe ordering; captured Clouds colors and the canvas-filling contract; progress and cancellation; menu, action and hotkey contracts; selection, expanding bounds, Cancel, one-step Undo/Redo; the auto adjustments; the all-filter contact sheet.
+Keep separate coverage for: wrapper output per built-in ID; defaults and explicit parameters; the exact catalog (IDs, categories, parameters, scaling, bounds); bad parameters, IDs and schemas, recipe order; Clouds colors and canvas filling; progress and cancel; menu, action and hotkey contracts; selection, growth, Cancel, one-step Undo/Redo; the autos; the contact sheet.
 
 Never re-pin an output canary as part of a structural refactor. Capture the contact-sheet SHA-256 from a full pre-refactor suite run of the same tree, then show the refactored path reproduces the old focused outputs and that SHA. Never compare against a SHA from an older commit: the sheet changes whenever filters are added.

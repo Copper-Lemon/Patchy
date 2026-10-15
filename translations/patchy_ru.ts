@@ -20767,6 +20767,19 @@ Patchy может скачать обновление, заменить этот
         <source>%1 returns a %2 x %3 pixel image. Only the part over the selection is applied, and the layer keeps its size. Deselect to apply the whole result.</source>
         <translation>%1 возвращает изображение размером %2 x %3 пикселей. Применяется только часть над выделением, а слой сохраняет свой размер. Снимите выделение, чтобы применить весь результат.</translation>
     </message>
+    <message>
+        <source>Last Filter</source>
+        <translation>Последний фильтр</translation>
+    </message>
+    <message>
+        <source>Apply the last filter again with the same settings</source>
+        <translation>Применить последний фильтр ещё раз с теми же настройками</translation>
+    </message>
+    <message>
+        <source>Last Filter: %1</source>
+        <extracomment>Filter menu; %1 is the filter that ran last. Runs it again with the same settings, no dialog.</extracomment>
+        <translation>Последний фильтр: %1</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

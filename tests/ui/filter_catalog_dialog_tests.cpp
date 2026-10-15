@@ -576,6 +576,7 @@ void ui_filter_catalog_and_menu_contracts_are_stable() {
   show_window(window);
   auto* filter_menu = window.findChild<QMenu*>(QStringLiteral("filterMenu"));
   CHECK(filter_menu != nullptr);
+  auto* last_filter_action = require_action(window, "filterLastFilterAction");
   auto* convert_action =
       require_action(window, "filterConvertForSmartFiltersAction");
   auto* gallery_action = require_action(window, "filterGalleryAction");
@@ -584,12 +585,15 @@ void ui_filter_catalog_and_menu_contracts_are_stable() {
   CHECK(gallery_action->property("patchy.channelViewBlocked").toBool());
   CHECK(liquify_action->property("patchy.channelViewBlocked").toBool());
   CHECK(!filter_menu->actions().isEmpty());
-  CHECK(filter_menu->actions().front() == convert_action);
-  CHECK(filter_menu->actions().size() >= 4);
+  // Photoshop's order: Last Filter, then Convert for Smart Filters, each in its own group.
+  CHECK(filter_menu->actions().size() >= 7);
+  CHECK(filter_menu->actions().front() == last_filter_action);
   CHECK(filter_menu->actions()[1]->isSeparator());
-  CHECK(filter_menu->actions()[2] == gallery_action);
-  CHECK(filter_menu->actions()[3] == liquify_action);
-  CHECK(filter_menu->actions()[4]->isSeparator());
+  CHECK(filter_menu->actions()[2] == convert_action);
+  CHECK(filter_menu->actions()[3]->isSeparator());
+  CHECK(filter_menu->actions()[4] == gallery_action);
+  CHECK(filter_menu->actions()[5] == liquify_action);
+  CHECK(filter_menu->actions()[6]->isSeparator());
   const auto* convert_command = window.hotkey_registry().find_command(
       QStringLiteral("filter.convert_for_smart_filters"));
   CHECK(convert_command != nullptr);

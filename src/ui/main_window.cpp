@@ -14120,6 +14120,7 @@ void MainWindow::update_document_action_state() {
   }
   refresh_add_layer_mask_button_state();
   update_legacy_plugin_repeat_actions();
+  update_last_filter_action();
   // 16/32-bit documents (docs/high-bit-depth.md): a 32-bit document offers only the
   // filters with a linear-light kernel, and no Filter Gallery, Liquify or Auto All.
   const auto document_depth =

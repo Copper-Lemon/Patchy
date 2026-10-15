@@ -20641,6 +20641,19 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
         <source>%1 returns a %2 x %3 pixel image. Only the part over the selection is applied, and the layer keeps its size. Deselect to apply the whole result.</source>
         <translation>%1 返回 %2 x %3 像素的图像。只应用选区上方的部分，图层保持原尺寸。取消选择即可应用整个结果。</translation>
     </message>
+    <message>
+        <source>Last Filter</source>
+        <translation>上次滤镜</translation>
+    </message>
+    <message>
+        <source>Apply the last filter again with the same settings</source>
+        <translation>以相同设置再次应用上次的滤镜</translation>
+    </message>
+    <message>
+        <source>Last Filter: %1</source>
+        <extracomment>Filter menu; %1 is the filter that ran last. Runs it again with the same settings, no dialog.</extracomment>
+        <translation>上次滤镜：%1</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

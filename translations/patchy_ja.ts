@@ -20641,6 +20641,19 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <source>%1 returns a %2 x %3 pixel image. Only the part over the selection is applied, and the layer keeps its size. Deselect to apply the whole result.</source>
         <translation>%1 は %2 x %3 ピクセルの画像を返します。選択範囲に重なる部分だけが適用され、レイヤーのサイズは変わりません。結果全体を適用するには選択を解除してください。</translation>
     </message>
+    <message>
+        <source>Last Filter</source>
+        <translation>前回のフィルター</translation>
+    </message>
+    <message>
+        <source>Apply the last filter again with the same settings</source>
+        <translation>前回のフィルターを同じ設定でもう一度適用します</translation>
+    </message>
+    <message>
+        <source>Last Filter: %1</source>
+        <extracomment>Filter menu; %1 is the filter that ran last. Runs it again with the same settings, no dialog.</extracomment>
+        <translation>前回のフィルター: %1</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

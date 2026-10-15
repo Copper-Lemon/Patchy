@@ -1576,6 +1576,22 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
     register_document_action(action);
   }
 
+  // Photoshop's Last Filter heads the menu with its keys (Ctrl+Alt+F; Control+Command+F
+  // on macOS). Its text names the filter that ran last, and update_last_filter_action
+  // enables it, not the document-action pass: it also needs a filter that ran.
+  last_filter_action_ = filter_menu->addAction(tr("Last Filter"));
+  last_filter_action_->setObjectName(QStringLiteral("filterLastFilterAction"));
+  last_filter_action_->setProperty("patchy.channelViewBlocked", true);
+  last_filter_action_->setStatusTip(tr("Apply the last filter again with the same settings"));
+  bind_translated_status_tip(last_filter_action_, "Apply the last filter again with the same settings");
+  register_hotkey(last_filter_action_, "filter.last",
+                  platform_hotkey(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_F),
+                                  QKeySequence(Qt::META | Qt::CTRL | Qt::Key_F)));
+  connect(last_filter_action_, &QAction::triggered, this, [this] { apply_last_filter(); });
+  register_retranslation([this] { update_last_filter_action(); });
+  update_last_filter_action();
+  filter_menu->addSeparator();
+
   filter_convert_smart_filters_action_ =
       filter_menu->addAction(tr("Convert for Smart Filters"));
   filter_convert_smart_filters_action_->setObjectName(
@@ -1632,7 +1648,7 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
 
   // Only builds with the G'MIC engine offer its library (docs/gmic.md). It sits below
   // Liquify in its own group: ui_filter_catalog_and_menu_contracts_are_stable pins the
-  // first five rows.
+  // first seven rows.
   if (gmic::engine_available()) {
     auto* gmic_library_action = filter_menu->addAction(tr("G'&MIC Filter Library..."));
     gmic_library_action->setObjectName(QStringLiteral("filterGmicLibraryAction"));
@@ -1745,9 +1761,10 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   }
 
 #ifdef Q_OS_WIN
-  // Photoshop's Ctrl+F / Ctrl+Alt+F for the plug-in that ran last: a plug-in
-  // never previews on the canvas, so "apply, look, undo, adjust" is the loop
-  // and these two keep it short. Their text carries the plug-in's name and
+  // Ctrl+F (Photoshop's old Last Filter key) repeats the plug-in that ran last: a
+  // plug-in never previews on the canvas, so "apply, look, undo, adjust" is the loop
+  // and these two keep it short. Ctrl+Alt+F belongs to Filter > Last Filter, which
+  // repeats plug-ins too, so Last Plug-in Settings has no default key. Their text carries the plug-in's name and
   // they are enabled by update_legacy_plugin_repeat_actions, not as document
   // actions (they also need a plug-in that ran).
   plugins_repeat_last_action_ = plugins_menu->addAction(tr("Repeat Last Plug-in"));
@@ -1758,7 +1775,7 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   plugins_last_settings_action_ = plugins_menu->addAction(tr("Last Plug-in Settings..."));
   plugins_last_settings_action_->setObjectName(QStringLiteral("pluginsLastSettingsAction"));
   plugins_last_settings_action_->setProperty("patchy.channelViewBlocked", true);
-  register_hotkey(plugins_last_settings_action_, "plugins.last_settings", QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_F));
+  register_hotkey(plugins_last_settings_action_, "plugins.last_settings");
   connect(plugins_last_settings_action_, &QAction::triggered, this, [this] { run_last_legacy_plugin(/*show_dialog=*/true); });
   register_retranslation([this] { update_legacy_plugin_repeat_actions(); });
   plugins_menu->addSeparator();
