@@ -250,7 +250,13 @@ namespace patchy::ui {
 
 namespace {
 
+// The narrowest the column's content-fit width (right_dock_minimum_width_)
+// is ever measured at. The user can drag the column narrower, down to
+// kRightDockFloorWidth; the panels then scroll horizontally (GitHub issue 96).
 constexpr int kRightDockMinimumWidth = 280;
+// Hard floor of a user- or script-set column width (the
+// patchy.ui.setSidePanelWidth clamp uses the same value).
+constexpr int kRightDockFloorWidth = 120;
 // Width the dock chrome adds around a panel: a dock at width W gives its
 // content widget W minus this.
 constexpr int kRightDockChromeWidth = 18;
@@ -276,6 +282,131 @@ const std::array<QString, 7>& right_dock_stack_names() {
       QStringLiteral("paletteDock")};
   return names;
 }
+
+// The Layers panel's blend/opacity row (GitHub issue 96): the first item (the
+// blend combo) and the rest (Opacity, Fill) share one line when the panel is
+// wide enough and the rest wrap onto a second line when it is not. Every item
+// keeps its natural width, packed left. The minimum width is the wrapped
+// width, so long translated prefixes no longer set the right dock's minimum;
+// the minimum height follows the line count of the last laid-out width.
+class WrappingBlendRowLayout final : public QLayout {
+public:
+  explicit WrappingBlendRowLayout(int spacing) {
+    setContentsMargins(0, 0, 0, 0);
+    setSpacing(spacing);
+  }
+  ~WrappingBlendRowLayout() override {
+    while (auto* item = WrappingBlendRowLayout::takeAt(0)) {
+      delete item;
+    }
+  }
+
+  void addItem(QLayoutItem* item) override { items_.push_back(item); }
+  [[nodiscard]] int count() const override { return static_cast<int>(items_.size()); }
+  [[nodiscard]] QLayoutItem* itemAt(int index) const override {
+    return index >= 0 && index < count() ? items_[static_cast<std::size_t>(index)] : nullptr;
+  }
+  QLayoutItem* takeAt(int index) override {
+    if (index < 0 || index >= count()) {
+      return nullptr;
+    }
+    auto* item = items_[static_cast<std::size_t>(index)];
+    items_.erase(items_.begin() + index);
+    return item;
+  }
+  [[nodiscard]] Qt::Orientations expandingDirections() const override { return {}; }
+  [[nodiscard]] bool hasHeightForWidth() const override { return true; }
+  [[nodiscard]] int heightForWidth(int width) const override {
+    return lines_height(wraps(width - horizontal_margins())) + vertical_margins();
+  }
+  [[nodiscard]] QSize minimumSize() const override {
+    return {wrapped_width() + horizontal_margins(), lines_height(wrapped_) + vertical_margins()};
+  }
+  [[nodiscard]] QSize sizeHint() const override {
+    return {one_line_width() + horizontal_margins(), lines_height(false) + vertical_margins()};
+  }
+
+  void setGeometry(const QRect& rect) override {
+    QLayout::setGeometry(rect);
+    const auto area = contentsRect();
+    const auto wrapped = wraps(area.width());
+    const auto first_height = line_height(0, wrapped ? 1 : count());
+    auto x = area.x();
+    auto y = area.y();
+    auto height = first_height;
+    for (int index = 0; index < count(); ++index) {
+      auto* item = items_[static_cast<std::size_t>(index)];
+      if (item->isEmpty()) {
+        continue;
+      }
+      if (wrapped && index == 1) {
+        x = area.x();
+        y += first_height + spacing();
+        height = line_height(1, count());
+      }
+      const auto hint = item->sizeHint();
+      const auto width = std::min(hint.width(), std::max(0, area.right() + 1 - x));
+      item->setGeometry(QRect(x, y + (height - hint.height()) / 2, width, hint.height()));
+      x += width + spacing();
+    }
+    if (wrapped != wrapped_) {
+      // The line count changed, so the minimum height did too. Re-request the
+      // enclosing layout once this pass is over; the next pass is stable
+      // because the wrap depends on the width alone.
+      wrapped_ = wrapped;
+      QTimer::singleShot(0, this, [this] { invalidate(); });
+    }
+  }
+
+private:
+  [[nodiscard]] int horizontal_margins() const {
+    const auto margins = contentsMargins();
+    return margins.left() + margins.right();
+  }
+  [[nodiscard]] int vertical_margins() const {
+    const auto margins = contentsMargins();
+    return margins.top() + margins.bottom();
+  }
+  // Natural width of items [first, last) on one line.
+  [[nodiscard]] int run_width(int first, int last) const {
+    int width = 0;
+    int shown = 0;
+    for (int index = first; index < last; ++index) {
+      const auto* item = items_[static_cast<std::size_t>(index)];
+      if (!item->isEmpty()) {
+        width += item->sizeHint().width();
+        ++shown;
+      }
+    }
+    return width + std::max(0, shown - 1) * spacing();
+  }
+  [[nodiscard]] int line_height(int first, int last) const {
+    int height = 0;
+    for (int index = first; index < last; ++index) {
+      const auto* item = items_[static_cast<std::size_t>(index)];
+      if (!item->isEmpty()) {
+        height = std::max(height, item->sizeHint().height());
+      }
+    }
+    return height;
+  }
+  [[nodiscard]] int one_line_width() const { return run_width(0, count()); }
+  [[nodiscard]] int wrapped_width() const {
+    return std::max(run_width(0, std::min(1, count())), run_width(1, count()));
+  }
+  [[nodiscard]] bool wraps(int content_width) const {
+    return count() > 1 && content_width < one_line_width();
+  }
+  [[nodiscard]] int lines_height(bool wrapped) const {
+    if (!wrapped) {
+      return line_height(0, count());
+    }
+    return line_height(0, 1) + spacing() + line_height(1, count());
+  }
+
+  std::vector<QLayoutItem*> items_;
+  bool wrapped_{false};
+};
 
 // The QDockWidgetGroupWindow class name is reliable (it has Q_OBJECT); the
 // patchy.dockGroupWindow property is a seam for tests, which cannot construct
@@ -336,6 +467,79 @@ Qt::CursorShape group_window_resize_cursor(Qt::Edges edges) {
   return Qt::SizeVerCursor;
 }
 
+// Hosts a right-column panel so the column can be narrower than the panel's
+// minimum width: the panel keeps that width and scrolls horizontally, with
+// the scroll bar at the bottom. It never scrolls vertically: the panel always
+// gets the viewport's full height, and the minimum height grows by the
+// scroll bar while it shows, so the bar never eats the panel's own floor.
+// The panel is placed by hand rather than with widgetResizable, which would
+// size a height-for-width panel (the Layers panel) to its preferred height
+// and clip its bottom row.
+class RightDockOverflowArea final : public QScrollArea {
+public:
+  explicit RightDockOverflowArea(QWidget* parent) : QScrollArea(parent) {
+    setObjectName(QStringLiteral("rightDockOverflowScroll"));
+    setFrameShape(QFrame::NoFrame);
+    setWidgetResizable(false);
+    setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  }
+
+  [[nodiscard]] QSize sizeHint() const override {
+    const auto* content = widget();
+    if (content == nullptr) {
+      return QScrollArea::sizeHint();
+    }
+    const auto hint = content->sizeHint().expandedTo(content_minimum());
+    return {hint.width() + frameWidth() * 2, hint.height() + frameWidth() * 2};
+  }
+
+  [[nodiscard]] QSize minimumSizeHint() const override {
+    if (widget() == nullptr) {
+      return QScrollArea::minimumSizeHint();
+    }
+    const auto bar = overflowing_ ? horizontalScrollBar()->sizeHint().height() : 0;
+    return {0, content_minimum().height() + bar + frameWidth() * 2};
+  }
+
+protected:
+  void resizeEvent(QResizeEvent* event) override {
+    QScrollArea::resizeEvent(event);
+    place_content();
+  }
+
+  bool viewportEvent(QEvent* event) override {
+    if (event->type() == QEvent::LayoutRequest) {
+      // The panel's minimum changed (a retranslated or restyled row).
+      place_content();
+    }
+    return QScrollArea::viewportEvent(event);
+  }
+
+private:
+  [[nodiscard]] QSize content_minimum() const {
+    const auto* content = widget();
+    return content->minimumSizeHint().expandedTo(content->minimumSize());
+  }
+
+  void place_content() {
+    auto* content = widget();
+    if (content == nullptr) {
+      return;
+    }
+    const auto minimum = content_minimum();
+    const auto overflowing = minimum.width() > width() - frameWidth() * 2;
+    const auto viewport_size = viewport()->size();
+    content->resize(std::max(viewport_size.width(), minimum.width()), viewport_size.height());
+    if (overflowing != overflowing_) {
+      overflowing_ = overflowing;
+      updateGeometry();
+    }
+  }
+
+  bool overflowing_{false};
+};
+
 void install_collapsible_dock_title(QDockWidget* dock,
                                     QWidget* content,
                                     const QString& object_prefix,
@@ -344,12 +548,18 @@ void install_collapsible_dock_title(QDockWidget* dock,
                                     bool initially_expanded = true,
                                     int expanded_preferred_height = 0,
                                     std::function<void(bool)> panel_toggled = {}) {
-  dock->setMinimumWidth(kRightDockMinimumWidth);
-  content->setMinimumWidth(kRightDockMinimumWidth - kRightDockChromeWidth);
+  // The column can be dragged narrower than a panel's content, which then
+  // scrolls horizontally; Properties already scrolls in its own area.
+  dock->setMinimumWidth(kRightDockFloorWidth);
+  if (qobject_cast<QScrollArea*>(content) == nullptr) {
+    auto* overflow = new RightDockOverflowArea(dock);
+    overflow->setWidget(content);
+    dock->setWidget(overflow);
+    content = overflow;
+  }
 
   auto* title = new QWidget(dock);
   title->setObjectName(object_prefix + QStringLiteral("DockTitle"));
-  title->setMinimumWidth(kRightDockMinimumWidth - kRightDockChromeWidth);
   // The dock's width-drag handle overlays the leftmost strip of the dock,
   // title bar included; this inset keeps the toggle and label clear of it.
   title->setContentsMargins(kRightDockResizeHandleWidth, 0, 0, 0);
@@ -372,6 +582,8 @@ void install_collapsible_dock_title(QDockWidget* dock,
 
   auto* label = new QLabel(dock->windowTitle(), title);
   label->setObjectName(object_prefix + QStringLiteral("DockTitleLabel"));
+  // A long title clips instead of holding a narrowed column wide.
+  label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
   if (dock->property(kTranslationTextProperty).isValid()) {
     label->setProperty(kTranslationContextProperty, dock->property(kTranslationContextProperty));
     label->setProperty(kTranslationTextProperty, dock->property(kTranslationTextProperty));
@@ -461,6 +673,13 @@ void MainWindow::install_right_dock_width_handle(QDockWidget* dock) {
     dock->style()->unpolish(dock);
     dock->style()->polish(dock);
   });
+  // The column's width hangs on its bottom docked dock, which floating or
+  // re-docking a dock can change (closing and reopening one arrive as
+  // Hide/Show in handle_right_dock_resize_event).
+  connect(dock, &QDockWidget::topLevelChanged, this, [this] {
+    reapply_right_dock_stack_width();
+    QTimer::singleShot(0, this, [this] { reapply_right_dock_stack_width(); });
+  });
   connect(dock, &QDockWidget::topLevelChanged, this, [this, dock](bool floating) {
     if (floating) {
       return;
@@ -496,19 +715,52 @@ void MainWindow::set_right_dock_stack_width(int width) {
   // Re-measure lazily: styling and retranslation both change the layers
   // panel's minimum after the docks are built.
   update_right_dock_minimum_width();
-  const auto minimum = std::max(kRightDockMinimumWidth, right_dock_minimum_width_);
-  const auto max_width = std::max(minimum, this->width() - 260);
-  const auto target_width = std::clamp(width, minimum, max_width);
+  // Any width the user or a script picks is kept, narrower than the content
+  // included (the panels scroll horizontally then).
+  right_dock_width_follows_minimum_ = false;
+  const auto max_width = std::max(kRightDockFloorWidth, this->width() - 260);
+  pin_right_dock_stack_width(std::clamp(width, kRightDockFloorWidth, max_width));
+}
+
+void MainWindow::pin_right_dock_stack_width(int target_width) {
   right_dock_pinned_width_ = target_width;
+  // One fixed-width dock pins the whole column (a column is no wider than its
+  // narrowest maximum), and it must be the bottom one: Qt draws no separator
+  // after a dock whose width is fixed in a vertical column
+  // (QDockAreaLayoutItem::hasFixedSize), so a fixed dock above another would
+  // take away the drag between them. Every other dock, floating ones
+  // included, keeps only the floor. Once the window is shown the bottom dock
+  // is read from the layout (the user can rearrange or close docks); before
+  // that it is the last docked entry of right_dock_stack_names.
+  QDockWidget* anchor = nullptr;
+  int anchor_bottom = std::numeric_limits<int>::min();
+  int order = 0;
   for (const auto& object_name : right_dock_stack_names()) {
     auto* dock = findChild<QDockWidget*>(object_name);
-    if (dock == nullptr || dock->isFloating()) {
-      // A floating dock keeps its own size; the column pin re-applies when
-      // it docks back (the fixed widths of the docked stack set the column).
+    ++order;
+    if (dock == nullptr) {
       continue;
     }
-    dock->setFixedWidth(target_width);
-    dock->updateGeometry();
+    dock->setMinimumWidth(kRightDockFloorWidth);
+    dock->setMaximumWidth(QWIDGETSIZE_MAX);
+    if (dock->isFloating() || dock->isHidden() || dockWidgetArea(dock) != Qt::RightDockWidgetArea) {
+      continue;
+    }
+    const auto bottom = isVisible() ? dock->geometry().bottom() : order;
+    if (bottom >= anchor_bottom) {
+      anchor_bottom = bottom;
+      anchor = dock;
+    }
+  }
+  if (anchor != nullptr) {
+    anchor->setFixedWidth(target_width);
+    anchor->updateGeometry();
+  }
+}
+
+void MainWindow::reapply_right_dock_stack_width() {
+  if (right_dock_pinned_width_ > 0) {
+    pin_right_dock_stack_width(right_dock_pinned_width_);
   }
 }
 
@@ -529,47 +781,36 @@ void MainWindow::update_right_dock_minimum_width() {
     blend_combo_->setMinimumWidth(blend_combo_->minimumSizeHint().width() + scroll_extent + 8);
   }
   // The platform styles the dock frame, so the chrome around the panel can
-  // only be trusted once the dock has been laid out. An estimate that is off
-  // in either direction breaks the minimum-width geometry: too small lets the
-  // blend/opacity row overflow past the panel's right inset, too large leaves
-  // slack that the row's trailing stretch absorbs, pulling the Fill spin box
-  // out of line with the filter edit's right edge.
+  // only be trusted once the dock has been laid out. An estimate that is too
+  // small lets the widest row (the footer buttons, or the wrapped blend row)
+  // overflow past the panel's right inset at the minimum width.
+  // The panel sits in RightDockOverflowArea's viewport and can be wider than
+  // it while the column is narrowed, so the chrome is the dock minus the
+  // viewport, not minus the panel.
   auto* layers_dock = findChild<QDockWidget*>(QStringLiteral("layersDock"));
-  if (layers_dock != nullptr && layers_panel->isVisible() && layers_panel->width() > 0 &&
-      layers_dock->width() >= layers_panel->width()) {
-    right_dock_chrome_width_ = std::min(layers_dock->width() - layers_panel->width(), 64);
+  const auto* layers_viewport = layers_panel->parentWidget();
+  if (layers_dock != nullptr && layers_viewport != nullptr && layers_panel->isVisible() &&
+      layers_viewport->width() > 0 && layers_dock->width() >= layers_viewport->width()) {
+    right_dock_chrome_width_ = std::min(layers_dock->width() - layers_viewport->width(), 64);
   }
   const auto chrome =
       right_dock_chrome_width_ >= 0 ? right_dock_chrome_width_ : kRightDockChromeWidth;
-  // The blend/opacity row is the widest content in the stack, and its spin
-  // boxes re-measure for the translated prefixes, so a stack narrowed to the
-  // hardcoded floor can clip the Fill spin box and the popup chevrons. The
-  // panel layout's own minimum already accounts for those fixed widths.
+  // The panel layout's minimum covers the footer buttons and the blend row at
+  // its wrapped width, whose spin boxes re-measure for the translated
+  // prefixes, so a stack at this width clips neither the Fill spin box nor
+  // the popup chevrons.
   const auto minimum =
       std::max(kRightDockMinimumWidth, panel_layout->minimumSize().width() + chrome);
   if (minimum == right_dock_minimum_width_) {
     return;
   }
   right_dock_minimum_width_ = minimum;
-  // Only the explicit pin tracks whether the stack holds an exact width: Qt's
-  // main-window layout rewrites dock maximum sizes on its own, so they cannot
-  // distinguish a pinned stack from a free one.
-  if (right_dock_pinned_width_ > 0 && right_dock_pinned_width_ < minimum) {
-    // A language switch can widen the row mid-session; keep the pin no
-    // narrower than the new minimum.
-    right_dock_pinned_width_ = minimum;
-  }
-  for (const auto& object_name : right_dock_stack_names()) {
-    auto* dock = findChild<QDockWidget*>(object_name);
-    if (dock == nullptr || dock->isFloating()) {
-      continue;
-    }
-    if (right_dock_pinned_width_ > 0) {
-      dock->setFixedWidth(right_dock_pinned_width_);
-    } else {
-      dock->setMinimumWidth(minimum);
-    }
-    dock->updateGeometry();
+  // Until the user or a script picks a width, the column sits at the
+  // narrowest width every panel fits without scrolling, and follows it when
+  // a language switch or restyle changes it. A picked width is kept even
+  // below that; the panels scroll horizontally then.
+  if (right_dock_width_follows_minimum_) {
+    pin_right_dock_stack_width(minimum);
   }
 }
 
@@ -664,6 +905,23 @@ bool MainWindow::handle_right_dock_resize_event(QObject* watched, QEvent* event)
     if (event->type() == QEvent::Resize || event->type() == QEvent::Show) {
       update_right_dock_resize_handle_geometry(widget);
     }
+    if (event->type() == QEvent::Hide || event->type() == QEvent::Show) {
+      // A dock closing or reopening can change which dock is the column's
+      // bottom one, the dock that carries its width. Through the event filter
+      // rather than visibilityChanged, which also fires while the window is
+      // being destroyed.
+      QTimer::singleShot(0, this, [this] { reapply_right_dock_stack_width(); });
+    }
+    if (event->type() == QEvent::Show && widget->objectName() == QStringLiteral("layersDock")) {
+      // The dock chrome can only be measured once the dock is laid out, and
+      // the column follows the content-fit width it yields. Re-pinned even
+      // when the width did not change: before the first show the bottom dock
+      // is only a guess from the stack order.
+      QTimer::singleShot(0, this, [this] {
+        update_right_dock_minimum_width();
+        reapply_right_dock_stack_width();
+      });
+    }
     return false;
   }
 
@@ -683,7 +941,9 @@ bool MainWindow::handle_right_dock_resize_event(QObject* watched, QEvent* event)
       }
       right_dock_resizing_ = true;
       right_dock_resize_start_global_ = mouse_event->globalPosition().toPoint();
-      right_dock_resize_start_width_ = dock->width();
+      // Start from the column's width, not the pressed dock's: an inactive
+      // tab (Channels, Paths) keeps a stale width that Qt never lays out.
+      right_dock_resize_start_width_ = right_dock_pinned_width_ > 0 ? right_dock_pinned_width_ : dock->width();
       // No explicit grabMouse: Qt's implicit press-grab already routes the
       // moves and release here, and an explicit grab is unreliable on wasm.
       mouse_event->accept();
@@ -1290,13 +1550,12 @@ void MainWindow::create_docks() {
 
   // One compact row (Photoshop-style): the blend combo hugs its longest mode
   // name and Opacity/Fill are prefixed spin boxes with the toolbar popup
-  // slider, so the panel spends one line here instead of three. No extra side
-  // insets: the panel margin alone places the row, so at the minimum stack
-  // width the Fill spin box's right edge lines up with the name filter and
-  // the layer list below.
-  auto* blend_opacity_row = new QHBoxLayout();
-  blend_opacity_row->setContentsMargins(0, 0, 0, 0);
-  blend_opacity_row->setSpacing(6);
+  // slider, so the panel spends one line here instead of three. When the
+  // stack is narrower than that line (long translated prefixes make it wider
+  // than the footer buttons), Opacity and Fill wrap onto a second line
+  // instead of raising the dock's minimum width. No extra side insets: the
+  // panel margin alone places the row.
+  auto* blend_opacity_row = new WrappingBlendRowLayout(6);
   blend_combo_ = new QComboBox(layers_panel);
   add_blend_mode_items(blend_combo_);
   blend_combo_->setObjectName(QStringLiteral("layerBlendModeCombo"));
@@ -1333,7 +1592,6 @@ void MainWindow::create_docks() {
   connect(fill_opacity_spin_, &QSpinBox::editingFinished, this,
           [this] { finish_pending_layer_fill_opacity_edit(); });
   register_document_widget(fill_opacity_spin_);
-  blend_opacity_row->addStretch(1);
   register_retranslation([this] {
     if (opacity_spin_ == nullptr || fill_opacity_spin_ == nullptr) {
       return;
@@ -1692,7 +1950,8 @@ void MainWindow::create_docks() {
   properties_scroll->setObjectName(QStringLiteral("propertiesScrollArea"));
   properties_scroll->setFrameShape(QFrame::NoFrame);
   properties_scroll->setWidgetResizable(true);
-  properties_scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  // Scrolls sideways once the column is dragged narrower than the panel.
+  properties_scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
   auto* properties_panel = new QWidget(properties_dock);
   properties_panel->setObjectName(QStringLiteral("propertiesPanel"));
   auto* properties_layout = new QVBoxLayout(properties_panel);

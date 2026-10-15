@@ -257,6 +257,12 @@ public:
     window.set_right_dock_stack_width(width);
   }
 
+  // The narrowest column width at which no right panel scrolls sideways.
+  static int right_dock_content_minimum_width(MainWindow& window) {
+    window.update_right_dock_minimum_width();
+    return window.right_dock_minimum_width_;
+  }
+
   static void update_document_action_state(MainWindow& window) {
     window.update_document_action_state();
   }
