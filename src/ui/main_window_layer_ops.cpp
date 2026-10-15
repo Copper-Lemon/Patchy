@@ -2973,6 +2973,9 @@ void MainWindow::show_layer_context_menu(QPoint position) {
   auto* merge_down_action =
       menu.addAction(simple_icon(QStringLiteral("merge"), QColor(160, 220, 255)), tr("Merge Down"));
   auto* merge_visible_action = menu.addAction(simple_icon(QStringLiteral("merge")), tr("Merge Visible to New Layer (Copy)"));
+  if (image_flatten_action_ != nullptr) {
+    menu.addAction(image_flatten_action_);
+  }
   if (layer_rasterize_action_ != nullptr) {
     layer_rasterize_action_->setEnabled(has_rasterizable_layer);
     menu.addAction(layer_rasterize_action_);
@@ -3332,6 +3335,122 @@ void MainWindow::merge_visible_to_new_layer() {
   refresh_paths_panel();
   if (canvas_ != nullptr) { canvas_->document_changed(); }
   statusBar()->showMessage(tr("Created a merged copy of the visible layers"));
+}
+
+namespace {
+
+bool any_layer_hidden(const std::vector<Layer>& layers) {
+  return std::any_of(layers.begin(), layers.end(), [](const Layer& layer) {
+    return !layer.visible() || any_layer_hidden(layer.children());
+  });
+}
+
+// One plain opaque bitmap and nothing else: Flatten Image would change nothing.
+bool document_is_flat(const Document& document) {
+  const auto& layers = document.layers();
+  if (layers.size() != 1) {
+    return false;
+  }
+  const auto& layer = layers.front();
+  return layer.kind() == LayerKind::Pixel && !layer_pixels_are_procedural(layer) && layer.visible() &&
+         layer.opacity() >= 1.0F && layer.fill_opacity() >= 1.0F && layer.blend_mode() == BlendMode::Normal &&
+         !layer.mask().has_value() && layer.vector_mask() == nullptr && layer.layer_style().empty() &&
+         layer.pixels().format().channels == 3 && layer.bounds().x == 0 && layer.bounds().y == 0 &&
+         layer.bounds().width == document.width() && layer.bounds().height == document.height();
+}
+
+// Photoshop's Flatten Image fills transparent areas with white: straight-alpha RGBA in,
+// opaque RGB at the same depth out. 32-bit rows blend in linear light, like the compositor.
+PixelBuffer composite_onto_white(const PixelBuffer& rgba) {
+  const auto depth = rgba.format().bit_depth;
+  const auto domain = depth == BitDepth::Float32 ? DeepDomain::Linear : DeepDomain::Encoded;
+  PixelBuffer rgb(rgba.width(), rgba.height(), with_bit_depth(PixelFormat::rgb8(), depth));
+  std::vector<float> row(static_cast<std::size_t>(rgba.width()) * 4U);
+  for (std::int32_t y = 0; y < rgba.height(); ++y) {
+    load_rgba_row(rgba, y, 0, rgba.width(), domain, row);
+    for (std::size_t i = 0; i < row.size(); i += 4U) {
+      const auto alpha = std::clamp(row[i + 3U] / 255.0F, 0.0F, 1.0F);
+      for (std::size_t c = 0; c < 3U; ++c) {
+        row[i + c] = row[i + c] * alpha + 255.0F * (1.0F - alpha);
+      }
+      row[i + 3U] = 255.0F;
+    }
+    store_rgba_row(rgb, y, 0, rgba.width(), domain, row);
+  }
+  return rgb;
+}
+
+}  // namespace
+
+// Image > Flatten Image (and the Layers panel menu): every visible layer, vectors, text and
+// effects included, becomes one opaque, locked "Background" like a new document's; hidden
+// layers are discarded after Photoshop's confirmation. See docs/tools.md.
+void MainWindow::flatten_image() {
+  if (canvas_ != nullptr) { canvas_->finish_free_transform(); }
+  finish_active_text_editor();
+  if (active_session() == nullptr) { return; }
+  const auto session_id = active_session()->session_id;
+  const Document source = std::as_const(document());
+  if (source.layers().empty()) {
+    statusBar()->showMessage(tr("No layers to flatten"));
+    return;
+  }
+  if (document_is_flat(source)) {
+    statusBar()->showMessage(tr("The image is already flat"));
+    return;
+  }
+  if (any_layer_hidden(source.layers())) {
+    const auto answer = show_warning_message(this, tr("Flatten Image"), tr("Discard hidden layers?"),
+                                             QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok,
+                                             QStringLiteral("flattenDiscardHiddenMessageBox"));
+    if (answer != QMessageBox::Ok || active_session() == nullptr || active_session()->session_id != session_id) {
+      return;
+    }
+  }
+  auto edit_lock = lock_preview_dialog_edits();
+  const QPointer<CanvasWidget> target(canvas_);
+  if (target) { target->begin_processing_operation(tr("Flattening image...")); }
+  const auto finish_processing = qScopeGuard([target] { if (target) { target->end_processing_operation(); } });
+  Document prepared = source;
+  try {
+    auto future = launch_async([source] {
+      const ScopedDocumentDepthRender depth_render;
+      return composite_onto_white(
+          pixels_from_image_at_depth(qimage_from_document(source, true), source.color_state().bit_depth));
+    });
+    if (target) {
+      target->wait_for_processing_operation([&future] {
+        return future.wait_for(std::chrono::milliseconds(16)) == std::future_status::ready;
+      });
+    }
+    auto pixels = future.get();
+    prepared.layers().clear();
+    auto& background = prepared.add_pixel_layer("Background", std::move(pixels));
+    set_layer_locks_position(background, true);
+    set_layer_locks_transparent_pixels(background, true);
+    prepared.set_active_layer(background.id());
+  } catch (const std::exception&) {
+    show_status_error(tr("Could not flatten the image. The layers are unchanged."));
+    return;
+  }
+  if (active_session() == nullptr || active_session()->session_id != session_id) { return; }
+  const auto background_id = *std::as_const(prepared).active_layer_id();
+  edit_lock.release();
+  push_undo_snapshot(tr("Flatten image"));
+  document() = std::move(prepared);
+  session().collapsed_layer_groups.clear();
+  if (canvas_ != nullptr) {
+    canvas_->clear_path_edit_selection();
+    canvas_->set_layer_edit_target(CanvasWidget::LayerEditTarget::Content);
+    canvas_->set_selected_layer_ids({background_id});
+  }
+  refresh_layer_list();
+  refresh_layer_controls();
+  refresh_document_info();
+  path_row_hidden_for_layer_.reset();
+  refresh_paths_panel();
+  if (canvas_ != nullptr) { canvas_->document_changed(); }
+  statusBar()->showMessage(tr("Flattened the image"));
 }
 
 void MainWindow::fill_active_layer() {

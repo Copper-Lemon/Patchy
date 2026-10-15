@@ -20485,6 +20485,46 @@ Patchy can download the update, replace this AppImage, and start again. You will
 
 Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前會詢問您如何處理未儲存的工作。</translation>
     </message>
+    <message>
+        <source>&amp;Flatten Image</source>
+        <translation>影像平面化(&amp;F)</translation>
+    </message>
+    <message>
+        <source>Merge every visible layer into one opaque Background layer</source>
+        <translation>將所有可見圖層合併為一個不透明的背景圖層</translation>
+    </message>
+    <message>
+        <source>No layers to flatten</source>
+        <translation>沒有可平面化的圖層</translation>
+    </message>
+    <message>
+        <source>The image is already flat</source>
+        <translation>影像已經平面化</translation>
+    </message>
+    <message>
+        <source>Flatten Image</source>
+        <translation>影像平面化</translation>
+    </message>
+    <message>
+        <source>Discard hidden layers?</source>
+        <translation>要丟棄隱藏的圖層嗎？</translation>
+    </message>
+    <message>
+        <source>Flattening image...</source>
+        <translation>正在將影像平面化...</translation>
+    </message>
+    <message>
+        <source>Could not flatten the image. The layers are unchanged.</source>
+        <translation>無法將影像平面化。圖層未變更。</translation>
+    </message>
+    <message>
+        <source>Flatten image</source>
+        <translation>影像平面化</translation>
+    </message>
+    <message>
+        <source>Flattened the image</source>
+        <translation>已將影像平面化</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

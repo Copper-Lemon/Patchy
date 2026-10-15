@@ -20611,6 +20611,46 @@ Patchy can download the update, replace this AppImage, and start again. You will
 
 Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić się ponownie. Najpierw pojawi się pytanie o niezapisaną pracę.</translation>
     </message>
+    <message>
+        <source>&amp;Flatten Image</source>
+        <translation>Spł&amp;aszcz obraz</translation>
+    </message>
+    <message>
+        <source>Merge every visible layer into one opaque Background layer</source>
+        <translation>Scal wszystkie widoczne warstwy w jedną nieprzezroczystą warstwę tła</translation>
+    </message>
+    <message>
+        <source>No layers to flatten</source>
+        <translation>Brak warstw do spłaszczenia</translation>
+    </message>
+    <message>
+        <source>The image is already flat</source>
+        <translation>Obraz jest już spłaszczony</translation>
+    </message>
+    <message>
+        <source>Flatten Image</source>
+        <translation>Spłaszcz obraz</translation>
+    </message>
+    <message>
+        <source>Discard hidden layers?</source>
+        <translation>Odrzucić ukryte warstwy?</translation>
+    </message>
+    <message>
+        <source>Flattening image...</source>
+        <translation>Spłaszczanie obrazu...</translation>
+    </message>
+    <message>
+        <source>Could not flatten the image. The layers are unchanged.</source>
+        <translation>Nie udało się spłaszczyć obrazu. Warstwy pozostały bez zmian.</translation>
+    </message>
+    <message>
+        <source>Flatten image</source>
+        <translation>Spłaszczenie obrazu</translation>
+    </message>
+    <message>
+        <source>Flattened the image</source>
+        <translation>Spłaszczono obraz</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

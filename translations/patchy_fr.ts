@@ -20548,6 +20548,46 @@ Patchy can download the update, replace this AppImage, and start again. You will
 
 Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer. Une question vous sera d&apos;abord posée sur le travail non enregistré.</translation>
     </message>
+    <message>
+        <source>&amp;Flatten Image</source>
+        <translation>A&amp;platir l&apos;image</translation>
+    </message>
+    <message>
+        <source>Merge every visible layer into one opaque Background layer</source>
+        <translation>Fusionner tous les calques visibles en un calque d&apos;arrière-plan opaque</translation>
+    </message>
+    <message>
+        <source>No layers to flatten</source>
+        <translation>Aucun calque à aplatir</translation>
+    </message>
+    <message>
+        <source>The image is already flat</source>
+        <translation>L&apos;image est déjà aplatie</translation>
+    </message>
+    <message>
+        <source>Flatten Image</source>
+        <translation>Aplatir l&apos;image</translation>
+    </message>
+    <message>
+        <source>Discard hidden layers?</source>
+        <translation>Supprimer les calques masqués ?</translation>
+    </message>
+    <message>
+        <source>Flattening image...</source>
+        <translation>Aplatissement de l&apos;image...</translation>
+    </message>
+    <message>
+        <source>Could not flatten the image. The layers are unchanged.</source>
+        <translation>Impossible d&apos;aplatir l&apos;image. Les calques sont inchangés.</translation>
+    </message>
+    <message>
+        <source>Flatten image</source>
+        <translation>Aplatir l&apos;image</translation>
+    </message>
+    <message>
+        <source>Flattened the image</source>
+        <translation>Image aplatie</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

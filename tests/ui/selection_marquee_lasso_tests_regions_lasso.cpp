@@ -941,10 +941,16 @@ void ui_layer_lock_transparency_and_keyboard_nudge_work() {
   QApplication::processEvents();
   CHECK(color_close(canvas_pixel(*canvas, QPoint(30, 30)), QColor(20, 90, 220), 8));
 
+  // Clear under the transparency lock paints the background color and keeps alpha,
+  // like the Eraser (Photoshop; GitHub issue 97).
+  canvas->set_secondary_color(QColor(240, 200, 10));
   require_action(window, "layerClearAction")->trigger();
   QApplication::processEvents();
-  CHECK(color_close(canvas_pixel(*canvas, QPoint(30, 30)), QColor(20, 90, 220), 8));
+  CHECK(color_close(canvas_pixel(*canvas, QPoint(30, 30)), QColor(240, 200, 10), 8));
   save_widget_artifact("ui_layer_lock_transparency", window);
+  patchy::ui::MainWindowTestAccess::undo(window);
+  QApplication::processEvents();
+  CHECK(color_close(canvas_pixel(*canvas, QPoint(30, 30)), QColor(20, 90, 220), 8));
 
   canvas->setFocus();
   send_key(*canvas, Qt::Key_Right, Qt::ShiftModifier);

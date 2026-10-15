@@ -20548,6 +20548,46 @@ Patchy can download the update, replace this AppImage, and start again. You will
 
 Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. Zuvor werden Sie nach nicht gespeicherten Änderungen gefragt.</translation>
     </message>
+    <message>
+        <source>&amp;Flatten Image</source>
+        <translation>Auf &amp;Hintergrundebene reduzieren</translation>
+    </message>
+    <message>
+        <source>Merge every visible layer into one opaque Background layer</source>
+        <translation>Alle sichtbaren Ebenen zu einer deckenden Hintergrundebene zusammenfügen</translation>
+    </message>
+    <message>
+        <source>No layers to flatten</source>
+        <translation>Keine Ebenen zum Reduzieren</translation>
+    </message>
+    <message>
+        <source>The image is already flat</source>
+        <translation>Das Bild ist bereits reduziert</translation>
+    </message>
+    <message>
+        <source>Flatten Image</source>
+        <translation>Auf Hintergrundebene reduzieren</translation>
+    </message>
+    <message>
+        <source>Discard hidden layers?</source>
+        <translation>Ausgeblendete Ebenen verwerfen?</translation>
+    </message>
+    <message>
+        <source>Flattening image...</source>
+        <translation>Bild wird reduziert...</translation>
+    </message>
+    <message>
+        <source>Could not flatten the image. The layers are unchanged.</source>
+        <translation>Das Bild konnte nicht reduziert werden. Die Ebenen sind unverändert.</translation>
+    </message>
+    <message>
+        <source>Flatten image</source>
+        <translation>Auf Hintergrundebene reduzieren</translation>
+    </message>
+    <message>
+        <source>Flattened the image</source>
+        <translation>Bild auf Hintergrundebene reduziert</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

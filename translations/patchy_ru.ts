@@ -20611,6 +20611,46 @@ Patchy can download the update, replace this AppImage, and start again. You will
 
 Patchy может скачать обновление, заменить этот AppImage и запуститься снова. Сначала появится вопрос о несохранённой работе.</translation>
     </message>
+    <message>
+        <source>&amp;Flatten Image</source>
+        <translation>Выполнить &amp;сведение</translation>
+    </message>
+    <message>
+        <source>Merge every visible layer into one opaque Background layer</source>
+        <translation>Объединить все видимые слои в один непрозрачный фоновый слой</translation>
+    </message>
+    <message>
+        <source>No layers to flatten</source>
+        <translation>Нет слоев для сведения</translation>
+    </message>
+    <message>
+        <source>The image is already flat</source>
+        <translation>Изображение уже сведено</translation>
+    </message>
+    <message>
+        <source>Flatten Image</source>
+        <translation>Выполнить сведение</translation>
+    </message>
+    <message>
+        <source>Discard hidden layers?</source>
+        <translation>Удалить скрытые слои?</translation>
+    </message>
+    <message>
+        <source>Flattening image...</source>
+        <translation>Сведение изображения...</translation>
+    </message>
+    <message>
+        <source>Could not flatten the image. The layers are unchanged.</source>
+        <translation>Не удалось выполнить сведение. Слои не изменены.</translation>
+    </message>
+    <message>
+        <source>Flatten image</source>
+        <translation>Сведение</translation>
+    </message>
+    <message>
+        <source>Flattened the image</source>
+        <translation>Изображение сведено</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

@@ -20485,6 +20485,46 @@ Patchy can download the update, replace this AppImage, and start again. You will
 
 Patchy はアップデートをダウンロードし、この AppImage を置き換えて再び起動できます。その前に、保存されていない作業について確認します。</translation>
     </message>
+    <message>
+        <source>&amp;Flatten Image</source>
+        <translation>画像を統合(&amp;F)</translation>
+    </message>
+    <message>
+        <source>Merge every visible layer into one opaque Background layer</source>
+        <translation>表示中のすべてのレイヤーを不透明な背景レイヤー 1 枚に統合します</translation>
+    </message>
+    <message>
+        <source>No layers to flatten</source>
+        <translation>統合するレイヤーがありません</translation>
+    </message>
+    <message>
+        <source>The image is already flat</source>
+        <translation>画像はすでに統合されています</translation>
+    </message>
+    <message>
+        <source>Flatten Image</source>
+        <translation>画像を統合</translation>
+    </message>
+    <message>
+        <source>Discard hidden layers?</source>
+        <translation>非表示レイヤーを破棄しますか？</translation>
+    </message>
+    <message>
+        <source>Flattening image...</source>
+        <translation>画像を統合中...</translation>
+    </message>
+    <message>
+        <source>Could not flatten the image. The layers are unchanged.</source>
+        <translation>画像を統合できませんでした。レイヤーは変更されていません。</translation>
+    </message>
+    <message>
+        <source>Flatten image</source>
+        <translation>画像を統合</translation>
+    </message>
+    <message>
+        <source>Flattened the image</source>
+        <translation>画像を統合しました</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

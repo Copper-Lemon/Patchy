@@ -20548,6 +20548,46 @@ Patchy can download the update, replace this AppImage, and start again. You will
 
 O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamente. Antes, você será perguntado sobre o trabalho não salvo.</translation>
     </message>
+    <message>
+        <source>&amp;Flatten Image</source>
+        <translation>Achatar &amp;imagem</translation>
+    </message>
+    <message>
+        <source>Merge every visible layer into one opaque Background layer</source>
+        <translation>Mesclar todas as camadas visíveis em uma camada de fundo opaca</translation>
+    </message>
+    <message>
+        <source>No layers to flatten</source>
+        <translation>Nenhuma camada para achatar</translation>
+    </message>
+    <message>
+        <source>The image is already flat</source>
+        <translation>A imagem já está achatada</translation>
+    </message>
+    <message>
+        <source>Flatten Image</source>
+        <translation>Achatar imagem</translation>
+    </message>
+    <message>
+        <source>Discard hidden layers?</source>
+        <translation>Descartar as camadas ocultas?</translation>
+    </message>
+    <message>
+        <source>Flattening image...</source>
+        <translation>Achatando imagem...</translation>
+    </message>
+    <message>
+        <source>Could not flatten the image. The layers are unchanged.</source>
+        <translation>Não foi possível achatar a imagem. As camadas não foram alteradas.</translation>
+    </message>
+    <message>
+        <source>Flatten image</source>
+        <translation>Achatar imagem</translation>
+    </message>
+    <message>
+        <source>Flattened the image</source>
+        <translation>Imagem achatada</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

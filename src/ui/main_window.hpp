@@ -1450,6 +1450,7 @@ private:
   // floated, or a document tab): accepts it as a copy and defers the copy.
   bool handle_cross_document_layer_drag_event(QObject* watched, QEvent* event);
   void merge_visible_to_new_layer();
+  void flatten_image();
   void merge_down();
   void fill_active_layer();
   void fill_active_layer_with_color(QColor color, QString label);
@@ -2227,6 +2228,7 @@ private:
   QAction* layer_paste_style_action_{nullptr};
   QAction* layer_delete_style_action_{nullptr};
   QAction* layer_rasterize_action_{nullptr};
+  QAction* image_flatten_action_{nullptr};
   QAction* layer_trace_image_action_{nullptr};
   QAction* layer_rasterize_layer_style_action_{nullptr};
   QAction* layer_clipping_mask_action_{nullptr};

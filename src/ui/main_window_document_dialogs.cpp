@@ -1411,6 +1411,11 @@ void MainWindow::reset_document(std::int32_t width, std::int32_t height, QColor 
                                                         make_solid_pixels(new_document.width(), new_document.height(),
                                                                           background, background_format));
   set_layer_locks_position(background_layer, true);
+  // An opaque Background also locks transparency, as in Photoshop: the Eraser and Clear paint
+  // the background color there. A transparent one stays paintable.
+  if (background_format == PixelFormat::rgb8()) {
+    set_layer_locks_transparent_pixels(background_layer, true);
+  }
   new_document.add_pixel_layer(tr("Paint Layer").toStdString(), make_solid_pixels(new_document.width(), new_document.height(), QColor(0, 0, 0, 0),
                                                              PixelFormat::rgba8()));
   add_document_session(std::move(new_document), tr("Untitled-%1").arg(sessions_.size() + 1),

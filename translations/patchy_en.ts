@@ -20481,6 +20481,46 @@ Download the new AppImage, quit Patchy, and replace this file with it:
 Patchy can download the update, replace this AppImage, and start again. You will be asked about unsaved work first.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>&amp;Flatten Image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Merge every visible layer into one opaque Background layer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No layers to flatten</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The image is already flat</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Flatten Image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Discard hidden layers?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Flattening image...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not flatten the image. The layers are unchanged.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Flatten image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Flattened the image</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

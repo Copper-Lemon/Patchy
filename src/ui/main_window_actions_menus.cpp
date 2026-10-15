@@ -1532,9 +1532,21 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
       "Detect the photos in this image and open or save each one as its own image");
   register_hotkey(divide_photos_action, "image.divide_photos");
   connect(divide_photos_action, &QAction::triggered, this, [this] { divide_current_document_photos(); });
+  // Image menu like GIMP (GitHub issue 97); the Layer menu is at its row bound, and the
+  // Layers panel menu carries the same action where Photoshop users look for it.
+  image_menu->addSeparator();
+  image_flatten_action_ = image_menu->addAction(tr("&Flatten Image"));
+  bind_action_text(image_flatten_action_, QT_TR_NOOP("&Flatten Image"));
+  image_flatten_action_->setObjectName(QStringLiteral("imageFlattenAction"));
+  image_flatten_action_->setIcon(simple_icon(QStringLiteral("merge")));
+  bind_translated_status_tip(image_flatten_action_,
+                             QT_TR_NOOP("Merge every visible layer into one opaque Background layer"));
+  apply_bound_translation(image_flatten_action_);
+  register_hotkey(image_flatten_action_, "image.flatten");
+  connect(image_flatten_action_, &QAction::triggered, this, [this] { flatten_image(); });
   for (auto* action : {adjustments_menu->menuAction(), image_size_action, canvas_size_action, crop_action,
                        rotate_cw_action, rotate_ccw_action, rotate_arbitrary_action, shift_seams_action,
-                       divide_photos_action}) {
+                       divide_photos_action, image_flatten_action_}) {
     register_document_action(action);
   }
 

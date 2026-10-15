@@ -20485,6 +20485,46 @@ Patchy can download the update, replace this AppImage, and start again. You will
 
 Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会询问您如何处理未保存的工作。</translation>
     </message>
+    <message>
+        <source>&amp;Flatten Image</source>
+        <translation>拼合图像(&amp;F)</translation>
+    </message>
+    <message>
+        <source>Merge every visible layer into one opaque Background layer</source>
+        <translation>将所有可见图层合并为一个不透明的背景图层</translation>
+    </message>
+    <message>
+        <source>No layers to flatten</source>
+        <translation>没有可拼合的图层</translation>
+    </message>
+    <message>
+        <source>The image is already flat</source>
+        <translation>图像已经拼合</translation>
+    </message>
+    <message>
+        <source>Flatten Image</source>
+        <translation>拼合图像</translation>
+    </message>
+    <message>
+        <source>Discard hidden layers?</source>
+        <translation>要扔掉隐藏的图层吗？</translation>
+    </message>
+    <message>
+        <source>Flattening image...</source>
+        <translation>正在拼合图像...</translation>
+    </message>
+    <message>
+        <source>Could not flatten the image. The layers are unchanged.</source>
+        <translation>无法拼合图像。图层未更改。</translation>
+    </message>
+    <message>
+        <source>Flatten image</source>
+        <translation>拼合图像</translation>
+    </message>
+    <message>
+        <source>Flattened the image</source>
+        <translation>已拼合图像</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

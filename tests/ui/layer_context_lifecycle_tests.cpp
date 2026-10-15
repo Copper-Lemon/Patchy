@@ -2593,9 +2593,15 @@ void ui_new_document_background_starts_locked() {
     auto* background_item = require_layer_item(*layer_list, QStringLiteral("Background"));
     auto* background_row = layer_list->itemWidget(background_item);
     CHECK(background_row != nullptr);
+    // Position and transparency, as in Photoshop (GitHub issue 97).
     const auto badges = background_row->findChildren<QLabel*>(QStringLiteral("layerLockBadge"));
-    CHECK(badges.size() == 1);
-    CHECK(badges.front()->toolTip().contains(QStringLiteral("Position locked")));
+    CHECK(badges.size() == 2);
+    QStringList tips;
+    for (const auto* badge : badges) {
+      tips << badge->toolTip();
+    }
+    CHECK(tips.join(QLatin1Char(' ')).contains(QStringLiteral("Position locked")));
+    CHECK(tips.join(QLatin1Char(' ')).contains(QStringLiteral("Transparent pixels locked")));
     CHECK(require_layer_item(*layer_list, QStringLiteral("Paint Layer"))->isSelected());
   };
 
@@ -2630,9 +2636,9 @@ void ui_merge_down_into_position_locked_background_works() {
   CHECK(color_close(canvas_pixel(*canvas, QPoint(30, 30)), QColor(220, 30, 40), 8));
   auto* background_row = layer_list->itemWidget(background);
   CHECK(background_row != nullptr);
+  // The merge keeps the Background's position and transparency locks; neither blocks it.
   const auto badges = background_row->findChildren<QLabel*>(QStringLiteral("layerLockBadge"));
-  CHECK(badges.size() == 1);
-  CHECK(badges.front()->toolTip().contains(QStringLiteral("Position locked")));
+  CHECK(badges.size() == 2);
   save_widget_artifact("ui_merge_down_position_locked_background", window);
 }
 

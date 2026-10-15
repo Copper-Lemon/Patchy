@@ -194,9 +194,15 @@ private:
       const auto& layer = layers[i];
       const bool selected = all || selected_.contains(layer.id());
       const auto locks = layer_lock_flags(layer);
+      // A transparency lock cannot be broken on a layer without alpha (the opaque
+      // Background), so only an alpha layer's transparency lock blocks a raster merge.
+      const bool alpha_less_bitmap = layer.kind() == LayerKind::Pixel && !layer_pixels_are_procedural(layer) &&
+                                     !layer.pixels().empty() && layer.pixels().format().channels < 4;
+      const auto raster_blocking_locks = alpha_less_bitmap ? kLayerLockImagePixels
+                                                           : (kLayerLockImagePixels | kLayerLockTransparentPixels);
       const bool locked = inherited_lock ||
           ((!options_.keep_vectors && layer.kind() != LayerKind::Group)
-               ? (locks & (kLayerLockImagePixels | kLayerLockTransparentPixels)) != 0
+               ? (locks & raster_blocking_locks) != 0
                : locks != kLayerLockNone) ||
           (!options_.keep_vectors && !options_.within_groups && contains_locked_descendant(layer));
       // A base and every member of its clipping stack stay together. Moving a

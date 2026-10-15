@@ -20485,6 +20485,46 @@ Patchy can download the update, replace this AppImage, and start again. You will
 
 Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 다시 시작할 수 있습니다. 먼저 저장하지 않은 작업에 대해 묻습니다.</translation>
     </message>
+    <message>
+        <source>&amp;Flatten Image</source>
+        <translation>이미지 병합(&amp;F)</translation>
+    </message>
+    <message>
+        <source>Merge every visible layer into one opaque Background layer</source>
+        <translation>보이는 모든 레이어를 불투명한 배경 레이어 하나로 병합합니다</translation>
+    </message>
+    <message>
+        <source>No layers to flatten</source>
+        <translation>병합할 레이어가 없습니다</translation>
+    </message>
+    <message>
+        <source>The image is already flat</source>
+        <translation>이미지가 이미 병합되어 있습니다</translation>
+    </message>
+    <message>
+        <source>Flatten Image</source>
+        <translation>이미지 병합</translation>
+    </message>
+    <message>
+        <source>Discard hidden layers?</source>
+        <translation>숨겨진 레이어를 삭제하시겠습니까?</translation>
+    </message>
+    <message>
+        <source>Flattening image...</source>
+        <translation>이미지 병합 중...</translation>
+    </message>
+    <message>
+        <source>Could not flatten the image. The layers are unchanged.</source>
+        <translation>이미지를 병합할 수 없습니다. 레이어는 변경되지 않았습니다.</translation>
+    </message>
+    <message>
+        <source>Flatten image</source>
+        <translation>이미지 병합</translation>
+    </message>
+    <message>
+        <source>Flattened the image</source>
+        <translation>이미지를 병합했습니다</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

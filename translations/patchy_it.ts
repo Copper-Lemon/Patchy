@@ -20548,6 +20548,46 @@ Patchy can download the update, replace this AppImage, and start again. You will
 
 Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavviarsi. Prima ti verrà chiesto del lavoro non salvato.</translation>
     </message>
+    <message>
+        <source>&amp;Flatten Image</source>
+        <translation>Unico &amp;livello</translation>
+    </message>
+    <message>
+        <source>Merge every visible layer into one opaque Background layer</source>
+        <translation>Unisci tutti i livelli visibili in un livello di sfondo opaco</translation>
+    </message>
+    <message>
+        <source>No layers to flatten</source>
+        <translation>Nessun livello da unire</translation>
+    </message>
+    <message>
+        <source>The image is already flat</source>
+        <translation>L&apos;immagine è già su un unico livello</translation>
+    </message>
+    <message>
+        <source>Flatten Image</source>
+        <translation>Unico livello</translation>
+    </message>
+    <message>
+        <source>Discard hidden layers?</source>
+        <translation>Eliminare i livelli nascosti?</translation>
+    </message>
+    <message>
+        <source>Flattening image...</source>
+        <translation>Unione dell&apos;immagine in corso...</translation>
+    </message>
+    <message>
+        <source>Could not flatten the image. The layers are unchanged.</source>
+        <translation>Impossibile unire l&apos;immagine. I livelli non sono stati modificati.</translation>
+    </message>
+    <message>
+        <source>Flatten image</source>
+        <translation>Unico livello</translation>
+    </message>
+    <message>
+        <source>Flattened the image</source>
+        <translation>Immagine unita in un unico livello</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

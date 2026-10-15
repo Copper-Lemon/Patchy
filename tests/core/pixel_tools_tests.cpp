@@ -4,6 +4,7 @@
 #include "core/document.hpp"
 #include "core/layer_metadata.hpp"
 #include "core/layer_tree.hpp"
+#include "core/pixel_depth.hpp"
 #include "core/gradient_presets.hpp"
 #include "filters/filter_engine.hpp"
 #include "filters/filter_registry.hpp"
@@ -814,10 +815,86 @@ void tool_lock_transparent_pixels_preserves_alpha() {
   CHECK(!patchy::paint_brush(document, layer_id, 4, 4, options, false).empty());
   CHECK(document.find_layer(layer_id)->pixels().pixel(4, 4)[3] == 0);
 
-  CHECK(patchy::clear_rect_change_bounds(document, layer_id, patchy::Rect{18, 18, 6, 6}, options).empty());
-  CHECK(patchy::clear_rect(document, layer_id, patchy::Rect{18, 18, 6, 6}, options).empty());
-  CHECK(document.find_layer(layer_id)->pixels().pixel(20, 20)[3] == 255);
+  // Clear under the lock paints the background color (white here) and keeps alpha.
+  CHECK(!patchy::clear_rect_change_bounds(document, layer_id, patchy::Rect{18, 18, 6, 6}, options).empty());
+  CHECK(!patchy::clear_rect(document, layer_id, patchy::Rect{18, 18, 6, 6}, options).empty());
+  CHECK(pixel_is(document, layer_id, 20, 20, 255, 255, 255, 255));
   write_bmp_artifact("tool_lock_transparency", document);
+}
+
+// GitHub issue 97 / Photoshop: with transparency locked, the Eraser and Clear paint the
+// background color and keep each pixel's alpha. Empty pixels stay empty, and a layer without
+// alpha (the opaque Background) never gains an alpha channel.
+void tool_eraser_and_clear_paint_background_color_under_transparency_lock() {
+  const patchy::EditColor background{200, 100, 50, 255};
+  {
+    patchy::Document document(16, 16, patchy::PixelFormat::rgba8());
+    auto pixels = solid_rgba(16, 16, 10, 20, 30, 255);
+    pixels.pixel(6, 8)[3] = 128;
+    pixels.pixel(10, 8)[3] = 0;
+    const auto layer_id = document.add_pixel_layer("Locked", std::move(pixels)).id();
+    auto options = tool_options(0, 0, 0);
+    options.secondary = background;
+    options.brush_size = 15;
+    options.lock_transparent_pixels = true;
+    CHECK(!patchy::paint_brush(document, layer_id, 8, 8, options, true).empty());
+    CHECK(pixel_is(document, layer_id, 8, 8, 200, 100, 50, 255));
+    CHECK(pixel_is(document, layer_id, 6, 8, 200, 100, 50, 128));
+    CHECK(pixel_is(document, layer_id, 10, 8, 10, 20, 30, 0));
+  }
+  {
+    patchy::Document document(12, 12, patchy::PixelFormat::rgb8());
+    const auto layer_id = document.add_pixel_layer("Background", solid_rgb(12, 12, 255, 255, 255)).id();
+    auto options = tool_options(0, 0, 0);
+    options.secondary = background;
+    options.brush_size = 5;
+    options.lock_transparent_pixels = true;
+    CHECK(!patchy::paint_brush(document, layer_id, 6, 6, options, true).empty());
+    const auto& pixels = document.find_layer(layer_id)->pixels();
+    CHECK(pixels.format() == patchy::PixelFormat::rgb8());
+    const auto* erased = pixels.pixel(6, 6);
+    CHECK(erased[0] == 200 && erased[1] == 100 && erased[2] == 50);
+    CHECK(pixels.pixel(0, 0)[0] == 255);
+
+    options.selection = patchy::Rect{0, 0, 2, 2};
+    CHECK(!patchy::clear_rect_change_bounds(document, layer_id, patchy::Rect{0, 0, 12, 12}, options).empty());
+    CHECK(!patchy::clear_rect(document, layer_id, patchy::Rect{0, 0, 12, 12}, options).empty());
+    const auto& cleared = document.find_layer(layer_id)->pixels();
+    CHECK(cleared.format() == patchy::PixelFormat::rgb8());
+    CHECK(cleared.pixel(1, 1)[0] == 200 && cleared.pixel(1, 1)[1] == 100 && cleared.pixel(1, 1)[2] == 50);
+    CHECK(cleared.pixel(3, 3)[0] == 255);
+  }
+  {
+    // 16-bit: the same rule at the layer's depth, for the Eraser and for Clear.
+    patchy::Document document(16, 16, patchy::PixelFormat::rgba8());
+    auto pixels = solid_rgba(16, 16, 10, 20, 30, 255);
+    pixels.pixel(10, 8)[3] = 0;
+    const auto layer_id =
+        document
+            .add_pixel_layer("Deep", patchy::convert_pixel_buffer_depth(pixels, patchy::BitDepth::UInt16,
+                                                                         patchy::SampleKind::Color))
+            .id();
+    auto options = tool_options(0, 0, 0);
+    options.secondary = background;
+    options.brush_size = 9;
+    options.lock_transparent_pixels = true;
+    CHECK(!patchy::paint_brush(document, layer_id, 8, 8, options, true).empty());
+    const auto deep_close = [](float value, float expected) { return std::abs(value - expected) <= 0.6F; };
+    const auto& deep = document.find_layer(layer_id)->pixels();
+    const auto erased = patchy::load_pixel(deep.format(), deep.pixel(8, 8));
+    CHECK(deep_close(erased[0], 200.0F) && deep_close(erased[1], 100.0F) && deep_close(erased[2], 50.0F) &&
+          deep_close(erased[3], 255.0F));
+    CHECK(deep_close(patchy::load_pixel(deep.format(), deep.pixel(10, 8))[3], 0.0F));
+
+    options.selection = patchy::Rect{0, 0, 2, 2};
+    options.secondary = patchy::EditColor{0, 255, 0, 255};
+    CHECK(!patchy::clear_rect(document, layer_id, patchy::Rect{0, 0, 16, 16}, options).empty());
+    const auto& cleared = document.find_layer(layer_id)->pixels();
+    const auto cleared_px = patchy::load_pixel(cleared.format(), cleared.pixel(1, 1));
+    CHECK(deep_close(cleared_px[0], 0.0F) && deep_close(cleared_px[1], 255.0F) && deep_close(cleared_px[3], 255.0F));
+    const auto untouched = patchy::load_pixel(cleared.format(), cleared.pixel(4, 4));
+    CHECK(deep_close(untouched[0], 10.0F) && deep_close(untouched[3], 255.0F));
+  }
 }
 
 void tool_clear_rgb_selection_converts_only_when_pixels_change() {
@@ -1370,6 +1447,8 @@ std::vector<patchy::test::TestCase> pixel_tools_tests() {
       {"tool_fill_clear_gradient_respect_complex_selection_mask",
        tool_fill_clear_gradient_respect_complex_selection_mask},
       {"tool_lock_transparent_pixels_preserves_alpha", tool_lock_transparent_pixels_preserves_alpha},
+      {"tool_eraser_and_clear_paint_background_color_under_transparency_lock",
+       tool_eraser_and_clear_paint_background_color_under_transparency_lock},
       {"tool_clear_rgb_selection_converts_only_when_pixels_change",
        tool_clear_rgb_selection_converts_only_when_pixels_change},
       {"tool_write_paths_digest_baseline", tool_write_paths_digest_baseline},

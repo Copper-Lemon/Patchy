@@ -20548,6 +20548,46 @@ Patchy can download the update, replace this AppImage, and start again. You will
 
 Patchy puede descargar la actualización, reemplazar este AppImage y volver a iniciarse. Antes se le preguntará por el trabajo sin guardar.</translation>
     </message>
+    <message>
+        <source>&amp;Flatten Image</source>
+        <translation>Acoplar &amp;imagen</translation>
+    </message>
+    <message>
+        <source>Merge every visible layer into one opaque Background layer</source>
+        <translation>Combinar todas las capas visibles en una capa de fondo opaca</translation>
+    </message>
+    <message>
+        <source>No layers to flatten</source>
+        <translation>No hay capas que acoplar</translation>
+    </message>
+    <message>
+        <source>The image is already flat</source>
+        <translation>La imagen ya está acoplada</translation>
+    </message>
+    <message>
+        <source>Flatten Image</source>
+        <translation>Acoplar imagen</translation>
+    </message>
+    <message>
+        <source>Discard hidden layers?</source>
+        <translation>¿Descartar las capas ocultas?</translation>
+    </message>
+    <message>
+        <source>Flattening image...</source>
+        <translation>Acoplando imagen...</translation>
+    </message>
+    <message>
+        <source>Could not flatten the image. The layers are unchanged.</source>
+        <translation>No se pudo acoplar la imagen. Las capas no han cambiado.</translation>
+    </message>
+    <message>
+        <source>Flatten image</source>
+        <translation>Acoplar imagen</translation>
+    </message>
+    <message>
+        <source>Flattened the image</source>
+        <translation>Imagen acoplada</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
