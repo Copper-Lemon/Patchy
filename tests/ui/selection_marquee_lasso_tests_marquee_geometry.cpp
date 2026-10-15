@@ -635,6 +635,19 @@ void ui_marquee_corner_radius_rounds_selection() {
   auto* radius = window.findChild<QSpinBox*>(QStringLiteral("selectionCornerRadiusSpin"));
   CHECK(radius != nullptr);
   CHECK(radius->isVisible());
+  // The Feather label and its field share one toolbar item, so the gap between
+  // them is set by hand to the toolbar's own item spacing, the gap every other
+  // label gets (GitHub issue 106).
+  auto* feather_field = window.findChild<QSpinBox*>(QStringLiteral("selectionFeatherSpin"));
+  auto* feather_group = window.findChild<QWidget*>(QStringLiteral("selectionFeatherGroup"));
+  CHECK(feather_field != nullptr && feather_group != nullptr);
+  if (feather_field != nullptr && feather_group != nullptr) {
+    auto* feather_label = feather_group->findChild<QLabel*>();
+    CHECK(feather_label != nullptr && feather_label->isVisible());
+    if (feather_label != nullptr) {
+      CHECK(feather_field->x() - (feather_label->x() + feather_label->width()) == 5);
+    }
+  }
   radius->setValue(30);
   QApplication::processEvents();
   CHECK(canvas->marquee_corner_radius() == 30);

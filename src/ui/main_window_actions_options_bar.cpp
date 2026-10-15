@@ -258,6 +258,10 @@ namespace patchy::ui {
 
 namespace {
 
+// The gap between options bar items (the toolbar's QSS `spacing`), for widgets that
+// group a label and its field into one item and must match it by hand.
+constexpr int kOptionsBarItemSpacing = 5;
+
 class CheckGlyphBox final : public QCheckBox {
 public:
   explicit CheckGlyphBox(const QString& text, QWidget* parent = nullptr) : QCheckBox(text, parent) {
@@ -1012,7 +1016,10 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   feather_group->setObjectName(QStringLiteral("selectionFeatherGroup"));
   auto* feather_layout = new QHBoxLayout(feather_group);
   feather_layout->setContentsMargins(0, 0, 0, 0);
-  feather_layout->setSpacing(0);
+  // The label and field share one toolbar item, so the toolbar's own item
+  // spacing does not separate them; use the same gap every other label gets
+  // (GitHub issue 106).
+  feather_layout->setSpacing(kOptionsBarItemSpacing);
   auto* feather_label = new QLabel(tr("Feather:"), feather_group);
   bind_widget_text(feather_label, QT_TR_NOOP("Feather:"));
   feather_label->setAlignment(Qt::AlignCenter);
