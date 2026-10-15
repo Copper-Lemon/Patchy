@@ -606,6 +606,13 @@ bool spatial_filter_spreads_clean_red_alpha(const patchy::PixelBuffer& before, c
 
 QAction* find_menu_action_by_text(QMenu& menu, const QString& text);
 
+// Paths an Open Recent menu lists, in order: the rows of the Open Recent File list
+// (fileOpenRecentList), then data-carrying actions, submenus included (Open Recent
+// Folder, and the plain paged menu under a native menu bar).
+QStringList recent_menu_paths(QMenu& menu);
+// The Open Recent File list's row for `path`, or nullptr.
+QListWidgetItem* recent_menu_list_item(QMenu& menu, const QString& path);
+
 struct LayerStyleContextMenuState {
   bool saw_copy{false};
   bool saw_paste{false};

@@ -383,19 +383,17 @@ void ui_unicode_recent_files_persist_through_settings() {
   show_window(window);
   auto* recent_menu = window.findChild<QMenu*>(QStringLiteral("fileOpenRecentMenu"));
   CHECK(recent_menu != nullptr);
-  QAction* entry = nullptr;
-  for (auto* action : recent_menu->actions()) {
-    if (action != nullptr && !action->isSeparator() && !action->data().toString().isEmpty()) {
-      CHECK(entry == nullptr);
-      entry = action;
-    }
-  }
-  CHECK(entry != nullptr);
-  CHECK(nfc(entry->data().toString()) == nfc(path));
+  const auto listed = patchy::test::ui::recent_menu_paths(*recent_menu);
+  CHECK(listed.size() == 1);
+  CHECK(nfc(listed.front()) == nfc(path));
+  auto* list = recent_menu->findChild<QListWidget*>(QStringLiteral("fileOpenRecentList"));
+  CHECK(list != nullptr && list->count() == 1);
+  auto* entry = list->item(0);
   CHECK(entry->text().contains(q(kUnicodePathStems[0])));
 
   const auto sessions_before = patchy::ui::MainWindowTestAccess::session_count(window);
-  entry->trigger();
+  emit list->itemClicked(entry);
+  QApplication::processEvents();  // the deferred open fires
   QApplication::processEvents();
   CHECK(patchy::ui::MainWindowTestAccess::session_count(window) == sessions_before + 1);
   CHECK(nfc(patchy::ui::MainWindowTestAccess::active_session_path(window)) == nfc(path));
@@ -434,13 +432,7 @@ void ui_unicode_recent_history_merges_unattended_work_and_refreshes() {
   auto* recent_menu = window.findChild<QMenu*>(QStringLiteral("fileOpenRecentMenu"));
   auto* folder_menu = window.findChild<QMenu*>(QStringLiteral("fileOpenRecentFolderMenu"));
   CHECK(recent_menu && folder_menu && !recent_menu->isEnabled() && !folder_menu->isEnabled());
-  const auto menu_paths = [](QMenu* menu) {
-    QStringList paths;
-    for (auto* action : menu->actions()) {
-      if (!action->data().toString().isEmpty()) paths << action->data().toString();
-    }
-    return paths;
-  };
+  const auto menu_paths = [](QMenu* menu) { return recent_menu_paths(*menu); };
   const auto open_dir = app_settings().value(QStringLiteral("lastOpenDirectory"));
   const auto save_dir = app_settings().value(QStringLiteral("lastSaveDirectory"));
   MainWindowTestAccess::open_document_path(worker, input);

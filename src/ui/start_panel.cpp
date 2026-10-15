@@ -6,6 +6,7 @@
 #include "ui/theme_qss.hpp"
 #include "ui/splash_artwork.hpp"
 #include "ui/main_window_shared.hpp"
+#include "ui/recent_file_list.hpp"
 
 #include <QEvent>
 
@@ -42,85 +43,6 @@ namespace {
 // are reached by scrolling, so the box never grows however long the list gets.
 constexpr int kMaxRecentEntries = 200;
 constexpr int kVisibleRecentRows = 8;
-constexpr int kRecentRowHeight = 40;
-constexpr int kRecentListChrome = 14;  // the list's own frame and padding
-constexpr int kRecentPathRole = Qt::UserRole + 1;
-
-// A list as tall as its rows, capped at kVisibleRecentRows; longer lists scroll.
-// setFixedHeight cannot express that: the application style sheet re-polishes the
-// widget and drops the minimum that call sets, which left QAbstractScrollArea's
-// default 192 px hint deciding the height and clipping every row past the fourth.
-// A real sizeHint survives the re-polish, and the Maximum policy lets a short
-// window shrink the box instead of pushing the panel footer off screen.
-class RecentFileList final : public QListWidget {
- public:
-  explicit RecentFileList(QWidget* parent) : QListWidget(parent) {
-    setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
-  }
-
-  QSize sizeHint() const override {
-    return {QListWidget::sizeHint().width(),
-            std::clamp(count(), 1, kVisibleRecentRows) * kRecentRowHeight + kRecentListChrome};
-  }
-
-  QSize minimumSizeHint() const override {
-    return {QListWidget::minimumSizeHint().width(), kRecentRowHeight + kRecentListChrome};
-  }
-};
-
-// Two-line recent row: file name over its dimmed directory.
-class RecentFileDelegate final : public QStyledItemDelegate {
- public:
-  explicit RecentFileDelegate(QObject* parent = nullptr) : QStyledItemDelegate(parent) {}
-
-  QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex&) const override {
-    return QSize(option.rect.width(), kRecentRowHeight);
-  }
-
-  void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override {
-    painter->save();
-    const QRect row = option.rect.adjusted(2, 2, -2, -2);
-    const auto path = index.data(kRecentPathRole).toString();
-    if (path.isEmpty()) {
-      // The no-match placeholder: one dimmed line, and no hover or selection
-      // chrome, because there is nothing here to click.
-      painter->setPen(theme().start_panel_muted_text);
-      painter->drawText(row.adjusted(10, 0, -10, 0), Qt::AlignLeft | Qt::AlignVCenter,
-                        index.data(Qt::DisplayRole).toString());
-      painter->restore();
-      return;
-    }
-
-    const bool selected = (option.state & QStyle::State_Selected) != 0;
-    const bool hovered = (option.state & QStyle::State_MouseOver) != 0;
-    if (selected || hovered) {
-      painter->setRenderHint(QPainter::Antialiasing, true);
-      painter->setPen(Qt::NoPen);
-      painter->setBrush(selected ? theme().selection_soft_bg : theme().start_panel_row_hover_bg);
-      painter->drawRoundedRect(row, 4.0, 4.0);
-      painter->setRenderHint(QPainter::Antialiasing, false);
-    }
-
-    const QFileInfo info(path);
-    const QRect text_area = row.adjusted(10, 3, -10, -3);
-    const auto name_font = offset_font(option.font, 0, true);
-    painter->setFont(name_font);
-    painter->setPen(theme().text_primary);
-    const QRect name_rect(text_area.left(), text_area.top(), text_area.width(), text_area.height() / 2);
-    painter->drawText(name_rect, Qt::AlignLeft | Qt::AlignVCenter,
-                      QFontMetrics(name_font).elidedText(info.fileName(), Qt::ElideMiddle, name_rect.width()));
-
-    const auto path_font = offset_font(option.font, -1, false);
-    painter->setFont(path_font);
-    painter->setPen(theme().start_panel_muted_text);
-    const QRect path_rect(text_area.left(), text_area.top() + text_area.height() / 2, text_area.width(),
-                          text_area.height() - text_area.height() / 2);
-    painter->drawText(path_rect, Qt::AlignLeft | Qt::AlignVCenter,
-                      QFontMetrics(path_font).elidedText(QDir::toNativeSeparators(info.absolutePath()),
-                                                         Qt::ElideMiddle, path_rect.width()));
-    painter->restore();
-  }
-};
 
 }  // namespace
 
@@ -274,21 +196,10 @@ StartPanel::StartPanel(QWidget* parent) : QWidget(parent) {
   recent_header->addWidget(recent_filter_edit_, 1);
   column_layout->addLayout(recent_header);
 
-  recent_list_ = new RecentFileList(column);
+  recent_list_ = new RecentFileList(column, kVisibleRecentRows);
   recent_list_->setObjectName(QStringLiteral("startPanelRecentList"));
   recent_list_->setSelectionMode(QAbstractItemView::NoSelection);
   recent_list_->setFocusPolicy(Qt::NoFocus);
-  recent_list_->setMouseTracking(true);
-  // The delegate elides both text lines to the row width, so only the vertical bar
-  // is ever wanted; per-pixel scrolling keeps the wheel smooth over a long list.
-  recent_list_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-  recent_list_->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-  recent_list_->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
-  recent_list_->setUniformItemSizes(true);  // constant row height; skips a sizeHint per row
-  recent_list_->setItemDelegate(new RecentFileDelegate(recent_list_));
-  recent_list_->setContextMenuPolicy(Qt::CustomContextMenu);
-  // On the viewport, not the list: the scroll bar keeps a normal arrow cursor.
-  recent_list_->viewport()->setCursor(Qt::PointingHandCursor);
   column_layout->addWidget(recent_list_);
 
   auto* hint = new QLabel(tr("You can also drop image files anywhere in the window"), column);
@@ -557,31 +468,8 @@ void StartPanel::set_recent_files(const QStringList& paths) {
 }
 
 void StartPanel::rebuild_recent_rows() {
-  recent_list_->clear();
-  const auto tokens = recent_filter_edit_->text().simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
-  for (const auto& path : recent_paths_) {
-    const auto native_path = QDir::toNativeSeparators(path);
-    // The Open Recent menu's matching rule: every token, anywhere in the whole
-    // path, case-insensitive, so a folder name narrows as well as a file name.
-    const bool matches = std::all_of(tokens.begin(), tokens.end(), [&native_path](const QString& token) {
-      return native_path.contains(token, Qt::CaseInsensitive);
-    });
-    if (!matches) {
-      continue;
-    }
-    auto* item = new QListWidgetItem(QFileInfo(path).fileName(), recent_list_);
-    item->setData(kRecentPathRole, path);
-    item->setToolTip(native_path);
-  }
-
+  fill_recent_file_list(*recent_list_, recent_paths_, recent_filter_edit_->text(), tr("No matching recent files"));
   const bool has_entries = !recent_paths_.isEmpty();
-  if (has_entries && recent_list_->count() == 0) {
-    // Keeps the box where it is while a filter hides every row, instead of
-    // collapsing the section under the edit the user is typing into. The empty
-    // path role is what marks this row as a placeholder everywhere else.
-    auto* item = new QListWidgetItem(tr("No matching recent files"), recent_list_);
-    item->setData(kRecentPathRole, QString());
-  }
   recent_label_->setVisible(has_entries);
   recent_filter_edit_->setVisible(has_entries);
   recent_list_->setVisible(has_entries);

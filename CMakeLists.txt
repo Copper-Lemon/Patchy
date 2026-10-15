@@ -1257,6 +1257,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/script_folders.cpp
       src/ui/selection_outline.hpp
       src/ui/selection_outline.cpp
+      src/ui/recent_file_list.hpp
+      src/ui/recent_file_list.cpp
       src/ui/start_panel.hpp
       src/ui/start_panel.cpp
       src/ui/smart_object_render.hpp

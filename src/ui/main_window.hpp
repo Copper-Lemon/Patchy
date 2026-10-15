@@ -1798,6 +1798,7 @@ private:
   void rebuild_recent_files_menu();
   void apply_recent_files_filter(const QString& filter_text);
   bool handle_recent_files_filter_key(QKeyEvent& event);
+  void open_recent_files_list_path(const QString& path);
   void load_recent_folders();
   void set_recent_folders_from_stored(QStringList stored);
   void add_recent_folder(QString dir);
@@ -2321,9 +2322,7 @@ private:
   // recreates all of these, so the filter state resets on every rebuild.
   QAction* recent_files_filter_action_{nullptr};
   QLineEdit* recent_files_filter_edit_{nullptr};
-  QAction* recent_files_no_matches_action_{nullptr};
-  QList<QAction*> recent_files_filtered_actions_;
-  QList<QAction*> recent_files_structure_actions_;
+  QListWidget* recent_files_list_{nullptr};
   // Scripting: the engine host is a QObject child of this window (created
   // lazily); the editor dialog is non-modal and window-owned.
   ScriptEngineHost* script_engine_host_{nullptr};
