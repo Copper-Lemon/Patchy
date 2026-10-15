@@ -7,8 +7,10 @@ rem throttled, and a Windows PowerShell 5.1 PSModulePath so the inline powershel
 rem one-liners load the right modules even when launched from pwsh 7), logs the
 rem target to build\release-logs\<target>.log, and writes exit=<code> to
 rem build\release-logs\<target>.exit when it ends. Wait for the .exit files; never
-rem wait for the consoles. Targets: windows mac linux wasm upload-wasm upload-all
-rem upload-github (publish after pushing the build commit with the OLD update manifest).
+rem wait for the consoles. Targets: windows mac linux wasm, verify-windows verify-mac
+rem verify-linux (the release tests, after the builders), upload-wasm upload-all
+rem upload-desktop (upload-all without the wasm site), and upload-github (publish after
+rem pushing the build commit with the OLD update manifest).
 rem All requested targets launch in parallel. Run builds, upload-all, and upload-github
 rem in separate invocations, waiting for successful exit markers between phases.
 rem Only after the public release downloads are verified, update latest_version.json

@@ -75,12 +75,24 @@ on each machine. See [testing.md](testing.md) for the client dependency and comm
 WebAssembly does not ship `patchy-mcp`; build the web app and run the full wasm
 core suite.
 
+The `verify-windows`, `verify-mac` and `verify-linux` targets of `release-all-automated.bat`
+run all of the above after the builders (scripts in `scripts\release`: `verify-windows.ps1`;
+`verify-remote.ps1 -Target mac|linux`, which runs the full suites through `remote-build.ps1`
+and then pipes `verify-mac.sh` / `verify-linux.sh` to the host). Each reads the version from
+`CMakeLists.txt`, logs to `build\release-logs\verify-<target>*.log` with `.exit` markers,
+and passes only with exit 0, no `[FAIL]` and, on the hosts, the script's closing
+`ALL ... RELEASE CHECKS PASSED` line. `verify-linux.sh` installs the Flatpak bundle for the
+host's user, and stops (never deletes) when a `PatchyMcp-*` endpoint is left in
+`/run/user/<uid>/app/com.rtsoft.patchy`: check nothing listens on it, then remove it by hand.
+Skips for a re-verification after a narrow change: `verify-windows.ps1 -SkipCore` /
+`-SkipUi`, `verify-remote.ps1 -SkipSuites`.
+
 Keep building, publishing, and announcing in this order:
 
 1. Bump the build version and finalize the README (the Windows zip/installer embed it). Leave `latest_version.json` at the last published version.
-2. Run `scripts\release\release-all.bat` and the required tests above. The four builders produce Windows, macOS, Linux, and the web build, deleting previous artifacts first.
+2. Run `scripts\release\release-all.bat` and the required tests above (the `verify-*` targets). The four builders produce Windows, macOS, Linux, and the web build, deleting previous artifacts first.
 3. Commit the exact tree used for the verified packages. This is the build commit the release tag must name.
-4. Stop until Seth explicitly says to publish (asking to do or continue the release is not that). Then run `scripts\release\upload-to-rtsoft.bat` for the mirror and web site, then push the build commit to `origin/main`.
+4. Stop until Seth explicitly says to publish (asking to do or continue the release is not that). Then run `scripts\release\upload-to-rtsoft.bat` for the mirror and web site (`upload-to-rtsoft.bat desktop`, target `upload-desktop`, when the release ships no new web build: it leaves the web site alone instead of uploading the previous build again), then push the build commit to `origin/main`.
 5. Run `scripts\release\publish-github-release.bat`. Verify that the release is public and its download URLs serve the new artifacts.
 6. Update the shipped platforms in `latest_version.json` (windows: the installer keys too), then commit and push that announcement separately. No package rebuild is needed for this manifest-only follow-up; the tag stays on the build commit.
 
@@ -141,7 +153,7 @@ Every build entry point (`scripts\release\build-release.bat`, `scripts\run-tests
 The automated driver launches all requested targets in parallel. Run builds, `upload-all`, and `upload-github` in separate invocations, waiting for successful exit markers before the next phase. Announce through the manifest only after publication and download verification.
 
 1. Launch from cmd or Windows PowerShell 5.1, not Git Bash and not pwsh 7. Bash mangles the quoted `start "<title>"` and Seth gets a modal "Windows cannot find" dialog while nothing launches. pwsh 7 puts its own module directories on `PSModulePath`, the `powershell` 5.1 one-liners inside the scripts then load an incompatible `Microsoft.PowerShell.Utility`, `Get-FileHash` is "not recognized", and `upload-one-file.bat` refuses every desktop upload. From pwsh 7, reset `PSModulePath` first to `%USERPROFILE%\Documents\WindowsPowerShell\Modules;%ProgramFiles%\WindowsPowerShell\Modules;%SystemRoot%\system32\WindowsPowerShell\v1.0\Modules`.
-2. Run `cmd /c scripts\release\release-all-automated.bat` (no arguments: the four builders; or name targets such as `windows wasm`, `upload-wasm`, or `upload-all` to run a subset). It starts every target through `scripts\release\release-worker.bat`, which sets `NO_PAUSE=1`, `CMAKE_BUILD_PARALLEL_LEVEL=20` (the local builds), and the Windows PowerShell 5.1 `PSModulePath` itself, logs to `build\release-logs\<target>.log`, and writes `exit=<code>` to `build\release-logs\<target>.exit` when the target ends. `NO_PAUSE=1` is what keeps `%RT_PROJECTS%\Signing\sign.bat` and the upload scripts from waiting on a key. Never launch a builder or upload script by hand for an unattended run: without `NO_PAUSE` it stops on a `pause` with no marker, which looks like a hung build.
+2. Run `cmd /c scripts\release\release-all-automated.bat` (no arguments: the four builders; or name targets such as `windows wasm`, `verify-windows verify-mac verify-linux`, `upload-wasm`, `upload-all`, or `upload-desktop` to run a subset). The verify targets run after their builders, never beside a build on the same machine. It starts every target through `scripts\release\release-worker.bat`, which sets `NO_PAUSE=1`, `CMAKE_BUILD_PARALLEL_LEVEL=20` (the local builds), and the Windows PowerShell 5.1 `PSModulePath` itself, logs to `build\release-logs\<target>.log`, and writes `exit=<code>` to `build\release-logs\<target>.exit` when the target ends. `NO_PAUSE=1` is what keeps `%RT_PROJECTS%\Signing\sign.bat` and the upload scripts from waiting on a key. Never launch a builder or upload script by hand for an unattended run: without `NO_PAUSE` it stops on a `pause` with no marker, which looks like a hung build.
 3. Wait for the `.exit` files, never for the consoles (`release-mac.bat` and `release-linux.bat` end in an unconditional `pause`, which is why the worker calls the `.ps1` files directly). Judge each target by its code and its log. Do not capture exit codes with Windows PowerShell 5.1's `Start-Process -PassThru` while redirecting output: its `ExitCode` comes back empty there. If you write your own marker, put the redirect first (`>"marker" echo exit=%ERRORLEVEL%`), never `echo %ERRORLEVEL%> "marker"`: cmd reads a digit directly before `>` as a file-handle number, so a zero exit redirects stdin and leaves the marker empty.
 4. In any wrapper of your own, invoke the test binaries as `.\patchy_core_tests.exe`, a path (a bare name exits 9009 under `NoDefaultCurrentDirectoryInExePath`), and directly, not through a second `start "" /b /wait`, which would make the recorded `%ERRORLEVEL%` always 0. Where a single command does need throttling, `scripts\run-throttled.bat` both lowers priority and returns the child's code.
 5. Run the suites one at a time and not alongside a build (they share the QSettings store; see [testing.md](testing.md)). The tests themselves tolerate a loaded machine: wall-clock limits are hang guards, not performance bounds.

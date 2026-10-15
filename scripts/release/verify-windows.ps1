@@ -1,0 +1,60 @@
+<#
+Release verification on this Windows machine (docs/release-process.md, "Build and upload
+order"): both full native suites from build\release, then the MCP client suite against the
+built connector and against the staged package's connector.
+
+  powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release\verify-windows.ps1 [-SkipCore] [-SkipUi]
+
+Run it after the windows builder has finished (release-all-automated.bat verify-windows does
+this unattended) and never beside a build: the suites share the QSettings store. Each step
+logs to build\release-logs\verify-windows-<step>.log and writes exit=<code> beside it; a
+step that exits 0 but printed [FAIL] counts as failed. The first failing step ends the run.
+-SkipCore / -SkipUi are for a re-verification after a change those suites already covered.
+#>
+param(
+  [switch]$SkipCore,
+  [switch]$SkipUi
+)
+$ErrorActionPreference = 'Continue'
+. (Join-Path $PSScriptRoot 'release-process-run.ps1')
+$root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+Set-Location $root
+if (-not (Test-Path 'CMakeLists.txt')) { throw "not the repository root: $root" }
+$logs = Join-Path $root 'build\release-logs'
+New-Item -ItemType Directory -Force -Path $logs | Out-Null
+
+$python = Join-Path $root '.deps\mcp-client\Scripts\python.exe'
+$required = @('build\release\patchy_core_tests.exe', 'build\release\patchy_ui_visual_tests.exe',
+              'build\release\patchy-mcp.exe', 'build\package\staging\Patchy\patchy-mcp.exe', $python)
+foreach ($path in $required) {
+  if (-not (Test-Path $path)) { Write-Output "missing $path (run the windows builder first)"; exit 1 }
+}
+
+$steps = @()
+if (-not $SkipCore) {
+  $steps += @{ Name = 'core'; Command = 'cd /d build\release && ..\..\scripts\run-throttled.bat .\patchy_core_tests.exe' }
+}
+if (-not $SkipUi) {
+  $steps += @{ Name = 'ui'; Command = 'cd /d build\release && ..\..\scripts\run-throttled.bat .\patchy_ui_visual_tests.exe' }
+}
+$steps += @{ Name = 'mcp'; Command = "scripts\run-throttled.bat `"$python`" tests\mcp_client_tests.py build\release\patchy-mcp.exe" }
+$steps += @{ Name = 'package-mcp'; Command = "scripts\run-throttled.bat `"$python`" tests\mcp_client_tests.py build\package\staging\Patchy\patchy-mcp.exe" }
+
+$env:QT_QPA_PLATFORM = 'offscreen'
+Remove-Item Env:PATCHY_UI_TEST_FILTER -ErrorAction SilentlyContinue
+foreach ($step in $steps) {
+  $log = Join-Path $logs ('verify-windows-' + $step.Name + '.log')
+  $marker = [IO.Path]::ChangeExtension($log, '.exit')
+  if (Test-Path $marker) { [IO.File]::Delete($marker) }
+  Write-Output ('== ' + $step.Name + ' ==')
+  $code = Invoke-CmdLine ($step.Command + ' > "' + $log + '" 2>&1')
+  $failures = @(Select-String -LiteralPath $log -SimpleMatch '[FAIL]')
+  if ($code -eq 0 -and $failures.Count -gt 0) { $code = 1 }
+  [IO.File]::WriteAllText($marker, "exit=$code`r`n")
+  $passes = @(Select-String -LiteralPath $log -SimpleMatch '[PASS]').Count
+  Write-Output ("{0}: exit={1} pass={2} fail={3}" -f $step.Name, $code, $passes, $failures.Count)
+  $failures | Select-Object -First 10 | ForEach-Object { $_.Line }
+  if ($code -ne 0) { exit $code }
+}
+Write-Output '== ALL WINDOWS RELEASE CHECKS PASSED =='
+exit 0
