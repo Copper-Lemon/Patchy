@@ -1,4 +1,5 @@
 #include "ui/action_icons.hpp"
+#include "ui/app_style.hpp"
 #include "ui/canvas_widget.hpp"
 #include "ui/recent_file_list.hpp"
 #include "core/adjustment_layer.hpp"
@@ -2872,8 +2873,9 @@ void ui_preferences_wheel_over_unfocused_control_scrolls_the_page() {
     CHECK(bar->maximum() > 0);
     bar->setValue(0);
 
-    // A real wheel focuses a WheelFocus widget before delivery, so the policy matters too.
-    CHECK(combo->focusPolicy() == Qt::StrongFocus);
+    // A real wheel focuses a WheelFocus widget before delivery, so the policy matters too
+    // (macOS combo boxes start at TabFocus, which the guard leaves alone).
+    CHECK(combo->focusPolicy() != Qt::WheelFocus && (combo->focusPolicy() & Qt::TabFocus) != 0);
     combo->clearFocus();
     CHECK(combo->count() > 1);
     combo->setCurrentIndex(0);
@@ -2898,7 +2900,7 @@ void ui_preferences_wheel_over_unfocused_control_scrolls_the_page() {
     auto* spin = dialog.findChild<QAbstractSpinBox*>(QStringLiteral("preferencesGridSpacingSpin"));
     CHECK(spin != nullptr);
     if (spin != nullptr) {
-      CHECK(spin->focusPolicy() == Qt::StrongFocus);
+      CHECK(spin->focusPolicy() != Qt::WheelFocus && (spin->focusPolicy() & Qt::TabFocus) != 0);
       const auto before = spin->text();
       send_wheel_notch_down(*spin);
       CHECK(spin->text() == before);
@@ -4765,6 +4767,8 @@ void ui_about_dialog_shows_labeled_external_links() {
     CHECK(contributors->text().contains(QStringLiteral(">Oppa-YA</a>")));
     CHECK(contributors->text().contains(QStringLiteral("href=\"https://github.com/YuFu-Onship\"")));
     CHECK(contributors->text().contains(QStringLiteral(">YuFu-Onship</a>")));
+    CHECK(contributors->text().contains(QStringLiteral("href=\"https://github.com/Uthopik\"")));
+    CHECK(contributors->text().endsWith(QStringLiteral(">Uthopik</a>")));
     CHECK(!contributors->text().contains(QLatin1Char('@')));
 
     auto* settings_caption = dialog->findChild<QLabel*>(QStringLiteral("splashSettingsCaption"));
@@ -5621,6 +5625,29 @@ void ui_svg_icon_resources_are_registered() {
   CHECK(!require_action(window, "layerAddMaskAction")->icon().isNull());
 }
 
+// GitHub issue 99: the application style keeps the desktop's icon theme out of Patchy's
+// chrome. Dialog buttons carry text only (Linux desktops otherwise add OK/Cancel glyphs
+// drawn for their own scheme), and a toolbar's overflow button shows Patchy's chevron in
+// the scheme's icon ink.
+void ui_app_style_keeps_desktop_icons_off_dialog_buttons_and_toolbars() {
+  patchy::ui::AppStyle style;
+  CHECK(style.styleHint(QStyle::SH_DialogButtonBox_ButtonsHaveIcons, nullptr, nullptr, nullptr) == 0);
+  QDialogButtonBox box;
+  box.setStyle(&style);
+  box.setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+  CHECK(box.button(QDialogButtonBox::Ok) != nullptr && box.button(QDialogButtonBox::Ok)->icon().isNull());
+  CHECK(box.button(QDialogButtonBox::Cancel) != nullptr && box.button(QDialogButtonBox::Cancel)->icon().isNull());
+
+  const auto rendered = [](const QIcon& icon) { return icon.pixmap(QSize(16, 16)).toImage(); };
+  const auto horizontal = style.standardIcon(QStyle::SP_ToolBarHorizontalExtensionButton, nullptr, nullptr);
+  const auto vertical = style.standardIcon(QStyle::SP_ToolBarVerticalExtensionButton, nullptr, nullptr);
+  CHECK(!horizontal.isNull() && !vertical.isNull());
+  CHECK(rendered(horizontal) == rendered(patchy::ui::themed_svg_icon(QStringLiteral("chevron-right"))));
+  CHECK(rendered(vertical) == rendered(patchy::ui::themed_svg_icon(QStringLiteral("chevron-down"))));
+  // Other standard icons still come from the platform style.
+  CHECK(!style.standardIcon(QStyle::SP_DirIcon, nullptr, nullptr).isNull());
+}
+
 // The icon engine recolors a fixed ten-color vocabulary. A new icon drawn with a
 // color outside it would render fine in Dark and then stay dark-on-dark in Light,
 // which no rendered test would catch. Walk the resources instead.
@@ -6360,6 +6387,8 @@ std::vector<patchy::test::TestCase> app_shell_tests() {
        ui_second_instance_brings_window_and_modal_dialog_forward},
       {"ui_svg_icon_resources_are_registered", ui_svg_icon_resources_are_registered},
       {"ui_icon_color_map_covers_every_authored_color", ui_icon_color_map_covers_every_authored_color},
+      {"ui_app_style_keeps_desktop_icons_off_dialog_buttons_and_toolbars",
+       ui_app_style_keeps_desktop_icons_off_dialog_buttons_and_toolbars},
       {"ui_no_widget_ships_unresolved_theme_tokens", ui_no_widget_ships_unresolved_theme_tokens},
       {"ui_theme_palettes_define_every_role", ui_theme_palettes_define_every_role},
       {"ui_theme_adjacent_roles_stay_distinguishable", ui_theme_adjacent_roles_stay_distinguishable},

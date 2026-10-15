@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.26)
 
 project(
   Patchy
-  VERSION 1.10
+  VERSION 1.11
   DESCRIPTION "A native, PSD-oriented image editor foundation"
   LANGUAGES CXX
 )
@@ -1191,6 +1191,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/pattern_manager_dialog.cpp
       src/ui/ui_font.hpp
       src/ui/ui_font.cpp
+      src/ui/app_style.hpp
+      src/ui/app_style.cpp
       src/ui/ui_profile.hpp
       src/ui/pdf_export.hpp
       src/ui/pdf_export.cpp

@@ -219,6 +219,31 @@ $notesText += @"
 
 Windows builds are code signed; the macOS app is signed and notarized. Checksums are in [SHA256SUMS.txt]($base/SHA256SUMS.txt). The same files are mirrored at rtsoft.com, and the browser version runs at [patchyimageeditor.com](https://www.patchyimageeditor.com).
 "@
+if (-not $SkipAppImage) {
+  # Install lines for the AppImage; the README's AppImage section has the per-distro FUSE
+  # packages and the menu entry.
+  $notesText += @"
+
+## Linux
+
+AppImage (one file, updates itself; keep it in a folder you can write to):
+
+``````sh
+mkdir -p ~/Applications && cd ~/Applications
+wget -O PatchyLinux.AppImage $base/PatchyLinux.AppImage
+chmod +x PatchyLinux.AppImage
+./PatchyLinux.AppImage
+``````
+
+If it cannot mount itself, install FUSE 3 (``sudo apt install fuse3``, ``sudo dnf install fuse3``, ``sudo pacman -S fuse3``) or run it with ``--appimage-extract-and-run``. Menu entry and other distros: [README, AppImage](https://github.com/$Repo#appimage).
+
+Flatpak (updates with ``flatpak update``):
+
+``````sh
+flatpak install --user -y https://rtsoft.com/flatpak/com.rtsoft.patchy.flatpakref
+``````
+"@
+}
 $notesPath = Join-Path $stage 'release-notes.md'
 [IO.File]::WriteAllText($notesPath, $notesText)
 

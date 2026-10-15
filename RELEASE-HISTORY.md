@@ -3,6 +3,16 @@
 Older Patchy release notes are collected here. The two most recent releases
 remain in [README.md](README.md#whats-new).
 
+### 1.09 - October 12, 2026
+
+- Object Selection tool (desktop): drag a box or click an object and Patchy selects it
+- File > File Info: view, edit and strip image metadata. EXIF, XMP, IPTC, ICC profiles and text chunks are read from every format, kept on save, and Export can keep all metadata, only the copyright, or none. Scripts get `fileInfo` and `stripMetadata`
+- Windows installer: can now choose the install folder ([issue 85](https://github.com/SethRobinson/Patchy/issues/85))
+- macOS: fixed bug where arrow-key nudges with the Move tool didn't work on a physical keyboard, and the hover outline follows the nudged layer ([issue 84](https://github.com/SethRobinson/Patchy/issues/84))
+- Text layers in some older PSDs (Photoshop CS5 era) can be edited again instead of all showing as protected ([issue 86](https://github.com/SethRobinson/Patchy/issues/86))
+- PSD compatibility pass: CMYK layers composite in their own ink channels, CMYK, grayscale and 16-bit saves keep their native color space, and knockout transparency, aligned vector stroke edges, grayscale Smart Objects, duotone inks and noise gradients render closer to Photoshop
+- Saves and automatic document recovery hold up better against crashes and power loss
+
 ## 1.08 - October 10, 2026
 
 - 16-bit and 32-bit editing: PSD, PSB, PNG and TIFF files open and save at their bit depth, and Image > Mode switches a document between 8, 16 and 32 bits per channel. Painting, retouching, transforms, layer operations, adjustment layers, HDR Toning, the Filter Gallery and 8BF plug-ins (16-bit) work at depth, with Photoshop's 32-bit blend mode rules. New documents still start at 8 bits, and the browser build stops at 16 bits

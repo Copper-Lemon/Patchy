@@ -132,6 +132,19 @@
     <control>tablet</control>
   </supports>
   <releases>
+    <release version="1.11" date="2026-10-15">
+      <description>
+        <ul>
+          <li>G'MIC Filter Library: about 390 built-in G'MIC filters with a live canvas preview</li>
+          <li>CMYK for print: working profile, CMYK picker and readouts, soft proofing with plates, CMYK export</li>
+          <li>JPEG XL open and save</li>
+          <li>An official AppImage with one-click self-update</li>
+          <li>Filter &gt; Last Filter repeats the last filter with the same settings</li>
+          <li>The Background layer works like Photoshop's, and Flatten Image was added</li>
+          <li>Wayland: side panels stay docked, fixing a stuck mouse after dragging one out</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.10" date="2026-10-13">
       <description>
         <ul>

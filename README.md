@@ -18,7 +18,7 @@ For bug reports and feature requests, please [open an issue](https://github.com/
 
 ## Download
 
-**Latest release: 1.10** · October 13, 2026 · [Release notes](#whats-new) · [All releases](https://github.com/SethRobinson/Patchy/releases)
+**Latest release: 1.11** · October 15, 2026 · [Release notes](#whats-new) · [All releases](https://github.com/SethRobinson/Patchy/releases)
 
 Windows releases are code signed by Seth A. Robinson; the macOS app is signed and
 notarized (Robinson Technologies Corporation); the Linux Flatpak repository is GPG
@@ -28,11 +28,11 @@ checksums.
 
 | Platform                  | Package                        | Download                                                                                                                             |
 | ------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Windows 10/11 (64-bit)    | Installer                      | [PatchyWindowsInstaller.exe](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyWindowsInstaller.exe) (87 MB)     |
-| Windows 10/11 (64-bit)    | ZIP file (no installer)    | [PatchyWindowsNoInstaller.zip](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyWindowsNoInstaller.zip) (87 MB) |
-| macOS 12+ (Apple Silicon) | DMG - drag to Applications     | [PatchyMacOS.dmg](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyMacOS.dmg) (99 MB)                           |
+| Windows 10/11 (64-bit)    | Installer                      | [PatchyWindowsInstaller.exe](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyWindowsInstaller.exe) (100 MB)     |
+| Windows 10/11 (64-bit)    | ZIP file (no installer)    | [PatchyWindowsNoInstaller.zip](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyWindowsNoInstaller.zip) (100 MB) |
+| macOS 12+ (Apple Silicon) | DMG - drag to Applications     | [PatchyMacOS.dmg](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyMacOS.dmg) (111 MB)                           |
 | Linux (x86_64)            | Flatpak, from our repository   | The [command below](#linux), or [com.rtsoft.patchy.flatpakref](https://rtsoft.com/flatpak/com.rtsoft.patchy.flatpakref)            |
-| Linux (x86_64)            | Flatpak bundle (single file)   | [PatchyLinux.flatpak](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyLinux.flatpak) (57 MB)                   |
+| Linux (x86_64)            | Flatpak bundle (single file)   | [PatchyLinux.flatpak](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyLinux.flatpak) (68 MB)                   |
 | Linux (x86_64)            | AppImage (Ubuntu 22.04+)       | [PatchyLinux.AppImage](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyLinux.AppImage) (119 MB, [details](#appimage)) |
 | Any modern browser        | Nothing to install             | [patchyimageeditor.com](https://www.patchyimageeditor.com) or [rtsoft.com/patchy](https://www.rtsoft.com/patchy/)                    |
 
@@ -66,12 +66,34 @@ My flatpak knowledge is limited, so I hope all this makes sense.  I hope to subm
 
 `PatchyLinux.AppImage` is one file that runs without installing anything, on Ubuntu
 22.04 or newer (or another distro from 2022 on: Debian 12, Fedora 36, Mint 21 and so on).
-Make it executable and run it:
+It updates itself, so keep it somewhere you can write to, such as `~/Applications`:
 
 ```sh
+mkdir -p ~/Applications && cd ~/Applications
+wget -O PatchyLinux.AppImage https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyLinux.AppImage
 chmod +x PatchyLinux.AppImage
 ./PatchyLinux.AppImage
 ```
+
+(`curl -LO` works instead of `wget -O PatchyLinux.AppImage`.) You can also make it
+executable from your file manager (Properties > Permissions, "Allow executing file as
+program") and double-click it.
+
+The AppImage does not need `libfuse2`, but it does need FUSE 3, which most desktops
+already have. If it says it cannot mount itself, install it:
+
+| Distro | Command |
+| --- | --- |
+| Ubuntu, Mint, Debian, Pop!_OS | `sudo apt install fuse3` |
+| Fedora | `sudo dnf install fuse3` |
+| openSUSE | `sudo zypper install fuse3` |
+| Arch, Manjaro | `sudo pacman -S fuse3` |
+
+Without FUSE (some containers and minimal systems), run it with
+`./PatchyLinux.AppImage --appimage-extract-and-run`.
+
+To add Patchy to your application menu, open the AppImage with
+[Gear Lever](https://flathub.org/apps/it.mijorus.gearlever).
 
 When a new version is out, Patchy's update prompt can download it, replace the AppImage
 file and start again (if the file sits in a folder you can write to; otherwise it offers
@@ -152,21 +174,23 @@ and Affinity import has format-specific limitations. See [current compatibility]
 
 ## What's New
 
+### 1.11 - October 15, 2026
+
+- G'MIC Filter Library: about 390 G'MIC filters built in (desktop), with a live preview on the canvas, draggable points for filters that take a position, filters that read or add several layers, and script access ([issue 87](https://github.com/SethRobinson/Patchy/issues/87))
+- CMYK for print: a CMYK working profile, CMYK color picker and Info readouts with a gamut warning, soft proofing with C, M, Y and K plates, CMYK export, and Image > Mode > CMYK Proof. CMYK JPEG and TIFF files open through their profile ([issue 90](https://github.com/SethRobinson/Patchy/issues/90))
+- JPEG XL: open and save .jxl files on every platform
+- Linux: an official AppImage with one-click self-update ([issue 83](https://github.com/SethRobinson/Patchy/issues/83))
+- Filter > Last Filter (Ctrl+Alt+F by default) applies the last filter again with the same settings, G'MIC filters and plug-ins included, to the current layer and selection
+- Background layer: transparency is locked like Photoshop's, the Eraser paints the background color, and Image > Flatten Image was added ([issue 97](https://github.com/SethRobinson/Patchy/issues/97))
+- Interface: the right panel opens at its content width and drags narrower ([issue 96](https://github.com/SethRobinson/Patchy/issues/96)), the options bar stays one row at 1366 px ([issue 91](https://github.com/SethRobinson/Patchy/issues/91)), the tool palette no longer mixes up when expanded ([issue 88](https://github.com/SethRobinson/Patchy/issues/88)), Open Recent is a scrolling list, Preferences can be resized and sets how often to check for updates ([issue 92](https://github.com/SethRobinson/Patchy/issues/92)), and dark stroke swatches are visible in the dark theme ([issue 89](https://github.com/SethRobinson/Patchy/issues/89)). Collapsing the Layers panel collapses its Channels and Paths tabs too, so no empty gap is left ([issue 101](https://github.com/SethRobinson/Patchy/issues/101))
+- Linux: dialog buttons and the toolbar overflow button no longer pick up dark icons from a light desktop theme ([issue 99](https://github.com/SethRobinson/Patchy/issues/99)), and on Wayland the side panels stay docked, since dragging one out could leave the mouse unresponsive ([issue 102](https://github.com/SethRobinson/Patchy/issues/102))
+- macOS: fixed a crash in accessibility tools when the Layers list changes ([issue 95](https://github.com/SethRobinson/Patchy/issues/95))
+
 ### 1.10 - October 13, 2026
 
 - Windows: one-click updates. Starting with the release after this one, the update prompt can download the new version, close Patchy, install it and start it again. It asks about unsaved work first and needs no administrator rights. It checks signatures and SHA-256 checksums, and the manifest hosted here on github can also disable this system and go back to "here's the link, install it yourself" if I notice a problem with it later.
 - Object Selection: an optional High Quality model finds objects much more accurately. It is a 234 MB download, offered the first time you use the tool and managed in Preferences. Dragging a box now analyzes just that area for sharper edges, and Select Object is back in the selection right-click menu (was accidently removed in 1.09)
 - Huge bug fix: Copy Merged keeps the shape of the selection, and filters, adjustments and their previews blend soft selection edges instead of cutting them off. Script `applyFilter` honors the selection too
-
-### 1.09 - October 12, 2026
-
-- Object Selection tool (desktop): drag a box or click an object and Patchy selects it
-- File > File Info: view, edit and strip image metadata. EXIF, XMP, IPTC, ICC profiles and text chunks are read from every format, kept on save, and Export can keep all metadata, only the copyright, or none. Scripts get `fileInfo` and `stripMetadata`
-- Windows installer: can now choose the install folder ([issue 85](https://github.com/SethRobinson/Patchy/issues/85))
-- macOS: fixed bug where arrow-key nudges with the Move tool didn't work on a physical keyboard, and the hover outline follows the nudged layer ([issue 84](https://github.com/SethRobinson/Patchy/issues/84))
-- Text layers in some older PSDs (Photoshop CS5 era) can be edited again instead of all showing as protected ([issue 86](https://github.com/SethRobinson/Patchy/issues/86))
-- PSD compatibility pass: CMYK layers composite in their own ink channels, CMYK, grayscale and 16-bit saves keep their native color space, and knockout transparency, aligned vector stroke edges, grayscale Smart Objects, duotone inks and noise gradients render closer to Photoshop
-- Saves and automatic document recovery hold up better against crashes and power loss
 
 [Older releases](RELEASE-HISTORY.md)
 
@@ -234,6 +258,6 @@ We also take patents seriously. Some features are deliberately limited or omitte
 
 Created by Seth A. Robinson - [Homepage](https://www.rtsoft.com/) | [Blog](https://www.codedojo.com/) | [Twitter](https://twitter.com/rtsoft) | [Bluesky](https://bsky.app/profile/rtsoft.com) | [Mastodon](https://mastodon.gamedev.place/@rtsoft)
 
-Incredible people who donated suggestions, bug reports, and code: [mcapogna](https://github.com/mcapogna), [csbun](https://github.com/csbun), [ifloppy](https://github.com/ifloppy), [lucastucious](https://github.com/lucastucious), [c-sanchez](https://github.com/c-sanchez), [egofree71](https://github.com/egofree71), [PorkingMane](https://github.com/PorkingMane), [alexanderadam](https://github.com/alexanderadam), [danielmigueltejedor](https://github.com/danielmigueltejedor), [ProShi](https://github.com/ProShi), [Kevdoy](https://github.com/Kevdoy), [popkc3](https://github.com/popkc3), [WinterTreat](https://github.com/WinterTreat), [jackpini](https://github.com/jackpini), [fivetenth](https://github.com/fivetenth), [revae](https://github.com/revae), [RDR77](https://github.com/RDR77), [Oppa-YA](https://github.com/Oppa-YA), and [YuFu-Onship](https://github.com/YuFu-Onship)
+Incredible people who donated suggestions, bug reports, and code: [mcapogna](https://github.com/mcapogna), [csbun](https://github.com/csbun), [ifloppy](https://github.com/ifloppy), [lucastucious](https://github.com/lucastucious), [c-sanchez](https://github.com/c-sanchez), [egofree71](https://github.com/egofree71), [PorkingMane](https://github.com/PorkingMane), [alexanderadam](https://github.com/alexanderadam), [danielmigueltejedor](https://github.com/danielmigueltejedor), [ProShi](https://github.com/ProShi), [Kevdoy](https://github.com/Kevdoy), [popkc3](https://github.com/popkc3), [WinterTreat](https://github.com/WinterTreat), [jackpini](https://github.com/jackpini), [fivetenth](https://github.com/fivetenth), [revae](https://github.com/revae), [RDR77](https://github.com/RDR77), [Oppa-YA](https://github.com/Oppa-YA), [YuFu-Onship](https://github.com/YuFu-Onship), [malnaanah](https://github.com/malnaanah), [CHJ85](https://github.com/CHJ85), [DavidLee1115](https://github.com/DavidLee1115), [philipzae](https://github.com/philipzae), and [Uthopik](https://github.com/Uthopik)
 
 Photo "akiko_cycling_okinawa" (seen in the screenshots) by Seth A. Robinson
