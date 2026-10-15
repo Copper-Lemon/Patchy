@@ -358,7 +358,7 @@ void CanvasWidget::update_tool_cursor() {
       // and the rotate hint everywhere off the box (the straighten gesture).
       const auto handle = crop_handle_at(last_mouse_position_);
       if (handle == TransformHandle::None) {
-        setCursor(crop_rotate_cursor());
+        setCursor(rotate_cursor());
       } else {
         set_transform_cursor_for_handle(handle);
       }

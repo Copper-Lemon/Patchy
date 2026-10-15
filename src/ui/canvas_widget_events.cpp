@@ -1619,7 +1619,7 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
     const auto crop_handle = crop_handle_at(event->pos());
     if (crop_handle == TransformHandle::None) {
       // Off the box a drag rotates it; hint that with the rotate cursor.
-      setCursor(crop_rotate_cursor());
+      setCursor(rotate_cursor());
     } else {
       set_transform_cursor_for_handle(crop_handle);
     }

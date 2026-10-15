@@ -363,7 +363,7 @@ void CanvasWidget::handle_crop_session_press(QMouseEvent* event) {
     crop_rotating_ = true;
     crop_press_widget_point_ = event->pos();
     crop_rotate_start_angle_ = crop_angle_;
-    setCursor(crop_rotate_cursor());
+    setCursor(rotate_cursor());
     const auto document_point = document_position_f(event->position());
     const auto center_x = static_cast<double>(crop_rect_.x()) + crop_rect_.width() / 2.0;
     const auto center_y = static_cast<double>(crop_rect_.y()) + crop_rect_.height() / 2.0;

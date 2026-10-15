@@ -2576,7 +2576,7 @@ void CanvasWidget::set_transform_cursor_for_handle(TransformHandle handle) {
       setCursor(Qt::SizeAllCursor);
       break;
     case TransformHandle::Rotate:
-      setCursor(Qt::CrossCursor);
+      setCursor(rotate_cursor());
       break;
     case TransformHandle::Top:
     case TransformHandle::Bottom:

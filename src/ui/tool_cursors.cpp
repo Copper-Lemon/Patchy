@@ -58,7 +58,7 @@ QCursor build_eyedropper_cursor() {
 // triangular head at each end pointing down-and-outward. Same two-pass
 // halo/ink treatment as the other tool cursors so it reads over any artwork;
 // hotspot at the center.
-QCursor build_crop_rotate_cursor() {
+QCursor build_rotate_cursor() {
   constexpr int kSize = 32;
   QPixmap pixmap(kSize, kSize);
   pixmap.fill(Qt::transparent);
@@ -106,9 +106,9 @@ QCursor eyedropper_cursor() {
   return cursor;
 }
 
-QCursor crop_rotate_cursor() {
+QCursor rotate_cursor() {
   // Built once and reused: crop hover re-applies it on every mouse move.
-  static const QCursor cursor = build_crop_rotate_cursor();
+  static const QCursor cursor = build_rotate_cursor();
   return cursor;
 }
 

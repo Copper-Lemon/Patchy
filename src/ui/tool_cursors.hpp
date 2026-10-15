@@ -10,8 +10,9 @@ namespace patchy::ui {
 // cursor and the colour picker's "Pick Screen Color" overlay so they never drift.
 [[nodiscard]] QCursor eyedropper_cursor();
 
-// The rotate hint shown off the pending crop box (the straighten gesture): a
-// curved double-headed arrow, hotspot at its center. Built once and cached.
-[[nodiscard]] QCursor crop_rotate_cursor();
+// The rotate hint: off the pending crop box (the straighten gesture) and over the Move
+// and Free Transform rotate handle (GitHub issue 98). A curved double-headed arrow,
+// hotspot at its center. Built once and cached.
+[[nodiscard]] QCursor rotate_cursor();
 
 }  // namespace patchy::ui
