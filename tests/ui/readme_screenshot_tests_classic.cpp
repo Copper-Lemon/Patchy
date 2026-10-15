@@ -317,7 +317,7 @@ void visual_contact_sheet_contains_new_feature_artifacts() {
       "ui_smudge_tool.png",
       "ui_hidden_layer_copy_ignored.png",
       "ui_copy_selected_layers.png",
-      "ui_background_eraser_transparency.png",
+      "ui_background_eraser_background_color.png",
       "ui_inline_text_editor.png",
       "ui_text_tool_layer.png",
       "ui_transformed_text_reedit.png",

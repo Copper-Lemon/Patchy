@@ -23,6 +23,7 @@ namespace patchy::ui {
 [[nodiscard]] bool is_ico_extension(const QString& extension);
 [[nodiscard]] bool is_cur_extension(const QString& extension);
 [[nodiscard]] bool is_jxr_extension(const QString& extension);
+[[nodiscard]] bool is_jxl_extension(const QString& extension);
 [[nodiscard]] bool is_rttex_extension(const QString& extension);
 [[nodiscard]] bool is_dds_extension(const QString& extension);
 

@@ -32,6 +32,32 @@ if errorlevel 1 (
 )
 echo Linux upload OK: https://rtsoft.com/files/PatchyLinux.flatpak
 
+rem The AppImage mirror copy (docs\appimage.md). Its update information points at GitHub
+rem Releases, so only the AppImage itself is mirrored, not the .zsync file.
+set "LINUX_APPIMAGE="
+for /f "delims=" %%F in ('dir /b /o:d build\package\Patchy-*-x86_64.AppImage 2^>nul') do set "LINUX_APPIMAGE=build\package\%%F"
+if not defined LINUX_APPIMAGE (
+  echo No Patchy-*-x86_64.AppImage found in build\package - run scripts\remote\release-linux.bat first.
+  if /i not "%~1"=="nopause" pause
+  exit /b 1
+)
+echo Uploading %LINUX_APPIMAGE% as PatchyLinux.AppImage
+copy /y "%LINUX_APPIMAGE%" build\package\PatchyLinux.AppImage >nul
+if not "%ERRORLEVEL%"=="0" (
+  echo ERROR: could not stage build\package\PatchyLinux.AppImage from "%LINUX_APPIMAGE%".
+  if /i not "%~1"=="nopause" pause
+  exit /b 1
+)
+call "%~dp0upload-one-file.bat" build\package\PatchyLinux.AppImage files
+if not "%ERRORLEVEL%"=="0" (
+  echo.
+  echo AppImage upload FAILED - https://rtsoft.com/files/PatchyLinux.AppImage was not
+  echo updated, or was left in a bad state. Do not announce this release.
+  if /i not "%~1"=="nopause" pause
+  exit /b 1
+)
+echo AppImage upload OK: https://rtsoft.com/files/PatchyLinux.AppImage
+
 rem The repository. release-linux.ps1 refuses to finish without the tar, so a missing
 rem one means the build did not complete; never publish a bundle whose repository is
 rem a version behind.

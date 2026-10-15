@@ -1,4 +1,4 @@
-# Paste placement, shape and Fill tools, Free Transform modifiers, Merge Down, and the canvas menu
+# Paste placement, shape and Fill tools, Free Transform modifiers, the Background lock, Merge Down, and the canvas menu
 
 Small tool/command behaviors. See [selection-tools.md](selection-tools.md), [brushes.md](brushes.md), [text-tool.md](text-tool.md), [vector-tools.md](vector-tools.md), and [crop-tool.md](crop-tool.md) for those features; deep (16/32-bit) layer support for these tools is in [high-bit-depth.md](high-bit-depth.md). The legacy Pixels-mode raster behavior here must stay byte-identical.
 
@@ -74,9 +74,14 @@ existing old/new outline repaint regions, including the pasteboard
 
 Visible alignment snapping (magenta guides while a Move drag snaps to another layer, the selection, or the canvas), the options-bar Snap checkbox, and the Layer > Arrange > Align / Distribute commands with their Move options-bar buttons live in [alignment.md](alignment.md), with the legal boundary in [legal-constraints.md](legal-constraints.md).
 
+## Background lock, Eraser and Clear under a transparency lock
+- File > New (`MainWindow::reset_document`) and Image > Flatten Image ([layer-merging.md](layer-merging.md)) give an opaque Background (RGB, no alpha) both lock position and lock transparent pixels, as Photoshop does. A transparent Background stays unlocked (a transparency lock would make it unpaintable). Opened flat files and `app.newDocument` keep unlocked layers, so scripts and photo erasing still make transparency (GitHub issue 97).
+- With transparency locked, the Eraser and Clear (Delete, Cut) paint the background color and keep each pixel's alpha, in the stroke compositor (`render_brush_stroke_pixel_from_snapshot_target`, `render_brush_stroke_pixel_deep`) and in core (`write_pixel_blend*`, `clear_pixel_would_change`, `clear_rect`). Alpha-0 pixels stay empty, and a locked alpha-less layer never gains alpha (`ensure_alpha_for_erase` is skipped). Unlocked layers without alpha still gain alpha and erase to transparency.
+- The lock has no effect on what an alpha-less layer can become, so it never blocks a raster merge into one (`layer_merge.cpp`); merges into the Background behave as with the position lock alone. Pinned by `tool_eraser_and_clear_paint_background_color_under_transparency_lock` and `ui_eraser_on_background_paints_background_color_and_size_cursor`.
+
 ## Merge Down
 - `MainWindow::merge_down` normalizes the selection, includes a single leaf's lower sibling, and routes selections containing vectors through the preserving planner and Merge Layers dialog. Compatible shapes merge immediately. The dialog offers separate vector/bitmap outputs, merges within each group, and separate vector paint categories. [layer-merging.md](layer-merging.md) owns the options, preservation boundaries, transaction, and scripting contracts.
-- Bitmap-only selections retain the existing CPU-composited flattening path: hidden items contribute no pixels and are removed; the bottom visible layer keeps its id and name. Groups flatten in place, and pixels land within the canvas-clipped render bounds. Pattern resources accompany the scratch document. Position-only Background locking permits merge; image-pixel locking refuses it.
+- Bitmap-only selections retain the existing CPU-composited flattening path: hidden items contribute no pixels and are removed; the bottom visible layer keeps its id and name. Groups flatten in place, and pixels land within the canvas-clipped render bounds. Pattern resources accompany the scratch document. The Background's position and transparency locks permit merge; image-pixel locking refuses it.
 
 ## Canvas right-click menu
 

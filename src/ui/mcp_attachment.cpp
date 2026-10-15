@@ -1,4 +1,5 @@
 #include "ui/mcp_attachment.hpp"
+#include "ui/appimage_environment.hpp"
 #include "ui/mcp_line_buffer.hpp"
 #include "ui/mcp_session.hpp"
 #include <QCoreApplication>
@@ -19,6 +20,13 @@ QString mcp_attachment_endpoint() {
   const auto override_name = qEnvironmentVariable("PATCHY_MCP_ENDPOINT");
   if (!override_name.isEmpty()) { return override_name; }
   auto installation = QDir(QCoreApplication::applicationDirPath()).canonicalPath();
+  if (!appimage_file_path().isEmpty()) {
+    // Every AppImage launch runs from a new /tmp/.mount_* directory, so the user's
+    // Patchy and an assistant's `<file> patchy-mcp --attach` never share one. Any
+    // Patchy AppImage of this user attaches to any other, which also keeps working
+    // after the user replaces the file with a newer release.
+    installation = QStringLiteral("appimage");
+  }
 #ifdef Q_OS_WIN
   installation = installation.toLower();
 #endif

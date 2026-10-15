@@ -4,6 +4,7 @@
 // identical to the pre-split code. See docs/palette-mode.md before changing anything here.
 
 #include "ui/main_window.hpp"
+#include "formats/jxl_document_io.hpp"
 #include "formats/webp_animation_io.hpp"
 
 #include "core/document_depth.hpp"
@@ -669,6 +670,11 @@ ImageSaveOptions MainWindow::image_save_defaults_for_document() {
       const auto count = QString::fromStdString(found->second).toInt(&valid);
       if (valid && count >= 0 && count <= 65535) options.webp_loop_count = count;
     }
+    if (const auto found = values.find(jxl::kLoopCountMetadata); found != values.end()) {
+      bool valid = false;
+      const auto count = QString::fromStdString(found->second).toInt(&valid);
+      if (valid && count >= 0 && count <= 65535) options.jxl_loop_count = count;
+    }
   }
   if (has_active_document() && document().palette_editing().has_value() &&
       !document().palette_editing()->palette.colors.empty()) {
@@ -748,6 +754,9 @@ void MainWindow::persist_image_save_defaults(const ImageSaveOptions& options) {
   auto to_save = options;
   if (has_active_document() && options.webp_animate) {
     document().metadata().values[webp::kLoopCountMetadata] = std::to_string(options.webp_loop_count);
+  }
+  if (has_active_document() && options.jxl_animate) {
+    document().metadata().values[jxl::kLoopCountMetadata] = std::to_string(options.jxl_loop_count);
   }
   if (has_active_document() && document().palette_editing().has_value()) {
     // The indexed BMP choices were driven by this document's palette; keep the

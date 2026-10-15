@@ -36,6 +36,11 @@ QIcon up_direction_arrow_icon(int direction);
 // Layer > Arrange > Align glyphs (also the Move tool's options-bar buttons):
 // an anchor line with two bars of different length pushed against it.
 QIcon align_edge_icon(AlignEdge edge);
+// Text alignment glyphs for the Type options bar: four lines of text pushed to the
+// start, center, or end. `alignment` is Qt::AlignLeft, Qt::AlignHCenter, or
+// Qt::AlignRight; `vertical` turns the lines into columns aligned top, center, or
+// bottom, for vertical type.
+QIcon text_alignment_icon(Qt::Alignment alignment, bool vertical);
 
 // A one-off procedural mark: a glyph outside the shared icon vocabulary, drawn by
 // the caller against an `authored_size` square area with the ink handed to it.

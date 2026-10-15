@@ -45,6 +45,7 @@
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <optional>
 #include <string>
 #include <utility>
@@ -127,6 +128,29 @@ bool layer_is_vertical_metadata(const patchy::Layer& layer) {
 
 // Enter the layer with the Type tool at `click`, then apply with no change: the layer
 // re-renders through Patchy's own text engine (metadata-built rasters start as 8x8 stubs).
+// Runs `body` against the open Paragraph panel, which holds the Direction combo and the
+// Vertical check (GitHub issue 91), then closes it. The panel runs a nested non-modal loop, so
+// the body runs from a queued call; its button never takes focus, so a live session survives.
+void with_paragraph_panel(patchy::ui::MainWindow& window, std::function<void(QDialog&)> body) {
+  auto* button = window.findChild<QPushButton*>(QStringLiteral("textParagraphButton"));
+  CHECK(button != nullptr);
+  if (button == nullptr) {
+    return;
+  }
+  QTimer::singleShot(0, [&window, body = std::move(body)] {
+    auto* dialog = window.findChild<QDialog*>(QStringLiteral("textParagraphDialog"));
+    CHECK(dialog != nullptr);
+    if (dialog == nullptr) {
+      return;
+    }
+    body(*dialog);
+    QApplication::processEvents();
+    dialog->reject();
+  });
+  button->click();
+  QApplication::processEvents();
+}
+
 void rerender_through_edit_session(patchy::ui::MainWindow& window, patchy::ui::CanvasWidget& canvas,
                                    QListWidget& layer_list, const QString& row_name, QPoint click) {
   layer_list.setCurrentItem(require_layer_item(layer_list, row_name));
@@ -579,8 +603,14 @@ void ui_text_orientation_toggle_converts_layer_and_undoes() {
   CHECK(text_layer->bounds().height > text_layer->bounds().width * 2);
   CHECK(std::abs(text_layer->bounds().height - (5 * 32 + 2 * 8)) <= 6);
   CHECK(toggle->isChecked());
-  auto* direction = window.findChild<QComboBox*>(QStringLiteral("textDirectionCombo"));
-  CHECK(direction != nullptr && direction->currentIndex() == 0);
+  // The Paragraph panel mirrors the toggle next to the paragraph direction, which stays Auto.
+  CHECK(window.findChild<QComboBox*>(QStringLiteral("textDirectionCombo")) == nullptr);
+  with_paragraph_panel(window, [](QDialog& dialog) {
+    auto* direction = dialog.findChild<QComboBox*>(QStringLiteral("textDirectionCombo"));
+    auto* vertical = dialog.findChild<QCheckBox*>(QStringLiteral("textParagraphVerticalCheck"));
+    CHECK(direction != nullptr && direction->currentIndex() == 0);
+    CHECK(vertical != nullptr && vertical->isChecked());
+  });
 
   require_action_by_text(window, QStringLiteral("Undo"))->trigger();
   QApplication::processEvents();
@@ -592,6 +622,25 @@ void ui_text_orientation_toggle_converts_layer_and_undoes() {
   CHECK(!text_layer->metadata().contains(patchy::kLayerMetadataTextOrientation));
   CHECK(text_layer->bounds().x == horizontal_bounds.x && text_layer->bounds().y == horizontal_bounds.y &&
         text_layer->bounds().width == horizontal_bounds.width && text_layer->bounds().height == horizontal_bounds.height);
+
+  // The panel's Vertical check converts the layer the same way and moves the bar toggle with it.
+  with_paragraph_panel(window, [](QDialog& dialog) {
+    auto* vertical = dialog.findChild<QCheckBox*>(QStringLiteral("textParagraphVerticalCheck"));
+    CHECK(vertical != nullptr && !vertical->isChecked() && vertical->isEnabled());
+    if (vertical != nullptr) {
+      vertical->click();
+    }
+  });
+  process_events_for(200);
+  text_layer = live_document.find_layer(id);
+  CHECK(text_layer != nullptr);
+  if (text_layer == nullptr) {
+    return;
+  }
+  CHECK(text_layer->metadata().contains(patchy::kLayerMetadataTextOrientation));
+  CHECK(toggle->isChecked());
+  require_action_by_text(window, QStringLiteral("Undo"))->trigger();
+  QApplication::processEvents();
 }
 
 void ui_rtl_hebrew_paragraph_direction_reorders_and_persists() {
@@ -610,11 +659,20 @@ void ui_rtl_hebrew_paragraph_direction_reorders_and_persists() {
   QApplication::processEvents();
   auto* font_combo = window.findChild<QFontComboBox*>(QStringLiteral("textFontCombo"));
   auto* size_spin = window.findChild<QDoubleSpinBox*>(QStringLiteral("textSizeSpin"));
-  auto* direction = window.findChild<QComboBox*>(QStringLiteral("textDirectionCombo"));
-  CHECK(font_combo != nullptr && size_spin != nullptr && direction != nullptr);
-  if (font_combo == nullptr || size_spin == nullptr || direction == nullptr) {
+  CHECK(font_combo != nullptr && size_spin != nullptr);
+  if (font_combo == nullptr || size_spin == nullptr) {
     return;
   }
+  // Direction lives in the Paragraph panel (GitHub issue 91); read it through the panel.
+  const auto panel_direction = [&window] {
+    int value = -1;
+    with_paragraph_panel(window, [&value](QDialog& dialog) {
+      if (auto* combo = dialog.findChild<QComboBox*>(QStringLiteral("textDirectionCombo")); combo != nullptr) {
+        value = combo->currentData().toInt();
+      }
+    });
+    return value;
+  };
   font_combo->setCurrentFont(QFont(QStringLiteral("Arial")));
   size_spin->setValue(32.0);
   if (auto* toggle = window.findChild<QPushButton*>(QStringLiteral("textOrientationButton")); toggle != nullptr) {
@@ -639,7 +697,9 @@ void ui_rtl_hebrew_paragraph_direction_reorders_and_persists() {
   cursor.setPosition(0);
   editor->setTextCursor(cursor);
   process_events_for(250);
-  CHECK(direction->currentIndex() == 0);
+  CHECK(panel_direction() == static_cast<int>(Qt::LayoutDirectionAuto));
+  // Opening the panel left the session alive (its button never takes focus).
+  CHECK(canvas->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor")) == editor);
   const auto ltr_caret = editor->property("patchy.previewCaretRect").toRect();
   editor->selectAll();
   QApplication::processEvents();
@@ -660,7 +720,13 @@ void ui_rtl_hebrew_paragraph_direction_reorders_and_persists() {
   // 0 moves to the visual RIGHT half of the line.
   cursor.setPosition(0);
   editor->setTextCursor(cursor);
-  direction->setCurrentIndex(direction->findData(static_cast<int>(Qt::RightToLeft)));
+  with_paragraph_panel(window, [](QDialog& dialog) {
+    auto* combo = dialog.findChild<QComboBox*>(QStringLiteral("textDirectionCombo"));
+    CHECK(combo != nullptr && combo->isEnabled());
+    if (combo != nullptr) {
+      combo->setCurrentIndex(combo->findData(static_cast<int>(Qt::RightToLeft)));
+    }
+  });
   process_events_for(250);
   const auto rtl_caret = editor->property("patchy.previewCaretRect").toRect();
   std::printf("  rtl caret x=%d\n", rtl_caret.x());
@@ -704,10 +770,10 @@ void ui_rtl_hebrew_paragraph_direction_reorders_and_persists() {
   CHECK(layer->metadata().at(patchy::kLayerMetadataTextParagraphRuns) == runs);
   CHECK(layer->bounds().x == ltr_bounds.x && layer->bounds().y == ltr_bounds.y &&
         layer->bounds().width == ltr_bounds.width && layer->bounds().height == ltr_bounds.height);
-  // The combo reads the selected layer's direction with no session open.
+  // The panel reads the selected layer's direction with no session open.
   require_action_by_text(window, QStringLiteral("Type"))->trigger();
   QApplication::processEvents();
-  CHECK(direction->currentData().toInt() == static_cast<int>(Qt::RightToLeft));
+  CHECK(panel_direction() == static_cast<int>(Qt::RightToLeft));
 }
 
 

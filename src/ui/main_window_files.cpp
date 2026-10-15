@@ -5,7 +5,9 @@
 // function moves from main_window.cpp; behavior must stay identical.
 
 #include "ui/main_window.hpp"
+#include "ui/appimage_environment.hpp"
 #include "ui/main_window_shared.hpp"
+#include "ui/recent_file_list.hpp"
 #include "ui/network_mounts.hpp"
 #include "ui/object_selection_model_download.hpp"
 #include "ui/qt_paths.hpp"
@@ -27,6 +29,7 @@
 #include "formats/aseprite_document_io.hpp"
 #include "formats/bmp_document_io.hpp"
 #include "formats/heif_document_io.hpp"
+#include "formats/jxl_document_io.hpp"
 #include "formats/jxr_document_io.hpp"
 #include "formats/metadata/metadata_containers.hpp"
 #include "formats/metadata/metadata_edit.hpp"
@@ -288,6 +291,8 @@ constexpr int kOpenProgressTitleMinimumFileNameWidth = 180;
 constexpr int kMaxRecentFiles = 200;
 constexpr int kMaxRecentFolders = 200;
 constexpr int kRecentFilesMenuPageSize = 50;
+// Rows the Open Recent File/Folder lists show before they scroll (widget-action menus only).
+constexpr int kRecentFilesMenuVisibleRows = 12;
 // Minimum spacing of the background recent-history existence checks that
 // File menu opens and the start panel's refresh timer start.
 constexpr qint64 kRecentHistoryCheckIntervalMs = 30000;
@@ -664,6 +669,12 @@ const QList<FileFormatEntry>& file_format_entries() {
                     jxr::is_available() ? jxr_extensions : QStringList{},
                     jxr::is_available(),
                     jxr::is_available()});
+    // JPEG XL reads and writes everywhere through the vendored libjxl (docs/jxl.md).
+    QStringList jxl_extensions;
+    for (const auto& extension : jxl::jxl_extensions()) {
+      jxl_extensions.push_back(QString::fromStdString(extension));
+    }
+    list.push_back({QT_TRANSLATE_NOOP("QObject", "JPEG XL Image"), jxl_extensions, jxl_extensions, true, true});
     // Proton SDK textures read and write on every platform: the codec is Patchy's own (raw
     // pixels or an embedded JPEG inside a zlib container), so nothing gates the row.
     QStringList rttex_extensions;
@@ -1206,6 +1217,25 @@ OpenDocumentResult load_document_from_path(QString path) {
     for (int i = 0; i < link_notices.size(); ++i) {
       import_notices.insert(i, link_notices.at(i));
     }
+  } else if (jxl::is_jxl_extension(extension.toStdString())) {
+    // Before the registry row so animation frames get translated layer names and the
+    // decoder's color and orientation facts reach File Info.
+    jxl::ReadOptions read_options;
+    read_options.frame_name = [](int index, std::uint32_t delay) {
+      return (QObject::tr("Frame %1").arg(index) + QLatin1Char(' ') +
+              QString::fromStdString(animation::format_delay_seconds_token(delay)))
+          .toStdString();
+    };
+    auto result = jxl::read_jxl_detailed(read_all_file_bytes(path), read_options);
+    opened = std::move(result.read.document);
+    for (const auto& notice : result.read.notices) {
+      import_notices.push_back(translated_file_message(notice));
+    }
+    if (result.frame_count > 1) {
+      import_notices.push_back(QObject::tr("Animated JPEG XL: imported %1 frames as layers").arg(result.frame_count));
+    }
+    pixels_in_source_space = result.pixels_in_source_space;
+    orientation_applied = result.orientation_applied;
   } else if (raw::is_camera_raw_extension(extension.toStdString())) {
     const auto settings = load_raw_develop_settings(path);
     auto result = raw::read_camera_raw(read_all_file_bytes(path), settings.params);
@@ -3607,21 +3637,23 @@ bool MainWindow::save_document_as() {
       if (!pdf_editable_layers.has_value()) {
         return false;
       }
-    } else if ((extension == QStringLiteral("gif") || extension == QStringLiteral("webp")) &&
+    } else if ((extension == QStringLiteral("gif") || extension == QStringLiteral("webp") ||
+                extension == QStringLiteral("jxl")) &&
                std::as_const(document()).layers().size() >= 2) {
       // GIF asks animation-or-flatten instead of the plain flatten warning; an explicit
       // animation choice needs no warning (the frames round-trip through reopening).
       auto defaults = image_save_defaults_for_document();
-      defaults.webp_offer_animation = true;
-      defaults.webp_has_visible_frames = has_visible_top_level_layer(std::as_const(document()));
-      auto gif_options = extension == QStringLiteral("webp")
+      defaults.offer_animation = true;
+      defaults.has_visible_frames = has_visible_top_level_layer(std::as_const(document()));
+      auto gif_options = extension != QStringLiteral("gif")
           ? prompt_image_save_options(this, extension, defaults)
           : prompt_gif_save_options(this, defaults, /*offer_flatten_choice*/ true,
-                                    /*for_export*/ false, defaults.webp_has_visible_frames);
+                                    /*for_export*/ false, defaults.has_visible_frames);
       if (!gif_options.has_value()) {
         return false;
       }
-      if (!gif_options->gif_animate && !gif_options->webp_animate && !confirm_flatten_layers_for_save(extension)) {
+      if (!gif_options->gif_animate && !gif_options->webp_animate && !gif_options->jxl_animate &&
+          !confirm_flatten_layers_for_save(extension)) {
         return false;
       }
       image_options = std::move(gif_options);
@@ -3873,6 +3905,8 @@ bool MainWindow::save_document_to_path(QString path, std::optional<ImageSaveOpti
                                     ? tr("Saved animated GIF copy %1")
                                 : extension == QStringLiteral("webp") && effective_image_options.webp_animate
                                     ? tr("Saved animated WebP copy %1")
+                                : extension == QStringLiteral("jxl") && effective_image_options.jxl_animate
+                                    ? tr("Saved animated JPEG XL copy %1")
                                     : tr("Saved flattened copy %1"))
                                    .arg(path) +
                                export_notes_suffix);
@@ -3938,8 +3972,8 @@ void MainWindow::export_flat_image() {
     std::optional<ImageSaveOptions> image_options;
     if (!is_photoshop_document_extension(extension) && !svg_export) {
       auto defaults = image_save_defaults_for_document();
-      defaults.webp_offer_animation = std::as_const(document()).layers().size() >= 2;
-      defaults.webp_has_visible_frames = has_visible_top_level_layer(std::as_const(document()));
+      defaults.offer_animation = std::as_const(document()).layers().size() >= 2;
+      defaults.has_visible_frames = has_visible_top_level_layer(std::as_const(document()));
       if (is_pdf_extension(extension) && flat_save_discards_layers(std::as_const(document()))) {
         // Flatten or keep layers editable: the remembered policy or the question.
         const auto pdf_editable_layers = resolve_pdf_layer_choice(/*for_export*/ true, /*allow_prompt*/ true);
@@ -4272,6 +4306,12 @@ void MainWindow::print_document() {
 }
 
 bool MainWindow::can_install_update(const UpdateInfo& update) const {
+  // An AppImage replaces its own file (docs/auto-update.md, "AppImage"); everything else
+  // needs the Windows installer's copy.
+  if (const auto appimage = appimage_file_path(); !appimage.isEmpty()) {
+    return update_has_appimage_install(update) &&
+           self_update_override_for_tests_.value_or(appimage_can_be_replaced(appimage));
+  }
   return update_has_installer(update) && self_update_override_for_tests_.value_or(installed_copy_can_self_update());
 }
 
@@ -4279,13 +4319,29 @@ void MainWindow::download_and_install_update(const UpdateInfo& update) {
 #if defined(Q_OS_WASM)
   Q_UNUSED(update);
 #else
+  // The file this update installs: the Windows installer, or for an AppImage the new
+  // AppImage, downloaded as a hidden file beside the running one so the final rename stays
+  // in one folder.
+  const auto appimage = appimage_file_path();
+  const bool appimage_update = !appimage.isEmpty();
+  const auto file_name = appimage_update ? appimage_update_download_name(appimage, update.version)
+                                         : update_installer_file_name();
+  const auto file_url = appimage_update ? update.appimage_install_url : update.installer_url;
+  const auto file_size = appimage_update ? update.appimage_install_size : update.installer_size;
+  const auto file_sha256 = appimage_update ? update.appimage_install_sha256 : update.installer_sha256;
+  QUrl browser_url = update.download_url;
+  if (appimage_update) {
+    browser_url = update.appimage_url.isEmpty() ? QUrl(QString::fromLatin1(kAppImageDownloadUrl)) : update.appimage_url;
+  }
   const auto megabytes = [](qint64 bytes) { return static_cast<int>((bytes + 500000) / 1000000); };
-  const auto total_mb = megabytes(update.installer_size);
+  const auto total_mb = megabytes(file_size);
   const auto progress_text = [&](qint64 received) {
     return tr("Downloading Patchy %1... %2 of %3 MB").arg(update.version).arg(megabytes(received)).arg(total_mb);
   };
-  const auto folder = update_download_folder_for_tests_.isEmpty() ? update_download_folder(update.version)
-                                                                  : update_download_folder_for_tests_;
+  QString folder = update_download_folder_for_tests_;
+  if (folder.isEmpty()) {
+    folder = appimage_update ? QFileInfo(appimage).absolutePath() : update_download_folder(update.version);
+  }
   std::optional<QProgressDialog> dialog;
   dialog.emplace(progress_text(0), tr("Cancel"), 0, 1000, this);
   dialog->setObjectName(QStringLiteral("updateDownloadDialog"));
@@ -4296,12 +4352,9 @@ void MainWindow::download_and_install_update(const UpdateInfo& update) {
   ModelDownloadResult result;
   bool done = false;
   QEventLoop wait_loop;
-  // Pinned by size and SHA-256 and written through QSaveFile; an installer already
-  // downloaded for this version (an update cancelled at the save prompt) is reused.
-  auto job = start_model_download(
-      this, folder,
-      {DownloadableModelFile{update_installer_file_name(), update.installer_url, update.installer_size,
-                             update.installer_sha256}},
+  // Pinned by size and SHA-256 and written through QSaveFile; a file already downloaded
+  // for this version (an update cancelled at the save prompt) is reused.
+  auto job = start_model_download(this, folder, {DownloadableModelFile{file_name, file_url, file_size, file_sha256}},
       [&](qint64 received, qint64 total) {
         dialog->setLabelText(progress_text(received));
         dialog->setValue(total > 0 ? static_cast<int>(received * 999 / total) : 0);
@@ -4328,17 +4381,21 @@ void MainWindow::download_and_install_update(const UpdateInfo& update) {
     failure.addButton(tr("Not Now"), QMessageBox::RejectRole);
     failure.setDefaultButton(browser_button);
     exec_dialog(failure);
-    if (failure.clickedButton() == browser_button && !QDesktopServices::openUrl(update.download_url)) {
+    if (failure.clickedButton() == browser_button && !QDesktopServices::openUrl(browser_url)) {
       show_status_error(tr("Could not open the download link"));
     }
     return;
   }
   // closeEvent asks about unsaved work as on any quit, then starts the installer, which
-  // waits for this process before it replaces anything.
-  pending_update_install_ = UpdateInstallerLaunch{QDir(folder).filePath(update_installer_file_name()),
+  // waits for this process before it replaces anything (an AppImage: puts the new file in
+  // place and starts it once this process has exited).
+  pending_update_install_ = UpdateInstallerLaunch{QDir(folder).filePath(file_name),
                                                   QCoreApplication::applicationDirPath(),
-                                                  QCoreApplication::applicationPid(), update.installer_size,
-                                                  update.installer_sha256, update.download_url};
+                                                  QCoreApplication::applicationPid(),
+                                                  file_size,
+                                                  file_sha256,
+                                                  browser_url,
+                                                  appimage};
   if (!close() && pending_update_install_.has_value()) {
     pending_update_install_.reset();
     statusBar()->showMessage(tr("The update was not installed because Patchy stayed open"));
@@ -4348,14 +4405,20 @@ void MainWindow::download_and_install_update(const UpdateInfo& update) {
 
 void MainWindow::show_update_launch_failure(const UpdateLaunchResult& result, const QUrl& browser_download_url) {
   QString reason;
+  const bool appimage = !appimage_file_path().isEmpty();
   switch (result.failure) {
     case UpdateLaunchFailure::None:
       return;
     case UpdateLaunchFailure::InstallerMissing:
-      reason = tr("The downloaded installer is no longer on this computer.");
+      reason = appimage ? tr("The downloaded AppImage is no longer on this computer.")
+                        : tr("The downloaded installer is no longer on this computer.");
       break;
     case UpdateLaunchFailure::ChecksumMismatch:
-      reason = tr("The downloaded installer does not match the checksum published for this update.");
+      reason = appimage ? tr("The downloaded AppImage does not match the checksum published for this update.")
+                        : tr("The downloaded installer does not match the checksum published for this update.");
+      break;
+    case UpdateLaunchFailure::ReplaceFailed:
+      reason = tr("The new AppImage could not be put in place of this one.");
       break;
     case UpdateLaunchFailure::NotSigned:
       reason = tr("The downloaded installer is not signed by %1, the publisher of this copy of Patchy.")
@@ -4401,9 +4464,31 @@ void MainWindow::show_update_available(const UpdateInfo& update) {
   // polkit/root prompt, GitHub issue 14); without it flatpak 1.14 also fails outright on
   // a machine that has no system-wide installation ("While opening repository").
   const auto install_command = QStringLiteral("flatpak update --user -y com.rtsoft.patchy");
-  const auto update_text = tr("Patchy %1 is available. You are using version %2.\n\n"
-                              "To update, paste this into a terminal:\n\n%3")
-                               .arg(update.version, QStringLiteral(PATCHY_VERSION), install_command);
+  // An AppImage is one file (docs/appimage.md). With the manifest's pinned AppImage and a
+  // writable folder it replaces itself (docs/auto-update.md, "AppImage"); otherwise its
+  // prompt names the file and downloads the AppImage, not the Flatpak bundle the linux
+  // entry's download_url points at.
+  const auto appimage = appimage_file_path();
+  QString update_text;
+  if (appimage.isEmpty()) {
+    update_text = tr("Patchy %1 is available. You are using version %2.\n\n"
+                     "To update, paste this into a terminal:\n\n%3")
+                      .arg(update.version, QStringLiteral(PATCHY_VERSION), install_command);
+  } else if (self_update) {
+    update_text = tr("Patchy %1 is available. You are using version %2.\n\n"
+                     "Patchy can download the update, replace this AppImage, and start again. "
+                     "You will be asked about unsaved work first.")
+                      .arg(update.version, QStringLiteral(PATCHY_VERSION));
+  } else {
+    update_text = tr("Patchy %1 is available. You are using version %2.\n\n"
+                     "Download the new AppImage, quit Patchy, and replace this file with it:\n\n%3")
+                      .arg(update.version, QStringLiteral(PATCHY_VERSION), appimage);
+  }
+  QUrl download_url = update.download_url;
+  if (!appimage.isEmpty()) {
+    download_url = update.appimage_url.isEmpty() ? QUrl(QString::fromLatin1(kAppImageDownloadUrl))
+                                                 : update.appimage_url;
+  }
 #else
   const auto update_text =
       (self_update ? tr("Patchy %1 is available. You are using version %2.\n\n"
@@ -4416,12 +4501,13 @@ void MainWindow::show_update_available(const UpdateInfo& update) {
   QMessageBox dialog(QMessageBox::Information, tr("Update Available"), update_text, QMessageBox::NoButton, this);
   dialog.setObjectName(QStringLiteral("updateAvailableMessageBox"));
   dialog.setTextInteractionFlags(Qt::TextSelectableByMouse);
+  QPushButton* copy_button = nullptr;
 #if defined(Q_OS_LINUX)
-  auto* copy_button = dialog.addButton(tr("Copy Command"), QMessageBox::AcceptRole);
-  copy_button->setObjectName(QStringLiteral("updateCopyCommandButton"));
-  dialog.setDefaultButton(copy_button);
-#else
-  QAbstractButton* copy_button = nullptr;
+  if (appimage.isEmpty()) {
+    copy_button = dialog.addButton(tr("Copy Command"), QMessageBox::AcceptRole);
+    copy_button->setObjectName(QStringLiteral("updateCopyCommandButton"));
+    dialog.setDefaultButton(copy_button);
+  }
 #endif
   QAbstractButton* install_button = nullptr;
   QAbstractButton* download_button = nullptr;
@@ -4432,9 +4518,10 @@ void MainWindow::show_update_available(const UpdateInfo& update) {
     install_button = button;
   } else {
     auto* button = dialog.addButton(tr("Download"), QMessageBox::AcceptRole);
-#if !defined(Q_OS_LINUX)
-    dialog.setDefaultButton(button);
-#endif
+    button->setObjectName(QStringLiteral("updateDownloadButton"));
+    if (copy_button == nullptr) {
+      dialog.setDefaultButton(button);
+    }
     download_button = button;
   }
   dialog.addButton(tr("Not Now"), QMessageBox::RejectRole);
@@ -4453,7 +4540,7 @@ void MainWindow::show_update_available(const UpdateInfo& update) {
     set_stored_update_skipped_version(update.version);
   }
 #if defined(Q_OS_LINUX)
-  if (dialog.clickedButton() == copy_button) {
+  if (copy_button != nullptr && dialog.clickedButton() == copy_button) {
     if (auto* clipboard = QApplication::clipboard(); clipboard != nullptr) {
       clipboard->setText(install_command);
     }
@@ -4461,10 +4548,10 @@ void MainWindow::show_update_available(const UpdateInfo& update) {
     return;
   }
 #else
-  Q_UNUSED(copy_button);
+  const auto& download_url = update.download_url;
 #endif
   if (download_button != nullptr && dialog.clickedButton() == download_button &&
-      !QDesktopServices::openUrl(update.download_url)) {
+      !QDesktopServices::openUrl(download_url)) {
     show_status_error(tr("Could not open the download link"));
   }
 }
@@ -4504,6 +4591,11 @@ void MainWindow::begin_startup_update_check() {
   // A one-click update leaves the installer for this version in the temp folder. It may
   // still be exiting when the copy it installed starts, so the cleanup waits a little.
   QTimer::singleShot(30000, this, [] { remove_update_download(QStringLiteral(PATCHY_VERSION)); });
+  // An AppImage update cancelled at the save prompt leaves its download beside the file;
+  // once this version runs (updated some other way), it is no longer needed.
+  if (const auto appimage = appimage_file_path(); !appimage.isEmpty()) {
+    remove_appimage_update_download(appimage, QStringLiteral(PATCHY_VERSION));
+  }
   {
     auto settings = app_settings();
     if (!settings.value(QStringLiteral("updates/checkOnStartup"), true).toBool()) {
@@ -4664,73 +4756,35 @@ void MainWindow::rebuild_recent_files_menu() {
   if (recent_files_menu_ == nullptr) {
     return;
   }
-  recent_files_menu_->clear();  // also deletes the previous filter row and its edit
-  recent_files_filter_action_ = nullptr;
-  recent_files_filter_edit_ = nullptr;
-  recent_files_no_matches_action_ = nullptr;
-  recent_files_filtered_actions_.clear();
-  recent_files_structure_actions_.clear();
+  recent_files_menu_->clear();  // also deletes the previous filter row, list and their widgets
   recent_files_menu_->setEnabled(!recent_files_.isEmpty());
 
-  // A native menu bar (the macOS global bar) cannot host QWidgetAction rows;
-  // those platforms keep the plain paged menu.
-  const bool native_menu_bar = menuBar() != nullptr && menuBar()->isNativeMenuBar();
-  if (!recent_files_.isEmpty() && !native_menu_bar) {
-    auto* filter_row = new QWidget(recent_files_menu_);
-    filter_row->setObjectName(QStringLiteral("fileOpenRecentFilterRow"));
-    auto* filter_layout = new QHBoxLayout(filter_row);
-    filter_layout->setContentsMargins(8, 6, 8, 6);
-    recent_files_filter_edit_ = new QLineEdit(filter_row);
-    recent_files_filter_edit_->setObjectName(QStringLiteral("fileOpenRecentFilterEdit"));
-    recent_files_filter_edit_->setClearButtonEnabled(true);
-    recent_files_filter_edit_->setFixedHeight(24);
-    // Keeps the popup a usable width while a filter hides every row.
-    recent_files_filter_edit_->setMinimumWidth(320);
-    // The edit's own Cut/Copy/Paste popup must not nest inside the menu popup.
-    recent_files_filter_edit_->setContextMenuPolicy(Qt::NoContextMenu);
-    bind_widget_text(recent_files_filter_edit_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Filter recent files..."));
-    filter_layout->addWidget(recent_files_filter_edit_);
-    // The global QWidget rule would otherwise paint @window_bg over the menu background.
-    set_themed_style(*filter_row,
-                     QStringLiteral("QWidget#fileOpenRecentFilterRow { background: transparent; }"));
-    auto* filter_action = new QWidgetAction(recent_files_menu_);
-    filter_action->setObjectName(QStringLiteral("fileOpenRecentFilterAction"));
-    filter_action->setDefaultWidget(filter_row);
-    recent_files_menu_->addAction(filter_action);
-    recent_files_filter_action_ = filter_action;
-    connect(recent_files_filter_edit_, &QLineEdit::textChanged, this,
-            [this](const QString& text) { apply_recent_files_filter(text); });
+  if (!build_recent_list_menu(recent_files_list_menu_, recent_files_menu_)) {
+    const auto add_recent_action = [this](QMenu* menu, const QString& path, int index) {
+      const auto label = tr("&%1 %2").arg(index).arg(QDir::toNativeSeparators(path));
+      auto* action = menu->addAction(label);
+      action->setToolTip(path);
+      action->setData(path);
+      connect(action, &QAction::triggered, this, [this, path] { open_recent_document(path); });
+    };
 
-    recent_files_no_matches_action_ = recent_files_menu_->addAction(tr("No matching recent files"));
-    recent_files_no_matches_action_->setObjectName(QStringLiteral("fileOpenRecentNoMatchesAction"));
-    recent_files_no_matches_action_->setEnabled(false);
-    recent_files_no_matches_action_->setVisible(false);
-  }
+    const auto recent_count = static_cast<int>(recent_files_.size());
+    const auto direct_count = std::min(recent_count, kRecentFilesMenuPageSize);
+    for (int index = 0; index < direct_count; ++index) {
+      add_recent_action(recent_files_menu_, recent_files_[index], index + 1);
+    }
 
-  const auto add_recent_action = [this](QMenu* menu, const QString& path, int index) {
-    const auto label = tr("&%1 %2").arg(index).arg(QDir::toNativeSeparators(path));
-    auto* action = menu->addAction(label);
-    action->setToolTip(path);
-    action->setData(path);
-    connect(action, &QAction::triggered, this, [this, path] { open_recent_document(path); });
-  };
-
-  const auto recent_count = static_cast<int>(recent_files_.size());
-  const auto direct_count = std::min(recent_count, kRecentFilesMenuPageSize);
-  for (int index = 0; index < direct_count; ++index) {
-    add_recent_action(recent_files_menu_, recent_files_[index], index + 1);
-  }
-
-  if (recent_count > direct_count) {
-    recent_files_menu_->addSeparator();
-    for (int page_start = direct_count; page_start < recent_count; page_start += kRecentFilesMenuPageSize) {
-      const auto page_end = std::min(page_start + kRecentFilesMenuPageSize, recent_count);
-      auto* page_menu = recent_files_menu_->addMenu(tr("Recent Files %1-%2").arg(page_start + 1).arg(page_end));
-      page_menu->setObjectName(QStringLiteral("fileOpenRecentRangeMenu%1").arg(page_start + 1));
-      page_menu->menuAction()->setMenuRole(QAction::NoRole);  // submenus never merge on macOS (docs/platform.md)
-      configure_recent_files_context_menu(page_menu);
-      for (int index = page_start; index < page_end; ++index) {
-        add_recent_action(page_menu, recent_files_[index], index + 1);
+    if (recent_count > direct_count) {
+      recent_files_menu_->addSeparator();
+      for (int page_start = direct_count; page_start < recent_count; page_start += kRecentFilesMenuPageSize) {
+        const auto page_end = std::min(page_start + kRecentFilesMenuPageSize, recent_count);
+        auto* page_menu = recent_files_menu_->addMenu(tr("Recent Files %1-%2").arg(page_start + 1).arg(page_end));
+        page_menu->setObjectName(QStringLiteral("fileOpenRecentRangeMenu%1").arg(page_start + 1));
+        page_menu->menuAction()->setMenuRole(QAction::NoRole);  // submenus never merge on macOS (docs/platform.md)
+        configure_recent_files_context_menu(page_menu);
+        for (int index = page_start; index < page_end; ++index) {
+          add_recent_action(page_menu, recent_files_[index], index + 1);
+        }
       }
     }
   }
@@ -4745,103 +4799,175 @@ void MainWindow::rebuild_recent_files_menu() {
       rebuild_recent_files_menu();
     });
   }
-
-  // Everything the filter hides while active; the filter and no-matches rows
-  // stay visible through filtering.
-  for (auto* action : recent_files_menu_->actions()) {
-    if (action != recent_files_filter_action_ && action != recent_files_no_matches_action_) {
-      recent_files_structure_actions_ << action;
-    }
-  }
 }
 
-void MainWindow::apply_recent_files_filter(const QString& filter_text) {
-  if (recent_files_menu_ == nullptr || recent_files_filter_action_ == nullptr) {
+const QStringList& MainWindow::recent_list_paths(const RecentListMenu& ui) const {
+  return ui.folders ? recent_folders_ : recent_files_;
+}
+
+// The Open Recent File and Open Recent Folder menus: one filter row over one scrolling
+// list of every entry (the start panel's two-line rows), at a width that leaves room to
+// open beside the File menu instead of covering it. The caller has just cleared `menu`,
+// which deleted the previous row and list. Returns false, adding nothing, under a native
+// menu bar (the macOS global bar cannot host QWidgetAction rows) or for an empty history;
+// the caller then builds the plain paged menu.
+bool MainWindow::build_recent_list_menu(RecentListMenu& ui, QMenu* menu) {
+  ui.menu = menu;
+  ui.filter_action = nullptr;
+  ui.filter_edit = nullptr;
+  ui.list = nullptr;
+  const auto& paths = recent_list_paths(ui);
+  const bool native_menu_bar = menuBar() != nullptr && menuBar()->isNativeMenuBar();
+  if (menu == nullptr || paths.isEmpty() || native_menu_bar) {
+    return false;
+  }
+  // Object names keep the files menu's original ones; the folders menu inserts "Folder".
+  const auto prefix = ui.folders ? QStringLiteral("fileOpenRecentFolder") : QStringLiteral("fileOpenRecent");
+  const auto list_width = std::clamp(QFontMetrics(menu->font()).averageCharWidth() * 56, 380, 560);
+
+  auto* filter_row = new QWidget(menu);
+  filter_row->setObjectName(prefix + QStringLiteral("FilterRow"));
+  auto* filter_layout = new QHBoxLayout(filter_row);
+  filter_layout->setContentsMargins(8, 6, 8, 6);
+  auto* filter_edit = new QLineEdit(filter_row);
+  filter_edit->setObjectName(prefix + QStringLiteral("FilterEdit"));
+  filter_edit->setClearButtonEnabled(true);
+  filter_edit->setFixedHeight(24);
+  // The edit's own Cut/Copy/Paste popup must not nest inside the menu popup.
+  filter_edit->setContextMenuPolicy(Qt::NoContextMenu);
+  bind_widget_text(filter_edit, ui.folders
+                                    ? QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Filter recent folders...")
+                                    : QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Filter recent files..."));
+  filter_layout->addWidget(filter_edit);
+  // The global QWidget rule would otherwise paint @window_bg over the menu background.
+  set_themed_style(*filter_row,
+                   QStringLiteral("QWidget#%1FilterRow { background: transparent; }").arg(prefix));
+  auto* filter_action = new QWidgetAction(menu);
+  filter_action->setObjectName(prefix + QStringLiteral("FilterAction"));
+  filter_action->setDefaultWidget(filter_row);
+  menu->addAction(filter_action);
+
+  auto* list_row = new QWidget(menu);
+  list_row->setObjectName(prefix + QStringLiteral("ListRow"));
+  auto* list_layout = new QHBoxLayout(list_row);
+  list_layout->setContentsMargins(6, 0, 6, 4);
+  auto* list = new RecentFileList(list_row, kRecentFilesMenuVisibleRows);
+  list->setObjectName(prefix + QStringLiteral("List"));
+  list->setSelectionMode(QAbstractItemView::SingleSelection);
+  // The filter edit keeps focus; it forwards the navigation keys to the list.
+  list->setFocusPolicy(Qt::NoFocus);
+  list->setFixedWidth(list_width);
+  // Filtering never resizes the open menu: the box keeps the full list's height.
+  list->set_fixed_rows(static_cast<int>(paths.size()));
+  list_layout->addWidget(list);
+  set_themed_style(*list_row, QStringLiteral(R"(
+    QWidget#%1ListRow { background: transparent; }
+    QListWidget#%1List {
+      background: @list_surface_bg;
+      border: 1px solid @list_surface_border;
+      border-radius: 5px;
+      padding: 3px;
+    }
+  )").arg(prefix));
+  auto* list_action = new QWidgetAction(menu);
+  list_action->setObjectName(prefix + QStringLiteral("ListAction"));
+  list_action->setDefaultWidget(list_row);
+  menu->addAction(list_action);
+
+  ui.filter_action = filter_action;
+  ui.filter_edit = filter_edit;
+  ui.list = list;
+  // The menu, and so ui, outlives every connection below: rebuilding clears the menu,
+  // which deletes the edit and the list first.
+  auto* state = &ui;
+  connect(filter_edit, &QLineEdit::textChanged, this,
+          [this, state](const QString& text) { apply_recent_list_filter(*state, text); });
+  connect(list, &QListWidget::itemEntered, list, [list](QListWidgetItem* item) {
+    if (item != nullptr && !item->data(kRecentPathRole).toString().isEmpty()) {
+      list->setCurrentItem(item);
+    }
+  });
+  connect(list, &QListWidget::itemClicked, this, [this, state](QListWidgetItem* item) {
+    if (item != nullptr) {
+      open_recent_list_path(*state, item->data(kRecentPathRole).toString());
+    }
+  });
+  connect(list, &QListWidget::customContextMenuRequested, this, [this, state, list](const QPoint& position) {
+    auto* item = list->itemAt(position);
+    if (item == nullptr || item->data(kRecentPathRole).toString().isEmpty()) {
+      return;
+    }
+    show_recent_path_context_menu(list, state->menu, item->data(kRecentPathRole).toString(), state->folders,
+                                  list->viewport()->mapToGlobal(position));
+  });
+  apply_recent_list_filter(ui, QString());
+  return true;
+}
+
+void MainWindow::apply_recent_list_filter(RecentListMenu& ui, const QString& filter_text) {
+  if (ui.list == nullptr) {
     return;
   }
-  for (auto* action : recent_files_filtered_actions_) {
-    recent_files_menu_->removeAction(action);
-    delete action;
-  }
-  recent_files_filtered_actions_.clear();
-
-  const auto tokens = filter_text.simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
-  const bool filtering = !tokens.isEmpty();
-  for (auto* action : recent_files_structure_actions_) {
-    action->setVisible(!filtering);
-  }
-
-  if (filtering) {
-    const auto recent_count = static_cast<int>(recent_files_.size());
-    for (int index = 0;
-         index < recent_count && recent_files_filtered_actions_.size() < kRecentFilesMenuPageSize; ++index) {
-      const auto path = recent_files_[index];
-      const auto native_path = QDir::toNativeSeparators(path);
-      const bool matches = std::all_of(tokens.begin(), tokens.end(), [&native_path](const QString& token) {
-        return native_path.contains(token, Qt::CaseInsensitive);
-      });
-      if (!matches) {
-        continue;
-      }
-      // Labels keep the original recency index so a filtered row still says
-      // where the file sits in the full list.
-      auto* action = new QAction(tr("&%1 %2").arg(index + 1).arg(native_path), recent_files_menu_);
-      action->setToolTip(path);
-      action->setData(path);
-      connect(action, &QAction::triggered, this, [this, path] { open_recent_document(path); });
-      recent_files_menu_->addAction(action);
-      recent_files_filtered_actions_ << action;
-    }
-  }
-  if (recent_files_no_matches_action_ != nullptr) {
-    recent_files_no_matches_action_->setVisible(filtering && recent_files_filtered_actions_.isEmpty());
-  }
-  if (recent_files_menu_->isVisible()) {
-    recent_files_menu_->resize(recent_files_menu_->sizeHint());
-  }
+  const auto placeholder = ui.folders ? tr("No matching recent folders") : tr("No matching recent files");
+  const auto rows = fill_recent_file_list(*ui.list, recent_list_paths(ui), filter_text, placeholder);
+  // The highlight starts on the best match, so Enter opens it.
+  ui.list->setCurrentRow(rows > 0 ? 0 : -1);
+  ui.list->scrollToTop();
 }
 
-bool MainWindow::handle_recent_files_filter_key(QKeyEvent& event) {
-  if (recent_files_menu_ == nullptr) {
+void MainWindow::open_recent_list_path(const RecentListMenu& ui, const QString& path) {
+  if (path.isEmpty()) {
+    return;  // the "no matches" placeholder row
+  }
+  // Close the whole popup chain (the list lives in a submenu of File), then open
+  // on the next event-loop turn: opening rebuilds this menu, which deletes the
+  // list and edit whose event is still being delivered, and a folder opens a
+  // modal file dialog that must not start under a popup.
+  for (int guard = 0; guard < 8; ++guard) {
+    auto* popup = qobject_cast<QMenu*>(QApplication::activePopupWidget());
+    if (popup == nullptr) {
+      break;
+    }
+    popup->close();
+  }
+  if (ui.menu != nullptr) {
+    ui.menu->close();
+  }
+  const bool folder = ui.folders;
+  QTimer::singleShot(0, this, [this, path, folder] {
+    if (folder) {
+      open_recent_folder(path);
+    } else {
+      open_recent_document(path);
+    }
+  });
+}
+
+bool MainWindow::handle_recent_list_filter_key(RecentListMenu& ui, QKeyEvent& event) {
+  if (ui.list == nullptr) {
     return false;
   }
   switch (event.key()) {
     case Qt::Key_Up:
     case Qt::Key_Down:
     case Qt::Key_PageUp:
-    case Qt::Key_PageDown:
+    case Qt::Key_PageDown: {
       // List navigation keeps working while the edit holds focus (the
       // SearchKeyForwarder pattern from the font picker popup).
-      QApplication::sendEvent(recent_files_menu_, &event);
+      QKeyEvent forwarded(event.type(), event.key(), event.modifiers(), event.text());
+      QApplication::sendEvent(ui.list, &forwarded);
       return true;
+    }
     case Qt::Key_Return:
     case Qt::Key_Enter: {
-      auto* active = recent_files_menu_->activeAction();
-      if (active != nullptr && active->menu() != nullptr) {
-        // Opening the highlighted pages submenu rebuilds nothing; safe to
-        // forward synchronously.
-        QApplication::sendEvent(recent_files_menu_, &event);
-        return true;
+      QString path;
+      if (auto* current = ui.list->currentItem(); current != nullptr) {
+        path = current->data(kRecentPathRole).toString();
       }
-      QAction* target = nullptr;
-      if (active != nullptr && active->isEnabled() && active != recent_files_filter_action_) {
-        target = active;
-      } else if (!recent_files_filtered_actions_.isEmpty()) {
-        target = recent_files_filtered_actions_.front();
+      if (path.isEmpty() && ui.list->count() > 0) {
+        path = ui.list->item(0)->data(kRecentPathRole).toString();
       }
-      if (target == nullptr) {
-        return true;
-      }
-      // Deferred: triggering synchronously would run rebuild_recent_files_menu
-      // -> menu->clear(), deleting the very edit whose key event is
-      // mid-delivery in the application event filter.
-      QPointer<QAction> guarded(target);
-      recent_files_menu_->close();
-      QTimer::singleShot(0, this, [guarded] {
-        if (guarded != nullptr) {
-          guarded->trigger();
-        }
-      });
+      open_recent_list_path(ui, path);
       return true;
     }
     default:
@@ -4880,49 +5006,54 @@ void MainWindow::add_recent_folder(QString dir) {
   rebuild_recent_folders_menu();
 }
 
+void MainWindow::open_recent_folder(const QString& dir) {
+  if (preview_dialog_edit_locked()) {
+    show_preview_dialog_edit_lock_message();
+    return;
+  }
+  const auto start_dir = QFileInfo(dir).isDir() ? dir : last_open_directory();
+  const auto paths = get_open_file_names(this, tr("Open"), start_dir, open_file_filter(), nullptr,
+                                         QStringLiteral("openFileDialog"), FilterNameDetails::Hidden);
+  for (const auto& path : paths) {
+    open_document_path(path);
+  }
+}
+
 void MainWindow::rebuild_recent_folders_menu() {
   if (recent_folders_menu_ == nullptr) {
     return;
   }
-  recent_folders_menu_->clear();
+  recent_folders_menu_->clear();  // also deletes the previous filter row, list and their widgets
   recent_folders_menu_->setEnabled(!recent_folders_.isEmpty());
 
-  const auto add_recent_folder_action = [this](QMenu* menu, const QString& dir, int index) {
-    const auto label = tr("&%1 %2").arg(index).arg(QDir::toNativeSeparators(dir));
-    auto* action = menu->addAction(label);
-    action->setToolTip(dir);
-    action->setData(dir);
-    connect(action, &QAction::triggered, this, [this, dir] {
-      if (preview_dialog_edit_locked()) {
-        show_preview_dialog_edit_lock_message();
-        return;
-      }
-      const auto start_dir = QFileInfo(dir).isDir() ? dir : last_open_directory();
-      const auto paths = get_open_file_names(this, tr("Open"), start_dir, open_file_filter(), nullptr,
-                                             QStringLiteral("openFileDialog"), FilterNameDetails::Hidden);
-      for (const auto& path : paths) {
-        open_document_path(path);
-      }
-    });
-  };
+  if (!build_recent_list_menu(recent_folders_list_menu_, recent_folders_menu_)) {
+    const auto add_recent_folder_action = [this](QMenu* menu, const QString& dir, int index) {
+      const auto label = tr("&%1 %2").arg(index).arg(QDir::toNativeSeparators(dir));
+      auto* action = menu->addAction(label);
+      action->setToolTip(dir);
+      action->setData(dir);
+      connect(action, &QAction::triggered, this, [this, dir] { open_recent_folder(dir); });
+    };
 
-  const auto recent_count = static_cast<int>(recent_folders_.size());
-  const auto direct_count = std::min(recent_count, kRecentFilesMenuPageSize);
-  for (int index = 0; index < direct_count; ++index) {
-    add_recent_folder_action(recent_folders_menu_, recent_folders_[index], index + 1);
-  }
+    const auto recent_count = static_cast<int>(recent_folders_.size());
+    const auto direct_count = std::min(recent_count, kRecentFilesMenuPageSize);
+    for (int index = 0; index < direct_count; ++index) {
+      add_recent_folder_action(recent_folders_menu_, recent_folders_[index], index + 1);
+    }
 
-  if (recent_count > direct_count) {
-    recent_folders_menu_->addSeparator();
-    for (int page_start = direct_count; page_start < recent_count; page_start += kRecentFilesMenuPageSize) {
-      const auto page_end = std::min(page_start + kRecentFilesMenuPageSize, recent_count);
-      auto* page_menu = recent_folders_menu_->addMenu(tr("Recent Folders %1-%2").arg(page_start + 1).arg(page_end));
-      page_menu->setObjectName(QStringLiteral("fileOpenRecentFolderRangeMenu%1").arg(page_start + 1));
-      page_menu->menuAction()->setMenuRole(QAction::NoRole);  // submenus never merge on macOS (docs/platform.md)
-      configure_recent_files_context_menu(page_menu);
-      page_menu->setProperty(kRecentFoldersMenuProperty, true);
-      for (int index = page_start; index < page_end; ++index) {
-        add_recent_folder_action(page_menu, recent_folders_[index], index + 1);
+    if (recent_count > direct_count) {
+      recent_folders_menu_->addSeparator();
+      for (int page_start = direct_count; page_start < recent_count; page_start += kRecentFilesMenuPageSize) {
+        const auto page_end = std::min(page_start + kRecentFilesMenuPageSize, recent_count);
+        auto* page_menu =
+            recent_folders_menu_->addMenu(tr("Recent Folders %1-%2").arg(page_start + 1).arg(page_end));
+        page_menu->setObjectName(QStringLiteral("fileOpenRecentFolderRangeMenu%1").arg(page_start + 1));
+        page_menu->menuAction()->setMenuRole(QAction::NoRole);  // submenus never merge on macOS (docs/platform.md)
+        configure_recent_files_context_menu(page_menu);
+        page_menu->setProperty(kRecentFoldersMenuProperty, true);
+        for (int index = page_start; index < page_end; ++index) {
+          add_recent_folder_action(page_menu, recent_folders_[index], index + 1);
+        }
       }
     }
   }

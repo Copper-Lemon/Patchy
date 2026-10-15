@@ -4,6 +4,7 @@
 #include "formats/metadata/jumbf.hpp"
 #include "formats/metadata/tiff_ifd.hpp"
 #include "formats/metadata/xmp.hpp"
+#include "formats/jxl_document_io.hpp"
 #include "formats/miniz/miniz.h"
 #include "formats/pdf_crypt.hpp"
 #include "formats/pdf_file.hpp"
@@ -799,6 +800,29 @@ void extract_webp(Span data, Builder& builder) {
   }
   if (frames > 64) {
     builder.segment("... " + std::to_string(frames - 64) + " more frames", 0, 0);
+  }
+}
+
+// ------------------------------------------------------------------- JPEG XL
+
+// libjxl reads the boxes (decompressing brob ones) and the original color profile.
+void extract_jxl(Span data, Builder& builder) {
+  const auto metadata = jxl::read_metadata(data);
+  if (metadata.container) {
+    for (const auto& box : metadata.boxes) {
+      builder.segment(box.type + " box", box.offset, box.size);
+    }
+  } else {
+    builder.segment("JPEG XL codestream", 0, data.size());
+  }
+  if (!metadata.icc.empty()) {
+    builder.set_icc(metadata.icc);
+  }
+  if (!metadata.exif.empty()) {
+    builder.set_exif(metadata.exif);
+  }
+  if (!metadata.xmp.empty()) {
+    builder.set_xmp(metadata.xmp);
   }
 }
 
@@ -1650,6 +1674,9 @@ std::string sniff_metadata_format(std::span<const std::uint8_t> bytes) {
   if (starts_with(bytes, "8BPS")) {
     return "PSD";
   }
+  if (jxl::sniff(bytes)) {
+    return "JXL";
+  }
   if (starts_with(bytes, "%PDF")) {
     return "PDF";
   }
@@ -1704,6 +1731,8 @@ DocumentFileInfo extract_file_info(std::span<const std::uint8_t> bytes) {
       extract_webp(bytes, builder);
     } else if (format == "GIF") {
       extract_gif(bytes, builder);
+    } else if (format == "JXL") {
+      extract_jxl(bytes, builder);
     } else if (format == "HEIF" || format == "AVIF" || format == "CR3") {
       extract_bmff(bytes, builder);
     } else if (format == "RAF") {

@@ -2222,9 +2222,7 @@ void MainWindow::apply_filter(const QString& identifier) {
   }
   if (canvas_ != nullptr &&
       (canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::DocumentChannel ||
-       canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentRed ||
-       canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentGreen ||
-       canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentBlue)) {
+       CanvasWidget::is_component_preview(canvas_->layer_edit_target()))) {
     show_status_error(tr("Filters are unavailable while viewing a document channel"));
     return;
   }
@@ -2563,9 +2561,7 @@ void MainWindow::auto_all_adjustments() {
   }
   if (canvas_ != nullptr &&
       (canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::DocumentChannel ||
-       canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentRed ||
-       canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentGreen ||
-       canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentBlue)) {
+       CanvasWidget::is_component_preview(canvas_->layer_edit_target()))) {
     show_status_error(tr("Filters are unavailable while viewing a document channel"));
     return;
   }
@@ -2684,12 +2680,7 @@ void MainWindow::liquify_dialog() {
   if (canvas_ != nullptr &&
       (canvas_->layer_edit_target() ==
            CanvasWidget::LayerEditTarget::DocumentChannel ||
-       canvas_->layer_edit_target() ==
-           CanvasWidget::LayerEditTarget::ComponentRed ||
-       canvas_->layer_edit_target() ==
-           CanvasWidget::LayerEditTarget::ComponentGreen ||
-       canvas_->layer_edit_target() ==
-           CanvasWidget::LayerEditTarget::ComponentBlue)) {
+       CanvasWidget::is_component_preview(canvas_->layer_edit_target()))) {
     show_status_error(
         tr("Liquify is unavailable while viewing a document channel"));
     return;
@@ -2836,9 +2827,7 @@ void MainWindow::visual_filter_gallery_dialog() {
   }
   if (canvas_ != nullptr &&
       (canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::DocumentChannel ||
-       canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentRed ||
-       canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentGreen ||
-       canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentBlue)) {
+       CanvasWidget::is_component_preview(canvas_->layer_edit_target()))) {
     show_status_error(tr("Filters are unavailable while viewing a document channel"));
     return;
   }

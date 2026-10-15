@@ -166,6 +166,7 @@ int main(int argc, char** argv) {
            jxr_tests,
            rttex_tests,
            dds_tests,
+           jxl_tests,
            flat_formats_misc_tests,
            unicode_path_tests,
            font_zip_tests,

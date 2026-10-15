@@ -30,8 +30,9 @@ MODELS=(
   "efficientvit_sam_xl0_decoder_multi_fp16.onnx|https://github.com/SethRobinson/Patchy/releases/download/ai-models-2/efficientvit_sam_xl0_decoder_multi_fp16.onnx|632613ec55ebd52a72f0a1933c297ce67b8563ff2e970b0c2eea059373ba496b"
   "mobile_sam_image_encoder_int8.onnx|https://github.com/SethRobinson/Patchy/releases/download/ai-models-1/mobile_sam_image_encoder_int8.onnx|6af3f249f7a5a6a8a3ef988b6814015e8c3a300977c135d1f9572ed2f2930cd7"
   "sam_mask_decoder_multi_int8.onnx|https://github.com/SethRobinson/Patchy/releases/download/ai-models-1/sam_mask_decoder_multi_int8.onnx|aa1410bec8f050b6017fba29ca07f16317029a8f74a98e5998aeed46680c10a6"
-  "birefnet_lite_general_1024_int8.onnx|https://github.com/SethRobinson/Patchy/releases/download/ai-models-1/birefnet_lite_general_1024_int8.onnx|0374fa9286b28506399d1ef44c5bd975e61deb2c0d5c6655b18f0815e27fed5e"
 )
+# Select Subject is held back pending patent review. Do not download BiRefNet;
+# existing local copies are left alone and the default build never stages them.
 
 case "$(uname -s)-$(uname -m)" in
   Darwin-arm64) ORT_PLATFORM="osx-arm64"; ORT_SHA256="6ebb5062a934537c352937821f9fe9718e7de1a2db1122a93dd363ffd53a7012" ;;

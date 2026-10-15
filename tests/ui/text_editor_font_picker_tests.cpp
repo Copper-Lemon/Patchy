@@ -1373,19 +1373,20 @@ void ui_point_text_render_keeps_glyph_overhang() {
                              ? patchy::parse_layer_affine_transform(transform_value->second)
                              : std::nullopt;
   CHECK(transform.has_value());
+  // Read through value_or: GCC 12 reports the guarded (*transform)[i] reads as maybe-uninitialized.
+  const auto pen_transform = transform.value_or(decltype(transform)::value_type{});
   const auto italic = committed->metadata().find(patchy::kLayerMetadataTextItalic);
   CHECK(italic != committed->metadata().end() && italic->second == "true");
   std::printf("  committed %dx%d at (%d,%d); transform (%.3f, %.3f)\n", committed_bounds.width, committed_bounds.height,
-              committed_bounds.x, committed_bounds.y, transform.has_value() ? (*transform)[4] : 0.0,
-              transform.has_value() ? (*transform)[5] : 0.0);
+              committed_bounds.x, committed_bounds.y, pen_transform[4], pen_transform[5]);
   std::fflush(stdout);
   // The buffer starts left of the pen to hold the "j" hook, and keeps a clear margin all round.
   CHECK(committed_bounds.x < pen.x());
   CHECK(pixel_buffer_border_is_clear(committed_pixels));
   // The transform still names the pen.
   if (transform.has_value()) {
-    CHECK(std::abs((*transform)[4] - pen.x()) < 1e-6);
-    CHECK(std::abs((*transform)[5] - pen.y()) < 1e-6);
+    CHECK(std::abs(pen_transform[4] - pen.x()) < 1e-6);
+    CHECK(std::abs(pen_transform[5] - pen.y()) < 1e-6);
   }
 
   // Re-enter on the glyphs: the preview and a second apply reproduce the pixels in place.
@@ -2230,12 +2231,12 @@ void ui_text_size_popup_slider_caps_at_200pt() {
   };
 
   // The spin box accepts up to 10000 pt typed, but the slider caps at 200 pt
-  // (decimals=3, so slider units are thousandths of a point).
+  // (decimals=2, Photoshop's precision, so slider units are hundredths of a point).
   const double value_before = text_size->value();
   auto* slider = open_popup();
-  CHECK(slider->maximum() == 200000);
+  CHECK(slider->maximum() == 20000);
   CHECK(text_size->value() == value_before);
-  slider->setValue(150000);
+  slider->setValue(15000);
   CHECK(text_size->value() == 150.0);
   close_popup();
 
@@ -2243,8 +2244,8 @@ void ui_text_size_popup_slider_caps_at_200pt() {
   // clamping the value down when the popup opens.
   text_size->setValue(500.0);
   slider = open_popup();
-  CHECK(slider->maximum() == 500000);
-  CHECK(slider->value() == 500000);
+  CHECK(slider->maximum() == 50000);
+  CHECK(slider->value() == 50000);
   CHECK(text_size->value() == 500.0);
   close_popup();
 

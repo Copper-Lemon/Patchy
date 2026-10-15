@@ -1383,6 +1383,88 @@ void ui_merge_visible_copy_little_everywhere_if_available() {
   CHECK(layer_tree_count(std::as_const(doc).layers()) == 2056);
 }
 
+// Image > Flatten Image (GitHub issue 97, Photoshop semantics): hidden layers need a
+// confirmation and are discarded, everything visible (vectors included) composites onto
+// white into one opaque, locked "Background", and one Undo restores the layers.
+void ui_flatten_image_composites_onto_white_discards_hidden_and_undoes() {
+  MainWindow window;
+  show_window(window);
+  auto& doc = MainWindowTestAccess::document(window);
+  doc = Document(48, 40, PixelFormat::rgba8());
+  PixelBuffer empty(48, 40, PixelFormat::rgba8());
+  empty.clear(0);
+  doc.add_pixel_layer("Transparent", std::move(empty));
+  doc.add_layer(pixel_layer(doc, 4, 4, {180, 30, 60}));
+  doc.add_layer(vector_layer(doc, rectangle(24, 20, 16, 12)));
+  auto hidden = pixel_layer(doc, 30, 4, {0, 255, 0});
+  hidden.set_visible(false);
+  doc.add_layer(std::move(hidden));
+  const Document original = doc;
+  const auto composite = qimage_from_document(original, true).convertToFormat(QImage::Format_RGBA8888);
+  auto* canvas = require_canvas(window);
+  canvas->set_document(&doc);
+  MainWindowTestAccess::refresh_layer_ui(window);
+  const auto history = MainWindowTestAccess::active_session_undo_depth(window);
+
+  bool cancel_seen = false;
+  QTimer::singleShot(0, [&cancel_seen] {
+    auto* box = qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("flattenDiscardHiddenMessageBox")));
+    CHECK(box != nullptr);
+    cancel_seen = true;
+    box->button(QMessageBox::Cancel)->click();
+  });
+  require_action(window, "imageFlattenAction")->trigger();
+  CHECK(cancel_seen);
+  CHECK(std::as_const(doc).layers().size() == original.layers().size());
+  CHECK(MainWindowTestAccess::active_session_undo_depth(window) == history);
+
+  bool ok_seen = false;
+  QTimer::singleShot(0, [&ok_seen] {
+    auto* box = qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("flattenDiscardHiddenMessageBox")));
+    CHECK(box != nullptr);
+    ok_seen = true;
+    box->button(QMessageBox::Ok)->click();
+  });
+  require_action(window, "imageFlattenAction")->trigger();
+  CHECK(ok_seen);
+  CHECK(!canvas->processing_operation_active());
+  CHECK(MainWindowTestAccess::active_session_undo_depth(window) == history + 1);
+  CHECK(std::as_const(doc).layers().size() == 1);
+  const auto& flat = std::as_const(doc).layers().front();
+  CHECK(flat.name() == "Background");
+  CHECK(flat.pixels().format() == PixelFormat::rgb8());
+  CHECK(flat.bounds().x == 0 && flat.bounds().y == 0);
+  CHECK(flat.bounds().width == doc.width() && flat.bounds().height == doc.height());
+  CHECK(layer_locks_position(flat) && layer_locks_transparent_pixels(flat) && !layer_locks_image_pixels(flat));
+  CHECK(doc.active_layer_id() == flat.id());
+  for (int y = 0; y < doc.height(); ++y) {
+    for (int x = 0; x < doc.width(); ++x) {
+      const auto source = composite.pixelColor(x, y);
+      const auto alpha = source.alphaF();
+      const auto* px = flat.pixels().pixel(x, y);
+      const std::array<int, 3> expected{source.red(), source.green(), source.blue()};
+      for (std::size_t c = 0; c < 3U; ++c) {
+        const auto want = static_cast<int>(std::lround(expected[c] * alpha + 255.0 * (1.0 - alpha)));
+        CHECK(std::abs(static_cast<int>(px[c]) - want) <= 1);
+      }
+    }
+  }
+  CHECK(flat.pixels().pixel(0, 0)[0] == 255 && flat.pixels().pixel(0, 0)[2] == 255);  // transparent -> white
+  CHECK(flat.pixels().pixel(34, 8)[1] == 255 && flat.pixels().pixel(34, 8)[0] == 255);  // hidden green discarded
+  CHECK(flat.pixels().pixel(30, 26)[2] > 100);  // the vector rectangle rasterized
+
+  MainWindowTestAccess::undo(window);
+  CHECK(std::as_const(doc).layers().size() == original.layers().size());
+  check_close_images(qimage_from_document(original, true), qimage_from_document(doc, true), 0);
+  MainWindowTestAccess::redo(window);
+  CHECK(std::as_const(doc).layers().size() == 1);
+
+  // Already flat: no prompt, no history entry.
+  require_action(window, "imageFlattenAction")->trigger();
+  CHECK(MainWindowTestAccess::active_session_undo_depth(window) == history + 1);
+  CHECK(window.statusBar()->currentMessage() == QStringLiteral("The image is already flat"));
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> layer_merge_tests() {
@@ -1395,6 +1477,8 @@ std::vector<patchy::test::TestCase> layer_merge_tests() {
       {"ui_merge_visible_copy_dialog_preserves_sources_and_history", ui_merge_visible_copy_dialog_preserves_sources_and_history},
       {"ui_merge_visible_copy_single_vector_raster_and_visibility_choices", ui_merge_visible_copy_single_vector_raster_and_visibility_choices},
       {"ui_merge_visible_copy_little_everywhere_if_available", ui_merge_visible_copy_little_everywhere_if_available},
+      {"ui_flatten_image_composites_onto_white_discards_hidden_and_undoes",
+       ui_flatten_image_composites_onto_white_discards_hidden_and_undoes},
       {"ui_layer_merge_compound_geometry_and_processing", ui_layer_merge_compound_geometry_and_processing},
       {"ui_layer_selection_little_everywhere_shift_range_if_available", ui_layer_selection_little_everywhere_shift_range_if_available},
       {"ui_layer_merge_mixed_group_keeps_vectors_order_opacity_and_psd", ui_layer_merge_mixed_group_keeps_vectors_order_opacity_and_psd},

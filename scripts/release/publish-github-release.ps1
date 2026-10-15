@@ -1,6 +1,6 @@
 <#
-Publishes one Patchy release to GitHub Releases: tag v<version>, the four desktop
-artifacts under their stable names, and a SHA256SUMS.txt.
+Publishes one Patchy release to GitHub Releases: tag v<version>, the desktop artifacts
+under their stable names, and a SHA256SUMS.txt.
 
   scripts\release\publish-github-release.bat            (normal release, after release-all.bat)
   scripts\release\publish-github-release.ps1 -Version 0.98 -Target <full sha> -AssetDir <dir>
@@ -20,7 +20,8 @@ permalinks, which only work because the asset names never change between version
 
 Assets, taken from -AssetDir (default build\package):
   PatchyWindowsInstaller.exe, PatchyWindowsNoInstaller.zip           (stable names)
-  Patchy-<version>.dmg -> PatchyMacOS.dmg, Patchy-<version>.flatpak -> PatchyLinux.flatpak
+  Patchy-<version>.dmg -> PatchyMacOS.dmg, Patchy-<version>.flatpak -> PatchyLinux.flatpak,
+  Patchy-<version>-x86_64.AppImage(.zsync) -> PatchyLinux.AppImage(.zsync)
   (the mac and Linux builders write versioned files; the stable-name copies that
   upload-mac/linux-to-rtsoft.bat leave in build\package are whatever shipped LAST, so
   they are never used here. When -AssetDir already holds the stable names and no
@@ -39,7 +40,8 @@ param(
   [string]$Version,
   [string]$Target,
   [string]$AssetDir,
-  [string]$Repo = 'SethRobinson/Patchy'
+  [string]$Repo = 'SethRobinson/Patchy',
+  [switch]$SkipAppImage
 )
 # 'Continue', not 'Stop': native stderr chatter (git, gh) would otherwise become a
 # terminating NativeCommandError under Windows PowerShell 5.1. Every native call
@@ -122,6 +124,13 @@ $assets = [ordered]@{
   'PatchyMacOS.dmg'              = Resolve-Asset 'PatchyMacOS.dmg' "Patchy-$Version.dmg"
   'PatchyLinux.flatpak'          = Resolve-Asset 'PatchyLinux.flatpak' "Patchy-$Version.flatpak"
 }
+# The AppImage and its zsync file (docs/appimage.md). The zsync file names the AppImage
+# by its published name, so the two always ship together. -SkipAppImage is only for
+# backfilling a release from before the AppImage existed.
+if (-not $SkipAppImage) {
+  $assets['PatchyLinux.AppImage'] = Resolve-Asset 'PatchyLinux.AppImage' "Patchy-$Version-x86_64.AppImage"
+  $assets['PatchyLinux.AppImage.zsync'] = Resolve-Asset 'PatchyLinux.AppImage.zsync' "Patchy-$Version-x86_64.AppImage.zsync"
+}
 
 # Stage under the published names in a scratch folder (gh names an asset after its
 # file), never inside build\package: the stable names there belong to the rtsoft
@@ -155,6 +164,10 @@ foreach ($name in $assets.Keys) {
   if ($name -eq 'PatchyWindowsInstaller.exe') {
     $installerSize = (Get-Item -LiteralPath $dest).Length
     $installerSha256 = $hash
+  }
+  if ($name -eq 'PatchyLinux.AppImage') {
+    $appImageSize = (Get-Item -LiteralPath $dest).Length
+    $appImageSha256 = $hash
   }
   Write-Host ("  {0,-30} {1,12:N0} bytes  sha256 {2}  <- {3}" -f $name, (Get-Item -LiteralPath $dest).Length, $hash, $source)
 }
@@ -190,6 +203,10 @@ if ($notes -and $notes.body) {
   Write-Host "WARNING: no '### $Version' entry found in README.md or RELEASE-HISTORY.md; notes carry only the download table"
 }
 $base = "https://github.com/$Repo/releases/download/$tag"
+$appImageRow = ''
+if (-not $SkipAppImage) {
+  $appImageRow = "`n| Linux AppImage (Ubuntu 22.04 or newer) | [PatchyLinux.AppImage]($base/PatchyLinux.AppImage) |"
+}
 $notesText += @"
 ## Downloads
 
@@ -198,7 +215,7 @@ $notesText += @"
 | Windows 10/11 (64-bit) installer | [PatchyWindowsInstaller.exe]($base/PatchyWindowsInstaller.exe) |
 | Windows 10/11 (64-bit) portable zip | [PatchyWindowsNoInstaller.zip]($base/PatchyWindowsNoInstaller.zip) |
 | macOS 12+ (Apple Silicon) | [PatchyMacOS.dmg]($base/PatchyMacOS.dmg) |
-| Linux Flatpak bundle | [PatchyLinux.flatpak]($base/PatchyLinux.flatpak) |
+| Linux Flatpak bundle | [PatchyLinux.flatpak]($base/PatchyLinux.flatpak) |$appImageRow
 
 Windows builds are code signed; the macOS app is signed and notarized. Checksums are in [SHA256SUMS.txt]($base/SHA256SUMS.txt). The same files are mirrored at rtsoft.com, and the browser version runs at [patchyimageeditor.com](https://www.patchyimageeditor.com).
 "@
@@ -251,4 +268,14 @@ Write-Host 'For the windows entry of latest_version.json:'
 Write-Host "      `"installer_url`": `"$base/PatchyWindowsInstaller.exe`","
 Write-Host "      `"installer_size`": $installerSize,"
 Write-Host "      `"installer_sha256`": `"$installerSha256`""
+if (-not $SkipAppImage) {
+  # The AppImage one-click update (docs/auto-update.md, "AppImage"): the versioned URL, so
+  # the file behind it never changes.
+  Write-Host ''
+  Write-Host 'For the linux entry of latest_version.json:'
+  Write-Host "      `"appimage_url`": `"https://github.com/$Repo/releases/latest/download/PatchyLinux.AppImage`","
+  Write-Host "      `"appimage_install_url`": `"$base/PatchyLinux.AppImage`","
+  Write-Host "      `"appimage_install_size`": $appImageSize,"
+  Write-Host "      `"appimage_install_sha256`": `"$appImageSha256`""
+}
 exit 0

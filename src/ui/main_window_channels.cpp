@@ -240,6 +240,26 @@ QPixmap component_channel_thumbnail(QColor color) {
   return result;
 }
 
+// An ink plate's swatch: paper white to the ink.
+QPixmap ink_plate_thumbnail(QColor ink) {
+  QPixmap result(42, 30);
+  result.fill(QColor(30, 32, 35));
+  QPainter painter(&result);
+  const QRect swatch(3, 3, result.width() - 6, result.height() - 6);
+  QLinearGradient gradient(swatch.topLeft(), swatch.topRight());
+  gradient.setColorAt(0.0, Qt::white);
+  gradient.setColorAt(1.0, ink);
+  painter.fillRect(swatch, gradient);
+  painter.setPen(QColor(92, 96, 102));
+  painter.drawRect(swatch.adjusted(0, 0, -1, -1));
+  return result;
+}
+
+[[nodiscard]] bool is_ink_plate_row(ChannelPanel::RowKind kind) {
+  return kind == ChannelPanel::RowKind::Cyan || kind == ChannelPanel::RowKind::Magenta ||
+         kind == ChannelPanel::RowKind::Yellow || kind == ChannelPanel::RowKind::Black;
+}
+
 QPixmap grayscale_channel_thumbnail(const PixelBuffer& pixels) {
   if (pixels.empty() || pixels.format() != PixelFormat::gray8()) {
     return {};
@@ -346,6 +366,14 @@ void MainWindow::refresh_channel_panel() {
                   component_channel_thumbnail(QColor(65, 210, 90)), false});
   rows.push_back({ChannelPanel::RowKind::Blue, 0, tr("Blue"),
                   component_channel_thumbnail(QColor(70, 120, 245)), false});
+  // The CMYK proof's ink plates (docs/cmyk.md), while View > Proof Colors is on.
+  if (proof_display_transform_ != nullptr && proof_display_transform_->simulates_colors()) {
+    rows.push_back({ChannelPanel::RowKind::Cyan, 0, tr("Cyan"), ink_plate_thumbnail(QColor(0, 174, 239)), false});
+    rows.push_back(
+        {ChannelPanel::RowKind::Magenta, 0, tr("Magenta"), ink_plate_thumbnail(QColor(236, 0, 140)), false});
+    rows.push_back({ChannelPanel::RowKind::Yellow, 0, tr("Yellow"), ink_plate_thumbnail(QColor(255, 242, 0)), false});
+    rows.push_back({ChannelPanel::RowKind::Black, 0, tr("Black"), ink_plate_thumbnail(QColor(35, 31, 32)), false});
+  }
 
   if (canvas_->quick_mask_active()) {
     if (quick_mask_thumbnail_canvas_ != canvas_ ||
@@ -379,25 +407,45 @@ void MainWindow::refresh_channel_panel() {
   }
 
   ChannelPanel::Row selected = rows.front();
+  const auto select_kind = [&rows, &selected](ChannelPanel::RowKind kind) {
+    if (const auto found = std::find_if(rows.begin(), rows.end(),
+                                        [kind](const ChannelPanel::Row& row) { return row.kind == kind; });
+        found != rows.end()) {
+      selected = *found;
+    }
+  };
   if (canvas_->quick_mask_active()) {
-    selected = rows[4];
+    select_kind(ChannelPanel::RowKind::QuickMask);
   } else {
     switch (canvas_->layer_edit_target()) {
       case CanvasWidget::LayerEditTarget::ComponentRed:
-        selected = rows[1];
+        select_kind(ChannelPanel::RowKind::Red);
         break;
       case CanvasWidget::LayerEditTarget::ComponentGreen:
-        selected = rows[2];
+        select_kind(ChannelPanel::RowKind::Green);
         break;
       case CanvasWidget::LayerEditTarget::ComponentBlue:
-        selected = rows[3];
+        select_kind(ChannelPanel::RowKind::Blue);
+        break;
+      case CanvasWidget::LayerEditTarget::ComponentCyan:
+        select_kind(ChannelPanel::RowKind::Cyan);
+        break;
+      case CanvasWidget::LayerEditTarget::ComponentMagenta:
+        select_kind(ChannelPanel::RowKind::Magenta);
+        break;
+      case CanvasWidget::LayerEditTarget::ComponentYellow:
+        select_kind(ChannelPanel::RowKind::Yellow);
+        break;
+      case CanvasWidget::LayerEditTarget::ComponentBlack:
+        select_kind(ChannelPanel::RowKind::Black);
         break;
       case CanvasWidget::LayerEditTarget::DocumentChannel:
         if (selected_channel_id.has_value()) {
           if (const auto found = std::find_if(
-                  rows.begin() + 4, rows.end(),
+                  rows.begin(), rows.end(),
                   [&](const ChannelPanel::Row& row) {
-                    return row.id == *selected_channel_id;
+                    return (row.kind == ChannelPanel::RowKind::Alpha || row.kind == ChannelPanel::RowKind::Spot) &&
+                           row.id == *selected_channel_id;
                   });
               found != rows.end()) {
             selected = *found;
@@ -447,6 +495,22 @@ void MainWindow::set_channel_edit_target(ChannelPanel::RowKind kind, ChannelId i
     case ChannelPanel::RowKind::Blue:
       canvas_->set_component_channel_preview(CanvasWidget::LayerEditTarget::ComponentBlue);
       message = tr("Previewing Blue channel (read-only)");
+      break;
+    case ChannelPanel::RowKind::Cyan:
+      canvas_->set_component_channel_preview(CanvasWidget::LayerEditTarget::ComponentCyan);
+      message = tr("Previewing Cyan plate (read-only)");
+      break;
+    case ChannelPanel::RowKind::Magenta:
+      canvas_->set_component_channel_preview(CanvasWidget::LayerEditTarget::ComponentMagenta);
+      message = tr("Previewing Magenta plate (read-only)");
+      break;
+    case ChannelPanel::RowKind::Yellow:
+      canvas_->set_component_channel_preview(CanvasWidget::LayerEditTarget::ComponentYellow);
+      message = tr("Previewing Yellow plate (read-only)");
+      break;
+    case ChannelPanel::RowKind::Black:
+      canvas_->set_component_channel_preview(CanvasWidget::LayerEditTarget::ComponentBlack);
+      message = tr("Previewing Black plate (read-only)");
       break;
     case ChannelPanel::RowKind::Alpha:
     case ChannelPanel::RowKind::Spot: {
@@ -610,6 +674,30 @@ void MainWindow::load_channel_as_selection(ChannelPanel::RowKind kind, ChannelId
       }
     }
     derived_pixels = PixelBuffer(doc.width(), doc.height(), PixelFormat::gray8());
+    // An ink plate selects where it prints no ink (Photoshop's convention for a CMYK
+    // channel), from the white-backed composite separated through the working space.
+    std::vector<std::uint8_t> plate_inks;
+    if (is_ink_plate_row(kind)) {
+      std::vector<std::uint8_t> on_paper(static_cast<std::size_t>(doc.width()) * static_cast<std::size_t>(doc.height()) *
+                                         4U);
+      for (int y = 0; y < doc.height(); ++y) {
+        const auto source = flattened.row(y);
+        for (int x = 0; x < doc.width(); ++x) {
+          const auto index = static_cast<std::size_t>(y) * static_cast<std::size_t>(doc.width()) +
+                             static_cast<std::size_t>(x);
+          const auto* pixel = source.data() + static_cast<std::size_t>(x) * 3U;
+          for (std::size_t channel = 0; channel < 3; ++channel) {
+            on_paper[index * 4U + channel] = white_backed_component(pixel[channel], merged_alpha[index]);
+          }
+          on_paper[index * 4U + 3U] = 255;
+        }
+      }
+      plate_inks = working_cmyk_space()->separate_rgba8(on_paper);
+    }
+    const std::size_t plate = kind == ChannelPanel::RowKind::Cyan      ? 0
+                              : kind == ChannelPanel::RowKind::Magenta ? 1
+                              : kind == ChannelPanel::RowKind::Yellow  ? 2
+                                                                       : 3;
     for (int y = 0; y < doc.height(); ++y) {
       const auto source = flattened.row(y);
       auto destination = derived_pixels.row(y);
@@ -633,6 +721,12 @@ void MainWindow::load_channel_as_selection(ChannelPanel::RowKind kind, ChannelId
           case ChannelPanel::RowKind::Blue:
             destination[static_cast<std::size_t>(x)] = blue;
             break;
+          case ChannelPanel::RowKind::Cyan:
+          case ChannelPanel::RowKind::Magenta:
+          case ChannelPanel::RowKind::Yellow:
+          case ChannelPanel::RowKind::Black:
+            destination[static_cast<std::size_t>(x)] = static_cast<std::uint8_t>(255 - plate_inks[index * 4U + plate]);
+            break;
           case ChannelPanel::RowKind::Alpha:
           case ChannelPanel::RowKind::Spot:
           case ChannelPanel::RowKind::QuickMask:
@@ -653,6 +747,18 @@ void MainWindow::load_channel_as_selection(ChannelPanel::RowKind kind, ChannelId
         break;
       case ChannelPanel::RowKind::Blue:
         name = tr("Blue");
+        break;
+      case ChannelPanel::RowKind::Cyan:
+        name = tr("Cyan");
+        break;
+      case ChannelPanel::RowKind::Magenta:
+        name = tr("Magenta");
+        break;
+      case ChannelPanel::RowKind::Yellow:
+        name = tr("Yellow");
+        break;
+      case ChannelPanel::RowKind::Black:
+        name = tr("Black");
         break;
       case ChannelPanel::RowKind::Alpha:
       case ChannelPanel::RowKind::Spot:
@@ -795,6 +901,18 @@ void MainWindow::refresh_edit_target_chip() {
     case CanvasWidget::LayerEditTarget::ComponentBlue:
       component_name = tr("Blue");
       break;
+    case CanvasWidget::LayerEditTarget::ComponentCyan:
+      component_name = tr("Cyan");
+      break;
+    case CanvasWidget::LayerEditTarget::ComponentMagenta:
+      component_name = tr("Magenta");
+      break;
+    case CanvasWidget::LayerEditTarget::ComponentYellow:
+      component_name = tr("Yellow");
+      break;
+    case CanvasWidget::LayerEditTarget::ComponentBlack:
+      component_name = tr("Black");
+      break;
     case CanvasWidget::LayerEditTarget::Content:
     case CanvasWidget::LayerEditTarget::Mask:
     case CanvasWidget::LayerEditTarget::VectorMask:
@@ -834,9 +952,7 @@ void MainWindow::restore_channel_target_after_document_reset(CanvasWidget::Layer
   if (target == CanvasWidget::LayerEditTarget::DocumentChannel && channel_id.has_value() &&
       static_cast<const Document&>(document()).find_channel(*channel_id) != nullptr) {
     canvas_->set_document_channel_edit_target(*channel_id, display_mode);
-  } else if (target == CanvasWidget::LayerEditTarget::ComponentRed ||
-             target == CanvasWidget::LayerEditTarget::ComponentGreen ||
-             target == CanvasWidget::LayerEditTarget::ComponentBlue) {
+  } else if (CanvasWidget::is_component_preview(target)) {
     canvas_->set_component_channel_preview(target);
   }
   refresh_channel_panel();

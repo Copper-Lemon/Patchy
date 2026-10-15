@@ -20,12 +20,16 @@ struct AiControlPaths {
   QString skill_directory;      // absolute path of the assembled skill (needs SKILL.md); empty when missing
   QString setup_document_path;  // skill_directory/references/setup.md when it exists; else empty
   bool flatpak{false};          // running inside a Flatpak sandbox (FLATPAK_ID is set)
+  // The running .AppImage file (appimage_file_path()); empty otherwise. The connector is
+  // then that file with the patchy-mcp argument, and the skill folder lives in the
+  // per-launch mount, so it exists only while this Patchy runs.
+  QString appimage_path;
 };
 
 // The assembled patchy-control skill next to the executable: ai/patchy-control
 // (Windows and source builds), ../Resources/ai/patchy-control (macOS bundle), or
-// ../share/patchy/ai/patchy-control (Linux prefix and Flatpak). Empty when none has
-// a SKILL.md.
+// ../share/patchy/ai/patchy-control (Linux prefix, Flatpak and AppImage). Empty when
+// none has a SKILL.md.
 [[nodiscard]] QString ai_control_skill_directory();
 
 [[nodiscard]] AiControlPaths resolve_ai_control_paths();

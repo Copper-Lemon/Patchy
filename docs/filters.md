@@ -119,7 +119,7 @@ The angle dial syncs with the numeric controls; its hand wraps visually but Twir
 Overlay controls:
 
 - Radial Blur, Twirl, Pinch/Bloat, and Lens Vignette declare `center_x`/`center_y` with the center roles: a draggable crosshair (values quantize to the declared step). Twirl and Pinch/Bloat also mark integer `radius` as `EffectRadiusPercent`, adding a draggable radius circle. Drags update overlay and values at once; a size-changing center proxy is adopted only on release, so it cannot jump under the pointer.
-- Tilt-Shift Blur adds the tilt width roles: center handle, rotation handle, and short draggable grip bars marking focus band edges (solid) and full-blur onset (dashed). The bars deliberately do not span the image: boundary lines dividing the image around the center are an Apple patent claim (US 8971623, docs/patent-research.md); `ui_filter_gallery_tilt_shift_overlay_uses_grip_bars` pins the short bars. Width handles edit both sides symmetrically; the proxy render defers until the gesture ends.
+- Tilt-Shift Blur adds center, rotation and width handles, with short solid focus grips and dashed full-blur grips. Grips shrink with the visible image and the overlay clips inside its perimeter, including tiny, rotated and panned previews (Apple US 8971623, docs/patent-research.md). Tests `ui_filter_gallery_tilt_shift_overlay_uses_grip_bars` and `ui_filter_gallery_tilt_shift_grips_never_span_the_visible_image` pin this. Width edits stay symmetric; rendering waits for release.
 - Iris Blur uses the center and angle roles (crosshair and dial); Width, Height and Focus stay numeric. No editable iris boundary widget and no multiple pins: the one ellipse is edited numerically and makes one scalar blend mask (docs/patent-research.md).
 
 Preview pipeline:

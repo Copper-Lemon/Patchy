@@ -1,6 +1,7 @@
 <#
-Builds the distributable Linux Flatpak bundle and the signed Flatpak repository from the
-current working tree and copies both into build\package\ next to the Windows artifacts.
+Builds the distributable Linux Flatpak bundle, the signed Flatpak repository and the
+AppImage (docs/appimage.md; packaging/linux/make-appimage.sh) from the current working tree
+and copies them into build\package\ next to the Windows artifacts.
 
   scripts\remote\release-linux.ps1
 
@@ -35,6 +36,9 @@ Remove-Item (Join-Path $repoRoot 'build\package\Patchy-*.flatpak') -Force -Error
 Remove-Item (Join-Path $repoRoot 'build\package\PatchyLinux.flatpak') -Force -ErrorAction SilentlyContinue
 Remove-Item (Join-Path $repoRoot 'build\package\Patchy-*-flatpak-repo.tar') -Force -ErrorAction SilentlyContinue
 Remove-Item (Join-Path $repoRoot 'build\package\PatchyFlatpakRepo.tar') -Force -ErrorAction SilentlyContinue
+Remove-Item (Join-Path $repoRoot 'build\package\Patchy-*.AppImage') -Force -ErrorAction SilentlyContinue
+Remove-Item (Join-Path $repoRoot 'build\package\Patchy-*.AppImage.zsync') -Force -ErrorAction SilentlyContinue
+Remove-Item (Join-Path $repoRoot 'build\package\PatchyLinux.AppImage') -Force -ErrorAction SilentlyContinue
 
 & "$PSScriptRoot\remote-build.ps1" -Target linux -SkipTests
 if ($LASTEXITCODE -ne 0) { throw 'remote linux build failed' }
@@ -42,12 +46,18 @@ if ($LASTEXITCODE -ne 0) { throw 'remote linux build failed' }
 ssh $remoteHost 'source ~/.patchy-release-env 2>/dev/null || true; PATCHY_REQUIRE_FLATPAK_REPO=1 bash ~/patchy/src/packaging/linux/make-flatpak.sh'
 if ($LASTEXITCODE -ne 0) { throw 'make-flatpak.sh failed on the linux build host' }
 
+# The AppImage (docs/appimage.md): built in an Ubuntu 22.04 podman container from the
+# same snapshot, smoke-checked inside it and again on the host through FUSE.
+ssh $remoteHost 'bash ~/patchy/src/packaging/linux/make-appimage.sh'
+if ($LASTEXITCODE -ne 0) { throw 'make-appimage.sh failed on the linux build host' }
+
 $repoRoot = (git rev-parse --show-toplevel).Trim()
 if (-not $repoRoot -or -not (Test-Path -LiteralPath (Join-Path $repoRoot 'CMakeLists.txt'))) { throw 'could not find the repository root' }
 $dest = Join-Path $repoRoot 'build\package'
 New-Item -ItemType Directory -Force $dest | Out-Null
-scp -q "${remoteHost}:patchy/src/build/package/Patchy-*.flatpak" "${remoteHost}:patchy/src/build/package/Patchy-*-flatpak-repo.tar" $dest
-if ($LASTEXITCODE -ne 0) { throw 'could not copy the flatpak bundle and repository tar from the linux build host' }
-Write-Host "== flatpak bundle and repository copied into $dest =="
-Get-ChildItem $dest | Where-Object { $_.Name -like 'Patchy-*.flatpak' -or $_.Name -like 'Patchy-*-flatpak-repo.tar' } |
+scp -q "${remoteHost}:patchy/src/build/package/Patchy-*.flatpak" "${remoteHost}:patchy/src/build/package/Patchy-*-flatpak-repo.tar" `
+  "${remoteHost}:patchy/src/build/package/Patchy-*.AppImage" "${remoteHost}:patchy/src/build/package/Patchy-*.AppImage.zsync" $dest
+if ($LASTEXITCODE -ne 0) { throw 'could not copy the flatpak bundle, repository tar and AppImage from the linux build host' }
+Write-Host "== flatpak bundle, repository and AppImage copied into $dest =="
+Get-ChildItem $dest | Where-Object { $_.Name -like 'Patchy-*.flatpak' -or $_.Name -like 'Patchy-*-flatpak-repo.tar' -or $_.Name -like 'Patchy-*.AppImage*' } |
   ForEach-Object { Write-Host $_.FullName }

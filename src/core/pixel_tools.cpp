@@ -663,11 +663,22 @@ namespace {
   }
 
   const auto channels = pixels.format().channels;
+  const auto erase_alpha = (static_cast<float>(std::clamp<int>(options.primary.a, 1, 255)) / 255.0F) * coverage;
   if (options.lock_transparent_pixels) {
+    // Locked transparency (and the locked Background) clears toward the background color.
+    if (channels >= 4 && px[3] == 0) {
+      return false;
+    }
+    const std::array<std::uint8_t, 3> background{options.secondary.r, options.secondary.g, options.secondary.b};
+    for (std::size_t c = 0; c < 3U; ++c) {
+      const auto source = channels >= 3 ? px[c] : px[0];
+      if (clamp_byte(static_cast<float>(background[c]) * erase_alpha + static_cast<float>(source) * (1.0F - erase_alpha)) !=
+          source) {
+        return true;
+      }
+    }
     return false;
   }
-
-  const auto erase_alpha = (static_cast<float>(std::clamp<int>(options.primary.a, 1, 255)) / 255.0F) * coverage;
   if (channels >= 4) {
     return clamp_byte(static_cast<float>(px[3]) * (1.0F - erase_alpha)) != px[3];
   }
@@ -741,12 +752,10 @@ bool write_pixel_blend_deep(PixelBuffer& pixels, std::uint8_t* px, const EditOpt
   };
   if (erase) {
     const auto erase_alpha = (static_cast<float>(std::clamp<int>(options.primary.a, 1, 255)) / 255.0F) * coverage;
-    if (channels >= 4) {
-      if (locked_alpha) {
-        return false;
-      }
+    if (channels >= 4 && !locked_alpha) {
       value[3] *= 1.0F - erase_alpha;
     } else {
+      // No alpha channel, or locked transparency: erase to the background color (Photoshop).
       const auto background = color_of(options.secondary);
       for (std::size_t c = 0; c < 3U; ++c) {
         value[c] = background[c] * erase_alpha + value[c] * (1.0F - erase_alpha);
@@ -813,12 +822,10 @@ bool write_pixel_blend(PixelBuffer& pixels, std::uint8_t* px, const EditOptions&
   }
   if (erase) {
     const auto erase_alpha = (static_cast<float>(std::clamp<int>(options.primary.a, 1, 255)) / 255.0F) * coverage;
-    if (channels >= 4) {
-      if (locked_alpha) {
-        return false;
-      }
+    if (channels >= 4 && !locked_alpha) {
       px[3] = clamp_byte(static_cast<float>(px[3]) * (1.0F - erase_alpha));
     } else {
+      // No alpha channel, or locked transparency: erase to the background color (Photoshop).
       px[0] =
           clamp_byte(static_cast<float>(options.secondary.r) * erase_alpha + static_cast<float>(px[0]) * (1.0F - erase_alpha));
       px[1] =
@@ -1260,7 +1267,7 @@ Rect render_shape(Document& document, LayerId layer_id, Rect rect, const EditOpt
   if (layer == nullptr) {
     return {};
   }
-  if (erase) {
+  if (erase && !options.lock_transparent_pixels) {
     ensure_alpha_for_erase(*layer);
   }
 
@@ -1442,7 +1449,7 @@ Rect paint_tip_dab(Document& document, LayerId layer_id, double x, double y, con
   if (layer == nullptr || options.brush_tip == nullptr || options.brush_tip->empty()) {
     return {};
   }
-  if (erase) {
+  if (erase && !options.lock_transparent_pixels) {
     ensure_alpha_for_erase(*layer);
   }
 
@@ -1537,7 +1544,7 @@ Rect paint_brush_dab(Document& document, LayerId layer_id, double x, double y, c
   if (layer == nullptr) {
     return {};
   }
-  if (erase) {
+  if (erase && !options.lock_transparent_pixels) {
     ensure_alpha_for_erase(*layer);
   }
 
@@ -1726,7 +1733,7 @@ Rect paint_brush_segment(Document& document, LayerId layer_id, double x0, double
   if (layer == nullptr) {
     return {};
   }
-  if (erase) {
+  if (erase && !options.lock_transparent_pixels) {
     ensure_alpha_for_erase(*layer);
   }
 
@@ -2591,9 +2598,6 @@ float deep_clear_strength(const EditOptions& options, float coverage) noexcept {
 }
 
 Rect deep_clear_change_bounds(const Document& document, const Layer& layer, Rect rect, const EditOptions& options) {
-  if (options.lock_transparent_pixels) {
-    return {};
-  }
   const auto affected = clear_affected_rect(document, layer, rect, options);
   const auto& pixels = layer.pixels();
   const auto bounds = layer.bounds();
@@ -2645,16 +2649,34 @@ Rect clear_rect(Document& document, LayerId layer_id, Rect rect, const EditOptio
     if (changed.empty()) {
       return {};
     }
-    ensure_alpha_for_erase(*deep);
+    // Locked transparency clears toward the background color and keeps alpha (and an
+    // alpha-less layer stays alpha-less), the same as the Eraser.
+    const bool locked = options.lock_transparent_pixels;
+    if (!locked) {
+      ensure_alpha_for_erase(*deep);
+    }
     auto& pixels = deep->pixels();
     const auto bounds = deep->bounds();
-    const auto domain = pixels.format().bit_depth == BitDepth::Float32 ? DeepDomain::Linear : DeepDomain::Encoded;
+    const bool linear = pixels.format().bit_depth == BitDepth::Float32;
+    const auto domain = linear ? DeepDomain::Linear : DeepDomain::Encoded;
+    const auto channel = [linear](std::uint8_t v) {
+      return linear ? static_cast<float>(srgb_decode(static_cast<double>(v) / 255.0) * 255.0) : static_cast<float>(v);
+    };
+    const std::array<float, 3> background{channel(options.secondary.r), channel(options.secondary.g),
+                                          channel(options.secondary.b)};
     std::vector<float> row(static_cast<std::size_t>(changed.width) * 4U);
     for (std::int32_t y = changed.y; y < changed.y + changed.height; ++y) {
       load_rgba_row(pixels, y - bounds.y, changed.x - bounds.x, changed.width, domain, row);
       for (std::int32_t x = changed.x; x < changed.x + changed.width; ++x) {
         const auto strength = deep_clear_strength(options, selection_coverage(options, x, y));
-        row[static_cast<std::size_t>(x - changed.x) * 4U + 3U] *= 1.0F - strength;
+        auto* value = row.data() + static_cast<std::size_t>(x - changed.x) * 4U;
+        if (locked) {
+          for (std::size_t c = 0; c < 3U; ++c) {
+            value[c] = background[c] * strength + value[c] * (1.0F - strength);
+          }
+        } else {
+          value[3] *= 1.0F - strength;
+        }
       }
       store_rgba_row(pixels, y - bounds.y, changed.x - bounds.x, changed.width, domain, row);
       report_edit_progress(options);
@@ -2671,7 +2693,7 @@ Rect clear_rect(Document& document, LayerId layer_id, Rect rect, const EditOptio
     return {};
   }
 
-  if (layer->pixels().format().channels < 4) {
+  if (layer->pixels().format().channels < 4 && !options.lock_transparent_pixels) {
     ensure_alpha_for_erase(*layer);
   }
 

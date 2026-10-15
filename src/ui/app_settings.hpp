@@ -1,5 +1,7 @@
 #pragma once
 
+#include "color/color_management.hpp"
+
 #include <QSettings>
 #include <QSize>
 #include <QString>
@@ -99,5 +101,31 @@ inline constexpr std::array<std::pair<int, int>, 5> kLegacyPluginScreenSizes{
 inline constexpr std::pair<int, int> kDefaultLegacyPluginScreenSize{1280, 1024};
 [[nodiscard]] std::pair<int, int> stored_legacy_plugin_screen_size();
 void set_stored_legacy_plugin_screen_size(std::pair<int, int> size);
+
+// The working CMYK space (docs/cmyk.md): what the color picker's C/M/Y/K fields, the Info
+// panel and CMYK swatches mean. Keys `color/cmykProfile`, `color/cmykIntent` (a
+// rendering_intent_token) and `color/cmykBlackPointCompensation`; all three, and the two
+// reserved profile values, are compatibility contracts. `profile` is empty for Automatic
+// (an installed U.S. Web Coated (SWOP) v2, else the bundled profile), kCmykProfileFormula
+// for no profile, else a profile file.
+inline constexpr auto kCmykProfileFormula = "formula";
+struct CmykWorkingSettings {
+  QString profile;
+  RenderingIntent intent{RenderingIntent::RelativeColorimetric};
+  bool black_point_compensation{true};
+
+  friend bool operator==(const CmykWorkingSettings&, const CmykWorkingSettings&) = default;
+};
+[[nodiscard]] CmykWorkingSettings stored_cmyk_working_settings();
+void set_stored_cmyk_working_settings(const CmykWorkingSettings& settings);
+// The ISO Coated v2 profile compiled into the application (docs/cmyk.md).
+[[nodiscard]] const std::vector<std::uint8_t>& bundled_cmyk_profile();
+// The space those settings describe. A chosen file that is missing or unusable falls back
+// to Automatic; never null.
+[[nodiscard]] std::shared_ptr<const CmykWorkingSpace> cmyk_working_space_for(const CmykWorkingSettings& settings);
+// The gamut test and printed color for single colors in the current working space (the
+// color picker's warning, app.colorInCmykGamut). Null under the formula. Building one
+// samples the profile (a fraction of a second), so it is kept until the space changes.
+[[nodiscard]] std::shared_ptr<const CmykProofTransform> cmyk_gamut_check();
 
 }  // namespace patchy::ui

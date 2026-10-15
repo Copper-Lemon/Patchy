@@ -3563,6 +3563,17 @@ double ScriptEngineHost::view_zoom_percent() const {
   return canvas != nullptr ? canvas->view_zoom() * 100.0 : 0.0;
 }
 
+bool ScriptEngineHost::view_proof_colors() const { return window_.view_proof_colors_action_->isChecked(); }
+void ScriptEngineHost::set_view_proof_colors(bool enabled) {
+  pump_progress_indicator();
+  window_.view_proof_colors_action_->setChecked(enabled);
+}
+bool ScriptEngineHost::view_gamut_warning() const { return window_.view_gamut_warning_action_->isChecked(); }
+void ScriptEngineHost::set_view_gamut_warning(bool enabled) {
+  pump_progress_indicator();
+  window_.view_gamut_warning_action_->setChecked(enabled);
+}
+
 void ScriptEngineHost::set_view_zoom_percent(double percent) {
   pump_progress_indicator();
   auto* canvas = session_canvas(active_session_id());

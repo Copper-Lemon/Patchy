@@ -39,6 +39,9 @@
 ## Pixel art and game assets
 
 - Palettized (indexed color) editing mode for pixel art: paint constrained to a palette, quantize with optional dithering, built-in retro palettes (NES, C64, Game Boy, PICO-8, and more), palette files (.pal/.gpl/.hex/.act/.aco/.ase), and exact indexed PNG-8 and 2/4/8-bit BMP export. Layers, layer styles, and effects all keep working (Photoshop's indexed mode flattens and disables them)
+- CMYK ink percentages in the color picker (with a warning and the closest printable color when a color cannot print) and the Info panel, converted through an ICC profile: a bundled ISO Coated v2 profile by default, or an installed or chosen one (Preferences > Application > CMYK). Documents stay RGB, and CMYK swatches in `.aco` and `.ase` files import through the same profile
+- View > Proof Colors shows the canvas as that profile would print it (and lists the Cyan, Magenta, Yellow and Black plates in the Channels panel), and View > Gamut Warning paints colors it cannot reproduce flat gray. Both are views only: pixels, saves and exports are unchanged
+- File > Export writes JPEG, TIFF and flattened PDF in CMYK through that profile, with the profile embedded, for print shops, optionally with black text and grays on the black plate alone
 - Named palette colors appear in the Palette panel, color picker, Info panel, and eyedropper readout. Rename swatches, preserve names through GPL, PSD, and indexed PNG round trips, and manage palettes through scripts
 - Pixel-art and game-dev extras: seamless texture authoring (live tile preview window, in-canvas tiling mode, seam shifting), sprite sheet export/import, image sequence export/import (numbered files become layers and back), animated GIF and animated WebP import/export (frames become layers with their timings in the layer names, visible layers save back as a looping animation, and the layers panel's film button previews the animation in-app), and an Export Flat Image dialog with nearest-neighbor scaling (2x-8x), smooth resize, transparent-edge trimming, and background fill
 
@@ -48,7 +51,7 @@
 - Import multiple files as layers, preserving a layered file's contents in a group, through File > Import, a drop on the Layers panel, or pasted files
 - Scan and Divide Photos separates prints into individual images with editable crop regions, straightening, and perspective correction. Divide an existing scan or photo too; scanner acquisition and the scanner-to-printer Photocopy command are available on Windows and macOS
 - Automatic document recovery periodically saves separate recovery copies of modified documents and reopens them after a crash; the interval is configurable
-- Reads and writes a wide range of formats: PSD/PSB, [PDF](#pdf-documents), PNG, JPEG, TIFF, WebP, BMP, TGA, GIF, PCX, Amiga IFF/LBM, Windows icons and cursors (ICO/CUR), Aseprite files, JPEG XR (.jxr, on Windows), Proton SDK textures (.rttex), DDS textures (.dds: reads BC1 to BC7, cubemaps, arrays and mipmaps; writes uncompressed, DXT1, DXT5, BC4, BC5, or BC7 with optional mipmaps), and SVG (opens as editable shape layers, exports with vectors preserved)
+- Reads and writes a wide range of formats: PSD/PSB, [PDF](#pdf-documents), PNG, JPEG, TIFF, WebP, BMP, TGA, GIF, PCX, Amiga IFF/LBM, Windows icons and cursors (ICO/CUR), Aseprite files, JPEG XL (.jxl, with 16 and 32-bit images and animations), JPEG XR (.jxr, on Windows), Proton SDK textures (.rttex), DDS textures (.dds: reads BC1 to BC7, cubemaps, arrays and mipmaps; writes uncompressed, DXT1, DXT5, BC4, BC5, or BC7 with optional mipmaps), and SVG (opens as editable shape layers, exports with vectors preserved)
 - Imports Affinity documents as layered files: the current .af format, Affinity 2 .afphoto/.afdesign/.afpub, and most Affinity 1.x-era files, bringing across rasters, groups, masks, clipping, blend modes, editable text layers, vector shapes, adjustment layers, layer effects, and placed images (which become embedded Smart Objects)
 - Opens camera raw files (CR2/CR3/NEF/ARW/RAF/DNG and more) through a 16-bit develop dialog with a Natural rendering profile, ISO-based noise reduction, and per-photo settings saved beside the original, and HEIC/HEIF photos through platform codecs
 - Opens HDR screenshots saved as JPEG XR (.jxr), the format NVIDIA's in-game capture uses, tone mapping the high dynamic range down to 8-bit so highlights keep their detail instead of clipping to white
@@ -68,7 +71,7 @@
 
 ## Platforms, privacy, and interface
 
-- Cross-platform: Windows is the lead platform, with native macOS (Apple Silicon) and Linux (Flatpak) builds
+- Cross-platform: Windows is the lead platform, with native macOS (Apple Silicon) and Linux (Flatpak and AppImage) builds
 - Built with C++ and Qt for a native desktop experience. No GPU used, should run on a potato
 - Privacy: YES! Absolutely no telemetry, no tracking, no data collection (if update checks are enabled, it contacts GitHub only to check for a newer version, and on Windows to download it when you click Update Now). Settings live in a plain local file, and the installer doesn't screw with your file extension preferences
 - Localized in twelve languages: English, German, Spanish, French, Italian, Brazilian Portuguese, Russian, Polish, Japanese, Korean, and Chinese (Simplified and Traditional); the language follows your system or can be changed in File->Preferences
@@ -82,7 +85,7 @@ Important Photoshop features that are not supported yet, or are only partially s
 
 - Editable Smart Filters cover 13 filter types with paintable shared masks and per-filter opacity and blend modes; unsupported imported filter types (including the Blur Gallery and Liquify smart filters) remain preview-locked and byte-preserved
 - Full Photoshop adjustment-layer compatibility beyond Patchy's current adjustment support
-- CMYK/Lab editing and export, editable spot separations and RGB component channels, multi-channel overlays, OpenEXR/Radiance HDR files, and full color-management parity (Patchy converts CMYK, Lab, Grayscale, and the other non-RGB modes to RGB on open, but does not edit or save in those color modes)
+- CMYK/Lab editing and export, editable spot separations and RGB component channels, multi-channel overlays, OpenEXR/Radiance HDR files, and full color-management parity (Patchy converts CMYK, Lab, Grayscale, and the other non-RGB modes to RGB on open, but does not edit or save in those color modes; the color picker and Info panel show CMYK numbers for a chosen profile)
 - 16 and 32-bit gaps: filters without a deep version run on an 8-bit copy at 16 bits (unchanged pixels keep full precision) and are disabled at 32 bits, as are Liquify and the Filter Gallery; Smart Object contents and their Smart Filters render at 8 bits; Spot Healing, Remove Object, and Patch heal at 8-bit precision
 - Layer comps, timeline/video editing, generative tools (animated GIF and WebP import, preview, and export are supported)
 - Photoshop's own automation surfaces: Actions (.atn), UXP/JSX panels, and scripts written for Photoshop (Patchy has its own JavaScript scripting and batch processing instead, see above)

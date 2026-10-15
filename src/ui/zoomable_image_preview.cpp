@@ -843,23 +843,31 @@ void ZoomableImagePreview::draw_tilt_shift_overlay(QPainter& painter) const {
   const auto focus_distance = overlay.focus_half_width * shorter;
   const auto transition_distance =
       (overlay.focus_half_width + overlay.transition_width) * shorter;
-  // Patent design constraint (Apple US 8971623, in force to 2032; details in
-  // docs/smart-objects.md "Patents and trademarks"): the band boundaries are
-  // marked with short grip bars near the center axis only. Never draw
+  // Patent design constraint (Apple US 8971623; docs/legal-constraints.md):
+  // the band boundaries are short grip bars near the center axis only. Never draw
   // boundary lines that span the image and divide it around the center;
   // ui_filter_gallery_tilt_shift_overlay_uses_grip_bars pins this.
-  constexpr auto kBoundaryGripHalfLength = 26.0;
+  const auto visible_shorter =
+      std::min(visible_target.width(), visible_target.height());
+  const auto grip_half_length = std::min(26.0, visible_shorter * 0.2);
+  // Keep an unpainted rim even at tiny zooms, at corners and when the image is
+  // clipped by the viewport. Pen caps and the other handles must not bridge it.
+  const auto rim = std::max(1.0, std::min(4.0, visible_shorter * 0.1));
+  const auto overlay_clip = visible_target.adjusted(rim, rim, -rim, -rim);
+  if (overlay_clip.isEmpty()) {
+    return;
+  }
 
   painter.save();
-  painter.setClipRect(visible_target);
+  painter.setClipRect(overlay_clip);
   painter.setRenderHint(QPainter::Antialiasing, true);
   painter.setBrush(Qt::NoBrush);
 
   const auto draw_boundary = [&](double distance, Qt::PenStyle style) {
     for (const auto side : {-1.0, 1.0}) {
       const auto midpoint = center + normal * (side * distance);
-      const auto start = midpoint - tangent * kBoundaryGripHalfLength;
-      const auto end = midpoint + tangent * kBoundaryGripHalfLength;
+      const auto start = midpoint - tangent * grip_half_length;
+      const auto end = midpoint + tangent * grip_half_length;
       painter.setPen(QPen(QColor(18, 20, 23, 225), 4.0, style,
                           Qt::RoundCap));
       painter.drawLine(start, end);

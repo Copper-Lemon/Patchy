@@ -83,6 +83,7 @@
 				<string>com.compuserve.gif</string>
 				<string>public.tiff</string>
 				<string>org.webmproject.webp</string>
+				<string>public.jpeg-xl</string>
 			</array>
 			<key>CFBundleTypeExtensions</key>
 			<array>
@@ -94,6 +95,7 @@
 				<string>tif</string>
 				<string>tiff</string>
 				<string>webp</string>
+				<string>jxl</string>
 			</array>
 		</dict>
 	</array>

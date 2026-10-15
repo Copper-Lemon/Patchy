@@ -17,6 +17,7 @@
 
 #include "ui/script_editor_dialog.hpp"
 
+#include "ui/appimage_environment.hpp"
 #include "ui/dialog_utils.hpp"
 #include "ui/image_document_io.hpp"
 #include "ui/js_syntax_highlighter.hpp"
@@ -28,7 +29,6 @@
 #include "ui/theme_qss.hpp"
 
 #include <QClipboard>
-#include <QCoreApplication>
 #include <QDesktopServices>
 #include <QDir>
 #include <QFile>
@@ -991,7 +991,8 @@ void ScriptEditorDialog::show_cli_example_dialog(QWidget* parent, const QString&
   // have just been edited, and an unreadable file simply yields the default
   // fallback command.
   const auto meta = read_script_metadata(script_path);
-  const auto exe_path = QCoreApplication::applicationFilePath();
+  // The .AppImage file, not the per-launch mount the binary runs from.
+  const auto exe_path = user_visible_executable_path();
   const auto command = script_cli_example_command(exe_path, script_path, meta);
 #ifdef Q_OS_WIN
   // A plain (unquoted) program path runs as pasted in every shell; a quoted

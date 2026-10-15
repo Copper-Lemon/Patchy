@@ -74,6 +74,21 @@ preparation and resource duplication finish before undo and document mutation.
 In 16/32-bit documents raster merges and bitmap copies render at the document's
 depth (`ScopedDocumentDepthRender`; [high-bit-depth.md](high-bit-depth.md)).
 
+## Flatten Image
+
+**Image > Flatten Image** (`imageFlattenAction`, hotkey id `image.flatten`, no default
+key; also in the Layers panel context menu) follows Photoshop. It lives in the Image menu
+(GIMP's place) because the Layer menu is at its row bound. Hidden layers (any layer in the
+tree with visibility off) prompt `flattenDiscardHiddenMessageBox` ("Discard hidden
+layers?"); Cancel changes nothing. The visible composite (`qimage_from_document`, so
+vectors, text, effects and Smart Objects rasterize) renders at the document depth on a
+worker, is composited onto white (`composite_onto_white`, linear light for 32-bit), and
+replaces every layer with one opaque RGB "Background" with position and transparency
+locked, like a File > New Background. Channels, paths and guides stay. One Undo restores
+the layers. A document that is already one plain opaque full-canvas bitmap reports "The
+image is already flat" and adds no history. Pinned by
+`ui_flatten_image_composites_onto_white_discards_hidden_and_undoes`.
+
 ## Vector representation and editing
 
 `core/vector_compound.{hpp,cpp}` owns merged vector objects. They remain real
@@ -116,7 +131,8 @@ layers. Text and Smart Objects stay editable. A merged vector object with a
 subsequently changed opacity remains an isolation boundary when merging again.
 Normal bitmap runs can merge; backdrop-dependent bitmap blending stays separate.
 The explicit raster option uses the CPU compositor and honors image/group locks;
-position-only Background locking permits merging as in ordinary Merge Down.
+the Background's position and transparency locks permit merging as in ordinary Merge Down
+(a transparency lock blocks only layers that have alpha).
 
 ## PSD, SVG and PDF
 

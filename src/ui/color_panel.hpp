@@ -78,6 +78,10 @@ void set_color_picker_document_palette_name_editor(std::function<void(int, const
 // Unset = the current palette is read-only in pickers.
 void set_color_picker_document_palette_editor(std::function<void(int index, QColor color)> editor);
 
+// Re-reads the working CMYK space (color/color_management.hpp) in every open picker.
+// Preferences calls this after the user changes the profile or intent.
+void refresh_color_picker_cmyk_fields();
+
 // Applies a color to the open transient color picker (request_patchy_color), if
 // any, firing its live color_changed callback — used by the Palette panel so a
 // swatch click lands in e.g. the layer-style "Choose color" picker. Returns false

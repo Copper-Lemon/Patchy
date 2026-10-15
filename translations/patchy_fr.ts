@@ -9843,6 +9843,106 @@ RVB : %2, %3, %4</translation>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation>Métadonnées des informations sur le fichier à inclure. Le profil colorimétrique et la résolution sont toujours conservés.</translation>
     </message>
+    <message>
+        <source>CMYK export needs a CMYK profile. Choose one in Preferences.</source>
+        <translation>L&apos;exportation CMJN nécessite un profil CMJN. Choisissez-en un dans les Préférences.</translation>
+    </message>
+    <message>
+        <source>CMYK export is available for JPEG, TIFF and flattened PDF files only.</source>
+        <translation>L&apos;exportation CMJN n&apos;est disponible que pour les fichiers JPEG, TIFF et PDF aplatis.</translation>
+    </message>
+    <message>
+        <source>CMYK (%1)</source>
+        <translation>CMJN (%1)</translation>
+    </message>
+    <message>
+        <source>CMYK separates the image through the CMYK profile chosen in Preferences and embeds that profile. Transparent areas print as paper white. Patchy opens CMYK files as RGB again.</source>
+        <translation>CMJN sépare l&apos;image avec le profil CMJN choisi dans les Préférences et incorpore ce profil. Les zones transparentes s&apos;impriment en blanc du papier. Patchy rouvre les fichiers CMJN en RVB.</translation>
+    </message>
+    <message>
+        <source>Black and grays in black ink only</source>
+        <translation>Noir et gris en encre noire seule</translation>
+    </message>
+    <message>
+        <source>Prints black text and gray areas with black ink alone instead of a mix of all four inks, so small type stays sharp even when the press is slightly out of register. Colored areas are separated through the profile as usual.</source>
+        <translation>Imprime le texte noir et les zones grises avec l&apos;encre noire seule plutôt qu&apos;avec un mélange des quatre encres, pour que les petits caractères restent nets même si le repérage de la presse dérive un peu. Les zones colorées sont séparées par le profil comme d&apos;habitude.</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is damaged or not supported</source>
+        <translation>Le fichier JPEG XL est endommagé ou non pris en charge</translation>
+    </message>
+    <message>
+        <source>The file is not a JPEG XL image</source>
+        <translation>Le fichier n’est pas une image JPEG XL</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is truncated</source>
+        <translation>Le fichier JPEG XL est tronqué</translation>
+    </message>
+    <message>
+        <source>The JPEG XL image is too large to open</source>
+        <translation>L’image JPEG XL est trop grande pour être ouverte</translation>
+    </message>
+    <message>
+        <source>JPEG XL: extra channels other than alpha were not imported</source>
+        <translation>JPEG XL : les canaux supplémentaires autres que l’alpha n’ont pas été importés</translation>
+    </message>
+    <message>
+        <source>The JPEG XL animation is too large to open</source>
+        <translation>L’animation JPEG XL est trop grande pour être ouverte</translation>
+    </message>
+    <message>
+        <source>Could not encode the JPEG XL image</source>
+        <translation>Impossible d’encoder l’image JPEG XL</translation>
+    </message>
+    <message>
+        <source>The document has no pixels to save</source>
+        <translation>Le document ne contient aucun pixel à enregistrer</translation>
+    </message>
+    <message>
+        <source>The document has no visible top-level layers to export as an animated JPEG XL.</source>
+        <translation>Le document ne contient aucun calque visible de premier niveau à exporter en JPEG XL animé.</translation>
+    </message>
+    <message>
+        <source>Invalid animated JPEG XL frame or duration.</source>
+        <translation>Image ou durée du JPEG XL animé non valide.</translation>
+    </message>
+    <message>
+        <source>Could not open JPEG XL file for writing</source>
+        <translation>Impossible d’ouvrir le fichier JPEG XL en écriture</translation>
+    </message>
+    <message>
+        <source>Could not write JPEG XL file</source>
+        <translation>Impossible d’écrire le fichier JPEG XL</translation>
+    </message>
+    <message>
+        <source>JPEG XL Options</source>
+        <translation>Options JPEG XL</translation>
+    </message>
+    <message>
+        <source>Higher effort makes smaller files and takes longer to save.</source>
+        <translation>Un effort plus élevé produit des fichiers plus petits et allonge l’enregistrement.</translation>
+    </message>
+    <message>
+        <source>Effort:</source>
+        <translation>Effort :</translation>
+    </message>
+    <message>
+        <source>Patchy does not use JPEG XL&apos;s patch and dot coding tools, so images with repeated text or small dots can be somewhat larger than with other encoders.</source>
+        <translation>Patchy n’utilise pas les outils de codage par motifs et par points de JPEG XL : les images contenant du texte répété ou de petits points peuvent donc être un peu plus volumineuses qu’avec d’autres encodeurs.</translation>
+    </message>
+    <message>
+        <source>JPEG XL Image</source>
+        <translation>Image JPEG XL</translation>
+    </message>
+    <message>
+        <source>Animated JPEG XL: imported %1 frames as layers</source>
+        <translation>JPEG XL animé : %1 images importées comme calques</translation>
+    </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
+        <translation>Cette version de Patchy ne peut pas décoder les images HEIC. La version Flatpak de Patchy le peut.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10077,6 +10177,10 @@ RVB : %2, %3, %4</translation>
     <message>
         <source>Close</source>
         <translation>Fermer</translation>
+    </message>
+    <message>
+        <source>Patchy is running from an AppImage; the skill folder exists only while Patchy is open.</source>
+        <translation>Patchy s&apos;exécute depuis un AppImage ; le dossier de la compétence n&apos;existe que tant que Patchy est ouvert.</translation>
     </message>
 </context>
 <context>
@@ -11498,6 +11602,14 @@ RVB : %2, %3, %4</translation>
         <source>Delete channel</source>
         <translation>Supprimer la couche</translation>
     </message>
+    <message>
+        <source>Preview this ink plate of the CMYK proof: darker means more ink. Plates come from the working CMYK profile and are read-only.</source>
+        <translation>Aperçu de cette plaque d&apos;encre de l&apos;épreuve CMJN : plus sombre signifie plus d&apos;encre. Les plaques viennent du profil CMJN de travail et sont en lecture seule.</translation>
+    </message>
+    <message>
+        <source>%CTRL%-click to load where this plate has no ink as a selection.</source>
+        <translation>%CTRL%-clic charge comme sélection les zones sans encre de cette plaque.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::FontPickerCombo</name>
@@ -12556,18 +12668,6 @@ RVB : %2, %3, %4</translation>
     <message>
         <source>T</source>
         <translation>T</translation>
-    </message>
-    <message>
-        <source>L</source>
-        <translation>G</translation>
-    </message>
-    <message>
-        <source>C</source>
-        <translation>C</translation>
-    </message>
-    <message>
-        <source>R</source>
-        <translation>D</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -13690,16 +13790,8 @@ RVB : %2, %3, %4</translation>
         <translation>Windows</translation>
     </message>
     <message>
-        <source>Color:</source>
-        <translation>Couleur :</translation>
-    </message>
-    <message>
         <source>Text color</source>
         <translation>Couleur du texte</translation>
-    </message>
-    <message>
-        <source>Align:</source>
-        <translation>Alignement :</translation>
     </message>
     <message>
         <source>Align Left</source>
@@ -20300,6 +20392,210 @@ Vous pouvez toujours la télécharger dans votre navigateur.</translation>
             <numerusform>Ajoute %n nouveaux calques. L&apos;aperçu les affiche déjà sur la zone de travail et dans le panneau Calques.</numerusform>
         </translation>
     </message>
+    <message>
+        <source>CMYK: %1, %2, %3, %4</source>
+        <translation>CMJN : %1, %2, %3, %4</translation>
+    </message>
+    <message>
+        <source>CMYK</source>
+        <translation>CMJN</translation>
+    </message>
+    <message>
+        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel, and CMYK swatches.</source>
+        <translation>Patchy travaille en RVB. Ce profil définit ce que signifient les valeurs CMJN dans le sélecteur de couleurs, le panneau Infos et les nuances CMJN.</translation>
+    </message>
+    <message>
+        <source>Automatic</source>
+        <translation>Automatique</translation>
+    </message>
+    <message>
+        <source>Automatic (%1)</source>
+        <translation>Automatique (%1)</translation>
+    </message>
+    <message>
+        <source>No profile (approximate formula)</source>
+        <translation>Aucun profil (formule approximative)</translation>
+    </message>
+    <message>
+        <source>Choose Profile File...</source>
+        <translation>Choisir un fichier de profil...</translation>
+    </message>
+    <message>
+        <source>Choose CMYK Profile</source>
+        <translation>Choisir un profil CMJN</translation>
+    </message>
+    <message>
+        <source>ICC profiles (*.icc *.icm)</source>
+        <translation>Profils ICC (*.icc *.icm)</translation>
+    </message>
+    <message>
+        <source>CMYK Profile</source>
+        <translation>Profil CMJN</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is not a CMYK profile Patchy can use.</source>
+        <translation>« %1 » n&apos;est pas un profil CMJN utilisable par Patchy.</translation>
+    </message>
+    <message>
+        <source>CMYK profile:</source>
+        <translation>Profil CMJN :</translation>
+    </message>
+    <message>
+        <source>Perceptual</source>
+        <translation>Perception</translation>
+    </message>
+    <message>
+        <source>Relative Colorimetric</source>
+        <translation>Colorimétrie relative</translation>
+    </message>
+    <message>
+        <source>Saturation</source>
+        <translation>Saturation</translation>
+    </message>
+    <message>
+        <source>Absolute Colorimetric</source>
+        <translation>Colorimétrie absolue</translation>
+    </message>
+    <message>
+        <source>Rendering intent:</source>
+        <translation>Mode de rendu :</translation>
+    </message>
+    <message>
+        <source>Black point compensation</source>
+        <translation>Compensation du point noir</translation>
+    </message>
+    <message>
+        <source>Proof Colors</source>
+        <translation>Couleurs d&apos;épreuve</translation>
+    </message>
+    <message>
+        <source>Gamut Warning</source>
+        <translation>Couleurs non imprimables</translation>
+    </message>
+    <message>
+        <source>Proof Colors and Gamut Warning need a CMYK profile. Choose one in Preferences.</source>
+        <translation>Couleurs d&apos;épreuve et Couleurs non imprimables nécessitent un profil CMJN. Choisissez-en un dans les Préférences.</translation>
+    </message>
+    <message>
+        <source>Canvas view uses the CMYK profile %1. Documents and exports are unchanged.</source>
+        <translation>L&apos;affichage de la zone de travail utilise le profil CMJN %1. Les documents et les exportations ne changent pas.</translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation>Cyan</translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation>Magenta</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>Jaune</translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation>Noir</translation>
+    </message>
+    <message>
+        <source>Previewing Cyan plate (read-only)</source>
+        <translation>Aperçu de la plaque Cyan (lecture seule)</translation>
+    </message>
+    <message>
+        <source>Previewing Magenta plate (read-only)</source>
+        <translation>Aperçu de la plaque Magenta (lecture seule)</translation>
+    </message>
+    <message>
+        <source>Previewing Yellow plate (read-only)</source>
+        <translation>Aperçu de la plaque Jaune (lecture seule)</translation>
+    </message>
+    <message>
+        <source>Previewing Black plate (read-only)</source>
+        <translation>Aperçu de la plaque Noir (lecture seule)</translation>
+    </message>
+    <message>
+        <source>Saved animated JPEG XL copy %1</source>
+        <translation>Copie JPEG XL animée enregistrée : %1</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Download the new AppImage, quit Patchy, and replace this file with it:
+
+%3</source>
+        <translation>Patchy %1 est disponible. Vous utilisez la version %2.
+
+Téléchargez le nouvel AppImage, quittez Patchy et remplacez ce fichier par celui-ci :
+
+%3</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage is no longer on this computer.</source>
+        <translation>L&apos;AppImage téléchargé n&apos;est plus sur cet ordinateur.</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage does not match the checksum published for this update.</source>
+        <translation>L&apos;AppImage téléchargé ne correspond pas à la somme de contrôle publiée pour cette mise à jour.</translation>
+    </message>
+    <message>
+        <source>The new AppImage could not be put in place of this one.</source>
+        <translation>Le nouvel AppImage n&apos;a pas pu remplacer celui-ci.</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, replace this AppImage, and start again. You will be asked about unsaved work first.</source>
+        <translation>Patchy %1 est disponible. Vous utilisez la version %2.
+
+Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer. Une question vous sera d&apos;abord posée sur le travail non enregistré.</translation>
+    </message>
+    <message>
+        <source>&amp;Flatten Image</source>
+        <translation>A&amp;platir l&apos;image</translation>
+    </message>
+    <message>
+        <source>Merge every visible layer into one opaque Background layer</source>
+        <translation>Fusionner tous les calques visibles en un calque d&apos;arrière-plan opaque</translation>
+    </message>
+    <message>
+        <source>No layers to flatten</source>
+        <translation>Aucun calque à aplatir</translation>
+    </message>
+    <message>
+        <source>The image is already flat</source>
+        <translation>L&apos;image est déjà aplatie</translation>
+    </message>
+    <message>
+        <source>Flatten Image</source>
+        <translation>Aplatir l&apos;image</translation>
+    </message>
+    <message>
+        <source>Discard hidden layers?</source>
+        <translation>Supprimer les calques masqués ?</translation>
+    </message>
+    <message>
+        <source>Flattening image...</source>
+        <translation>Aplatissement de l&apos;image...</translation>
+    </message>
+    <message>
+        <source>Could not flatten the image. The layers are unchanged.</source>
+        <translation>Impossible d&apos;aplatir l&apos;image. Les calques sont inchangés.</translation>
+    </message>
+    <message>
+        <source>Flatten image</source>
+        <translation>Aplatir l&apos;image</translation>
+    </message>
+    <message>
+        <source>Flattened the image</source>
+        <translation>Image aplatie</translation>
+    </message>
+    <message>
+        <source>Filter recent folders...</source>
+        <translation>Filtrer les dossiers récents...</translation>
+    </message>
+    <message>
+        <source>No matching recent folders</source>
+        <translation>Aucun dossier récent correspondant</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20674,6 +20970,54 @@ Vous pouvez toujours la télécharger dans votre navigateur.</translation>
     <message>
         <source>File: %1</source>
         <translation>Fichier : %1</translation>
+    </message>
+    <message>
+        <source>C:</source>
+        <translation>C :</translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation>Cyan</translation>
+    </message>
+    <message>
+        <source>M:</source>
+        <translation>M :</translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation>Magenta</translation>
+    </message>
+    <message>
+        <source>Y:</source>
+        <translation>J :</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>Jaune</translation>
+    </message>
+    <message>
+        <source>K:</source>
+        <translation>N :</translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation>Noir</translation>
+    </message>
+    <message>
+        <source>Ink percentages in the working CMYK space: %1. Choose the profile in Preferences.</source>
+        <translation>Pourcentages d&apos;encre dans l&apos;espace de travail CMJN : %1. Choisissez le profil dans les Préférences.</translation>
+    </message>
+    <message>
+        <source>no profile (approximate)</source>
+        <translation>aucun profil (approximatif)</translation>
+    </message>
+    <message>
+        <source>Use the closest printable color</source>
+        <translation>Utiliser la couleur imprimable la plus proche</translation>
+    </message>
+    <message>
+        <source>This color is outside the gamut of %1 and prints as the color shown here. Click to use it.</source>
+        <translation>Cette couleur est hors de la gamme de %1 et s&apos;imprime comme la couleur affichée ici. Cliquez pour l&apos;utiliser.</translation>
     </message>
 </context>
 <context>
@@ -21947,6 +22291,10 @@ Vous pouvez toujours la télécharger dans votre navigateur.</translation>
         <source>G&apos;MIC filter %1 failed: %2</source>
         <translation>Échec du filtre G&apos;MIC %1 : %2</translation>
     </message>
+    <message>
+        <source>CMYK values are percentages from 0 to 100</source>
+        <translation>Les valeurs CMJN sont des pourcentages de 0 à 100</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ScriptSaveOptions</name>
@@ -21981,6 +22329,10 @@ Vous pouvez toujours la télécharger dans votre navigateur.</translation>
     <message>
         <source>%1: options must be an object such as {quality: 85}.</source>
         <translation>%1 : les options doivent être un objet tel que {quality: 85}.</translation>
+    </message>
+    <message>
+        <source>%1: blackInkOnly needs colorMode: &quot;cmyk&quot;.</source>
+        <translation>%1 : blackInkOnly nécessite colorMode: &quot;cmyk&quot;.</translation>
     </message>
 </context>
 <context>

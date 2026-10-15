@@ -460,9 +460,7 @@ void MainWindow::run_legacy_plugin(QString identifier, bool show_dialog) {
   }
   if (canvas_ != nullptr &&
       (canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::DocumentChannel ||
-       canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentRed ||
-       canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentGreen ||
-       canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentBlue)) {
+       CanvasWidget::is_component_preview(canvas_->layer_edit_target()))) {
     show_status_error(tr("Filters are unavailable while viewing a document channel"));
     return;
   }

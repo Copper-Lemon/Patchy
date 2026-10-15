@@ -9,6 +9,14 @@
 #include <QFileInfo>
 #include <QStandardPaths>
 
+#include <filesystem>
+#include <system_error>
+
+#ifdef Q_OS_LINUX
+#include <QProcess>
+#include <QProcessEnvironment>
+#endif
+
 #ifdef Q_OS_WIN
 #include <QProcess>
 #include <QProcessEnvironment>
@@ -79,6 +87,7 @@ QString update_download_folder(const QString& version) {
   return QDir(updates_root()).filePath(QStringLiteral("patchy-update-") + safe_version);
 }
 
+
 void remove_update_download(const QString& version) {
   const auto folder = update_download_folder(version);
   if (!QFileInfo(folder).isDir()) {
@@ -146,7 +155,101 @@ FileSignature file_signature(const QString& path) {
   return result;
 }
 
+namespace {
+
+QString dotted_version_only(const QString& version) {
+  QString safe_version;
+  for (const auto ch : version) {
+    if (ch.isDigit() || ch == QLatin1Char('.')) {
+      safe_version.append(ch);
+    }
+  }
+  return safe_version;
+}
+
+#ifdef Q_OS_LINUX
+// Starts the replaced AppImage once this process is gone, so the new copy never forwards
+// its launch to the old one through single-instance and exits. /bin/sh is on every
+// distribution the AppImage runs on. The child gets no AppImage variables of this launch
+// (the new one's runtime sets its own).
+bool start_appimage_relaunch(const QString& appimage, qint64 wait_process_id) {
+  auto environment = QProcessEnvironment::systemEnvironment();
+  for (const auto* name : {"APPIMAGE", "APPDIR", "ARGV0", "OWD"}) {
+    environment.remove(QString::fromLatin1(name));
+  }
+  QProcess process;
+  process.setProgram(QStringLiteral("/bin/sh"));
+  process.setArguments({QStringLiteral("-c"),
+                        QStringLiteral("pid=\"$1\"; app=\"$2\"; i=0; "
+                                       "while kill -0 \"$pid\" 2>/dev/null && [ \"$i\" -lt 600 ]; do "
+                                       "sleep 0.2; i=$((i + 1)); done; exec \"$app\""),
+                        QStringLiteral("patchy-update-relaunch"), QString::number(wait_process_id), appimage});
+  process.setProcessEnvironment(environment);
+  process.setWorkingDirectory(QDir::homePath());
+  process.setStandardInputFile(QProcess::nullDevice());
+  process.setStandardOutputFile(QProcess::nullDevice());
+  process.setStandardErrorFile(QProcess::nullDevice());
+  return process.startDetached();
+}
+#endif
+
+}  // namespace
+
+QString appimage_update_download_name(const QString& appimage_path, const QString& version) {
+  return QLatin1Char('.') + QFileInfo(appimage_path).fileName() + QStringLiteral(".update-") +
+         dotted_version_only(version);
+}
+
+bool appimage_can_be_replaced(const QString& appimage_path) {
+  const QFileInfo file(appimage_path);
+  return !appimage_path.isEmpty() && file.isFile() && QFileInfo(file.absolutePath()).isWritable();
+}
+
+UpdateLaunchResult replace_appimage(const UpdateInstallerLaunch& launch) {
+  const QFileInfo downloaded(launch.installer_path);
+  if (launch.appimage_target.isEmpty() || !downloaded.isFile()) {
+    return {UpdateLaunchFailure::InstallerMissing};
+  }
+  // Checked again: the save prompts may have taken minutes since the download was checked.
+  if (!file_matches_checksum(downloaded.absoluteFilePath(), launch.expected_size, launch.expected_sha256)) {
+    return {UpdateLaunchFailure::ChecksumMismatch};
+  }
+  QFile::setPermissions(downloaded.absoluteFilePath(), QFileDevice::ReadOwner | QFileDevice::WriteOwner |
+                                                           QFileDevice::ExeOwner | QFileDevice::ReadGroup |
+                                                           QFileDevice::ExeGroup | QFileDevice::ReadOther |
+                                                           QFileDevice::ExeOther);
+  // One rename in one folder replaces the file atomically: the running copy's mount keeps the
+  // old file's data alive until it exits, and nothing ever sees a half-written AppImage.
+  std::error_code error;
+  std::filesystem::rename(to_filesystem_path(downloaded.absoluteFilePath()),
+                          to_filesystem_path(launch.appimage_target), error);
+  if (error) {
+    return {UpdateLaunchFailure::ReplaceFailed};
+  }
+  return {};
+}
+
+void remove_appimage_update_download(const QString& appimage_path, const QString& version) {
+  if (appimage_path.isEmpty()) {
+    return;
+  }
+  const auto folder = QFileInfo(appimage_path).absolutePath();
+  const auto leftover = QDir(folder).filePath(appimage_update_download_name(appimage_path, version));
+  if (QFileInfo(leftover).isFile()) {
+    QFile::remove(leftover);
+  }
+}
+
 UpdateLaunchResult launch_update_installer(const UpdateInstallerLaunch& launch) {
+  if (!launch.appimage_target.isEmpty()) {
+    const auto result = replace_appimage(launch);
+#ifdef Q_OS_LINUX
+    if (result.started()) {
+      (void)start_appimage_relaunch(launch.appimage_target, launch.wait_process_id);
+    }
+#endif
+    return result;
+  }
 #ifdef Q_OS_WIN
   const QFileInfo installer(launch.installer_path);
   if (!installer.isFile() || launch.install_dir.isEmpty()) {

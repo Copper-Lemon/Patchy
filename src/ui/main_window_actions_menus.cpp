@@ -343,18 +343,22 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   recent_files_menu_ = file_menu->addMenu(tr("Open &Recent File"));
   recent_files_menu_->setObjectName(QStringLiteral("fileOpenRecentMenu"));
   configure_recent_files_context_menu(recent_files_menu_);
-  connect(recent_files_menu_, &QMenu::aboutToShow, this, [this] {
-    if (recent_files_filter_edit_ != nullptr) {
-      // A stale filter from a dismissed menu resets before showing again; the
-      // focused edit is what routes typed keys into the filter.
-      recent_files_filter_edit_->clear();
-      recent_files_filter_edit_->setFocus();
+  // A stale filter from a dismissed menu resets before showing again; the focused
+  // edit is what routes typed keys into the filter.
+  const auto reset_recent_filter = [](const RecentListMenu& ui) {
+    if (ui.filter_edit != nullptr) {
+      ui.filter_edit->clear();
+      ui.filter_edit->setFocus();
     }
-  });
+  };
+  connect(recent_files_menu_, &QMenu::aboutToShow, this,
+          [this, reset_recent_filter] { reset_recent_filter(recent_files_list_menu_); });
   recent_folders_menu_ = file_menu->addMenu(tr("Open Recent &Folder"));
   recent_folders_menu_->setObjectName(QStringLiteral("fileOpenRecentFolderMenu"));
   configure_recent_files_context_menu(recent_folders_menu_);
   recent_folders_menu_->setProperty(kRecentFoldersMenuProperty, true);
+  connect(recent_folders_menu_, &QMenu::aboutToShow, this,
+          [this, reset_recent_filter] { reset_recent_filter(recent_folders_list_menu_); });
   connect(file_menu, &QMenu::aboutToShow, this, &MainWindow::refresh_recent_history);
   auto* import_menu = file_menu->addMenu(tr("I&mport"));
   bind_widget_text(import_menu, QT_TR_NOOP("I&mport"));
@@ -1532,9 +1536,21 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
       "Detect the photos in this image and open or save each one as its own image");
   register_hotkey(divide_photos_action, "image.divide_photos");
   connect(divide_photos_action, &QAction::triggered, this, [this] { divide_current_document_photos(); });
+  // Image menu like GIMP (GitHub issue 97); the Layer menu is at its row bound, and the
+  // Layers panel menu carries the same action where Photoshop users look for it.
+  image_menu->addSeparator();
+  image_flatten_action_ = image_menu->addAction(tr("&Flatten Image"));
+  bind_action_text(image_flatten_action_, QT_TR_NOOP("&Flatten Image"));
+  image_flatten_action_->setObjectName(QStringLiteral("imageFlattenAction"));
+  image_flatten_action_->setIcon(simple_icon(QStringLiteral("merge")));
+  bind_translated_status_tip(image_flatten_action_,
+                             QT_TR_NOOP("Merge every visible layer into one opaque Background layer"));
+  apply_bound_translation(image_flatten_action_);
+  register_hotkey(image_flatten_action_, "image.flatten");
+  connect(image_flatten_action_, &QAction::triggered, this, [this] { flatten_image(); });
   for (auto* action : {adjustments_menu->menuAction(), image_size_action, canvas_size_action, crop_action,
                        rotate_cw_action, rotate_ccw_action, rotate_arbitrary_action, shift_seams_action,
-                       divide_photos_action}) {
+                       divide_photos_action, image_flatten_action_}) {
     register_document_action(action);
   }
 
@@ -1766,6 +1782,19 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
     save_view_settings();
     refresh_vector_preview_action();
   });
+  // Views of the canvas through the working CMYK profile (docs/cmyk.md). Application-wide
+  // and deliberately not remembered: a forgotten proof view would make every document
+  // look dull on the next start.
+  view_proof_colors_action_ = view_menu->addAction(tr("Proof Colors"));
+  view_proof_colors_action_->setObjectName(QStringLiteral("viewProofColorsAction"));
+  view_proof_colors_action_->setCheckable(true);
+  register_hotkey(view_proof_colors_action_, "view.proof_colors");
+  connect(view_proof_colors_action_, &QAction::toggled, this, [this] { refresh_proof_display(); });
+  view_gamut_warning_action_ = view_menu->addAction(tr("Gamut Warning"));
+  view_gamut_warning_action_->setObjectName(QStringLiteral("viewGamutWarningAction"));
+  view_gamut_warning_action_->setCheckable(true);
+  register_hotkey(view_gamut_warning_action_, "view.gamut_warning");
+  connect(view_gamut_warning_action_, &QAction::toggled, this, [this] { refresh_proof_display(); });
   auto* selection_edges_action = view_menu->addAction(tr("Show Selection &Edges"));
   auto* target_path_action = view_menu->addAction(tr("Show Target &Path"));
   view_menu->addSeparator();

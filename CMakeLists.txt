@@ -55,6 +55,12 @@ function(patchy_configure_target target)
       target_compile_options(${target} PRIVATE /W4 /permissive-)
     else()
       target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+      # GCC 12 (the AppImage compiler, docs/appimage.md) reports -Wrestrict inside
+      # libstdc++'s inlined std::string copies for ordinary concatenations and literal
+      # assignments (GCC PR 105329/105651, fixed in GCC 13): only there is it switched off.
+      if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13)
+        target_compile_options(${target} PRIVATE -Wno-restrict)
+      endif()
     endif()
   endif()
 endfunction()
@@ -511,6 +517,7 @@ if(EMSCRIPTEN AND PATCHY_BUILD_APP)
 endif()
 
 include(cmake/patchy_webp.cmake)
+include(cmake/patchy_jxl.cmake)
 
 add_library(patchy_formats
   src/formats/animation_timing.cpp
@@ -528,6 +535,7 @@ add_library(patchy_formats
   src/formats/ico_document_io.cpp
   src/formats/image_density_probe.cpp
   src/formats/ilbm_document_io.cpp
+  src/formats/jxl_document_io.cpp
   src/formats/jxr_document_io.cpp
   src/formats/metadata/exif_tags.cpp
   src/formats/metadata/iptc_iim.cpp
@@ -573,7 +581,7 @@ add_library(patchy_formats
 # PRIVATE too: af_document_io.cpp bakes Gaussian-blur layer effects through the calibrated
 # smart-filter blur (filters depends only on core, so no cycle).
 target_link_libraries(patchy_formats PUBLIC patchy_core patchy_render patchy_psd PRIVATE patchy_filters patchy_libraw)
-target_link_libraries(patchy_formats PRIVATE webp webpdemux libwebpmux)
+target_link_libraries(patchy_formats PRIVATE webp webpdemux libwebpmux patchy_jxl)
 target_include_directories(patchy_formats PRIVATE src/formats/libwebp/src)
 if(EMSCRIPTEN AND PATCHY_BUILD_APP)
   target_sources(patchy_formats PRIVATE src/formats/heif_document_io_wasm.cpp)
@@ -676,7 +684,7 @@ if(PATCHY_BUILD_APP)
          "${PROJECT_SOURCE_DIR}/src/*.hpp"
          "${PROJECT_SOURCE_DIR}/src/*.mm")
     list(FILTER PATCHY_LUPDATE_SOURCES EXCLUDE REGEX
-         "/src/(formats/(zstd|miniz|libheif|libraw|stb|bcdec|bc7enc)|color/lcms2)/")
+         "/src/(formats/(zstd|miniz|libheif|libraw|libjxl|stb|bcdec|bc7enc)|color/lcms2)/")
     # The vendored G'MIC interpreter holds no Patchy text.
     list(FILTER PATCHY_LUPDATE_SOURCES EXCLUDE REGEX "/src/filters/gmic/(gmic\\.cpp|patchy_stub/)")
     list(SORT PATCHY_LUPDATE_SOURCES)
@@ -1104,6 +1112,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/markdown_viewer_dialog.cpp
       src/ui/ai_control_paths.hpp
       src/ui/ai_control_paths.cpp
+      src/ui/appimage_environment.hpp
+      src/ui/appimage_environment.cpp
       src/ui/ai_setup_dialog.hpp
       src/ui/ai_setup_dialog.cpp
       src/ui/main_window.hpp
@@ -1112,6 +1122,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/main_window_actions_internal.hpp
       src/ui/main_window_actions_menus.cpp
       src/ui/main_window_actions_options_bar.cpp
+      src/ui/options_flow_layout.hpp
+      src/ui/options_flow_layout.cpp
       src/ui/main_window_actions_tool_palette.cpp
       src/ui/main_window_adjustments.cpp
       src/ui/main_window_channels.cpp
@@ -1245,6 +1257,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/script_folders.cpp
       src/ui/selection_outline.hpp
       src/ui/selection_outline.cpp
+      src/ui/recent_file_list.hpp
+      src/ui/recent_file_list.cpp
       src/ui/start_panel.hpp
       src/ui/start_panel.cpp
       src/ui/smart_object_render.hpp
@@ -1309,6 +1323,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/icons.qrc
       src/ui/textures.qrc
       src/ui/themes.qrc
+      src/ui/color_profiles.qrc
     )
     # The G'MIC Filter Library (docs/gmic.md). Its interface compiles in every build;
     # the filter library text is embedded only when the engine is built.
@@ -1895,6 +1910,7 @@ if(PATCHY_BUILD_TESTS)
     tests/core/jxr_tests.cpp
     tests/core/rttex_tests.cpp
     tests/core/dds_tests.cpp
+    tests/core/jxl_tests.cpp
     tests/core/raw_heif_tests.cpp
     tests/core/smart_filter_descriptors_tests.cpp
     tests/core/smart_filter_descriptors_tests_canonical.cpp
@@ -1911,6 +1927,8 @@ if(PATCHY_BUILD_TESTS)
     tests/core/gmic_tests.cpp
   )
   target_link_libraries(patchy_core_tests PRIVATE patchy_gmic)
+  # jxl_tests.cpp builds unusual source files (PQ, gray, premultiplied) straight through libjxl.
+  target_link_libraries(patchy_core_tests PRIVATE patchy_jxl)
   # The split TUs live in tests/core/ but repeat the historical test_main.cpp
   # include block ("test_harness.hpp" etc.), so tests/ must be on the include path.
   target_include_directories(patchy_core_tests PRIVATE tests)

@@ -11,6 +11,7 @@ Patchy keeps Photoshop document channels separate from layer masks. `Layer::mask
 - Quick Mask appears in the same dock as a temporary fixed row, but remains canvas-owned selection state. It is never added to `Document::channels()` and never affects PSD channel counts or output.
 - Imported spot channels are preserved and previewable but read-only. Their display record and pixel plane must survive PSD/PSB saves even when Patchy cannot interpret every field.
 - Composite, Red, Green, and Blue rows are derived views of the rendered document. They are not stored channels and are read-only.
+- While View > Proof Colors is on, Cyan, Magenta, Yellow and Black rows follow Blue: the ink plates of the working CMYK separation, read-only like the components ([cmyk.md](cmyk.md)). `CanvasWidget::is_component_preview` covers all seven views; every read-only gate uses it. Row lookups go by `RowKind`, never by position.
 
 ## PSD and PSB layout
 
@@ -40,7 +41,7 @@ A saved alpha read from PSD/PSB always becomes a document channel, including cha
 - Ctrl-clicking a layer or layer-mask thumbnail keeps its exact soft alpha. Marching ants follow the 50% boundary, while saving the selection copies mask rows or hard-region spans directly instead of probing a complex region once per canvas pixel.
 - Save and Save As warn before a non-PSD/PSB format discards saved channels. Export is always an explicitly flattened operation and does not warn.
 
-Not implemented: editable component channels, multiple simultaneous overlays, channel-options editing, spot separations, and multichannel/CMYK/Lab document modes.
+Not implemented: editable component channels, multiple simultaneous overlays, channel-options editing, spot separations, and multichannel/CMYK/Lab document modes (the CMYK plates are a proof view, not stored inks).
 
 ## Layer mask planes in PSD
 

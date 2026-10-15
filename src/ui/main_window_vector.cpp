@@ -1718,29 +1718,33 @@ void MainWindow::apply_selected_shape_corner_radius(double radius) {
 }
 
 MainWindow::VectorOptionModeRules MainWindow::vector_option_mode_rules() {
+  return vector_option_mode_rules(current_tool_, !editable_selected_shape_layer_ids().empty());
+}
+
+MainWindow::VectorOptionModeRules MainWindow::vector_option_mode_rules(CanvasTool tool, bool live_shape) const {
   VectorOptionModeRules rules;
-  const bool shape_tool = current_tool_ == CanvasTool::Line ||
-                          current_tool_ == CanvasTool::Rectangle ||
-                          current_tool_ == CanvasTool::Ellipse ||
-                          current_tool_ == CanvasTool::Pen ||
-                          current_tool_ == CanvasTool::Polygon ||
-                          current_tool_ == CanvasTool::CustomShape;
-  rules.select_tool = current_tool_ == CanvasTool::PathSelect ||
-                      current_tool_ == CanvasTool::DirectSelect;
-  rules.live_shape = !editable_selected_shape_layer_ids().empty();
+  const bool shape_tool = tool == CanvasTool::Line ||
+                          tool == CanvasTool::Rectangle ||
+                          tool == CanvasTool::Ellipse ||
+                          tool == CanvasTool::Pen ||
+                          tool == CanvasTool::Polygon ||
+                          tool == CanvasTool::CustomShape;
+  rules.select_tool = tool == CanvasTool::PathSelect ||
+                      tool == CanvasTool::DirectSelect;
+  rules.live_shape = live_shape;
   // Move exposes only the active shape's W/H readouts. The appearance controls
   // remain scoped to shape and path tools, but size editing follows the selected
   // shape layer just like the Properties panel does.
-  rules.refine = shape_tool || rules.select_tool || current_tool_ == CanvasTool::Move;
-  if (rules.select_tool || current_tool_ == CanvasTool::Move) {
+  rules.refine = shape_tool || rules.select_tool || tool == CanvasTool::Move;
+  if (rules.select_tool || tool == CanvasTool::Move) {
     return rules;
   }
   // Pen/Polygon/Custom Shape never rasterize: a persisted Pixels mode behaves
   // as Path for them (refresh_vector_tool_options_visibility shows the
   // effective mode without rewriting the setting).
-  const bool vector_only_tool = current_tool_ == CanvasTool::Pen ||
-                                current_tool_ == CanvasTool::Polygon ||
-                                current_tool_ == CanvasTool::CustomShape;
+  const bool vector_only_tool = tool == CanvasTool::Pen ||
+                                tool == CanvasTool::Polygon ||
+                                tool == CanvasTool::CustomShape;
   const auto effective_mode =
       vector_only_tool && current_vector_tool_mode_ == VectorToolMode::Pixels
           ? VectorToolMode::Path
@@ -1752,6 +1756,11 @@ MainWindow::VectorOptionModeRules MainWindow::vector_option_mode_rules() {
 
 bool MainWindow::vector_option_widget_visible(const VectorOptionModeRules& rules,
                                               QWidget* widget) const {
+  return vector_option_widget_visible(rules, widget, current_tool_);
+}
+
+bool MainWindow::vector_option_widget_visible(const VectorOptionModeRules& rules, QWidget* widget,
+                                              CanvasTool tool) const {
   if (!rules.refine || widget == nullptr) {
     return true;
   }
@@ -1763,7 +1772,7 @@ bool MainWindow::vector_option_widget_visible(const VectorOptionModeRules& rules
     // the first shape exists (Path and Pixels modes have no shape layer to
     // size, and Pixels already shows the fixed-size Width / Height row); Move
     // and the path selection tools show them only with an editable shape layer.
-    if (rules.select_tool || current_tool_ == CanvasTool::Move) {
+    if (rules.select_tool || tool == CanvasTool::Move) {
       return rules.live_shape;
     }
     return rules.shape_mode;
@@ -1848,14 +1857,9 @@ void MainWindow::handle_vector_shape_size_value_changed(bool width_changed, doub
   }
   const QSignalBlocker width_blocker(vector_shape_width_spin_);
   const QSignalBlocker height_blocker(vector_shape_height_spin_);
-  const std::optional<QSignalBlocker> properties_width_blocker =
-      properties_shape_width_spin_ != nullptr
-          ? std::optional<QSignalBlocker>(std::in_place, properties_shape_width_spin_)
-          : std::nullopt;
-  const std::optional<QSignalBlocker> properties_height_blocker =
-      properties_shape_height_spin_ != nullptr
-          ? std::optional<QSignalBlocker>(std::in_place, properties_shape_height_spin_)
-          : std::nullopt;
+  // QSignalBlocker accepts a null object (the Properties panel may not exist).
+  const QSignalBlocker properties_width_blocker(properties_shape_width_spin_);
+  const QSignalBlocker properties_height_blocker(properties_shape_height_spin_);
   vector_shape_width_spin_->setValue(width);
   vector_shape_height_spin_->setValue(height);
   if (properties_shape_width_spin_ != nullptr) {

@@ -141,7 +141,8 @@ Patchy uses it under the BSD-3-Clause license, included at
 
 `src/color/lcms2/` vendors the Little CMS 2.17 core library
 (https://github.com/mm2/Little-CMS), used to convert CMYK PSD documents through
-their embedded ICC color profile on import. Only the MIT-licensed core is
+their embedded ICC color profile on import and to convert single colors through
+the CMYK profile chosen in Preferences. Only the MIT-licensed core is
 vendored (the optional lcms2 speed plugins are GPL-licensed and are not
 included); the license text is included at `src/color/lcms2/LICENSE`.
 
@@ -191,6 +192,18 @@ non-restricted portions), the BSD-licensed DCB demosaic and FBDD denoise
 Adobe DNG SDK fragments. The license texts are included at
 `src/formats/libraw/LICENSE.CDDL`, `src/formats/libraw/LICENSE.LGPL`, and
 `src/formats/libraw/COPYRIGHT`.
+
+## ISO Coated v2 CMYK profile (basICColor)
+
+`third_party/icc/basiccolor/ISOcoated_v2_bas.ICC` is the "ISO Coated v2
+(basICColor)" ICC profile from basICColor GmbH's Offset 2009 set
+(http://www.basiccolor.de, http://colormanagement.org), taken unmodified from the
+OpenICC project's `icc-profiles-basiccolor-printing2009-1.2.0` package
+(https://sourceforge.net/projects/openicc/files/basICColor-Profiles/), fetched
+October 14, 2026. Copyright (c) 2007-2010 basICColor GmbH, zlib/libpng License;
+the license text is at `third_party/icc/basiccolor/LICENSE-ZLIB-bICC`. Patchy
+compiles the profile and that license text into the application and uses the
+profile as the default for CMYK color numbers.
 
 ## G'MIC and CImg (desktop builds)
 
@@ -493,3 +506,169 @@ three total plays, lossless. They exercise partial alpha and offset rectangles.
 fixture encoded with Pillow: three 32 by 24 transparent frames with red, green and
 blue rectangles, delays 100/230/50 ms, disposal to background and infinite looping.
 It verifies GIF to lossless WebP to GIF conversion alongside the original GIF fixture.
+
+## JPEG XL conformance fixtures (tests only)
+
+`test-fixtures/jxl/conformance-patches.jxl`, `conformance-patches-lossless.jxl` and their
+`-ref.png` renderings are the `patches` and `patches_lossless` test cases of the libjxl
+conformance suite (https://github.com/libjxl/conformance, commit
+b1d0f990b03e57bf6d137c365cd5dc8b470b9191, BSD-3-Clause repository; the suite's README lists
+both source images as CC0). SHA-256: `3d8d3847ba40844b1d829366065261f34cc4b4acc3d9006342c64127c1052a3e`
+(patches), `2a47b6766264ac6243a43bbb85684688717591bb3bd9b4c2db56226192418b4e`
+(patches_lossless). They are test data only and are not distributed with Patchy.
+
+## libjxl 0.12.0 with Highway, Brotli and skcms
+
+JPEG XL import and export statically links the libjxl 0.12.0 codec from
+https://github.com/libjxl/libjxl/archive/refs/tags/v0.12.0.tar.gz
+(SHA-256 `03e9be69a30be4011f559da75328b6d7cea8ad921fabfbd551ce10bf45cdc992`) with the
+dependency revisions that release pins:
+Highway https://github.com/google/highway/archive/457c891775a7397bdb0376bb1031e6e027af1c48.tar.gz
+(SHA-256 `5124b0501c98d9930dbb065bfa1a5bbbd59ce0f12facb7e1e33aaef01a5f1f1a`),
+Brotli 1.2.0 https://github.com/google/brotli/archive/028fb5a23661f123017c060daa546b55cf4bde29.tar.gz
+(SHA-256 `0afe09a53c8bad9861c8dd1fc1284308d54f19d2979ba3541cfdcc9b05fe360f`) and
+skcms https://github.com/google/skcms/archive/96d9171c94b937a1b5f0293de7309ac16311b722.tar.gz
+(SHA-256 `9bb4b5bba0b7c04f6c2bce9ff713d61e23c9a20c4945161ae16290498ad74627`).
+Source: `src/formats/libjxl` (library sources only; `src/formats/libjxl/PATCHY.md` lists
+what was left out). Patchy's build prefixes the global symbols and changes no source.
+The libjxl BSD license and Google's additional patent grant follow, then the Highway
+license (Patchy uses Highway under its BSD-3-Clause option), the Brotli MIT license and
+the skcms BSD license.
+
+```text
+Copyright (c) the JPEG XL Project Authors.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+```text
+Additional IP Rights Grant (Patents)
+
+"This implementation" means the copyrightable works distributed by
+Google as part of the JPEG XL project.
+
+Google hereby grants to You a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except as stated in this section)
+patent license to make, have made, use, offer to sell, sell, import,
+transfer and otherwise run, modify and propagate the contents of this
+implementation of JPEG XL, where such license applies only to those patent
+claims, both currently owned or controlled by Google and acquired in
+the future, licensable by Google that are necessarily infringed by this
+implementation of JPEG XL.  This grant does not include claims that would be
+infringed only as a consequence of further modification of this
+implementation.  If you or your agent or exclusive licensee institute or
+order or agree to the institution of patent litigation against any
+entity (including a cross-claim or counterclaim in a lawsuit) alleging
+that this implementation of JPEG XL or any code incorporated within this
+implementation of JPEG XL constitutes direct or contributory patent
+infringement, or inducement of patent infringement, then any patent
+rights granted to you under this License for this implementation of JPEG XL
+shall terminate as of the date such litigation is filed.
+```
+
+```text
+Copyright (c) The Highway Project Authors. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1.  Redistributions of source code must retain the above copyright notice, this
+    list of conditions and the following disclaimer.
+
+2.  Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
+
+3.  Neither the name of the copyright holder nor the names of its
+    contributors may be used to endorse or promote products derived from
+    this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+```text
+Copyright (c) 2009, 2010, 2013-2016 by the Brotli Authors.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
+```text
+// Copyright (c) 2018 Google Inc. All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//    * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//    * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//    * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+--------------------------------------------------------------------------------
+```

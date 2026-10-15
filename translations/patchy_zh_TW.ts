@@ -9813,6 +9813,106 @@ RGB：%2, %3, %4</translation>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation>要包含的檔案資訊中繼資料。色彩描述檔與解析度一律會保留。</translation>
     </message>
+    <message>
+        <source>CMYK export needs a CMYK profile. Choose one in Preferences.</source>
+        <translation>CMYK 轉存需要 CMYK 描述檔。請在偏好設定中選擇。</translation>
+    </message>
+    <message>
+        <source>CMYK export is available for JPEG, TIFF and flattened PDF files only.</source>
+        <translation>CMYK 轉存僅適用於 JPEG、TIFF 和平面化的 PDF 檔案。</translation>
+    </message>
+    <message>
+        <source>CMYK (%1)</source>
+        <translation>CMYK（%1）</translation>
+    </message>
+    <message>
+        <source>CMYK separates the image through the CMYK profile chosen in Preferences and embeds that profile. Transparent areas print as paper white. Patchy opens CMYK files as RGB again.</source>
+        <translation>CMYK 會以偏好設定中選擇的 CMYK 描述檔分色影像，並內嵌該描述檔。透明區域會以紙張白色列印。Patchy 會將 CMYK 檔案重新以 RGB 開啟。</translation>
+    </message>
+    <message>
+        <source>Black and grays in black ink only</source>
+        <translation>黑色和灰色僅用黑墨</translation>
+    </message>
+    <message>
+        <source>Prints black text and gray areas with black ink alone instead of a mix of all four inks, so small type stays sharp even when the press is slightly out of register. Colored areas are separated through the profile as usual.</source>
+        <translation>黑色文字和灰色區域只用黑墨印刷，而不是四色混合，即使印刷機套準稍有偏差，小字也能保持清晰。彩色區域照常透過描述檔分色。</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is damaged or not supported</source>
+        <translation>JPEG XL 檔案已損毀或不受支援</translation>
+    </message>
+    <message>
+        <source>The file is not a JPEG XL image</source>
+        <translation>此檔案不是 JPEG XL 影像</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is truncated</source>
+        <translation>JPEG XL 檔案不完整</translation>
+    </message>
+    <message>
+        <source>The JPEG XL image is too large to open</source>
+        <translation>JPEG XL 影像太大，無法開啟</translation>
+    </message>
+    <message>
+        <source>JPEG XL: extra channels other than alpha were not imported</source>
+        <translation>JPEG XL: 未匯入 Alpha 以外的額外色版</translation>
+    </message>
+    <message>
+        <source>The JPEG XL animation is too large to open</source>
+        <translation>JPEG XL 動畫太大，無法開啟</translation>
+    </message>
+    <message>
+        <source>Could not encode the JPEG XL image</source>
+        <translation>無法編碼 JPEG XL 影像</translation>
+    </message>
+    <message>
+        <source>The document has no pixels to save</source>
+        <translation>文件沒有可儲存的像素</translation>
+    </message>
+    <message>
+        <source>The document has no visible top-level layers to export as an animated JPEG XL.</source>
+        <translation>文件沒有可匯出為動畫 JPEG XL 的可見頂層圖層。</translation>
+    </message>
+    <message>
+        <source>Invalid animated JPEG XL frame or duration.</source>
+        <translation>動畫 JPEG XL 的影格或時長無效。</translation>
+    </message>
+    <message>
+        <source>Could not open JPEG XL file for writing</source>
+        <translation>無法開啟 JPEG XL 檔案以寫入</translation>
+    </message>
+    <message>
+        <source>Could not write JPEG XL file</source>
+        <translation>無法寫入 JPEG XL 檔案</translation>
+    </message>
+    <message>
+        <source>JPEG XL Options</source>
+        <translation>JPEG XL 選項</translation>
+    </message>
+    <message>
+        <source>Higher effort makes smaller files and takes longer to save.</source>
+        <translation>較高的壓縮力度可產生較小的檔案，但儲存時間較長。</translation>
+    </message>
+    <message>
+        <source>Effort:</source>
+        <translation>壓縮力度:</translation>
+    </message>
+    <message>
+        <source>Patchy does not use JPEG XL&apos;s patch and dot coding tools, so images with repeated text or small dots can be somewhat larger than with other encoders.</source>
+        <translation>Patchy 不使用 JPEG XL 的修補和點編碼工具，因此包含重複文字或小點的影像可能比使用其他編碼器時稍大。</translation>
+    </message>
+    <message>
+        <source>JPEG XL Image</source>
+        <translation>JPEG XL 影像</translation>
+    </message>
+    <message>
+        <source>Animated JPEG XL: imported %1 frames as layers</source>
+        <translation>動畫 JPEG XL: 已將 %1 個影格匯入為圖層</translation>
+    </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
+        <translation>此版本的 Patchy 無法解碼 HEIC 影像。Flatpak 版本的 Patchy 可以。</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10047,6 +10147,10 @@ RGB：%2, %3, %4</translation>
     <message>
         <source>Close</source>
         <translation>關閉</translation>
+    </message>
+    <message>
+        <source>Patchy is running from an AppImage; the skill folder exists only while Patchy is open.</source>
+        <translation>Patchy 正從 AppImage 執行，技能資料夾只在 Patchy 開啟期間存在。</translation>
     </message>
 </context>
 <context>
@@ -11468,6 +11572,14 @@ RGB：%2, %3, %4</translation>
         <source>Delete channel</source>
         <translation>刪除色版</translation>
     </message>
+    <message>
+        <source>Preview this ink plate of the CMYK proof: darker means more ink. Plates come from the working CMYK profile and are read-only.</source>
+        <translation>預覽 CMYK 校樣的這塊印版：越暗表示油墨越多。印版來自工作 CMYK 描述檔，為唯讀。</translation>
+    </message>
+    <message>
+        <source>%CTRL%-click to load where this plate has no ink as a selection.</source>
+        <translation>%CTRL%+按一下可將此印版無油墨的區域載入為選取範圍。</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::FontPickerCombo</name>
@@ -12525,18 +12637,6 @@ RGB：%2, %3, %4</translation>
     <message>
         <source>T</source>
         <translation>T</translation>
-    </message>
-    <message>
-        <source>L</source>
-        <translation>左</translation>
-    </message>
-    <message>
-        <source>C</source>
-        <translation>中</translation>
-    </message>
-    <message>
-        <source>R</source>
-        <translation>右</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -13659,16 +13759,8 @@ RGB：%2, %3, %4</translation>
         <translation>Windows</translation>
     </message>
     <message>
-        <source>Color:</source>
-        <translation>顏色:</translation>
-    </message>
-    <message>
         <source>Text color</source>
         <translation>文字顏色</translation>
-    </message>
-    <message>
-        <source>Align:</source>
-        <translation>對齊:</translation>
     </message>
     <message>
         <source>Align Left</source>
@@ -20237,6 +20329,210 @@ You can still download it in your browser.</source>
             <numerusform>新增 %n 個新圖層。預覽已在版面和圖層面板中顯示它們。</numerusform>
         </translation>
     </message>
+    <message>
+        <source>CMYK: %1, %2, %3, %4</source>
+        <translation>CMYK: %1, %2, %3, %4</translation>
+    </message>
+    <message>
+        <source>CMYK</source>
+        <translation>CMYK</translation>
+    </message>
+    <message>
+        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel, and CMYK swatches.</source>
+        <translation>Patchy 以 RGB 編輯。此描述檔決定檢色器、資訊面板和 CMYK 色票中 CMYK 數值的意義。</translation>
+    </message>
+    <message>
+        <source>Automatic</source>
+        <translation>自動</translation>
+    </message>
+    <message>
+        <source>Automatic (%1)</source>
+        <translation>自動（%1）</translation>
+    </message>
+    <message>
+        <source>No profile (approximate formula)</source>
+        <translation>無描述檔（近似公式）</translation>
+    </message>
+    <message>
+        <source>Choose Profile File...</source>
+        <translation>選擇描述檔檔案...</translation>
+    </message>
+    <message>
+        <source>Choose CMYK Profile</source>
+        <translation>選擇 CMYK 描述檔</translation>
+    </message>
+    <message>
+        <source>ICC profiles (*.icc *.icm)</source>
+        <translation>ICC 描述檔 (*.icc *.icm)</translation>
+    </message>
+    <message>
+        <source>CMYK Profile</source>
+        <translation>CMYK 描述檔</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is not a CMYK profile Patchy can use.</source>
+        <translation>「%1」不是 Patchy 可以使用的 CMYK 描述檔。</translation>
+    </message>
+    <message>
+        <source>CMYK profile:</source>
+        <translation>CMYK 描述檔:</translation>
+    </message>
+    <message>
+        <source>Perceptual</source>
+        <translation>感應式</translation>
+    </message>
+    <message>
+        <source>Relative Colorimetric</source>
+        <translation>相對公制色度</translation>
+    </message>
+    <message>
+        <source>Saturation</source>
+        <translation>飽和度</translation>
+    </message>
+    <message>
+        <source>Absolute Colorimetric</source>
+        <translation>絕對公制色度</translation>
+    </message>
+    <message>
+        <source>Rendering intent:</source>
+        <translation>色彩轉換方式:</translation>
+    </message>
+    <message>
+        <source>Black point compensation</source>
+        <translation>黑版控制點補償</translation>
+    </message>
+    <message>
+        <source>Proof Colors</source>
+        <translation>校樣色彩</translation>
+    </message>
+    <message>
+        <source>Gamut Warning</source>
+        <translation>色域警告</translation>
+    </message>
+    <message>
+        <source>Proof Colors and Gamut Warning need a CMYK profile. Choose one in Preferences.</source>
+        <translation>校樣色彩和色域警告需要 CMYK 描述檔。請在偏好設定中選擇。</translation>
+    </message>
+    <message>
+        <source>Canvas view uses the CMYK profile %1. Documents and exports are unchanged.</source>
+        <translation>畫布檢視使用 CMYK 描述檔 %1。文件和轉存不變。</translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation>青色</translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation>洋紅</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>黃色</translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation>黑色</translation>
+    </message>
+    <message>
+        <source>Previewing Cyan plate (read-only)</source>
+        <translation>正在預覽青色印版（唯讀）</translation>
+    </message>
+    <message>
+        <source>Previewing Magenta plate (read-only)</source>
+        <translation>正在預覽洋紅印版（唯讀）</translation>
+    </message>
+    <message>
+        <source>Previewing Yellow plate (read-only)</source>
+        <translation>正在預覽黃色印版（唯讀）</translation>
+    </message>
+    <message>
+        <source>Previewing Black plate (read-only)</source>
+        <translation>正在預覽黑色印版（唯讀）</translation>
+    </message>
+    <message>
+        <source>Saved animated JPEG XL copy %1</source>
+        <translation>已儲存動畫 JPEG XL 副本 %1</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Download the new AppImage, quit Patchy, and replace this file with it:
+
+%3</source>
+        <translation>Patchy %1 已經推出，您目前使用的是 %2 版。
+
+請下載新的 AppImage，結束 Patchy，然後用它取代此檔案：
+
+%3</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage is no longer on this computer.</source>
+        <translation>下載的 AppImage 已不在這部電腦上。</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage does not match the checksum published for this update.</source>
+        <translation>下載的 AppImage 與此更新公布的總和檢查碼不符。</translation>
+    </message>
+    <message>
+        <source>The new AppImage could not be put in place of this one.</source>
+        <translation>無法用新的 AppImage 取代這個 AppImage。</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, replace this AppImage, and start again. You will be asked about unsaved work first.</source>
+        <translation>Patchy %1 已經推出，您目前使用的是 %2 版。
+
+Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前會詢問您如何處理未儲存的工作。</translation>
+    </message>
+    <message>
+        <source>&amp;Flatten Image</source>
+        <translation>影像平面化(&amp;F)</translation>
+    </message>
+    <message>
+        <source>Merge every visible layer into one opaque Background layer</source>
+        <translation>將所有可見圖層合併為一個不透明的背景圖層</translation>
+    </message>
+    <message>
+        <source>No layers to flatten</source>
+        <translation>沒有可平面化的圖層</translation>
+    </message>
+    <message>
+        <source>The image is already flat</source>
+        <translation>影像已經平面化</translation>
+    </message>
+    <message>
+        <source>Flatten Image</source>
+        <translation>影像平面化</translation>
+    </message>
+    <message>
+        <source>Discard hidden layers?</source>
+        <translation>要丟棄隱藏的圖層嗎？</translation>
+    </message>
+    <message>
+        <source>Flattening image...</source>
+        <translation>正在將影像平面化...</translation>
+    </message>
+    <message>
+        <source>Could not flatten the image. The layers are unchanged.</source>
+        <translation>無法將影像平面化。圖層未變更。</translation>
+    </message>
+    <message>
+        <source>Flatten image</source>
+        <translation>影像平面化</translation>
+    </message>
+    <message>
+        <source>Flattened the image</source>
+        <translation>已將影像平面化</translation>
+    </message>
+    <message>
+        <source>Filter recent folders...</source>
+        <translation>篩選最近使用的資料夾...</translation>
+    </message>
+    <message>
+        <source>No matching recent folders</source>
+        <translation>沒有相符的最近使用資料夾</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20610,6 +20906,54 @@ You can still download it in your browser.</source>
     <message>
         <source>File: %1</source>
         <translation>檔案：%1</translation>
+    </message>
+    <message>
+        <source>C:</source>
+        <translation>C:</translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation>青色</translation>
+    </message>
+    <message>
+        <source>M:</source>
+        <translation>M:</translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation>洋紅</translation>
+    </message>
+    <message>
+        <source>Y:</source>
+        <translation>Y:</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>黃色</translation>
+    </message>
+    <message>
+        <source>K:</source>
+        <translation>K:</translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation>黑色</translation>
+    </message>
+    <message>
+        <source>Ink percentages in the working CMYK space: %1. Choose the profile in Preferences.</source>
+        <translation>工作 CMYK 空間中的油墨百分比：%1。請在偏好設定中選擇描述檔。</translation>
+    </message>
+    <message>
+        <source>no profile (approximate)</source>
+        <translation>無描述檔（近似）</translation>
+    </message>
+    <message>
+        <source>Use the closest printable color</source>
+        <translation>使用最接近的可列印色彩</translation>
+    </message>
+    <message>
+        <source>This color is outside the gamut of %1 and prints as the color shown here. Click to use it.</source>
+        <translation>此色彩超出 %1 的色域，列印出來會是這裡顯示的色彩。按一下以使用該色彩。</translation>
     </message>
 </context>
 <context>
@@ -21883,6 +22227,10 @@ You can still download it in your browser.</source>
         <source>G&apos;MIC filter %1 failed: %2</source>
         <translation>G&apos;MIC 濾鏡 %1 失敗: %2</translation>
     </message>
+    <message>
+        <source>CMYK values are percentages from 0 to 100</source>
+        <translation>CMYK 值是 0 到 100 的百分比</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ScriptSaveOptions</name>
@@ -21917,6 +22265,10 @@ You can still download it in your browser.</source>
     <message>
         <source>%1: options must be an object such as {quality: 85}.</source>
         <translation>%1：選項必須是類似 {quality: 85} 的物件。</translation>
+    </message>
+    <message>
+        <source>%1: blackInkOnly needs colorMode: &quot;cmyk&quot;.</source>
+        <translation>%1: blackInkOnly 需要 colorMode: &quot;cmyk&quot;。</translation>
     </message>
 </context>
 <context>

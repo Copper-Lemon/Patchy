@@ -332,6 +332,7 @@ Field types: `number`, `slider`, `checkbox`, `choice`, `text`, `color`, `folder`
 | `app.chooseFolder(title)` | Folder picker; `""` when cancelled or unattended. |
 | `app.chooseOpenFile(title, filter)` / `app.chooseSaveFile(title, filter)` | File pickers; the filter uses Qt syntax like `"Images (*.png *.jpg)"`. |
 | `app.listFonts()` | Every font family available to the text engine, as `{family, styles, writingSystems}` sorted by family. Check it before `addTextLayer` when the exact face matters: `app.listFonts().filter(function (f) { return f.writingSystems.indexOf("Japanese") >= 0; })`. |
+| `app.colorToCmyk(color)`, `app.cmykToColor(c, m, y, k)` | Converts one color to ink percentages (`{c, m, y, k}`, 0 to 100) and back to `"#rrggbb"`, through the working CMYK profile chosen in Preferences. `app.cmykProfile` describes it: `{name, hasProfile, intent, blackPointCompensation}`. Documents stay RGB; with `hasProfile` false the numbers come from an approximate formula. |
 | `app.runCommand(id)` | Triggers a menu command by its stable id, e.g. `app.runCommand("file.scripts.editor")`. `app.commandIds()` lists them all. Returns false for unknown or disabled commands and for `edit.undo`, `edit.redo`, and `file.quit`. |
 | `app.downloadObjectSelectionModel()` | Downloads Object Selection's High Quality model (234 MB from GitHub, kept in Patchy's data folder) if it is missing, waiting with progress in the status bar. Returns true once it is present; throws if the download fails, and in the web build. |
 | `app.exportPdf(documents, path, options)` | Writes one PDF with a page per document (an array, or one document), each page sized from that document's pixels and resolution. Options: `lossless` (default true; false writes JPEG), `imageQuality` (`"lossless"`, `"high"`, `"medium"`, or `"low"`; wins over `lossless`), `keepOriginalImageData` (default true: an unchanged page imported from a PDF keeps its original image bytes), `editableLayers` (keep shapes and text as PDF objects, default false), `missingFontsAsImages`. Throws on bad arguments or a write failure. A folder of files becomes a PDF by opening each with `app.open` and passing the documents here. |
@@ -387,6 +388,7 @@ doc.exportAs("page.pdf", {imageQuality: "high", editableLayers: true});
 | `.jpg`, `.jpeg` | `quality` (0 to 100) |
 | `.webp` | `quality` (0 to 100), `lossless` |
 | `.jxr` | `quality` (1 to 100), `lossless` |
+| `.jxl` | `quality` (1 to 100), `lossless`, `effort` (1 to 9), `animate` (visible top-level layers become frames, top first), `frameDelayMs`, `loopCount` (0 loops forever) |
 | `.dds` | `compression` (`"auto"`, `"uncompressed"`, `"bc1"`, `"bc3"`, `"bc4"`, `"bc5"`, `"bc7"`), `mipmaps` (`"auto"`, `"on"`, `"off"`). Automatic keeps an opened .dds file's format and otherwise picks BC1 for opaque images and BC3 with transparency. |
 | `.ico`, `.cur` | `sizes` (an array from 16, 24, 32, 48, 64, 128, 256), `resample` (`"auto"`, `"nearest"`, `"smooth"`); `.cur` also `hotspot: {x, y}` |
 | `.bmp` | `encoding` (`"rgba32"`, `"rgb24"`, `"indexed8"`, `"indexed4"`, `"indexed2"`), `paletteMode` (`"exact"`, `"quantize"`, `"paletteFile"`), `palettePath` |
@@ -394,9 +396,11 @@ doc.exportAs("page.pdf", {imageQuality: "high", editableLayers: true});
 | `.pdf` | the `app.exportPdf` keys: `imageQuality`, `lossless`, `editableLayers`, `keepOriginalImageData`, `missingFontsAsImages` |
 | `.gif` | `animate` (visible top-level layers become frames, top first), `frameDelayMs` |
 
-`.jpg`, `.png`, `.tif`, `.webp` and `.gif` also take `metadata` (`"all"`, the default; `"copyright"`; `"none"`): the File Info metadata written with the image. The color profile and resolution are always written.
+`.jpg`, `.png`, `.tif`, `.webp`, `.gif` and `.jxl` also take `metadata` (`"all"`, the default; `"copyright"`; `"none"`): the File Info metadata written with the image. The color profile and resolution are always written.
 
-Keys you leave out follow your Save Options defaults and the document (a document opened from a .dds keeps that file's format under `"auto"`). The object is strict: a key that does not apply to the extension, an unknown key, a wrong type or an out-of-range value throws and nothing is written, so a typo never saves with defaults. A scripted save never changes your Save Options defaults. Formats without options (`.psd`, `.png`, `.tif`, ...) accept no keys.
+`.jpg`, `.tif` and flattened `.pdf` also take `colorMode` (`"rgb"`, the default, or `"cmyk"`): CMYK for print, separated through the working CMYK profile from Preferences, which the file then embeds. Transparent areas become paper white. Add `blackInkOnly: true` to print black text and grays with black ink alone instead of four-ink rich black. Use it with `exportAs`: Patchy opens a CMYK file as RGB again.
+
+Keys you leave out follow your Save Options defaults and the document (a document opened from a .dds keeps that file's format under `"auto"`). The object is strict: a key that does not apply to the extension, an unknown key, a wrong type or an out-of-range value throws and nothing is written, so a typo never saves with defaults. A scripted save never changes your Save Options defaults. Formats without options (`.psd`, `.png`, ...) accept no keys.
 
 ### File Info (metadata)
 
@@ -548,6 +552,7 @@ Colors everywhere are CSS-style strings: `"#rrggbb"`, `"#aarrggbb"`, or named co
 | `patchy.ui.setSidePanelWidth(px)` | Sets the width of the right panel stack (Layers/Channels/Paths). |
 | `patchy.ui.captureWindow(path)` | Saves a PNG screenshot without raising or focusing the window. Waits up to 60 seconds for enabled Dynamic Vector Preview to settle; returns false on timeout or write failure. |
 | `patchy.ui.setStatusMessage(text)` | Shows a message in the status bar. Handy for progress readouts in long batches. |
+| `patchy.ui.proofColors`, `patchy.ui.gamutWarning` | View > Proof Colors and View > Gamut Warning (read/write booleans). They change how every canvas is displayed, through the working CMYK profile: a soft proof of the print, and flat gray over colors the profile cannot reproduce. Pixels, previews, saves and exports are unchanged, so only window captures see them. `app.colorInCmykGamut(color)` answers the gamut question for one color. |
 | `patchy.ui.zoom` | The active document's view zoom in percent (read/write, 0 with no document). Setting clamps to 5..12800; throws for NaN, non-positive values, or with no document. Only window captures see it. |
 | `patchy.ui.fitOnScreen()` | View > Fit on Screen for the active document. Throws with no document. |
 | `app.runCommand("view.vector_preview")` | Toggles View > Dynamic Vector Preview, also available in Preferences > Application. Vector shapes and masks stay sharp alongside pixel content; saved/exported pixels keep document resolution. This is a persisted application view option. Connector sessions refuse `runCommand`. |

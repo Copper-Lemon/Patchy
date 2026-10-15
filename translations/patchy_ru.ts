@@ -9873,6 +9873,106 @@ RGB: %2, %3, %4</translation>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation>Какие метаданные из сведений о файле включать. Цветовой профиль и разрешение сохраняются всегда.</translation>
     </message>
+    <message>
+        <source>CMYK export needs a CMYK profile. Choose one in Preferences.</source>
+        <translation>Для экспорта в CMYK нужен профиль CMYK. Выберите его в настройках.</translation>
+    </message>
+    <message>
+        <source>CMYK export is available for JPEG, TIFF and flattened PDF files only.</source>
+        <translation>Экспорт в CMYK доступен только для файлов JPEG, TIFF и сведенных PDF.</translation>
+    </message>
+    <message>
+        <source>CMYK (%1)</source>
+        <translation>CMYK (%1)</translation>
+    </message>
+    <message>
+        <source>CMYK separates the image through the CMYK profile chosen in Preferences and embeds that profile. Transparent areas print as paper white. Patchy opens CMYK files as RGB again.</source>
+        <translation>CMYK делит изображение на краски через профиль CMYK, выбранный в настройках, и встраивает этот профиль. Прозрачные области печатаются как белый цвет бумаги. Patchy снова открывает файлы CMYK как RGB.</translation>
+    </message>
+    <message>
+        <source>Black and grays in black ink only</source>
+        <translation>Черный и серые только черной краской</translation>
+    </message>
+    <message>
+        <source>Prints black text and gray areas with black ink alone instead of a mix of all four inks, so small type stays sharp even when the press is slightly out of register. Colored areas are separated through the profile as usual.</source>
+        <translation>Печатает черный текст и серые области только черной краской вместо смеси всех четырех красок, поэтому мелкий шрифт остается четким даже при небольшом несовмещении на печатной машине. Цветные области разделяются через профиль как обычно.</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is damaged or not supported</source>
+        <translation>Файл JPEG XL поврежден или не поддерживается</translation>
+    </message>
+    <message>
+        <source>The file is not a JPEG XL image</source>
+        <translation>Файл не является изображением JPEG XL</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is truncated</source>
+        <translation>Файл JPEG XL обрезан</translation>
+    </message>
+    <message>
+        <source>The JPEG XL image is too large to open</source>
+        <translation>Изображение JPEG XL слишком велико для открытия</translation>
+    </message>
+    <message>
+        <source>JPEG XL: extra channels other than alpha were not imported</source>
+        <translation>JPEG XL: дополнительные каналы, кроме альфа-канала, не импортированы</translation>
+    </message>
+    <message>
+        <source>The JPEG XL animation is too large to open</source>
+        <translation>Анимация JPEG XL слишком велика для открытия</translation>
+    </message>
+    <message>
+        <source>Could not encode the JPEG XL image</source>
+        <translation>Не удалось закодировать изображение JPEG XL</translation>
+    </message>
+    <message>
+        <source>The document has no pixels to save</source>
+        <translation>В документе нет пикселей для сохранения</translation>
+    </message>
+    <message>
+        <source>The document has no visible top-level layers to export as an animated JPEG XL.</source>
+        <translation>В документе нет видимых слоёв верхнего уровня для экспорта в анимированный JPEG XL.</translation>
+    </message>
+    <message>
+        <source>Invalid animated JPEG XL frame or duration.</source>
+        <translation>Неверный кадр или длительность анимированного JPEG XL.</translation>
+    </message>
+    <message>
+        <source>Could not open JPEG XL file for writing</source>
+        <translation>Не удалось открыть файл JPEG XL для записи</translation>
+    </message>
+    <message>
+        <source>Could not write JPEG XL file</source>
+        <translation>Не удалось записать файл JPEG XL</translation>
+    </message>
+    <message>
+        <source>JPEG XL Options</source>
+        <translation>Параметры JPEG XL</translation>
+    </message>
+    <message>
+        <source>Higher effort makes smaller files and takes longer to save.</source>
+        <translation>Большее усилие уменьшает файл, но сохранение занимает больше времени.</translation>
+    </message>
+    <message>
+        <source>Effort:</source>
+        <translation>Усилие:</translation>
+    </message>
+    <message>
+        <source>Patchy does not use JPEG XL&apos;s patch and dot coding tools, so images with repeated text or small dots can be somewhat larger than with other encoders.</source>
+        <translation>Patchy не использует инструменты кодирования патчей и точек JPEG XL, поэтому изображения с повторяющимся текстом или мелкими точками могут быть немного больше, чем при сохранении другими кодировщиками.</translation>
+    </message>
+    <message>
+        <source>JPEG XL Image</source>
+        <translation>Изображение JPEG XL</translation>
+    </message>
+    <message>
+        <source>Animated JPEG XL: imported %1 frames as layers</source>
+        <translation>Анимированный JPEG XL: %1 кадров импортировано как слои</translation>
+    </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
+        <translation>Эта сборка Patchy не может декодировать изображения HEIC. Версия Patchy для Flatpak может.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10107,6 +10207,10 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Close</source>
         <translation>Закрыть</translation>
+    </message>
+    <message>
+        <source>Patchy is running from an AppImage; the skill folder exists only while Patchy is open.</source>
+        <translation>Patchy запущен из AppImage; папка навыков существует, только пока Patchy открыт.</translation>
     </message>
 </context>
 <context>
@@ -11528,6 +11632,14 @@ RGB: %2, %3, %4</translation>
         <source>Delete channel</source>
         <translation>Удалить канал</translation>
     </message>
+    <message>
+        <source>Preview this ink plate of the CMYK proof: darker means more ink. Plates come from the working CMYK profile and are read-only.</source>
+        <translation>Просмотр этой печатной формы цветопробы CMYK: темнее значит больше краски. Формы строятся по рабочему профилю CMYK и доступны только для чтения.</translation>
+    </message>
+    <message>
+        <source>%CTRL%-click to load where this plate has no ink as a selection.</source>
+        <translation>%CTRL%-щелчок загружает как выделение области без краски на этой форме.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::FontPickerCombo</name>
@@ -12747,18 +12859,6 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>T</source>
         <translation>T</translation>
-    </message>
-    <message>
-        <source>L</source>
-        <translation>L</translation>
-    </message>
-    <message>
-        <source>C</source>
-        <translation>C</translation>
-    </message>
-    <message>
-        <source>R</source>
-        <translation>R</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -14133,16 +14233,8 @@ RGB: %2, %3, %4</translation>
         <translation>Windows</translation>
     </message>
     <message>
-        <source>Color:</source>
-        <translation>Цвет:</translation>
-    </message>
-    <message>
         <source>Text color</source>
         <translation>Цвет текста</translation>
-    </message>
-    <message>
-        <source>Align:</source>
-        <translation>Выровнять:</translation>
     </message>
     <message>
         <source>Vertical</source>
@@ -20363,6 +20455,210 @@ You can still download it in your browser.</source>
             <numerusform>Добавляет %n новых слоёв. Предпросмотр уже показывает их на холсте и в панели «Слои».</numerusform>
         </translation>
     </message>
+    <message>
+        <source>CMYK: %1, %2, %3, %4</source>
+        <translation>CMYK: %1, %2, %3, %4</translation>
+    </message>
+    <message>
+        <source>CMYK</source>
+        <translation>CMYK</translation>
+    </message>
+    <message>
+        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel, and CMYK swatches.</source>
+        <translation>Patchy редактирует в RGB. Этот профиль определяет, что означают значения CMYK в палитре выбора цвета, на панели «Информация» и в образцах CMYK.</translation>
+    </message>
+    <message>
+        <source>Automatic</source>
+        <translation>Автоматически</translation>
+    </message>
+    <message>
+        <source>Automatic (%1)</source>
+        <translation>Автоматически (%1)</translation>
+    </message>
+    <message>
+        <source>No profile (approximate formula)</source>
+        <translation>Без профиля (приближенная формула)</translation>
+    </message>
+    <message>
+        <source>Choose Profile File...</source>
+        <translation>Выбрать файл профиля...</translation>
+    </message>
+    <message>
+        <source>Choose CMYK Profile</source>
+        <translation>Выбор профиля CMYK</translation>
+    </message>
+    <message>
+        <source>ICC profiles (*.icc *.icm)</source>
+        <translation>Профили ICC (*.icc *.icm)</translation>
+    </message>
+    <message>
+        <source>CMYK Profile</source>
+        <translation>Профиль CMYK</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is not a CMYK profile Patchy can use.</source>
+        <translation>&quot;%1&quot; не является профилем CMYK, который может использовать Patchy.</translation>
+    </message>
+    <message>
+        <source>CMYK profile:</source>
+        <translation>Профиль CMYK:</translation>
+    </message>
+    <message>
+        <source>Perceptual</source>
+        <translation>Перцепционный</translation>
+    </message>
+    <message>
+        <source>Relative Colorimetric</source>
+        <translation>Относительный колориметрический</translation>
+    </message>
+    <message>
+        <source>Saturation</source>
+        <translation>Насыщенность</translation>
+    </message>
+    <message>
+        <source>Absolute Colorimetric</source>
+        <translation>Абсолютный колориметрический</translation>
+    </message>
+    <message>
+        <source>Rendering intent:</source>
+        <translation>Метод рендеринга:</translation>
+    </message>
+    <message>
+        <source>Black point compensation</source>
+        <translation>Компенсация точки черного</translation>
+    </message>
+    <message>
+        <source>Proof Colors</source>
+        <translation>Цветопроба</translation>
+    </message>
+    <message>
+        <source>Gamut Warning</source>
+        <translation>Предупреждение о цветовом охвате</translation>
+    </message>
+    <message>
+        <source>Proof Colors and Gamut Warning need a CMYK profile. Choose one in Preferences.</source>
+        <translation>Для цветопробы и предупреждения о цветовом охвате нужен профиль CMYK. Выберите его в настройках.</translation>
+    </message>
+    <message>
+        <source>Canvas view uses the CMYK profile %1. Documents and exports are unchanged.</source>
+        <translation>Вид холста использует профиль CMYK %1. Документы и экспорт не изменяются.</translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation>Голубой</translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation>Пурпурный</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>Желтый</translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation>Черный</translation>
+    </message>
+    <message>
+        <source>Previewing Cyan plate (read-only)</source>
+        <translation>Просмотр формы: Голубой (только чтение)</translation>
+    </message>
+    <message>
+        <source>Previewing Magenta plate (read-only)</source>
+        <translation>Просмотр формы: Пурпурный (только чтение)</translation>
+    </message>
+    <message>
+        <source>Previewing Yellow plate (read-only)</source>
+        <translation>Просмотр формы: Желтый (только чтение)</translation>
+    </message>
+    <message>
+        <source>Previewing Black plate (read-only)</source>
+        <translation>Просмотр формы: Черный (только чтение)</translation>
+    </message>
+    <message>
+        <source>Saved animated JPEG XL copy %1</source>
+        <translation>Сохранена копия анимированного JPEG XL: %1</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Download the new AppImage, quit Patchy, and replace this file with it:
+
+%3</source>
+        <translation>Доступна версия Patchy %1. Вы используете версию %2.
+
+Загрузите новый AppImage, выйдите из Patchy и замените им этот файл:
+
+%3</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage is no longer on this computer.</source>
+        <translation>Загруженного AppImage больше нет на этом компьютере.</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage does not match the checksum published for this update.</source>
+        <translation>Загруженный AppImage не соответствует контрольной сумме, опубликованной для этого обновления.</translation>
+    </message>
+    <message>
+        <source>The new AppImage could not be put in place of this one.</source>
+        <translation>Не удалось заменить этот AppImage новым.</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, replace this AppImage, and start again. You will be asked about unsaved work first.</source>
+        <translation>Доступна версия Patchy %1. Вы используете версию %2.
+
+Patchy может скачать обновление, заменить этот AppImage и запуститься снова. Сначала появится вопрос о несохранённой работе.</translation>
+    </message>
+    <message>
+        <source>&amp;Flatten Image</source>
+        <translation>Выполнить &amp;сведение</translation>
+    </message>
+    <message>
+        <source>Merge every visible layer into one opaque Background layer</source>
+        <translation>Объединить все видимые слои в один непрозрачный фоновый слой</translation>
+    </message>
+    <message>
+        <source>No layers to flatten</source>
+        <translation>Нет слоев для сведения</translation>
+    </message>
+    <message>
+        <source>The image is already flat</source>
+        <translation>Изображение уже сведено</translation>
+    </message>
+    <message>
+        <source>Flatten Image</source>
+        <translation>Выполнить сведение</translation>
+    </message>
+    <message>
+        <source>Discard hidden layers?</source>
+        <translation>Удалить скрытые слои?</translation>
+    </message>
+    <message>
+        <source>Flattening image...</source>
+        <translation>Сведение изображения...</translation>
+    </message>
+    <message>
+        <source>Could not flatten the image. The layers are unchanged.</source>
+        <translation>Не удалось выполнить сведение. Слои не изменены.</translation>
+    </message>
+    <message>
+        <source>Flatten image</source>
+        <translation>Сведение</translation>
+    </message>
+    <message>
+        <source>Flattened the image</source>
+        <translation>Изображение сведено</translation>
+    </message>
+    <message>
+        <source>Filter recent folders...</source>
+        <translation>Фильтровать последние папки...</translation>
+    </message>
+    <message>
+        <source>No matching recent folders</source>
+        <translation>Нет соответствующих последних папок</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20738,6 +21034,54 @@ You can still download it in your browser.</source>
     <message>
         <source>File: %1</source>
         <translation>Файл: %1</translation>
+    </message>
+    <message>
+        <source>C:</source>
+        <translation>C:</translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation>Голубой</translation>
+    </message>
+    <message>
+        <source>M:</source>
+        <translation>M:</translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation>Пурпурный</translation>
+    </message>
+    <message>
+        <source>Y:</source>
+        <translation>Y:</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>Желтый</translation>
+    </message>
+    <message>
+        <source>K:</source>
+        <translation>K:</translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation>Черный</translation>
+    </message>
+    <message>
+        <source>Ink percentages in the working CMYK space: %1. Choose the profile in Preferences.</source>
+        <translation>Проценты краски в рабочем пространстве CMYK: %1. Профиль выбирается в настройках.</translation>
+    </message>
+    <message>
+        <source>no profile (approximate)</source>
+        <translation>без профиля (приближенно)</translation>
+    </message>
+    <message>
+        <source>Use the closest printable color</source>
+        <translation>Использовать ближайший печатаемый цвет</translation>
+    </message>
+    <message>
+        <source>This color is outside the gamut of %1 and prints as the color shown here. Click to use it.</source>
+        <translation>Этот цвет выходит за пределы цветового охвата %1 и печатается как показанный здесь цвет. Щелкните, чтобы использовать его.</translation>
     </message>
 </context>
 <context>
@@ -22011,6 +22355,10 @@ You can still download it in your browser.</source>
         <source>G&apos;MIC filter %1 failed: %2</source>
         <translation>Сбой фильтра G&apos;MIC %1: %2</translation>
     </message>
+    <message>
+        <source>CMYK values are percentages from 0 to 100</source>
+        <translation>Значения CMYK задаются в процентах от 0 до 100</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ScriptSaveOptions</name>
@@ -22045,6 +22393,10 @@ You can still download it in your browser.</source>
     <message>
         <source>%1: options must be an object such as {quality: 85}.</source>
         <translation>%1: параметры должны быть объектом вида {quality: 85}.</translation>
+    </message>
+    <message>
+        <source>%1: blackInkOnly needs colorMode: &quot;cmyk&quot;.</source>
+        <translation>%1: для blackInkOnly нужен colorMode: &quot;cmyk&quot;.</translation>
     </message>
 </context>
 <context>

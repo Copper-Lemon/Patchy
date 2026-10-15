@@ -9813,6 +9813,106 @@ RGB: %2, %3, %4</translation>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation>포함할 파일 정보 메타데이터입니다. 색상 프로필과 해상도는 항상 유지됩니다.</translation>
     </message>
+    <message>
+        <source>CMYK export needs a CMYK profile. Choose one in Preferences.</source>
+        <translation>CMYK 내보내기에는 CMYK 프로파일이 필요합니다. 환경설정에서 선택하세요.</translation>
+    </message>
+    <message>
+        <source>CMYK export is available for JPEG, TIFF and flattened PDF files only.</source>
+        <translation>CMYK 내보내기는 JPEG, TIFF 및 병합된 PDF 파일에만 사용할 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>CMYK (%1)</source>
+        <translation>CMYK(%1)</translation>
+    </message>
+    <message>
+        <source>CMYK separates the image through the CMYK profile chosen in Preferences and embeds that profile. Transparent areas print as paper white. Patchy opens CMYK files as RGB again.</source>
+        <translation>CMYK는 환경설정에서 선택한 CMYK 프로파일로 이미지를 분판하고 그 프로파일을 포함합니다. 투명한 영역은 종이 흰색으로 인쇄됩니다. Patchy는 CMYK 파일을 다시 RGB로 엽니다.</translation>
+    </message>
+    <message>
+        <source>Black and grays in black ink only</source>
+        <translation>검정과 회색을 검정 잉크로만</translation>
+    </message>
+    <message>
+        <source>Prints black text and gray areas with black ink alone instead of a mix of all four inks, so small type stays sharp even when the press is slightly out of register. Colored areas are separated through the profile as usual.</source>
+        <translation>검정 텍스트와 회색 영역을 네 가지 잉크를 섞지 않고 검정 잉크로만 인쇄하므로, 인쇄기의 맞춤이 조금 어긋나도 작은 글자가 선명하게 유지됩니다. 색상 영역은 평소처럼 프로파일로 분판됩니다.</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is damaged or not supported</source>
+        <translation>JPEG XL 파일이 손상되었거나 지원되지 않습니다</translation>
+    </message>
+    <message>
+        <source>The file is not a JPEG XL image</source>
+        <translation>이 파일은 JPEG XL 이미지가 아닙니다</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is truncated</source>
+        <translation>JPEG XL 파일이 잘려 있습니다</translation>
+    </message>
+    <message>
+        <source>The JPEG XL image is too large to open</source>
+        <translation>JPEG XL 이미지가 너무 커서 열 수 없습니다</translation>
+    </message>
+    <message>
+        <source>JPEG XL: extra channels other than alpha were not imported</source>
+        <translation>JPEG XL: 알파 이외의 추가 채널은 가져오지 않았습니다</translation>
+    </message>
+    <message>
+        <source>The JPEG XL animation is too large to open</source>
+        <translation>JPEG XL 애니메이션이 너무 커서 열 수 없습니다</translation>
+    </message>
+    <message>
+        <source>Could not encode the JPEG XL image</source>
+        <translation>JPEG XL 이미지를 인코딩할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>The document has no pixels to save</source>
+        <translation>문서에 저장할 픽셀이 없습니다</translation>
+    </message>
+    <message>
+        <source>The document has no visible top-level layers to export as an animated JPEG XL.</source>
+        <translation>문서에 애니메이션 JPEG XL로 내보낼 표시된 최상위 레이어가 없습니다.</translation>
+    </message>
+    <message>
+        <source>Invalid animated JPEG XL frame or duration.</source>
+        <translation>애니메이션 JPEG XL의 프레임 또는 시간이 잘못되었습니다.</translation>
+    </message>
+    <message>
+        <source>Could not open JPEG XL file for writing</source>
+        <translation>JPEG XL 파일을 쓰기용으로 열 수 없습니다</translation>
+    </message>
+    <message>
+        <source>Could not write JPEG XL file</source>
+        <translation>JPEG XL 파일을 쓸 수 없습니다</translation>
+    </message>
+    <message>
+        <source>JPEG XL Options</source>
+        <translation>JPEG XL 옵션</translation>
+    </message>
+    <message>
+        <source>Higher effort makes smaller files and takes longer to save.</source>
+        <translation>노력 값을 높이면 파일이 작아지지만 저장 시간이 길어집니다.</translation>
+    </message>
+    <message>
+        <source>Effort:</source>
+        <translation>노력:</translation>
+    </message>
+    <message>
+        <source>Patchy does not use JPEG XL&apos;s patch and dot coding tools, so images with repeated text or small dots can be somewhat larger than with other encoders.</source>
+        <translation>Patchy는 JPEG XL의 패치 및 점 코딩 도구를 사용하지 않으므로 반복되는 텍스트나 작은 점이 있는 이미지는 다른 인코더보다 다소 커질 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>JPEG XL Image</source>
+        <translation>JPEG XL 이미지</translation>
+    </message>
+    <message>
+        <source>Animated JPEG XL: imported %1 frames as layers</source>
+        <translation>애니메이션 JPEG XL: %1개 프레임을 레이어로 가져왔습니다</translation>
+    </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
+        <translation>이 Patchy 빌드는 HEIC 이미지를 디코딩할 수 없습니다. Flatpak 버전의 Patchy는 디코딩할 수 있습니다.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10047,6 +10147,10 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Close</source>
         <translation>닫기</translation>
+    </message>
+    <message>
+        <source>Patchy is running from an AppImage; the skill folder exists only while Patchy is open.</source>
+        <translation>Patchy가 AppImage에서 실행되고 있습니다. 스킬 폴더는 Patchy가 열려 있는 동안에만 존재합니다.</translation>
     </message>
 </context>
 <context>
@@ -11468,6 +11572,14 @@ RGB: %2, %3, %4</translation>
         <source>Delete channel</source>
         <translation>채널 삭제</translation>
     </message>
+    <message>
+        <source>Preview this ink plate of the CMYK proof: darker means more ink. Plates come from the working CMYK profile and are read-only.</source>
+        <translation>CMYK 교정의 이 잉크 판을 미리 봅니다. 어두울수록 잉크가 많습니다. 판은 작업 CMYK 프로파일에서 만들어지며 읽기 전용입니다.</translation>
+    </message>
+    <message>
+        <source>%CTRL%-click to load where this plate has no ink as a selection.</source>
+        <translation>%CTRL%-클릭하면 이 판에 잉크가 없는 영역을 선택 영역으로 불러옵니다.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::FontPickerCombo</name>
@@ -12685,18 +12797,6 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>T</source>
         <translation>T</translation>
-    </message>
-    <message>
-        <source>L</source>
-        <translation>L</translation>
-    </message>
-    <message>
-        <source>C</source>
-        <translation>C</translation>
-    </message>
-    <message>
-        <source>R</source>
-        <translation>R</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -14071,16 +14171,8 @@ RGB: %2, %3, %4</translation>
         <translation>윈도우</translation>
     </message>
     <message>
-        <source>Color:</source>
-        <translation>색상:</translation>
-    </message>
-    <message>
         <source>Text color</source>
         <translation>텍스트 색상</translation>
-    </message>
-    <message>
-        <source>Align:</source>
-        <translation>정렬:</translation>
     </message>
     <message>
         <source>Vertical</source>
@@ -20237,6 +20329,210 @@ You can still download it in your browser.</source>
             <numerusform>새 레이어 %n개를 추가합니다. 미리 보기에서 이미 캔버스와 레이어 패널에 표시됩니다.</numerusform>
         </translation>
     </message>
+    <message>
+        <source>CMYK: %1, %2, %3, %4</source>
+        <translation>CMYK: %1, %2, %3, %4</translation>
+    </message>
+    <message>
+        <source>CMYK</source>
+        <translation>CMYK</translation>
+    </message>
+    <message>
+        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel, and CMYK swatches.</source>
+        <translation>Patchy는 RGB로 편집합니다. 이 프로파일은 색상 피커, 정보 패널, CMYK 색상 견본에서 CMYK 값의 의미를 정합니다.</translation>
+    </message>
+    <message>
+        <source>Automatic</source>
+        <translation>자동</translation>
+    </message>
+    <message>
+        <source>Automatic (%1)</source>
+        <translation>자동(%1)</translation>
+    </message>
+    <message>
+        <source>No profile (approximate formula)</source>
+        <translation>프로파일 없음(근사 공식)</translation>
+    </message>
+    <message>
+        <source>Choose Profile File...</source>
+        <translation>프로파일 파일 선택...</translation>
+    </message>
+    <message>
+        <source>Choose CMYK Profile</source>
+        <translation>CMYK 프로파일 선택</translation>
+    </message>
+    <message>
+        <source>ICC profiles (*.icc *.icm)</source>
+        <translation>ICC 프로파일(*.icc *.icm)</translation>
+    </message>
+    <message>
+        <source>CMYK Profile</source>
+        <translation>CMYK 프로파일</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is not a CMYK profile Patchy can use.</source>
+        <translation>&quot;%1&quot;은(는) Patchy에서 사용할 수 있는 CMYK 프로파일이 아닙니다.</translation>
+    </message>
+    <message>
+        <source>CMYK profile:</source>
+        <translation>CMYK 프로파일:</translation>
+    </message>
+    <message>
+        <source>Perceptual</source>
+        <translation>가시 범위</translation>
+    </message>
+    <message>
+        <source>Relative Colorimetric</source>
+        <translation>상대 색도계</translation>
+    </message>
+    <message>
+        <source>Saturation</source>
+        <translation>채도</translation>
+    </message>
+    <message>
+        <source>Absolute Colorimetric</source>
+        <translation>절대 색도계</translation>
+    </message>
+    <message>
+        <source>Rendering intent:</source>
+        <translation>렌더링 의도:</translation>
+    </message>
+    <message>
+        <source>Black point compensation</source>
+        <translation>검은 점 보정</translation>
+    </message>
+    <message>
+        <source>Proof Colors</source>
+        <translation>색상 교정</translation>
+    </message>
+    <message>
+        <source>Gamut Warning</source>
+        <translation>색상 영역 경고</translation>
+    </message>
+    <message>
+        <source>Proof Colors and Gamut Warning need a CMYK profile. Choose one in Preferences.</source>
+        <translation>색상 교정과 색상 영역 경고에는 CMYK 프로파일이 필요합니다. 환경설정에서 선택하세요.</translation>
+    </message>
+    <message>
+        <source>Canvas view uses the CMYK profile %1. Documents and exports are unchanged.</source>
+        <translation>캔버스 보기에 CMYK 프로파일 %1을(를) 사용합니다. 문서와 내보내기는 바뀌지 않습니다.</translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation>녹청</translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation>마젠타</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>노랑</translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation>검정</translation>
+    </message>
+    <message>
+        <source>Previewing Cyan plate (read-only)</source>
+        <translation>녹청 판 미리 보기 중(읽기 전용)</translation>
+    </message>
+    <message>
+        <source>Previewing Magenta plate (read-only)</source>
+        <translation>마젠타 판 미리 보기 중(읽기 전용)</translation>
+    </message>
+    <message>
+        <source>Previewing Yellow plate (read-only)</source>
+        <translation>노랑 판 미리 보기 중(읽기 전용)</translation>
+    </message>
+    <message>
+        <source>Previewing Black plate (read-only)</source>
+        <translation>검정 판 미리 보기 중(읽기 전용)</translation>
+    </message>
+    <message>
+        <source>Saved animated JPEG XL copy %1</source>
+        <translation>애니메이션 JPEG XL 사본 저장됨: %1</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Download the new AppImage, quit Patchy, and replace this file with it:
+
+%3</source>
+        <translation>Patchy %1을(를) 사용할 수 있습니다. 버전 %2을(를) 사용하고 있습니다.
+
+새 AppImage를 다운로드하고 Patchy를 종료한 후 이 파일을 새 파일로 교체하세요:
+
+%3</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage is no longer on this computer.</source>
+        <translation>다운로드한 AppImage가 더 이상 이 컴퓨터에 없습니다.</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage does not match the checksum published for this update.</source>
+        <translation>다운로드한 AppImage가 이 업데이트에 대해 게시된 체크섬과 일치하지 않습니다.</translation>
+    </message>
+    <message>
+        <source>The new AppImage could not be put in place of this one.</source>
+        <translation>새 AppImage로 이 AppImage를 교체할 수 없습니다.</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, replace this AppImage, and start again. You will be asked about unsaved work first.</source>
+        <translation>Patchy %1을(를) 사용할 수 있습니다. 버전 %2을(를) 사용하고 있습니다.
+
+Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 다시 시작할 수 있습니다. 먼저 저장하지 않은 작업에 대해 묻습니다.</translation>
+    </message>
+    <message>
+        <source>&amp;Flatten Image</source>
+        <translation>이미지 병합(&amp;F)</translation>
+    </message>
+    <message>
+        <source>Merge every visible layer into one opaque Background layer</source>
+        <translation>보이는 모든 레이어를 불투명한 배경 레이어 하나로 병합합니다</translation>
+    </message>
+    <message>
+        <source>No layers to flatten</source>
+        <translation>병합할 레이어가 없습니다</translation>
+    </message>
+    <message>
+        <source>The image is already flat</source>
+        <translation>이미지가 이미 병합되어 있습니다</translation>
+    </message>
+    <message>
+        <source>Flatten Image</source>
+        <translation>이미지 병합</translation>
+    </message>
+    <message>
+        <source>Discard hidden layers?</source>
+        <translation>숨겨진 레이어를 삭제하시겠습니까?</translation>
+    </message>
+    <message>
+        <source>Flattening image...</source>
+        <translation>이미지 병합 중...</translation>
+    </message>
+    <message>
+        <source>Could not flatten the image. The layers are unchanged.</source>
+        <translation>이미지를 병합할 수 없습니다. 레이어는 변경되지 않았습니다.</translation>
+    </message>
+    <message>
+        <source>Flatten image</source>
+        <translation>이미지 병합</translation>
+    </message>
+    <message>
+        <source>Flattened the image</source>
+        <translation>이미지를 병합했습니다</translation>
+    </message>
+    <message>
+        <source>Filter recent folders...</source>
+        <translation>최근 폴더 필터링...</translation>
+    </message>
+    <message>
+        <source>No matching recent folders</source>
+        <translation>일치하는 최근 폴더가 없습니다.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20610,6 +20906,54 @@ You can still download it in your browser.</source>
     <message>
         <source>File: %1</source>
         <translation>파일: %1</translation>
+    </message>
+    <message>
+        <source>C:</source>
+        <translation>C:</translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation>녹청</translation>
+    </message>
+    <message>
+        <source>M:</source>
+        <translation>M:</translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation>마젠타</translation>
+    </message>
+    <message>
+        <source>Y:</source>
+        <translation>Y:</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>노랑</translation>
+    </message>
+    <message>
+        <source>K:</source>
+        <translation>K:</translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation>검정</translation>
+    </message>
+    <message>
+        <source>Ink percentages in the working CMYK space: %1. Choose the profile in Preferences.</source>
+        <translation>작업 CMYK 공간의 잉크 비율: %1. 프로파일은 환경설정에서 선택합니다.</translation>
+    </message>
+    <message>
+        <source>no profile (approximate)</source>
+        <translation>프로파일 없음(근사)</translation>
+    </message>
+    <message>
+        <source>Use the closest printable color</source>
+        <translation>가장 가까운 인쇄 가능한 색상 사용</translation>
+    </message>
+    <message>
+        <source>This color is outside the gamut of %1 and prints as the color shown here. Click to use it.</source>
+        <translation>이 색상은 %1의 색상 영역 밖에 있으며 여기에 표시된 색상으로 인쇄됩니다. 클릭하면 그 색상을 사용합니다.</translation>
     </message>
 </context>
 <context>
@@ -21883,6 +22227,10 @@ You can still download it in your browser.</source>
         <source>G&apos;MIC filter %1 failed: %2</source>
         <translation>G&apos;MIC 필터 %1 실패: %2</translation>
     </message>
+    <message>
+        <source>CMYK values are percentages from 0 to 100</source>
+        <translation>CMYK 값은 0에서 100 사이의 백분율입니다</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ScriptSaveOptions</name>
@@ -21917,6 +22265,10 @@ You can still download it in your browser.</source>
     <message>
         <source>%1: options must be an object such as {quality: 85}.</source>
         <translation>%1: 옵션은 {quality: 85}와 같은 객체여야 합니다.</translation>
+    </message>
+    <message>
+        <source>%1: blackInkOnly needs colorMode: &quot;cmyk&quot;.</source>
+        <translation>%1: blackInkOnly에는 colorMode: &quot;cmyk&quot;가 필요합니다.</translation>
     </message>
 </context>
 <context>

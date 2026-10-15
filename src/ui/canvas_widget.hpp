@@ -2,6 +2,8 @@
 
 #include "ui/script_stroke.hpp"
 
+#include "color/color_management.hpp"
+
 #include "core/document.hpp"
 #include "core/exemplar_inpaint.hpp"
 #include "core/layer_alignment.hpp"
@@ -298,8 +300,23 @@ public:
     SmartFilterMask,
     // The active layer's vector mask path: the pen/shape/path tools edit it,
     // raster edits refuse (the path is the source of truth).
-    VectorMask
+    VectorMask,
+    // The ink plates of the working CMYK separation (docs/cmyk.md), shown while View >
+    // Proof Colors is on. Read-only views like the color components.
+    ComponentCyan,
+    ComponentMagenta,
+    ComponentYellow,
+    ComponentBlack
   };
+  // A read-only grayscale view of one color component or ink plate of the composite.
+  [[nodiscard]] static constexpr bool is_component_preview(LayerEditTarget target) noexcept {
+    return target == LayerEditTarget::ComponentRed || target == LayerEditTarget::ComponentGreen ||
+           target == LayerEditTarget::ComponentBlue || is_cmyk_plate(target);
+  }
+  [[nodiscard]] static constexpr bool is_cmyk_plate(LayerEditTarget target) noexcept {
+    return target == LayerEditTarget::ComponentCyan || target == LayerEditTarget::ComponentMagenta ||
+           target == LayerEditTarget::ComponentYellow || target == LayerEditTarget::ComponentBlack;
+  }
 
   enum class MaskDisplayMode {
     None,
@@ -1275,6 +1292,15 @@ public:
   void set_curves_clipping_preview(std::optional<CurvesClippingMode> mode,
                                    std::optional<CurvesChannel> channel = std::nullopt);
   [[nodiscard]] std::optional<CurvesClippingMode> curves_clipping_preview_mode() const noexcept;
+  // Soft proof and gamut warning (docs/cmyk.md): a view of the canvas only. Null turns
+  // it off. Document pixels, the render cache, color readouts and exports never see it.
+  void set_proof_display_transform(std::shared_ptr<const CmykProofTransform> transform);
+  [[nodiscard]] const std::shared_ptr<const CmykProofTransform>& proof_display_transform() const noexcept {
+    return proof_display_transform_;
+  }
+  // What the canvas draws for `image` under the proof (the image itself when it is off).
+  // The reference is valid until the next call.
+  [[nodiscard]] const QImage& proof_display_image(const QImage& image);
   // Invoked when the canvas itself changes brush/gradient parameters (size
   // drag gesture, opacity/flow digit keys) so the options bar can resync.
   void set_brush_settings_changed_callback(std::function<void()> callback);
@@ -2413,6 +2439,11 @@ private:
   LayerId mask_display_image_layer_{0};
   ChannelId mask_display_image_channel_{0};
   std::uint64_t mask_display_image_revision_{0};
+  // The composite separated through the working CMYK space for the ink plate views: four
+  // inks per pixel (255 = full ink), from the render cache with that cacheKey.
+  std::vector<std::uint8_t> plate_inks_;
+  qint64 plate_inks_source_key_{0};
+  std::shared_ptr<const CmykWorkingSpace> plate_inks_space_;
   QColor primary_color_{Qt::black};
   QColor secondary_color_{Qt::white};
   // Palette-mode snap cache; rebuilt lazily when the document palette changes
@@ -3070,6 +3101,14 @@ private:
   QImage curves_clipping_preview_image_{};
   std::vector<QImage> curves_clipping_display_mip_cache_{};
   qint64 curves_clipping_display_mip_source_key_{0};
+  // Proofed copies of the images the paint path draws, by QImage::cacheKey, least recently
+  // used first. Bounded in count and bytes; a miss costs one pass over that image.
+  struct ProofedImage {
+    qint64 source_key{0};
+    QImage image;
+  };
+  std::shared_ptr<const CmykProofTransform> proof_display_transform_;
+  std::vector<ProofedImage> proofed_images_;
   std::function<void()> brush_settings_changed_callback_;
   std::function<void(PenButtonAction)> pen_button_action_callback_;
   std::function<void(QPoint, QRect)> text_requested_callback_;

@@ -481,7 +481,7 @@ QString photoshop_style_template() {
       color: @text_bright;
       min-height: 24px;
       max-height: 24px;
-      padding: 0 6px 0 8px;
+      padding: 0 0 0 5px;
     }
     QToolBar#Options QSpinBox, QToolBar#Options QDoubleSpinBox, QToolBar#Options QComboBox, QToolBar#Options QFontComboBox {
       min-height: 24px;
@@ -503,7 +503,7 @@ QString photoshop_style_template() {
       color: @text_bright;
       min-height: 24px;
       max-height: 24px;
-      padding: 0 6px 0 8px;
+      padding: 0 0 0 5px;
     }
     QWidget#selectionFeatherGroup QSpinBox {
       background: @field_bg;

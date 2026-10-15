@@ -199,12 +199,26 @@ bool apply_key(KeyReader& reader, const QString& extension, const QString& key, 
   if (key == QStringLiteral("metadata") &&
       (is_jpeg_extension(extension) || is_webp_extension(extension) || extension == QStringLiteral("png") ||
        extension == QStringLiteral("tif") || extension == QStringLiteral("tiff") ||
-       extension == QStringLiteral("gif"))) {
+       extension == QStringLiteral("gif") || is_jxl_extension(extension))) {
     reader.read_token(key, value, {QStringLiteral("all"), QStringLiteral("copyright"), QStringLiteral("none")},
                       [&](const QString& token) {
                         options.metadata_policy =
                             metadata_policy_from_key(token).value_or(metadata::MetadataPolicy::All);
                       });
+    return true;
+  }
+  // CMYK output (docs/cmyk.md), for the formats that can carry it.
+  if (key == QStringLiteral("colorMode") &&
+      (is_jpeg_extension(extension) || extension == QStringLiteral("tif") || extension == QStringLiteral("tiff") ||
+       extension == QStringLiteral("pdf"))) {
+    reader.read_token(key, value, {QStringLiteral("rgb"), QStringLiteral("cmyk")},
+                      [&](const QString& token) { options.export_cmyk = token == QStringLiteral("cmyk"); });
+    return true;
+  }
+  if (key == QStringLiteral("blackInkOnly") &&
+      (is_jpeg_extension(extension) || extension == QStringLiteral("tif") || extension == QStringLiteral("tiff") ||
+       extension == QStringLiteral("pdf"))) {
+    reader.read_bool(key, value, options.export_black_ink_only);
     return true;
   }
   if (is_jpeg_extension(extension)) {
@@ -232,6 +246,33 @@ bool apply_key(KeyReader& reader, const QString& extension, const QString& key, 
     }
     if (key == QStringLiteral("lossless")) {
       reader.read_bool(key, value, options.jxr_lossless);
+      return true;
+    }
+    return false;
+  }
+  if (is_jxl_extension(extension)) {
+    if (key == QStringLiteral("quality")) {
+      reader.read_int(key, value, 1, 100, options.jxl_quality);
+      return true;
+    }
+    if (key == QStringLiteral("lossless")) {
+      reader.read_bool(key, value, options.jxl_lossless);
+      return true;
+    }
+    if (key == QStringLiteral("effort")) {
+      reader.read_int(key, value, 1, 9, options.jxl_effort);
+      return true;
+    }
+    if (key == QStringLiteral("animate")) {
+      reader.read_bool(key, value, options.jxl_animate);
+      return true;
+    }
+    if (key == QStringLiteral("frameDelayMs")) {
+      reader.read_int(key, value, 0, static_cast<int>(animation::kMaxFrameDelayMs), options.animation_frame_delay_ms);
+      return true;
+    }
+    if (key == QStringLiteral("loopCount")) {
+      reader.read_int(key, value, 0, 65535, options.jxl_loop_count);
       return true;
     }
     return false;
@@ -404,6 +445,11 @@ QString apply_script_image_save_options(const QString& method, const QString& ex
     if (!reader.error.isEmpty()) {
       return reader.error;
     }
+  }
+  if (options.export_black_ink_only && !options.export_cmyk) {
+    return QCoreApplication::translate("patchy::ui::ScriptSaveOptions",
+                                       "%1: blackInkOnly needs colorMode: \"cmyk\".")
+        .arg(method);
   }
   return {};
 }

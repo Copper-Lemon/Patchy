@@ -7416,6 +7416,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
   tool_settings_save_timer_->setInterval(kToolSettingsSaveDelayMs);
   connect(tool_settings_save_timer_, &QTimer::timeout, this, [this] { save_tool_settings(); });
   load_pen_input_settings();
+  set_working_cmyk_space(cmyk_working_space_for(stored_cmyk_working_settings()));
   // Startup opens with an empty workspace (the start panel); no document is
   // auto-created. The one-time load_tool_settings() runs when the first
   // document session brings a canvas (startup_tool_settings_pending_).
@@ -8016,10 +8017,12 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
     }
   }
 
-  if (recent_files_filter_edit_ != nullptr && watched == recent_files_filter_edit_ &&
-      event->type() == QEvent::KeyPress) {
-    if (handle_recent_files_filter_key(*static_cast<QKeyEvent*>(event))) {
-      return true;
+  if (event->type() == QEvent::KeyPress) {
+    for (auto* recent_list_menu : {&recent_files_list_menu_, &recent_folders_list_menu_}) {
+      if (recent_list_menu->filter_edit != nullptr && watched == recent_list_menu->filter_edit &&
+          handle_recent_list_filter_key(*recent_list_menu, *static_cast<QKeyEvent*>(event))) {
+        return true;
+      }
     }
   }
 
@@ -9358,9 +9361,10 @@ void MainWindow::add_text_at(QPoint document_point, QRect requested_text_box, bo
     // Still on the automatic size: scale it to this document (48 px on the 1024x768 default,
     // ~312 px on a 5000x5000 canvas, where 48 px was unreadable) and to a dragged box.
     document_text_size = automatic_text_size_px(boxed_text ? std::optional<int>(document_editor_height) : std::nullopt);
-    text_size_auto_points_ = text_pixels_to_points(document_text_size, document());
     const QSignalBlocker blocker(text_size_spin_);
-    text_size_spin_->setValue(text_size_auto_points_);
+    text_size_spin_->setValue(text_pixels_to_points(document_text_size, document()));
+    // The field rounds to its decimals, so remember what it holds, not the raw conversion.
+    text_size_auto_points_ = text_size_spin_->value();
   }
   if (!editing_layer.has_value()) {
     // Photoshop shows the new type layer the moment the tool clicks, so a NEW session inserts
@@ -11023,6 +11027,20 @@ void MainWindow::open_text_paragraph_dialog() {
   text_paragraph_align_combo_->setToolTip(tr("Paragraph alignment; Justify spreads every line but the last across the box"));
   layout->addRow(tr("Alignment:"), text_paragraph_align_combo_);
 
+  // Paragraph direction lives here, as in Photoshop's Paragraph panel, next to a mirror of the
+  // options bar's Vertical toggle; the bar keeps only the toggle (GitHub issue 91).
+  text_direction_combo_ = new QComboBox(dialog);
+  text_direction_combo_->setObjectName(QStringLiteral("textDirectionCombo"));
+  text_direction_combo_->setToolTip(tr("Paragraph direction (auto follows the first strong character)"));
+  text_direction_combo_->addItem(tr("Auto"), static_cast<int>(Qt::LayoutDirectionAuto));
+  text_direction_combo_->addItem(tr("Left to right"), static_cast<int>(Qt::LeftToRight));
+  text_direction_combo_->addItem(tr("Right to left"), static_cast<int>(Qt::RightToLeft));
+  layout->addRow(tr("Direction:"), text_direction_combo_);
+  text_paragraph_vertical_check_ = new QCheckBox(tr("Vertical"), dialog);
+  text_paragraph_vertical_check_->setObjectName(QStringLiteral("textParagraphVerticalCheck"));
+  text_paragraph_vertical_check_->setToolTip(tr("Vertical text: columns read top to bottom, right to left"));
+  layout->addRow(QString(), text_paragraph_vertical_check_);
+
   const auto make_metric_spin = [this, dialog, layout](const char* object_name, const QString& label,
                                                         const QString& tooltip) {
     auto* spin = new UnitSpinBox(SpinUnit::Points, dialog);
@@ -11053,6 +11071,16 @@ void MainWindow::open_text_paragraph_dialog() {
 
   connect(text_paragraph_align_combo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
           [this](int) { apply_text_paragraph_alignment_from_dialog(); });
+  connect(text_direction_combo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index) {
+    if (index < 0 || text_direction_combo_ == nullptr) {
+      return;
+    }
+    apply_text_direction_to_active_editor(
+        static_cast<Qt::LayoutDirection>(text_direction_combo_->itemData(index).toInt()));
+  });
+  // Same path as the options-bar toggle, which follows through the shared sync.
+  connect(text_paragraph_vertical_check_, &QCheckBox::toggled, this,
+          [this](bool checked) { apply_text_orientation(checked); });
   for (auto* spin : {text_paragraph_first_line_indent_spin_, text_paragraph_start_indent_spin_,
                      text_paragraph_end_indent_spin_, text_paragraph_space_before_spin_,
                      text_paragraph_space_after_spin_}) {
@@ -11062,10 +11090,13 @@ void MainWindow::open_text_paragraph_dialog() {
   // Sub-control gotcha: the spin-button style must land AFTER all children exist.
   append_themed_style(*dialog, dialog_spinbox_button_style());
   sync_text_paragraph_dialog_from_editor();
+  sync_text_orientation_controls_from_editor();
   run_non_modal_dialog(*dialog);
   // WA_DeleteOnClose destroyed the dialog when the nested loop unwound.
   text_paragraph_hint_label_ = nullptr;
   text_paragraph_align_combo_ = nullptr;
+  text_direction_combo_ = nullptr;
+  text_paragraph_vertical_check_ = nullptr;
   text_paragraph_first_line_indent_spin_ = nullptr;
   text_paragraph_start_indent_spin_ = nullptr;
   text_paragraph_end_indent_spin_ = nullptr;
@@ -11088,6 +11119,12 @@ void MainWindow::sync_text_paragraph_dialog_from_editor() {
   const bool enabled = !preview_dialog_edit_locked() && (session_open || inputs.has_value());
   text_paragraph_hint_label_->setVisible(!enabled);
   text_paragraph_align_combo_->setEnabled(enabled);
+  for (QWidget* control : {static_cast<QWidget*>(text_direction_combo_),
+                           static_cast<QWidget*>(text_paragraph_vertical_check_)}) {
+    if (control != nullptr) {
+      control->setEnabled(enabled);
+    }
+  }
   for (auto* spin : {text_paragraph_first_line_indent_spin_, text_paragraph_start_indent_spin_,
                      text_paragraph_end_indent_spin_, text_paragraph_space_before_spin_,
                      text_paragraph_space_after_spin_}) {
@@ -13528,7 +13565,8 @@ void MainWindow::apply_text_direction_to_active_editor(Qt::LayoutDirection direc
 }
 
 void MainWindow::sync_text_orientation_controls_from_editor() {
-  if (canvas_ == nullptr || text_orientation_button_ == nullptr || text_direction_combo_ == nullptr) {
+  // The direction combo and the Vertical check exist only while the Paragraph panel is open.
+  if (canvas_ == nullptr || text_orientation_button_ == nullptr) {
     return;
   }
   const auto* editor = canvas_->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor"));
@@ -13558,20 +13596,29 @@ void MainWindow::sync_text_orientation_controls_from_editor() {
     QSignalBlocker blocker(text_orientation_button_);
     text_orientation_button_->setChecked(vertical);
   }
-  {
+  if (text_paragraph_vertical_check_ != nullptr) {
+    QSignalBlocker blocker(text_paragraph_vertical_check_);
+    text_paragraph_vertical_check_->setChecked(vertical);
+  }
+  if (text_direction_combo_ != nullptr) {
     QSignalBlocker blocker(text_direction_combo_);
     const auto index = text_direction_combo_->findData(static_cast<int>(direction));
     text_direction_combo_->setCurrentIndex(std::max(0, index));
   }
-  // Vertical text aligns along the column: the buttons read Top / Center / Bottom.
-  const auto set_tip = [](QPushButton* button, const char* horizontal, const char* vertical_tip, bool is_vertical) {
+  // Vertical text aligns along the column: the buttons read Top / Center / Bottom, and their
+  // glyphs turn into columns.
+  const auto set_tip = [](QPushButton* button, const char* horizontal, const char* vertical_tip, bool is_vertical,
+                          Qt::Alignment alignment) {
     if (button != nullptr) {
       button->setToolTip(tr(is_vertical ? vertical_tip : horizontal));
+      button->setIcon(text_alignment_icon(alignment, is_vertical));
     }
   };
-  set_tip(text_align_left_button_, QT_TR_NOOP("Align Left"), QT_TR_NOOP("Align Top"), vertical);
-  set_tip(text_align_center_button_, QT_TR_NOOP("Align Center"), QT_TR_NOOP("Align Center (Vertical)"), vertical);
-  set_tip(text_align_right_button_, QT_TR_NOOP("Align Right"), QT_TR_NOOP("Align Bottom"), vertical);
+  set_tip(text_align_left_button_, QT_TR_NOOP("Align Left"), QT_TR_NOOP("Align Top"), vertical, Qt::AlignLeft);
+  set_tip(text_align_center_button_, QT_TR_NOOP("Align Center"), QT_TR_NOOP("Align Center (Vertical)"), vertical,
+          Qt::AlignHCenter);
+  set_tip(text_align_right_button_, QT_TR_NOOP("Align Right"), QT_TR_NOOP("Align Bottom"), vertical,
+          Qt::AlignRight);
 }
 
 void MainWindow::sync_text_alignment_buttons_from_editor() {
@@ -14116,9 +14163,7 @@ void MainWindow::update_document_action_state() {
   const bool channel_view = canvas_ != nullptr &&
                             (quick_mask_view || smart_filter_mask_view ||
                              canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::DocumentChannel ||
-                             canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentRed ||
-                             canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentGreen ||
-                             canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentBlue);
+                             CanvasWidget::is_component_preview(canvas_->layer_edit_target()));
   const bool writable_channel =
       quick_mask_view || smart_filter_mask_view ||
       (channel_view && canvas_->document_channel_is_editable());
@@ -14252,9 +14297,7 @@ void MainWindow::refresh_convert_for_smart_filters_action_state() {
       canvas_ != nullptr &&
       (canvas_->quick_mask_active() || canvas_->editing_smart_filter_mask() ||
        canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::DocumentChannel ||
-       canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentRed ||
-       canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentGreen ||
-       canvas_->layer_edit_target() == CanvasWidget::LayerEditTarget::ComponentBlue);
+       CanvasWidget::is_component_preview(canvas_->layer_edit_target()));
   const Layer* active_layer = nullptr;
   if (has_document) {
     const auto active_id = std::as_const(document()).active_layer_id();

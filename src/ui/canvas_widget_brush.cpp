@@ -1361,7 +1361,7 @@ bool CanvasWidget::render_brush_stroke_pixel_deep(std::int32_t x, std::int32_t y
   }
   const auto channels = format.channels;
   const auto locked_alpha = lock_transparent_pixels && channels >= 4;
-  if ((erase && locked_alpha) || (locked_alpha && original[3] <= 0.0F)) {
+  if (locked_alpha && original[3] <= 0.0F) {
     return false;
   }
   const auto color_of = [linear](EditColor color) {
@@ -1373,9 +1373,10 @@ bool CanvasWidget::render_brush_stroke_pixel_deep(std::int32_t x, std::int32_t y
   const auto before = load_pixel(format, pixel);
   auto value = original;
   if (erase) {
-    if (channels >= 4) {
+    if (channels >= 4 && !locked_alpha) {
       value[3] = original[3] * (1.0F - target_alpha);
     } else {
+      // No alpha channel, or locked transparency: erase to the background color (Photoshop).
       const auto background = color_of(secondary);
       for (std::size_t c = 0; c < 3U; ++c) {
         value[c] = background[c] * target_alpha + original[c] * (1.0F - target_alpha);
@@ -1517,7 +1518,7 @@ bool CanvasWidget::write_brush_stroke_pixel_from_snapshot_blend(std::int32_t x, 
 
   const auto original = brush_stroke_original_pixel(x, y);
   const auto locked_alpha = lock_transparent_pixels && channels >= 4;
-  if ((erase && locked_alpha) || (locked_alpha && original[3] == 0)) {
+  if (locked_alpha && original[3] == 0) {
     return false;
   }
 
@@ -1547,7 +1548,7 @@ bool CanvasWidget::render_brush_stroke_pixel_from_snapshot_target(
   }
   const auto original = brush_stroke_original_pixel(x, y);
   const auto locked_alpha = lock_transparent_pixels && channels >= 4;
-  if ((erase && locked_alpha) || (locked_alpha && original[3] == 0)) {
+  if (locked_alpha && original[3] == 0) {
     return false;
   }
 
@@ -1565,7 +1566,7 @@ bool CanvasWidget::render_brush_stroke_pixel_from_snapshot_target(
   };
 
   if (erase) {
-    if (channels >= 4) {
+    if (channels >= 4 && !locked_alpha) {
       pixel[0] = original[0];
       pixel[1] = original[1];
       pixel[2] = original[2];
@@ -1573,6 +1574,10 @@ bool CanvasWidget::render_brush_stroke_pixel_from_snapshot_target(
       return changed();
     }
 
+    // No alpha channel, or locked transparency: erase to the background color (Photoshop).
+    if (channels >= 4) {
+      pixel[3] = original[3];
+    }
     pixel[0] = clamp_byte(static_cast<float>(secondary.r) * target_alpha +
                           static_cast<float>(original[0]) * (1.0F - target_alpha));
     pixel[1] = clamp_byte(static_cast<float>(secondary.g) * target_alpha +

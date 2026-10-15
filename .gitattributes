@@ -23,12 +23,19 @@ CMakeLists.txt text
 *.png binary -eol
 *.jpg binary -eol
 *.jpeg binary -eol
+*.jxl binary -eol
 *.ico binary -eol
 *.icns binary -eol
+*.icc binary -eol
+*.ICC binary -eol
+*.icm binary -eol
 
 # Preserve vendored libheif source byte-for-byte apart from Patchy's documented
 # WebCodecs adapter changes; upstream files contain intentional whitespace quirks.
 src/formats/libheif/** -whitespace
+
+# Vendored libjxl, Highway, Brotli and skcms stay byte-for-byte upstream.
+src/formats/libjxl/** -whitespace
 
 # Keep the upstream font license byte-for-byte, including its trailing spaces.
 third_party/fonts-web/nanum_gothic/OFL.txt -whitespace

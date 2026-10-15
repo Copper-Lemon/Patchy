@@ -1,6 +1,7 @@
 #include "ui/image_save_option_keys.hpp"
 
 #include "formats/dds_document_io.hpp"
+#include "formats/jxl_document_io.hpp"
 #include "formats/jxr_document_io.hpp"
 #include "formats/rttex_document_io.hpp"
 
@@ -37,6 +38,10 @@ bool is_cur_extension(const QString& extension) {
 
 bool is_jxr_extension(const QString& extension) {
   return jxr::is_jxr_extension(normalized_save_extension(extension).toStdString());
+}
+
+bool is_jxl_extension(const QString& extension) {
+  return jxl::is_jxl_extension(normalized_save_extension(extension).toStdString());
 }
 
 bool is_rttex_extension(const QString& extension) {

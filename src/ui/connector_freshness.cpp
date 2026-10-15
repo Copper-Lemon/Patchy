@@ -1,4 +1,5 @@
 #include "ui/connector_freshness.hpp"
+#include "ui/appimage_environment.hpp"
 
 #include <QCoreApplication>
 #include <QFileInfo>
@@ -29,7 +30,9 @@ bool ReplacedFileWatch::replaced() const {
 namespace {
 
 const ReplacedFileWatch& running_executable_watch() {
-  static const ReplacedFileWatch watch(QCoreApplication::applicationFilePath());
+  // An AppImage's own binary sits in a read-only mount that never changes; updating
+  // means replacing the .AppImage file.
+  static const ReplacedFileWatch watch(user_visible_executable_path());
   return watch;
 }
 

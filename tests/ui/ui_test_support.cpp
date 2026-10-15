@@ -1,4 +1,5 @@
 #include "ui_test_support.hpp"
+#include "ui/recent_file_list.hpp"
 
 #include "ui/measurement_units.hpp"
 #include "ui/qt_paths.hpp"
@@ -483,6 +484,59 @@ bool spatial_filter_spreads_clean_red_alpha(const patchy::PixelBuffer& before, c
     }
   }
   return spread_pixels > 0 && clean_red;
+}
+
+namespace {
+
+// The Open Recent File (fileOpenRecentList) or Open Recent Folder (fileOpenRecentFolderList)
+// list inside `menu`, or nullptr.
+QListWidget* recent_menu_list(QMenu& menu) {
+  for (auto* list : menu.findChildren<QListWidget*>()) {
+    if (list->objectName() == QStringLiteral("fileOpenRecentList") ||
+        list->objectName() == QStringLiteral("fileOpenRecentFolderList")) {
+      return list;
+    }
+  }
+  return nullptr;
+}
+
+}  // namespace
+
+QStringList recent_menu_paths(QMenu& menu) {
+  QStringList paths;
+  if (auto* list = recent_menu_list(menu); list != nullptr) {
+    for (int row = 0; row < list->count(); ++row) {
+      const auto path = list->item(row)->data(patchy::ui::kRecentPathRole).toString();
+      if (!path.isEmpty()) {
+        paths << path;
+      }
+    }
+  }
+  for (auto* action : menu.actions()) {
+    if (action == nullptr || action->isSeparator()) {
+      continue;
+    }
+    if (const auto path = action->data().toString(); !path.isEmpty()) {
+      paths << path;
+    }
+    if (auto* submenu = action->menu(); submenu != nullptr) {
+      paths << recent_menu_paths(*submenu);
+    }
+  }
+  return paths;
+}
+
+QListWidgetItem* recent_menu_list_item(QMenu& menu, const QString& path) {
+  auto* list = recent_menu_list(menu);
+  if (list == nullptr) {
+    return nullptr;
+  }
+  for (int row = 0; row < list->count(); ++row) {
+    if (list->item(row)->data(patchy::ui::kRecentPathRole).toString() == path) {
+      return list->item(row);
+    }
+  }
+  return nullptr;
 }
 
 QAction* find_menu_action_by_text(QMenu& menu, const QString& text) {

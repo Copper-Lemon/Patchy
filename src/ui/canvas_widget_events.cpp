@@ -764,9 +764,7 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
     return;
   }
   const bool channel_view_active = layer_edit_target_ == LayerEditTarget::DocumentChannel ||
-                                   layer_edit_target_ == LayerEditTarget::ComponentRed ||
-                                   layer_edit_target_ == LayerEditTarget::ComponentGreen ||
-                                   layer_edit_target_ == LayerEditTarget::ComponentBlue;
+                                   CanvasWidget::is_component_preview(layer_edit_target_);
   if (event->button() == Qt::LeftButton && channel_view_active &&
       (effective_tool == CanvasTool::Move || effective_tool == CanvasTool::Clone ||
        effective_tool == CanvasTool::Healing || effective_tool == CanvasTool::SpotHealing ||
@@ -3973,9 +3971,7 @@ bool CanvasWidget::begin_edit(QString label) {
     }
     return true;
   }
-  if (layer_edit_target_ == LayerEditTarget::ComponentRed ||
-      layer_edit_target_ == LayerEditTarget::ComponentGreen ||
-      layer_edit_target_ == LayerEditTarget::ComponentBlue) {
+  if (CanvasWidget::is_component_preview(layer_edit_target_)) {
     report_status_error(tr("Color component channels are read-only"));
     return false;
   }

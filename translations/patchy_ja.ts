@@ -9813,6 +9813,106 @@ Mixed selection</source>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation>含めるファイル情報のメタデータです。カラープロファイルと解像度は常に保持されます。</translation>
     </message>
+    <message>
+        <source>CMYK export needs a CMYK profile. Choose one in Preferences.</source>
+        <translation>CMYK で書き出すには CMYK プロファイルが必要です。環境設定で選択してください。</translation>
+    </message>
+    <message>
+        <source>CMYK export is available for JPEG, TIFF and flattened PDF files only.</source>
+        <translation>CMYK 書き出しは JPEG、TIFF、統合された PDF ファイルでのみ使用できます。</translation>
+    </message>
+    <message>
+        <source>CMYK (%1)</source>
+        <translation>CMYK (%1)</translation>
+    </message>
+    <message>
+        <source>CMYK separates the image through the CMYK profile chosen in Preferences and embeds that profile. Transparent areas print as paper white. Patchy opens CMYK files as RGB again.</source>
+        <translation>CMYK では、環境設定で選択した CMYK プロファイルで画像を分版し、そのプロファイルを埋め込みます。透明な部分は紙の白として印刷されます。Patchy は CMYK ファイルを再び RGB として開きます。</translation>
+    </message>
+    <message>
+        <source>Black and grays in black ink only</source>
+        <translation>黒とグレーをブラックインキのみで</translation>
+    </message>
+    <message>
+        <source>Prints black text and gray areas with black ink alone instead of a mix of all four inks, so small type stays sharp even when the press is slightly out of register. Colored areas are separated through the profile as usual.</source>
+        <translation>黒い文字やグレーの部分を 4 色の混合ではなくブラックインキだけで印刷するため、印刷機の見当が少しずれても小さな文字がシャープなままです。カラーの部分は通常どおりプロファイルで分版されます。</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is damaged or not supported</source>
+        <translation>JPEG XL ファイルが破損しているか、サポートされていません</translation>
+    </message>
+    <message>
+        <source>The file is not a JPEG XL image</source>
+        <translation>このファイルは JPEG XL 画像ではありません</translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is truncated</source>
+        <translation>JPEG XL ファイルが途中で切れています</translation>
+    </message>
+    <message>
+        <source>The JPEG XL image is too large to open</source>
+        <translation>JPEG XL 画像が大きすぎるため開けません</translation>
+    </message>
+    <message>
+        <source>JPEG XL: extra channels other than alpha were not imported</source>
+        <translation>JPEG XL: アルファ以外の追加チャンネルは読み込まれませんでした</translation>
+    </message>
+    <message>
+        <source>The JPEG XL animation is too large to open</source>
+        <translation>JPEG XL アニメーションが大きすぎるため開けません</translation>
+    </message>
+    <message>
+        <source>Could not encode the JPEG XL image</source>
+        <translation>JPEG XL 画像をエンコードできませんでした</translation>
+    </message>
+    <message>
+        <source>The document has no pixels to save</source>
+        <translation>保存するピクセルがドキュメントにありません</translation>
+    </message>
+    <message>
+        <source>The document has no visible top-level layers to export as an animated JPEG XL.</source>
+        <translation>アニメーション JPEG XL として書き出せる、表示中の最上位レイヤーがありません。</translation>
+    </message>
+    <message>
+        <source>Invalid animated JPEG XL frame or duration.</source>
+        <translation>アニメーション JPEG XL のフレームまたは表示時間が無効です。</translation>
+    </message>
+    <message>
+        <source>Could not open JPEG XL file for writing</source>
+        <translation>JPEG XL ファイルを書き込み用に開けませんでした</translation>
+    </message>
+    <message>
+        <source>Could not write JPEG XL file</source>
+        <translation>JPEG XL ファイルに書き込めませんでした</translation>
+    </message>
+    <message>
+        <source>JPEG XL Options</source>
+        <translation>JPEG XL オプション</translation>
+    </message>
+    <message>
+        <source>Higher effort makes smaller files and takes longer to save.</source>
+        <translation>労力を上げるとファイルは小さくなりますが、保存に時間がかかります。</translation>
+    </message>
+    <message>
+        <source>Effort:</source>
+        <translation>労力:</translation>
+    </message>
+    <message>
+        <source>Patchy does not use JPEG XL&apos;s patch and dot coding tools, so images with repeated text or small dots can be somewhat larger than with other encoders.</source>
+        <translation>Patchy は JPEG XL のパッチおよびドット符号化ツールを使用しないため、繰り返しのテキストや小さな点を含む画像は、他のエンコーダーよりやや大きくなることがあります。</translation>
+    </message>
+    <message>
+        <source>JPEG XL Image</source>
+        <translation>JPEG XL 画像</translation>
+    </message>
+    <message>
+        <source>Animated JPEG XL: imported %1 frames as layers</source>
+        <translation>アニメーション JPEG XL: %1 フレームをレイヤーとして読み込みました</translation>
+    </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
+        <translation>このビルドの Patchy は HEIC 画像をデコードできません。Flatpak 版の Patchy ならデコードできます。</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10047,6 +10147,10 @@ Mixed selection</source>
     <message>
         <source>Look at the document I have open in Patchy and suggest three specific improvements to its composition and colors. Show me the preview before making any edits.</source>
         <translation>Patchyで開いているドキュメントを見て、構図や色を改善する具体的な案を3つ提案してください。編集を始める前にプレビューを見せてください。</translation>
+    </message>
+    <message>
+        <source>Patchy is running from an AppImage; the skill folder exists only while Patchy is open.</source>
+        <translation>Patchy は AppImage から実行されています。スキルフォルダは Patchy が開いている間だけ存在します。</translation>
     </message>
 </context>
 <context>
@@ -11467,6 +11571,14 @@ Mixed selection</source>
     <message>
         <source>Temporary selection mask. White selects, black masks, and gray creates partial selection.</source>
         <translation>一時的な選択マスクです。白で選択、黒でマスク、グレーで部分選択を作成します。</translation>
+    </message>
+    <message>
+        <source>Preview this ink plate of the CMYK proof: darker means more ink. Plates come from the working CMYK profile and are read-only.</source>
+        <translation>CMYK 校正のこの版をプレビューします。暗いほどインキが多くなります。版は作業用 CMYK プロファイルから作られ、読み取り専用です。</translation>
+    </message>
+    <message>
+        <source>%CTRL%-click to load where this plate has no ink as a selection.</source>
+        <translation>%CTRL%+クリックで、この版のインキがない部分を選択範囲として読み込みます。</translation>
     </message>
 </context>
 <context>
@@ -13841,10 +13953,6 @@ Either way Patchy writes a copy; the open document keeps its layers and unsaved 
         <translation>Windows</translation>
     </message>
     <message>
-        <source>Color:</source>
-        <translation>色:</translation>
-    </message>
-    <message>
         <source>T</source>
         <translation>T</translation>
     </message>
@@ -13853,28 +13961,12 @@ Either way Patchy writes a copy; the open document keeps its layers and unsaved 
         <translation>テキスト色</translation>
     </message>
     <message>
-        <source>Align:</source>
-        <translation>整列:</translation>
-    </message>
-    <message>
-        <source>L</source>
-        <translation>左</translation>
-    </message>
-    <message>
         <source>Align Left</source>
         <translation>左揃え</translation>
     </message>
     <message>
-        <source>C</source>
-        <translation>中</translation>
-    </message>
-    <message>
         <source>Align Center</source>
         <translation>中央揃え</translation>
-    </message>
-    <message>
-        <source>R</source>
-        <translation>右</translation>
     </message>
     <message>
         <source>Align Right</source>
@@ -20237,6 +20329,210 @@ You can still download it in your browser.</source>
             <numerusform>%n 個の新しいレイヤーを追加します。プレビューでは、すでにキャンバスとレイヤーパネルに表示されています。</numerusform>
         </translation>
     </message>
+    <message>
+        <source>CMYK: %1, %2, %3, %4</source>
+        <translation>CMYK: %1, %2, %3, %4</translation>
+    </message>
+    <message>
+        <source>CMYK</source>
+        <translation>CMYK</translation>
+    </message>
+    <message>
+        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel, and CMYK swatches.</source>
+        <translation>Patchy は RGB で編集します。このプロファイルは、カラーピッカー、情報パネル、CMYK スウォッチでの CMYK 値の意味を決めます。</translation>
+    </message>
+    <message>
+        <source>Automatic</source>
+        <translation>自動</translation>
+    </message>
+    <message>
+        <source>Automatic (%1)</source>
+        <translation>自動（%1）</translation>
+    </message>
+    <message>
+        <source>No profile (approximate formula)</source>
+        <translation>プロファイルなし（近似式）</translation>
+    </message>
+    <message>
+        <source>Choose Profile File...</source>
+        <translation>プロファイルファイルを選択...</translation>
+    </message>
+    <message>
+        <source>Choose CMYK Profile</source>
+        <translation>CMYK プロファイルを選択</translation>
+    </message>
+    <message>
+        <source>ICC profiles (*.icc *.icm)</source>
+        <translation>ICC プロファイル (*.icc *.icm)</translation>
+    </message>
+    <message>
+        <source>CMYK Profile</source>
+        <translation>CMYK プロファイル</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is not a CMYK profile Patchy can use.</source>
+        <translation>「%1」は Patchy で使用できる CMYK プロファイルではありません。</translation>
+    </message>
+    <message>
+        <source>CMYK profile:</source>
+        <translation>CMYK プロファイル:</translation>
+    </message>
+    <message>
+        <source>Perceptual</source>
+        <translation>知覚的</translation>
+    </message>
+    <message>
+        <source>Relative Colorimetric</source>
+        <translation>相対的な色域を維持</translation>
+    </message>
+    <message>
+        <source>Saturation</source>
+        <translation>彩度</translation>
+    </message>
+    <message>
+        <source>Absolute Colorimetric</source>
+        <translation>絶対的な色域を維持</translation>
+    </message>
+    <message>
+        <source>Rendering intent:</source>
+        <translation>マッチング方法:</translation>
+    </message>
+    <message>
+        <source>Black point compensation</source>
+        <translation>黒点の補正</translation>
+    </message>
+    <message>
+        <source>Proof Colors</source>
+        <translation>色の校正</translation>
+    </message>
+    <message>
+        <source>Gamut Warning</source>
+        <translation>色域外警告</translation>
+    </message>
+    <message>
+        <source>Proof Colors and Gamut Warning need a CMYK profile. Choose one in Preferences.</source>
+        <translation>色の校正と色域外警告には CMYK プロファイルが必要です。環境設定で選択してください。</translation>
+    </message>
+    <message>
+        <source>Canvas view uses the CMYK profile %1. Documents and exports are unchanged.</source>
+        <translation>カンバスの表示に CMYK プロファイル %1 を使用しています。ドキュメントと書き出しは変わりません。</translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation>シアン</translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation>マゼンタ</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>イエロー</translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation>ブラック</translation>
+    </message>
+    <message>
+        <source>Previewing Cyan plate (read-only)</source>
+        <translation>シアン 版をプレビュー中 (読み取り専用)</translation>
+    </message>
+    <message>
+        <source>Previewing Magenta plate (read-only)</source>
+        <translation>マゼンタ 版をプレビュー中 (読み取り専用)</translation>
+    </message>
+    <message>
+        <source>Previewing Yellow plate (read-only)</source>
+        <translation>イエロー 版をプレビュー中 (読み取り専用)</translation>
+    </message>
+    <message>
+        <source>Previewing Black plate (read-only)</source>
+        <translation>ブラック 版をプレビュー中 (読み取り専用)</translation>
+    </message>
+    <message>
+        <source>Saved animated JPEG XL copy %1</source>
+        <translation>アニメーション JPEG XL のコピーを保存しました: %1</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Download the new AppImage, quit Patchy, and replace this file with it:
+
+%3</source>
+        <translation>Patchy %1 が利用可能です。現在のバージョンは %2 です。
+
+新しい AppImage をダウンロードし、Patchy を終了してから、このファイルを新しいファイルで置き換えてください:
+
+%3</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage is no longer on this computer.</source>
+        <translation>ダウンロードした AppImage は、このコンピューターにもうありません。</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage does not match the checksum published for this update.</source>
+        <translation>ダウンロードした AppImage が、このアップデート用に公開されているチェックサムと一致しません。</translation>
+    </message>
+    <message>
+        <source>The new AppImage could not be put in place of this one.</source>
+        <translation>新しい AppImage をこの AppImage と置き換えられませんでした。</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, replace this AppImage, and start again. You will be asked about unsaved work first.</source>
+        <translation>Patchy %1 が利用可能です。現在のバージョンは %2 です。
+
+Patchy はアップデートをダウンロードし、この AppImage を置き換えて再び起動できます。その前に、保存されていない作業について確認します。</translation>
+    </message>
+    <message>
+        <source>&amp;Flatten Image</source>
+        <translation>画像を統合(&amp;F)</translation>
+    </message>
+    <message>
+        <source>Merge every visible layer into one opaque Background layer</source>
+        <translation>表示中のすべてのレイヤーを不透明な背景レイヤー 1 枚に統合します</translation>
+    </message>
+    <message>
+        <source>No layers to flatten</source>
+        <translation>統合するレイヤーがありません</translation>
+    </message>
+    <message>
+        <source>The image is already flat</source>
+        <translation>画像はすでに統合されています</translation>
+    </message>
+    <message>
+        <source>Flatten Image</source>
+        <translation>画像を統合</translation>
+    </message>
+    <message>
+        <source>Discard hidden layers?</source>
+        <translation>非表示レイヤーを破棄しますか？</translation>
+    </message>
+    <message>
+        <source>Flattening image...</source>
+        <translation>画像を統合中...</translation>
+    </message>
+    <message>
+        <source>Could not flatten the image. The layers are unchanged.</source>
+        <translation>画像を統合できませんでした。レイヤーは変更されていません。</translation>
+    </message>
+    <message>
+        <source>Flatten image</source>
+        <translation>画像を統合</translation>
+    </message>
+    <message>
+        <source>Flattened the image</source>
+        <translation>画像を統合しました</translation>
+    </message>
+    <message>
+        <source>Filter recent folders...</source>
+        <translation>最近使ったフォルダーを絞り込み...</translation>
+    </message>
+    <message>
+        <source>No matching recent folders</source>
+        <translation>一致する最近使ったフォルダーはありません</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20610,6 +20906,54 @@ You can still download it in your browser.</source>
     <message>
         <source>Blue</source>
         <translation>青</translation>
+    </message>
+    <message>
+        <source>C:</source>
+        <translation>C:</translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation>シアン</translation>
+    </message>
+    <message>
+        <source>M:</source>
+        <translation>M:</translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation>マゼンタ</translation>
+    </message>
+    <message>
+        <source>Y:</source>
+        <translation>Y:</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>イエロー</translation>
+    </message>
+    <message>
+        <source>K:</source>
+        <translation>K:</translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation>ブラック</translation>
+    </message>
+    <message>
+        <source>Ink percentages in the working CMYK space: %1. Choose the profile in Preferences.</source>
+        <translation>作業用 CMYK スペースでのインキ使用率: %1。プロファイルは環境設定で選択します。</translation>
+    </message>
+    <message>
+        <source>no profile (approximate)</source>
+        <translation>プロファイルなし（近似）</translation>
+    </message>
+    <message>
+        <source>Use the closest printable color</source>
+        <translation>最も近い印刷可能な色を使用</translation>
+    </message>
+    <message>
+        <source>This color is outside the gamut of %1 and prints as the color shown here. Click to use it.</source>
+        <translation>この色は %1 の色域外で、ここに表示された色で印刷されます。クリックするとその色を使用します。</translation>
     </message>
 </context>
 <context>
@@ -21883,6 +22227,10 @@ You can still download it in your browser.</source>
         <source>G&apos;MIC filter %1 failed: %2</source>
         <translation>G&apos;MIC フィルター %1 が失敗しました: %2</translation>
     </message>
+    <message>
+        <source>CMYK values are percentages from 0 to 100</source>
+        <translation>CMYK 値は 0 から 100 までのパーセントです</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ScriptSaveOptions</name>
@@ -21917,6 +22265,10 @@ You can still download it in your browser.</source>
     <message>
         <source>%1: options must be an object such as {quality: 85}.</source>
         <translation>%1: オプションは {quality: 85} のようなオブジェクトでなければなりません。</translation>
+    </message>
+    <message>
+        <source>%1: blackInkOnly needs colorMode: &quot;cmyk&quot;.</source>
+        <translation>%1: blackInkOnly には colorMode: &quot;cmyk&quot; が必要です。</translation>
     </message>
 </context>
 <context>

@@ -86,6 +86,15 @@ struct ImageSaveOptions {
   // is opaque and drops the document-alpha mask structure.
   bool export_fill_transparent{false};
   QColor export_background_color{Qt::white};
+  // JPEG, TIFF and flat PDF: write CMYK separated through the working CMYK space and
+  // embed its profile (docs/cmyk.md). Composited over white paper first, at 8 bits per
+  // ink. Offered by the Export dialog only (persisted per format as
+  // saveOptions/exportColorJpeg, ...Tiff, ...Pdf); scripts pass colorMode: "cmyk".
+  bool export_cmyk{false};
+  // With export_cmyk: black and grays print with black ink alone (SeparationOptions).
+  // Persisted per format as saveOptions/exportBlackInkOnlyJpeg, ...Tiff, ...Pdf; scripts pass
+  // blackInkOnly: true.
+  bool export_black_ink_only{false};
   // UI-only: MainWindow reveals the written file afterwards; the writers ignore it.
   bool export_reveal_in_file_explorer{false};
   // WebP: 0-100 through QImageWriter::setQuality (75 is Qt's own default, so an unset
@@ -97,9 +106,10 @@ struct ImageSaveOptions {
   bool webp_animate{false};
   int animation_frame_delay_ms{100};
   int webp_loop_count{0};  // 0 forever; otherwise total plays, up to 65535
-  // Dialog-only context. Non-interactive saves remain still images.
-  bool webp_offer_animation{false};
-  bool webp_has_visible_frames{true};
+  // Dialog-only context for the WebP and JPEG XL animation-or-flatten choice.
+  // Non-interactive saves remain still images.
+  bool offer_animation{false};
+  bool has_visible_frames{true};
   // GIF: write the visible top-level layers as a looping animation (top layer = frame 1)
   // instead of one flattened image. Per save, like pdf_editable_layers: only the GIF
   // options dialog and the Export Layers as Animated GIF action set it, so CLI/scripted
@@ -115,6 +125,16 @@ struct ImageSaveOptions {
   // JPEG XR: lossless compression, which the codec treats as overriding the quality value.
   // Persists as saveOptions/jxrLossless.
   bool jxr_lossless{false};
+  // JPEG XL (docs/jxl.md): 1-100 on libjxl's quality scale, lossless, and encoder effort
+  // 1-9. Persist as saveOptions/jxlQuality, saveOptions/jxlLossless and
+  // saveOptions/jxlEffort. The encoder's patches and dots are always off and have no option.
+  int jxl_quality{90};
+  bool jxl_lossless{false};
+  int jxl_effort{7};
+  // JPEG XL animation from the visible top-level layers, like webp_animate; the default
+  // frame delay is the shared animation_frame_delay_ms.
+  bool jxl_animate{false};
+  int jxl_loop_count{0};  // 0 forever; otherwise total plays, up to 65535
   // Proton texture (.rttex): pixel encoding, JPEG quality (Jpeg only), power-of-two handling,
   // and the RTPack-style flags. Persist as saveOptions/rttexEncoding, rttexJpegQuality,
   // rttexPowerOfTwo, rttexForceSquare, rttexForceAlpha, and rttexCompress.
@@ -273,5 +293,9 @@ void install_rttex_jpeg_codec();
 
 void write_animated_webp_file(const Document& document, const QString& path, const ImageSaveOptions& options,
                               std::vector<std::string>* notices = nullptr);
+// Animated JPEG XL from the visible top-level layers, under the same frame rules as WebP;
+// frames are 8-bit (docs/jxl.md).
+void write_animated_jxl_file(const Document& document, const QString& path, const ImageSaveOptions& options,
+                             std::vector<std::string>* notices = nullptr);
 
 }  // namespace patchy::ui

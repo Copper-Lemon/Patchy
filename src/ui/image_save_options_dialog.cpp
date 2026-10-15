@@ -41,6 +41,7 @@
 #include <QSize>
 #include <QSlider>
 #include <QSpinBox>
+#include <QStandardItemModel>
 #include <QVBoxLayout>
 
 #include <algorithm>
@@ -294,6 +295,10 @@ struct ExportSectionWidgets {
   QCheckBox* trim_check{nullptr};
   QCheckBox* reveal_check{nullptr};
   QComboBox* metadata_combo{nullptr};  // null for formats that carry no metadata
+  QComboBox* color_combo{nullptr};     // RGB or CMYK; null for formats without a CMYK form
+  QString color_key;                   // its saveOptions/exportColor* key
+  QCheckBox* black_ink_only_check{nullptr};  // beside color_combo
+  QString black_ink_only_key;                // its saveOptions/exportBlackInkOnly* key
   bool resize_offered{false};              // false without a document size: the row is hidden
   bool transparency_choice_offered{true};  // false for JPEG: the fill is forced, never persisted
 };
@@ -552,7 +557,8 @@ ExportSectionWidgets add_export_options_section(QVBoxLayout* content, QDialog& d
   const auto lower_extension = normalized_save_extension(extension);
   if (is_jpeg_extension(lower_extension) || is_webp_extension(lower_extension) ||
       lower_extension == QStringLiteral("png") || lower_extension == QStringLiteral("tif") ||
-      lower_extension == QStringLiteral("tiff") || lower_extension == QStringLiteral("gif")) {
+      lower_extension == QStringLiteral("tiff") || lower_extension == QStringLiteral("gif") ||
+      is_jxl_extension(lower_extension)) {
     auto* metadata_row = new QWidget(&dialog);
     auto* metadata_layout = new QHBoxLayout(metadata_row);
     metadata_layout->setContentsMargins(0, 0, 0, 0);
@@ -573,6 +579,62 @@ ExportSectionWidgets add_export_options_section(QVBoxLayout* content, QDialog& d
     metadata_layout->addStretch(1);
     content->addWidget(metadata_row);
     widgets.metadata_combo = metadata_combo;
+  }
+
+  // CMYK output for print (docs/cmyk.md), remembered per format.
+  const auto color_key = is_jpeg_extension(lower_extension) ? QStringLiteral("saveOptions/exportColorJpeg")
+                         : lower_extension == QStringLiteral("tif") || lower_extension == QStringLiteral("tiff")
+                             ? QStringLiteral("saveOptions/exportColorTiff")
+                         : is_pdf_extension(lower_extension) ? QStringLiteral("saveOptions/exportColorPdf")
+                                                             : QString();
+  if (!color_key.isEmpty()) {
+    auto* color_row = new QWidget(&dialog);
+    auto* color_layout = new QHBoxLayout(color_row);
+    color_layout->setContentsMargins(0, 0, 0, 0);
+    color_layout->addWidget(new QLabel(QObject::tr("Color:"), color_row));
+    auto* color_combo = new QComboBox(color_row);
+    color_combo->setObjectName(QStringLiteral("exportColorCombo"));
+    color_combo->addItem(QObject::tr("RGB"), QStringLiteral("rgb"));
+    const auto space = working_cmyk_space();
+    const auto profile = QString::fromStdString(space->profile_description());
+    color_combo->addItem(space->has_profile() && !profile.isEmpty() ? QObject::tr("CMYK (%1)").arg(profile)
+                                                                    : QObject::tr("CMYK"),
+                         QStringLiteral("cmyk"));
+    if (!space->has_profile()) {
+      // The formula cannot describe the inks to a print shop.
+      if (auto* model = qobject_cast<QStandardItemModel*>(color_combo->model())) {
+        model->item(1)->setEnabled(false);
+      }
+    }
+    color_combo->setToolTip(QObject::tr(
+        "CMYK separates the image through the CMYK profile chosen in Preferences and embeds that profile. "
+        "Transparent areas print as paper white. Patchy opens CMYK files as RGB again."));
+    const bool stored_cmyk = settings.value(color_key).toString() == QStringLiteral("cmyk") && space->has_profile();
+    color_combo->setCurrentIndex(stored_cmyk ? 1 : 0);
+    color_layout->addWidget(color_combo);
+    auto* black_ink_only = new QCheckBox(QObject::tr("Black and grays in black ink only"), color_row);
+    black_ink_only->setObjectName(QStringLiteral("exportBlackInkOnlyCheck"));
+    black_ink_only->setToolTip(QObject::tr(
+        "Prints black text and gray areas with black ink alone instead of a mix of all four inks, so "
+        "small type stays sharp even when the press is slightly out of register. Colored areas are "
+        "separated through the profile as usual."));
+    // Same per-format key family as the color choice, Color becoming BlackInkOnly.
+    const auto black_ink_only_key = QString(color_key).replace(QStringLiteral("exportColor"),
+                                                               QStringLiteral("exportBlackInkOnly"));
+    black_ink_only->setChecked(settings.value(black_ink_only_key, false).toBool());
+    const auto sync_black_ink_only = [color_combo, black_ink_only] {
+      black_ink_only->setEnabled(color_combo->isEnabled() &&
+                                 color_combo->currentData().toString() == QStringLiteral("cmyk"));
+    };
+    QObject::connect(color_combo, &QComboBox::currentIndexChanged, &dialog, [sync_black_ink_only] { sync_black_ink_only(); });
+    sync_black_ink_only();
+    color_layout->addWidget(black_ink_only);
+    color_layout->addStretch(1);
+    content->addWidget(color_row);
+    widgets.color_combo = color_combo;
+    widgets.color_key = color_key;
+    widgets.black_ink_only_check = black_ink_only;
+    widgets.black_ink_only_key = black_ink_only_key;
   }
 
   auto* reveal_check = new QCheckBox(reveal_check_label(), &dialog);
@@ -622,6 +684,17 @@ void apply_export_section(ImageSaveOptions& options, const ExportSectionWidgets&
     options.export_trim_transparent = widgets.trim_check->isChecked();
     settings.setValue(QStringLiteral("saveOptions/exportTrim"), options.export_trim_transparent);
   }
+  if (widgets.color_combo != nullptr) {
+    options.export_cmyk = widgets.color_combo->isEnabled() &&
+                          widgets.color_combo->currentData().toString() == QStringLiteral("cmyk");
+    if (widgets.color_combo->isEnabled()) {
+      settings.setValue(widgets.color_key, widgets.color_combo->currentData().toString());
+    }
+    options.export_black_ink_only = options.export_cmyk && widgets.black_ink_only_check->isChecked();
+    if (options.export_cmyk) {
+      settings.setValue(widgets.black_ink_only_key, widgets.black_ink_only_check->isChecked());
+    }
+  }
   if (widgets.metadata_combo != nullptr) {
     const auto key = widgets.metadata_combo->currentData().toString();
     options.metadata_policy = metadata_policy_from_key(key).value_or(metadata::MetadataPolicy::None);
@@ -643,6 +716,8 @@ void reset_export_options(ImageSaveOptions& options) {
   options.export_height = 0;
   options.export_fill_transparent = false;
   options.export_reveal_in_file_explorer = false;
+  options.export_cmyk = false;
+  options.export_black_ink_only = false;
   options.metadata_policy = metadata::MetadataPolicy::All;
 }
 
@@ -690,7 +765,8 @@ std::optional<ExportSectionWidgets> finish_options_dialog(QVBoxLayout* content, 
 bool image_save_options_apply_to_extension(const QString& extension) {
   return is_jpeg_extension(extension) || is_webp_extension(extension) || is_bmp_extension(extension) ||
          is_ico_extension(extension) || is_cur_extension(extension) || is_pdf_extension(extension) ||
-         is_jxr_extension(extension) || is_rttex_extension(extension) || is_dds_extension(extension);
+         is_jxr_extension(extension) || is_jxl_extension(extension) || is_rttex_extension(extension) ||
+         is_dds_extension(extension);
 }
 
 void populate_pdf_image_quality_combo(QComboBox& combo, const QString& current_id) {
@@ -777,6 +853,11 @@ ImageSaveOptions load_image_save_option_defaults() {
   options.jxr_quality =
       std::clamp(settings.value(QStringLiteral("saveOptions/jxrQuality"), options.jxr_quality).toInt(), 1, 100);
   options.jxr_lossless = settings.value(QStringLiteral("saveOptions/jxrLossless"), options.jxr_lossless).toBool();
+  options.jxl_quality =
+      std::clamp(settings.value(QStringLiteral("saveOptions/jxlQuality"), options.jxl_quality).toInt(), 1, 100);
+  options.jxl_lossless = settings.value(QStringLiteral("saveOptions/jxlLossless"), options.jxl_lossless).toBool();
+  options.jxl_effort =
+      std::clamp(settings.value(QStringLiteral("saveOptions/jxlEffort"), options.jxl_effort).toInt(), 1, 9);
   options.rttex_encoding = rttex_encoding_from_key(
       settings.value(QStringLiteral("saveOptions/rttexEncoding"), rttex_encoding_key(options.rttex_encoding))
           .toString(),
@@ -832,6 +913,9 @@ void save_image_save_option_defaults(const ImageSaveOptions& options) {
   settings.setValue(QStringLiteral("saveOptions/animationFrameDelayMs"), options.animation_frame_delay_ms);
   settings.setValue(QStringLiteral("saveOptions/jxrQuality"), std::clamp(options.jxr_quality, 1, 100));
   settings.setValue(QStringLiteral("saveOptions/jxrLossless"), options.jxr_lossless);
+  settings.setValue(QStringLiteral("saveOptions/jxlQuality"), std::clamp(options.jxl_quality, 1, 100));
+  settings.setValue(QStringLiteral("saveOptions/jxlLossless"), options.jxl_lossless);
+  settings.setValue(QStringLiteral("saveOptions/jxlEffort"), std::clamp(options.jxl_effort, 1, 9));
   settings.setValue(QStringLiteral("saveOptions/rttexEncoding"), rttex_encoding_key(options.rttex_encoding));
   settings.setValue(QStringLiteral("saveOptions/rttexJpegQuality"), std::clamp(options.rttex_jpeg_quality, 1, 100));
   settings.setValue(QStringLiteral("saveOptions/rttexPowerOfTwo"), rttex_power_of_two_key(options.rttex_power_of_two));
@@ -894,7 +978,7 @@ std::optional<ImageSaveOptions> prompt_image_save_options(QWidget* parent, const
     auto* content = create_options_dialog_chrome(dialog, QObject::tr("WebP Options"));
     dialog.resize(380, 170);
     QRadioButton* animation_radio = nullptr;
-    if (options.webp_offer_animation) {
+    if (options.offer_animation) {
       animation_radio = new QRadioButton(QObject::tr("Animation from visible layers"), &dialog);
       animation_radio->setObjectName(QStringLiteral("webpAnimationRadio"));
       auto* flatten = new QRadioButton(QObject::tr("Single flattened image"), &dialog);
@@ -902,18 +986,18 @@ std::optional<ImageSaveOptions> prompt_image_save_options(QWidget* parent, const
       auto* modes = new QButtonGroup(&dialog);
       modes->addButton(animation_radio);
       modes->addButton(flatten);
-      const bool animate = options.webp_has_visible_frames &&
+      const bool animate = options.has_visible_frames &&
           app_settings().value(QStringLiteral("saveOptions/webpSaveMode"), QStringLiteral("animation")) != QStringLiteral("flatten");
       animation_radio->setChecked(animate);
       flatten->setChecked(!animate);
-      animation_radio->setEnabled(options.webp_has_visible_frames);
+      animation_radio->setEnabled(options.has_visible_frames);
       content->addWidget(animation_radio);
       content->addWidget(flatten);
     }
     QDoubleSpinBox* frame_delay = nullptr;
     QCheckBox* forever_check = nullptr;
     QSpinBox* plays = nullptr;
-    if (options.webp_offer_animation || options.webp_animate) {
+    if (options.offer_animation || options.webp_animate) {
       auto* animation_controls = new QWidget(&dialog);
       auto* animation_form = new QFormLayout(animation_controls);
       animation_form->setContentsMargins(0, 0, 0, 0);
@@ -985,13 +1069,139 @@ std::optional<ImageSaveOptions> prompt_image_save_options(QWidget* parent, const
       options.animation_frame_delay_ms = static_cast<int>(std::llround(frame_delay->value() * 1000));
       options.gif_frame_delay_cs = std::min(65535, (options.animation_frame_delay_ms + 5) / 10);
       options.webp_loop_count = forever_check->isChecked() ? 0 : plays->value();
-      if (animation_radio != nullptr && options.webp_has_visible_frames) {
+      if (animation_radio != nullptr && options.has_visible_frames) {
         app_settings().setValue(QStringLiteral("saveOptions/webpSaveMode"),
             options.webp_animate ? QStringLiteral("animation") : QStringLiteral("flatten"));
       }
     }
     options.webp_quality = quality->value();
     options.webp_lossless = lossless->isChecked();
+    if (section.has_value()) {
+      apply_export_section(options, *section);
+    }
+    return options;
+  }
+
+  if (is_jxl_extension(extension)) {
+    QDialog dialog(parent);
+    dialog.setObjectName(QStringLiteral("jxlSaveOptionsDialog"));
+    auto* content = create_options_dialog_chrome(dialog, QObject::tr("JPEG XL Options"));
+    dialog.resize(400, 230);
+    QRadioButton* animation_radio = nullptr;
+    if (options.offer_animation) {
+      animation_radio = new QRadioButton(QObject::tr("Animation from visible layers"), &dialog);
+      animation_radio->setObjectName(QStringLiteral("jxlAnimationRadio"));
+      auto* flatten = new QRadioButton(QObject::tr("Single flattened image"), &dialog);
+      flatten->setObjectName(QStringLiteral("jxlFlattenRadio"));
+      auto* modes = new QButtonGroup(&dialog);
+      modes->addButton(animation_radio);
+      modes->addButton(flatten);
+      const bool animate = options.has_visible_frames &&
+          app_settings().value(QStringLiteral("saveOptions/jxlSaveMode"), QStringLiteral("animation")) != QStringLiteral("flatten");
+      animation_radio->setChecked(animate);
+      flatten->setChecked(!animate);
+      animation_radio->setEnabled(options.has_visible_frames);
+      content->addWidget(animation_radio);
+      content->addWidget(flatten);
+    }
+    QDoubleSpinBox* frame_delay = nullptr;
+    QCheckBox* forever_check = nullptr;
+    QSpinBox* plays = nullptr;
+    if (options.offer_animation || options.jxl_animate) {
+      auto* animation_controls = new QWidget(&dialog);
+      auto* animation_form = new QFormLayout(animation_controls);
+      animation_form->setContentsMargins(0, 0, 0, 0);
+      frame_delay = new QDoubleSpinBox(animation_controls);
+      frame_delay->setObjectName(QStringLiteral("jxlFrameDelaySpin"));
+      frame_delay->setDecimals(3);
+      frame_delay->setRange(0, animation::kMaxFrameDelayMs / 1000.0);
+      frame_delay->setSuffix(QObject::tr(" s"));
+      frame_delay->setValue(options.animation_frame_delay_ms / 1000.0);
+      configure_dialog_spinbox(frame_delay, 110);
+      animation_form->addRow(QObject::tr("Default frame delay:"), frame_delay);
+      forever_check = new QCheckBox(QObject::tr("Forever"), animation_controls);
+      forever_check->setObjectName(QStringLiteral("jxlForeverCheck"));
+      forever_check->setChecked(options.jxl_loop_count == 0);
+      animation_form->addRow(forever_check);
+      plays = new QSpinBox(animation_controls);
+      plays->setObjectName(QStringLiteral("jxlPlayCountSpin"));
+      plays->setRange(1, 65535);
+      plays->setValue(std::max(1, options.jxl_loop_count));
+      plays->setEnabled(!forever_check->isChecked());
+      configure_dialog_spinbox(plays, 96);
+      animation_form->addRow(QObject::tr("Play count:"), plays);
+      QObject::connect(forever_check, &QCheckBox::toggled, plays, [plays](bool checked) { plays->setEnabled(!checked); });
+      auto* hint = new QLabel(QObject::tr("Each visible top-level layer becomes one frame, with the top layer first. "
+          "A name ending in a time, like \"blink 0.033s\", sets that frame's delay. Play count includes the first play."), animation_controls);
+      hint->setWordWrap(true);
+      hint->setObjectName(QStringLiteral("jxlAnimationExplanationLabel"));
+      content->addWidget(animation_controls);
+      content->addWidget(hint);
+      if (animation_radio != nullptr) {
+        animation_controls->setEnabled(animation_radio->isChecked());
+        hint->setEnabled(animation_radio->isChecked());
+        QObject::connect(animation_radio, &QRadioButton::toggled, animation_controls, &QWidget::setEnabled);
+        QObject::connect(animation_radio, &QRadioButton::toggled, hint, &QWidget::setEnabled);
+      }
+    }
+
+    auto* form = new QFormLayout();
+    form->setContentsMargins(0, 0, 0, 0);
+    form->setHorizontalSpacing(10);
+    form->setVerticalSpacing(8);
+    auto* quality = add_dialog_slider_spin_row(form, &dialog, QObject::tr("Quality:"),
+                                               QStringLiteral("jxlQualitySlider"), QStringLiteral("jxlQualitySpin"),
+                                               1, 100, std::clamp(options.jxl_quality, 1, 100),
+                                               QStringLiteral("%"), 88, 8);
+    auto* effort = new QSpinBox(&dialog);
+    effort->setObjectName(QStringLiteral("jxlEffortSpin"));
+    effort->setRange(1, 9);
+    effort->setValue(std::clamp(options.jxl_effort, 1, 9));
+    effort->setToolTip(QObject::tr("Higher effort makes smaller files and takes longer to save."));
+    configure_dialog_spinbox(effort, 72);
+    form->addRow(QObject::tr("Effort:"), effort);
+    content->addLayout(form);
+
+    auto* lossless = new QCheckBox(QObject::tr("Lossless (larger file)"), &dialog);
+    lossless->setObjectName(QStringLiteral("jxlLosslessCheck"));
+    lossless->setChecked(options.jxl_lossless);
+    content->addWidget(lossless);
+
+    // The encoder's patch and dot tools stay off on every save (docs/legal-constraints.md);
+    // files made elsewhere with them still open normally.
+    auto* note = new QLabel(QObject::tr("Patchy does not use JPEG XL's patch and dot coding tools, so images with "
+                                        "repeated text or small dots can be somewhat larger than with other encoders."),
+                            &dialog);
+    note->setObjectName(QStringLiteral("jxlSaveNote"));
+    note->setWordWrap(true);
+    content->addWidget(note);
+    const auto section = finish_options_dialog(content, dialog, for_export, extension, document_size);
+
+    if (frame_delay != nullptr && !for_export) finish_export_dialog_size(dialog);
+
+    // Lossless ignores the quality value, so the row goes dead rather than showing a
+    // number the file will not use.
+    auto* quality_row = quality->parentWidget();
+    const auto sync_quality_enabled = [quality_row, lossless] { quality_row->setEnabled(!lossless->isChecked()); };
+    QObject::connect(lossless, &QCheckBox::toggled, &dialog, [sync_quality_enabled](bool) { sync_quality_enabled(); });
+    sync_quality_enabled();
+
+    if (exec_dialog(dialog) != QDialog::Accepted) {
+      return std::nullopt;
+    }
+    if (frame_delay != nullptr) {
+      options.jxl_animate = animation_radio == nullptr || animation_radio->isChecked();
+      options.animation_frame_delay_ms = static_cast<int>(std::llround(frame_delay->value() * 1000));
+      options.gif_frame_delay_cs = std::min(65535, (options.animation_frame_delay_ms + 5) / 10);
+      options.jxl_loop_count = forever_check->isChecked() ? 0 : plays->value();
+      if (animation_radio != nullptr && options.has_visible_frames) {
+        app_settings().setValue(QStringLiteral("saveOptions/jxlSaveMode"),
+            options.jxl_animate ? QStringLiteral("animation") : QStringLiteral("flatten"));
+      }
+    }
+    options.jxl_quality = quality->value();
+    options.jxl_effort = effort->value();
+    options.jxl_lossless = lossless->isChecked();
     if (section.has_value()) {
       apply_export_section(options, *section);
     }
@@ -1574,6 +1784,12 @@ std::optional<ImageSaveOptions> prompt_image_save_options(QWidget* parent, const
       // Vectors and text scale with the page; the pixel transforms (resize, scale, trim,
       // background fill) only apply to the flattened image.
       section->transform_section->setEnabled(!keep_layers);
+      if (section->color_combo != nullptr && keep_layers) {
+        // Editable layers go through Qt's PDF engine, which writes RGB only.
+        section->color_combo->setCurrentIndex(0);
+        section->color_combo->setEnabled(false);
+        section->black_ink_only_check->setEnabled(false);
+      }
     }
 
     if (exec_dialog(dialog) != QDialog::Accepted) {

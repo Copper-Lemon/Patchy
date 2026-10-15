@@ -1313,6 +1313,29 @@ void ui_gmic_library_dialog_previews_every_chosen_layer_and_explains_the_result(
 // patchy.gmic and layer.applyGmic: the list describes filters and parameters, a run
 // is part of the script's single undo entry, values go by name or by position, and
 // bad input throws instead of running.
+void ui_gmic_custom_formula_rejects_excluded_commands_without_editing_layers() {
+  if (!gmic::engine_available()) return;
+  patchy::ui::MainWindow window;
+  show_window(window);
+  CHECK(run_script(window, QStringLiteral(
+      "var doc = app.activeDocument;"
+      "doc.activeLayer.fillRect(0, 0, 200, 200, '#c03020');"
+      "var top = doc.addLayer('Top');"
+      "top.fillRect(0, 0, 200, 200, '#2040c0'); doc.activeLayer = top;")));
+  const auto& document = std::as_const(MainWindowTestAccess::document(window));
+  const auto layer_count = document.layers().size();
+  const auto pixel = layer_pixel(window, 50, 50);
+  CHECK(run_script(window, QStringLiteral(
+      "var refused = false;"
+      "try { app.activeDocument.activeLayer.applyGmic('fx_blend', {"
+      "  'Mode': 'Custom formula', 'Custom Formula': \"run('fx_blur_motion') + (a+b)/2\""
+      "}, {inputLayers:'all'}); }"
+      "catch (e) { if (String(e).indexOf('Not available in this build') < 0) throw e; refused = true; }"
+      "if (!refused) throw new Error('excluded command ran through a formula');")));
+  CHECK(document.layers().size() == layer_count);
+  CHECK(layer_pixel(window, 50, 50) == pixel);
+}
+
 void ui_gmic_script_api_lists_and_applies() {
   patchy::ui::MainWindow window;
   show_window(window);
@@ -1481,6 +1504,8 @@ std::vector<patchy::test::TestCase> gmic_ui_tests() {
        ui_gmic_filter_keeps_transparency_on_a_layer_without_alpha},
       {"ui_gmic_filter_reads_the_layers_its_input_mode_names", ui_gmic_filter_reads_the_layers_its_input_mode_names},
       {"ui_gmic_script_api_lists_and_applies", ui_gmic_script_api_lists_and_applies},
+      {"ui_gmic_custom_formula_rejects_excluded_commands_without_editing_layers",
+       ui_gmic_custom_formula_rejects_excluded_commands_without_editing_layers},
       {"ui_gmic_library_dialog_releases_a_button_after_the_run_that_read_it",
        ui_gmic_library_dialog_releases_a_button_after_the_run_that_read_it},
       {"ui_gmic_library_dialog_drafts_then_refines", ui_gmic_library_dialog_drafts_then_refines},

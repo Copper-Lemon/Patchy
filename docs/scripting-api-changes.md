@@ -7,6 +7,30 @@ attachment, palettes, vector automation, brushes, Slow mode and Pause) are in
 [scripting-api-changes-through-2026-09-11.md](scripting-api-changes-through-2026-09-11.md).
 Every entry below is API 1.
 
+2026-10-15 (additive): JPEG XL. `app.open`, `doc.saveAs` and `doc.exportAs` handle `.jxl`
+(docs/jxl.md). `PatchySaveOptions` gains `effort` (1 to 9) and `loopCount` (0 to 65535) for
+`.jxl`, and `.jxl` also takes `quality` (1 to 100), `lossless`, `animate`, `frameDelayMs` and
+`metadata`. Pinned by `ui_script_save_as_options_write_jxl`.
+2026-10-15 (additive): `blackInkOnly: true` in `doc.saveAs`/`doc.exportAs` options, with
+`colorMode: "cmyk"` only (throws otherwise), separates black, grays and black-ink colors to the
+K plate alone. Permanent identifier: the key. Pinned by
+`ui_script_export_cmyk_writes_jpeg_tiff_and_pdf`.
+2026-10-14 (additive): CMYK export (docs/cmyk.md). `doc.saveAs`/`doc.exportAs` options take
+`colorMode: "rgb" | "cmyk"` for `.jpg`, `.tif`/`.tiff` and flattened `.pdf`; `"cmyk"` separates
+through the working CMYK profile and embeds it, and throws when the user chose no profile. `.tif`
+now accepts this one key. Permanent identifiers: the key and both tokens. Pinned by
+`ui_script_export_cmyk_writes_jpeg_tiff_and_pdf`.
+2026-10-14 (additive): soft proof and gamut warning (docs/cmyk.md). `patchy.ui.proofColors`
+and `patchy.ui.gamutWarning` read and set View > Proof Colors and View > Gamut Warning
+(application-wide canvas views, never saved, off without a CMYK profile);
+`app.colorInCmykGamut(color)` is the gamut test for one color. Command ids
+`view.proof_colors` and `view.gamut_warning`. Pinned by `ui_proof_colors_and_gamut_warning_change_only_the_view`.
+2026-10-14 (additive): the working CMYK space (docs/cmyk.md). `app.cmykProfile` reads
+`{name, hasProfile, intent, blackPointCompensation}`; `app.colorToCmyk(color)` returns
+`{c, m, y, k}` ink percentages and `app.cmykToColor(c, m, y, k)` the `"#rrggbb"` color, both
+through the profile chosen in Preferences (an approximate formula when `hasProfile` is false).
+Permanent identifiers: the intent tokens `perceptual`, `relative-colorimetric`, `saturation`
+and `absolute-colorimetric`. Pinned by `ui_script_cmyk_conversions_use_working_space`.
 2026-10-14 (behavioral, supersedes the entry below): `layer.applyGmic` changes every layer
 `inputLayers` chooses that it may change, in one undo step; locked, text, shape and Smart
 Object layers among them are only read. A filter made for one image (declared input

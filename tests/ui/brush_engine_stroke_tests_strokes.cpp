@@ -2867,7 +2867,9 @@ void ui_copy_selected_layers_copies_composited_selection() {
   save_widget_artifact("ui_copy_selected_layers", window);
 }
 
-void ui_eraser_on_background_reveals_transparency_and_size_cursor() {
+void ui_eraser_on_background_paints_background_color_and_size_cursor() {
+  // A new document's opaque Background locks transparency and position (Photoshop), so the
+  // Eraser paints the background color there instead of punching through (GitHub issue 97).
   patchy::ui::MainWindow window;
   show_window(window);
   auto* canvas = require_canvas(window);
@@ -2880,8 +2882,9 @@ void ui_eraser_on_background_reveals_transparency_and_size_cursor() {
 
   require_action_by_text(window, QStringLiteral("Eraser"))->trigger();
   canvas->set_brush_size(38);
-  canvas->set_brush_opacity(92);
-  canvas->set_brush_softness(20);
+  canvas->set_brush_opacity(100);
+  canvas->set_brush_softness(0);
+  canvas->set_secondary_color(QColor(30, 140, 220));
   CHECK(canvas->cursor().shape() == Qt::BitmapCursor);
   auto* background = require_layer_item(*layer_list, QStringLiteral("Background"));
   layer_list->clearSelection();
@@ -2892,18 +2895,22 @@ void ui_eraser_on_background_reveals_transparency_and_size_cursor() {
   auto* background_row = layer_list->itemWidget(background);
   CHECK(background_row != nullptr);
   const auto badges = background_row->findChildren<QLabel*>(QStringLiteral("layerLockBadge"));
-  CHECK(badges.size() == 1);
-  CHECK(badges.front()->toolTip().contains(QStringLiteral("Position locked")));
+  CHECK(badges.size() == 2);
+  QStringList badge_tips;
+  for (const auto* badge : badges) {
+    badge_tips << badge->toolTip();
+  }
+  const auto joined_tips = badge_tips.join(QLatin1Char(' '));
+  CHECK(joined_tips.contains(QStringLiteral("Transparent pixels locked")));
+  CHECK(joined_tips.contains(QStringLiteral("Position locked")));
 
   const auto erase_point = canvas->widget_position_for_document_point(QPoint(90, 90));
   drag(*canvas, erase_point, erase_point + QPoint(1, 1));
   QApplication::processEvents();
-  const auto erased = canvas_pixel(*canvas, QPoint(90, 90));
-  CHECK(erased.red() >= 170);
-  CHECK(erased.red() <= 245);
-  CHECK(std::abs(erased.red() - erased.green()) <= 4);
-  CHECK(std::abs(erased.green() - erased.blue()) <= 4);
-  save_widget_artifact("ui_background_eraser_transparency", window);
+  CHECK(color_close(canvas_pixel(*canvas, QPoint(90, 90)), QColor(30, 140, 220), 3));
+  const auto& background_layer = patchy::ui::MainWindowTestAccess::document(window).layers().front();
+  CHECK(background_layer.name() == "Background" && background_layer.pixels().format().channels == 3);
+  save_widget_artifact("ui_background_eraser_background_color", window);
 }
 
 void ui_brush_and_eraser_remember_separate_settings() {
@@ -3438,8 +3445,8 @@ std::vector<patchy::test::TestCase> brush_engine_stroke_tests_part1() {
        ui_brush_smoothing_catch_up_on_end_completes_stroke},
       {"ui_copy_ignores_hidden_active_layer", ui_copy_ignores_hidden_active_layer},
       {"ui_copy_selected_layers_copies_composited_selection", ui_copy_selected_layers_copies_composited_selection},
-      {"ui_eraser_on_background_reveals_transparency_and_size_cursor",
-       ui_eraser_on_background_reveals_transparency_and_size_cursor},
+      {"ui_eraser_on_background_paints_background_color_and_size_cursor",
+       ui_eraser_on_background_paints_background_color_and_size_cursor},
       {"ui_brush_and_eraser_remember_separate_settings", ui_brush_and_eraser_remember_separate_settings},
       {"ui_magic_wand_cursor_marks_click_hotspot", ui_magic_wand_cursor_marks_click_hotspot},
       {"ui_spacebar_pan_works_from_layer_panel_but_not_text_entry",

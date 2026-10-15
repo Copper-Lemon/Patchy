@@ -297,9 +297,10 @@ Code comments cite these phase numbers. Each phase lands as verified commits.
    (throws for other values, with the gate off, or on Indexed documents);
    `getPixels`/`setPixels` stay RGBA8 and convert at the boundary. Export: PNG and TIFF
    keep 16 bits (`deep_export_qimage`); a 32-bit document writes float TIFF with its
-   linear values (`float_export_qimage`); the other writers are 8-bit. JPEG, WebP and
+   linear values (`float_export_qimage`); still JPEG XL keeps 16-bit and float samples
+   natively (`jxl::write_jxl`, docs/jxl.md); the other writers are 8-bit. JPEG, WebP and
    PDF narrow the deep composite (`flat_export_qimage`); the native flat writers (BMP,
-   TGA, DDS, GIF, PCX, ICO/CUR, IFF, RTTEX, JXR), animated GIF/WebP, any export
+   TGA, DDS, GIF, PCX, ICO/CUR, IFF, RTTEX, JXR), animated GIF/WebP/JPEG XL, any export
    transform, and the layered SVG and Aseprite writers receive a copy converted like
    Image > Mode > 8 Bits/Channel (`document_for_8bit_writer`, ui/image_document_io.hpp),
    because they composite at 8 bits and would otherwise fail.

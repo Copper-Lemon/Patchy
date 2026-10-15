@@ -1,6 +1,8 @@
 # Linux packaging (Flatpak)
 
-Patchy ships on Linux as a Flatpak, in two forms built from the same signed commit by
+Patchy ships on Linux as a Flatpak (this page) and as an AppImage
+(`make-appimage.sh` and `appimage/`, documented in
+[docs/appimage.md](../../docs/appimage.md)). The Flatpak comes in two forms built from the same signed commit by
 `make-flatpak.sh` (driven from Windows by `scripts/remote/release-linux.ps1`):
 
 - **The repository** at `https://rtsoft.com/flatpak/repo/`, with
@@ -25,7 +27,7 @@ installation. Both installs add the Flathub remote themselves when the machine h
 `RuntimeRepo`, the bundle's `--runtime-repo`) and pull `org.kde.Platform` from it. The
 app's update dialog shows the `flatpak update` line (`show_update_available` in
 `src/ui/main_window_files.cpp`, pinned by `ui_update_available_dialog_*` in
-`tests/ui/app_shell_tests.cpp`).
+`tests/ui/app_shell_tests.cpp`); an AppImage copy gets a download prompt instead.
 
 1.05 (October 2026) is the first release that ships the repository.
 
@@ -59,8 +61,8 @@ the linux build host with flatpak 1.14.6 in empty installations, October 2026):
 | new bundle over a 1.04 or older bundle | `patchy-origin` gains the URL but stays `no-gpg-verify` | updates, unverified |
 | new bundle over a repository install | unchanged | updates |
 
-Bundles before 1.05 have no origin URL and can only be replaced by a newer bundle,
-which is what their update dialog's curl line does. `flatpak install --or-update` with
+Bundles before 1.05 have no origin URL and can only be replaced by a newer bundle
+(their own update dialog printed a curl line for that). `flatpak install --or-update` with
 the flatpakref fails with "already installed", so it is not a universal update command.
 
 ### Signing key (one-time, on the linux build host)

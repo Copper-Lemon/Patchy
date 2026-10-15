@@ -2,7 +2,7 @@
 
 Repository-wide policy: read before any project action at task start. Reread only if the repository or this file changes, or these instructions leave context.
 
-If `agents_local.md` exists at the repository root, open and read it too. It holds knowledge specific to this checkout and developer, such as which systems it can ssh into and use for building. Anything sensitive goes in `agents_secret.md` beside it, read only when a task needs it. Both are optional and gitignored, and must never be checked in. This repository is public, so machine names, users, addresses, local paths, and credentials belong in those files, never in tracked files. A git worktree has no untracked files: look for them in the main checkout, the parent of `git rev-parse --path-format=absolute --git-common-dir`.
+If `agents_local.md` exists at the repository root, open and read it too. It holds knowledge specific to this checkout and developer, such as which systems it can ssh into for building. Anything sensitive goes in `agents_secret.md` beside it, read only when a task needs it. Both are optional and gitignored, and must never be checked in. This repository is public, so machine names, users, addresses, local paths, and credentials belong in those files, never in tracked files. A git worktree has no untracked files: look for them in the main checkout, the parent of `git rev-parse --path-format=absolute --git-common-dir`.
 
 Keep this file at or below 30,000 bytes. Detailed implementation knowledge belongs in `docs/<topic>.md`; read the relevant linked document before working in that area, update it when behavior changes, and do not duplicate its details here. Every file under `docs/` must also stay at or below 30,000 bytes: keep docs dense and current-state only. Cut narrative history, experiment logs, and restatements of constants that live in code; never cut normative rules, calibration facts recorded only in the doc, or headings cited from code comments.
 
@@ -90,13 +90,13 @@ Read these before acting in the named area:
 | Work area | Required reference |
 |---|---|
 | MainWindow/CanvasWidget/PSD splits, function moves, shared helpers, broad refactors | [docs/code-organization.md](docs/code-organization.md), plus [docs/refactor-backlog.md](docs/refactor-backlog.md) for cleanup work |
-| QActions, dialogs, options bar, list rows, status messages, shared QSS/UI conventions, colors and the Dark/Light color scheme | [docs/ui-conventions.md](docs/ui-conventions.md) |
+| QActions, dialogs, options bar, list rows, status messages, shared QSS/UI conventions, colors, Dark/Light scheme | [docs/ui-conventions.md](docs/ui-conventions.md) |
 | User-facing text, translation catalogs, languages, `LocalizationManager`, unit suffixes | [docs/localization.md](docs/localization.md) |
 | Layers panel (rows, thumbnails, click selection, disclosure arrow, visibility eye, drags to another document, Alt-drag duplicate) | [docs/layer-panel.md](docs/layer-panel.md) |
 | Tests, offscreen behavior, visual QA, app and README screenshots, suite failure diagnosis | [docs/testing.md](docs/testing.md) |
 | Platform-guarded code, macOS/Linux behavior, remote builds | [docs/platform.md](docs/platform.md) |
 | WebAssembly builds, the wasm-core preset, emsdk provisioning | [docs/wasm.md](docs/wasm.md); wasm memory/telemetry in [docs/wasm-memory.md](docs/wasm-memory.md); wasm input/focus/hotkeys in [docs/wasm-input.md](docs/wasm-input.md) |
-| Patents, licensing, trademarks, bundled assets, or a feature adjacent to a legal boundary | [docs/legal-constraints.md](docs/legal-constraints.md), with the underlying research record in [docs/patent-research.md](docs/patent-research.md), [docs/patent-research-inpainting.md](docs/patent-research-inpainting.md), [docs/patent-research-alignment.md](docs/patent-research-alignment.md), and [docs/patent-research-formats.md](docs/patent-research-formats.md) |
+| Patents, licensing, trademarks, bundled assets, or a feature adjacent to a legal boundary | [docs/legal-constraints.md](docs/legal-constraints.md), which links every patent research record (`docs/patent-research*.md`) |
 | PSD descriptors, layer styles, write/corruption rules | [docs/ps-compat.md](docs/ps-compat.md) |
 | Photoshop COM captures and acceptance runs, the unknown-data prompt check | [docs/photoshop-com.md](docs/photoshop-com.md) |
 | Font resolution (display names, DirectWrite lookup, GDI names, exact sizes) | [docs/font-resolution.md](docs/font-resolution.md) |
@@ -124,7 +124,7 @@ Read these before acting in the named area:
 
 ## Feature index
 
-Read the linked document before working on the feature; it owns the detailed constraints.
+Read the linked document before working on a feature; it owns the constraints.
 
 - **Smart Objects and Smart Filters:** [docs/smart-objects.md](docs/smart-objects.md), the native-filter calibration in [docs/smart-filters-native.md](docs/smart-filters-native.md), plus the binding boundaries in [docs/legal-constraints.md](docs/legal-constraints.md).
 - **Liquify:** [docs/liquify.md](docs/liquify.md) and [docs/legal-constraints.md](docs/legal-constraints.md).
@@ -132,10 +132,10 @@ Read the linked document before working on the feature; it owns the detailed con
 - **Brush tips, dynamics, Flow/Airbrush, Pattern Stamp, and ABR:** [docs/brushes.md](docs/brushes.md) and [docs/legal-constraints.md](docs/legal-constraints.md).
 - **Mixer Brush pickup engine and stroke Smoothing:** [docs/mixer.md](docs/mixer.md) and [docs/legal-constraints.md](docs/legal-constraints.md).
 - **Healing Brush, Spot Healing, Patch tool, Remove Object (dialog, variations, tone match), and retouch Sample All Layers:** [docs/healing.md](docs/healing.md) and [docs/legal-constraints.md](docs/legal-constraints.md).
-- **Palette mode:** [docs/palette-mode.md](docs/palette-mode.md).
+- **Palette mode:** [docs/palette-mode.md](docs/palette-mode.md). CMYK: [docs/cmyk.md](docs/cmyk.md).
 - **16/32-bit editing (on; `PATCHY_DEEP_EDITING=0` off):** [docs/high-bit-depth.md](docs/high-bit-depth.md).
 - **File formats, PSB, HEIF/HEIC, and flat-image alpha:** [docs/file-formats.md](docs/file-formats.md); Camera Raw in [docs/camera-raw.md](docs/camera-raw.md), Affinity in [docs/af-format.md](docs/af-format.md), animated GIF/WebP in [docs/animation.md](docs/animation.md). Image metadata (File Info): [docs/file-info.md](docs/file-info.md).
-- **JPEG XR (.jxr) and the HDR tone map:** [docs/jxr.md](docs/jxr.md), plus the no-vendored-codec rule in [docs/legal-constraints.md](docs/legal-constraints.md).
+- **JPEG XR (.jxr, HDR tone map) and JPEG XL (.jxl):** [docs/jxr.md](docs/jxr.md), [docs/jxl.md](docs/jxl.md); codec rules in [docs/legal-constraints.md](docs/legal-constraints.md).
 - **Proton (.rttex) and DDS (.dds) textures:** [docs/rttex.md](docs/rttex.md), [docs/dds.md](docs/dds.md).
 - **PDF import/export (editable layers, flat, the image-page writer and quality presets, pass-through of imported pages, `pdfopen`/`pdfsave` profiling):** [docs/pdf.md](docs/pdf.md).
 - **Document channels:** [docs/channels.md](docs/channels.md).
@@ -149,9 +149,9 @@ Read the linked document before working on the feature; it owns the detailed con
 - **Gradients and GRD:** [docs/gradients.md](docs/gradients.md).
 - **Text tool, Character panel and Paragraph panel:** [docs/text-tool.md](docs/text-tool.md), text inside shapes in [docs/area-text.md](docs/area-text.md), with the Photoshop layout/measurement calibration in [docs/text-render-calibration.md](docs/text-render-calibration.md).
 - **Photoshop's Txt2 text engine block:** [docs/txt2.md](docs/txt2.md). Read it before any Txt2, text-run or list-style work. Vertical type and paragraph direction (Photoshop's vertical text model, the Ornt/WritingDirection encoding, the v4 paragraph column) are in both.
-- **Bundled fonts, wasm font aliases, and user-added fonts:** [docs/fonts.md](docs/fonts.md).
+- **Bundled, wasm-aliased and user-added fonts:** [docs/fonts.md](docs/fonts.md).
 - **Selection tools:** [docs/selection-tools.md](docs/selection-tools.md) and [docs/legal-constraints.md](docs/legal-constraints.md). ML Select Subject and Object Selection: [docs/ai-selection.md](docs/ai-selection.md); one prompt per solve, no negative points or mask feedback. Select Subject/Background and Remove Background are held back (CMake `PATCHY_ENABLE_SELECT_SUBJECT`, default off) pending patent review of US 12051225.
-- **Shape tools, the Fill tool (Paint Bucket tolerance, Contiguous, opacity, soft edge) and Fill command, Free Transform modifiers, pixel-grid snapping (Photoshop's whole-pixel rule, `core/pixel_grid.hpp`), and Merge Down:** [docs/tools.md](docs/tools.md); vector merges in [docs/layer-merging.md](docs/layer-merging.md); the Crop tool in [docs/crop-tool.md](docs/crop-tool.md); tool palette layout, flyouts and icons in [docs/tool-palette.md](docs/tool-palette.md).
+- **Shape tools, the Fill tool (Paint Bucket tolerance, Contiguous, opacity, soft edge) and Fill command, Free Transform modifiers, pixel-grid snapping (Photoshop's whole-pixel rule, `core/pixel_grid.hpp`), Merge Down, and the Background lock:** [docs/tools.md](docs/tools.md); vector merges and Flatten Image in [docs/layer-merging.md](docs/layer-merging.md); the Crop tool in [docs/crop-tool.md](docs/crop-tool.md); tool palette layout, flyouts and icons in [docs/tool-palette.md](docs/tool-palette.md).
 - **Zoom tool, Scrubby Zoom, pen and wheel zoom:** [docs/view-navigation.md](docs/view-navigation.md).
 - **Move-tool alignment guides (snap targets, the magenta overlay, the Snap checkbox) and Layer > Arrange > Align / Distribute:** [docs/alignment.md](docs/alignment.md) and [docs/legal-constraints.md](docs/legal-constraints.md).
 - **Vector tools, shape layers, vector masks, and Paths:** [docs/vector-tools.md](docs/vector-tools.md) (PSD fixtures in [docs/vector-fixtures.md](docs/vector-fixtures.md)) and [docs/legal-constraints.md](docs/legal-constraints.md).
@@ -165,7 +165,8 @@ Read the linked document before working on the feature; it owns the detailed con
 - **JavaScript scripting and bundled scripts:** [docs/scripting.md](docs/scripting.md). The MCP connector and patchy-control skill: [docs/ai-control.md](docs/ai-control.md).
 - **Automatic document recovery and atomic file writes:** [docs/document-recovery.md](docs/document-recovery.md). Recovery copies live per running instance under a QLockFile.
 - **Single-instance forwarding, CLI screenshots, and `--headless` runs:** `src/app/main.cpp`, [docs/testing.md](docs/testing.md), and the CLI section of [docs/scripting.md](docs/scripting.md).
-- **Logo and icon source art:** `packaging/branding/`.
+- **Logo and icon art:** `packaging/branding/`.
 - **Performance and the stress harness:** [docs/performance.md](docs/performance.md); the Move/Free Transform drag-preview machinery is in [docs/interactive-previews.md](docs/interactive-previews.md).
 - **Testy PSD benchmark:** [docs/testy.md](docs/testy.md).
-- **Flatpak packaging and its update repository:** [packaging/linux/README.md](packaging/linux/README.md).
+- **Flatpak packaging and update repository:** [packaging/linux/README.md](packaging/linux/README.md).
+- **Linux AppImage:** [docs/appimage.md](docs/appimage.md). Ubuntu 22.04 floor (ABI audit); show or store the `.AppImage` file (`appimage_file_path()`), never the per-launch mount.

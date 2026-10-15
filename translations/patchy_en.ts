@@ -9833,6 +9833,106 @@ RGB: %2, %3, %4</source>
         <source>File Info metadata to include. The color profile and resolution are always kept.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>CMYK export needs a CMYK profile. Choose one in Preferences.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>CMYK export is available for JPEG, TIFF and flattened PDF files only.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>CMYK (%1)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>CMYK separates the image through the CMYK profile chosen in Preferences and embeds that profile. Transparent areas print as paper white. Patchy opens CMYK files as RGB again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Black and grays in black ink only</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Prints black text and gray areas with black ink alone instead of a mix of all four inks, so small type stays sharp even when the press is slightly out of register. Colored areas are separated through the profile as usual.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is damaged or not supported</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The file is not a JPEG XL image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The JPEG XL file is truncated</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The JPEG XL image is too large to open</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>JPEG XL: extra channels other than alpha were not imported</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The JPEG XL animation is too large to open</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not encode the JPEG XL image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The document has no pixels to save</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The document has no visible top-level layers to export as an animated JPEG XL.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid animated JPEG XL frame or duration.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not open JPEG XL file for writing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not write JPEG XL file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>JPEG XL Options</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Higher effort makes smaller files and takes longer to save.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Effort:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Patchy does not use JPEG XL&apos;s patch and dot coding tools, so images with repeated text or small dots can be somewhat larger than with other encoders.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>JPEG XL Image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Animated JPEG XL: imported %1 frames as layers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10066,6 +10166,10 @@ RGB: %2, %3, %4</source>
     </message>
     <message>
         <source>Close</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Patchy is running from an AppImage; the skill folder exists only while Patchy is open.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -11488,6 +11592,14 @@ RGB: %2, %3, %4</source>
         <source>Delete channel</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Preview this ink plate of the CMYK proof: darker means more ink. Plates come from the working CMYK profile and are read-only.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%CTRL%-click to load where this plate has no ink as a selection.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::FontPickerCombo</name>
@@ -12545,18 +12657,6 @@ RGB: %2, %3, %4</source>
     </message>
     <message>
         <source>T</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>L</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>C</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>R</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -13680,15 +13780,7 @@ RGB: %2, %3, %4</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Color:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Text color</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Align:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -20239,6 +20331,204 @@ You can still download it in your browser.</source>
             <numerusform></numerusform>
         </translation>
     </message>
+    <message>
+        <source>CMYK: %1, %2, %3, %4</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>CMYK</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel, and CMYK swatches.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Automatic</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Automatic (%1)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No profile (approximate formula)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Choose Profile File...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Choose CMYK Profile</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>ICC profiles (*.icc *.icm)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>CMYK Profile</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is not a CMYK profile Patchy can use.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>CMYK profile:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Perceptual</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Relative Colorimetric</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Saturation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Absolute Colorimetric</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rendering intent:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Black point compensation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Proof Colors</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Gamut Warning</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Proof Colors and Gamut Warning need a CMYK profile. Choose one in Preferences.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Canvas view uses the CMYK profile %1. Documents and exports are unchanged.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Previewing Cyan plate (read-only)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Previewing Magenta plate (read-only)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Previewing Yellow plate (read-only)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Previewing Black plate (read-only)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Saved animated JPEG XL copy %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Download the new AppImage, quit Patchy, and replace this file with it:
+
+%3</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage is no longer on this computer.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage does not match the checksum published for this update.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The new AppImage could not be put in place of this one.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, replace this AppImage, and start again. You will be asked about unsaved work first.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Flatten Image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Merge every visible layer into one opaque Background layer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No layers to flatten</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The image is already flat</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Flatten Image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Discard hidden layers?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Flattening image...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not flatten the image. The layers are unchanged.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Flatten image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Flattened the image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Filter recent folders...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No matching recent folders</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
@@ -20612,6 +20902,54 @@ You can still download it in your browser.</source>
     </message>
     <message>
         <source>File: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>C:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>M:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Y:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>K:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Black</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Ink percentages in the working CMYK space: %1. Choose the profile in Preferences.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>no profile (approximate)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use the closest printable color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This color is outside the gamut of %1 and prints as the color shown here. Click to use it.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -21886,6 +22224,10 @@ You can still download it in your browser.</source>
         <source>G&apos;MIC filter %1 failed: %2</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>CMYK values are percentages from 0 to 100</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ScriptSaveOptions</name>
@@ -21919,6 +22261,10 @@ You can still download it in your browser.</source>
     </message>
     <message>
         <source>%1: options must be an object such as {quality: 85}.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1: blackInkOnly needs colorMode: &quot;cmyk&quot;.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
