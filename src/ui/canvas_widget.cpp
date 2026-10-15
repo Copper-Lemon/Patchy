@@ -359,6 +359,15 @@ void CanvasWidget::set_document_internal(Document* document, bool preserve_frame
               (CanvasWidget::is_component_preview(layer_edit_target_))
           ? layer_edit_target_
           : LayerEditTarget::Content;
+  // A layer mask (or vector mask) being edited survives a history restore as
+  // long as the restored active layer still has one: undoing a brush stroke on
+  // a mask used to drop the user back onto the layer pixels, so the next
+  // stroke went to the wrong place (GitHub issue 105).
+  const auto restore_layer_mask_target =
+      preserve_frame_for_same_size &&
+              (layer_edit_target_ == LayerEditTarget::Mask || layer_edit_target_ == LayerEditTarget::VectorMask)
+          ? layer_edit_target_
+          : LayerEditTarget::Content;
   const auto restore_channel_display_mode = mask_display_mode_;
   cancel_free_transform();
   if (warping_layer_) {
@@ -399,6 +408,18 @@ void CanvasWidget::set_document_internal(Document* document, bool preserve_frame
   } else if (restore_component_target != LayerEditTarget::Content) {
     layer_edit_target_ = restore_component_target;
     mask_display_mode_ = MaskDisplayMode::Grayscale;
+  } else if (restore_layer_mask_target != LayerEditTarget::Content && document_ != nullptr) {
+    const auto* restored = static_cast<const Document*>(document_);
+    const auto active_id = restored->active_layer_id();
+    const auto* active = active_id.has_value() ? restored->find_layer(*active_id) : nullptr;
+    const bool still_has_target = active != nullptr &&
+                                  (restore_layer_mask_target == LayerEditTarget::Mask
+                                       ? active->mask().has_value()
+                                       : active->vector_mask() != nullptr);
+    if (still_has_target) {
+      layer_edit_target_ = restore_layer_mask_target;
+      mask_display_mode_ = restore_channel_display_mode;
+    }
   }
   if (!preserve_frame) {
     render_cache_ = QImage();

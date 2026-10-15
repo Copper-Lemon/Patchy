@@ -264,6 +264,66 @@ void ui_layer_mask_from_selection_hides_pixels_and_shows_thumbnail() {
   save_widget_artifact("ui_layer_mask_from_selection", window);
 }
 
+// Undo and redo restore a Document object; the canvas used to reset the edit
+// target to the layer pixels with it, so a Ctrl+Z after a mask stroke sent the
+// next stroke to the layer (GitHub issue 105). The mask stays targeted while
+// the restored active layer still has one.
+void ui_layer_mask_edit_target_survives_undo() {
+  patchy::Document document(64, 64, patchy::PixelFormat::rgb8());
+  document.add_pixel_layer("Background",
+                           solid_pixels(64, 64, patchy::PixelFormat::rgb8(), QColor(255, 255, 255)));
+  document.add_pixel_layer("Red Fill", solid_pixels(64, 64, patchy::PixelFormat::rgb8(), QColor(220, 30, 30)));
+
+  patchy::ui::MainWindow window;
+  window.add_document_session(std::move(document), QStringLiteral("Mask Undo"));
+  show_window(window);
+  auto* canvas = require_canvas(window);
+  canvas->set_snap_enabled(false);
+  require_action(window, "layerAddMaskAction")->trigger();
+  QApplication::processEvents();
+  CHECK(canvas->layer_edit_target() == patchy::ui::CanvasWidget::LayerEditTarget::Mask);
+
+  require_action_by_text(window, QStringLiteral("Brush"))->trigger();
+  canvas->set_primary_color(Qt::black);
+  canvas->set_brush_size(18);
+  canvas->set_brush_opacity(100);
+  canvas->set_brush_softness(0);
+  drag(*canvas, canvas->widget_position_for_document_point(QPoint(8, 8)),
+       canvas->widget_position_for_document_point(QPoint(10, 8)));
+  QApplication::processEvents();
+  // Black on the mask hides the red layer there.
+  CHECK(color_close(canvas_pixel(*canvas, QPoint(8, 8)), QColor(255, 255, 255), 18));
+  CHECK(canvas->layer_edit_target() == patchy::ui::CanvasWidget::LayerEditTarget::Mask);
+
+  patchy::ui::MainWindowTestAccess::undo(window);
+  QApplication::processEvents();
+  CHECK(color_close(canvas_pixel(*canvas, QPoint(8, 8)), QColor(220, 30, 30), 18));
+  CHECK(canvas->layer_edit_target() == patchy::ui::CanvasWidget::LayerEditTarget::Mask);
+  auto* mask_label = window.findChild<QLabel*>(QStringLiteral("activeLayerMaskLabel"));
+  CHECK(mask_label != nullptr && mask_label->text().contains(QStringLiteral("Target: Mask")));
+
+  patchy::ui::MainWindowTestAccess::redo(window);
+  QApplication::processEvents();
+  CHECK(color_close(canvas_pixel(*canvas, QPoint(8, 8)), QColor(255, 255, 255), 18));
+  CHECK(canvas->layer_edit_target() == patchy::ui::CanvasWidget::LayerEditTarget::Mask);
+
+  // A second stroke after the undo lands on the mask, not the layer pixels.
+  patchy::ui::MainWindowTestAccess::undo(window);
+  QApplication::processEvents();
+  drag(*canvas, canvas->widget_position_for_document_point(QPoint(40, 40)),
+       canvas->widget_position_for_document_point(QPoint(42, 40)));
+  QApplication::processEvents();
+  CHECK(color_close(canvas_pixel(*canvas, QPoint(40, 40)), QColor(255, 255, 255), 18));
+  const auto& red_fill = patchy::ui::MainWindowTestAccess::document(window).layers().back();
+  CHECK(red_fill.mask().has_value());
+
+  // Undoing past the mask's creation drops the target with the mask.
+  patchy::ui::MainWindowTestAccess::undo(window);
+  patchy::ui::MainWindowTestAccess::undo(window);
+  QApplication::processEvents();
+  CHECK(canvas->layer_edit_target() == patchy::ui::CanvasWidget::LayerEditTarget::Content);
+}
+
 void ui_layer_mask_target_paints_inverts_disables_and_applies() {
   patchy::Document document(64, 64, patchy::PixelFormat::rgb8());
   document.add_pixel_layer("Background",
@@ -806,6 +866,7 @@ std::vector<patchy::test::TestCase> layer_mask_tests() {
   return {
       {"ui_layer_mask_from_selection_hides_pixels_and_shows_thumbnail",
        ui_layer_mask_from_selection_hides_pixels_and_shows_thumbnail},
+      {"ui_layer_mask_edit_target_survives_undo", ui_layer_mask_edit_target_survives_undo},
       {"ui_layer_mask_target_paints_inverts_disables_and_applies",
        ui_layer_mask_target_paints_inverts_disables_and_applies},
       {"ui_group_layer_mask_add_paint_and_delete", ui_group_layer_mask_add_paint_and_delete},

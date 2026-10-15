@@ -459,19 +459,30 @@ void ui_selection_context_menu_offers_remove_object() {
     QApplication::processEvents();
   }
 
-  // Off the selection a selection tool offers only the subject commands, and nothing at all
-  // in a build without the subject model (docs/ai-selection.md).
+  // Off the selection a selection tool offers the subject commands (where the build has the
+  // model, docs/ai-selection.md) and then the selection's own commands less the ones that act on
+  // its content: Remove Object stays inside the marching ants, Deselect works from anywhere
+  // (GitHub issue 105).
   patchy::ui::configure_automatic_selection_models();
-  if (auto* outside = right_click_move_canvas(*canvas, QPoint(300, 300)); patchy::ai::subject_selection_available()) {
-    CHECK(outside != nullptr);
-    if (outside != nullptr) {
-      CHECK(!menu_has_remove(*outside));
+  auto* outside = right_click_move_canvas(*canvas, QPoint(300, 300));
+  CHECK(outside != nullptr);
+  if (outside != nullptr) {
+    CHECK(!menu_has_remove(*outside));
+    const auto names = [&] {
+      QStringList list;
+      for (auto* action : outside->actions()) {
+        list.push_back(action->objectName());
+      }
+      return list;
+    }();
+    CHECK(names.contains(QStringLiteral("editDeselectAction")));
+    if (patchy::ai::subject_selection_available()) {
       CHECK(outside->actions().front()->objectName() == QStringLiteral("selectSubjectAction"));
-      outside->close();
-      QApplication::processEvents();
+    } else {
+      CHECK(!names.contains(QStringLiteral("selectSubjectAction")));
     }
-  } else {
-    CHECK(outside == nullptr);
+    outside->close();
+    QApplication::processEvents();
   }
 
   canvas->set_tool(patchy::ui::CanvasTool::Move);

@@ -254,18 +254,33 @@ bool CanvasWidget::show_canvas_context_menu(QPoint widget_point, QPoint global_p
     }
   };
   const bool inside_selection = has_selection() && selection_alpha_at(document_point) != 0U;
+  const bool selection_tool_on_document =
+      tool_ != CanvasTool::PatchTool && selection_tool_index(tool_) >= 0 && document_contains(document_point);
   if (inside_selection && selection_context_actions_callback_) {
     append_section(selection_context_actions_callback_());
-  } else if (!inside_selection && selection_tool_context_actions_callback_ && tool_ != CanvasTool::PatchTool &&
-             selection_tool_index(tool_) >= 0 && document_contains(document_point)) {
-    // Hidden actions (a build without automatic selection) are skipped.
-    QList<QAction*> visible;
-    for (auto* action : selection_tool_context_actions_callback_()) {
-      if (action != nullptr && action->isVisible()) {
-        visible.push_back(action);
+  } else if (!inside_selection && selection_tool_on_document) {
+    if (selection_tool_context_actions_callback_) {
+      // Hidden actions (a build without automatic selection) are skipped.
+      QList<QAction*> visible;
+      for (auto* action : selection_tool_context_actions_callback_()) {
+        if (action != nullptr && action->isVisible()) {
+          visible.push_back(action);
+        }
       }
+      append_section(visible);
     }
-    append_section(visible);
+    if (has_selection() && selection_context_actions_callback_) {
+      // Off the selection, the commands that act on its content (the first
+      // group: Remove Object, Select Object) make no sense, but the rest of
+      // Photoshop's selection menu still applies, so a right-click beside the
+      // marching ants no longer opens nothing in a build without the subject
+      // model (GitHub issue 105).
+      auto actions = selection_context_actions_callback_();
+      if (const auto first_separator = actions.indexOf(nullptr); first_separator >= 0) {
+        actions = actions.mid(first_separator + 1);
+      }
+      append_section(actions);
+    }
   }
   if (!edit_locked_) {
     const auto& document = std::as_const(*document_);
