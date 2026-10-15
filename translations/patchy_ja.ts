@@ -9909,6 +9909,10 @@ Mixed selection</source>
         <source>Animated JPEG XL: imported %1 frames as layers</source>
         <translation>アニメーション JPEG XL: %1 フレームをレイヤーとして読み込みました</translation>
     </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
+        <translation>このビルドの Patchy は HEIC 画像をデコードできません。Flatpak 版の Patchy ならデコードできます。</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10143,6 +10147,10 @@ Mixed selection</source>
     <message>
         <source>Look at the document I have open in Patchy and suggest three specific improvements to its composition and colors. Show me the preview before making any edits.</source>
         <translation>Patchyで開いているドキュメントを見て、構図や色を改善する具体的な案を3つ提案してください。編集を始める前にプレビューを見せてください。</translation>
+    </message>
+    <message>
+        <source>Patchy is running from an AppImage; the skill folder exists only while Patchy is open.</source>
+        <translation>Patchy は AppImage から実行されています。スキルフォルダは Patchy が開いている間だけ存在します。</translation>
     </message>
 </context>
 <context>
@@ -20444,6 +20452,38 @@ You can still download it in your browser.</source>
     <message>
         <source>Saved animated JPEG XL copy %1</source>
         <translation>アニメーション JPEG XL のコピーを保存しました: %1</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Download the new AppImage, quit Patchy, and replace this file with it:
+
+%3</source>
+        <translation>Patchy %1 が利用可能です。現在のバージョンは %2 です。
+
+新しい AppImage をダウンロードし、Patchy を終了してから、このファイルを新しいファイルで置き換えてください:
+
+%3</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage is no longer on this computer.</source>
+        <translation>ダウンロードした AppImage は、このコンピューターにもうありません。</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage does not match the checksum published for this update.</source>
+        <translation>ダウンロードした AppImage が、このアップデート用に公開されているチェックサムと一致しません。</translation>
+    </message>
+    <message>
+        <source>The new AppImage could not be put in place of this one.</source>
+        <translation>新しい AppImage をこの AppImage と置き換えられませんでした。</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, replace this AppImage, and start again. You will be asked about unsaved work first.</source>
+        <translation>Patchy %1 が利用可能です。現在のバージョンは %2 です。
+
+Patchy はアップデートをダウンロードし、この AppImage を置き換えて再び起動できます。その前に、保存されていない作業について確認します。</translation>
     </message>
 </context>
 <context>

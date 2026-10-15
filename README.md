@@ -33,6 +33,7 @@ checksums.
 | macOS 12+ (Apple Silicon) | DMG - drag to Applications     | [PatchyMacOS.dmg](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyMacOS.dmg) (99 MB)                           |
 | Linux (x86_64)            | Flatpak, from our repository   | The [command below](#linux), or [com.rtsoft.patchy.flatpakref](https://rtsoft.com/flatpak/com.rtsoft.patchy.flatpakref)            |
 | Linux (x86_64)            | Flatpak bundle (single file)   | [PatchyLinux.flatpak](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyLinux.flatpak) (57 MB)                   |
+| Linux (x86_64)            | AppImage (Ubuntu 22.04+)       | [PatchyLinux.AppImage](https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyLinux.AppImage) (119 MB, [details](#appimage)) |
 | Any modern browser        | Nothing to install             | [patchyimageeditor.com](https://www.patchyimageeditor.com) or [rtsoft.com/patchy](https://www.rtsoft.com/patchy/)                    |
 
 ### Linux
@@ -60,6 +61,24 @@ first. Install it with `flatpak install --user -y PatchyLinux.flatpak`. It still
 the KDE runtime from Flathub, and it updates from the same repository afterwards.
 
 My flatpak knowledge is limited, so I hope all this makes sense.  I hope to submit Patchy to Flathub eventually, but for now we have our own repository.
+
+#### AppImage
+
+`PatchyLinux.AppImage` is one file that runs without installing anything, on Ubuntu
+22.04 or newer (or another distro from 2022 on: Debian 12, Fedora 36, Mint 21 and so on).
+Make it executable and run it:
+
+```sh
+chmod +x PatchyLinux.AppImage
+./PatchyLinux.AppImage
+```
+
+When a new version is out, Patchy's update prompt can download it, replace the AppImage
+file and start again (if the file sits in a folder you can write to; otherwise it offers
+the download). AppImage tools such as Gear Lever or AppImageUpdate can also update it.
+For AI control, the connector command is the AppImage file with the argument
+`patchy-mcp` (Help > Set up AI Control shows the exact line). The AppImage cannot open
+HEIC images; the Flatpak can.
 
 ## Screenshots
 

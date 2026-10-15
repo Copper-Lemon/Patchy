@@ -55,6 +55,12 @@ function(patchy_configure_target target)
       target_compile_options(${target} PRIVATE /W4 /permissive-)
     else()
       target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+      # GCC 12 (the AppImage compiler, docs/appimage.md) reports -Wrestrict inside
+      # libstdc++'s inlined std::string copies for ordinary concatenations and literal
+      # assignments (GCC PR 105329/105651, fixed in GCC 13): only there is it switched off.
+      if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13)
+        target_compile_options(${target} PRIVATE -Wno-restrict)
+      endif()
     endif()
   endif()
 endfunction()
@@ -1106,6 +1112,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/markdown_viewer_dialog.cpp
       src/ui/ai_control_paths.hpp
       src/ui/ai_control_paths.cpp
+      src/ui/appimage_environment.hpp
+      src/ui/appimage_environment.cpp
       src/ui/ai_setup_dialog.hpp
       src/ui/ai_setup_dialog.cpp
       src/ui/main_window.hpp

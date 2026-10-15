@@ -9939,6 +9939,10 @@ RGB: %2, %3, %4</translation>
         <source>Animated JPEG XL: imported %1 frames as layers</source>
         <translation>JPEG XL animato: %1 fotogrammi importati come livelli</translation>
     </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
+        <translation>Questa build di Patchy non può decodificare le immagini HEIC. La versione Flatpak di Patchy può farlo.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10173,6 +10177,10 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Close</source>
         <translation>Chiudi</translation>
+    </message>
+    <message>
+        <source>Patchy is running from an AppImage; the skill folder exists only while Patchy is open.</source>
+        <translation>Patchy è in esecuzione da un AppImage; la cartella della skill esiste solo mentre Patchy è aperto.</translation>
     </message>
 </context>
 <context>
@@ -20507,6 +20515,38 @@ Puoi comunque scaricarlo nel browser.</translation>
     <message>
         <source>Saved animated JPEG XL copy %1</source>
         <translation>Copia JPEG XL animata salvata: %1</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Download the new AppImage, quit Patchy, and replace this file with it:
+
+%3</source>
+        <translation>È disponibile Patchy %1. Stai usando la versione %2.
+
+Scarica il nuovo AppImage, esci da Patchy e sostituisci questo file con quello nuovo:
+
+%3</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage is no longer on this computer.</source>
+        <translation>L&apos;AppImage scaricato non è più su questo computer.</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage does not match the checksum published for this update.</source>
+        <translation>L&apos;AppImage scaricato non corrisponde al checksum pubblicato per questo aggiornamento.</translation>
+    </message>
+    <message>
+        <source>The new AppImage could not be put in place of this one.</source>
+        <translation>Non è stato possibile mettere il nuovo AppImage al posto di questo.</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, replace this AppImage, and start again. You will be asked about unsaved work first.</source>
+        <translation>È disponibile Patchy %1. Stai usando la versione %2.
+
+Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavviarsi. Prima ti verrà chiesto del lavoro non salvato.</translation>
     </message>
 </context>
 <context>

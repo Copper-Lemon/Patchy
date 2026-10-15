@@ -1384,7 +1384,8 @@ void ui_heif_open_is_read_only_if_available() {
     // prefix has already been stripped for display by then.
     const bool codec_unavailable = error_text.contains(QStringLiteral("Microsoft Store")) ||
                                    error_text.contains(QStringLiteral("system codec")) ||
-                                   error_text.contains(QStringLiteral("Flatpak codec extension"));
+                                   error_text.contains(QStringLiteral("Flatpak codec extension")) ||
+                                   error_text.contains(QStringLiteral("cannot decode HEIC images"));
     CHECK(codec_unavailable);
     std::cout << "[SKIP] HEIC platform decoder unavailable: " << error_text.toStdString() << '\n';
     return;

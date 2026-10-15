@@ -17,7 +17,9 @@ registers the connector and installs the skill itself. The setup text is built b
 `patchy-mcp`'s `get_info`, so the connector and the dialog cannot disagree about
 paths. Missing pieces read `NOT FOUND` in the text and as a warning in the dialog's
 status label; Flatpak (`FLATPAK_ID` set) switches to the `flatpak run` command form
-and the in-sandbox skill path. The blurb is deliberately not translated: its reader
+and the in-sandbox skill path; an AppImage prints the `.AppImage` file with the
+`patchy-mcp` argument and flags the skill folder as existing only while Patchy runs
+([appimage.md](appimage.md)). The blurb is deliberately not translated: its reader
 is the assistant. The action is hidden on wasm (no connector) but its command id
 stays registered. Dialog objectNames for tests: `aiSetupDialog`, `aiSetupBlurbText`,
 `aiSetupStatusLabel`, `aiSetupCopyButton`, `aiSetupOpenSkillFolderButton`,
@@ -131,7 +133,8 @@ so old edits cannot target reused document IDs. Connected `get_info` results
 include `workspaceAvailable: true` in both isolated and attached modes.
 
 `ui/mcp_attachment.*` owns a per-user local socket with `UserAccessOption`, scoped
-by installation directory and home directory. `PATCHY_MCP_ENDPOINT` selects an
+by installation directory and home directory (an AppImage uses a fixed `appimage`
+identity instead of its per-launch mount; [appimage.md](appimage.md)). `PATCHY_MCP_ENDPOINT` selects an
 explicit endpoint for multiple instances and isolated automation. Flatpak uses
 `$XDG_RUNTIME_DIR/app/$FLATPAK_ID` for the default socket because separate app and
 connector sandboxes have private `/tmp` directories. Other desktop installs retain

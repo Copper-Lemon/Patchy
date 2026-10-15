@@ -96,7 +96,7 @@ Read these before acting in the named area:
 | Tests, offscreen behavior, visual QA, app and README screenshots, suite failure diagnosis | [docs/testing.md](docs/testing.md) |
 | Platform-guarded code, macOS/Linux behavior, remote builds | [docs/platform.md](docs/platform.md) |
 | WebAssembly builds, the wasm-core preset, emsdk provisioning | [docs/wasm.md](docs/wasm.md); wasm memory/telemetry in [docs/wasm-memory.md](docs/wasm-memory.md); wasm input/focus/hotkeys in [docs/wasm-input.md](docs/wasm-input.md) |
-| Patents, licensing, trademarks, bundled assets, or a feature adjacent to a legal boundary | [docs/legal-constraints.md](docs/legal-constraints.md), with the underlying research record in [docs/patent-research.md](docs/patent-research.md), [docs/patent-research-inpainting.md](docs/patent-research-inpainting.md), [docs/patent-research-alignment.md](docs/patent-research-alignment.md), and [docs/patent-research-formats.md](docs/patent-research-formats.md) |
+| Patents, licensing, trademarks, bundled assets, or a feature adjacent to a legal boundary | [docs/legal-constraints.md](docs/legal-constraints.md), which links every patent research record (`docs/patent-research*.md`) |
 | PSD descriptors, layer styles, write/corruption rules | [docs/ps-compat.md](docs/ps-compat.md) |
 | Photoshop COM captures and acceptance runs, the unknown-data prompt check | [docs/photoshop-com.md](docs/photoshop-com.md) |
 | Font resolution (display names, DirectWrite lookup, GDI names, exact sizes) | [docs/font-resolution.md](docs/font-resolution.md) |
@@ -169,3 +169,4 @@ Read the linked document before working on a feature; it owns the constraints.
 - **Performance and the stress harness:** [docs/performance.md](docs/performance.md); the Move/Free Transform drag-preview machinery is in [docs/interactive-previews.md](docs/interactive-previews.md).
 - **Testy PSD benchmark:** [docs/testy.md](docs/testy.md).
 - **Flatpak packaging and update repository:** [packaging/linux/README.md](packaging/linux/README.md).
+- **Linux AppImage:** [docs/appimage.md](docs/appimage.md). Ubuntu 22.04 floor (ABI audit); show or store the `.AppImage` file (`appimage_file_path()`), never the per-launch mount.

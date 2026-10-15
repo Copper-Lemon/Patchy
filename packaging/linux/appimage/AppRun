@@ -1,0 +1,20 @@
+#!/bin/sh
+# The Patchy AppImage's entry point (docs/appimage.md). The AppImage runtime mounts the
+# image, sets APPDIR to the mount and APPIMAGE to the .AppImage file, and runs this script.
+#
+#   PatchyLinux.AppImage [files...]          starts Patchy
+#   PatchyLinux.AppImage patchy-mcp [args]   starts the bundled MCP connector
+#
+# A symlink to the AppImage named patchy-mcp also starts the connector. The connector
+# argument is kAppImageConnectorArgument in src/ui/appimage_environment.hpp; Help > Set up
+# AI Control prints this form.
+HERE="${APPDIR:-$(dirname "$(readlink -f "$0")")}"
+
+if [ "${1:-}" = "patchy-mcp" ]; then
+  shift
+  exec "$HERE/usr/bin/patchy-mcp" "$@"
+fi
+case "$(basename "${ARGV0:-}")" in
+  patchy-mcp) exec "$HERE/usr/bin/patchy-mcp" "$@" ;;
+esac
+exec "$HERE/usr/bin/patchy" "$@"

@@ -157,6 +157,7 @@ QString error_message(QPdfDocument::Error error, const QString& file_name) {
     case QPdfDocument::Error::DataNotYetAvailable:
       return QObject::tr("%1 is still loading.").arg(file_name);
     case QPdfDocument::Error::None:
+    case QPdfDocument::Error::Unknown:
       break;
   }
   return QObject::tr("%1 could not be opened.").arg(file_name);
@@ -788,7 +789,8 @@ std::optional<PdfImportResult> run_pdf_import_dialog(QWidget* parent, const QStr
     // and shapes from several pages cannot honestly share one canvas.
     std::vector<int> editable_pages = options.pages.empty() ? std::vector<int>{0} : options.pages;
     if (!options.separate_documents && editable_pages.size() > 1) {
-      editable_pages.resize(1);
+      // erase, not resize(1): GCC 12 warns about resize's (unreachable) growing path.
+      editable_pages.erase(editable_pages.begin() + 1, editable_pages.end());
     }
     // A page that is (mostly) an image in a codec the editable reader cannot decode is a
     // scan: there is nothing to keep editable, and importing it "editable" would drop

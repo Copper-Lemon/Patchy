@@ -22,7 +22,30 @@ struct UpdateInfo {
   QUrl installer_url{};
   qint64 installer_size{0};
   QByteArray installer_sha256{};  // lowercase hex
+  // Linux only: where an AppImage copy downloads the new release (the permanent manifest
+  // key appimage_url in the linux entry; http(s)). Empty when the manifest has none, and
+  // the AppImage update prompt then falls back to kAppImageDownloadUrl.
+  QUrl appimage_url{};
+  // The AppImage an AppImage copy can install by itself (docs/auto-update.md): set only when
+  // the linux entry carries all of appimage_install_url (an https GitHub release download of
+  // this repository, kAppImageReleaseDownloadPrefix), appimage_install_size and
+  // appimage_install_sha256, and its optional appimage_min_version does not exclude the
+  // running version.
+  QUrl appimage_install_url{};
+  qint64 appimage_install_size{0};
+  QByteArray appimage_install_sha256{};  // lowercase hex
 };
+
+// The GitHub latest-release permalink of the AppImage (a stable asset name, like
+// PatchyLinux.flatpak; docs/release-process.md).
+inline constexpr char kAppImageDownloadUrl[] =
+    "https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyLinux.AppImage";
+// An AppImage has no publisher signature to check (the Windows installer's second guard),
+// so the file it installs must also come from this repository's GitHub releases: a manifest
+// edit alone cannot point it at another host.
+inline constexpr char kAppImageReleaseDownloadPrefix[] = "https://github.com/SethRobinson/Patchy/releases/download/";
+
+[[nodiscard]] bool update_has_appimage_install(const UpdateInfo& update);
 
 [[nodiscard]] bool update_has_installer(const UpdateInfo& update);
 

@@ -71,7 +71,7 @@
 
 ## Platforms, privacy, and interface
 
-- Cross-platform: Windows is the lead platform, with native macOS (Apple Silicon) and Linux (Flatpak) builds
+- Cross-platform: Windows is the lead platform, with native macOS (Apple Silicon) and Linux (Flatpak and AppImage) builds
 - Built with C++ and Qt for a native desktop experience. No GPU used, should run on a potato
 - Privacy: YES! Absolutely no telemetry, no tracking, no data collection (if update checks are enabled, it contacts GitHub only to check for a newer version, and on Windows to download it when you click Update Now). Settings live in a plain local file, and the installer doesn't screw with your file extension preferences
 - Localized in twelve languages: English, German, Spanish, French, Italian, Brazilian Portuguese, Russian, Polish, Japanese, Korean, and Chinese (Simplified and Traditional); the language follows your system or can be changed in File->Preferences

@@ -9939,6 +9939,10 @@ RVB : %2, %3, %4</translation>
         <source>Animated JPEG XL: imported %1 frames as layers</source>
         <translation>JPEG XL animé : %1 images importées comme calques</translation>
     </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
+        <translation>Cette version de Patchy ne peut pas décoder les images HEIC. La version Flatpak de Patchy le peut.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10173,6 +10177,10 @@ RVB : %2, %3, %4</translation>
     <message>
         <source>Close</source>
         <translation>Fermer</translation>
+    </message>
+    <message>
+        <source>Patchy is running from an AppImage; the skill folder exists only while Patchy is open.</source>
+        <translation>Patchy s&apos;exécute depuis un AppImage ; le dossier de la compétence n&apos;existe que tant que Patchy est ouvert.</translation>
     </message>
 </context>
 <context>
@@ -20507,6 +20515,38 @@ Vous pouvez toujours la télécharger dans votre navigateur.</translation>
     <message>
         <source>Saved animated JPEG XL copy %1</source>
         <translation>Copie JPEG XL animée enregistrée : %1</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Download the new AppImage, quit Patchy, and replace this file with it:
+
+%3</source>
+        <translation>Patchy %1 est disponible. Vous utilisez la version %2.
+
+Téléchargez le nouvel AppImage, quittez Patchy et remplacez ce fichier par celui-ci :
+
+%3</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage is no longer on this computer.</source>
+        <translation>L&apos;AppImage téléchargé n&apos;est plus sur cet ordinateur.</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage does not match the checksum published for this update.</source>
+        <translation>L&apos;AppImage téléchargé ne correspond pas à la somme de contrôle publiée pour cette mise à jour.</translation>
+    </message>
+    <message>
+        <source>The new AppImage could not be put in place of this one.</source>
+        <translation>Le nouvel AppImage n&apos;a pas pu remplacer celui-ci.</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, replace this AppImage, and start again. You will be asked about unsaved work first.</source>
+        <translation>Patchy %1 est disponible. Vous utilisez la version %2.
+
+Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer. Une question vous sera d&apos;abord posée sur le travail non enregistré.</translation>
     </message>
 </context>
 <context>

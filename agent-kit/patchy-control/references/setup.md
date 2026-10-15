@@ -53,6 +53,7 @@ table below.
 | macOS | `/Applications/Patchy.app/Contents/MacOS/patchy-mcp` | `/Applications/Patchy.app/Contents/Resources/ai/patchy-control` |
 | Linux prefix install | `<prefix>/bin/patchy-mcp` | `<prefix>/share/patchy/ai/patchy-control` |
 | Linux Flatpak | program `flatpak`, arguments `run --command=patchy-mcp com.rtsoft.patchy` | `/app/share/patchy/ai/patchy-control` inside the sandbox |
+| Linux AppImage | program `<path>/PatchyLinux.AppImage` (the file itself), argument `patchy-mcp` | inside the AppImage's mount, shown by Help > Set up AI Control; it exists only while Patchy is open |
 | Source build | `build/<preset>/patchy-mcp` (`.exe` on Windows) | `build/<preset>/ai/patchy-control` |
 
 `%LOCALAPPDATA%` is normally `C:\Users\<name>\AppData\Local`. In PowerShell the
@@ -151,7 +152,9 @@ Windows, double every backslash inside the JSON string.
 
 For Flatpak use `"command": "flatpak"` and
 `"args": ["run", "--command=patchy-mcp", "com.rtsoft.patchy"]`.
-Optional startup modes go in `args`; for Flatpak they follow the app ID.
+For an AppImage use the `.AppImage` file as `"command"` and `"args": ["patchy-mcp"]`.
+Optional startup modes go in `args`; for Flatpak they follow the app ID, for an
+AppImage they follow `patchy-mcp`.
 
 Install just `SKILL.md` in a `patchy-control` folder inside the client's skills
 directory, if it has one.

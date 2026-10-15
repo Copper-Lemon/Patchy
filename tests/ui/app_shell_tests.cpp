@@ -72,6 +72,9 @@
 #include "ui/update_checker.hpp"
 #include "ui/update_installer.hpp"
 #include "ui/connector_freshness.hpp"
+#include "ui/ai_control_paths.hpp"
+#include "ui/appimage_environment.hpp"
+#include "ui/mcp_attachment.hpp"
 #include "ui/qt_paths.hpp"
 #include "unicode_path_names.hpp"
 #include "ui/visual_filter_gallery_dialog.hpp"
@@ -1824,6 +1827,52 @@ void update_manifest_parser_handles_supported_cases() {
   CHECK(linux_update.has_value());
   CHECK(linux_update->platform == QStringLiteral("linux"));
   CHECK(linux_update->download_url == QUrl(QStringLiteral("https://rtsoft.com/patchy/Patchy.flatpak")));
+  CHECK(linux_update->appimage_url.isEmpty());
+  // The optional appimage_url (a permanent manifest key) is what an AppImage copy downloads;
+  // a malformed one is dropped and the update is still offered.
+  const auto with_appimage_url = [](const QString& value) {
+    return patchy::ui::parse_update_manifest(QStringLiteral(R"({"platforms": {"linux": {"version": "0.2",
+        "download_url": "https://rtsoft.com/patchy/Patchy.flatpak", "appimage_url": %1}}})")
+                                                 .arg(value)
+                                                 .toUtf8(),
+                                             QStringLiteral("linux"), QStringLiteral("0.1.0"));
+  };
+  const auto appimage_update = with_appimage_url(QStringLiteral("\"https://rtsoft.com/patchy/Patchy.AppImage\""));
+  CHECK(appimage_update.has_value());
+  CHECK(appimage_update->appimage_url == QUrl(QStringLiteral("https://rtsoft.com/patchy/Patchy.AppImage")));
+  const auto bad_appimage_update = with_appimage_url(QStringLiteral("\"not a url\""));
+  CHECK(bad_appimage_update.has_value() && bad_appimage_update->appimage_url.isEmpty());
+
+  // The AppImage an AppImage copy installs by itself (permanent keys appimage_install_url,
+  // _size, _sha256 and appimage_min_version): all three or none, https, and only from this
+  // repository's GitHub releases, since no publisher signature backs it.
+  const QString appimage_sha(64, QLatin1Char('c'));
+  const auto with_appimage_install = [&appimage_sha](const QString& url, const QString& extra = {}) {
+    return patchy::ui::parse_update_manifest(
+        QStringLiteral(R"({"platforms": {"linux": {"version": "0.2", "download_url": "https://rtsoft.com/p.flatpak",
+            "appimage_install_url": "%1", "appimage_install_size": 1000, "appimage_install_sha256": "%2"%3}}})")
+            .arg(url, appimage_sha, extra)
+            .toUtf8(),
+        QStringLiteral("linux"), QStringLiteral("0.1.0"));
+  };
+  const auto pinned_release =
+      QStringLiteral("https://github.com/SethRobinson/Patchy/releases/download/v0.2/PatchyLinux.AppImage");
+  const auto installable = with_appimage_install(pinned_release);
+  CHECK(installable.has_value() && patchy::ui::update_has_appimage_install(*installable));
+  CHECK(installable.has_value() && installable->appimage_install_url == QUrl(pinned_release));
+  CHECK(installable.has_value() && installable->appimage_install_size == 1000);
+  CHECK(installable.has_value() && installable->appimage_install_sha256 == appimage_sha.toLatin1());
+  CHECK(installable.has_value() && !patchy::ui::update_has_installer(*installable));
+  const auto elsewhere = with_appimage_install(QStringLiteral("https://example.com/PatchyLinux.AppImage"));
+  CHECK(elsewhere.has_value() && !patchy::ui::update_has_appimage_install(*elsewhere));
+  const auto other_repo = with_appimage_install(
+      QStringLiteral("https://github.com/someone/Patchy/releases/download/v0.2/PatchyLinux.AppImage"));
+  CHECK(other_repo.has_value() && !patchy::ui::update_has_appimage_install(*other_repo));
+  const auto switched_off = with_appimage_install(pinned_release, QStringLiteral(R"(, "appimage_min_version": "0.2")"));
+  CHECK(switched_off.has_value() && !patchy::ui::update_has_appimage_install(*switched_off));
+  const auto still_on = with_appimage_install(pinned_release, QStringLiteral(R"(, "appimage_min_version": "0.1")"));
+  CHECK(still_on.has_value() && patchy::ui::update_has_appimage_install(*still_on));
+  CHECK(linux_update.has_value() && !patchy::ui::update_has_appimage_install(*linux_update));
   const auto invalid_manifest_result =
       patchy::ui::inspect_update_manifest(QByteArray("{"), QStringLiteral("windows"), QStringLiteral("0.1.0"));
   CHECK(invalid_manifest_result.status == patchy::ui::UpdateCheckStatus::InvalidManifest);
@@ -2137,6 +2186,117 @@ void ui_update_available_dialog_warns_to_close_patchy_before_installing() {
   CHECK(saw_dialog);
 }
 
+namespace {
+
+// Scoped APPIMAGE/APPDIR for the AppImage tests: what the AppImage runtime sets.
+class AppImageEnvironment {
+ public:
+  AppImageEnvironment(const QByteArray& appimage, const QByteArray& appdir)
+      : previous_appimage_(qgetenv("APPIMAGE")), previous_appdir_(qgetenv("APPDIR")),
+        had_appimage_(qEnvironmentVariableIsSet("APPIMAGE")), had_appdir_(qEnvironmentVariableIsSet("APPDIR")) {
+    qputenv("APPIMAGE", appimage);
+    qputenv("APPDIR", appdir);
+  }
+  ~AppImageEnvironment() {
+    restore("APPIMAGE", had_appimage_, previous_appimage_);
+    restore("APPDIR", had_appdir_, previous_appdir_);
+  }
+  AppImageEnvironment(const AppImageEnvironment&) = delete;
+  AppImageEnvironment& operator=(const AppImageEnvironment&) = delete;
+
+ private:
+  static void restore(const char* name, bool had, const QByteArray& value) {
+    if (had) {
+      qputenv(name, value);
+    } else {
+      qunsetenv(name);
+    }
+  }
+  QByteArray previous_appimage_;
+  QByteArray previous_appdir_;
+  bool had_appimage_;
+  bool had_appdir_;
+};
+
+// An APPDIR that contains this test binary, as the AppImage mount contains patchy.
+QByteArray appdir_containing_this_binary() {
+  auto dir = QDir(QCoreApplication::applicationDirPath());
+  dir.cdUp();
+  return dir.absolutePath().toUtf8();
+}
+
+}  // namespace
+
+// An AppImage runs from a new /tmp/.mount_* directory each launch (docs/appimage.md), so
+// the user-visible path is the .AppImage file, and only when this executable really lives
+// in the mount: an AppImage'd program that starts a native Patchy leaves its own APPIMAGE
+// and APPDIR behind. The attach socket then stops depending on the mount, or the user's
+// Patchy and an assistant's `<file> patchy-mcp --attach` would never meet.
+void appimage_environment_names_the_appimage_file() {
+  CHECK(patchy::ui::appimage_file_path().isEmpty());
+  CHECK(patchy::ui::user_visible_executable_path() == QCoreApplication::applicationFilePath());
+  const auto plain_endpoint = patchy::ui::mcp_attachment_endpoint();
+  {
+    const AppImageEnvironment env("/home/someone/Apps/PatchyLinux.AppImage", appdir_containing_this_binary());
+#ifdef Q_OS_LINUX
+    CHECK(patchy::ui::appimage_file_path() == QStringLiteral("/home/someone/Apps/PatchyLinux.AppImage"));
+    CHECK(patchy::ui::user_visible_executable_path() == QStringLiteral("/home/someone/Apps/PatchyLinux.AppImage"));
+    const auto identity = (QDir::homePath() + QStringLiteral("\nappimage")).toUtf8();
+    CHECK(patchy::ui::mcp_attachment_endpoint() ==
+          QStringLiteral("PatchyMcp-") +
+              QString::fromLatin1(QCryptographicHash::hash(identity, QCryptographicHash::Sha256).toHex().left(32)));
+    CHECK(patchy::ui::mcp_attachment_endpoint() != plain_endpoint);
+    patchy::ui::AiControlPaths paths = patchy::ui::resolve_ai_control_paths();
+    CHECK(paths.appimage_path == QStringLiteral("/home/someone/Apps/PatchyLinux.AppImage"));
+#else
+    // Windows and macOS have no AppImages; a stray APPIMAGE changes nothing.
+    CHECK(patchy::ui::appimage_file_path().isEmpty());
+    CHECK(patchy::ui::mcp_attachment_endpoint() == plain_endpoint);
+#endif
+  }
+  {
+    // Another program's AppImage: this binary is not under its APPDIR.
+    QTemporaryDir elsewhere;
+    CHECK(elsewhere.isValid());
+    const AppImageEnvironment env("/home/someone/Apps/Other.AppImage", elsewhere.path().toUtf8());
+    CHECK(patchy::ui::appimage_file_path().isEmpty());
+    CHECK(patchy::ui::mcp_attachment_endpoint() == plain_endpoint);
+  }
+  {
+    const AppImageEnvironment env("relative/PatchyLinux.AppImage", appdir_containing_this_binary());
+    CHECK(patchy::ui::appimage_file_path().isEmpty());
+  }
+}
+
+// An AppImage copy is one file the user replaces: its update prompt names that file, opens
+// the AppImage download (the manifest's appimage_url, else the GitHub permalink), and
+// offers no flatpak command.
+void ui_update_available_dialog_offers_appimage_download() {
+#if defined(Q_OS_LINUX)
+  const AppImageEnvironment env("/home/someone/Apps/PatchyLinux.AppImage", appdir_containing_this_binary());
+  patchy::ui::MainWindow window;
+  show_window(window);
+
+  bool saw_dialog = false;
+  QTimer::singleShot(0, [&] {
+    auto* dialog = qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("updateAvailableMessageBox")));
+    CHECK(dialog != nullptr);
+    CHECK(dialog->text().contains(QStringLiteral("replace this file")));
+    CHECK(dialog->text().contains(QStringLiteral("/home/someone/Apps/PatchyLinux.AppImage")));
+    CHECK(!dialog->text().contains(QStringLiteral("flatpak")));
+    CHECK(dialog->findChild<QAbstractButton*>(QStringLiteral("updateCopyCommandButton")) == nullptr);
+    CHECK(dialog->defaultButton() != nullptr &&
+          dialog->defaultButton()->objectName() == QStringLiteral("updateDownloadButton"));
+    saw_dialog = true;
+    dialog->reject();
+  });
+  window.show_update_available({QStringLiteral("linux"), QStringLiteral("9.9"),
+                                QUrl(QStringLiteral(
+                                    "https://github.com/SethRobinson/Patchy/releases/latest/download/PatchyLinux.flatpak"))});
+  CHECK(saw_dialog);
+#endif
+}
+
 // One-click update (docs/auto-update.md), Windows only: an installed copy offered an update
 // with a pinned installer gets "Update Now"; without either, the browser download stays.
 void ui_update_available_dialog_offers_one_click_update_for_installed_copy() {
@@ -2448,6 +2608,185 @@ void ui_update_one_click_downloads_installer_and_hands_over_on_close() {
     CHECK(launches.back().expected_sha256 == update.installer_sha256);
   }
   CHECK(!window.isVisible());
+#endif
+}
+
+// The AppImage half of a one-click update (docs/auto-update.md, "AppImage"): the download is
+// checked once more and renamed over the running file, which only then holds the new bytes;
+// a damaged or missing download leaves the running file alone.
+void update_appimage_replacement_checks_and_renames() {
+  QTemporaryDir dir;
+  CHECK(dir.isValid());
+  const auto target = dir.filePath(QStringLiteral("PatchyLinux.AppImage"));
+  const QByteArray old_bytes(4000, 'o');
+  const QByteArray new_bytes(6000, 'n');
+  const auto write = [](const QString& path, const QByteArray& bytes) {
+    QFile file(path);
+    CHECK(file.open(QIODevice::WriteOnly | QIODevice::Truncate) && file.write(bytes) == bytes.size());
+  };
+  const auto read = [](const QString& path) {
+    QFile file(path);
+    return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
+  };
+  write(target, old_bytes);
+  CHECK(patchy::ui::appimage_can_be_replaced(target));
+  CHECK(!patchy::ui::appimage_can_be_replaced(dir.filePath(QStringLiteral("absent.AppImage"))));
+  CHECK(!patchy::ui::appimage_can_be_replaced(QString()));
+
+  const auto name = patchy::ui::appimage_update_download_name(target, QStringLiteral("9.9"));
+  CHECK(name == QStringLiteral(".PatchyLinux.AppImage.update-9.9"));
+  CHECK(patchy::ui::appimage_update_download_name(target, QStringLiteral("../9.9/x")) ==
+        QStringLiteral(".PatchyLinux.AppImage.update-..9.9"));
+  const auto downloaded = dir.filePath(name);
+  const auto sha = QCryptographicHash::hash(new_bytes, QCryptographicHash::Sha256).toHex();
+
+  patchy::ui::UpdateInstallerLaunch launch{downloaded, {}, 0, new_bytes.size(), sha, {}, target};
+  CHECK(patchy::ui::replace_appimage(launch).failure == patchy::ui::UpdateLaunchFailure::InstallerMissing);
+  write(downloaded, new_bytes);
+  auto wrong = launch;
+  wrong.expected_sha256 = QByteArray(64, '0');
+  CHECK(patchy::ui::replace_appimage(wrong).failure == patchy::ui::UpdateLaunchFailure::ChecksumMismatch);
+  CHECK(read(target) == old_bytes);
+  CHECK(QFileInfo::exists(downloaded));
+
+  CHECK(patchy::ui::replace_appimage(launch).started());
+  CHECK(read(target) == new_bytes);
+  CHECK(!QFileInfo::exists(downloaded));
+#ifdef Q_OS_LINUX
+  CHECK(QFileInfo(target).isExecutable());
+#endif
+
+  // A leftover download (an update cancelled at the save prompt) goes once that version runs;
+  // nothing else in the folder is touched.
+  write(downloaded, new_bytes);
+  const auto unrelated = dir.filePath(QStringLiteral(".PatchyLinux.AppImage.update-9.8"));
+  write(unrelated, old_bytes);
+  patchy::ui::remove_appimage_update_download(target, QStringLiteral("9.9"));
+  CHECK(!QFileInfo::exists(downloaded));
+  CHECK(QFileInfo::exists(unrelated));
+  CHECK(QFileInfo::exists(target));
+}
+
+// The whole AppImage one-click path on Linux, from the prompt: Update Now downloads the
+// pinned AppImage beside the running file, the save prompt can still keep Patchy open, and a
+// settled close hands the replacement over (captured here, then applied for real).
+void ui_update_one_click_replaces_appimage_on_close() {
+#if defined(Q_OS_LINUX)
+  QTemporaryDir apps;
+  CHECK(apps.isValid());
+  const auto appimage = apps.filePath(QStringLiteral("PatchyLinux.AppImage"));
+  {
+    QFile running(appimage);
+    CHECK(running.open(QIODevice::WriteOnly) && running.write(QByteArray(3000, 'o')) == 3000);
+  }
+  QByteArray new_bytes;
+  for (int i = 0; i < 150000; ++i) {
+    new_bytes.append(static_cast<char>(i % 239));
+  }
+  QTemporaryDir source_dir;
+  CHECK(source_dir.isValid());
+  const auto source_path = source_dir.filePath(QStringLiteral("PatchyLinux.AppImage"));
+  {
+    QFile source(source_path);
+    CHECK(source.open(QIODevice::WriteOnly) && source.write(new_bytes) == new_bytes.size());
+  }
+  const AppImageEnvironment env(appimage.toUtf8(), appdir_containing_this_binary());
+  CHECK(patchy::ui::appimage_file_path() == appimage);
+
+  patchy::ui::UpdateInfo update{QStringLiteral("linux"), QStringLiteral("9.9"),
+                                QUrl(QStringLiteral("https://rtsoft.com/patchy/PatchyLinux.flatpak"))};
+  update.appimage_install_url = QUrl::fromLocalFile(source_path);
+  update.appimage_install_size = new_bytes.size();
+  update.appimage_install_sha256 = QCryptographicHash::hash(new_bytes, QCryptographicHash::Sha256).toHex();
+  const auto downloaded = apps.filePath(QStringLiteral(".PatchyLinux.AppImage.update-9.9"));
+
+  patchy::ui::MainWindow window;
+  show_window(window);
+  std::vector<patchy::ui::UpdateInstallerLaunch> launches;
+  patchy::ui::MainWindowTestAccess::set_update_installer_launcher(
+      window, [&](const patchy::ui::UpdateInstallerLaunch& launch) {
+        launches.push_back(launch);
+        return patchy::ui::UpdateLaunchResult{};
+      });
+
+  bool prompt_answered = false;
+  bool saw_update_now = false;
+  auto save_answer = QMessageBox::Cancel;
+  QTimer driver;
+  QObject::connect(&driver, &QTimer::timeout, &window, [&] {
+    if (auto* save = qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("saveChangesMessageBox")))) {
+      save->button(save_answer)->click();
+      return;
+    }
+    if (prompt_answered) {
+      return;
+    }
+    if (auto* prompt = qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("updateAvailableMessageBox")))) {
+      prompt_answered = true;
+      CHECK(prompt->text().contains(QStringLiteral("replace this AppImage")));
+      CHECK(prompt->findChild<QAbstractButton*>(QStringLiteral("updateCopyCommandButton")) == nullptr);
+      auto* update_now = prompt->findChild<QAbstractButton*>(QStringLiteral("updateInstallNowButton"));
+      saw_update_now = update_now != nullptr;
+      if (update_now != nullptr) {
+        update_now->click();
+      } else {
+        prompt->reject();
+      }
+    }
+  });
+  const auto run_update = [&] {
+    prompt_answered = false;
+    driver.start(10);
+    window.show_update_available(update);
+    process_events_for(200);
+    driver.stop();
+    CHECK(prompt_answered);
+  };
+
+  // Unsaved work and Cancel at the save prompt: Patchy stays open, the download is kept.
+  require_action(window, "layerNewAction")->trigger();
+  QApplication::processEvents();
+  save_answer = QMessageBox::Cancel;
+  run_update();
+  CHECK(saw_update_now);
+  CHECK(launches.empty());
+  CHECK(window.isVisible());
+  CHECK(QFileInfo(downloaded).size() == new_bytes.size());
+
+  // Settled: the replacement is handed over for this file, and the window closes.
+  save_answer = QMessageBox::Discard;
+  run_update();
+  CHECK(launches.size() == 1);
+  CHECK(!window.isVisible());
+  if (launches.size() == 1) {
+    const auto& launch = launches.front();
+    CHECK(launch.appimage_target == appimage);
+    CHECK(QFileInfo(launch.installer_path) == QFileInfo(downloaded));
+    CHECK(launch.wait_process_id == QCoreApplication::applicationPid());
+    CHECK(launch.expected_size == new_bytes.size());
+    // The real replacement (launch_update_installer would also start the relaunch waiter).
+    CHECK(patchy::ui::replace_appimage(launch).started());
+    QFile replaced(appimage);
+    CHECK(replaced.open(QIODevice::ReadOnly) && replaced.readAll() == new_bytes);
+  }
+
+  // A read-only folder cannot take the rename: the prompt falls back to the download.
+  const AppImageEnvironment readonly_env("/usr/bin/PatchyLinux.AppImage", appdir_containing_this_binary());
+  patchy::ui::MainWindow second;
+  show_window(second);
+  bool saw_download_prompt = false;
+  QTimer::singleShot(0, [&] {
+    auto* prompt = qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("updateAvailableMessageBox")));
+    CHECK(prompt != nullptr);
+    if (prompt != nullptr) {
+      saw_download_prompt =
+          prompt->findChild<QAbstractButton*>(QStringLiteral("updateInstallNowButton")) == nullptr &&
+          prompt->findChild<QAbstractButton*>(QStringLiteral("updateDownloadButton")) != nullptr;
+      prompt->reject();
+    }
+  });
+  second.show_update_available(update);
+  CHECK(saw_download_prompt);
 #endif
 }
 
@@ -5990,6 +6329,10 @@ std::vector<patchy::test::TestCase> app_shell_tests() {
        ui_update_available_dialog_offers_one_click_update_for_installed_copy},
       {"ui_update_connector_restart_notice_names_the_apps", ui_update_connector_restart_notice_names_the_apps},
       {"connector_update_notice_reports_a_replaced_executable", connector_update_notice_reports_a_replaced_executable},
+      {"appimage_environment_names_the_appimage_file", appimage_environment_names_the_appimage_file},
+      {"ui_update_available_dialog_offers_appimage_download", ui_update_available_dialog_offers_appimage_download},
+      {"update_appimage_replacement_checks_and_renames", update_appimage_replacement_checks_and_renames},
+      {"ui_update_one_click_replaces_appimage_on_close", ui_update_one_click_replaces_appimage_on_close},
       {"update_installer_is_checked_again_before_it_runs", update_installer_is_checked_again_before_it_runs},
       {"ui_update_one_click_downloads_installer_and_hands_over_on_close",
        ui_update_one_click_downloads_installer_and_hands_over_on_close},

@@ -9929,6 +9929,10 @@ RGB: %2, %3, %4</source>
         <source>Animated JPEG XL: imported %1 frames as layers</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10162,6 +10166,10 @@ RGB: %2, %3, %4</source>
     </message>
     <message>
         <source>Close</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Patchy is running from an AppImage; the skill folder exists only while Patchy is open.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -20445,6 +20453,32 @@ You can still download it in your browser.</source>
     </message>
     <message>
         <source>Saved animated JPEG XL copy %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Download the new AppImage, quit Patchy, and replace this file with it:
+
+%3</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage is no longer on this computer.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage does not match the checksum published for this update.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The new AppImage could not be put in place of this one.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, replace this AppImage, and start again. You will be asked about unsaved work first.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

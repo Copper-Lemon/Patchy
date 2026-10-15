@@ -869,6 +869,7 @@ void heif_reads_quadrant_fixture_if_available() {
         starts_with(patchy::heif::kHevcPackageMissingMarker) ||
         message.find("system codec") != std::string::npos ||
         message.find("Flatpak codec extension") != std::string::npos ||
+        message.find("cannot decode HEIC images") != std::string::npos ||  // AppImage and source builds
         message.find("outside a browser") != std::string::npos) {
       std::cout << "[SKIP] HEIC platform decoder unavailable: " << message << '\n';
       return;
@@ -977,6 +978,7 @@ void heif_decodes_real_photos_if_available() {
           message.starts_with(patchy::heif::kHevcPackageMissingMarker) ||
           message.find("system codec") != std::string::npos ||
           message.find("Flatpak codec extension") != std::string::npos ||
+          message.find("cannot decode HEIC images") != std::string::npos ||  // AppImage and source builds
           message.find("outside a browser") != std::string::npos) {
         std::cout << "[SKIP] HEIC platform decoder unavailable: " << message << '\n';
         return;
