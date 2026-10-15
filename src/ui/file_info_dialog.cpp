@@ -551,14 +551,23 @@ std::optional<FileInfoEdit> request_file_info_edit(QWidget* parent, const Docume
     editors.copyright_notice =
         add_text(form, QObject::tr("Copyright Notice:"), "fileInfoCopyrightNoticeEdit", content, 56);
     editors.copyright_url = add_line(form, QObject::tr("Copyright Info URL:"), "fileInfoCopyrightUrlEdit", content);
+    // Short read-only values stay on one line: a wrapped QLabel in the page's
+    // scroll area could fold "Adobe Photoshop CC 2017 (Macintosh)" into a
+    // second line that the one-line row then clipped, until the dialog was
+    // stretched tall enough to lose the scroll bar (GitHub issue 103).
     editors.created = value_label({}, content);
     editors.created->setObjectName(QStringLiteral("fileInfoCreatedLabel"));
+    editors.created->setWordWrap(false);
     form->addRow(QObject::tr("Created:"), editors.created);
     editors.modified = value_label({}, content);
+    editors.modified->setWordWrap(false);
     form->addRow(QObject::tr("Modified:"), editors.modified);
     editors.creator_tool = value_label({}, content);
+    editors.creator_tool->setObjectName(QStringLiteral("fileInfoApplicationLabel"));
+    editors.creator_tool->setWordWrap(false);
     form->addRow(QObject::tr("Application:"), editors.creator_tool);
     editors.format = value_label({}, content);
+    editors.format->setWordWrap(false);
     form->addRow(QObject::tr("Format:"), editors.format);
     add_page(QObject::tr("Description"), QStringLiteral("fileInfoDescriptionPage"), scroll_page(content));
   }

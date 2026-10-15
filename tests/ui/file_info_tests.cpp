@@ -79,6 +79,8 @@ QString write_tagged_jpeg() {
   xmp.set_lang_alt(md::xmp_ns::kDc, "title", "Original title");
   xmp.set_array(md::xmp_ns::kDc, "creator", md::XmpValue::Kind::Seq, {"Ann Example"});
   xmp.set_lang_alt(md::xmp_ns::kDc, "rights", "(c) Ann");
+  // Long enough to wrap under QLabel's short-text width heuristic (GitHub issue 103).
+  xmp.set_simple(md::xmp_ns::kXmp, "CreatorTool", "Adobe Photoshop CC 2017 (Macintosh)");
 
   md::SaveMetadata metadata;
   metadata.exif = md::write_tiff(exif);
@@ -130,6 +132,19 @@ void ui_file_info_opens_views_edits_and_undoes() {
     auto* authors = dialog->findChild<QLineEdit*>(QStringLiteral("fileInfoAuthorEdit"));
     CHECK(authors != nullptr && authors->text() == QStringLiteral("Ann Example"));
     title->setText(QStringLiteral("Edited title"));
+    // The read-only Application value never wraps: the page's scroll bar
+    // used to narrow a wrapped QLabel after its one-line row height was set,
+    // clipping the second line (GitHub issue 103).
+    auto* application = dialog->findChild<QLabel*>(QStringLiteral("fileInfoApplicationLabel"));
+    CHECK(application != nullptr);
+    if (application != nullptr) {
+      QApplication::processEvents();
+      CHECK(application->text() == QStringLiteral("Adobe Photoshop CC 2017 (Macintosh)"));
+      CHECK(!application->wordWrap());
+      CHECK(application->isVisible());
+      CHECK(application->width() >= application->fontMetrics().horizontalAdvance(application->text()));
+      CHECK(application->height() < application->fontMetrics().lineSpacing() * 2);
+    }
     dialog->grab().save(QStringLiteral("test-artifacts/ui_file_info_dialog.png"));
     // Visual QA captures of the read-only pages.
     auto* categories = dialog->findChild<QListWidget*>(QStringLiteral("fileInfoCategoryList"));
