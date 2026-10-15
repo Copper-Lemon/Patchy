@@ -107,6 +107,11 @@ if(PATCHY_ENABLE_GMIC)
   set(PATCHY_GMIC_OPENMP_ENABLED ${patchy_gmic_openmp_found} CACHE INTERNAL "")
   if(patchy_gmic_openmp_found)
     target_compile_definitions(patchy_gmic_vendor PRIVATE cimg_use_openmp)
+    if(APPLE)
+      # Keeps an error inside a parallel loop from ending the process (the header says why).
+      target_compile_options(patchy_gmic_vendor PRIVATE
+        -include "${PROJECT_SOURCE_DIR}/src/filters/gmic/patchy_stub/patchy_gmic_openmp_catch.h")
+    endif()
     message(STATUS "G'MIC engine: multithreaded (OpenMP)")
   else()
     message(STATUS "G'MIC engine: single-threaded (no OpenMP)")

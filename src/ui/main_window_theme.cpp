@@ -624,8 +624,11 @@ QString photoshop_style_template() {
       border: 1px solid @field_border;
       min-height: 20px;
     }
+    /* Both colors: without selection-color the selected row's text comes from the platform
+       palette, white on GNOME/KDE, which is light on light under the Light scheme. */
     QListWidget, QTreeWidget, QComboBox {
       selection-background-color: @list_selection_bg;
+      selection-color: @list_selection_text;
     }
     /* Text selection inside entry fields uses the accent, not the muted list-row
        highlight: the gray list_selection_bg is nearly invisible behind selected

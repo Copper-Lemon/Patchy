@@ -574,6 +574,13 @@ void add_gmic_layer_result(const GmicRunInput& input, const GmicLayerSnapshot& l
   }
 }
 
+// Whether a layer with this name stays at the bottom of the stack: Photoshop's Background.
+[[nodiscard]] bool gmic_name_keeps_at_bottom(std::string name) {
+  std::transform(name.begin(), name.end(), name.begin(),
+                 [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
+  return name == "background";
+}
+
 // A further output as a new layer below `anchor`, with the name, blend mode, opacity and
 // position the filter gave it. Never part of a draft.
 void add_gmic_new_layer(const GmicRunInput& input, const gmic::Image& image, Rect frame, LayerId anchor,
@@ -588,7 +595,8 @@ void add_gmic_new_layer(const GmicRunInput& input, const gmic::Image& image, Rec
   if (input.document_space) {
     trim_to_content(layer.pixels, layer.bounds);
   }
-  layer.name = info.name.empty() ? input.filter_name : info.name;
+  // Never a second Background: the source's own name comes back on Ball's original copy.
+  layer.name = info.name.empty() || gmic_name_keeps_at_bottom(info.name) ? input.filter_name : info.name;
   layer.blend_mode = blend_mode_from_gmic(info.blend_mode);
   layer.opacity = info.opacity.has_value() ? static_cast<float>(*info.opacity / 100.0) : 1.0F;
   layer.anchor = anchor;
@@ -635,8 +643,17 @@ void add_gmic_new_layer(const GmicRunInput& input, const gmic::Image& image, Rec
     if (images.empty() || images.front().width <= 0 || images.front().height <= 0) {
       return render;  // ok stays false with no message: the filter returned no image
     }
-    add_gmic_layer_result(input, layer, images.front(), frame, run_width, run_height, render);
-    for (std::size_t extra = 1; !draft && extra < images.size(); ++extra) {
+    // G'MIC lists images top of the stack first. A Background stays at the bottom, so its
+    // further outputs go above it (insert_gmic_new_layers): it takes the LAST image and the
+    // others stack above it in G'MIC's order. Taking the first would put Ball's copy of the
+    // original over its sphere. A draft adds no layers and shows the first image.
+    const bool background = !draft && images.size() > 1 && gmic_name_keeps_at_bottom(layer.name) &&
+                            images.back().width > 0 && images.back().height > 0;
+    add_gmic_layer_result(input, layer, background ? images.back() : images.front(), frame, run_width, run_height,
+                          render);
+    const std::size_t first_extra = background ? 0 : 1;
+    const std::size_t end_extra = background ? images.size() - 1 : images.size();
+    for (std::size_t extra = first_extra; !draft && extra < end_extra; ++extra) {
       add_gmic_new_layer(input, images[extra], frame, layer.id, render);
     }
   }
@@ -811,13 +828,7 @@ void set_gmic_input_layers(GmicRunInput& input, const std::vector<GmicLayerSnaps
 // for a legacy top-to-bottom one and reverses it.
 [[nodiscard]] bool gmic_keeps_at_bottom(const Document& document, LayerId id) {
   const auto* layer = document.find_layer(id);
-  if (layer == nullptr) {
-    return false;
-  }
-  std::string name = layer->name();
-  std::transform(name.begin(), name.end(), name.begin(),
-                 [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
-  return name == "background";
+  return layer != nullptr && gmic_name_keeps_at_bottom(layer->name());
 }
 
 // Inserts a run's further outputs as new layers in G'MIC's order (top of the stack first):

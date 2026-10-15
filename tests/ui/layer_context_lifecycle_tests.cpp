@@ -179,6 +179,7 @@
 #include <atomic>
 #include <array>
 #include <cstdint>
+#include <cstdio>
 #include <cmath>
 #include <cstring>
 #include <exception>
@@ -1095,7 +1096,15 @@ void ui_layer_context_menu_exposes_blending_options_dialog() {
   CHECK(saw_shared_color_picker);
   CHECK(!canvas->edit_locked());
   CHECK(layer_list->isEnabled());
-  CHECK(color_close(canvas_pixel(*canvas, QPoint(80, 80)), before, 8));
+  // Cancel restores the layers at once; the canvas re-renders them asynchronously (a slower
+  // machine still shows the last preview frame for a moment).
+  (void)process_events_until([&] { return color_close(canvas_pixel(*canvas, QPoint(80, 80)), before, 8); }, 5000);
+  if (const auto after_cancel = canvas_pixel(*canvas, QPoint(80, 80)); !color_close(after_cancel, before, 8)) {
+    std::printf("blending options cancel: before %s, after %s\n", qPrintable(before.name()),
+                qPrintable(after_cancel.name()));
+    save_widget_artifact("ui_blending_options_after_cancel", *canvas);
+    CHECK(false);
+  }
 
   accept_layer_style_dialog(false, true, false);
   blending_options->trigger();

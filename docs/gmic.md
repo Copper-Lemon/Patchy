@@ -18,7 +18,7 @@ library are published, which this repository does). Nothing from G'MIC-Qt (GPL 3
 including its filter translations.
 
 Not vendored: the community filters and upstream's compressed `gmic_stdlib_community.h`;
-`patchy_stub/` replaces it with an empty array and the engine installs the library text itself.
+`patchy_stub/` replaces it with an empty array and the engine installs the text itself.
 
 `src/filters/gmic/pocketfft/` holds `pocketfft_hdronly.h` and `LICENSE.md` from
 mreineck/pocketfft, cpp branch, commit `c90e55b3d529f8efa40ed01a20de22405f45fc65` (BSD-3-Clause;
@@ -71,17 +71,18 @@ lists with the committed ones.
   on every core. Windows: MSVC `/openmp`, and `build-release.bat` (`:CopyMsvcRuntimeDlls`)
   stages `vcomp140.dll` from the redist's `Microsoft.VC*.OpenMP` folder beside the CRT.
   Linux: `libgomp`, part of the Flatpak runtime. macOS: Apple's compiler ships no OpenMP
-  runtime and Homebrew's `libomp` is built for the build host's macOS, newer than the 12.0
-  deployment target, so `scripts/setup-openmp-mac.sh` (run once per build host;
+  runtime and Homebrew's `libomp` targets the build host's macOS, not 12.0, so `scripts/setup-openmp-mac.sh` (run once per build host;
   `setup-mac.sh` calls it) builds libomp from the pinned LLVM release source for the
   deployment target into `.deps/libomp-<version>-macos<target>/`. The engine compiles with
   `-Xclang -fopenmp` and links `libomp.dylib`, which the bundle carries in
   `Contents/Frameworks` (rpath `@executable_path/../Frameworks`; the test binaries use the
   `.deps` folder). Never link libomp statically: a static libomp does not unregister a
-  thread that ends, and the next thread to enter a critical section crashes. The engine
-  runs each filter on a thread of its own, so the second run crashed (`fill` in Dices). `make-dmg.sh` refuses a build
+  thread that ends, and the next thread to enter a critical section crashes (each run
+  has a thread of its own). `make-dmg.sh` refuses a build
   whose cache lacks `PATCHY_GMIC_OPENMP_ENABLED=TRUE`. G'MIC compiles its in-loop abort
-  checks out on Apple platforms (`gmic.h`), so a stale run there stops at the next command.
+  checks out on Apple platforms (`gmic.h`), so a stale run there stops at the next command,
+  which also drops CImg's try/catch in OpenMP loops (a formula error in a parallel fill
+  ended the process); force-included `patchy_stub/patchy_gmic_openmp_catch.h` restores it.
   The thread count stays level across runs: each run's
   interpreter thread ends and its team with it.
   `patchy_stub/zlib.h` maps zlib onto the vendored miniz (G'MIC embeds palettes, shapes and
@@ -188,9 +189,10 @@ a document action, created only when `gmic::engine_available()`).
       new layers (anchored on the lowest read layer, or the active one).
     - **Stacking.** G'MIC lists images top of the stack first (Ball moves its sphere to
       `[0]` over the original), so `insert_gmic_new_layers` puts new layers below their
-      anchor, each below the last. A layer named Background stays at the bottom (Photoshop's
-      rule; the PSD reader takes a top full-canvas Background as a reversed legacy file):
-      they go above it instead, same order.
+      anchor, each below the last. A Background stays at the bottom (Photoshop's rule; the PSD
+      reader takes a top full-canvas Background as a reversed legacy file): it takes the LAST
+      image and the rest go above it in that order (Ball's sphere on top); no new layer is
+      named Background.
     - Output names carry layer settings (`gmic::parse_output_layer_name`):
       `mode(...)`, `opacity(...)`, `pos(x,y)`, `name(...)`. New layers take all four
       (`blend_mode_from_gmic` maps G'MIC's blend names; unknown ones, such as grainmerge,
@@ -359,7 +361,7 @@ text, the allowlist, Sepia against values pinned from G'MIC-Qt 4.0.4, error and 
 reporting, that `exec` starts nothing and that `matchpatch` and patch `inpaint` are absent,
 abort, the FFT at sizes that are not powers of two (an impulse's flat spectrum and forward and
 inverse round trips, whole and per axis), and `gmic_allowlisted_filters_run_with_defaults`, which runs every allowed filter on
-a 48x40 image (about 40 s on the dev box).
+a 48x40 image (about 40 s).
 `gmic_engine_restricts_excluded_commands_and_aliases` checks every excluded apply/preview
 command, helpers, aliases, redefinitions and nested interpreters;
 `gmic_engine_custom_formula_cannot_run_excluded_filters` checks Blend formulas and an allowed control.
@@ -390,9 +392,8 @@ changing layer pixels or count. Core: `gmic_output_layer_names_carry_layer_setti
 - A draft is the whole image reduced, never a 1:1 crop of what the canvas shows, so fine
   detail is only judged once the full run lands. G'MIC's own preview commands (guides,
   split views) are unused; restricted ones are tested for refusal only.
-- Of the filters that declare multi-layer input, only Blend [Average All] has an automated
-  test of its result; the others are covered by the run-everything core test and the
-  three-layer real-image sweep, which check that they run, not what they produce.
+- Of the multi-layer filters only Blend [Average All] has a test of its result; the
+  run-everything test and the three-layer sweep check only that the others run.
 - Split Colors at its default tolerance makes one layer per color: on a photograph it runs
   for minutes and has to be cancelled. Filters that return animation frames add up to
   about 100 layers.

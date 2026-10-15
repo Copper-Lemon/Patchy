@@ -118,6 +118,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QFont>
+#include <QGuiApplication>
 #include <QFontComboBox>
 #include <QFontDatabase>
 #include <QFocusEvent>
@@ -284,6 +285,17 @@ const std::array<QString, 7>& right_dock_stack_names() {
       QStringLiteral("propertiesDock"), QStringLiteral("infoDock"),
       QStringLiteral("paletteDock")};
   return names;
+}
+
+// Whether right-dock panels may be dragged out of the column. Not on Wayland: an app
+// cannot place its own windows there, and the window a panel becomes mid-drag loses the
+// button release, so Qt kept the mouse grabbed and every later click went nowhere
+// (GitHub issue 102). PATCHY_FIXED_PANELS=1 forces the Wayland behavior (tests).
+bool right_docks_can_leave_column() {
+  if (qEnvironmentVariableIntValue("PATCHY_FIXED_PANELS") != 0) {
+    return false;
+  }
+  return !QGuiApplication::platformName().startsWith(QLatin1String("wayland"), Qt::CaseInsensitive);
 }
 
 // The Layers panel's blend/opacity row (GitHub issue 96): the first item (the
@@ -543,6 +555,20 @@ private:
   bool overflowing_{false};
 };
 
+// The collapse toggle in a right dock's title bar, or null for a dock without one.
+QToolButton* dock_collapse_toggle(QDockWidget* dock) {
+  auto* title = dock != nullptr ? dock->titleBarWidget() : nullptr;
+  if (title == nullptr) {
+    return nullptr;
+  }
+  for (auto* button : title->findChildren<QToolButton*>()) {
+    if (button->property("dockCollapseButton").toBool()) {
+      return button;
+    }
+  }
+  return nullptr;
+}
+
 void install_collapsible_dock_title(QDockWidget* dock,
                                     QWidget* content,
                                     const QString& object_prefix,
@@ -621,6 +647,21 @@ void install_collapsible_dock_title(QDockWidget* dock,
   };
 
   QObject::connect(toggle, &QToolButton::toggled, dock, apply_expanded_state);
+  // A tab group (Layers, Channels, Paths) collapses and expands as one: the group keeps the
+  // tallest member's height, so a collapsed current tab over expanded hidden ones left a
+  // dead band in the column (GitHub issue 101). Setting a sibling's toggle to the state it
+  // already has emits nothing, so the sync stops there.
+  QObject::connect(toggle, &QToolButton::toggled, dock, [dock](bool expanded) {
+    auto* main_window = qobject_cast<QMainWindow*>(dock->parentWidget());
+    if (main_window == nullptr || dock->isFloating()) {
+      return;
+    }
+    for (auto* sibling : main_window->tabifiedDockWidgets(dock)) {
+      if (auto* sibling_toggle = dock_collapse_toggle(sibling); sibling_toggle != nullptr && !sibling->isFloating()) {
+        sibling_toggle->setChecked(expanded);
+      }
+    }
+  });
 
   // Floating panels are always expanded: a collapsed strip is pinned to
   // min == max, and Qt cannot plug that into a floating tab group (the
@@ -631,10 +672,21 @@ void install_collapsible_dock_title(QDockWidget* dock,
   // topLevelChanged is being emitted.
   QObject::connect(dock, &QDockWidget::topLevelChanged, toggle, [dock, toggle](bool) {
     QTimer::singleShot(0, toggle, [dock, toggle] {
-      const bool in_main_window_column = qobject_cast<QMainWindow*>(dock->window()) != nullptr;
+      auto* main_window = qobject_cast<QMainWindow*>(dock->window());
+      const bool in_main_window_column = main_window != nullptr;
       toggle->setVisible(in_main_window_column);
       if (!in_main_window_column && !toggle->isChecked()) {
         toggle->setChecked(true);
+      }
+      // Docked into a tab group: take the group's state, so the group stays one height.
+      if (in_main_window_column && !dock->isFloating()) {
+        for (auto* sibling : main_window->tabifiedDockWidgets(dock)) {
+          if (auto* sibling_toggle = dock_collapse_toggle(sibling);
+              sibling_toggle != nullptr && !sibling->isFloating()) {
+            toggle->setChecked(sibling_toggle->isChecked());
+            break;
+          }
+        }
       }
     });
   });
@@ -1049,7 +1101,7 @@ bool MainWindow::handle_right_dock_title_drag_event(QObject* watched, QEvent* ev
   }
   auto* dock = qobject_cast<QDockWidget*>(watched);
   if (dock == nullptr || dock->isFloating() || dock->titleBarWidget() == nullptr ||
-      tabifiedDockWidgets(dock).isEmpty() ||
+      !dock->features().testFlag(QDockWidget::DockWidgetFloatable) || tabifiedDockWidgets(dock).isEmpty() ||
       dock->findChild<QWidget*>(QStringLiteral("rightDockResizeHandle"), Qt::FindDirectChildrenOnly) ==
           nullptr) {
     return false;
@@ -2234,6 +2286,16 @@ void MainWindow::create_palette_dock() {
   install_right_dock_width_handle(palette_dock_);
   addDockWidget(Qt::RightDockWidgetArea, palette_dock_);
   update_right_dock_resize_handle_geometry(palette_dock_);
+
+  // On Wayland the panels stay in the column: no drag floats or moves them (Qt's move also
+  // detaches the panel into a window mid-drag). Collapse, tabs and the width still work.
+  if (!right_docks_can_leave_column()) {
+    for (const auto& name : right_dock_stack_names()) {
+      if (auto* dock = findChild<QDockWidget*>(name); dock != nullptr) {
+        dock->setFeatures(dock->features() & ~(QDockWidget::DockWidgetFloatable | QDockWidget::DockWidgetMovable));
+      }
+    }
+  }
 }
 
 }  // namespace patchy::ui

@@ -693,7 +693,9 @@ async def shared_recent_history(exe):
 
 
 if __name__ == "__main__":
-    executable = Path(sys.argv[1]).resolve()
+    # absolute(), not resolve(): a patchy-mcp symlink to the AppImage must keep its name, which
+    # is how AppRun knows to start the connector (docs/appimage.md).
+    executable = Path(sys.argv[1]).absolute()
     OUT.mkdir(parents=True, exist_ok=True)
     SESSION_TEMP.mkdir(parents=True, exist_ok=True)
     headless_without_desktop_bus(executable)

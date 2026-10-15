@@ -15,6 +15,7 @@
 #include "ui/layer_list_widget.hpp"
 #include "ui/main_window.hpp"
 #include "ui/script_engine.hpp"
+#include "ui/theme_palette.hpp"
 
 #include "local_psd_fixtures.hpp"
 #include "test_harness.hpp"
@@ -23,6 +24,7 @@
 #include "ui_test_support.hpp"
 
 #include <QAction>
+#include <QPalette>
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
@@ -271,6 +273,34 @@ void ui_gmic_library_dialog_browses_searches_and_resets() {
   CHECK(dialog.isVisible());
   CHECK(dialog.result() != QDialog::Accepted);
   CHECK(dialog.choice().has_value() && dialog.choice()->filter_id == "fx_blur_angular");
+}
+
+// The selected filter in the folder tree stays readable in both schemes. The stylesheet sets
+// the row's text color as well as its background: left to the platform palette, the text
+// was white on GNOME and KDE, light on light under the Light scheme.
+void ui_gmic_filter_tree_selection_is_readable_in_both_schemes() {
+  ColorSchemeRestorer restore_scheme;
+  for (const auto preference : {patchy::ui::ColorSchemePreference::Dark, patchy::ui::ColorSchemePreference::Light}) {
+    ColorSchemeRestorer::apply(preference);
+    patchy::ui::MainWindow window;
+    show_window(window);
+    patchy::ui::GmicFilterLibraryDialog dialog(whole_catalog(), QStringLiteral("4.0.5"), &window);
+    CHECK(dialog.select_filter("fx_sepia"));
+    dialog.show();
+    QApplication::processEvents();
+    auto* tree = dialog.findChild<QTreeWidget*>(QStringLiteral("gmicFilterTree"));
+    CHECK(tree != nullptr && tree->currentItem() != nullptr);
+    if (tree == nullptr) {
+      continue;
+    }
+    const auto background = tree->palette().color(QPalette::Active, QPalette::Highlight);
+    const auto text = tree->palette().color(QPalette::Active, QPalette::HighlightedText);
+    // rgba(): QColor's == also compares the color spec the stylesheet happened to produce.
+    CHECK(background.rgba() == patchy::ui::theme().list_selection_bg.rgba());
+    CHECK(text.rgba() == patchy::ui::theme().list_selection_text.rgba());
+    CHECK(std::abs(text.lightness() - background.lightness()) >= 90);
+    dialog.close();
+  }
 }
 
 // Visual QA artifacts: the dialog as the application styles it, for a few filters
@@ -825,23 +855,60 @@ void ui_gmic_filter_adds_output_layers_in_one_undo_step() {
   CHECK(document.layers().size() == layers_before);
   CHECK(layer_pixel(window, 50, 50) == red);
 
-  // G'MIC lists images top of the stack first, so they go below the source layer, except
-  // under a Background layer, which stays at the bottom: they go above it, in that order.
+  // G'MIC lists images top of the stack first, so they go below the source layer. A
+  // Background stays at the bottom: it takes the last image and the others stack above it,
+  // still in G'MIC's order, and none of them is called Background.
   CHECK(run_script(window, QStringLiteral("var d = app.activeDocument;"
                                           "for (var i = 0; i < d.layers.length; ++i)"
                                           "  if (d.layers[i].name === 'Background') d.activeLayer = d.layers[i];")));
   const auto background = document.active_layer_id();
   CHECK(background.has_value() && std::as_const(document).find_layer(*background)->name() == "Background");
+  CHECK(run_script(window, QStringLiteral("app.activeDocument.activeLayer.fillRect(0, 0, 200, 200, '#c03020');")));
+  const auto background_pixel = [&](int x, int y) {
+    const auto* layer = std::as_const(document).find_layer(*background);
+    const auto* px = layer->pixels().pixel(x - layer->bounds().x, y - layer->bounds().y);
+    return QColor(px[0], px[1], px[2]);
+  };
+  const auto layers_with_background = document.layers().size();
   CHECK(window.apply_gmic_filter("fx_channels2layers", {}));
-  const auto& layers = std::as_const(document).layers();
-  CHECK(layers.size() == layers_before + 2U);
-  if (layers.size() == layers_before + 2U) {
-    CHECK(layers[0].name() == "Background");
-    CHECK(layers[1].name() == "Background [blue]" && layers[2].name() == "Background [green]");
+  {
+    const auto& layers = std::as_const(document).layers();
+    CHECK(layers.size() == layers_with_background + 2U);
+    if (layers.size() == layers_with_background + 2U) {
+      // Bottom up: the Background with the last channel, then green, then red on top.
+      CHECK(layers[0].name() == "Background");
+      CHECK(layers[1].name() == "Background [green]");
+      CHECK(layers[2].name() != "Background");
+      const auto top = layers[2].pixels().pixel(50 - layers[2].bounds().x, 50 - layers[2].bounds().y);
+      CHECK(top[0] == 0xc0 && top[1] == 0 && top[2] == 0);
+    }
+    const auto bottom = background_pixel(50, 50);
+    CHECK(bottom.red() == 0 && bottom.green() == 0 && bottom.blue() == 0x20);
   }
   require_action_by_text(window, QStringLiteral("Undo"))->trigger();
   QApplication::processEvents();
-  CHECK(document.layers().size() == layers_before);
+  CHECK(document.layers().size() == layers_with_background);
+
+  // Ball returns its sphere first and a copy of the original second: on a Background the
+  // sphere lands on top as a new layer and the Background keeps what it had (it used to take
+  // the sphere and get covered by the copy, named Background as well).
+  CHECK(window.apply_gmic_filter("fx_ball", {}));
+  {
+    const auto& layers = std::as_const(document).layers();
+    CHECK(layers.size() == layers_with_background + 1U);
+    if (layers.size() == layers_with_background + 1U) {
+      CHECK(layers[0].name() == "Background");
+      CHECK(layers[1].name() != "Background");
+      const auto& sphere = layers[1].pixels();
+      CHECK(sphere.format().channels == 4);
+      CHECK(sphere.pixel(sphere.width() / 2, sphere.height() / 2)[3] == 255);
+      CHECK(sphere.pixel(0, 0)[3] == 0);
+    }
+    CHECK(background_pixel(50, 50) == red);
+  }
+  require_action_by_text(window, QStringLiteral("Undo"))->trigger();
+  QApplication::processEvents();
+  CHECK(document.layers().size() == layers_with_background);
 }
 
 // A filter made for several layers gets them lined up on the document and, when it
@@ -1644,6 +1711,8 @@ std::vector<patchy::test::TestCase> gmic_ui_tests() {
       {"ui_gmic_parameter_panel_reads_and_restores_values", ui_gmic_parameter_panel_reads_and_restores_values},
       {"ui_gmic_library_dialog_browses_searches_and_resets", ui_gmic_library_dialog_browses_searches_and_resets},
       {"ui_gmic_library_dialog_renders_in_the_app_theme", ui_gmic_library_dialog_renders_in_the_app_theme},
+      {"ui_gmic_filter_tree_selection_is_readable_in_both_schemes",
+       ui_gmic_filter_tree_selection_is_readable_in_both_schemes},
       {"ui_gmic_filter_applies_inside_selection_and_undoes", ui_gmic_filter_applies_inside_selection_and_undoes},
       {"ui_gmic_size_changing_filter_stays_inside_the_selection",
        ui_gmic_size_changing_filter_stays_inside_the_selection},

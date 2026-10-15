@@ -12,6 +12,7 @@
 #include "ui/single_instance.hpp"
 #include "ui/psd_font_resolver.hpp"
 #include "ui/stress_test.hpp"
+#include "ui/app_style.hpp"
 #include "ui/theme_manager.hpp"
 #include "ui/user_fonts.hpp"
 #ifdef PATCHY_MCP_EXECUTABLE
@@ -31,10 +32,8 @@
 #include <QFont>
 #include <QFontDatabase>
 #include <QImageReader>
-#include <QFormLayout>
 #include <QLocalServer>
 #include <QLocalSocket>
-#include <QProxyStyle>
 #include <QRect>
 #include <QSettings>
 #include <QScopedValueRollback>
@@ -201,43 +200,6 @@ bool forward_to_running_instance(const QStringList& files) {
   return true;
 }
 
-// Wraps the platform style to override a couple of interaction hints, leaving
-// all other rendering (including the app stylesheet) unchanged:
-// - Sliders: a left-click anywhere on the groove jumps straight to that value
-//   and begins dragging, instead of Qt's default page-step that crawls toward
-//   the cursor in chunks.
-// - Tool-button flyouts (DelayedPopup, e.g. the marquee/shape buttons in the
-//   tool palette): open after a short Photoshop-like hold instead of Qt's much
-//   longer default (600 ms). A left double-click opens them too; that lives in
-//   configure_tool_flyout (main_window_actions_tool_palette.cpp).
-class InteractionHintsStyle : public QProxyStyle {
- public:
-  using QProxyStyle::QProxyStyle;
-
-  int styleHint(StyleHint hint, const QStyleOption* option, const QWidget* widget,
-                QStyleHintReturn* return_data) const override {
-    if (hint == SH_Slider_AbsoluteSetButtons) {
-      return Qt::LeftButton;
-    }
-    if (hint == SH_ToolButton_PopupDelay) {
-      return 200;  // ms; press-and-hold flyout delay (300 felt sluggish)
-    }
-#ifdef Q_OS_MACOS
-    // Form layouts consult the style: QMacStyle keeps fields at their size hint
-    // and right-aligns labels (Aqua HIG), which shrinks line edits and combos to
-    // slivers in dialogs designed around the roomy Windows form behavior (Brush
-    // Tips manager, Layer Style pages). Pin the Windows behavior everywhere.
-    if (hint == SH_FormLayoutFieldGrowthPolicy) {
-      return QFormLayout::AllNonFixedFieldsGrow;
-    }
-    if (hint == SH_FormLayoutLabelAlignment) {
-      return Qt::AlignLeft | Qt::AlignVCenter;
-    }
-#endif
-    return QProxyStyle::styleHint(hint, option, widget, return_data);
-  }
-};
-
 // macOS delivers Finder opens (double-clicked documents, dock drops) to the RUNNING
 // process as QFileOpenEvent via LaunchServices -- they never arrive as argv. Files that
 // arrive before the main window exists are buffered and merged into the command-line
@@ -387,7 +349,7 @@ int main(int argc, char* argv[]) {
   QGuiApplication::setDesktopFileName(QStringLiteral("com.rtsoft.patchy"));
 #endif
   // Slider grooves snap to the click; tool flyouts open on a short hold (see the style above).
-  app.setStyle(new InteractionHintsStyle);
+  app.setStyle(new patchy::ui::AppStyle);
   app.setApplicationName(QStringLiteral("Patchy"));
   app.setApplicationVersion(QStringLiteral(PATCHY_VERSION));
   // Keep the internal app identity for settings without letting Qt append " - Patchy" to every native window title.

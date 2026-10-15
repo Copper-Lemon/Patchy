@@ -129,6 +129,7 @@
 #include <QJsonObject>
 #include <QTemporaryDir>
 #include <QLocale>
+#include <QScopeGuard>
 #include <QSizeGrip>
 #include <QMetaObject>
 #include <QMouseEvent>
@@ -1901,8 +1902,11 @@ void ui_zoom_steps_follow_photoshop_ladder() {
   // The Zoom tool click takes the same ladder; Alt inverts it.
   require_action_by_text(window, QStringLiteral("Zoom"))->trigger();
   QApplication::processEvents();
-  canvas->set_view_zoom(0.4639);
+  // Centered: the 12800% step above panned far off, and a plain zoom keeps that pan,
+  // which can leave the clicked document point outside the canvas.
+  canvas->set_view_zoom_centered(0.4639);
   const auto at = canvas->widget_position_for_document_point(QPoint(10, 10));
+  CHECK(canvas->rect().contains(at));
   send_mouse(*canvas, QEvent::MouseButtonPress, at, Qt::LeftButton, Qt::LeftButton);
   send_mouse(*canvas, QEvent::MouseButtonRelease, at, Qt::LeftButton, Qt::NoButton);
   CHECK(close_to(canvas->view_zoom(), 0.5));
@@ -3757,6 +3761,47 @@ void ui_collapsed_right_docks_have_uniform_title_height() {
   save_widget_artifact("ui_collapsed_right_docks_uniform_titles", window);
 }
 
+// GitHub issue 101: Layers, Channels and Paths share one tab group, which keeps the height
+// of its tallest member. Collapsing the shown tab collapses the whole group, so no dead
+// band stays under the strip; expanding any of them expands the group again.
+void ui_tabbed_right_dock_group_collapses_as_one() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* layers = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
+  auto* channels = window.findChild<QDockWidget*>(QStringLiteral("channelsDock"));
+  auto* paths = window.findChild<QDockWidget*>(QStringLiteral("pathsDock"));
+  auto* layers_toggle = window.findChild<QToolButton*>(QStringLiteral("layersDockCollapseButton"));
+  auto* channels_toggle = window.findChild<QToolButton*>(QStringLiteral("channelsDockCollapseButton"));
+  auto* paths_toggle = window.findChild<QToolButton*>(QStringLiteral("pathsDockCollapseButton"));
+  CHECK(layers != nullptr && channels != nullptr && paths != nullptr);
+  CHECK(layers_toggle != nullptr && channels_toggle != nullptr && paths_toggle != nullptr);
+  if (layers == nullptr || channels == nullptr || paths == nullptr || layers_toggle == nullptr ||
+      channels_toggle == nullptr || paths_toggle == nullptr) {
+    return;
+  }
+  CHECK(window.tabifiedDockWidgets(layers).contains(channels));
+  CHECK(layers_toggle->isChecked() && channels_toggle->isChecked() && paths_toggle->isChecked());
+  const int expanded_height = layers->height();
+
+  layers_toggle->setChecked(false);
+  QApplication::processEvents();
+  QApplication::processEvents();
+  CHECK(!channels_toggle->isChecked() && !paths_toggle->isChecked());
+  for (auto* dock : {layers, channels, paths}) {
+    CHECK(dock->minimumHeight() == dock->maximumHeight());
+  }
+  CHECK(layers->height() <= layers->titleBarWidget()->sizeHint().height() + 4);
+  CHECK(layers->height() < expanded_height);
+
+  // Expanding a hidden tab's toggle (or the shown one's) brings the group back.
+  channels_toggle->setChecked(true);
+  QApplication::processEvents();
+  QApplication::processEvents();
+  CHECK(layers_toggle->isChecked() && paths_toggle->isChecked());
+  CHECK(layers->maximumHeight() > layers->titleBarWidget()->sizeHint().height());
+  save_widget_artifact("ui_tabbed_right_dock_group_collapses_as_one", window);
+}
+
 void ui_short_panel_scroll_bar_drags_by_handle() {
   // A squeezed panel's scrollbar is short. Without box properties on the
   // scroll bar's QSS widget rule, the groove rect came from the native
@@ -4186,6 +4231,54 @@ void ui_tabbed_dock_title_drag_floats_single_dock() {
   CHECK(layers_dock->isFloating());
 }
 
+// GitHub issue 102: on Wayland an app cannot place its own windows, and a panel turned
+// into a window mid-drag lost the button release, leaving Qt holding the mouse. There the
+// right-dock panels stay in the column (PATCHY_FIXED_PANELS=1 forces that here): neither
+// the title drag nor Qt's own drag can float or move them, and collapse still works.
+void ui_right_docks_stay_in_column_where_windows_cannot_be_placed() {
+  qputenv("PATCHY_FIXED_PANELS", "1");
+  const auto restore = qScopeGuard([] { qunsetenv("PATCHY_FIXED_PANELS"); });
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* layers_dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
+  CHECK(layers_dock != nullptr);
+  if (layers_dock == nullptr) {
+    return;
+  }
+  for (const auto* name : {"layersDock", "channelsDock", "pathsDock", "historyDock", "propertiesDock", "infoDock",
+                           "paletteDock"}) {
+    auto* dock = window.findChild<QDockWidget*>(QLatin1String(name));
+    CHECK(dock != nullptr);
+    if (dock != nullptr) {
+      CHECK(!dock->features().testFlag(QDockWidget::DockWidgetFloatable));
+      CHECK(!dock->features().testFlag(QDockWidget::DockWidgetMovable));
+    }
+  }
+
+  auto* title = layers_dock->titleBarWidget();
+  const auto press_in_dock = title->geometry().center();
+  const auto press_global = layers_dock->mapToGlobal(press_in_dock);
+  send_mouse(*layers_dock, QEvent::MouseButtonPress, press_in_dock, Qt::LeftButton, Qt::LeftButton);
+  for (int step = 1; step <= 6; ++step) {
+    const QPoint global = press_global + QPoint(-40 * step, 20 * step);
+    QMouseEvent move(QEvent::MouseMove, layers_dock->mapFromGlobal(global), global, Qt::NoButton, Qt::LeftButton,
+                     Qt::NoModifier);
+    QApplication::sendEvent(layers_dock, &move);
+    QApplication::processEvents();
+  }
+  const QPoint end = press_global + QPoint(-240, 120);
+  QMouseEvent release(QEvent::MouseButtonRelease, layers_dock->mapFromGlobal(end), end, Qt::LeftButton,
+                      Qt::NoButton, Qt::NoModifier);
+  QApplication::sendEvent(layers_dock, &release);
+  QApplication::processEvents();
+  CHECK(!layers_dock->isFloating());
+  CHECK(window.tabifiedDockWidgets(layers_dock).size() == 2);
+  CHECK(QWidget::mouseGrabber() == nullptr);
+
+  auto* toggle = window.findChild<QToolButton*>(QStringLiteral("layersDockCollapseButton"));
+  CHECK(toggle != nullptr && toggle->isEnabled());
+}
+
 // Stands in for KDE's Breeze: polishing a widget installs an event filter on it,
 // which Qt puts ahead of the filters already there. The reinstall is capped so
 // a regression fails the test instead of hanging the suite.
@@ -4441,6 +4534,7 @@ std::vector<patchy::test::TestCase> canvas_view_tools_tests() {
       {"ui_right_dock_panels_expand_within_window_height", ui_right_dock_panels_expand_within_window_height},
       {"ui_collapsed_right_docks_have_uniform_title_height",
        ui_collapsed_right_docks_have_uniform_title_height},
+      {"ui_tabbed_right_dock_group_collapses_as_one", ui_tabbed_right_dock_group_collapses_as_one},
       {"ui_right_dock_separator_drags_between_docks", ui_right_dock_separator_drags_between_docks},
       {"ui_right_dock_contents_clear_width_handle", ui_right_dock_contents_clear_width_handle},
       {"ui_right_dock_drags_below_content_minimum_with_scroll",
@@ -4451,6 +4545,8 @@ std::vector<patchy::test::TestCase> canvas_view_tools_tests() {
       {"ui_tabbed_right_dock_drags_out_by_tab", ui_tabbed_right_dock_drags_out_by_tab},
       {"ui_floating_right_dock_auto_expands", ui_floating_right_dock_auto_expands},
       {"ui_tabbed_dock_title_drag_floats_single_dock", ui_tabbed_dock_title_drag_floats_single_dock},
+      {"ui_right_docks_stay_in_column_where_windows_cannot_be_placed",
+       ui_right_docks_stay_in_column_where_windows_cannot_be_placed},
       {"ui_layer_action_button_foreign_drag_never_repolishes_in_filter",
        ui_layer_action_button_foreign_drag_never_repolishes_in_filter},
       {"ui_dock_group_window_drags_by_blank_chrome", ui_dock_group_window_drags_by_blank_chrome},
