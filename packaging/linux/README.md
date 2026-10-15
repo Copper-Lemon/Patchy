@@ -27,7 +27,9 @@ installation. Both installs add the Flathub remote themselves when the machine h
 `RuntimeRepo`, the bundle's `--runtime-repo`) and pull `org.kde.Platform` from it. The
 app's update dialog shows the `flatpak update` line (`show_update_available` in
 `src/ui/main_window_files.cpp`, pinned by `ui_update_available_dialog_*` in
-`tests/ui/app_shell_tests.cpp`); an AppImage copy gets a download prompt instead.
+`tests/ui/app_shell_tests.cpp`); an AppImage copy instead offers Update Now, which replaces the
+`.AppImage` file when its folder is writable, and a download prompt otherwise
+([docs/appimage.md](../../docs/appimage.md)).
 
 1.05 (October 2026) is the first release that ships the repository.
 

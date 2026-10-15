@@ -6,7 +6,8 @@
 
 - Open and save layered PSD and PSB files with groups, masks, clipping masks, saved alpha and spot channels, text objects, Fill Opacity, the full Photoshop blend mode set, layer styles and more
 - 8, 16, and 32-bit (linear HDR) editing: 16 and 32-bit PSD/PSB files open, edit, and save at their depth, Image > Mode converts between depths (leaving 32 bits offers HDR Toning), and New Document starts at 8 bits with a Bit Depth choice. 16-bit PNG and TIFF open and export at 16 bits; 32-bit documents export float TIFF. The browser build stops at 16 bits and opens 32-bit files converted to 16
-- CMYK, Grayscale, Lab, Bitmap, Indexed, Duotone, and Multichannel Photoshop documents convert to RGB on open
+- CMYK, Grayscale, Lab, Bitmap, Indexed, Duotone, and Multichannel Photoshop documents convert to RGB on open (an imported CMYK PSD saved without edits keeps its CMYK data)
+- An opaque Background layer locks position and transparency like Photoshop's, so the Eraser paints the background color, and Image > Flatten Image merges the visible layers into it
 - Non-destructive adjustment layers (Levels, Curves, Hue/Saturation, Color Balance, Brightness/Contrast, Invert, Posterize, Threshold, Exposure) with live preview, editable settings, native Photoshop PSD data, and .acv Curves preset import and export
 - Smart Objects: place or convert layers to embedded or linked smart objects, edit or replace their contents, transform them non-destructively, and build editable native Smart Filter stacks (13 filter types) with paintable shared masks and per-filter blending
 - Photoshop-compatible layer style, pattern, and gradient preset libraries, including .asl, .pat, and .grd import/export, 39 built-in styles, and 20 bundled CC0 photo textures
@@ -23,6 +24,7 @@
 - Move tool layer selection: drag a rectangle to select overlapping layers, Shift-click to toggle individual layers, or right-click to choose among the layers under the pointer, with a selected-layer count in the status bar
 - Guides, grids, snapping, and layer alignment/distribution, plus interactive cropping with aspect-ratio presets and straightening
 - G'MIC Filter Library on desktop: nearly 400 filters from the G'MIC standard library, with controls built from each filter's own description, live preview on the layer, multi-layer input and output, draggable point markers on the canvas, and script access
+- Filter > Last Filter (Ctrl+Alt+F) applies the last filter again with the same settings to the current layer and selection, for built-in filters, Filter Gallery looks, G'MIC filters, and plug-ins
 - Filter Gallery with 32 effects, live full-resolution preview, ordered effect stacks, favorites, and reusable Saved Looks, plus a manual Liquify workspace with warp, twirl, pucker, bloat, and freeze brushes
 - Photoshop-compatible document resolution, physical measurement units, rulers, image sizing, and printing
 - Pen/stylus pressure and size dynamics, GUI scaling, scanner import (Windows and macOS), camera import (Windows), and command line options
@@ -39,11 +41,16 @@
 ## Pixel art and game assets
 
 - Palettized (indexed color) editing mode for pixel art: paint constrained to a palette, quantize with optional dithering, built-in retro palettes (NES, C64, Game Boy, PICO-8, and more), palette files (.pal/.gpl/.hex/.act/.aco/.ase), and exact indexed PNG-8 and 2/4/8-bit BMP export. Layers, layer styles, and effects all keep working (Photoshop's indexed mode flattens and disables them)
-- CMYK ink percentages in the color picker (with a warning and the closest printable color when a color cannot print) and the Info panel, converted through an ICC profile: a bundled ISO Coated v2 profile by default, or an installed or chosen one (Preferences > Application > CMYK). Documents stay RGB, and CMYK swatches in `.aco` and `.ase` files import through the same profile
-- View > Proof Colors shows the canvas as that profile would print it (and lists the Cyan, Magenta, Yellow and Black plates in the Channels panel), and View > Gamut Warning paints colors it cannot reproduce flat gray. Both are views only: pixels, saves and exports are unchanged
-- File > Export writes JPEG, TIFF and flattened PDF in CMYK through that profile, with the profile embedded, for print shops, optionally with black text and grays on the black plate alone
 - Named palette colors appear in the Palette panel, color picker, Info panel, and eyedropper readout. Rename swatches, preserve names through GPL, PSD, and indexed PNG round trips, and manage palettes through scripts
 - Pixel-art and game-dev extras: seamless texture authoring (live tile preview window, in-canvas tiling mode, seam shifting), sprite sheet export/import, image sequence export/import (numbered files become layers and back), animated GIF and animated WebP import/export (frames become layers with their timings in the layer names, visible layers save back as a looping animation, and the layers panel's film button previews the animation in-app), and an Export Flat Image dialog with nearest-neighbor scaling (2x-8x), smooth resize, transparent-edge trimming, and background fill
+
+## Color and print
+
+- CMYK ink percentages in the color picker (with a warning and the closest printable color when a color cannot print) and the Info panel, converted through an ICC profile: a bundled ISO Coated v2 profile by default, or an installed or chosen one (Preferences > Application > CMYK). CMYK swatches in `.aco` and `.ase` files import through the same profile
+- View > Proof Colors shows the canvas as that profile would print it (and lists the Cyan, Magenta, Yellow and Black plates in the Channels panel), and View > Gamut Warning paints colors it cannot reproduce flat gray. Both are views only: pixels, saves and exports are unchanged
+- Image > Mode > CMYK Proof keeps a document in that proof view and makes JPEG, TIFF, and flattened PDF saves CMYK by default. CMYK JPEG and TIFF files open through their embedded profile into CMYK Proof. Documents are still edited in RGB
+- File > Export writes JPEG, TIFF and flattened PDF in CMYK through that profile, with the profile embedded, for print shops, optionally with black text and grays on the black plate alone
+- Channels panel: New Layer from Channel turns any channel or ink plate into a grayscale layer, and New Layer from Channel Color turns components and plates into colored layers that stack back into the image
 
 ## Files, photographs, and multiple documents
 
@@ -65,7 +72,7 @@
 
 ## Plug-ins, scripting, and AI control
 
-- Classic Photoshop filter plug-ins (.8bf, 32-bit and 64-bit plug-in builds) on Windows, on 8 and 16-bit documents: see [Photoshop plug-ins](../README.md#photoshop-plug-ins-8bf-windows-only)
+- Classic Photoshop filter plug-ins (.8bf, 32-bit and 64-bit plug-in builds) on Windows, on 8 and 16-bit documents (Plugins > Repeat Last Plug-in is Ctrl+F; Last Plug-in Settings has no default key, since Ctrl+Alt+F is Filter > Last Filter): see [Photoshop plug-ins](../README.md#photoshop-plug-ins-8bf-windows-only)
 - JavaScript scripting: a built-in Script Manager (File > Scripts) with a folder tree over the bundled and user scripts, a code editor with live run status, per-script hotkeys (an `@hotkey` default or your own binding in Preferences), a documented API covering documents, layers, text, selections, pixels, filters, form dialogs, file pickers, and batch processing, bundled examples ranging from CSV data merge, contact sheets, icon export, and versioned saves to glitch/duotone effects and playable Breakout and Pong (scripts can call other scripts), safe editing of bundled scripts (your saved copy overrides the original and can be reverted), and a --run-script command line flag with script arguments so external tools and AI agents can drive Patchy (add --headless to run with no display, on a server or in CI). See the [scripting guide](../scripts/bundled/scripting-guide.md) (also under Help inside the app)
 - Local AI control through the bundled MCP connector: native pressure-aware brush strokes, reusable brush presets, editable vector shapes and paths, palette controls, image previews, and persistent document sessions. Help > Set up AI Control provides setup instructions and example prompts; see the [AI control guide](ai-control.md)
 
@@ -73,7 +80,7 @@
 
 - Cross-platform: Windows is the lead platform, with native macOS (Apple Silicon) and Linux (Flatpak and AppImage) builds
 - Built with C++ and Qt for a native desktop experience. No GPU used, should run on a potato
-- Privacy: YES! Absolutely no telemetry, no tracking, no data collection (if update checks are enabled, it contacts GitHub only to check for a newer version, and on Windows to download it when you click Update Now). Settings live in a plain local file, and the installer doesn't screw with your file extension preferences
+- Privacy: YES! Absolutely no telemetry, no tracking, no data collection (if update checks are enabled, it contacts GitHub only to check for a newer version, and to download it when you click Update Now in the Windows build or the Linux AppImage). Settings live in a plain local file, and the installer doesn't screw with your file extension preferences
 - Localized in twelve languages: English, German, Spanish, French, Italian, Brazilian Portuguese, Russian, Polish, Japanese, Korean, and Chinese (Simplified and Traditional); the language follows your system or can be changed in File->Preferences
 - UI themes: Dark, Light, seven bundled themes (Darkest, Medium Gray, Solarized Dark, Nord, Dracula, Gruvbox Dark, High Contrast), or your own. A theme is a small JSON file (`.patchytheme`) that names a base scheme and overrides any of the interface colors, icon tints included; File->Preferences imports it and keeps it in your app-data themes folder (Open Themes Folder shows where). Start from [themes/example-high-contrast.patchytheme](../themes/example-high-contrast.patchytheme) or export the current look, which writes every color so you can see the role names; colors you leave out keep the base scheme's value, and Reload Themes applies an edit without restarting
 
@@ -85,7 +92,7 @@ Important Photoshop features that are not supported yet, or are only partially s
 
 - Editable Smart Filters cover 13 filter types with paintable shared masks and per-filter opacity and blend modes; unsupported imported filter types (including the Blur Gallery and Liquify smart filters) remain preview-locked and byte-preserved
 - Full Photoshop adjustment-layer compatibility beyond Patchy's current adjustment support
-- CMYK/Lab editing and export, editable spot separations and RGB component channels, multi-channel overlays, OpenEXR/Radiance HDR files, and full color-management parity (Patchy converts CMYK, Lab, Grayscale, and the other non-RGB modes to RGB on open, but does not edit or save in those color modes; the color picker and Info panel show CMYK numbers for a chosen profile)
+- True CMYK and Lab editing, CMYK saves of edited PSD files, editable spot separations and RGB component channels, multi-channel overlays, OpenEXR/Radiance HDR files, and full color-management parity (Patchy edits in RGB and converts CMYK, Lab, Grayscale, and the other non-RGB modes to RGB on open; CMYK Proof mode, Proof Colors, and CMYK export of JPEG, TIFF, and flattened PDF cover print output, see [Color and print](#color-and-print))
 - 16 and 32-bit gaps: filters without a deep version run on an 8-bit copy at 16 bits (unchanged pixels keep full precision) and are disabled at 32 bits, as are Liquify and the Filter Gallery; Smart Object contents and their Smart Filters render at 8 bits; Spot Healing, Remove Object, and Patch heal at 8-bit precision
 - Layer comps, timeline/video editing, generative tools (animated GIF and WebP import, preview, and export are supported)
 - Photoshop's own automation surfaces: Actions (.atn), UXP/JSX panels, and scripts written for Photoshop (Patchy has its own JavaScript scripting and batch processing instead, see above)

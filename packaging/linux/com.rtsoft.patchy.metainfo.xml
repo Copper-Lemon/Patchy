@@ -18,74 +18,86 @@
   <summary xml:lang="zh_TW">以 PSD 為核心的點陣圖影像編輯器</summary>
   <description>
     <p>
-      Patchy is a fast raster image editor built around the Photoshop PSD format:
-      layers, folders, masks, adjustment layers, layer styles, and text layers
-      round-trip with Photoshop. It ships Photoshop-style tools (marquee, lasso,
-      magnetic lasso, magic wand, quick select, brushes with .abr import and
-      dynamics, clone, smudge, gradients), palette-constrained indexed-color
-      editing for pixel artists, and exact indexed PNG-8/BMP export.
+      Patchy is a fast image editor built around Photoshop's PSD and PSB
+      formats: layers, groups, masks, clipping masks, adjustment layers, layer
+      styles, editable text, shape layers, and Smart Objects with Smart Filters
+      round-trip with Photoshop. It includes Photoshop-style painting,
+      retouching, and selection tools (Object Selection among them), vector
+      paths and warped text, 16 and 32-bit editing, Camera Raw, CMYK proofing
+      and CMYK export for print, PDF and Affinity import, JPEG XL,
+      palette-constrained pixel-art editing with exact indexed PNG/BMP export,
+      nearly 400 G'MIC filters with live preview, and JavaScript scripting.
     </p>
     <p xml:lang="de">
-      Patchy ist ein schneller Rastergrafik-Editor, der auf dem Photoshop-Format
-      PSD aufbaut: Ebenen, Ordner, Masken, Einstellungsebenen, Ebenenstile und
-      Textebenen lassen sich mit Photoshop austauschen. Er bietet
-      Werkzeuge im Photoshop-Stil (Auswahlrechteck, Lasso, magnetisches Lasso,
-      Zauberstab, Schnellauswahl, Pinsel mit .abr-Import und Dynamik,
-      Kopierstempel, Wischfinger, Verläufe), palettengebundene Bearbeitung mit
-      indizierten Farben für Pixel-Art-Künstler und einen exakten Export als
-      indiziertes PNG-8/BMP.
+      Patchy ist ein schneller Bildeditor rund um die Photoshop-Formate PSD und
+      PSB: Ebenen, Gruppen, Masken, Schnittmasken, Einstellungsebenen,
+      Ebenenstile, bearbeitbarer Text, Formebenen sowie Smart-Objekte mit
+      Smartfiltern lassen sich mit Photoshop austauschen. Er bietet Mal-,
+      Retusche- und Auswahlwerkzeuge im Photoshop-Stil (darunter die
+      Objektauswahl), Vektorpfade und verkrümmten Text, Bearbeitung mit 16 und
+      32 Bit, Camera Raw, CMYK-Proof und CMYK-Export für den Druck, Import von
+      PDF- und Affinity-Dateien, JPEG XL, palettengebundene
+      Pixel-Art-Bearbeitung mit exaktem indiziertem PNG/BMP-Export, fast 400
+      G'MIC-Filter mit Live-Vorschau und Skripting mit JavaScript.
     </p>
     <p xml:lang="es">
-      Patchy es un editor de imágenes de mapa de bits rápido, construido en torno
-      al formato PSD de Photoshop: las capas, las carpetas, las máscaras, las
-      capas de ajuste, los estilos de capa y las capas de texto se conservan al
-      intercambiar archivos con Photoshop. Incluye herramientas al estilo de
-      Photoshop (marco, lazo, lazo magnético, varita mágica, selección rápida,
-      pinceles con importación de .abr y dinámica, tampón de clonar, dedo,
-      degradados), edición en color indexado limitada a una paleta para artistas
-      de pixel art y exportación exacta a PNG-8/BMP indexado.
+      Patchy es un editor de imágenes rápido construido en torno a los formatos
+      PSD y PSB de Photoshop: las capas, los grupos, las máscaras, las máscaras
+      de recorte, las capas de ajuste, los estilos de capa, el texto editable,
+      las capas de forma y los objetos inteligentes con filtros inteligentes se
+      conservan al intercambiar archivos con Photoshop. Incluye herramientas de
+      pintura, retoque y selección al estilo de Photoshop (entre ellas la
+      Selección de objetos), trazados vectoriales y texto deformado, edición de
+      16 y 32 bits, Camera Raw, prueba de color CMYK y exportación CMYK para
+      imprenta, importación de PDF y Affinity, JPEG XL, edición de pixel art
+      limitada a una paleta con exportación exacta a PNG/BMP indexado, casi 400
+      filtros de G'MIC con vista previa en vivo y scripts en JavaScript.
     </p>
     <p xml:lang="fr">
-      Patchy est un éditeur d'images matricielles rapide conçu autour du format
-      PSD de Photoshop : les calques, dossiers, masques, calques de réglage,
-      styles de calque et calques de texte font l'aller-retour avec Photoshop.
-      Il propose des outils dans l'esprit de Photoshop (rectangle de
-      sélection, lasso, lasso magnétique, baguette magique, sélection rapide,
-      pinceaux avec importation de fichiers .abr et dynamique, tampon de
-      duplication, doigt, dégradés), une édition en couleurs indexées limitée à
-      une palette pour les pixel artists, ainsi qu'un export exact en PNG-8/BMP
-      indexé.
+      Patchy est un éditeur d'images rapide conçu autour des formats PSD et PSB
+      de Photoshop : les calques, groupes, masques, masques d'écrêtage, calques
+      de réglage, styles de calque, textes modifiables, calques de forme et
+      objets dynamiques avec filtres dynamiques font l'aller-retour avec
+      Photoshop. Il propose des outils de peinture, de retouche et de sélection
+      dans l'esprit de Photoshop (dont la sélection d'objet), des tracés
+      vectoriels et du texte déformé, l'édition en 16 et 32 bits, Camera Raw,
+      l'épreuvage CMJN et l'export CMJN pour l'impression, l'import de fichiers
+      PDF et Affinity, le JPEG XL, une édition pixel art limitée à une palette
+      avec un export exact en PNG/BMP indexé, près de 400 filtres G'MIC avec
+      aperçu en direct et des scripts JavaScript.
     </p>
     <p xml:lang="it">
-      Patchy è un editor di immagini raster veloce costruito attorno al formato
-      PSD di Photoshop: livelli, cartelle, maschere, livelli di regolazione,
-      stili di livello e livelli di testo si scambiano con Photoshop.
-      Include strumenti in stile Photoshop (selezione rettangolare,
-      lazo, lazo magnetico, bacchetta magica, selezione rapida, pennelli con
-      importazione di file .abr e dinamiche, timbro clone, sfumino, sfumature),
-      modifica in colore indicizzato vincolata a una tavolozza per i pixel artist
-      ed esportazione esatta in PNG-8/BMP indicizzato.
+      Patchy è un editor di immagini veloce costruito attorno ai formati PSD e
+      PSB di Photoshop: livelli, gruppi, maschere, maschere di ritaglio, livelli
+      di regolazione, stili di livello, testo modificabile, livelli forma e
+      oggetti avanzati con filtri avanzati si scambiano con Photoshop. Include
+      strumenti di pittura, ritocco e selezione in stile Photoshop (compresa la
+      selezione oggetto), tracciati vettoriali e testo alterato, modifica a 16 e
+      32 bit, Camera Raw, prova colori CMYK ed esportazione CMYK per la stampa,
+      importazione di file PDF e Affinity, JPEG XL, modifica pixel art vincolata
+      a una tavolozza con esportazione esatta in PNG/BMP indicizzato, quasi 400
+      filtri G'MIC con anteprima dal vivo e script JavaScript.
     </p>
     <p xml:lang="ja">
-      Patchy は Photoshop の PSD 形式を中心に設計された高速なラスター画像エディタです。レイヤー、フォルダー、マスク、調整レイヤー、レイヤースタイル、テキストレイヤーを Photoshop と相互にやり取りできます。Photoshop 風のツール（長方形選択、なげなわ、マグネット選択、自動選択、クイック選択、.abr の読み込みとダイナミクスに対応したブラシ、コピースタンプ、指先、グラデーション）、ピクセルアーティスト向けのパレットに制限されたインデックスカラー編集、正確なインデックス PNG-8/BMP 書き出しを備えています。
+      Patchy は Photoshop の PSD/PSB 形式を中心に設計された高速な画像エディタです。レイヤー、グループ、マスク、クリッピングマスク、調整レイヤー、レイヤースタイル、編集可能なテキスト、シェイプレイヤー、スマートフィルター付きのスマートオブジェクトを Photoshop と相互にやり取りできます。Photoshop 風のペイント、レタッチ、選択ツール（オブジェクト選択を含む）、ベクトルパスとワープテキスト、16 ビットと 32 ビットの編集、Camera Raw、印刷用の CMYK 校正と CMYK 書き出し、PDF と Affinity ファイルの読み込み、JPEG XL、正確なインデックス PNG/BMP 書き出しに対応したパレット制限付きのピクセルアート編集、ライブプレビュー付きの 400 近い G'MIC フィルター、JavaScript によるスクリプトを備えています。
     </p>
     <p xml:lang="ko">
-      Patchy는 Photoshop PSD 형식을 중심으로 설계된 빠른 래스터 이미지 편집기입니다. 레이어, 폴더, 마스크, 조정 레이어, 레이어 스타일, 텍스트 레이어를 Photoshop과 주고받을 수 있습니다. Photoshop 방식의 도구(선택 윤곽, 올가미, 자석 올가미, 자동 선택, 빠른 선택, .abr 가져오기와 동적 설정을 지원하는 브러시, 복제 도장, 손가락 도구, 그레이디언트), 픽셀 아티스트를 위한 팔레트 기반 인덱스 색상 편집, 정확한 인덱스 PNG-8/BMP 내보내기를 제공합니다.
+      Patchy는 Photoshop PSD 및 PSB 형식을 중심으로 설계된 빠른 이미지 편집기입니다. 레이어, 그룹, 마스크, 클리핑 마스크, 조정 레이어, 레이어 스타일, 편집 가능한 텍스트, 모양 레이어, 고급 필터가 적용된 고급 개체를 Photoshop과 주고받을 수 있습니다. Photoshop 방식의 페인팅, 리터칭, 선택 도구(개체 선택 포함), 벡터 패스와 뒤틀기 텍스트, 16비트 및 32비트 편집, Camera Raw, 인쇄용 CMYK 교정과 CMYK 내보내기, PDF 및 Affinity 파일 가져오기, JPEG XL, 정확한 인덱스 PNG/BMP 내보내기를 지원하는 팔레트 기반 픽셀 아트 편집, 실시간 미리 보기를 지원하는 400개 가까운 G'MIC 필터, JavaScript 스크립팅을 제공합니다.
     </p>
     <p xml:lang="pl">
-      Patchy to szybki edytor grafiki rastrowej oparty na formacie PSD programu Photoshop. Warstwy, foldery, maski, warstwy dopasowania, style warstw i warstwy tekstowe można wymieniać z programem Photoshop. Zawiera narzędzia w stylu Photoshopa (zaznaczenie prostokątne, lasso, lasso magnetyczne, różdżkę, szybkie zaznaczanie, pędzle z importem .abr i dynamiką, stempel, smużenie, gradienty), edycję w trybie kolorów indeksowanych ograniczoną do palety dla twórców pixel artu oraz dokładny eksport do indeksowanych formatów PNG-8/BMP.
+      Patchy to szybki edytor obrazów oparty na formatach PSD i PSB programu Photoshop. Warstwy, grupy, maski, maski przycinające, warstwy dopasowania, style warstw, edytowalny tekst, warstwy kształtów oraz obiekty inteligentne z filtrami inteligentnymi można wymieniać z programem Photoshop. Zawiera narzędzia do malowania, retuszu i zaznaczania w stylu Photoshopa (w tym zaznaczanie obiektu), ścieżki wektorowe i wypaczony tekst, edycję 16- i 32-bitową, Camera Raw, podgląd CMYK i eksport CMYK do druku, import plików PDF i Affinity, JPEG XL, edycję pixel artu ograniczoną do palety z dokładnym eksportem do indeksowanych formatów PNG/BMP, prawie 400 filtrów G'MIC z podglądem na żywo oraz skrypty JavaScript.
     </p>
     <p xml:lang="pt_BR">
-      O Patchy é um editor rápido de imagens raster desenvolvido em torno do formato PSD do Photoshop: camadas, pastas, máscaras, camadas de ajuste, estilos de camada e camadas de texto podem ser editados e trocados com o Photoshop. Inclui ferramentas no estilo do Photoshop (seleção retangular, laço, laço magnético, varinha mágica, seleção rápida, pincéis com importação de .abr e dinâmica, carimbo, borrar e degradês), edição com cores indexadas limitada à paleta para artistas de pixel art e exportação exata para PNG-8/BMP indexado.
+      O Patchy é um editor de imagens rápido desenvolvido em torno dos formatos PSD e PSB do Photoshop: camadas, grupos, máscaras, máscaras de corte, camadas de ajuste, estilos de camada, texto editável, camadas de forma e objetos inteligentes com filtros inteligentes podem ser trocados com o Photoshop. Inclui ferramentas de pintura, retoque e seleção no estilo do Photoshop (entre elas a Seleção de objeto), demarcadores vetoriais e texto deformado, edição em 16 e 32 bits, Camera Raw, prova de cores CMYK e exportação CMYK para impressão, importação de PDF e Affinity, JPEG XL, edição de pixel art limitada à paleta com exportação exata para PNG/BMP indexado, quase 400 filtros do G'MIC com visualização ao vivo e scripts em JavaScript.
     </p>
     <p xml:lang="ru">
-      Patchy: быстрый редактор растровых изображений на основе формата Photoshop PSD. Слои, папки, маски, корректирующие слои, стили слоёв и текстовые слои сохраняются при обмене файлами с Photoshop. Редактор включает инструменты в стиле Photoshop (прямоугольное выделение, лассо, магнитное лассо, волшебная палочка, быстрое выделение, кисти с импортом .abr и настройками динамики, штамп, палец, градиенты), редактирование в индексированных цветах с ограничением палитры для пиксельной графики и точный экспорт в индексированные PNG-8/BMP.
+      Patchy: быстрый редактор изображений на основе форматов Photoshop PSD и PSB. Слои, группы, маски, обтравочные маски, корректирующие слои, стили слоёв, редактируемый текст, слои-фигуры и смарт-объекты со смарт-фильтрами сохраняются при обмене файлами с Photoshop. Редактор включает инструменты рисования, ретуши и выделения в стиле Photoshop (в том числе выделение объектов), векторные контуры и деформированный текст, редактирование в 16 и 32 битах, Camera Raw, цветопробу CMYK и экспорт в CMYK для печати, импорт файлов PDF и Affinity, JPEG XL, редактирование пиксельной графики с ограничением палитры и точным экспортом в индексированные PNG/BMP, почти 400 фильтров G'MIC с предпросмотром в реальном времени и скрипты на JavaScript.
     </p>
     <p xml:lang="zh_CN">
-      Patchy 是一款围绕 Photoshop PSD 格式打造的快速位图图像编辑器：图层、文件夹、蒙版、调整图层、图层样式和文字图层可在与 Photoshop 交换文件时保留。它提供 Photoshop 风格的工具（选框、套索、磁性套索、魔棒、快速选择、支持导入 .abr 并带有动态的画笔、仿制图章、涂抹、渐变），面向像素画作者的调色板受限索引颜色编辑，以及精确的索引 PNG-8/BMP 导出。
+      Patchy 是一款围绕 Photoshop PSD 和 PSB 格式打造的快速图像编辑器：图层、组、蒙版、剪贴蒙版、调整图层、图层样式、可编辑文字、形状图层以及带智能滤镜的智能对象可在与 Photoshop 交换文件时保留。它提供 Photoshop 风格的绘画、修饰和选择工具（包括对象选择）、矢量路径和变形文字、16 位与 32 位编辑、Camera Raw、用于印刷的 CMYK 校样和 CMYK 导出、PDF 和 Affinity 文件导入、JPEG XL、受调色板约束并可精确导出索引 PNG/BMP 的像素画编辑、近 400 个带实时预览的 G'MIC 滤镜，以及 JavaScript 脚本。
     </p>
     <p xml:lang="zh_TW">
-      Patchy 是一款以 Photoshop PSD 格式為核心的快速點陣圖影像編輯器：圖層、資料夾、遮色片、調整圖層、圖層樣式和文字圖層可在與 Photoshop 交換檔案時保留。它提供 Photoshop 風格的工具（選取畫面、套索、磁性套索、魔術棒、快速選取、支援匯入 .abr 並具備筆刷動態的筆刷、仿製印章、指尖、漸層），為像素藝術創作者設計的調色盤受限索引色編輯，以及精確的索引 PNG-8/BMP 匯出。
+      Patchy 是一款以 Photoshop PSD 和 PSB 格式為核心的快速影像編輯器：圖層、群組、遮色片、剪裁遮色片、調整圖層、圖層樣式、可編輯文字、形狀圖層以及具備智慧型濾鏡的智慧型物件可在與 Photoshop 交換檔案時保留。它提供 Photoshop 風格的繪圖、修飾和選取工具（包括物件選取）、向量路徑和彎曲文字、16 位元與 32 位元編輯、Camera Raw、用於印刷的 CMYK 校樣和 CMYK 匯出、PDF 和 Affinity 檔案匯入、JPEG XL、受調色盤限制並可精確匯出索引 PNG/BMP 的像素藝術編輯、近 400 個具即時預覽的 G'MIC 濾鏡，以及 JavaScript 指令碼。
     </p>
   </description>
   <launchable type="desktop-id">com.rtsoft.patchy.desktop</launchable>

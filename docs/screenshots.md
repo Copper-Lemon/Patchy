@@ -70,6 +70,12 @@ Click any image to inspect it at full size. These are captures of the real edito
     </td>
 </tr>
 <tr>
+<td align="center" valign="top" colspan="2">
+      <a href="images/screenshots/gmic.png"><img src="images/screenshots/gmic.png" width="880" alt="G'MIC Filter Library with Rodilius chosen among the Artistic filters and previewing live inside a selection on the right half of a Havana street photo"></a>
+      <br><sub>The G'MIC Filter Library: nearly 400 filters with generated controls and a live preview on the canvas, here inside a selection</sub>
+    </td>
+</tr>
+<tr>
 <td align="center" valign="top" width="50%">
       <a href="images/screenshots/quick_mask.png"><img src="images/screenshots/quick_mask.png" width="430" alt="Quick Mask mode showing a clean feathered portrait-frame selection as a red overlay with the temporary Quick Mask channel visible"></a>
       <br><sub>Quick Mask turns a selection into a brush-editable red overlay, then back into marching ants</sub>
