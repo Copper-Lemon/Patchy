@@ -1,7 +1,7 @@
 #pragma once
 
-// The two-line recent-file list shared by the start panel's Recent Files box and the
-// Open Recent File menu (docs/ui-conventions.md): file name over its dimmed folder,
+// The two-line recent list shared by the start panel's Recent Files box and the Open
+// Recent File / Folder menus (docs/ui-conventions.md): name over its dimmed folder,
 // both elided in the middle, a fixed row height, and a box that scrolls instead of
 // growing past its visible row cap.
 
@@ -33,7 +33,7 @@ class RecentFileList final : public QListWidget {
   RecentFileList(QWidget* parent, int visible_rows);
 
   // Rows the height is computed from instead of count(); 0 follows count(). The Open
-  // Recent menu pins this to the unfiltered list so filtering never resizes the menu.
+  // Recent menus pin this to the unfiltered list so filtering never resizes the menu.
   void set_fixed_rows(int rows);
 
   QSize sizeHint() const override;

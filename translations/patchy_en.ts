@@ -20521,6 +20521,14 @@ Patchy can download the update, replace this AppImage, and start again. You will
         <source>Flattened the image</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Filter recent folders...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No matching recent folders</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

@@ -343,18 +343,22 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   recent_files_menu_ = file_menu->addMenu(tr("Open &Recent File"));
   recent_files_menu_->setObjectName(QStringLiteral("fileOpenRecentMenu"));
   configure_recent_files_context_menu(recent_files_menu_);
-  connect(recent_files_menu_, &QMenu::aboutToShow, this, [this] {
-    if (recent_files_filter_edit_ != nullptr) {
-      // A stale filter from a dismissed menu resets before showing again; the
-      // focused edit is what routes typed keys into the filter.
-      recent_files_filter_edit_->clear();
-      recent_files_filter_edit_->setFocus();
+  // A stale filter from a dismissed menu resets before showing again; the focused
+  // edit is what routes typed keys into the filter.
+  const auto reset_recent_filter = [](const RecentListMenu& ui) {
+    if (ui.filter_edit != nullptr) {
+      ui.filter_edit->clear();
+      ui.filter_edit->setFocus();
     }
-  });
+  };
+  connect(recent_files_menu_, &QMenu::aboutToShow, this,
+          [this, reset_recent_filter] { reset_recent_filter(recent_files_list_menu_); });
   recent_folders_menu_ = file_menu->addMenu(tr("Open Recent &Folder"));
   recent_folders_menu_->setObjectName(QStringLiteral("fileOpenRecentFolderMenu"));
   configure_recent_files_context_menu(recent_folders_menu_);
   recent_folders_menu_->setProperty(kRecentFoldersMenuProperty, true);
+  connect(recent_folders_menu_, &QMenu::aboutToShow, this,
+          [this, reset_recent_filter] { reset_recent_filter(recent_folders_list_menu_); });
   connect(file_menu, &QMenu::aboutToShow, this, &MainWindow::refresh_recent_history);
   auto* import_menu = file_menu->addMenu(tr("I&mport"));
   bind_widget_text(import_menu, QT_TR_NOOP("I&mport"));

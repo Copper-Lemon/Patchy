@@ -20588,6 +20588,14 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
         <source>Flattened the image</source>
         <translation>Bild auf Hintergrundebene reduziert</translation>
     </message>
+    <message>
+        <source>Filter recent folders...</source>
+        <translation>Zuletzt verwendete Ordner filtern...</translation>
+    </message>
+    <message>
+        <source>No matching recent folders</source>
+        <translation>Keine passenden zuletzt verwendeten Ordner</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

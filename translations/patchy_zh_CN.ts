@@ -20525,6 +20525,14 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
         <source>Flattened the image</source>
         <translation>已拼合图像</translation>
     </message>
+    <message>
+        <source>Filter recent folders...</source>
+        <translation>筛选最近使用的文件夹...</translation>
+    </message>
+    <message>
+        <source>No matching recent folders</source>
+        <translation>没有匹配的最近使用的文件夹</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

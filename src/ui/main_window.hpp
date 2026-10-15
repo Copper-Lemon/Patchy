@@ -1796,9 +1796,21 @@ private:
   void schedule_recent_history_check(bool force);
   void add_recent_file(QString path);
   void rebuild_recent_files_menu();
-  void apply_recent_files_filter(const QString& filter_text);
-  bool handle_recent_files_filter_key(QKeyEvent& event);
-  void open_recent_files_list_path(const QString& path);
+  // The filter row and scrolling list inside Open Recent File / Open Recent Folder.
+  // Rebuilding a menu recreates them, so its filter state resets on every rebuild.
+  struct RecentListMenu {
+    QMenu* menu{nullptr};
+    QAction* filter_action{nullptr};
+    QLineEdit* filter_edit{nullptr};
+    QListWidget* list{nullptr};
+    bool folders{false};
+  };
+  [[nodiscard]] const QStringList& recent_list_paths(const RecentListMenu& ui) const;
+  bool build_recent_list_menu(RecentListMenu& ui, QMenu* menu);
+  void apply_recent_list_filter(RecentListMenu& ui, const QString& filter_text);
+  bool handle_recent_list_filter_key(RecentListMenu& ui, QKeyEvent& event);
+  void open_recent_list_path(const RecentListMenu& ui, const QString& path);
+  void open_recent_folder(const QString& dir);
   void load_recent_folders();
   void set_recent_folders_from_stored(QStringList stored);
   void add_recent_folder(QString dir);
@@ -2318,11 +2330,8 @@ private:
   QMenu* legacy_plugins_menu_{nullptr};
   QMenu* recent_files_menu_{nullptr};
   QMenu* recent_folders_menu_{nullptr};
-  // Filter row inside the recent-files menu. rebuild_recent_files_menu()
-  // recreates all of these, so the filter state resets on every rebuild.
-  QAction* recent_files_filter_action_{nullptr};
-  QLineEdit* recent_files_filter_edit_{nullptr};
-  QListWidget* recent_files_list_{nullptr};
+  RecentListMenu recent_files_list_menu_;
+  RecentListMenu recent_folders_list_menu_{nullptr, nullptr, nullptr, nullptr, true};
   // Scripting: the engine host is a QObject child of this window (created
   // lazily); the editor dialog is non-modal and window-owned.
   ScriptEngineHost* script_engine_host_{nullptr};

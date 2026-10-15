@@ -20525,6 +20525,14 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
         <source>Flattened the image</source>
         <translation>이미지를 병합했습니다</translation>
     </message>
+    <message>
+        <source>Filter recent folders...</source>
+        <translation>최근 폴더 필터링...</translation>
+    </message>
+    <message>
+        <source>No matching recent folders</source>
+        <translation>일치하는 최근 폴더가 없습니다.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

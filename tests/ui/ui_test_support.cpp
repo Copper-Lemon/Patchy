@@ -486,9 +486,25 @@ bool spatial_filter_spreads_clean_red_alpha(const patchy::PixelBuffer& before, c
   return spread_pixels > 0 && clean_red;
 }
 
+namespace {
+
+// The Open Recent File (fileOpenRecentList) or Open Recent Folder (fileOpenRecentFolderList)
+// list inside `menu`, or nullptr.
+QListWidget* recent_menu_list(QMenu& menu) {
+  for (auto* list : menu.findChildren<QListWidget*>()) {
+    if (list->objectName() == QStringLiteral("fileOpenRecentList") ||
+        list->objectName() == QStringLiteral("fileOpenRecentFolderList")) {
+      return list;
+    }
+  }
+  return nullptr;
+}
+
+}  // namespace
+
 QStringList recent_menu_paths(QMenu& menu) {
   QStringList paths;
-  if (auto* list = menu.findChild<QListWidget*>(QStringLiteral("fileOpenRecentList")); list != nullptr) {
+  if (auto* list = recent_menu_list(menu); list != nullptr) {
     for (int row = 0; row < list->count(); ++row) {
       const auto path = list->item(row)->data(patchy::ui::kRecentPathRole).toString();
       if (!path.isEmpty()) {
@@ -511,7 +527,7 @@ QStringList recent_menu_paths(QMenu& menu) {
 }
 
 QListWidgetItem* recent_menu_list_item(QMenu& menu, const QString& path) {
-  auto* list = menu.findChild<QListWidget*>(QStringLiteral("fileOpenRecentList"));
+  auto* list = recent_menu_list(menu);
   if (list == nullptr) {
     return nullptr;
   }

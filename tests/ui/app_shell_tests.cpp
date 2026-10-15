@@ -1035,7 +1035,33 @@ void ui_open_recent_filter_narrows_entries_and_opens_first_match() {
   CHECK(info->text().contains(QStringLiteral("48 x 35 px")));
 }
 
-void ui_open_recent_keeps_two_hundred_folders_in_grouped_menu() {
+// A recent-folder pick opens the Open dialog on a later event-loop turn (after the menu
+// closes), so a one-shot timer queued beside it can fire first and leave the modal
+// waiting forever. This polls until the dialog is actually showing, then closes it, and
+// returns the directory it opened in (empty when it never appeared).
+QString answer_deferred_open_dialog(const std::function<void()>& trigger) {
+  QString opened_in;
+  bool answered = false;
+  QTimer poll;
+  poll.setInterval(10);
+  QObject::connect(&poll, &QTimer::timeout, [&] {
+    auto* dialog = qobject_cast<QFileDialog*>(find_top_level_dialog(QStringLiteral("openFileDialog")));
+    if (dialog == nullptr || !dialog->isVisible()) {
+      return;
+    }
+    poll.stop();
+    opened_in = QFileInfo(dialog->directory().absolutePath()).absoluteFilePath();
+    answered = true;
+    dialog->reject();
+  });
+  poll.start();
+  trigger();
+  process_events_until([&] { return answered; }, 10000);
+  poll.stop();
+  return opened_in;
+}
+
+void ui_open_recent_folders_list_two_hundred_folders_with_filter() {
   ensure_artifact_dir();
   QStringList recent_folders;
   for (int i = 0; i < 205; ++i) {
@@ -1056,69 +1082,71 @@ void ui_open_recent_keeps_two_hundred_folders_in_grouped_menu() {
   patchy::ui::MainWindow window;
   show_window(window);
 
+  // Open Recent Folder matches Open Recent File: a filter row over one scrolling list
+  // of every entry (the persisted cap is 200), no paged submenus or per-folder rows.
   auto* folders_menu = window.findChild<QMenu*>(QStringLiteral("fileOpenRecentFolderMenu"));
   CHECK(folders_menu != nullptr);
-  QList<QAction*> direct_folder_actions;
-  QList<QMenu*> page_menus;
+  CHECK(folders_menu->actions().size() >= 2);
+  CHECK(folders_menu->actions()[0]->objectName() == QStringLiteral("fileOpenRecentFolderFilterAction"));
+  CHECK(folders_menu->actions()[1]->objectName() == QStringLiteral("fileOpenRecentFolderListAction"));
+  auto* filter_edit = folders_menu->findChild<QLineEdit*>(QStringLiteral("fileOpenRecentFolderFilterEdit"));
+  CHECK(filter_edit != nullptr);
+  CHECK(filter_edit->placeholderText() == QStringLiteral("Filter recent folders..."));
+  auto* list = folders_menu->findChild<QListWidget*>(QStringLiteral("fileOpenRecentFolderList"));
+  CHECK(list != nullptr);
+  const auto all_paths = recent_menu_paths(*folders_menu);
+  CHECK(all_paths.size() == 200);
+  for (int i = 0; i < all_paths.size(); ++i) {
+    CHECK(all_paths[i] == recent_folders[i]);
+  }
+  CHECK(!all_paths.contains(recent_folders[200]));
   for (auto* action : folders_menu->actions()) {
-    if (action != nullptr && !action->isSeparator() && !action->data().toString().isEmpty()) {
-      direct_folder_actions << action;
-    }
-    if (auto* submenu = action == nullptr ? nullptr : action->menu();
-        submenu != nullptr && submenu->objectName().startsWith(QStringLiteral("fileOpenRecentFolderRangeMenu"))) {
-      page_menus << submenu;
-    }
+    CHECK(action->menu() == nullptr);
+    CHECK(action->data().toString().isEmpty());
   }
-  CHECK(direct_folder_actions.size() == 50);
-  CHECK(page_menus.size() == 3);
-  for (int i = 0; i < direct_folder_actions.size(); ++i) {
-    CHECK(direct_folder_actions[i]->data().toString() == recent_folders[i]);
-  }
-  CHECK(direct_folder_actions.front()->text().remove('&') ==
-        QStringLiteral("1 %1").arg(QDir::toNativeSeparators(recent_folders.front())));
-  CHECK(page_menus[0]->title() == QStringLiteral("Recent Folders 51-100"));
-  CHECK(page_menus[1]->title() == QStringLiteral("Recent Folders 101-150"));
-  CHECK(page_menus[2]->title() == QStringLiteral("Recent Folders 151-200"));
-
-  QStringList all_menu_paths;
-  const std::function<void(QMenu*)> collect_folder_paths = [&](QMenu* menu) {
-    for (auto* action : menu->actions()) {
-      if (action == nullptr || action->isSeparator()) {
-        continue;
-      }
-      const auto path = action->data().toString();
-      if (!path.isEmpty()) {
-        all_menu_paths << path;
-      }
-      if (auto* submenu = action->menu(); submenu != nullptr) {
-        collect_folder_paths(submenu);
-      }
-    }
-  };
-  collect_folder_paths(folders_menu);
-  CHECK(all_menu_paths.size() == 200);
-  for (int i = 0; i < all_menu_paths.size(); ++i) {
-    CHECK(all_menu_paths[i] == recent_folders[i]);
-  }
-  CHECK(!all_menu_paths.contains(recent_folders[200]));
   CHECK(folders_menu->actions().contains(require_action(window, "fileClearRecentFoldersAction")));
+  // Two-line rows: the folder's name over its parent directory.
+  auto* first_row = recent_menu_list_item(*folders_menu, recent_folders[0]);
+  CHECK(first_row != nullptr);
+  CHECK(first_row->text() == QStringLiteral("recent-folder-000"));
+  CHECK(first_row->toolTip() == QDir::toNativeSeparators(recent_folders[0]));
 
   folders_menu->popup(window.mapToGlobal(QPoint(40, 40)));
   QApplication::processEvents();
+  CHECK(list->isVisible());
+  CHECK(list->verticalScrollBar()->maximum() > 0);
+  CHECK(list->height() <= 12 * 40 + 14);
+  CHECK(folders_menu->width() <= 640);
   if (auto* screen = QApplication::primaryScreen(); screen != nullptr) {
     CHECK(folders_menu->height() <= screen->availableGeometry().height());
   }
-  folders_menu->close();
+  save_widget_artifact("ui_open_recent_folder_scrolling_list", *folders_menu);
+  const auto list_height = list->height();
 
-  auto* first_older_action = page_menus.front()->actions().front();
-  CHECK(first_older_action->data().toString() == recent_folders[50]);
-  CHECK(first_older_action->text().remove('&') ==
-        QStringLiteral("51 %1").arg(QDir::toNativeSeparators(recent_folders[50])));
-
-  QApplication::clipboard()->clear();
-  page_menus.front()->popup(window.mapToGlobal(QPoint(80, 80)));
+  // The filter narrows the whole list without resizing it; arrows move the highlight.
+  filter_edit->setText(QStringLiteral("folder-05"));
   QApplication::processEvents();
+  const auto filtered = recent_menu_paths(*folders_menu);
+  CHECK(filtered.size() == 10);
+  CHECK(filtered.front() == recent_folders[50]);
+  CHECK(filtered.back() == recent_folders[59]);
+  CHECK(list->height() == list_height);
+  CHECK(list->currentRow() == 0);
+  send_key(*filter_edit, Qt::Key_Down);
+  CHECK(list->currentItem()->data(patchy::ui::kRecentPathRole).toString() == recent_folders[51]);
 
+  filter_edit->setText(QStringLiteral("zzz-no-such-folder"));
+  QApplication::processEvents();
+  CHECK(recent_menu_paths(*folders_menu).isEmpty());
+  CHECK(list->count() == 1);
+  CHECK(list->item(0)->text() == QStringLiteral("No matching recent folders"));
+
+  // Right-click on a row offers Copy Folder Path.
+  filter_edit->setText(QStringLiteral("folder-05"));
+  QApplication::processEvents();
+  QApplication::clipboard()->clear();
+  auto* row = recent_menu_list_item(*folders_menu, recent_folders[50]);
+  CHECK(row != nullptr);
   bool saw_context_menu = false;
   QTimer::singleShot(0, [&] {
     for (auto* widget : QApplication::topLevelWidgets()) {
@@ -1136,15 +1164,27 @@ void ui_open_recent_keeps_two_hundred_folders_in_grouped_menu() {
     }
     CHECK(false);
   });
-
-  const auto context_point = page_menus.front()->actionGeometry(first_older_action).center();
+  const auto context_point = list->visualItemRect(row).center();
   QContextMenuEvent context_event(QContextMenuEvent::Mouse, context_point,
-                                  page_menus.front()->mapToGlobal(context_point));
-  QApplication::sendEvent(page_menus.front(), &context_event);
+                                  list->viewport()->mapToGlobal(context_point));
+  QApplication::sendEvent(list->viewport(), &context_event);
   QApplication::processEvents();
   CHECK(saw_context_menu);
   CHECK(QApplication::clipboard()->text() == QDir::toNativeSeparators(recent_folders[50]));
-  page_menus.front()->close();
+
+  // Enter opens the Open dialog in the highlighted folder, after the menu closes.
+  folders_menu->popup(window.mapToGlobal(QPoint(40, 40)));
+  QApplication::processEvents();
+  filter_edit = folders_menu->findChild<QLineEdit*>(QStringLiteral("fileOpenRecentFolderFilterEdit"));
+  CHECK(filter_edit != nullptr);
+  filter_edit->setText(QStringLiteral("folder-05"));
+  QApplication::processEvents();
+  send_key(*filter_edit, Qt::Key_Down);
+  const auto opened_in = answer_deferred_open_dialog([&] {
+    send_key(*filter_edit, Qt::Key_Return);
+    CHECK(!folders_menu->isVisible());
+  });
+  CHECK(opened_in == QFileInfo(recent_folders[51]).absoluteFilePath());
 }
 
 void ui_recent_file_context_menu_copies_path() {
@@ -1234,8 +1274,10 @@ void ui_recent_folder_context_menu_copies_path_and_offers_explorer() {
   CHECK(folders_menu != nullptr);
   CHECK(folders_menu->contextMenuPolicy() == Qt::CustomContextMenu);
   CHECK(!folders_menu->actions().isEmpty());
-  auto* folder_action = folders_menu->actions().front();
-  CHECK(folder_action->data().toString() == folder);
+  auto* folder_list = folders_menu->findChild<QListWidget*>(QStringLiteral("fileOpenRecentFolderList"));
+  CHECK(folder_list != nullptr);
+  auto* folder_row = recent_menu_list_item(*folders_menu, folder);
+  CHECK(folder_row != nullptr);
 
   folders_menu->popup(window.mapToGlobal(QPoint(40, 40)));
   QApplication::processEvents();
@@ -1262,10 +1304,10 @@ void ui_recent_folder_context_menu_copies_path_and_offers_explorer() {
     CHECK(false);
   });
 
-  const auto context_point = folders_menu->actionGeometry(folder_action).center();
+  const auto context_point = folder_list->visualItemRect(folder_row).center();
   QContextMenuEvent context_event(QContextMenuEvent::Mouse, context_point,
-                                  folders_menu->mapToGlobal(context_point));
-  QApplication::sendEvent(folders_menu, &context_event);
+                                  folder_list->viewport()->mapToGlobal(context_point));
+  QApplication::sendEvent(folder_list->viewport(), &context_event);
   QApplication::processEvents();
 
   CHECK(saw_context_menu);
@@ -1349,15 +1391,7 @@ void ui_open_remembers_last_directory_and_lists_recent_folders() {
 
   auto* folders_menu = window.findChild<QMenu*>(QStringLiteral("fileOpenRecentFolderMenu"));
   CHECK(folders_menu != nullptr);
-  const auto listed_folders = [folders_menu] {
-    QStringList listed;
-    for (auto* action : folders_menu->actions()) {
-      if (action != nullptr && !action->isSeparator() && !action->data().toString().isEmpty()) {
-        listed << action->data().toString();
-      }
-    }
-    return listed;
-  };
+  const auto listed_folders = [folders_menu] { return recent_menu_paths(*folders_menu); };
   // The stale entry drops once the background existence check reports back.
   CHECK(process_events_until([&] { return listed_folders() == QStringList({folder_a, folder_b}); }));
   CHECK(folders_menu->actions().contains(require_action(window, "fileClearRecentFoldersAction")));
@@ -1376,29 +1410,17 @@ void ui_open_remembers_last_directory_and_lists_recent_folders() {
   CHECK(saw_open_dialog);
 
   // Picking a recent folder opens the dialog pointed at that folder.
-  bool saw_recent_folder_dialog = false;
-  QTimer::singleShot(0, [&] {
-    auto* dialog = qobject_cast<QFileDialog*>(find_top_level_dialog(QStringLiteral("openFileDialog")));
-    CHECK(dialog != nullptr);
-    CHECK(QFileInfo(dialog->directory().absolutePath()).absoluteFilePath() ==
-          QFileInfo(folder_b).absoluteFilePath());
-    saw_recent_folder_dialog = true;
-    dialog->reject();
-  });
-  for (auto* action : folders_menu->actions()) {
-    if (action != nullptr && action->data().toString() == folder_b) {
-      action->trigger();
-      break;
-    }
-  }
-  CHECK(saw_recent_folder_dialog);
+  auto* folder_list = folders_menu->findChild<QListWidget*>(QStringLiteral("fileOpenRecentFolderList"));
+  CHECK(folder_list != nullptr);
+  auto* folder_b_row = recent_menu_list_item(*folders_menu, folder_b);
+  CHECK(folder_b_row != nullptr);
+  const auto opened_in = answer_deferred_open_dialog([&] { emit folder_list->itemClicked(folder_b_row); });
+  CHECK(opened_in == QFileInfo(folder_b).absoluteFilePath());
 
   // Clearing empties both the menu and the persisted list.
   require_action(window, "fileClearRecentFoldersAction")->trigger();
   QApplication::processEvents();
-  for (auto* action : folders_menu->actions()) {
-    CHECK(action->data().toString().isEmpty());
-  }
+  CHECK(recent_menu_paths(*folders_menu).isEmpty());
   CHECK(!folders_menu->isEnabled());
   {
     auto settings = patchy::ui::app_settings();
@@ -6219,8 +6241,8 @@ std::vector<patchy::test::TestCase> app_shell_tests() {
        ui_open_recent_lists_two_hundred_files_in_one_scrolling_list},
       {"ui_open_recent_filter_narrows_entries_and_opens_first_match",
        ui_open_recent_filter_narrows_entries_and_opens_first_match},
-      {"ui_open_recent_keeps_two_hundred_folders_in_grouped_menu",
-       ui_open_recent_keeps_two_hundred_folders_in_grouped_menu},
+      {"ui_open_recent_folders_list_two_hundred_folders_with_filter",
+       ui_open_recent_folders_list_two_hundred_folders_with_filter},
       {"ui_recent_file_context_menu_copies_path", ui_recent_file_context_menu_copies_path},
       {"ui_recent_folder_context_menu_copies_path_and_offers_explorer",
        ui_recent_folder_context_menu_copies_path_and_offers_explorer},

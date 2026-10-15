@@ -20525,6 +20525,14 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
         <source>Flattened the image</source>
         <translation>已將影像平面化</translation>
     </message>
+    <message>
+        <source>Filter recent folders...</source>
+        <translation>篩選最近使用的資料夾...</translation>
+    </message>
+    <message>
+        <source>No matching recent folders</source>
+        <translation>沒有相符的最近使用資料夾</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

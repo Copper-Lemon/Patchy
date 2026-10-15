@@ -20588,6 +20588,14 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
         <source>Flattened the image</source>
         <translation>Imagem achatada</translation>
     </message>
+    <message>
+        <source>Filter recent folders...</source>
+        <translation>Filtrar pastas recentes...</translation>
+    </message>
+    <message>
+        <source>No matching recent folders</source>
+        <translation>Nenhuma pasta recente correspondente</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

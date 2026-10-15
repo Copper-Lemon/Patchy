@@ -20651,6 +20651,14 @@ Patchy может скачать обновление, заменить этот
         <source>Flattened the image</source>
         <translation>Изображение сведено</translation>
     </message>
+    <message>
+        <source>Filter recent folders...</source>
+        <translation>Фильтровать последние папки...</translation>
+    </message>
+    <message>
+        <source>No matching recent folders</source>
+        <translation>Нет соответствующих последних папок</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

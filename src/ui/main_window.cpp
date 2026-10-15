@@ -8017,10 +8017,12 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
     }
   }
 
-  if (recent_files_filter_edit_ != nullptr && watched == recent_files_filter_edit_ &&
-      event->type() == QEvent::KeyPress) {
-    if (handle_recent_files_filter_key(*static_cast<QKeyEvent*>(event))) {
-      return true;
+  if (event->type() == QEvent::KeyPress) {
+    for (auto* recent_list_menu : {&recent_files_list_menu_, &recent_folders_list_menu_}) {
+      if (recent_list_menu->filter_edit != nullptr && watched == recent_list_menu->filter_edit &&
+          handle_recent_list_filter_key(*recent_list_menu, *static_cast<QKeyEvent*>(event))) {
+        return true;
+      }
     }
   }
 

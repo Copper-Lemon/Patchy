@@ -20588,6 +20588,14 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
         <source>Flattened the image</source>
         <translation>Imagen acoplada</translation>
     </message>
+    <message>
+        <source>Filter recent folders...</source>
+        <translation>Filtrar carpetas recientes...</translation>
+    </message>
+    <message>
+        <source>No matching recent folders</source>
+        <translation>No hay carpetas recientes que coincidan</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

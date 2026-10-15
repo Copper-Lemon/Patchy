@@ -20651,6 +20651,14 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
         <source>Flattened the image</source>
         <translation>Spłaszczono obraz</translation>
     </message>
+    <message>
+        <source>Filter recent folders...</source>
+        <translation>Filtruj ostatnie foldery...</translation>
+    </message>
+    <message>
+        <source>No matching recent folders</source>
+        <translation>Brak pasujących ostatnich folderów</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

@@ -13,6 +13,17 @@
 
 namespace patchy::ui {
 
+namespace {
+
+// A row's first line: the file or folder name, or the whole path for a drive root
+// ("C:/"), whose name part is empty.
+QString recent_row_name(const QString& path) {
+  const auto name = QFileInfo(path).fileName();
+  return name.isEmpty() ? QDir::toNativeSeparators(path) : name;
+}
+
+}  // namespace
+
 QStringList recent_filter_tokens(const QString& filter_text) {
   return filter_text.simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
 }
@@ -89,7 +100,7 @@ void RecentFileDelegate::paint(QPainter* painter, const QStyleOptionViewItem& op
   painter->setPen(theme().text_primary);
   const QRect name_rect(text_area.left(), text_area.top(), text_area.width(), text_area.height() / 2);
   painter->drawText(name_rect, Qt::AlignLeft | Qt::AlignVCenter,
-                    QFontMetrics(name_font).elidedText(info.fileName(), Qt::ElideMiddle, name_rect.width()));
+                    QFontMetrics(name_font).elidedText(recent_row_name(path), Qt::ElideMiddle, name_rect.width()));
 
   const auto path_font = offset_font(option.font, -1, false);
   painter->setFont(path_font);
@@ -111,7 +122,7 @@ int fill_recent_file_list(QListWidget& list, const QStringList& paths, const QSt
     if (!recent_path_matches(path, tokens)) {
       continue;
     }
-    auto* item = new QListWidgetItem(QFileInfo(path).fileName(), &list);
+    auto* item = new QListWidgetItem(recent_row_name(path), &list);
     item->setData(kRecentPathRole, path);
     item->setToolTip(QDir::toNativeSeparators(path));
     ++rows;

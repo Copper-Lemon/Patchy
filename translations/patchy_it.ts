@@ -20588,6 +20588,14 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
         <source>Flattened the image</source>
         <translation>Immagine unita in un unico livello</translation>
     </message>
+    <message>
+        <source>Filter recent folders...</source>
+        <translation>Filtra cartelle recenti...</translation>
+    </message>
+    <message>
+        <source>No matching recent folders</source>
+        <translation>Nessuna cartella recente corrispondente</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>

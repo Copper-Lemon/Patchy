@@ -20525,6 +20525,14 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <source>Flattened the image</source>
         <translation>画像を統合しました</translation>
     </message>
+    <message>
+        <source>Filter recent folders...</source>
+        <translation>最近使ったフォルダーを絞り込み...</translation>
+    </message>
+    <message>
+        <source>No matching recent folders</source>
+        <translation>一致する最近使ったフォルダーはありません</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::McpActivity</name>
