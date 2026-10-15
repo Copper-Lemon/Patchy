@@ -899,6 +899,9 @@ private:
   // Explains a CMYK Proof save to JPEG, TIFF or PDF and offers its black-ink option,
   // unless the user turned the notice off. False on Cancel.
   bool confirm_cmyk_proof_save(const QString& extension, ImageSaveOptions& options);
+  // A CMYK JPEG or TIFF opens in CMYK Proof when the working space has a profile, so a
+  // save writes CMYK again. True when the mode came on.
+  bool open_cmyk_source_in_proof_mode(DocumentSession& session);
   void apply_pen_input_settings(CanvasWidget* canvas) const;
   void load_pen_input_settings();
   void save_pen_input_settings() const;

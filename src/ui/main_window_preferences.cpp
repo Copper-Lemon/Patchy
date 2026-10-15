@@ -989,8 +989,8 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
   cmyk_form->addRow(cmyk_header);
   auto* cmyk_info = new QLabel(
       tr("Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel "
-         "and CMYK swatches, and how Image > Mode > CMYK Proof, View > Proof Colors and CMYK saves and "
-         "exports convert colors."),
+         "and CMYK swatches. Image > Mode > CMYK Proof, View > Proof Colors, and CMYK saves and exports also "
+         "convert colors through it."),
       cmyk_group);
   cmyk_info->setWordWrap(true);
   cmyk_form->addRow(cmyk_info);

@@ -19,9 +19,9 @@ It also drives CMYK export of JPEG, TIFF and flattened PDF ("CMYK export" below)
 
 Not built: CMYK PSD saves of edited documents (layers, adjustments, text and styles would
 need CMYK forms Photoshop accepts; unchanged imported CMYK PSDs still save natively,
-[psd-native-color.md](psd-native-color.md)), a true CMYK document mode, opening a CMYK file
-into CMYK Proof, Assign or Convert to Profile, a separate Proof Setup dialog (the proof uses
-the working space from Preferences).
+[psd-native-color.md](psd-native-color.md)), a true CMYK document mode, opening a CMYK PDF
+into CMYK Proof (Qt PDF renders pages to RGB), Assign or Convert to Profile, a separate Proof
+Setup dialog (the proof uses the working space from Preferences).
 
 Limits to keep stating plainly in user-facing text:
 
@@ -268,6 +268,14 @@ session-only, never written to a file, not an undo step.
   saves and Save As to other formats (PSD, PNG, editable-layer PDF) ask
   `cmykProofRgbSaveMessageBox` once per session (`cmyk_proof_rgb_save_accepted`); exports
   and scripted saves never prompt. The status line says "Saved ... in CMYK".
+- **Opening.** Qt hands a CMYK JPEG or TIFF over as `Format_CMYK8888`.
+  `srgb_image_from_cmyk` (`main_window_files.cpp`) converts it through the embedded CMYK
+  profile, else the working profile, relative colorimetric with black point compensation
+  (Photoshop's way back), instead of Qt's profile-free conversion, and adds an import note,
+  plus a second one when the file's profile is not the working one (saves use the working
+  profile). `OpenDocumentResult::cmyk_source` then puts the session in CMYK Proof
+  (`open_cmyk_source_in_proof_mode`, on Open, background multi-file Open and Reopen), so a
+  plain Save writes CMYK again. Without any profile the file opens through Qt in RGB mode.
 - **Scripting.** `doc.cmykProof` (read/write; refusals throw).
 
 ## Tests
@@ -285,7 +293,7 @@ UI: `ui_color_picker_cmyk_fields_follow_working_space`,
 (`tests/ui/pickers_notices_hotkeys_tests.cpp`) and
 `ui_script_cmyk_conversions_use_working_space` and
 `ui_proof_colors_and_gamut_warning_change_only_the_view`,
-`ui_script_export_cmyk_writes_jpeg_tiff_and_pdf`, `ui_cmyk_proof_mode_saves_cmyk` (`tests/ui/scripting_tests.cpp`), and
+`ui_script_export_cmyk_writes_jpeg_tiff_and_pdf`, `ui_cmyk_proof_mode_saves_cmyk`, `ui_cmyk_files_open_in_cmyk_proof` (`tests/ui/scripting_tests.cpp`), and
 `ui_export_dialog_offers_cmyk_for_print_formats` (`tests/ui/flat_image_format_tests.cpp`). UI tests
 that assert ink numbers store the `formula` choice first: Automatic is Adobe's profile on a
 machine that has it.

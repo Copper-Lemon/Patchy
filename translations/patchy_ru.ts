@@ -9973,6 +9973,14 @@ RGB: %2, %3, %4</translation>
         <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
         <translation>Эта сборка Patchy не может декодировать изображения HEIC. Версия Patchy для Flatpak может.</translation>
     </message>
+    <message>
+        <source>CMYK image: converted to RGB through the profile %1</source>
+        <translation>Изображение CMYK: преобразовано в RGB через профиль %1</translation>
+    </message>
+    <message>
+        <source>The file&apos;s CMYK profile %1 differs from the working CMYK profile %2, which CMYK saves use</source>
+        <translation>Профиль CMYK файла, %1, отличается от рабочего профиля CMYK %2, который используется при сохранении в CMYK</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -20720,10 +20728,6 @@ Patchy может скачать обновление, заменить этот
         <translation>Сохранено %1 в CMYK</translation>
     </message>
     <message>
-        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches, and how Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors and CMYK saves and exports convert colors.</source>
-        <translation>Patchy редактирует в RGB. Этот профиль определяет значение чисел CMYK в палитре цветов, панели «Инфо» и образцах CMYK, а также то, как Изображение &gt; Режим &gt; CMYK-цветопроба, Вид &gt; Цветопроба и сохранение и экспорт в CMYK преобразуют цвета.</translation>
-    </message>
-    <message>
         <source>Patchy includes one CMYK profile, ISO Coated v2 (basICColor). The other profiles in this list were found on this computer, installed by the operating system or by other software such as Adobe applications; Patchy does not include them.</source>
         <translation>Patchy включает один профиль CMYK, ISO Coated v2 (basICColor). Остальные профили в этом списке найдены на этом компьютере: их установила операционная система или другие программы, например приложения Adobe; Patchy их не включает.</translation>
     </message>
@@ -20754,6 +20758,14 @@ Patchy может скачать обновление, заменить этот
     <message>
         <source>RGB Color: saves are written in RGB again.</source>
         <translation>Цвет RGB: сохранение снова выполняется в RGB.</translation>
+    </message>
+    <message>
+        <source>Opened in Image &gt; Mode &gt; CMYK Proof, so saving as JPEG, TIFF or PDF writes CMYK again</source>
+        <translation>Открыто в режиме Изображение &gt; Режим &gt; CMYK-цветопроба, поэтому при сохранении в JPEG, TIFF или PDF снова записывается CMYK</translation>
+    </message>
+    <message>
+        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches. Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors, and CMYK saves and exports also convert colors through it.</source>
+        <translation>Patchy редактирует в RGB. Этот профиль определяет значение чисел CMYK в палитре цветов, панели «Инфо» и образцах CMYK. Изображение &gt; Режим &gt; CMYK-цветопроба, Вид &gt; Цветопроба, а также сохранение и экспорт в CMYK тоже преобразуют цвета через него.</translation>
     </message>
 </context>
 <context>

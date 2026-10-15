@@ -9913,6 +9913,14 @@ Mixed selection</source>
         <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
         <translation>このビルドの Patchy は HEIC 画像をデコードできません。Flatpak 版の Patchy ならデコードできます。</translation>
     </message>
+    <message>
+        <source>CMYK image: converted to RGB through the profile %1</source>
+        <translation>CMYK 画像: プロファイル %1 で RGB に変換しました</translation>
+    </message>
+    <message>
+        <source>The file&apos;s CMYK profile %1 differs from the working CMYK profile %2, which CMYK saves use</source>
+        <translation>ファイルの CMYK プロファイル %1 は、CMYK の保存に使われる作業用 CMYK プロファイル %2 と異なります</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -20594,10 +20602,6 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <translation>%1 を CMYK で保存しました</translation>
     </message>
     <message>
-        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches, and how Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors and CMYK saves and exports convert colors.</source>
-        <translation>Patchy は RGB で編集します。このプロファイルは、カラーピッカー、情報パネル、CMYK スウォッチでの CMYK 値の意味と、画像 &gt; モード &gt; CMYK 校正、表示 &gt; 色の校正、CMYK の保存と書き出しでの色の変換方法を決めます。</translation>
-    </message>
-    <message>
         <source>Patchy includes one CMYK profile, ISO Coated v2 (basICColor). The other profiles in this list were found on this computer, installed by the operating system or by other software such as Adobe applications; Patchy does not include them.</source>
         <translation>Patchy に含まれる CMYK プロファイルは ISO Coated v2 (basICColor) の 1 つだけです。このリストのほかのプロファイルはこのコンピューターで見つかったもので、オペレーティングシステムや Adobe アプリケーションなどのソフトウェアがインストールしたものです。Patchy には含まれていません。</translation>
     </message>
@@ -20628,6 +20632,14 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
     <message>
         <source>RGB Color: saves are written in RGB again.</source>
         <translation>RGB カラー: 保存は再び RGB で書き込まれます。</translation>
+    </message>
+    <message>
+        <source>Opened in Image &gt; Mode &gt; CMYK Proof, so saving as JPEG, TIFF or PDF writes CMYK again</source>
+        <translation>画像 &gt; モード &gt; CMYK 校正で開きました。JPEG、TIFF、PDF で保存すると再び CMYK で書き込まれます</translation>
+    </message>
+    <message>
+        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches. Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors, and CMYK saves and exports also convert colors through it.</source>
+        <translation>Patchy は RGB で編集します。このプロファイルは、カラーピッカー、情報パネル、CMYK スウォッチでの CMYK 値の意味を決めます。画像 &gt; モード &gt; CMYK 校正、表示 &gt; 色の校正、CMYK の保存と書き出しも、このプロファイルで色を変換します。</translation>
     </message>
 </context>
 <context>

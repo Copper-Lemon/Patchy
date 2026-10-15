@@ -7,6 +7,10 @@ attachment, palettes, vector automation, brushes, Slow mode and Pause) are in
 [scripting-api-changes-through-2026-09-11.md](scripting-api-changes-through-2026-09-11.md).
 Every entry below is API 1.
 
+2026-10-15 (behavioral): `app.open` of a CMYK JPEG or TIFF converts through the file's CMYK
+profile (else the working one) instead of a profile-free conversion, and the document opens
+with `doc.cmykProof` true when the working space has a profile. Pinned by
+`ui_cmyk_files_open_in_cmyk_proof`.
 2026-10-15 (additive): `doc.cmykProof` reads and sets Image > Mode > CMYK Proof
 (docs/cmyk.md); setting true throws in palette mode or without a CMYK profile. Without a
 `colorMode` option, `doc.saveAs`/`doc.exportAs` of a CMYK Proof document write `.jpg`, `.tif`

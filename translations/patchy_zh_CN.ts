@@ -9913,6 +9913,14 @@ RGB：%2, %3, %4</translation>
         <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
         <translation>此版本的 Patchy 无法解码 HEIC 图像。Flatpak 版本的 Patchy 可以。</translation>
     </message>
+    <message>
+        <source>CMYK image: converted to RGB through the profile %1</source>
+        <translation>CMYK 图像：已通过配置文件 %1 转换为 RGB</translation>
+    </message>
+    <message>
+        <source>The file&apos;s CMYK profile %1 differs from the working CMYK profile %2, which CMYK saves use</source>
+        <translation>文件的 CMYK 配置文件 %1 与 CMYK 保存所用的工作 CMYK 配置文件 %2 不同</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -20594,10 +20602,6 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
         <translation>已以 CMYK 保存 %1</translation>
     </message>
     <message>
-        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches, and how Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors and CMYK saves and exports convert colors.</source>
-        <translation>Patchy 以 RGB 编辑。此配置文件决定拾色器、信息面板和 CMYK 色板中 CMYK 数值的含义，以及图像 &gt; 模式 &gt; CMYK 校样、视图 &gt; 校样颜色和 CMYK 保存与导出如何转换颜色。</translation>
-    </message>
-    <message>
         <source>Patchy includes one CMYK profile, ISO Coated v2 (basICColor). The other profiles in this list were found on this computer, installed by the operating system or by other software such as Adobe applications; Patchy does not include them.</source>
         <translation>Patchy 只包含一个 CMYK 配置文件：ISO Coated v2 (basICColor)。此列表中的其他配置文件是在这台计算机上找到的，由操作系统或 Adobe 应用程序等其他软件安装；Patchy 不包含它们。</translation>
     </message>
@@ -20628,6 +20632,14 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
     <message>
         <source>RGB Color: saves are written in RGB again.</source>
         <translation>RGB 颜色：保存重新以 RGB 写入。</translation>
+    </message>
+    <message>
+        <source>Opened in Image &gt; Mode &gt; CMYK Proof, so saving as JPEG, TIFF or PDF writes CMYK again</source>
+        <translation>已以图像 &gt; 模式 &gt; CMYK 校样打开，因此保存为 JPEG、TIFF 或 PDF 时会再次写入 CMYK</translation>
+    </message>
+    <message>
+        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches. Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors, and CMYK saves and exports also convert colors through it.</source>
+        <translation>Patchy 以 RGB 编辑。此配置文件决定拾色器、信息面板和 CMYK 色板中 CMYK 数值的含义。图像 &gt; 模式 &gt; CMYK 校样、视图 &gt; 校样颜色以及 CMYK 保存与导出也通过它转换颜色。</translation>
     </message>
 </context>
 <context>

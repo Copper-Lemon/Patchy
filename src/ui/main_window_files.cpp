@@ -978,6 +978,40 @@ QString translated_file_message(const std::string& message) {
   return translate_data_text(message);
 }
 
+// A CMYK JPEG or TIFF (Qt hands it over as Format_CMYK8888, 255 = full ink) converted to
+// sRGB through its embedded CMYK profile, or the working profile when it has none,
+// relative colorimetric with black point compensation as Photoshop converts back
+// (docs/cmyk.md). Null when neither profile is usable; Qt's plain conversion applies then.
+QImage srgb_image_from_cmyk(const QImage& cmyk, QString& profile_name) {
+  std::optional<CmykToRgbTransform> transform;
+  if (const auto embedded = cmyk.colorSpace().iccProfile(); !embedded.isEmpty()) {
+    transform = CmykToRgbTransform::from_icc_profile(std::span<const std::uint8_t>(
+        reinterpret_cast<const std::uint8_t*>(embedded.constData()), static_cast<std::size_t>(embedded.size())));
+  }
+  if (!transform.has_value()) {
+    if (const auto space = working_cmyk_space(); space->has_profile()) {
+      transform = CmykToRgbTransform::from_icc_profile(space->profile_bytes());
+    }
+  }
+  if (!transform.has_value()) {
+    return {};
+  }
+  profile_name = QString::fromStdString(transform->profile_description());
+  const auto width = static_cast<std::size_t>(cmyk.width());
+  QImage rgb(cmyk.size(), QImage::Format_RGB888);
+  std::vector<std::uint8_t> inverted(width * 4U);
+  for (int y = 0; y < cmyk.height(); ++y) {
+    const auto* inks = cmyk.constScanLine(y);
+    for (std::size_t index = 0; index < inverted.size(); ++index) {
+      inverted[index] = static_cast<std::uint8_t>(255U - inks[index]);
+    }
+    transform->convert(inverted.data(), rgb.scanLine(y), width);
+  }
+  rgb.setDotsPerMeterX(cmyk.dotsPerMeterX());
+  rgb.setDotsPerMeterY(cmyk.dotsPerMeterY());
+  return rgb;
+}
+
 struct OpenDocumentResult {
   Document document;
   QString file_name;
@@ -993,6 +1027,9 @@ struct OpenDocumentResult {
   // and every further page as its own document. Empty for every other open.
   QString document_title;
   std::vector<PdfImportedDocument> extra_documents;
+  // The file held CMYK pixels (a CMYK JPEG or TIFF): the session opens in Image > Mode >
+  // CMYK Proof so a save writes CMYK again (docs/cmyk.md).
+  bool cmyk_source{false};
 };
 
 std::vector<std::uint8_t> read_all_file_bytes(const QString& path) {
@@ -1072,6 +1109,7 @@ OpenDocumentResult load_document_from_path(QString path) {
   // (Qt's autoTransform, the WIC HEIF reader, LibRaw); the tag is then written back as
   // "normal" so saves do not apply it twice.
   bool orientation_applied = false;
+  bool cmyk_source = false;
   const auto load_via_qt = [&] {
     pixels_in_source_space = true;
     if (extension == QStringLiteral("webp")) {
@@ -1143,6 +1181,24 @@ OpenDocumentResult load_document_from_path(QString path) {
       if (frames > 1) {
         import_notices.push_back(
             QObject::tr("Animated image: imported the first frame only (%1 frames in the file)").arg(frames));
+      }
+    }
+    if (image.format() == QImage::Format_CMYK8888) {
+      cmyk_source = true;
+      pixels_in_source_space = false;
+      QString profile_name;
+      if (const auto rgb = srgb_image_from_cmyk(image, profile_name); !rgb.isNull()) {
+        opened = document_from_qimage(rgb, info.completeBaseName().toStdString());
+        apply_imported_image_density(opened, read_all_file_bytes(path), image);
+        import_notices.push_back(QObject::tr("CMYK image: converted to RGB through the profile %1").arg(profile_name));
+        const auto working = working_cmyk_space();
+        if (const auto working_name = QString::fromStdString(working->profile_description());
+            working->has_profile() && working_name != profile_name) {
+          import_notices.push_back(
+              QObject::tr("The file's CMYK profile %1 differs from the working CMYK profile %2, which CMYK saves use")
+                  .arg(profile_name, working_name));
+        }
+        return;
       }
     }
     opened = document_from_qimage(image, info.completeBaseName().toStdString());
@@ -1327,8 +1383,10 @@ OpenDocumentResult load_document_from_path(QString path) {
   } else {
     opened.clear_active_layer();
   }
-  return OpenDocumentResult{std::move(opened),         info.fileName(), extension, std::move(import_notices),
+  OpenDocumentResult result{std::move(opened),         info.fileName(), extension, std::move(import_notices),
                             force_import_notices_popup, {},              {}};
+  result.cmyk_source = cmyk_source;
+  return result;
 }
 
 // The consolidated Import Notes box, one bullet per note. Import notes ride the status
@@ -1729,6 +1787,9 @@ int MainWindow::open_folder_path(const QString& directory) {
       record_text_layout_metrics_for_reopened_text(loaded->document);
       add_document_session(std::move(loaded->document), loaded->file_name, path, tr("Open"),
                            SessionActivation::Background);
+      if (loaded->cmyk_source) {
+        open_cmyk_source_in_proof_mode(**sessions_.rbegin());
+      }
       ++opened;
       // Background files drop their ordinary notes (no status bar of their own), but a
       // data-loss note must not go unseen just because the file was not first.
@@ -2365,6 +2426,10 @@ void MainWindow::open_document_path(QString path) {
       const UiProfileScope profile_scope("open.add_session");
       add_document_session(std::move(loaded->document), first_title, session_path, tr("Open"));
     }
+    if (loaded->cmyk_source && open_cmyk_source_in_proof_mode(session())) {
+      loaded->import_notices.push_back(
+          tr("Opened in Image > Mode > CMYK Proof, so saving as JPEG, TIFF or PDF writes CMYK again"));
+    }
     if (!unattended_automation() && is_photoshop_document_extension(loaded->extension) &&
         app_settings().value(QStringLiteral("imports/showPsdWarningsAndInfo"), false).toBool()) {
       show_compatibility_report(this, document(), loaded_file_name);
@@ -2528,6 +2593,9 @@ void MainWindow::reopen_document_session(DocumentSession& target_session) {
                                              target_session.collapsed_layer_groups);
     ++target_session.revision;
     target_session.saved_revision = target_session.revision;
+    if (loaded->cmyk_source) {
+      open_cmyk_source_in_proof_mode(target_session);
+    }
     canvas_->set_document(&target_session.document);
     canvas_->fit_to_view();
     refresh_layer_list();
@@ -3770,6 +3838,10 @@ bool MainWindow::confirm_cmyk_proof_save(const QString& extension, ImageSaveOpti
     settings.setValue(QStringLiteral("saveOptions/cmykProofSaveNotice"), false);
   }
   return true;
+}
+
+bool MainWindow::open_cmyk_source_in_proof_mode(DocumentSession& session) {
+  return set_session_cmyk_proof(session, true).isEmpty();
 }
 
 // A layered document going to PDF has two honest forms (one flattened image, or layers

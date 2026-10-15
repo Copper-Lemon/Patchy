@@ -9943,6 +9943,14 @@ RVB : %2, %3, %4</translation>
         <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
         <translation>Cette version de Patchy ne peut pas décoder les images HEIC. La version Flatpak de Patchy le peut.</translation>
     </message>
+    <message>
+        <source>CMYK image: converted to RGB through the profile %1</source>
+        <translation>Image CMJN : convertie en RVB selon le profil %1</translation>
+    </message>
+    <message>
+        <source>The file&apos;s CMYK profile %1 differs from the working CMYK profile %2, which CMYK saves use</source>
+        <translation>Le profil CMJN du fichier, %1, diffère du profil CMJN de travail %2, utilisé par les enregistrements CMJN</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -20657,10 +20665,6 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
         <translation>%1 enregistré en CMJN</translation>
     </message>
     <message>
-        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches, and how Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors and CMYK saves and exports convert colors.</source>
-        <translation>Patchy travaille en RVB. Ce profil définit la signification des valeurs CMJN dans le sélecteur de couleur, le panneau Informations et les nuanciers CMJN, ainsi que la conversion des couleurs par Image &gt; Mode &gt; Épreuve CMJN, Affichage &gt; Couleurs d&apos;épreuve et les enregistrements et exportations CMJN.</translation>
-    </message>
-    <message>
         <source>Patchy includes one CMYK profile, ISO Coated v2 (basICColor). The other profiles in this list were found on this computer, installed by the operating system or by other software such as Adobe applications; Patchy does not include them.</source>
         <translation>Patchy inclut un seul profil CMJN, ISO Coated v2 (basICColor). Les autres profils de cette liste ont été trouvés sur cet ordinateur, installés par le système d&apos;exploitation ou par d&apos;autres logiciels comme les applications Adobe ; Patchy ne les inclut pas.</translation>
     </message>
@@ -20691,6 +20695,14 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
     <message>
         <source>RGB Color: saves are written in RGB again.</source>
         <translation>Couleurs RVB : les enregistrements sont de nouveau écrits en RVB.</translation>
+    </message>
+    <message>
+        <source>Opened in Image &gt; Mode &gt; CMYK Proof, so saving as JPEG, TIFF or PDF writes CMYK again</source>
+        <translation>Ouverte en Image &gt; Mode &gt; Épreuve CMJN : l&apos;enregistrement en JPEG, TIFF ou PDF écrit de nouveau du CMJN</translation>
+    </message>
+    <message>
+        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches. Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors, and CMYK saves and exports also convert colors through it.</source>
+        <translation>Patchy travaille en RVB. Ce profil définit la signification des valeurs CMJN dans le sélecteur de couleur, le panneau Informations et les nuanciers CMJN. Image &gt; Mode &gt; Épreuve CMJN, Affichage &gt; Couleurs d&apos;épreuve, ainsi que les enregistrements et exportations CMJN, convertissent aussi les couleurs selon ce profil.</translation>
     </message>
 </context>
 <context>

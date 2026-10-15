@@ -2024,6 +2024,80 @@ void ui_proof_colors_and_gamut_warning_change_only_the_view() {
 
 // CMYK export for print (issue 90): JPEG, TIFF and flat PDF separated through the working
 // profile, which each file embeds; other formats refuse the option.
+// A CMYK JPEG or TIFF opens through its CMYK profile (not Qt's plain conversion) and in
+// CMYK Proof mode, so saving it again without a colorMode writes CMYK (docs/cmyk.md).
+void ui_cmyk_files_open_in_cmyk_proof() {
+  const auto previous = patchy::working_cmyk_space();
+  const auto restore = qScopeGuard([&previous] { patchy::set_working_cmyk_space(previous); });
+  patchy::ui::MainWindow window;
+  show_window(window);
+  patchy::set_working_cmyk_space(patchy::CmykWorkingSpace::from_icc_profile(
+      patchy::ui::bundled_cmyk_profile(), patchy::RenderingIntent::RelativeColorimetric, true));
+  QTemporaryDir directory;
+  CHECK(directory.isValid());
+  auto& host = window.script_engine_host();
+  patchy::ui::ScriptEngineHost::RunOptions options;
+  options.name = QStringLiteral("cmyk-open");
+  options.args = QStringList{QStringLiteral("base=") + directory.path() + QStringLiteral("/print")};
+  options.unattended = true;
+  const bool run = host.run_source(QStringLiteral(R"JS(
+    var p = patchy.args.base;
+    var d = app.newDocument(24, 16);
+    d.activeLayer.fill('#00a0e0');
+    if (!d.exportAs(p + '.jpg', {colorMode: 'cmyk', quality: 100})) throw Error('jpg');
+    if (!d.exportAs(p + '.tif', {colorMode: 'cmyk'})) throw Error('tif');
+    if (!d.exportAs(p + '-rgb.jpg')) throw Error('rgb');
+    ['.jpg', '.tif', '-rgb.jpg'].forEach(function (suffix) {
+      var opened = app.open(p + suffix);
+      var px = new Uint8Array(opened.activeLayer.getPixels().data);
+      console.log(suffix + ' proof=' + opened.cmykProof + ' rgb=' + px[0] + ',' + px[1] + ',' + px[2]);
+      if (suffix !== '-rgb.jpg' && !opened.saveAs(p + '-again' + suffix)) throw Error('again ' + suffix);
+    });
+  )JS"), options);
+  if (!run) {
+    for (const auto& line : host.message_backlog()) std::cerr << line.toStdString() << '\n';
+  }
+  CHECK(run);
+  QElapsedTimer timer;
+  timer.start();
+  while (host.run_active() && timer.elapsed() < 60000) {
+    QApplication::processEvents(QEventLoop::AllEvents, 20);
+  }
+  QApplication::processEvents();
+  CHECK(!host.last_run_had_error());
+  // Photoshop converts #00a0e0's ISO Coated v2 separation back to 8,159,218 (relative
+  // colorimetric with black point compensation); Little CMS lands on 11,159,218 (the
+  // engine difference docs/cmyk.md records). Qt's profile-free conversion gives about
+  // 64,204,255.
+  const auto pixel_from_backlog = [&window](const QString& prefix) {
+    for (const auto& line : window.script_engine_host().message_backlog()) {
+      const auto at = line.indexOf(prefix);
+      if (at < 0) {
+        continue;
+      }
+      const auto values = line.mid(line.indexOf(QStringLiteral("rgb="), at) + 4).trimmed().split(QLatin1Char(','));
+      if (values.size() == 3) {
+        return QColor(values[0].toInt(), values[1].toInt(), values[2].toInt());
+      }
+    }
+    return QColor();
+  };
+  for (const auto& suffix : {QStringLiteral(".jpg"), QStringLiteral(".tif")}) {
+    CHECK(backlog_contains(window, suffix + QStringLiteral(" proof=true")));
+    const auto color = pixel_from_backlog(suffix + QStringLiteral(" proof="));
+    CHECK(color.isValid());
+    const int tolerance = suffix == QStringLiteral(".jpg") ? 6 : 4;
+    CHECK(std::abs(color.red() - 8) <= tolerance && std::abs(color.green() - 159) <= tolerance &&
+          std::abs(color.blue() - 218) <= tolerance);
+    CHECK(QImageReader(directory.path() + QStringLiteral("/print-again") + suffix).read().format() ==
+          QImage::Format_CMYK8888);
+  }
+  CHECK(backlog_contains(window, QStringLiteral("-rgb.jpg proof=false")));
+  // The active document (the RGB JPEG) is plain RGB; the Mode menu follows the active tab.
+  auto* cmyk_action = window.findChild<QAction*>(QStringLiteral("imageModeCmykProofAction"));
+  CHECK(cmyk_action != nullptr && !cmyk_action->isChecked());
+}
+
 // Image > Mode > CMYK Proof (docs/cmyk.md): a per-document mode that proofs the canvas and
 // makes saves to JPEG, TIFF and flattened PDF write CMYK; other formats stay RGB after a
 // warning, and an explicit colorMode still wins.
@@ -5418,6 +5492,7 @@ std::vector<patchy::test::TestCase> scripting_tests() {
       {"ui_script_list_fonts_reports_registered_families", ui_script_list_fonts_reports_registered_families},
       {"ui_script_cmyk_conversions_use_working_space", ui_script_cmyk_conversions_use_working_space},
       {"ui_cmyk_proof_mode_saves_cmyk", ui_cmyk_proof_mode_saves_cmyk},
+      {"ui_cmyk_files_open_in_cmyk_proof", ui_cmyk_files_open_in_cmyk_proof},
       {"ui_script_export_cmyk_writes_jpeg_tiff_and_pdf", ui_script_export_cmyk_writes_jpeg_tiff_and_pdf},
       {"ui_proof_colors_and_gamut_warning_change_only_the_view", ui_proof_colors_and_gamut_warning_change_only_the_view},
       {"ui_proof_colors_follow_brush_strokes_and_move_drags", ui_proof_colors_follow_brush_strokes_and_move_drags},
