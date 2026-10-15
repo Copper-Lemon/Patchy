@@ -776,7 +776,8 @@ QString photoshop_style_template() {
       color: @info_text;
       line-height: 130%;
     }
-    QScrollArea#propertiesScrollArea, QScrollArea#paletteScrollArea {
+    QScrollArea#propertiesScrollArea, QScrollArea#paletteScrollArea,
+    QScrollArea#rightDockOverflowScroll, QScrollArea#rightDockOverflowScroll > QWidget {
       background: @panel_bg;
       border: 0;
     }

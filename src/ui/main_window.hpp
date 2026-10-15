@@ -455,6 +455,8 @@ private:
   void install_right_dock_width_handle(QDockWidget* dock);
   void update_right_dock_resize_handle_geometry(QWidget* host);
   void set_right_dock_stack_width(int width);
+  void pin_right_dock_stack_width(int target_width);
+  void reapply_right_dock_stack_width();
   void update_right_dock_minimum_width();
   bool handle_window_resize_event(QObject* watched, QEvent* event);
   void update_window_resize_cursor(Qt::Edges edges);
@@ -2561,8 +2563,12 @@ private:
   // -1 until the chrome around the layers panel is measured from a laid-out
   // dock; 0 is a valid measurement (frameless docks).
   int right_dock_chrome_width_{-1};
-  // 0 until set_right_dock_stack_width() pins the stack to an exact width.
+  // 0 until the column is pinned to an exact width (the content-fit width at
+  // startup, or the width the user or a script picked).
   int right_dock_pinned_width_{0};
+  // True until the user or a script picks a width: the column then tracks
+  // right_dock_minimum_width_.
+  bool right_dock_width_follows_minimum_{true};
   bool spacebar_canvas_pan_down_{false};
   bool spacebar_canvas_pan_dragging_{false};
   bool spacebar_canvas_pan_cursor_active_{false};

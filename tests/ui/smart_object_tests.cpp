@@ -238,7 +238,7 @@ void ui_layer_fx_and_smart_badges_stay_visible_in_narrow_panel() {
   auto* layer_list = window.findChild<QListWidget*>(QStringLiteral("layerList"));
   CHECK(layers_dock != nullptr);
   CHECK(layer_list != nullptr);
-  const int narrow_width = layers_dock->minimumWidth();
+  const int narrow_width = patchy::ui::MainWindowTestAccess::right_dock_content_minimum_width(window);
   patchy::ui::MainWindowTestAccess::set_right_dock_stack_width(window, narrow_width);
   patchy::ui::MainWindowTestAccess::refresh_layer_ui(window);
   QApplication::processEvents();

@@ -2782,7 +2782,8 @@ void ui_right_docks_collapse_layers_show_metadata_and_info_updates() {
   CHECK(history_dock != nullptr);
   CHECK(properties_dock != nullptr);
   CHECK(history_list != nullptr);
-  CHECK(layers_dock->minimumWidth() >= 280);
+  // Opens at the content-fit width; the user can drag it narrower.
+  CHECK(layers_dock->width() >= 280);
   CHECK(layers_dock->minimumHeight() >= 300);
   CHECK(layer_list->minimumHeight() >= 120);
   CHECK(properties_dock->maximumHeight() <= 240);
@@ -2849,6 +2850,9 @@ void ui_right_docks_collapse_layers_show_metadata_and_info_updates() {
              Qt::LeftButton);
   send_mouse(*dock_resize_handle, QEvent::MouseButtonRelease, dock_resize_point + QPoint(-90, 0), Qt::LeftButton,
              Qt::NoButton);
+  // The width lands on the column's bottom dock and reaches the rest of the
+  // stack in the next layout pass.
+  QApplication::processEvents();
   CHECK(layers_dock->width() > dock_width_before_resize + 40);
   // The whole stack, palette included, follows the pinned width.
   CHECK(palette_dock->width() == layers_dock->width());
@@ -3640,6 +3644,96 @@ void ui_tabbed_right_dock_drags_out_by_tab() {
   CHECK(window.tabifiedDockWidgets(palette_dock).empty());
 }
 
+// The column drags narrower than its panels' content (GitHub issue 96): the
+// width the user picks is kept and each panel scrolls sideways, with the
+// scroll bar at the bottom, instead of the drag stopping at the content width.
+void ui_right_dock_drags_below_content_minimum_with_scroll() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  QApplication::processEvents();
+  auto* layers_dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
+  auto* history_dock = window.findChild<QDockWidget*>(QStringLiteral("historyDock"));
+  auto* delete_button = window.findChild<QPushButton*>(QStringLiteral("layerDeleteButton"));
+  CHECK(layers_dock != nullptr && history_dock != nullptr && delete_button != nullptr);
+  auto* overflow = layers_dock->findChild<QScrollArea*>(QStringLiteral("rightDockOverflowScroll"));
+  auto* handle =
+      layers_dock->findChild<QWidget*>(QStringLiteral("rightDockResizeHandle"), Qt::FindDirectChildrenOnly);
+  CHECK(overflow != nullptr && handle != nullptr);
+  const auto content_minimum = patchy::ui::MainWindowTestAccess::right_dock_content_minimum_width(window);
+  CHECK(layers_dock->width() == content_minimum);
+  CHECK(!overflow->horizontalScrollBar()->isVisible());
+
+  // Drag right, past the content width.
+  const auto start = handle->rect().center();
+  const auto narrow_delta = content_minimum - 200;
+  CHECK(narrow_delta > 0);
+  QTest::mousePress(handle, Qt::LeftButton, Qt::NoModifier, start);
+  QTest::mouseMove(handle, start + QPoint(narrow_delta / 2, 0));
+  QTest::mouseMove(handle, start + QPoint(narrow_delta, 0));
+  QTest::mouseRelease(handle, Qt::LeftButton, Qt::NoModifier, start + QPoint(narrow_delta, 0));
+  QApplication::processEvents();
+  QApplication::processEvents();
+  CHECK(layers_dock->width() == 200);
+  CHECK(history_dock->width() == 200);
+  auto* bar = overflow->horizontalScrollBar();
+  CHECK(bar->isVisible());
+  CHECK(bar->maximum() > 0);
+  // Scrolled to the end, the footer's last button sits whole inside the
+  // viewport, above the scroll bar.
+  bar->setValue(bar->maximum());
+  QApplication::processEvents();
+  const QRect delete_rect(delete_button->mapTo(overflow->viewport(), QPoint()), delete_button->size());
+  CHECK(overflow->viewport()->rect().contains(delete_rect));
+  save_widget_artifact("ui_right_dock_narrowed_with_scroll", *layers_dock);
+
+  // Widening back past the content width drops the scroll bar again.
+  patchy::ui::MainWindowTestAccess::set_right_dock_stack_width(window, content_minimum + 30);
+  QApplication::processEvents();
+  QApplication::processEvents();
+  CHECK(layers_dock->width() == content_minimum + 30);
+  CHECK(!overflow->horizontalScrollBar()->isVisible());
+}
+
+// The column width handle stays usable while a non-modal preview dialog
+// (Invert here; filters, adjustments and G'MIC share the path) is open.
+void ui_right_dock_drag_works_during_preview_dialog() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  QApplication::processEvents();
+  auto* layers_dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
+  CHECK(layers_dock != nullptr);
+  auto* handle =
+      layers_dock->findChild<QWidget*>(QStringLiteral("rightDockResizeHandle"), Qt::FindDirectChildrenOnly);
+  CHECK(handle != nullptr);
+  const auto width_before = layers_dock->width();
+  bool saw_dialog = false;
+  int width_during = 0;
+  QTimer::singleShot(0, [&] {
+    for (auto* widget : QApplication::topLevelWidgets()) {
+      if (widget->objectName() != QStringLiteral("patchyFilterDialog") || !widget->isVisible()) {
+        continue;
+      }
+      auto* dialog = qobject_cast<QDialog*>(widget);
+      CHECK(dialog != nullptr);
+      saw_dialog = true;
+      CHECK(dialog->windowModality() == Qt::NonModal);
+      // Real window-system input, so a modal block would swallow it.
+      const auto start = handle->rect().center();
+      QTest::mousePress(handle, Qt::LeftButton, Qt::NoModifier, start);
+      QTest::mouseMove(handle, start + QPoint(60, 0));
+      QTest::mouseRelease(handle, Qt::LeftButton, Qt::NoModifier, start + QPoint(60, 0));
+      QApplication::processEvents();
+      width_during = layers_dock->width();
+      dialog->reject();
+      return;
+    }
+    CHECK(false);
+  });
+  require_action(window, "imageAdjustInvertAction")->trigger();
+  CHECK(saw_dialog);
+  CHECK(width_during == width_before - 60);
+}
+
 void ui_right_dock_contents_clear_width_handle() {
   // The 7px width handle overlays every right dock's left edge (so the
   // column divider is grabbable along its whole height); titles and panel
@@ -4093,6 +4187,9 @@ std::vector<patchy::test::TestCase> canvas_view_tools_tests() {
        ui_collapsed_right_docks_have_uniform_title_height},
       {"ui_right_dock_separator_drags_between_docks", ui_right_dock_separator_drags_between_docks},
       {"ui_right_dock_contents_clear_width_handle", ui_right_dock_contents_clear_width_handle},
+      {"ui_right_dock_drags_below_content_minimum_with_scroll",
+       ui_right_dock_drags_below_content_minimum_with_scroll},
+      {"ui_right_dock_drag_works_during_preview_dialog", ui_right_dock_drag_works_during_preview_dialog},
       {"ui_short_panel_scroll_bar_drags_by_handle", ui_short_panel_scroll_bar_drags_by_handle},
       {"ui_tabbed_right_dock_drags_out_by_tab", ui_tabbed_right_dock_drags_out_by_tab},
       {"ui_floating_right_dock_auto_expands", ui_floating_right_dock_auto_expands},

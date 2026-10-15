@@ -44,7 +44,7 @@ The layer list may omit rows entirely: collapsed folders and the Layers panel na
 
 ## Blend and opacity row
 
-Dragging the "Opacity:" or "Fill:" prefix scrubs the value (`install_prefix_scrub`, [ui-conventions.md](ui-conventions.md) Options bar): the drag ends with `editingFinished`, so `finish_pending_layer_opacity_edit` closes it as one undo entry; a click on the prefix focuses the field with the number selected. Combos from `add_blend_mode_items` also step with Left/Right. Panel blend changes merge into one undo entry until a pause or another history change (`ui_layer_blend_mode_steps_coalesce_into_one_undo_entry`). `WrappingBlendRowLayout` wraps Opacity and Fill under the combo when one line does not fit, so translated prefixes never set the dock's minimum width (#96, `ui_layer_blend_row_wraps_in_narrow_panel`).
+Dragging the "Opacity:" or "Fill:" prefix scrubs the value (`install_prefix_scrub`, [ui-conventions.md](ui-conventions.md) Options bar): the drag ends with `editingFinished`, so `finish_pending_layer_opacity_edit` closes it as one undo entry; a click on the prefix focuses the field with the number selected. Combos from `add_blend_mode_items` also step with Left/Right. Panel blend changes merge into one undo entry until a pause or another history change (`ui_layer_blend_mode_steps_coalesce_into_one_undo_entry`). `WrappingBlendRowLayout` wraps Opacity and Fill under the combo when one line does not fit ([right-docks.md](right-docks.md), #96, `ui_layer_blend_row_wraps_in_narrow_panel`).
 
 ## Click selection
 
