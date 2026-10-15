@@ -7,6 +7,11 @@ attachment, palettes, vector automation, brushes, Slow mode and Pause) are in
 [scripting-api-changes-through-2026-09-11.md](scripting-api-changes-through-2026-09-11.md).
 Every entry below is API 1.
 
+2026-10-15 (additive): `doc.cmykProof` reads and sets Image > Mode > CMYK Proof
+(docs/cmyk.md); setting true throws in palette mode or without a CMYK profile. Without a
+`colorMode` option, `doc.saveAs`/`doc.exportAs` of a CMYK Proof document write `.jpg`, `.tif`
+and flattened `.pdf` in CMYK. Command id `image.mode_cmyk_proof`. Permanent identifier: the
+property. Pinned by `ui_cmyk_proof_mode_saves_cmyk`.
 2026-10-15 (additive): JPEG XL. `app.open`, `doc.saveAs` and `doc.exportAs` handle `.jxl`
 (docs/jxl.md). `PatchySaveOptions` gains `effort` (1 to 9) and `loopCount` (0 to 65535) for
 `.jxl`, and `.jxl` also takes `quality` (1 to 100), `lossless`, `animate`, `frameDelayMs` and

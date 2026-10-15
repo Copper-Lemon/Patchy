@@ -582,11 +582,7 @@ ExportSectionWidgets add_export_options_section(QVBoxLayout* content, QDialog& d
   }
 
   // CMYK output for print (docs/cmyk.md), remembered per format.
-  const auto color_key = is_jpeg_extension(lower_extension) ? QStringLiteral("saveOptions/exportColorJpeg")
-                         : lower_extension == QStringLiteral("tif") || lower_extension == QStringLiteral("tiff")
-                             ? QStringLiteral("saveOptions/exportColorTiff")
-                         : is_pdf_extension(lower_extension) ? QStringLiteral("saveOptions/exportColorPdf")
-                                                             : QString();
+  const auto color_key = cmyk_color_settings_key(lower_extension);
   if (!color_key.isEmpty()) {
     auto* color_row = new QWidget(&dialog);
     auto* color_layout = new QHBoxLayout(color_row);
@@ -618,9 +614,7 @@ ExportSectionWidgets add_export_options_section(QVBoxLayout* content, QDialog& d
         "Prints black text and gray areas with black ink alone instead of a mix of all four inks, so "
         "small type stays sharp even when the press is slightly out of register. Colored areas are "
         "separated through the profile as usual."));
-    // Same per-format key family as the color choice, Color becoming BlackInkOnly.
-    const auto black_ink_only_key = QString(color_key).replace(QStringLiteral("exportColor"),
-                                                               QStringLiteral("exportBlackInkOnly"));
+    const auto black_ink_only_key = cmyk_black_ink_only_settings_key(lower_extension);
     black_ink_only->setChecked(settings.value(black_ink_only_key, false).toBool());
     const auto sync_black_ink_only = [color_combo, black_ink_only] {
       black_ink_only->setEnabled(color_combo->isEnabled() &&
@@ -685,6 +679,7 @@ void apply_export_section(ImageSaveOptions& options, const ExportSectionWidgets&
     settings.setValue(QStringLiteral("saveOptions/exportTrim"), options.export_trim_transparent);
   }
   if (widgets.color_combo != nullptr) {
+    options.export_color_explicit = true;
     options.export_cmyk = widgets.color_combo->isEnabled() &&
                           widgets.color_combo->currentData().toString() == QStringLiteral("cmyk");
     if (widgets.color_combo->isEnabled()) {
@@ -718,6 +713,7 @@ void reset_export_options(ImageSaveOptions& options) {
   options.export_reveal_in_file_explorer = false;
   options.export_cmyk = false;
   options.export_black_ink_only = false;
+  options.export_color_explicit = false;
   options.metadata_policy = metadata::MetadataPolicy::All;
 }
 

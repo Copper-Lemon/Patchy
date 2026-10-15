@@ -110,6 +110,7 @@ using patchy::test::ui::EnvironmentVariableRestorer;
 using patchy::test::ui::remove_test_scratch_dir;
 using patchy::test::ui::save_widget_artifact;
 using patchy::test::ui::show_window;
+using patchy::test::ui::find_top_level_dialog;
 using patchy::test::ui::accept_filter_dialog;
 using patchy::test::ui::accept_levels_dialog;
 using patchy::test::ui::color_close;
@@ -2023,6 +2024,152 @@ void ui_proof_colors_and_gamut_warning_change_only_the_view() {
 
 // CMYK export for print (issue 90): JPEG, TIFF and flat PDF separated through the working
 // profile, which each file embeds; other formats refuse the option.
+// Image > Mode > CMYK Proof (docs/cmyk.md): a per-document mode that proofs the canvas and
+// makes saves to JPEG, TIFF and flattened PDF write CMYK; other formats stay RGB after a
+// warning, and an explicit colorMode still wins.
+void ui_cmyk_proof_mode_saves_cmyk() {
+  const auto previous = patchy::working_cmyk_space();
+  const auto restore = qScopeGuard([&previous] {
+    patchy::set_working_cmyk_space(previous);
+    patchy::ui::app_settings().remove(QStringLiteral("saveOptions/cmykProofSaveNotice"));
+    patchy::ui::app_settings().remove(QStringLiteral("saveOptions/exportBlackInkOnlyJpeg"));
+  });
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* cmyk_action = window.findChild<QAction*>(QStringLiteral("imageModeCmykProofAction"));
+  auto* rgb_action = window.findChild<QAction*>(QStringLiteral("imageModeRgbAction"));
+  CHECK(cmyk_action != nullptr && rgb_action != nullptr);
+  QTemporaryDir directory;
+  CHECK(directory.isValid());
+  auto& host = window.script_engine_host();
+  const auto wait_for_run = [&host] {
+    QElapsedTimer timer;
+    timer.start();
+    while (host.run_active() && timer.elapsed() < 60000) {
+      QApplication::processEvents(QEventLoop::AllEvents, 20);
+    }
+    QApplication::processEvents();
+  };
+
+  // Without a profile the mode is refused, from the menu and from a script.
+  patchy::set_working_cmyk_space(patchy::CmykWorkingSpace::formula());
+  window.add_document_session(patchy::Document(20, 20, patchy::PixelFormat::rgb8()), QStringLiteral("No profile"));
+  QApplication::processEvents();
+  cmyk_action->trigger();
+  QApplication::processEvents();
+  CHECK(!cmyk_action->isChecked());
+  CHECK(rgb_action->isChecked());
+  CHECK(window.statusBar()->currentMessage().contains(QStringLiteral("needs a CMYK profile")));
+
+  const auto space = patchy::CmykWorkingSpace::from_icc_profile(patchy::ui::bundled_cmyk_profile(),
+                                                                patchy::RenderingIntent::RelativeColorimetric, true);
+  patchy::set_working_cmyk_space(space);
+  patchy::ui::ScriptEngineHost::RunOptions options;
+  options.name = QStringLiteral("cmyk-proof");
+  options.args = QStringList{QStringLiteral("base=") + directory.path() + QStringLiteral("/proof")};
+  options.unattended = true;
+  const bool run = host.run_source(QStringLiteral(R"JS(
+    var p = patchy.args.base;
+    var indexed = app.newDocument(8, 8);
+    indexed.setPalette(['#000000', '#ffffff']);
+    try { indexed.cmykProof = true; console.log('indexed=accepted'); }
+    catch (e) { console.log('indexed=refused'); }
+    var d = app.newDocument(40, 30);
+    d.activeLayer.fill('#00a0e0');
+    console.log('before=' + d.cmykProof);
+    d.cmykProof = true;
+    console.log('after=' + d.cmykProof);
+    if (!d.exportAs(p + '.jpg', {quality: 95})) throw Error('jpg');
+    if (!d.exportAs(p + '.tif')) throw Error('tif');
+    if (!d.exportAs(p + '.png')) throw Error('png');
+    if (!d.exportAs(p + '-rgb.jpg', {colorMode: 'rgb'})) throw Error('explicit rgb');
+    d.cmykProof = false;
+    if (!d.exportAs(p + '-off.jpg')) throw Error('off');
+    d.cmykProof = true;
+  )JS"), options);
+  if (!run) {
+    for (const auto& line : host.message_backlog()) std::cerr << line.toStdString() << '\n';
+  }
+  CHECK(run);
+  wait_for_run();
+  CHECK(!host.last_run_had_error());
+  CHECK(backlog_contains(window, QStringLiteral("indexed=refused")));
+  CHECK(backlog_contains(window, QStringLiteral("before=false")));
+  CHECK(backlog_contains(window, QStringLiteral("after=true")));
+  const auto base = directory.path() + QStringLiteral("/proof");
+  const auto format_of = [](const QString& path) { return QImageReader(path).read().format(); };
+  CHECK(format_of(base + QStringLiteral(".jpg")) == QImage::Format_CMYK8888);
+  CHECK(format_of(base + QStringLiteral(".tif")) == QImage::Format_CMYK8888);
+  CHECK(QFileInfo::exists(base + QStringLiteral(".png")));
+  CHECK(format_of(base + QStringLiteral("-rgb.jpg")) != QImage::Format_CMYK8888);
+  CHECK(format_of(base + QStringLiteral("-off.jpg")) != QImage::Format_CMYK8888);
+
+  // The active document is in CMYK Proof: the Mode menu says so, its canvas simulates the
+  // print, and the Channels panel lists the ink plates although View > Proof Colors is off.
+  QApplication::processEvents();
+  CHECK(cmyk_action->isChecked());
+  CHECK(!rgb_action->isChecked());
+  auto* canvas = require_canvas(window);
+  CHECK(canvas->proof_display_transform() != nullptr && canvas->proof_display_transform()->simulates_colors());
+  auto* proof_view = window.findChild<QAction*>(QStringLiteral("viewProofColorsAction"));
+  CHECK(proof_view != nullptr && !proof_view->isChecked());
+  auto* channels = window.findChild<QListWidget*>(QStringLiteral("channelList"));
+  CHECK(channels != nullptr && channels->count() == 8);
+
+  // An interactive save explains the conversion; its black-ink choice is used and remembered.
+  const auto jpg_path = directory.filePath(QStringLiteral("interactive.jpg"));
+  bool notice_seen = false;
+  QTimer::singleShot(0, [&notice_seen] {
+    auto* dialog = find_top_level_dialog(QStringLiteral("cmykProofSaveDialog"));
+    CHECK(dialog != nullptr);
+    auto* black_ink = dialog->findChild<QCheckBox*>(QStringLiteral("cmykProofSaveBlackInkOnlyCheck"));
+    auto* dont_show = dialog->findChild<QCheckBox*>(QStringLiteral("cmykProofSaveDontShowCheck"));
+    CHECK(black_ink != nullptr && dont_show != nullptr);
+    black_ink->setChecked(true);
+    dont_show->setChecked(true);
+    notice_seen = true;
+    qobject_cast<QDialog*>(dialog)->accept();
+  });
+  CHECK(patchy::ui::MainWindowTestAccess::save_document_to_path(window, jpg_path));
+  CHECK(notice_seen);
+  CHECK(format_of(jpg_path) == QImage::Format_CMYK8888);
+  CHECK(window.statusBar()->currentMessage().contains(QStringLiteral("in CMYK")));
+  CHECK(patchy::ui::app_settings().value(QStringLiteral("saveOptions/exportBlackInkOnlyJpeg")).toBool());
+  // "Don't show this again" holds: the next save asks nothing.
+  CHECK(patchy::ui::MainWindowTestAccess::save_document_to_path(window, jpg_path));
+
+  // A format without a CMYK form warns once per session, then saves RGB.
+  const auto png_path = directory.filePath(QStringLiteral("interactive.png"));
+  bool warning_seen = false;
+  QTimer::singleShot(0, [&warning_seen] {
+    auto* box = qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("cmykProofRgbSaveMessageBox")));
+    CHECK(box != nullptr);
+    warning_seen = true;
+    box->button(QMessageBox::Save)->click();
+  });
+  CHECK(patchy::ui::MainWindowTestAccess::save_document_to_path(window, png_path));
+  CHECK(warning_seen);
+  CHECK(QFileInfo::exists(png_path));
+  CHECK(patchy::ui::MainWindowTestAccess::save_document_to_path(window, png_path));
+
+  // RGB Color leaves the mode: the canvas returns to plain RGB and the plates go.
+  rgb_action->trigger();
+  QApplication::processEvents();
+  CHECK(!cmyk_action->isChecked());
+  CHECK(canvas->proof_display_transform() == nullptr);
+  CHECK(channels->count() == 4);
+
+  // Switching the profile to the formula turns the mode off.
+  cmyk_action->trigger();
+  QApplication::processEvents();
+  CHECK(cmyk_action->isChecked());
+  patchy::set_working_cmyk_space(patchy::CmykWorkingSpace::formula());
+  patchy::ui::MainWindowTestAccess::refresh_proof_display(window);
+  QApplication::processEvents();
+  CHECK(!cmyk_action->isChecked());
+  CHECK(canvas->proof_display_transform() == nullptr);
+}
+
 void ui_script_export_cmyk_writes_jpeg_tiff_and_pdf() {
   const auto previous = patchy::working_cmyk_space();
   const auto restore = qScopeGuard([&previous] { patchy::set_working_cmyk_space(previous); });
@@ -5270,6 +5417,7 @@ std::vector<patchy::test::TestCase> scripting_tests() {
       {"ui_script_text_auto_leading_ignores_spacer_paragraphs", ui_script_text_auto_leading_ignores_spacer_paragraphs},
       {"ui_script_list_fonts_reports_registered_families", ui_script_list_fonts_reports_registered_families},
       {"ui_script_cmyk_conversions_use_working_space", ui_script_cmyk_conversions_use_working_space},
+      {"ui_cmyk_proof_mode_saves_cmyk", ui_cmyk_proof_mode_saves_cmyk},
       {"ui_script_export_cmyk_writes_jpeg_tiff_and_pdf", ui_script_export_cmyk_writes_jpeg_tiff_and_pdf},
       {"ui_proof_colors_and_gamut_warning_change_only_the_view", ui_proof_colors_and_gamut_warning_change_only_the_view},
       {"ui_proof_colors_follow_brush_strokes_and_move_drags", ui_proof_colors_follow_brush_strokes_and_move_drags},

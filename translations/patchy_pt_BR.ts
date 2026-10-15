@@ -20401,16 +20401,8 @@ Você ainda pode baixá-la no navegador.</translation>
         <translation>CMYK</translation>
     </message>
     <message>
-        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel, and CMYK swatches.</source>
-        <translation>O Patchy edita em RGB. Este perfil define o que os valores CMYK significam no seletor de cores, no painel Informações e nas amostras CMYK.</translation>
-    </message>
-    <message>
         <source>Automatic</source>
         <translation>Automático</translation>
-    </message>
-    <message>
-        <source>Automatic (%1)</source>
-        <translation>Automático (%1)</translation>
     </message>
     <message>
         <source>No profile (approximate formula)</source>
@@ -20595,6 +20587,110 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
     <message>
         <source>No matching recent folders</source>
         <translation>Nenhuma pasta recente correspondente</translation>
+    </message>
+    <message>
+        <source>&amp;CMYK Proof</source>
+        <translation>Prova &amp;CMYK</translation>
+    </message>
+    <message>
+        <source>%1 channel</source>
+        <translation>Canal %1</translation>
+    </message>
+    <message>
+        <source>New layer from channel color</source>
+        <translation>Nova camada da cor do canal</translation>
+    </message>
+    <message>
+        <source>New layer from channel</source>
+        <translation>Nova camada do canal</translation>
+    </message>
+    <message>
+        <source>Created layer %1</source>
+        <translation>Camada %1 criada</translation>
+    </message>
+    <message>
+        <source>New Layer from Channel</source>
+        <translation>Nova camada do canal</translation>
+    </message>
+    <message>
+        <source>New Layer from Channel Color</source>
+        <translation>Nova camada da cor do canal</translation>
+    </message>
+    <message>
+        <source>Save as CMYK</source>
+        <translation>Salvar como CMYK</translation>
+    </message>
+    <message>
+        <source>This document is in CMYK Proof mode, so Patchy saves this %1 file in CMYK.</source>
+        <translation>Este documento está no modo Prova CMYK, então o Patchy salva este arquivo %1 em CMYK.</translation>
+    </message>
+    <message>
+        <source>The image is placed on white paper and separated through the CMYK profile %1 with the %2 rendering intent, and that profile is embedded in the file. Patchy opens CMYK files as RGB again, so keep a PSD copy for further editing. The profile is chosen in Preferences.</source>
+        <translation>A imagem é colocada sobre papel branco e separada pelo perfil CMYK %1 com o propósito de renderização %2, e esse perfil é incorporado ao arquivo. O Patchy abre arquivos CMYK como RGB novamente, então mantenha uma cópia PSD para continuar editando. O perfil é escolhido em Preferências.</translation>
+    </message>
+    <message>
+        <source>Black and grays in black ink only</source>
+        <translation>Preto e cinzas só com tinta preta</translation>
+    </message>
+    <message>
+        <source>Prints black text and gray areas with black ink alone, so small type stays sharp on press. Colored areas are separated through the profile as usual.</source>
+        <translation>Imprime texto preto e áreas cinza só com tinta preta, para que letras pequenas fiquem nítidas na impressão. As áreas coloridas são separadas pelo perfil como de costume.</translation>
+    </message>
+    <message>
+        <source>Don&apos;t show this again</source>
+        <translation>Não mostrar novamente</translation>
+    </message>
+    <message>
+        <source>This document is in CMYK Proof mode, but a PDF with editable layers is saved in RGB. Save it in RGB?</source>
+        <translation>Este documento está no modo Prova CMYK, mas um PDF com camadas editáveis é salvo em RGB. Salvar em RGB?</translation>
+    </message>
+    <message>
+        <source>This document is in CMYK Proof mode, but %1 files are saved in RGB. Only JPEG, TIFF and flattened PDF files can be saved in CMYK. Save it in RGB?</source>
+        <translation>Este documento está no modo Prova CMYK, mas arquivos %1 são salvos em RGB. Só arquivos JPEG, TIFF e PDF achatados podem ser salvos em CMYK. Salvar em RGB?</translation>
+    </message>
+    <message>
+        <source>Save in RGB</source>
+        <translation>Salvar em RGB</translation>
+    </message>
+    <message>
+        <source>Saved %1 in CMYK</source>
+        <translation>%1 salvo em CMYK</translation>
+    </message>
+    <message>
+        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches, and how Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors and CMYK saves and exports convert colors.</source>
+        <translation>O Patchy edita em RGB. Este perfil define o que os valores CMYK significam no seletor de cores, no painel Informações e nas amostras CMYK, e como Imagem &gt; Modo &gt; Prova CMYK, Visualizar &gt; Cores de prova e os salvamentos e exportações em CMYK convertem as cores.</translation>
+    </message>
+    <message>
+        <source>Patchy includes one CMYK profile, ISO Coated v2 (basICColor). The other profiles in this list were found on this computer, installed by the operating system or by other software such as Adobe applications; Patchy does not include them.</source>
+        <translation>O Patchy inclui um perfil CMYK, ISO Coated v2 (basICColor). Os outros perfis desta lista foram encontrados neste computador, instalados pelo sistema operacional ou por outros programas, como os aplicativos da Adobe; o Patchy não os inclui.</translation>
+    </message>
+    <message>
+        <source>Automatic (%1, included with Patchy)</source>
+        <translation>Automático (%1, incluído no Patchy)</translation>
+    </message>
+    <message>
+        <source>Automatic (%1, found on this computer)</source>
+        <translation>Automático (%1, encontrado neste computador)</translation>
+    </message>
+    <message>
+        <source>CMYK Proof needs a CMYK profile and was turned off. Choose a profile in Preferences.</source>
+        <translation>A Prova CMYK precisa de um perfil CMYK e foi desativada. Escolha um perfil em Preferências.</translation>
+    </message>
+    <message>
+        <source>Convert the document to RGB Color before turning on CMYK Proof.</source>
+        <translation>Converta o documento para cor RGB antes de ativar a Prova CMYK.</translation>
+    </message>
+    <message>
+        <source>CMYK Proof needs a CMYK profile. Choose one in Preferences.</source>
+        <translation>A Prova CMYK precisa de um perfil CMYK. Escolha um em Preferências.</translation>
+    </message>
+    <message>
+        <source>CMYK Proof: the canvas shows the CMYK profile %1. Saving as JPEG, TIFF or PDF writes CMYK.</source>
+        <translation>Prova CMYK: a tela mostra o perfil CMYK %1. Salvar como JPEG, TIFF ou PDF grava em CMYK.</translation>
+    </message>
+    <message>
+        <source>RGB Color: saves are written in RGB again.</source>
+        <translation>Cor RGB: os salvamentos voltam a ser gravados em RGB.</translation>
     </message>
 </context>
 <context>

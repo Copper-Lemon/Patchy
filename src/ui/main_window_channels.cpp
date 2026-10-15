@@ -366,8 +366,9 @@ void MainWindow::refresh_channel_panel() {
                   component_channel_thumbnail(QColor(65, 210, 90)), false});
   rows.push_back({ChannelPanel::RowKind::Blue, 0, tr("Blue"),
                   component_channel_thumbnail(QColor(70, 120, 245)), false});
-  // The CMYK proof's ink plates (docs/cmyk.md), while View > Proof Colors is on.
-  if (proof_display_transform_ != nullptr && proof_display_transform_->simulates_colors()) {
+  // The CMYK proof's ink plates (docs/cmyk.md), while the canvas simulates the print
+  // (View > Proof Colors, or the document is in CMYK Proof mode).
+  if (const auto& proof = canvas_->proof_display_transform(); proof != nullptr && proof->simulates_colors()) {
     rows.push_back({ChannelPanel::RowKind::Cyan, 0, tr("Cyan"), ink_plate_thumbnail(QColor(0, 174, 239)), false});
     rows.push_back(
         {ChannelPanel::RowKind::Magenta, 0, tr("Magenta"), ink_plate_thumbnail(QColor(236, 0, 140)), false});
@@ -626,152 +627,238 @@ void MainWindow::load_channel_as_selection() {
   load_channel_as_selection(selected->kind, selected->id);
 }
 
-void MainWindow::load_channel_as_selection(ChannelPanel::RowKind kind, ChannelId id) {
-  if (canvas_ == nullptr || !has_active_document()) {
-    return;
+std::optional<MainWindow::ChannelRowPixels> MainWindow::channel_row_pixels(ChannelPanel::RowKind kind, ChannelId id,
+                                                                         bool with_color) {
+  if (canvas_ == nullptr || !has_active_document() || kind == ChannelPanel::RowKind::QuickMask) {
+    return std::nullopt;
   }
-  if (kind == ChannelPanel::RowKind::QuickMask) {
-    return;
-  }
-
-  const PixelBuffer* selection_pixels = nullptr;
-  PixelBuffer derived_pixels;
-  QString name;
+  ChannelRowPixels result;
   if (kind == ChannelPanel::RowKind::Alpha || kind == ChannelPanel::RowKind::Spot) {
     const auto* channel = static_cast<const Document&>(document()).find_channel(id);
     if (channel == nullptr) {
-      return;
+      return std::nullopt;
     }
-    selection_pixels = &channel->pixels();
-    if (channel->pixels().format().bit_depth != BitDepth::UInt8) {
-      // Selections are 8-bit: a 16/32-bit channel loads narrowed.
-      derived_pixels = convert_pixel_buffer_depth(channel->pixels(), BitDepth::UInt8, SampleKind::Coverage);
-      selection_pixels = &derived_pixels;
-    }
-    name = QString::fromStdString(channel->name());
+    // Selections and new layers take 8 bits: a 16/32-bit channel arrives narrowed.
+    result.gray = channel->pixels().format().bit_depth != BitDepth::UInt8
+                      ? convert_pixel_buffer_depth(channel->pixels(), BitDepth::UInt8, SampleKind::Coverage)
+                      : channel->pixels();
+    result.name = QString::fromStdString(channel->name());
+    return result;
+  }
+  const auto& doc = static_cast<const Document&>(document());
+  std::vector<std::uint8_t> merged_alpha;
+  PixelBuffer flattened;
+  if (doc.color_state().bit_depth == BitDepth::UInt8) {
+    flattened = Compositor{}.flatten_rgb8(doc, &merged_alpha);
   } else {
-    const auto& doc = static_cast<const Document&>(document());
-    std::vector<std::uint8_t> merged_alpha;
-    PixelBuffer flattened;
-    if (doc.color_state().bit_depth == BitDepth::UInt8) {
-      flattened = Compositor{}.flatten_rgb8(doc, &merged_alpha);
-    } else {
-      // 16/32-bit (docs/high-bit-depth.md): the deep composite at the selection's 8 bits.
-      const auto rgba = convert_pixel_buffer_depth(Compositor{}.flatten_rgba_deep(doc), BitDepth::UInt8,
-                                                   SampleKind::Color);
-      flattened = PixelBuffer(doc.width(), doc.height(), PixelFormat::rgb8());
-      merged_alpha.resize(static_cast<std::size_t>(doc.width()) * static_cast<std::size_t>(doc.height()));
-      for (int y = 0; y < doc.height(); ++y) {
-        for (int x = 0; x < doc.width(); ++x) {
-          const auto* from = rgba.pixel(x, y);
-          auto* to = flattened.pixel(x, y);
-          to[0] = from[0];
-          to[1] = from[1];
-          to[2] = from[2];
-          merged_alpha[static_cast<std::size_t>(y) * static_cast<std::size_t>(doc.width()) +
-                       static_cast<std::size_t>(x)] = from[3];
-        }
+    // 16/32-bit (docs/high-bit-depth.md): the deep composite at the selection's 8 bits.
+    const auto rgba = convert_pixel_buffer_depth(Compositor{}.flatten_rgba_deep(doc), BitDepth::UInt8,
+                                                 SampleKind::Color);
+    flattened = PixelBuffer(doc.width(), doc.height(), PixelFormat::rgb8());
+    merged_alpha.resize(static_cast<std::size_t>(doc.width()) * static_cast<std::size_t>(doc.height()));
+    for (int y = 0; y < doc.height(); ++y) {
+      for (int x = 0; x < doc.width(); ++x) {
+        const auto* from = rgba.pixel(x, y);
+        auto* to = flattened.pixel(x, y);
+        to[0] = from[0];
+        to[1] = from[1];
+        to[2] = from[2];
+        merged_alpha[static_cast<std::size_t>(y) * static_cast<std::size_t>(doc.width()) +
+                     static_cast<std::size_t>(x)] = from[3];
       }
     }
-    derived_pixels = PixelBuffer(doc.width(), doc.height(), PixelFormat::gray8());
-    // An ink plate selects where it prints no ink (Photoshop's convention for a CMYK
-    // channel), from the white-backed composite separated through the working space.
-    std::vector<std::uint8_t> plate_inks;
-    if (is_ink_plate_row(kind)) {
-      std::vector<std::uint8_t> on_paper(static_cast<std::size_t>(doc.width()) * static_cast<std::size_t>(doc.height()) *
-                                         4U);
-      for (int y = 0; y < doc.height(); ++y) {
-        const auto source = flattened.row(y);
-        for (int x = 0; x < doc.width(); ++x) {
-          const auto index = static_cast<std::size_t>(y) * static_cast<std::size_t>(doc.width()) +
-                             static_cast<std::size_t>(x);
-          const auto* pixel = source.data() + static_cast<std::size_t>(x) * 3U;
-          for (std::size_t channel = 0; channel < 3; ++channel) {
-            on_paper[index * 4U + channel] = white_backed_component(pixel[channel], merged_alpha[index]);
-          }
-          on_paper[index * 4U + 3U] = 255;
-        }
-      }
-      plate_inks = working_cmyk_space()->separate_rgba8(on_paper);
-    }
-    const std::size_t plate = kind == ChannelPanel::RowKind::Cyan      ? 0
-                              : kind == ChannelPanel::RowKind::Magenta ? 1
-                              : kind == ChannelPanel::RowKind::Yellow  ? 2
-                                                                       : 3;
+  }
+  result.gray = PixelBuffer(doc.width(), doc.height(), PixelFormat::gray8());
+  // An ink plate's value is where it prints no ink (Photoshop's convention for a CMYK
+  // channel), from the white-backed composite separated through the working space.
+  std::vector<std::uint8_t> plate_inks;
+  const auto space = working_cmyk_space();
+  if (is_ink_plate_row(kind)) {
+    std::vector<std::uint8_t> on_paper(static_cast<std::size_t>(doc.width()) * static_cast<std::size_t>(doc.height()) *
+                                       4U);
     for (int y = 0; y < doc.height(); ++y) {
       const auto source = flattened.row(y);
-      auto destination = derived_pixels.row(y);
       for (int x = 0; x < doc.width(); ++x) {
         const auto index = static_cast<std::size_t>(y) * static_cast<std::size_t>(doc.width()) +
                            static_cast<std::size_t>(x);
         const auto* pixel = source.data() + static_cast<std::size_t>(x) * 3U;
-        const auto red = white_backed_component(pixel[0], merged_alpha[index]);
-        const auto green = white_backed_component(pixel[1], merged_alpha[index]);
-        const auto blue = white_backed_component(pixel[2], merged_alpha[index]);
-        switch (kind) {
-          case ChannelPanel::RowKind::Composite:
-            destination[static_cast<std::size_t>(x)] = channel_selection_luminance(red, green, blue);
-            break;
-          case ChannelPanel::RowKind::Red:
-            destination[static_cast<std::size_t>(x)] = red;
-            break;
-          case ChannelPanel::RowKind::Green:
-            destination[static_cast<std::size_t>(x)] = green;
-            break;
-          case ChannelPanel::RowKind::Blue:
-            destination[static_cast<std::size_t>(x)] = blue;
-            break;
-          case ChannelPanel::RowKind::Cyan:
-          case ChannelPanel::RowKind::Magenta:
-          case ChannelPanel::RowKind::Yellow:
-          case ChannelPanel::RowKind::Black:
-            destination[static_cast<std::size_t>(x)] = static_cast<std::uint8_t>(255 - plate_inks[index * 4U + plate]);
-            break;
-          case ChannelPanel::RowKind::Alpha:
-          case ChannelPanel::RowKind::Spot:
-          case ChannelPanel::RowKind::QuickMask:
-            break;
+        for (std::size_t channel = 0; channel < 3; ++channel) {
+          on_paper[index * 4U + channel] = white_backed_component(pixel[channel], merged_alpha[index]);
         }
+        on_paper[index * 4U + 3U] = 255;
       }
     }
-    selection_pixels = &derived_pixels;
-    switch (kind) {
-      case ChannelPanel::RowKind::Composite:
-        name = tr("Composite");
-        break;
-      case ChannelPanel::RowKind::Red:
-        name = tr("Red");
-        break;
-      case ChannelPanel::RowKind::Green:
-        name = tr("Green");
-        break;
-      case ChannelPanel::RowKind::Blue:
-        name = tr("Blue");
-        break;
-      case ChannelPanel::RowKind::Cyan:
-        name = tr("Cyan");
-        break;
-      case ChannelPanel::RowKind::Magenta:
-        name = tr("Magenta");
-        break;
-      case ChannelPanel::RowKind::Yellow:
-        name = tr("Yellow");
-        break;
-      case ChannelPanel::RowKind::Black:
-        name = tr("Black");
-        break;
-      case ChannelPanel::RowKind::Alpha:
-      case ChannelPanel::RowKind::Spot:
-      case ChannelPanel::RowKind::QuickMask:
-        break;
+    plate_inks = space->separate_rgba8(on_paper);
+  }
+  const std::size_t plate = kind == ChannelPanel::RowKind::Cyan      ? 0
+                            : kind == ChannelPanel::RowKind::Magenta ? 1
+                            : kind == ChannelPanel::RowKind::Yellow  ? 2
+                                                                     : 3;
+  // The colored form: a component in its own color over the composite's alpha (stacked in
+  // Screen the three rebuild the image), or an ink plate as that ink alone prints on paper
+  // (stacked in Multiply the four approximate the print).
+  std::array<RgbColor, 256> ink_colors{};
+  if (with_color && kind != ChannelPanel::RowKind::Composite) {
+    result.color = PixelBuffer(doc.width(), doc.height(), PixelFormat::rgba8());
+    if (is_ink_plate_row(kind)) {
+      for (std::size_t level = 0; level < ink_colors.size(); ++level) {
+        const auto percent = static_cast<double>(level) * 100.0 / 255.0;
+        CmykPercent ink;
+        (plate == 0 ? ink.cyan : plate == 1 ? ink.magenta : plate == 2 ? ink.yellow : ink.black) = percent;
+        ink_colors[level] = space->rgb_from_cmyk(ink);
+      }
     }
   }
+  const std::size_t component = kind == ChannelPanel::RowKind::Red ? 0 : kind == ChannelPanel::RowKind::Green ? 1 : 2;
+  for (int y = 0; y < doc.height(); ++y) {
+    const auto source = flattened.row(y);
+    auto destination = result.gray.row(y);
+    std::uint8_t* colored = result.color.empty() ? nullptr : result.color.row(y).data();
+    for (int x = 0; x < doc.width(); ++x) {
+      const auto index = static_cast<std::size_t>(y) * static_cast<std::size_t>(doc.width()) +
+                         static_cast<std::size_t>(x);
+      const auto* pixel = source.data() + static_cast<std::size_t>(x) * 3U;
+      const auto red = white_backed_component(pixel[0], merged_alpha[index]);
+      const auto green = white_backed_component(pixel[1], merged_alpha[index]);
+      const auto blue = white_backed_component(pixel[2], merged_alpha[index]);
+      auto& value = destination[static_cast<std::size_t>(x)];
+      switch (kind) {
+        case ChannelPanel::RowKind::Composite:
+          value = channel_selection_luminance(red, green, blue);
+          break;
+        case ChannelPanel::RowKind::Red:
+          value = red;
+          break;
+        case ChannelPanel::RowKind::Green:
+          value = green;
+          break;
+        case ChannelPanel::RowKind::Blue:
+          value = blue;
+          break;
+        case ChannelPanel::RowKind::Cyan:
+        case ChannelPanel::RowKind::Magenta:
+        case ChannelPanel::RowKind::Yellow:
+        case ChannelPanel::RowKind::Black:
+          value = static_cast<std::uint8_t>(255 - plate_inks[index * 4U + plate]);
+          break;
+        case ChannelPanel::RowKind::Alpha:
+        case ChannelPanel::RowKind::Spot:
+        case ChannelPanel::RowKind::QuickMask:
+          break;
+      }
+      if (colored == nullptr) {
+        continue;
+      }
+      auto* out = colored + static_cast<std::size_t>(x) * 4U;
+      if (is_ink_plate_row(kind)) {
+        const auto& ink = ink_colors[plate_inks[index * 4U + plate]];
+        out[0] = ink.red;
+        out[1] = ink.green;
+        out[2] = ink.blue;
+        out[3] = 255;
+      } else {
+        out[0] = 0;
+        out[1] = 0;
+        out[2] = 0;
+        out[component] = pixel[component];
+        out[3] = merged_alpha[index];
+      }
+    }
+  }
+  switch (kind) {
+    case ChannelPanel::RowKind::Composite:
+      result.name = tr("Composite");
+      break;
+    case ChannelPanel::RowKind::Red:
+      result.name = tr("Red");
+      break;
+    case ChannelPanel::RowKind::Green:
+      result.name = tr("Green");
+      break;
+    case ChannelPanel::RowKind::Blue:
+      result.name = tr("Blue");
+      break;
+    case ChannelPanel::RowKind::Cyan:
+      result.name = tr("Cyan");
+      break;
+    case ChannelPanel::RowKind::Magenta:
+      result.name = tr("Magenta");
+      break;
+    case ChannelPanel::RowKind::Yellow:
+      result.name = tr("Yellow");
+      break;
+    case ChannelPanel::RowKind::Black:
+      result.name = tr("Black");
+      break;
+    case ChannelPanel::RowKind::Alpha:
+    case ChannelPanel::RowKind::Spot:
+    case ChannelPanel::RowKind::QuickMask:
+      break;
+  }
+  return result;
+}
 
-  if (selection_pixels == nullptr) {
+void MainWindow::load_channel_as_selection(ChannelPanel::RowKind kind, ChannelId id) {
+  const auto pixels = channel_row_pixels(kind, id, false);
+  if (!pixels.has_value()) {
     return;
   }
-  canvas_->replace_selection_from_grayscale(*selection_pixels, tr("Load channel as selection"));
-  statusBar()->showMessage(tr("Loaded %1 as selection").arg(name));
+  canvas_->replace_selection_from_grayscale(pixels->gray, tr("Load channel as selection"));
+  statusBar()->showMessage(tr("Loaded %1 as selection").arg(pixels->name));
+}
+
+void MainWindow::new_layer_from_channel(bool in_color) {
+  if (channel_panel_ == nullptr || canvas_ == nullptr || !has_active_document()) {
+    return;
+  }
+  const auto selected = channel_panel_->selected_row();
+  if (!selected.has_value()) {
+    return;
+  }
+  auto pixels = channel_row_pixels(selected->kind, selected->id, in_color);
+  if (!pixels.has_value() || (in_color && pixels->color.empty())) {
+    return;
+  }
+  auto& doc = document();
+  PixelBuffer layer_pixels;
+  if (in_color) {
+    layer_pixels = std::move(pixels->color);
+  } else {
+    layer_pixels = PixelBuffer(doc.width(), doc.height(), PixelFormat::rgba8());
+    for (int y = 0; y < doc.height(); ++y) {
+      const auto source = std::as_const(pixels->gray).row(y);
+      auto* out = layer_pixels.row(y).data();
+      for (std::size_t x = 0; x < static_cast<std::size_t>(doc.width()); ++x) {
+        out[x * 4U] = source[x];
+        out[x * 4U + 1U] = source[x];
+        out[x * 4U + 2U] = source[x];
+        out[x * 4U + 3U] = 255;
+      }
+    }
+  }
+  if (const auto depth = std::as_const(doc).color_state().bit_depth; depth != BitDepth::UInt8) {
+    layer_pixels = convert_pixel_buffer_depth(layer_pixels, depth, SampleKind::Color);
+  }
+  const auto layer_name = in_color ? pixels->name : tr("%1 channel").arg(pixels->name);
+  const auto blend_mode = !in_color                           ? BlendMode::Normal
+                          : is_ink_plate_row(selected->kind) ? BlendMode::Multiply
+                                                              : BlendMode::Screen;
+  // A new layer is layer content: leave the channel view first, so the canvas shows it.
+  set_channel_edit_target(ChannelPanel::RowKind::Composite, 0, false, false);
+  auto anchor_id = doc.active_layer_id();
+  if (const auto selected_ids = selected_layer_ids(); !selected_ids.empty()) {
+    anchor_id = selected_ids.front();
+  }
+  push_undo_snapshot(in_color ? tr("New layer from channel color") : tr("New layer from channel"));
+  Layer layer(doc.allocate_layer_id(), layer_name.toStdString(), std::move(layer_pixels));
+  const auto layer_id = layer.id();
+  layer.set_blend_mode(blend_mode);
+  insert_layer_after_anchor(doc, std::move(layer), anchor_id);
+  doc.set_active_layer(layer_id);
+  refresh_layer_list();
+  refresh_layer_controls();
+  canvas_->document_changed();
+  statusBar()->showMessage(tr("Created layer %1").arg(layer_name));
 }
 
 void MainWindow::rename_active_channel() {

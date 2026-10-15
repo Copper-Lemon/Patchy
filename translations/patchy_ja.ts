@@ -20338,16 +20338,8 @@ You can still download it in your browser.</source>
         <translation>CMYK</translation>
     </message>
     <message>
-        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel, and CMYK swatches.</source>
-        <translation>Patchy は RGB で編集します。このプロファイルは、カラーピッカー、情報パネル、CMYK スウォッチでの CMYK 値の意味を決めます。</translation>
-    </message>
-    <message>
         <source>Automatic</source>
         <translation>自動</translation>
-    </message>
-    <message>
-        <source>Automatic (%1)</source>
-        <translation>自動（%1）</translation>
     </message>
     <message>
         <source>No profile (approximate formula)</source>
@@ -20532,6 +20524,110 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
     <message>
         <source>No matching recent folders</source>
         <translation>一致する最近使ったフォルダーはありません</translation>
+    </message>
+    <message>
+        <source>&amp;CMYK Proof</source>
+        <translation>CMYK 校正(&amp;C)</translation>
+    </message>
+    <message>
+        <source>%1 channel</source>
+        <translation>%1 チャンネル</translation>
+    </message>
+    <message>
+        <source>New layer from channel color</source>
+        <translation>チャンネルのカラーから新規レイヤー</translation>
+    </message>
+    <message>
+        <source>New layer from channel</source>
+        <translation>チャンネルから新規レイヤー</translation>
+    </message>
+    <message>
+        <source>Created layer %1</source>
+        <translation>レイヤー %1 を作成しました</translation>
+    </message>
+    <message>
+        <source>New Layer from Channel</source>
+        <translation>チャンネルから新規レイヤー</translation>
+    </message>
+    <message>
+        <source>New Layer from Channel Color</source>
+        <translation>チャンネルのカラーから新規レイヤー</translation>
+    </message>
+    <message>
+        <source>Save as CMYK</source>
+        <translation>CMYK で保存</translation>
+    </message>
+    <message>
+        <source>This document is in CMYK Proof mode, so Patchy saves this %1 file in CMYK.</source>
+        <translation>このドキュメントは CMYK 校正モードのため、Patchy はこの %1 ファイルを CMYK で保存します。</translation>
+    </message>
+    <message>
+        <source>The image is placed on white paper and separated through the CMYK profile %1 with the %2 rendering intent, and that profile is embedded in the file. Patchy opens CMYK files as RGB again, so keep a PSD copy for further editing. The profile is chosen in Preferences.</source>
+        <translation>画像は白い用紙の上に配置され、CMYK プロファイル %1 とマッチング方法 %2 で色分解され、そのプロファイルがファイルに埋め込まれます。Patchy は CMYK ファイルを再び RGB として開くため、編集を続ける場合は PSD のコピーを残してください。プロファイルは環境設定で選択します。</translation>
+    </message>
+    <message>
+        <source>Black and grays in black ink only</source>
+        <translation>黒とグレーをブラックインキのみで</translation>
+    </message>
+    <message>
+        <source>Prints black text and gray areas with black ink alone, so small type stays sharp on press. Colored areas are separated through the profile as usual.</source>
+        <translation>黒いテキストとグレーの領域をブラックインキだけで印刷し、小さな文字を印刷でもシャープに保ちます。カラーの領域はこれまでどおりプロファイルで色分解されます。</translation>
+    </message>
+    <message>
+        <source>Don&apos;t show this again</source>
+        <translation>今後表示しない</translation>
+    </message>
+    <message>
+        <source>This document is in CMYK Proof mode, but a PDF with editable layers is saved in RGB. Save it in RGB?</source>
+        <translation>このドキュメントは CMYK 校正モードですが、編集可能なレイヤーを含む PDF は RGB で保存されます。RGB で保存しますか？</translation>
+    </message>
+    <message>
+        <source>This document is in CMYK Proof mode, but %1 files are saved in RGB. Only JPEG, TIFF and flattened PDF files can be saved in CMYK. Save it in RGB?</source>
+        <translation>このドキュメントは CMYK 校正モードですが、%1 ファイルは RGB で保存されます。CMYK で保存できるのは JPEG、TIFF、統合された PDF ファイルだけです。RGB で保存しますか？</translation>
+    </message>
+    <message>
+        <source>Save in RGB</source>
+        <translation>RGB で保存</translation>
+    </message>
+    <message>
+        <source>Saved %1 in CMYK</source>
+        <translation>%1 を CMYK で保存しました</translation>
+    </message>
+    <message>
+        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches, and how Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors and CMYK saves and exports convert colors.</source>
+        <translation>Patchy は RGB で編集します。このプロファイルは、カラーピッカー、情報パネル、CMYK スウォッチでの CMYK 値の意味と、画像 &gt; モード &gt; CMYK 校正、表示 &gt; 色の校正、CMYK の保存と書き出しでの色の変換方法を決めます。</translation>
+    </message>
+    <message>
+        <source>Patchy includes one CMYK profile, ISO Coated v2 (basICColor). The other profiles in this list were found on this computer, installed by the operating system or by other software such as Adobe applications; Patchy does not include them.</source>
+        <translation>Patchy に含まれる CMYK プロファイルは ISO Coated v2 (basICColor) の 1 つだけです。このリストのほかのプロファイルはこのコンピューターで見つかったもので、オペレーティングシステムや Adobe アプリケーションなどのソフトウェアがインストールしたものです。Patchy には含まれていません。</translation>
+    </message>
+    <message>
+        <source>Automatic (%1, included with Patchy)</source>
+        <translation>自動 (%1、Patchy に同梱)</translation>
+    </message>
+    <message>
+        <source>Automatic (%1, found on this computer)</source>
+        <translation>自動 (%1、このコンピューターで検出)</translation>
+    </message>
+    <message>
+        <source>CMYK Proof needs a CMYK profile and was turned off. Choose a profile in Preferences.</source>
+        <translation>CMYK 校正には CMYK プロファイルが必要なため、オフにしました。環境設定でプロファイルを選択してください。</translation>
+    </message>
+    <message>
+        <source>Convert the document to RGB Color before turning on CMYK Proof.</source>
+        <translation>CMYK 校正をオンにする前に、ドキュメントを RGB カラーに変換してください。</translation>
+    </message>
+    <message>
+        <source>CMYK Proof needs a CMYK profile. Choose one in Preferences.</source>
+        <translation>CMYK 校正には CMYK プロファイルが必要です。環境設定で選択してください。</translation>
+    </message>
+    <message>
+        <source>CMYK Proof: the canvas shows the CMYK profile %1. Saving as JPEG, TIFF or PDF writes CMYK.</source>
+        <translation>CMYK 校正: カンバスに CMYK プロファイル %1 を表示しています。JPEG、TIFF、PDF で保存すると CMYK で書き込まれます。</translation>
+    </message>
+    <message>
+        <source>RGB Color: saves are written in RGB again.</source>
+        <translation>RGB カラー: 保存は再び RGB で書き込まれます。</translation>
     </message>
 </context>
 <context>

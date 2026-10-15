@@ -1046,12 +1046,7 @@ void MainWindow::refresh_palette_panel() {
     highlight = rgb_from_qcolor(canvas_->primary_color());
   }
   palette_panel_->set_highlight_color(highlight);
-  if (image_mode_rgb_action_ != nullptr && image_mode_indexed_action_ != nullptr) {
-    const QSignalBlocker rgb_blocker(image_mode_rgb_action_);
-    const QSignalBlocker indexed_blocker(image_mode_indexed_action_);
-    image_mode_rgb_action_->setChecked(!mode_active);
-    image_mode_indexed_action_->setChecked(mode_active);
-  }
+  refresh_image_mode_actions();
   if (snap_image_to_palette_action_ != nullptr && snap_layer_to_palette_action_ != nullptr) {
     snap_image_to_palette_action_->setEnabled(mode_active);
     snap_layer_to_palette_action_->setEnabled(mode_active);
@@ -1060,6 +1055,23 @@ void MainWindow::refresh_palette_panel() {
   refresh_color_buttons();
   refresh_bit_depth_actions();
   refresh_hdr_exposure_control();
+}
+
+void MainWindow::refresh_image_mode_actions() {
+  if (image_mode_rgb_action_ == nullptr || image_mode_indexed_action_ == nullptr ||
+      image_mode_cmyk_proof_action_ == nullptr) {
+    return;
+  }
+  const bool indexed = has_active_document() && std::as_const(document()).palette_editing().has_value();
+  const bool cmyk_proof = has_active_document() && !indexed && session().cmyk_proof;
+  const QSignalBlocker rgb_blocker(image_mode_rgb_action_);
+  const QSignalBlocker cmyk_blocker(image_mode_cmyk_proof_action_);
+  const QSignalBlocker indexed_blocker(image_mode_indexed_action_);
+  image_mode_rgb_action_->setChecked(false);
+  image_mode_cmyk_proof_action_->setChecked(false);
+  image_mode_indexed_action_->setChecked(false);
+  (indexed ? image_mode_indexed_action_ : cmyk_proof ? image_mode_cmyk_proof_action_ : image_mode_rgb_action_)
+      ->setChecked(true);
 }
 
 void MainWindow::refresh_bit_depth_actions() {

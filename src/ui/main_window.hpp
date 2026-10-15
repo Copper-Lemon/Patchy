@@ -885,8 +885,20 @@ private:
   void apply_canvas_aid_settings(CanvasWidget* canvas) const;
   void refresh_vector_preview_action();
   // Rebuilds the canvas proof view (View > Proof Colors / Gamut Warning, docs/cmyk.md)
-  // from the two toggles and the working CMYK space, and hands it to every canvas.
-  void refresh_proof_display();
+  // from the two toggles, each session's CMYK Proof mode and the working CMYK space, and
+  // hands each canvas its transform. announce_view shows the View toggles' status line.
+  void refresh_proof_display(bool announce_view = true);
+  // Image > Mode > CMYK Proof for the active document (docs/cmyk.md). Turning it on from
+  // Indexed converts to RGB first (with that command's prompt).
+  void set_document_cmyk_proof(bool enabled);
+  // The same for any session, without prompts: empty on success, else why it was refused
+  // (palette mode, or no CMYK profile). Shared with the scripting API's doc.cmykProof.
+  [[nodiscard]] QString set_session_cmyk_proof(DocumentSession& session, bool enabled);
+  // Checks RGB Color / CMYK Proof / Indexed for the active document.
+  void refresh_image_mode_actions();
+  // Explains a CMYK Proof save to JPEG, TIFF or PDF and offers its black-ink option,
+  // unless the user turned the notice off. False on Cancel.
+  bool confirm_cmyk_proof_save(const QString& extension, ImageSaveOptions& options);
   void apply_pen_input_settings(CanvasWidget* canvas) const;
   void load_pen_input_settings();
   void save_pen_input_settings() const;
@@ -1625,6 +1637,16 @@ private:
   void save_selection_as_channel();
   void load_channel_as_selection();
   void load_channel_as_selection(ChannelPanel::RowKind kind, ChannelId id);
+  // A channel row's 8-bit values as the panel shows them (`gray`) and, for component and
+  // ink plate rows when asked, the colored RGBA form New Layer from Channel Color uses.
+  struct ChannelRowPixels {
+    PixelBuffer gray;
+    PixelBuffer color;
+    QString name;
+  };
+  [[nodiscard]] std::optional<ChannelRowPixels> channel_row_pixels(ChannelPanel::RowKind kind, ChannelId id,
+                                                                   bool with_color);
+  void new_layer_from_channel(bool in_color);
   void rename_active_channel();
   void invert_active_channel();
   void delete_active_channel();
@@ -2231,6 +2253,11 @@ private:
   QAction* view_proof_colors_action_{nullptr};
   QAction* view_gamut_warning_action_{nullptr};
   std::shared_ptr<const CmykProofTransform> proof_display_transform_;
+  // The transform CMYK Proof documents use (always simulating), cached per working space
+  // and gamut flag so switching modes does not resample the gamut table.
+  std::shared_ptr<const CmykProofTransform> document_proof_transform_;
+  std::shared_ptr<const CmykWorkingSpace> document_proof_space_;
+  bool document_proof_gamut_{false};
   QAction* view_grid_action_{nullptr};
   QAction* view_guides_action_{nullptr};
   QAction* view_snap_action_{nullptr};
@@ -2274,6 +2301,8 @@ private:
   QAction* channel_rename_action_{nullptr};
   QAction* channel_invert_action_{nullptr};
   QAction* channel_delete_action_{nullptr};
+  QAction* channel_new_layer_action_{nullptr};
+  QAction* channel_new_color_layer_action_{nullptr};
   QToolButton* mask_edit_mode_chip_{nullptr};
   // Palette (indexed) mode UI: dock panel, status chip, advisory compliance scan.
   PalettePanel* palette_panel_{nullptr};
@@ -2283,6 +2312,7 @@ private:
   bool palette_compliance_clean_{true};
   QAction* image_mode_rgb_action_{nullptr};
   QAction* image_mode_indexed_action_{nullptr};
+  QAction* image_mode_cmyk_proof_action_{nullptr};
   QAction* image_mode_8_bit_action_{nullptr};
   QAction* image_mode_16_bit_action_{nullptr};
   QAction* image_mode_32_bit_action_{nullptr};

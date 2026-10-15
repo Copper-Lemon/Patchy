@@ -20338,16 +20338,8 @@ You can still download it in your browser.</source>
         <translation>CMYK</translation>
     </message>
     <message>
-        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel, and CMYK swatches.</source>
-        <translation>Patchy는 RGB로 편집합니다. 이 프로파일은 색상 피커, 정보 패널, CMYK 색상 견본에서 CMYK 값의 의미를 정합니다.</translation>
-    </message>
-    <message>
         <source>Automatic</source>
         <translation>자동</translation>
-    </message>
-    <message>
-        <source>Automatic (%1)</source>
-        <translation>자동(%1)</translation>
     </message>
     <message>
         <source>No profile (approximate formula)</source>
@@ -20532,6 +20524,110 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
     <message>
         <source>No matching recent folders</source>
         <translation>일치하는 최근 폴더가 없습니다.</translation>
+    </message>
+    <message>
+        <source>&amp;CMYK Proof</source>
+        <translation>CMYK 교정(&amp;C)</translation>
+    </message>
+    <message>
+        <source>%1 channel</source>
+        <translation>%1 채널</translation>
+    </message>
+    <message>
+        <source>New layer from channel color</source>
+        <translation>채널 색상으로 새 레이어</translation>
+    </message>
+    <message>
+        <source>New layer from channel</source>
+        <translation>채널로 새 레이어</translation>
+    </message>
+    <message>
+        <source>Created layer %1</source>
+        <translation>레이어 %1을(를) 만들었습니다</translation>
+    </message>
+    <message>
+        <source>New Layer from Channel</source>
+        <translation>채널로 새 레이어</translation>
+    </message>
+    <message>
+        <source>New Layer from Channel Color</source>
+        <translation>채널 색상으로 새 레이어</translation>
+    </message>
+    <message>
+        <source>Save as CMYK</source>
+        <translation>CMYK로 저장</translation>
+    </message>
+    <message>
+        <source>This document is in CMYK Proof mode, so Patchy saves this %1 file in CMYK.</source>
+        <translation>이 문서는 CMYK 교정 모드이므로 Patchy가 이 %1 파일을 CMYK로 저장합니다.</translation>
+    </message>
+    <message>
+        <source>The image is placed on white paper and separated through the CMYK profile %1 with the %2 rendering intent, and that profile is embedded in the file. Patchy opens CMYK files as RGB again, so keep a PSD copy for further editing. The profile is chosen in Preferences.</source>
+        <translation>이미지를 흰 종이 위에 놓고 CMYK 프로파일 %1과(와) 렌더링 의도 %2(으)로 색상을 분리하며, 그 프로파일을 파일에 포함합니다. Patchy는 CMYK 파일을 다시 RGB로 열므로 계속 편집하려면 PSD 사본을 보관하세요. 프로파일은 환경설정에서 선택합니다.</translation>
+    </message>
+    <message>
+        <source>Black and grays in black ink only</source>
+        <translation>검정과 회색을 검정 잉크로만</translation>
+    </message>
+    <message>
+        <source>Prints black text and gray areas with black ink alone, so small type stays sharp on press. Colored areas are separated through the profile as usual.</source>
+        <translation>검정 텍스트와 회색 영역을 검정 잉크만으로 인쇄하여 작은 글자가 인쇄에서도 선명하게 유지됩니다. 색상 영역은 평소처럼 프로파일로 분리됩니다.</translation>
+    </message>
+    <message>
+        <source>Don&apos;t show this again</source>
+        <translation>다시 표시하지 않음</translation>
+    </message>
+    <message>
+        <source>This document is in CMYK Proof mode, but a PDF with editable layers is saved in RGB. Save it in RGB?</source>
+        <translation>이 문서는 CMYK 교정 모드이지만 편집 가능한 레이어가 있는 PDF는 RGB로 저장됩니다. RGB로 저장하시겠습니까?</translation>
+    </message>
+    <message>
+        <source>This document is in CMYK Proof mode, but %1 files are saved in RGB. Only JPEG, TIFF and flattened PDF files can be saved in CMYK. Save it in RGB?</source>
+        <translation>이 문서는 CMYK 교정 모드이지만 %1 파일은 RGB로 저장됩니다. JPEG, TIFF, 병합된 PDF 파일만 CMYK로 저장할 수 있습니다. RGB로 저장하시겠습니까?</translation>
+    </message>
+    <message>
+        <source>Save in RGB</source>
+        <translation>RGB로 저장</translation>
+    </message>
+    <message>
+        <source>Saved %1 in CMYK</source>
+        <translation>%1을(를) CMYK로 저장했습니다</translation>
+    </message>
+    <message>
+        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches, and how Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors and CMYK saves and exports convert colors.</source>
+        <translation>Patchy는 RGB로 편집합니다. 이 프로파일은 색상 피커, 정보 패널, CMYK 견본에서 CMYK 값의 의미와 이미지 &gt; 모드 &gt; CMYK 교정, 보기 &gt; 색상 교정, CMYK 저장 및 내보내기에서 색상을 변환하는 방식을 정합니다.</translation>
+    </message>
+    <message>
+        <source>Patchy includes one CMYK profile, ISO Coated v2 (basICColor). The other profiles in this list were found on this computer, installed by the operating system or by other software such as Adobe applications; Patchy does not include them.</source>
+        <translation>Patchy에는 CMYK 프로파일 ISO Coated v2 (basICColor) 하나만 포함되어 있습니다. 이 목록의 다른 프로파일은 이 컴퓨터에서 찾은 것으로, 운영 체제나 Adobe 애플리케이션 같은 다른 소프트웨어가 설치했으며 Patchy에는 포함되어 있지 않습니다.</translation>
+    </message>
+    <message>
+        <source>Automatic (%1, included with Patchy)</source>
+        <translation>자동(%1, Patchy에 포함)</translation>
+    </message>
+    <message>
+        <source>Automatic (%1, found on this computer)</source>
+        <translation>자동(%1, 이 컴퓨터에서 찾음)</translation>
+    </message>
+    <message>
+        <source>CMYK Proof needs a CMYK profile and was turned off. Choose a profile in Preferences.</source>
+        <translation>CMYK 교정에는 CMYK 프로파일이 필요하므로 꺼졌습니다. 환경설정에서 프로파일을 선택하세요.</translation>
+    </message>
+    <message>
+        <source>Convert the document to RGB Color before turning on CMYK Proof.</source>
+        <translation>CMYK 교정을 켜기 전에 문서를 RGB 색상으로 변환하세요.</translation>
+    </message>
+    <message>
+        <source>CMYK Proof needs a CMYK profile. Choose one in Preferences.</source>
+        <translation>CMYK 교정에는 CMYK 프로파일이 필요합니다. 환경설정에서 선택하세요.</translation>
+    </message>
+    <message>
+        <source>CMYK Proof: the canvas shows the CMYK profile %1. Saving as JPEG, TIFF or PDF writes CMYK.</source>
+        <translation>CMYK 교정: 캔버스에 CMYK 프로파일 %1이(가) 표시됩니다. JPEG, TIFF 또는 PDF로 저장하면 CMYK로 기록됩니다.</translation>
+    </message>
+    <message>
+        <source>RGB Color: saves are written in RGB again.</source>
+        <translation>RGB 색상: 저장이 다시 RGB로 기록됩니다.</translation>
     </message>
 </context>
 <context>

@@ -224,6 +224,7 @@ class ScriptDocumentObject : public QObject {
   Q_PROPERTY(QString path READ path)
   Q_PROPERTY(double resolution READ resolution)
   Q_PROPERTY(int bitDepth READ bit_depth)
+  Q_PROPERTY(bool cmykProof READ cmyk_proof WRITE set_cmyk_proof)
   Q_PROPERTY(QJSValue layers READ layers)
   Q_PROPERTY(QJSValue activeLayer READ active_layer WRITE set_active_layer)
   Q_PROPERTY(QJSValue selection READ selection)
@@ -254,6 +255,8 @@ public:
   [[nodiscard]] QString path() const;
   [[nodiscard]] double resolution() const;
   [[nodiscard]] int bit_depth() const;
+  [[nodiscard]] bool cmyk_proof() const;
+  void set_cmyk_proof(bool enabled);
   [[nodiscard]] QJSValue layers() const;
   [[nodiscard]] QJSValue active_layer() const;
   void set_active_layer(const QJSValue& layer);

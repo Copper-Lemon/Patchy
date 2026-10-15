@@ -1834,6 +1834,10 @@ void MainWindow::create_docks() {
                       [this] { invert_active_channel(); });
   make_channel_action(channel_delete_action_, QT_TR_NOOP("Delete Channel"), "channelDeleteAction", "channel.delete",
                       [this] { delete_active_channel(); });
+  make_channel_action(channel_new_layer_action_, QT_TR_NOOP("New Layer from Channel"), "channelNewLayerAction",
+                      "channel.new_layer", [this] { new_layer_from_channel(false); });
+  make_channel_action(channel_new_color_layer_action_, QT_TR_NOOP("New Layer from Channel Color"),
+                      "channelNewColorLayerAction", "channel.new_color_layer", [this] { new_layer_from_channel(true); });
   channel_new_action_->setIcon(simple_icon(QStringLiteral("new")));
   channel_save_selection_action_->setIcon(simple_icon(QStringLiteral("channel-save-selection")));
   channel_load_selection_action_->setIcon(simple_icon(QStringLiteral("channel-load-selection")));
@@ -1843,6 +1847,7 @@ void MainWindow::create_docks() {
   channel_panel_->set_actions(channel_new_action_, channel_save_selection_action_,
                               channel_load_selection_action_, channel_rename_action_, channel_invert_action_,
                               channel_delete_action_);
+  channel_panel_->set_layer_actions(channel_new_layer_action_, channel_new_color_layer_action_);
   channel_panel_->set_target_callback([this](ChannelPanel::RowKind kind, ChannelId id, bool overlay) {
     set_channel_edit_target(kind, id, overlay);
   });

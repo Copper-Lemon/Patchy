@@ -988,11 +988,22 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
   cmyk_header->setFont(cmyk_header_font);
   cmyk_form->addRow(cmyk_header);
   auto* cmyk_info = new QLabel(
-      tr("Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, "
-         "the Info panel, and CMYK swatches."),
+      tr("Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel "
+         "and CMYK swatches, and how Image > Mode > CMYK Proof, View > Proof Colors and CMYK saves and "
+         "exports convert colors."),
       cmyk_group);
   cmyk_info->setWordWrap(true);
   cmyk_form->addRow(cmyk_info);
+  // Only the basICColor profile ships with Patchy (docs/cmyk.md, licence record); every
+  // other entry is read from the operating system's and Adobe's profile folders.
+  auto* cmyk_source_info = new QLabel(
+      tr("Patchy includes one CMYK profile, ISO Coated v2 (basICColor). The other profiles in this list "
+         "were found on this computer, installed by the operating system or by other software such as "
+         "Adobe applications; Patchy does not include them."),
+      cmyk_group);
+  cmyk_source_info->setObjectName(QStringLiteral("preferencesCmykSourceInfo"));
+  cmyk_source_info->setWordWrap(true);
+  cmyk_form->addRow(cmyk_source_info);
   const auto entry_cmyk_settings = stored_cmyk_working_settings();
   auto* cmyk_profile_combo = new QComboBox(cmyk_group);
   cmyk_profile_combo->setObjectName(QStringLiteral("preferencesCmykProfileCombo"));
@@ -1010,9 +1021,13 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
     cmyk_profile_combo->setItemData(row, QDir::toNativeSeparators(path), Qt::ToolTipRole);
   };
   {
-    const auto automatic_name =
-        QString::fromStdString(cmyk_working_space_for(CmykWorkingSettings{})->profile_description());
-    cmyk_profile_combo->addItem(automatic_name.isEmpty() ? tr("Automatic") : tr("Automatic (%1)").arg(automatic_name),
+    const auto automatic_space = cmyk_working_space_for(CmykWorkingSettings{});
+    const auto automatic_name = QString::fromStdString(automatic_space->profile_description());
+    const bool automatic_included = automatic_space->profile_bytes() == bundled_cmyk_profile();
+    cmyk_profile_combo->addItem(automatic_name.isEmpty() ? tr("Automatic")
+                                : automatic_included
+                                    ? tr("Automatic (%1, included with Patchy)").arg(automatic_name)
+                                    : tr("Automatic (%1, found on this computer)").arg(automatic_name),
                                 QString());
     for (const auto& installed : installed_cmyk_profiles()) {
       add_cmyk_profile_entry(cmyk_profile_combo->count(), to_qstring(installed.path),
@@ -2189,12 +2204,23 @@ void MainWindow::apply_canvas_aid_settings(CanvasWidget* canvas) const {
   canvas->set_proof_display_transform(proof_display_transform_);
 }
 
-void MainWindow::refresh_proof_display() {
+void MainWindow::refresh_proof_display(bool announce_view) {
   const bool proof = view_proof_colors_action_ != nullptr && view_proof_colors_action_->isChecked();
   const bool gamut = view_gamut_warning_action_ != nullptr && view_gamut_warning_action_->isChecked();
+  const auto space = working_cmyk_space();
+  if (!space->has_profile()) {
+    // The formula cannot proof: a CMYK Proof document goes back to plain RGB.
+    bool dropped = false;
+    for (const auto& session : sessions_) {
+      dropped = dropped || session->cmyk_proof;
+      session->cmyk_proof = false;
+    }
+    if (dropped) {
+      show_status_error(tr("CMYK Proof needs a CMYK profile and was turned off. Choose a profile in Preferences."));
+    }
+  }
   std::shared_ptr<const CmykProofTransform> transform;
   if (proof || gamut) {
-    const auto space = working_cmyk_space();
     transform = CmykProofTransform::create(*space, proof, gamut);
     if (transform == nullptr) {
       // The formula has no gamut and nothing to simulate.
@@ -2203,7 +2229,7 @@ void MainWindow::refresh_proof_display() {
         action->setChecked(false);
       }
       show_status_error(tr("Proof Colors and Gamut Warning need a CMYK profile. Choose one in Preferences."));
-    } else {
+    } else if (announce_view) {
       statusBar()->showMessage(
           tr("Canvas view uses the CMYK profile %1. Documents and exports are unchanged.")
               .arg(QString::fromStdString(space->profile_description())),
@@ -2211,16 +2237,80 @@ void MainWindow::refresh_proof_display() {
     }
   }
   proof_display_transform_ = std::move(transform);
+  // CMYK Proof documents always simulate the print, with the gamut warning when it is on.
+  const bool any_document_proof =
+      std::any_of(sessions_.begin(), sessions_.end(), [](const auto& session) { return session->cmyk_proof; });
+  const bool document_gamut = gamut && proof_display_transform_ != nullptr;
+  if (!any_document_proof) {
+    document_proof_transform_.reset();
+    document_proof_space_.reset();
+  } else if (proof && proof_display_transform_ != nullptr) {
+    document_proof_transform_ = proof_display_transform_;
+    document_proof_space_.reset();
+  } else if (document_proof_transform_ == nullptr || document_proof_space_ != space ||
+             document_proof_gamut_ != document_gamut) {
+    document_proof_transform_ = CmykProofTransform::create(*space, true, document_gamut);
+    document_proof_space_ = space;
+    document_proof_gamut_ = document_gamut;
+  }
   for (const auto& session : sessions_) {
-    session->canvas->set_proof_display_transform(proof_display_transform_);
+    const auto& session_transform = session->cmyk_proof ? document_proof_transform_ : proof_display_transform_;
+    session->canvas->set_proof_display_transform(session_transform);
     // The ink plates exist only under the proof (docs/cmyk.md).
-    const bool plates_listed = proof_display_transform_ != nullptr && proof_display_transform_->simulates_colors();
+    const bool plates_listed = session_transform != nullptr && session_transform->simulates_colors();
     if (!plates_listed && CanvasWidget::is_cmyk_plate(session->canvas->layer_edit_target())) {
       session->canvas->set_component_channel_preview(CanvasWidget::LayerEditTarget::Content);
     }
   }
   refresh_channel_panel();
+  refresh_image_mode_actions();
   update_document_action_state();
+}
+
+QString MainWindow::set_session_cmyk_proof(DocumentSession& session, bool enabled) {
+  if (enabled) {
+    if (std::as_const(session.document).palette_editing().has_value()) {
+      return tr("Convert the document to RGB Color before turning on CMYK Proof.");
+    }
+    if (!working_cmyk_space()->has_profile()) {
+      return tr("CMYK Proof needs a CMYK profile. Choose one in Preferences.");
+    }
+  }
+  if (session.cmyk_proof == enabled) {
+    refresh_image_mode_actions();
+    return {};
+  }
+  session.cmyk_proof = enabled;
+  session.cmyk_proof_rgb_save_accepted = false;
+  refresh_proof_display(/*announce_view*/ false);
+  return {};
+}
+
+void MainWindow::set_document_cmyk_proof(bool enabled) {
+  if (!has_active_document()) {
+    return;
+  }
+  if (enabled && std::as_const(document()).palette_editing().has_value()) {
+    convert_document_to_rgb();
+    if (!has_active_document() || std::as_const(document()).palette_editing().has_value()) {
+      refresh_image_mode_actions();  // cancelled: stay Indexed
+      return;
+    }
+  }
+  const bool was_enabled = session().cmyk_proof;
+  if (const auto refusal = set_session_cmyk_proof(session(), enabled); !refusal.isEmpty()) {
+    refresh_image_mode_actions();
+    show_status_error(refusal);
+    return;
+  }
+  if (enabled && !was_enabled) {
+    statusBar()->showMessage(tr("CMYK Proof: the canvas shows the CMYK profile %1. Saving as JPEG, TIFF or PDF "
+                                "writes CMYK.")
+                                 .arg(QString::fromStdString(working_cmyk_space()->profile_description())),
+                             6000);
+  } else if (!enabled && was_enabled) {
+    statusBar()->showMessage(tr("RGB Color: saves are written in RGB again."), 4000);
+  }
 }
 
 void MainWindow::refresh_vector_preview_action() {

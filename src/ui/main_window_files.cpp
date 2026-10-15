@@ -43,6 +43,7 @@
 #include "psd/psd_smart_objects.hpp"
 #include "ui/action_icons.hpp"
 #include "ui/app_settings.hpp"
+#include "ui/image_save_option_keys.hpp"
 #include "render/compositor.hpp"
 #include "ui/background_workers.hpp"
 #include "ui/blend_mode_ui.hpp"
@@ -3717,6 +3718,60 @@ bool MainWindow::confirm_flatten_layers_for_save(const QString& extension) {
   return answer == QMessageBox::Save;
 }
 
+bool MainWindow::confirm_cmyk_proof_save(const QString& extension, ImageSaveOptions& options) {
+  auto settings = app_settings();
+  if (!settings.value(QStringLiteral("saveOptions/cmykProofSaveNotice"), true).toBool()) {
+    return true;
+  }
+  const auto space = working_cmyk_space();
+  const auto format = is_jpeg_extension(extension) ? QStringLiteral("JPEG")
+                      : is_pdf_extension(extension) ? QStringLiteral("PDF")
+                                                    : QStringLiteral("TIFF");
+  const auto intent = space->intent() == RenderingIntent::Perceptual ? tr("Perceptual")
+                      : space->intent() == RenderingIntent::Saturation ? tr("Saturation")
+                      : space->intent() == RenderingIntent::AbsoluteColorimetric ? tr("Absolute Colorimetric")
+                                                                                   : tr("Relative Colorimetric");
+  QDialog dialog(this);
+  dialog.setObjectName(QStringLiteral("cmykProofSaveDialog"));
+  dialog.setWindowTitle(tr("Save as CMYK"));
+  auto* layout = new QVBoxLayout(&dialog);
+  auto* summary = new QLabel(tr("This document is in CMYK Proof mode, so Patchy saves this %1 file in CMYK.").arg(format),
+                             &dialog);
+  summary->setWordWrap(true);
+  layout->addWidget(summary);
+  auto* details = new QLabel(
+      tr("The image is placed on white paper and separated through the CMYK profile %1 with the %2 rendering "
+         "intent, and that profile is embedded in the file. Patchy opens CMYK files as RGB again, so keep a "
+         "PSD copy for further editing. The profile is chosen in Preferences.")
+          .arg(QString::fromStdString(space->profile_description()), intent),
+      &dialog);
+  details->setWordWrap(true);
+  layout->addWidget(details);
+  auto* black_ink_only = new QCheckBox(tr("Black and grays in black ink only"), &dialog);
+  black_ink_only->setObjectName(QStringLiteral("cmykProofSaveBlackInkOnlyCheck"));
+  black_ink_only->setToolTip(tr("Prints black text and gray areas with black ink alone, so small type stays sharp "
+                                "on press. Colored areas are separated through the profile as usual."));
+  black_ink_only->setChecked(options.export_black_ink_only);
+  layout->addWidget(black_ink_only);
+  auto* dont_show = new QCheckBox(tr("Don't show this again"), &dialog);
+  dont_show->setObjectName(QStringLiteral("cmykProofSaveDontShowCheck"));
+  layout->addWidget(dont_show);
+  auto* buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, &dialog);
+  connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+  connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+  layout->addWidget(buttons);
+  dialog.setMinimumWidth(460);
+  if (exec_dialog(dialog) != QDialog::Accepted) {
+    return false;
+  }
+  options.export_black_ink_only = black_ink_only->isChecked();
+  settings.setValue(cmyk_black_ink_only_settings_key(extension), black_ink_only->isChecked());
+  if (dont_show->isChecked()) {
+    settings.setValue(QStringLiteral("saveOptions/cmykProofSaveNotice"), false);
+  }
+  return true;
+}
+
 // A layered document going to PDF has two honest forms (one flattened image, or layers
 // kept as paths/text/images that may not composite exactly like the canvas), so instead
 // of the flatten confirmation the user picks one here. The remembered policy
@@ -3839,19 +3894,50 @@ bool MainWindow::save_document_to_path(QString path, std::optional<ImageSaveOpti
   if (!has_active_document() || session().session_id != saving_session_id) {
     return false;
   }
-  try {
-    auto effective_image_options = image_options.value_or(image_save_defaults_for_document());
-    if (!image_options.has_value() && image_save_options_apply_to_extension(extension)) {
-      const auto& active_session = session();
-      if (active_session.image_save_options.has_value() && active_session.image_save_options_path == path &&
-          active_session.image_save_options_extension == extension) {
-        effective_image_options = *active_session.image_save_options;
+  auto effective_image_options = image_options.value_or(image_save_defaults_for_document());
+  if (!image_options.has_value() && image_save_options_apply_to_extension(extension)) {
+    const auto& active_session = session();
+    if (active_session.image_save_options.has_value() && active_session.image_save_options_path == path &&
+        active_session.image_save_options_extension == extension) {
+      effective_image_options = *active_session.image_save_options;
+    }
+  }
+  if (pdf_editable_layers.has_value()) {
+    effective_image_options.pdf_editable_layers = *pdf_editable_layers;
+  }
+  // CMYK Proof (docs/cmyk.md): unless the Export dialog or a script chose the color form,
+  // the document's mode does. CMYK where the format has a CMYK form, RGB everywhere else.
+  if (!effective_image_options.export_color_explicit) {
+    const bool cmyk = session().cmyk_proof && working_cmyk_space()->has_profile() &&
+                      cmyk_form_available(extension, effective_image_options.pdf_editable_layers);
+    effective_image_options.export_cmyk = cmyk;
+    effective_image_options.export_black_ink_only =
+        cmyk && app_settings().value(cmyk_black_ink_only_settings_key(extension), false).toBool();
+    if (cmyk && !quiet && !confirm_cmyk_proof_save(extension, effective_image_options)) {
+      return false;
+    }
+    if (!cmyk && session().cmyk_proof && !quiet && !policy.export_copy && !session().cmyk_proof_rgb_save_accepted) {
+      const auto message =
+          is_pdf_extension(extension)
+              ? tr("This document is in CMYK Proof mode, but a PDF with editable layers is saved in RGB. "
+                   "Save it in RGB?")
+              : tr("This document is in CMYK Proof mode, but %1 files are saved in RGB. Only JPEG, TIFF and "
+                   "flattened PDF files can be saved in CMYK. Save it in RGB?")
+                    .arg(extension.toUpper());
+      const auto answer = show_warning_message(this, tr("Save in RGB"), message, QMessageBox::Save | QMessageBox::Cancel,
+                                               QMessageBox::Save, QStringLiteral("cmykProofRgbSaveMessageBox"));
+      if (answer != QMessageBox::Save) {
+        return false;
+      }
+      if (has_active_document() && session().session_id == saving_session_id) {
+        session().cmyk_proof_rgb_save_accepted = true;
       }
     }
-    if (pdf_editable_layers.has_value()) {
-      effective_image_options.pdf_editable_layers = *pdf_editable_layers;
-    }
-
+  }
+  if (!has_active_document() || session().session_id != saving_session_id) {
+    return false;
+  }
+  try {
     QString export_notes_suffix;
     if (is_photoshop_document_extension(extension)) {
       // Linked smart objects store their path relative to the document's folder, which
@@ -3932,7 +4018,8 @@ bool MainWindow::save_document_to_path(QString path, std::optional<ImageSaveOpti
     }
     set_session_saved(active_session);
     add_recent_file(path);
-    statusBar()->showMessage(tr("Saved %1").arg(path) + export_notes_suffix);
+    statusBar()->showMessage((effective_image_options.export_cmyk ? tr("Saved %1 in CMYK") : tr("Saved %1")).arg(path) +
+                             export_notes_suffix);
     if (linked_external_child) {
       refresh_external_smart_object_after_save(active_session);
     }

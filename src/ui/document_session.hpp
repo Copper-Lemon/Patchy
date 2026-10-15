@@ -48,6 +48,13 @@ struct DocumentSession {
   // shown, so it has no real size to fit to yet. The first activation fits it.
   bool fit_view_on_first_activation{false};
   std::optional<ImageSaveOptions> image_save_options;
+  // Image > Mode > CMYK Proof (docs/cmyk.md): the canvas shows this document through the
+  // working CMYK profile, and saves to JPEG, TIFF and flattened PDF write CMYK. Session-only:
+  // never stored in a file.
+  bool cmyk_proof{false};
+  // The user agreed to save this CMYK Proof document in RGB to a format without a CMYK
+  // form; the warning is not repeated in this session.
+  bool cmyk_proof_rgb_save_accepted{false};
   QString image_save_options_path;
   QString image_save_options_extension;
   // Stable identity for cross-session references (ids, not pointers: the session list

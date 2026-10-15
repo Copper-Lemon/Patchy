@@ -1343,16 +1343,37 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   image_mode_rgb_action_->setCheckable(true);
   image_mode_rgb_action_->setChecked(true);
   register_hotkey(image_mode_rgb_action_, "image.mode_rgb");
-  connect(image_mode_rgb_action_, &QAction::triggered, this, [this] { convert_document_to_rgb(); });
+  connect(image_mode_rgb_action_, &QAction::triggered, this, [this] {
+    if (has_active_document() && session().cmyk_proof) {
+      set_document_cmyk_proof(false);
+      return;
+    }
+    convert_document_to_rgb();
+  });
+  // CMYK Proof (docs/cmyk.md): still RGB pixels, shown through the working CMYK profile,
+  // and saved as CMYK to JPEG, TIFF and flattened PDF.
+  image_mode_cmyk_proof_action_ = image_mode_menu->addAction(tr("&CMYK Proof"));
+  bind_action_text(image_mode_cmyk_proof_action_, QT_TR_NOOP("&CMYK Proof"));
+  image_mode_cmyk_proof_action_->setObjectName(QStringLiteral("imageModeCmykProofAction"));
+  image_mode_cmyk_proof_action_->setCheckable(true);
+  register_hotkey(image_mode_cmyk_proof_action_, "image.mode_cmyk_proof");
+  connect(image_mode_cmyk_proof_action_, &QAction::triggered, this, [this] { set_document_cmyk_proof(true); });
   image_mode_indexed_action_ = image_mode_menu->addAction(tr("&Indexed (Palette)..."));
   bind_action_text(image_mode_indexed_action_, QT_TR_NOOP("&Indexed (Palette)..."));
   image_mode_indexed_action_->setObjectName(QStringLiteral("imageModeIndexedAction"));
   image_mode_indexed_action_->setCheckable(true);
   register_hotkey(image_mode_indexed_action_, "image.mode_indexed");
-  connect(image_mode_indexed_action_, &QAction::triggered, this, [this] { convert_document_to_indexed(); });
+  connect(image_mode_indexed_action_, &QAction::triggered, this, [this] {
+    convert_document_to_indexed();
+    // Indexed replaces CMYK Proof, as one mode replaces another.
+    if (has_active_document() && std::as_const(document()).palette_editing().has_value() && session().cmyk_proof) {
+      static_cast<void>(set_session_cmyk_proof(session(), false));
+    }
+  });
   auto* image_mode_group = new QActionGroup(this);
   image_mode_group->setExclusive(true);
   image_mode_group->addAction(image_mode_rgb_action_);
+  image_mode_group->addAction(image_mode_cmyk_proof_action_);
   image_mode_group->addAction(image_mode_indexed_action_);
   // Bits per channel (docs/high-bit-depth.md). Shown while deep editing is on.
   auto* depth_separator = image_mode_menu->addSeparator();
@@ -1393,7 +1414,8 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   snap_image_to_palette_action_->setObjectName(QStringLiteral("imageSnapImageToPaletteAction"));
   register_hotkey(snap_image_to_palette_action_, "image.snap_image_to_palette");
   connect(snap_image_to_palette_action_, &QAction::triggered, this, [this] { snap_layers_to_palette(false); });
-  for (auto* action : {image_mode_menu->menuAction(), image_mode_rgb_action_, image_mode_indexed_action_,
+  for (auto* action : {image_mode_menu->menuAction(), image_mode_rgb_action_, image_mode_cmyk_proof_action_,
+                       image_mode_indexed_action_,
                        snap_layer_to_palette_action_, snap_image_to_palette_action_}) {
     register_document_action(action);
   }

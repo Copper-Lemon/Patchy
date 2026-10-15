@@ -61,6 +61,9 @@ public:
   void set_channel_creation_available(bool available);
   void set_actions(QAction* create, QAction* save_selection, QAction* load_selection,
                    QAction* rename, QAction* invert, QAction* remove);
+  // Context-menu-only actions: a new layer from the selected row, as grayscale values or
+  // in the channel's own color (component and ink plate rows only).
+  void set_layer_actions(QAction* gray_layer, QAction* color_layer);
   void set_target_callback(TargetCallback callback);
   void set_load_selection_callback(LoadSelectionCallback callback);
   void set_reorder_callback(ReorderCallback callback);
@@ -91,6 +94,8 @@ private:
   QToolButton* rename_button_{nullptr};
   QToolButton* invert_button_{nullptr};
   QToolButton* remove_button_{nullptr};
+  QAction* gray_layer_action_{nullptr};
+  QAction* color_layer_action_{nullptr};
   TargetCallback target_callback_;
   LoadSelectionCallback load_selection_callback_;
   ReorderCallback reorder_callback_;

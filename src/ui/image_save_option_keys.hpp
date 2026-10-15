@@ -27,6 +27,13 @@ namespace patchy::ui {
 [[nodiscard]] bool is_rttex_extension(const QString& extension);
 [[nodiscard]] bool is_dds_extension(const QString& extension);
 
+// JPEG, TIFF and flattened PDF have a CMYK form (docs/cmyk.md).
+[[nodiscard]] bool cmyk_form_available(const QString& extension, bool pdf_editable_layers);
+// The per-format saveOptions/exportColor* and saveOptions/exportBlackInkOnly* keys of a
+// format with a CMYK form; empty for any other format.
+[[nodiscard]] QString cmyk_color_settings_key(const QString& extension);
+[[nodiscard]] QString cmyk_black_ink_only_settings_key(const QString& extension);
+
 // DDS and Proton tokens wrap the codec's own helpers (docs/dds.md, docs/rttex.md).
 [[nodiscard]] QString dds_compression_key(dds::Compression compression);
 [[nodiscard]] dds::Compression dds_compression_from_key(const QString& key, dds::Compression fallback);

@@ -3146,6 +3146,11 @@ void ui_preferences_cmyk_settings_persist_and_apply() {
     CHECK(profile->currentIndex() == 0);
     CHECK(profile->currentData().toString().isEmpty());
     CHECK(profile->itemText(0).startsWith(QStringLiteral("Automatic (")));
+    // The Automatic entry says where its profile comes from, and the note says only one ships.
+    CHECK(profile->itemText(0).endsWith(QStringLiteral(", included with Patchy)")) ||
+          profile->itemText(0).endsWith(QStringLiteral(", found on this computer)")));
+    auto* source_info = dialog->findChild<QLabel*>(QStringLiteral("preferencesCmykSourceInfo"));
+    CHECK(source_info != nullptr && source_info->text().contains(QStringLiteral("includes one CMYK profile")));
     CHECK(intent->currentData().toInt() == static_cast<int>(patchy::RenderingIntent::RelativeColorimetric));
     CHECK(intent->count() == 4);
     CHECK(black_point->isChecked());

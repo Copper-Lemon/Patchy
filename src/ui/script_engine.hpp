@@ -184,6 +184,9 @@ public:
   [[nodiscard]] const Document* session_document_const(std::int64_t session_id) const noexcept;
   [[nodiscard]] QString session_title(std::int64_t session_id) const;
   [[nodiscard]] QString session_file_path(std::int64_t session_id) const;
+  [[nodiscard]] bool session_cmyk_proof(std::int64_t session_id) const;
+  // Empty on success, else why CMYK Proof was refused.
+  [[nodiscard]] QString set_session_cmyk_proof(std::int64_t session_id, bool enabled);
   std::int64_t open_document_file(const QString& path);  // 0 on failure
   std::int64_t create_document(int width, int height);
   // doc.saveAs / doc.exportAs. `options` set = the script's explicit choices overlaid on

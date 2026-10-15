@@ -1016,6 +1016,19 @@ QString ScriptEngineHost::session_file_path(std::int64_t session_id) const {
   return session != nullptr ? session->path : QString();
 }
 
+bool ScriptEngineHost::session_cmyk_proof(std::int64_t session_id) const {
+  const auto* session = const_cast<MainWindow&>(window_).session_with_id(session_id);
+  return session != nullptr && session->cmyk_proof;
+}
+
+QString ScriptEngineHost::set_session_cmyk_proof(std::int64_t session_id, bool enabled) {
+  auto* session = window_.session_with_id(session_id);
+  if (session == nullptr) {
+    return tr("The document is no longer open.");
+  }
+  return window_.set_session_cmyk_proof(*session, enabled);
+}
+
 std::int64_t ScriptEngineHost::open_document_file(const QString& path) {
   pump_progress_indicator();
   std::set<std::int64_t> before;

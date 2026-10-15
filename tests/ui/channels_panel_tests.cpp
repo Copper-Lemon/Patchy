@@ -575,7 +575,12 @@ void ui_channel_ctrl_click_context_menu_and_compact_actions() {
                        QStringLiteral("channelLoadSelectionAction"),
                        QStringLiteral("channelRenameAction"),
                        QStringLiteral("channelInvertAction"),
-                       QStringLiteral("channelDeleteAction")}));
+                       QStringLiteral("channelDeleteAction"),
+                       QStringLiteral("channelNewLayerAction"),
+                       QStringLiteral("channelNewColorLayerAction")}));
+    // An alpha channel has values but no color of its own.
+    CHECK(require_action(window, "channelNewLayerAction")->isEnabled());
+    CHECK(!require_action(window, "channelNewColorLayerAction")->isEnabled());
     CHECK(require_action(window, "channelNewAction")->isEnabled());
     CHECK(require_action(window, "channelSaveSelectionAction")->isEnabled());
     CHECK(require_action(window, "channelLoadSelectionAction")->isEnabled());
@@ -1084,6 +1089,86 @@ void ui_channels_panel_shows_cmyk_plates_under_proof_colors() {
 }
 
 
+// The channel context menu's New Layer from Channel copies a row's values into a
+// grayscale layer; New Layer from Channel Color copies a component or ink plate in its own
+// color (Screen for components, Multiply for plates).
+void ui_channel_rows_become_new_layers() {
+  const auto previous = patchy::working_cmyk_space();
+  const auto restore = qScopeGuard([&previous] { patchy::set_working_cmyk_space(previous); });
+  const auto space = patchy::CmykWorkingSpace::from_icc_profile(patchy::ui::bundled_cmyk_profile(),
+                                                                patchy::RenderingIntent::RelativeColorimetric, true);
+  patchy::Document document(32, 24, patchy::PixelFormat::rgb8());
+  document.add_pixel_layer("Artwork", solid_pixels(32, 24, patchy::PixelFormat::rgb8(), QColor(200, 120, 40)));
+  patchy::ui::MainWindow window;
+  patchy::set_working_cmyk_space(space);
+  window.add_document_session(std::move(document), QStringLiteral("Channel layers"));
+  show_window(window);
+  QApplication::processEvents();
+  auto* channels = window.findChild<QListWidget*>(QStringLiteral("channelList"));
+  auto* gray_action = window.findChild<QAction*>(QStringLiteral("channelNewLayerAction"));
+  auto* color_action = window.findChild<QAction*>(QStringLiteral("channelNewColorLayerAction"));
+  CHECK(channels != nullptr && gray_action != nullptr && color_action != nullptr);
+  auto& doc = patchy::ui::MainWindowTestAccess::document(window);
+  const auto top_layer = [&doc]() -> const patchy::Layer& { return std::as_const(doc).layers().back(); };
+  const auto top_pixel = [&](int x, int y) {
+    const auto* pixel = top_layer().pixels().pixel(x, y);
+    return QColor(pixel[0], pixel[1], pixel[2], pixel[3]);
+  };
+
+  // Composite has no color of its own.
+  channels->setCurrentRow(0);
+  QApplication::processEvents();
+  CHECK(gray_action->isEnabled());
+  CHECK(!color_action->isEnabled());
+
+  channels->setCurrentRow(1);  // Red
+  QApplication::processEvents();
+  CHECK(color_action->isEnabled());
+  gray_action->trigger();
+  QApplication::processEvents();
+  CHECK(std::as_const(doc).layers().size() == 2);
+  CHECK(top_layer().name() == "Red channel");
+  CHECK(top_layer().blend_mode() == patchy::BlendMode::Normal);
+  CHECK(top_pixel(5, 5) == QColor(200, 200, 200, 255));
+  // The canvas left the channel view for the new layer.
+  CHECK(require_canvas(window)->layer_edit_target() == patchy::ui::CanvasWidget::LayerEditTarget::Content);
+
+  channels->setCurrentRow(1);
+  QApplication::processEvents();
+  color_action->trigger();
+  QApplication::processEvents();
+  CHECK(std::as_const(doc).layers().size() == 3);
+  CHECK(top_layer().name() == "Red");
+  CHECK(top_layer().blend_mode() == patchy::BlendMode::Screen);
+  CHECK(top_pixel(5, 5) == QColor(200, 0, 0, 255));
+  require_hotkey_action(window, QStringLiteral("edit.undo"))->trigger();
+  QApplication::processEvents();
+  CHECK(std::as_const(doc).layers().size() == 2);
+
+  // An ink plate in color: what that ink alone prints, opaque, in Multiply.
+  auto* proof = window.findChild<QAction*>(QStringLiteral("viewProofColorsAction"));
+  CHECK(proof != nullptr);
+  proof->trigger();
+  QApplication::processEvents();
+  CHECK(channels->count() == 8);
+  channels->setCurrentRow(5);  // Magenta
+  QApplication::processEvents();
+  color_action->trigger();
+  QApplication::processEvents();
+  CHECK(top_layer().name() == "Magenta");
+  CHECK(top_layer().blend_mode() == patchy::BlendMode::Multiply);
+  // The plate is separated from the composite as it now stands (the gray layer on top).
+  const auto ink = space->separate_rgba8(std::vector<std::uint8_t>{200, 200, 200, 255})[1];
+  patchy::CmykPercent magenta;
+  magenta.magenta = static_cast<double>(ink) * 100.0 / 255.0;
+  const auto expected = space->rgb_from_cmyk(magenta);
+  const auto printed = top_pixel(5, 5);
+  CHECK(printed.red() == expected.red && printed.green() == expected.green && printed.blue() == expected.blue);
+  CHECK(printed.alpha() == 255);
+  proof->trigger();
+  QApplication::processEvents();
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> channels_panel_tests() {
@@ -1099,6 +1184,7 @@ std::vector<patchy::test::TestCase> channels_panel_tests() {
        ui_save_fragmented_selection_as_channel_stays_responsive},
       {"ui_channels_target_survives_document_switch", ui_channels_target_survives_document_switch},
       {"ui_channels_panel_shows_cmyk_plates_under_proof_colors", ui_channels_panel_shows_cmyk_plates_under_proof_colors},
+      {"ui_channel_rows_become_new_layers", ui_channel_rows_become_new_layers},
       {"ui_non_psd_save_warns_before_discarding_channels",
        ui_non_psd_save_warns_before_discarding_channels},
       {"ui_save_layered_flat_format_routes_to_save_as_with_psd_default",

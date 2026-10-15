@@ -20338,16 +20338,8 @@ You can still download it in your browser.</source>
         <translation>CMYK</translation>
     </message>
     <message>
-        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel, and CMYK swatches.</source>
-        <translation>Patchy 以 RGB 编辑。此配置文件决定拾色器、信息面板和 CMYK 色板中 CMYK 数值的含义。</translation>
-    </message>
-    <message>
         <source>Automatic</source>
         <translation>自动</translation>
-    </message>
-    <message>
-        <source>Automatic (%1)</source>
-        <translation>自动（%1）</translation>
     </message>
     <message>
         <source>No profile (approximate formula)</source>
@@ -20532,6 +20524,110 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
     <message>
         <source>No matching recent folders</source>
         <translation>没有匹配的最近使用的文件夹</translation>
+    </message>
+    <message>
+        <source>&amp;CMYK Proof</source>
+        <translation>CMYK 校样(&amp;C)</translation>
+    </message>
+    <message>
+        <source>%1 channel</source>
+        <translation>%1 通道</translation>
+    </message>
+    <message>
+        <source>New layer from channel color</source>
+        <translation>从通道颜色新建图层</translation>
+    </message>
+    <message>
+        <source>New layer from channel</source>
+        <translation>从通道新建图层</translation>
+    </message>
+    <message>
+        <source>Created layer %1</source>
+        <translation>已创建图层 %1</translation>
+    </message>
+    <message>
+        <source>New Layer from Channel</source>
+        <translation>从通道新建图层</translation>
+    </message>
+    <message>
+        <source>New Layer from Channel Color</source>
+        <translation>从通道颜色新建图层</translation>
+    </message>
+    <message>
+        <source>Save as CMYK</source>
+        <translation>保存为 CMYK</translation>
+    </message>
+    <message>
+        <source>This document is in CMYK Proof mode, so Patchy saves this %1 file in CMYK.</source>
+        <translation>此文档处于 CMYK 校样模式，因此 Patchy 会以 CMYK 保存此 %1 文件。</translation>
+    </message>
+    <message>
+        <source>The image is placed on white paper and separated through the CMYK profile %1 with the %2 rendering intent, and that profile is embedded in the file. Patchy opens CMYK files as RGB again, so keep a PSD copy for further editing. The profile is chosen in Preferences.</source>
+        <translation>图像会放在白纸上，通过 CMYK 配置文件 %1 以 %2 渲染意图分色，并将该配置文件嵌入文件。Patchy 会将 CMYK 文件重新作为 RGB 打开，因此请保留一份 PSD 副本以便继续编辑。配置文件在首选项中选择。</translation>
+    </message>
+    <message>
+        <source>Black and grays in black ink only</source>
+        <translation>黑色和灰色仅用黑墨</translation>
+    </message>
+    <message>
+        <source>Prints black text and gray areas with black ink alone, so small type stays sharp on press. Colored areas are separated through the profile as usual.</source>
+        <translation>仅用黑墨印刷黑色文字和灰色区域，使小字在印刷时保持清晰。彩色区域照常通过配置文件分色。</translation>
+    </message>
+    <message>
+        <source>Don&apos;t show this again</source>
+        <translation>不再显示</translation>
+    </message>
+    <message>
+        <source>This document is in CMYK Proof mode, but a PDF with editable layers is saved in RGB. Save it in RGB?</source>
+        <translation>此文档处于 CMYK 校样模式，但带有可编辑图层的 PDF 会以 RGB 保存。是否以 RGB 保存？</translation>
+    </message>
+    <message>
+        <source>This document is in CMYK Proof mode, but %1 files are saved in RGB. Only JPEG, TIFF and flattened PDF files can be saved in CMYK. Save it in RGB?</source>
+        <translation>此文档处于 CMYK 校样模式，但 %1 文件会以 RGB 保存。只有 JPEG、TIFF 和拼合的 PDF 文件可以保存为 CMYK。是否以 RGB 保存？</translation>
+    </message>
+    <message>
+        <source>Save in RGB</source>
+        <translation>以 RGB 保存</translation>
+    </message>
+    <message>
+        <source>Saved %1 in CMYK</source>
+        <translation>已以 CMYK 保存 %1</translation>
+    </message>
+    <message>
+        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches, and how Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors and CMYK saves and exports convert colors.</source>
+        <translation>Patchy 以 RGB 编辑。此配置文件决定拾色器、信息面板和 CMYK 色板中 CMYK 数值的含义，以及图像 &gt; 模式 &gt; CMYK 校样、视图 &gt; 校样颜色和 CMYK 保存与导出如何转换颜色。</translation>
+    </message>
+    <message>
+        <source>Patchy includes one CMYK profile, ISO Coated v2 (basICColor). The other profiles in this list were found on this computer, installed by the operating system or by other software such as Adobe applications; Patchy does not include them.</source>
+        <translation>Patchy 只包含一个 CMYK 配置文件：ISO Coated v2 (basICColor)。此列表中的其他配置文件是在这台计算机上找到的，由操作系统或 Adobe 应用程序等其他软件安装；Patchy 不包含它们。</translation>
+    </message>
+    <message>
+        <source>Automatic (%1, included with Patchy)</source>
+        <translation>自动（%1，Patchy 自带）</translation>
+    </message>
+    <message>
+        <source>Automatic (%1, found on this computer)</source>
+        <translation>自动（%1，在这台计算机上找到）</translation>
+    </message>
+    <message>
+        <source>CMYK Proof needs a CMYK profile and was turned off. Choose a profile in Preferences.</source>
+        <translation>CMYK 校样需要 CMYK 配置文件，已关闭。请在首选项中选择配置文件。</translation>
+    </message>
+    <message>
+        <source>Convert the document to RGB Color before turning on CMYK Proof.</source>
+        <translation>开启 CMYK 校样前，请先将文档转换为 RGB 颜色。</translation>
+    </message>
+    <message>
+        <source>CMYK Proof needs a CMYK profile. Choose one in Preferences.</source>
+        <translation>CMYK 校样需要 CMYK 配置文件。请在首选项中选择。</translation>
+    </message>
+    <message>
+        <source>CMYK Proof: the canvas shows the CMYK profile %1. Saving as JPEG, TIFF or PDF writes CMYK.</source>
+        <translation>CMYK 校样：画布显示 CMYK 配置文件 %1。保存为 JPEG、TIFF 或 PDF 时写入 CMYK。</translation>
+    </message>
+    <message>
+        <source>RGB Color: saves are written in RGB again.</source>
+        <translation>RGB 颜色：保存重新以 RGB 写入。</translation>
     </message>
 </context>
 <context>

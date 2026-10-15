@@ -20401,16 +20401,8 @@ Vous pouvez toujours la télécharger dans votre navigateur.</translation>
         <translation>CMJN</translation>
     </message>
     <message>
-        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel, and CMYK swatches.</source>
-        <translation>Patchy travaille en RVB. Ce profil définit ce que signifient les valeurs CMJN dans le sélecteur de couleurs, le panneau Infos et les nuances CMJN.</translation>
-    </message>
-    <message>
         <source>Automatic</source>
         <translation>Automatique</translation>
-    </message>
-    <message>
-        <source>Automatic (%1)</source>
-        <translation>Automatique (%1)</translation>
     </message>
     <message>
         <source>No profile (approximate formula)</source>
@@ -20595,6 +20587,110 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
     <message>
         <source>No matching recent folders</source>
         <translation>Aucun dossier récent correspondant</translation>
+    </message>
+    <message>
+        <source>&amp;CMYK Proof</source>
+        <translation>Épreuve &amp;CMJN</translation>
+    </message>
+    <message>
+        <source>%1 channel</source>
+        <translation>Couche %1</translation>
+    </message>
+    <message>
+        <source>New layer from channel color</source>
+        <translation>Nouveau calque à partir de la couleur de la couche</translation>
+    </message>
+    <message>
+        <source>New layer from channel</source>
+        <translation>Nouveau calque à partir de la couche</translation>
+    </message>
+    <message>
+        <source>Created layer %1</source>
+        <translation>Calque %1 créé</translation>
+    </message>
+    <message>
+        <source>New Layer from Channel</source>
+        <translation>Nouveau calque à partir de la couche</translation>
+    </message>
+    <message>
+        <source>New Layer from Channel Color</source>
+        <translation>Nouveau calque à partir de la couleur de la couche</translation>
+    </message>
+    <message>
+        <source>Save as CMYK</source>
+        <translation>Enregistrer en CMJN</translation>
+    </message>
+    <message>
+        <source>This document is in CMYK Proof mode, so Patchy saves this %1 file in CMYK.</source>
+        <translation>Ce document est en mode Épreuve CMJN : Patchy enregistre donc ce fichier %1 en CMJN.</translation>
+    </message>
+    <message>
+        <source>The image is placed on white paper and separated through the CMYK profile %1 with the %2 rendering intent, and that profile is embedded in the file. Patchy opens CMYK files as RGB again, so keep a PSD copy for further editing. The profile is chosen in Preferences.</source>
+        <translation>L&apos;image est placée sur du papier blanc et séparée selon le profil CMJN %1 avec le mode de rendu %2, et ce profil est incorporé au fichier. Patchy rouvre les fichiers CMJN en RVB : conservez une copie PSD pour continuer à modifier l&apos;image. Le profil se choisit dans les Préférences.</translation>
+    </message>
+    <message>
+        <source>Black and grays in black ink only</source>
+        <translation>Noir et gris en encre noire seule</translation>
+    </message>
+    <message>
+        <source>Prints black text and gray areas with black ink alone, so small type stays sharp on press. Colored areas are separated through the profile as usual.</source>
+        <translation>Imprime le texte noir et les zones grises avec la seule encre noire, pour que les petits caractères restent nets à l&apos;impression. Les zones colorées sont séparées selon le profil comme d&apos;habitude.</translation>
+    </message>
+    <message>
+        <source>Don&apos;t show this again</source>
+        <translation>Ne plus afficher</translation>
+    </message>
+    <message>
+        <source>This document is in CMYK Proof mode, but a PDF with editable layers is saved in RGB. Save it in RGB?</source>
+        <translation>Ce document est en mode Épreuve CMJN, mais un PDF à calques modifiables est enregistré en RVB. L&apos;enregistrer en RVB ?</translation>
+    </message>
+    <message>
+        <source>This document is in CMYK Proof mode, but %1 files are saved in RGB. Only JPEG, TIFF and flattened PDF files can be saved in CMYK. Save it in RGB?</source>
+        <translation>Ce document est en mode Épreuve CMJN, mais les fichiers %1 sont enregistrés en RVB. Seuls les fichiers JPEG, TIFF et PDF aplatis peuvent être enregistrés en CMJN. L&apos;enregistrer en RVB ?</translation>
+    </message>
+    <message>
+        <source>Save in RGB</source>
+        <translation>Enregistrer en RVB</translation>
+    </message>
+    <message>
+        <source>Saved %1 in CMYK</source>
+        <translation>%1 enregistré en CMJN</translation>
+    </message>
+    <message>
+        <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches, and how Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors and CMYK saves and exports convert colors.</source>
+        <translation>Patchy travaille en RVB. Ce profil définit la signification des valeurs CMJN dans le sélecteur de couleur, le panneau Informations et les nuanciers CMJN, ainsi que la conversion des couleurs par Image &gt; Mode &gt; Épreuve CMJN, Affichage &gt; Couleurs d&apos;épreuve et les enregistrements et exportations CMJN.</translation>
+    </message>
+    <message>
+        <source>Patchy includes one CMYK profile, ISO Coated v2 (basICColor). The other profiles in this list were found on this computer, installed by the operating system or by other software such as Adobe applications; Patchy does not include them.</source>
+        <translation>Patchy inclut un seul profil CMJN, ISO Coated v2 (basICColor). Les autres profils de cette liste ont été trouvés sur cet ordinateur, installés par le système d&apos;exploitation ou par d&apos;autres logiciels comme les applications Adobe ; Patchy ne les inclut pas.</translation>
+    </message>
+    <message>
+        <source>Automatic (%1, included with Patchy)</source>
+        <translation>Automatique (%1, inclus avec Patchy)</translation>
+    </message>
+    <message>
+        <source>Automatic (%1, found on this computer)</source>
+        <translation>Automatique (%1, trouvé sur cet ordinateur)</translation>
+    </message>
+    <message>
+        <source>CMYK Proof needs a CMYK profile and was turned off. Choose a profile in Preferences.</source>
+        <translation>Épreuve CMJN nécessite un profil CMJN et a été désactivé. Choisissez un profil dans les Préférences.</translation>
+    </message>
+    <message>
+        <source>Convert the document to RGB Color before turning on CMYK Proof.</source>
+        <translation>Convertissez le document en couleurs RVB avant d&apos;activer Épreuve CMJN.</translation>
+    </message>
+    <message>
+        <source>CMYK Proof needs a CMYK profile. Choose one in Preferences.</source>
+        <translation>Épreuve CMJN nécessite un profil CMJN. Choisissez-en un dans les Préférences.</translation>
+    </message>
+    <message>
+        <source>CMYK Proof: the canvas shows the CMYK profile %1. Saving as JPEG, TIFF or PDF writes CMYK.</source>
+        <translation>Épreuve CMJN : la zone de travail affiche le profil CMJN %1. L&apos;enregistrement en JPEG, TIFF ou PDF écrit du CMJN.</translation>
+    </message>
+    <message>
+        <source>RGB Color: saves are written in RGB again.</source>
+        <translation>Couleurs RVB : les enregistrements sont de nouveau écrits en RVB.</translation>
     </message>
 </context>
 <context>

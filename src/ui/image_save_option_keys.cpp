@@ -20,6 +20,27 @@ bool is_jpeg_extension(const QString& extension) {
   return normalized == QStringLiteral("jpg") || normalized == QStringLiteral("jpeg");
 }
 
+bool cmyk_form_available(const QString& extension, bool pdf_editable_layers) {
+  const auto normalized = normalized_save_extension(extension);
+  return is_jpeg_extension(normalized) || normalized == QStringLiteral("tif") || normalized == QStringLiteral("tiff") ||
+         (normalized == QStringLiteral("pdf") && !pdf_editable_layers);
+}
+
+QString cmyk_color_settings_key(const QString& extension) {
+  const auto normalized = normalized_save_extension(extension);
+  return is_jpeg_extension(normalized) ? QStringLiteral("saveOptions/exportColorJpeg")
+         : normalized == QStringLiteral("tif") || normalized == QStringLiteral("tiff")
+             ? QStringLiteral("saveOptions/exportColorTiff")
+         : normalized == QStringLiteral("pdf") ? QStringLiteral("saveOptions/exportColorPdf")
+                                               : QString();
+}
+
+QString cmyk_black_ink_only_settings_key(const QString& extension) {
+  // Same per-format family as the color choice, Color becoming BlackInkOnly.
+  auto key = cmyk_color_settings_key(extension);
+  return key.replace(QStringLiteral("exportColor"), QStringLiteral("exportBlackInkOnly"));
+}
+
 bool is_webp_extension(const QString& extension) {
   return normalized_save_extension(extension) == QStringLiteral("webp");
 }

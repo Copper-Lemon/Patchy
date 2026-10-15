@@ -8,9 +8,9 @@ and [blend-modes.md](blend-modes.md).
 
 ## What it is, and what it is not
 
-Patchy edits in sRGB. The working CMYK space only gives single colors a CMYK reading and
-turns typed ink percentages into an RGB color. Nothing here changes document storage,
-rendering, saving or export: a document is never "in CMYK mode".
+Patchy edits in sRGB. The working CMYK space gives single colors a CMYK reading and turns
+typed ink percentages into an RGB color. Nothing here changes document storage or
+rendering: pixels are always RGB, also in CMYK Proof mode ("CMYK Proof mode" below).
 
 The same space drives two views of the canvas, View > Proof Colors and View > Gamut
 Warning ("The proof view" below). They change what is painted, never the document.
@@ -19,8 +19,9 @@ It also drives CMYK export of JPEG, TIFF and flattened PDF ("CMYK export" below)
 
 Not built: CMYK PSD saves of edited documents (layers, adjustments, text and styles would
 need CMYK forms Photoshop accepts; unchanged imported CMYK PSDs still save natively,
-[psd-native-color.md](psd-native-color.md)), an Image > Mode entry, Assign or Convert to
-Profile, a separate Proof Setup dialog (the proof uses the working space from Preferences).
+[psd-native-color.md](psd-native-color.md)), a true CMYK document mode, opening a CMYK file
+into CMYK Proof, Assign or Convert to Profile, a separate Proof Setup dialog (the proof uses
+the working space from Preferences).
 
 Limits to keep stating plainly in user-facing text:
 
@@ -124,7 +125,11 @@ Licence record (October 14, 2026):
   `.ase` (`CMYK` blocks) convert through the working space instead of being skipped. Lab
   and HSB entries are still skipped.
 - **Preferences > Application > CMYK**: `preferencesCmykProfileCombo`,
-  `preferencesCmykIntentCombo`, `preferencesCmykBlackPointCheck`.
+  `preferencesCmykIntentCombo`, `preferencesCmykBlackPointCheck`. `preferencesCmykSourceInfo`
+  states that only the bundled profile ships and the rest of the list was found on the
+  machine, and the Automatic entry names its source ("included with Patchy" when its bytes
+  are the bundled profile, else "found on this computer"). Keep both: the list shows
+  third-party profiles Patchy may not redistribute.
 - **Scripting**: `app.cmykProfile`, `app.colorToCmyk`, `app.cmykToColor`.
 
 The eyedropper's status message still reports RGB and hex only.
@@ -238,6 +243,33 @@ other format and throws when the working space has no profile:
   profile object the pages use) so preflight tools know the print condition. No
   `GTS_PDFXVersion` is written, so the file makes no PDF/X conformance claim.
 
+## CMYK Proof mode
+
+Image > Mode > CMYK Proof (`imageModeCmykProofAction`, command id `image.mode_cmyk_proof`,
+exclusive with RGB Color and Indexed) is `DocumentSession::cmyk_proof`: per document,
+session-only, never written to a file, not an undo step.
+
+- **View.** `refresh_proof_display` gives a CMYK Proof canvas `document_proof_transform_`,
+  which always simulates colors (with the gamut warning when View > Gamut Warning is on;
+  the View > Proof Colors transform itself when that is on). Other canvases keep the View
+  transform. The Channels panel lists the ink plates whenever the active canvas's transform
+  simulates colors.
+- **Entering and leaving.** `set_session_cmyk_proof` refuses palette mode and the formula.
+  From Indexed the menu runs Convert to RGB Color first; choosing Indexed or RGB Color leaves
+  CMYK Proof. A working space without a profile (Preferences) turns every CMYK Proof
+  document back to RGB with a status error.
+- **Saving.** In `save_document_to_path`, unless `ImageSaveOptions::export_color_explicit`
+  (set by the Export dialog's Color row and by a script's `colorMode`), the mode sets
+  `export_cmyk` for every format `cmyk_form_available` accepts (JPEG, TIFF, flattened PDF)
+  and RGB for the rest; black ink only comes from the per-format
+  `saveOptions/exportBlackInkOnly*` key. Interactive saves to a CMYK form show
+  `cmykProofSaveDialog` (profile, intent, paper white, reopened as RGB, the black-ink box)
+  until "Don't show this again" sets `saveOptions/cmykProofSaveNotice` false. Interactive
+  saves and Save As to other formats (PSD, PNG, editable-layer PDF) ask
+  `cmykProofRgbSaveMessageBox` once per session (`cmyk_proof_rgb_save_accepted`); exports
+  and scripted saves never prompt. The status line says "Saved ... in CMYK".
+- **Scripting.** `doc.cmykProof` (read/write; refusals throw).
+
 ## Tests
 
 Core (`tests/core/palette_tests.cpp`): `cmyk_working_space_formula_converts_both_ways`,
@@ -253,7 +285,7 @@ UI: `ui_color_picker_cmyk_fields_follow_working_space`,
 (`tests/ui/pickers_notices_hotkeys_tests.cpp`) and
 `ui_script_cmyk_conversions_use_working_space` and
 `ui_proof_colors_and_gamut_warning_change_only_the_view`,
-`ui_script_export_cmyk_writes_jpeg_tiff_and_pdf` (`tests/ui/scripting_tests.cpp`), and
+`ui_script_export_cmyk_writes_jpeg_tiff_and_pdf`, `ui_cmyk_proof_mode_saves_cmyk` (`tests/ui/scripting_tests.cpp`), and
 `ui_export_dialog_offers_cmyk_for_print_formats` (`tests/ui/flat_image_format_tests.cpp`). UI tests
 that assert ink numbers store the `formula` choice first: Automatic is Adobe's profile on a
 machine that has it.

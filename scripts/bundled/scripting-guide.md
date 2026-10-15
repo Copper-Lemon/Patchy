@@ -398,7 +398,7 @@ doc.exportAs("page.pdf", {imageQuality: "high", editableLayers: true});
 
 `.jpg`, `.png`, `.tif`, `.webp`, `.gif` and `.jxl` also take `metadata` (`"all"`, the default; `"copyright"`; `"none"`): the File Info metadata written with the image. The color profile and resolution are always written.
 
-`.jpg`, `.tif` and flattened `.pdf` also take `colorMode` (`"rgb"`, the default, or `"cmyk"`): CMYK for print, separated through the working CMYK profile from Preferences, which the file then embeds. Transparent areas become paper white. Add `blackInkOnly: true` to print black text and grays with black ink alone instead of four-ink rich black. Use it with `exportAs`: Patchy opens a CMYK file as RGB again.
+`.jpg`, `.tif` and flattened `.pdf` also take `colorMode` (`"rgb"`, the default, or `"cmyk"`): CMYK for print, separated through the working CMYK profile from Preferences, which the file then embeds. Transparent areas become paper white. Add `blackInkOnly: true` to print black text and grays with black ink alone instead of four-ink rich black. Without `colorMode`, a document in CMYK Proof mode (`doc.cmykProof = true`, Image > Mode > CMYK Proof) saves those formats in CMYK and every other document saves RGB. Patchy opens a CMYK file as RGB again.
 
 Keys you leave out follow your Save Options defaults and the document (a document opened from a .dds keeps that file's format under `"auto"`). The object is strict: a key that does not apply to the extension, an unknown key, a wrong type or an out-of-range value throws and nothing is written, so a typo never saves with defaults. A scripted save never changes your Save Options defaults. Formats without options (`.psd`, `.png`, ...) accept no keys.
 

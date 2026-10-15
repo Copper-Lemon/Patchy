@@ -287,6 +287,7 @@ public:
   }
 
   // No options: the save resolves format options itself (for PDF, the layer preference).
+  static void refresh_proof_display(MainWindow& window) { window.refresh_proof_display(); }
   static bool save_document_to_path(MainWindow& window, QString path) {
     return window.save_document_to_path(std::move(path));
   }

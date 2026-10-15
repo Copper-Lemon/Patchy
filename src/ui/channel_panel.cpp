@@ -169,6 +169,12 @@ void ChannelPanel::set_actions(QAction* create, QAction* save_selection, QAction
   refresh_action_states();
 }
 
+void ChannelPanel::set_layer_actions(QAction* gray_layer, QAction* color_layer) {
+  gray_layer_action_ = gray_layer;
+  color_layer_action_ = color_layer;
+  refresh_action_states();
+}
+
 void ChannelPanel::set_target_callback(TargetCallback callback) {
   target_callback_ = std::move(callback);
 }
@@ -335,6 +341,11 @@ void ChannelPanel::show_context_menu(const QPoint& position) {
   menu.addAction(rename_button_->defaultAction());
   menu.addAction(invert_button_->defaultAction());
   menu.addAction(remove_button_->defaultAction());
+  if (gray_layer_action_ != nullptr && color_layer_action_ != nullptr) {
+    menu.addSeparator();
+    menu.addAction(gray_layer_action_);
+    menu.addAction(color_layer_action_);
+  }
   menu.exec(list_->viewport()->mapToGlobal(position));
 }
 
@@ -360,6 +371,17 @@ void ChannelPanel::refresh_action_states() {
   }
   if (remove_button_->defaultAction() != nullptr) {
     remove_button_->defaultAction()->setEnabled(document_available_ && editable_alpha);
+  }
+  if (gray_layer_action_ != nullptr) {
+    gray_layer_action_->setEnabled(document_available_ && loadable);
+  }
+  if (color_layer_action_ != nullptr) {
+    const bool colored = selected.has_value() &&
+                         (selected->kind == RowKind::Red || selected->kind == RowKind::Green ||
+                          selected->kind == RowKind::Blue || selected->kind == RowKind::Cyan ||
+                          selected->kind == RowKind::Magenta || selected->kind == RowKind::Yellow ||
+                          selected->kind == RowKind::Black);
+    color_layer_action_->setEnabled(document_available_ && colored);
   }
 }
 

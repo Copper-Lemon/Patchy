@@ -95,6 +95,10 @@ struct ImageSaveOptions {
   // Persisted per format as saveOptions/exportBlackInkOnlyJpeg, ...Tiff, ...Pdf; scripts pass
   // blackInkOnly: true.
   bool export_black_ink_only{false};
+  // True when the Export dialog's Color row or a script's colorMode chose export_cmyk.
+  // Otherwise a save of a CMYK Proof document takes the color form from the mode
+  // (MainWindow::save_document_to_path, docs/cmyk.md).
+  bool export_color_explicit{false};
   // UI-only: MainWindow reveals the written file afterwards; the writers ignore it.
   bool export_reveal_in_file_explorer{false};
   // WebP: 0-100 through QImageWriter::setQuality (75 is Qt's own default, so an unset

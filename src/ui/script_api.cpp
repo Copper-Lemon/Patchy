@@ -1645,6 +1645,23 @@ QString ScriptDocumentObject::name() const { const ScriptApiCall api_call(host_)
 
 QString ScriptDocumentObject::path() const { const ScriptApiCall api_call(host_); return host_.session_file_path(session_id_); }
 
+// Image > Mode > CMYK Proof (docs/cmyk.md). Refused (a JS error) in palette mode or
+// without a CMYK profile, like the menu command.
+bool ScriptDocumentObject::cmyk_proof() const {
+  const ScriptApiCall api_call(host_);
+  return read_document() != nullptr && host_.session_cmyk_proof(session_id_);
+}
+
+void ScriptDocumentObject::set_cmyk_proof(bool enabled) {
+  const ScriptApiCall api_call(host_);
+  if (read_document() == nullptr) {
+    return;
+  }
+  if (const auto refusal = host_.set_session_cmyk_proof(session_id_, enabled); !refusal.isEmpty()) {
+    host_.throw_js_error(refusal);
+  }
+}
+
 int ScriptDocumentObject::bit_depth() const {
   const ScriptApiCall api_call(host_);
   const auto* document = read_document();

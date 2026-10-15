@@ -664,8 +664,9 @@ interface PatchySaveOptions {
   /** .jpg/.jpeg, .tif/.tiff, .pdf (flattened pages only): "cmyk" writes the image in CMYK
    *  for print, separated through the working CMYK profile (app.cmykProfile) and with that
    *  profile embedded; transparent areas become paper white and 16/32-bit documents are
-   *  written at 8 bits per ink. "rgb" is the default. Throws when the user chose no CMYK
-   *  profile. Meant for exportAs: Patchy opens a CMYK file as RGB again. */
+   *  written at 8 bits per ink. Without it the document's mode decides: "cmyk" for a
+   *  document in CMYK Proof mode (doc.cmykProof), else "rgb". Throws when the user chose no
+   *  CMYK profile. Patchy opens a CMYK file as RGB again. */
   colorMode?: "rgb" | "cmyk";
   /** With colorMode "cmyk": black, grays and black-ink colors print with black ink alone
    *  instead of four-ink rich black, so small text stays sharp. Colors still separate
@@ -786,6 +787,13 @@ interface PatchyDocument {
   readonly xmp: string;
   /** Bits per channel: 8, 16 or 32 (32 is floating point, linear light). */
   readonly bitDepth: 8 | 16 | 32;
+  /**
+   * Image > Mode > CMYK Proof: the canvas shows the document through the working CMYK
+   * profile, and saves to .jpg, .tif and flattened .pdf write CMYK unless the options give
+   * colorMode. The pixels stay RGB. Not stored in files. Setting true throws in palette
+   * (Indexed) mode or without a CMYK profile.
+   */
+  cmykProof: boolean;
   /** Top-level layers, bottom to top; groups expose .children. */
   readonly layers: PatchyLayer[];
   /**

@@ -11,7 +11,7 @@ Patchy keeps Photoshop document channels separate from layer masks. `Layer::mask
 - Quick Mask appears in the same dock as a temporary fixed row, but remains canvas-owned selection state. It is never added to `Document::channels()` and never affects PSD channel counts or output.
 - Imported spot channels are preserved and previewable but read-only. Their display record and pixel plane must survive PSD/PSB saves even when Patchy cannot interpret every field.
 - Composite, Red, Green, and Blue rows are derived views of the rendered document. They are not stored channels and are read-only.
-- While View > Proof Colors is on, Cyan, Magenta, Yellow and Black rows follow Blue: the ink plates of the working CMYK separation, read-only like the components ([cmyk.md](cmyk.md)). `CanvasWidget::is_component_preview` covers all seven views; every read-only gate uses it. Row lookups go by `RowKind`, never by position.
+- While the active canvas simulates the print (View > Proof Colors, or the document is in Image > Mode > CMYK Proof), Cyan, Magenta, Yellow and Black rows follow Blue: the ink plates of the working CMYK separation, read-only like the components ([cmyk.md](cmyk.md)). `CanvasWidget::is_component_preview` covers all seven views; every read-only gate uses it. Row lookups go by `RowKind`, never by position.
 
 ## PSD and PSB layout
 
@@ -33,6 +33,7 @@ A saved alpha read from PSD/PSB always becomes a document channel, including cha
 
 - Layers and Channels share top tabs in the right dock, with Layers active initially.
 - Channel actions use a compact icon row with localized tooltips, and the same actions appear when a channel row is right-clicked.
+- The context menu adds New Layer from Channel (`channelNewLayerAction`, any row but Quick Mask: an opaque grayscale layer of the row's values as Load as Selection reads them, Normal, named "<channel> channel") and New Layer from Channel Color (`channelNewColorLayerAction`, components and ink plates only: a component in its own color over the composite's alpha in Screen, a plate as that ink alone prints on paper in Multiply, so the stacked set rebuilds the image). Both go above the active layer and return the canvas to layer content; `MainWindow::channel_row_pixels` computes the row for both and for Load as Selection (`ui_channel_rows_become_new_layers`).
 - Ctrl-click (Command-click on macOS) loads any channel row as a new selection without changing the active edit target. Saved alpha and spot channels keep their exact 0-255 coverage. RGB component rows use Photoshop's white-backed composite values; Composite uses Patchy's fixed 30/59/11 grayscale conversion because Photoshop's luminosity conversion depends on its color-management setup.
 - Selecting an alpha channel is mutually exclusive with editing layer content or a layer mask. Clicking a Layers thumbnail returns to the corresponding layer target.
 - Brush/Eraser, Fill/Clear, Gradient, Line, Rectangle/Ellipse, and Invert share the grayscale edit path. Content-only operations stay disabled while a document channel is active.

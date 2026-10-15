@@ -212,7 +212,10 @@ bool apply_key(KeyReader& reader, const QString& extension, const QString& key, 
       (is_jpeg_extension(extension) || extension == QStringLiteral("tif") || extension == QStringLiteral("tiff") ||
        extension == QStringLiteral("pdf"))) {
     reader.read_token(key, value, {QStringLiteral("rgb"), QStringLiteral("cmyk")},
-                      [&](const QString& token) { options.export_cmyk = token == QStringLiteral("cmyk"); });
+                      [&](const QString& token) {
+                        options.export_cmyk = token == QStringLiteral("cmyk");
+                        options.export_color_explicit = true;
+                      });
     return true;
   }
   if (key == QStringLiteral("blackInkOnly") &&
