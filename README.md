@@ -5,6 +5,8 @@
 A free, open-source image editor for Windows, macOS, Linux, and the browser.
 Built with a focus on accurate PSD compatibility, keeping text, vectors, masks,
 layer styles, and Smart Objects editable when working with layered Photoshop files.
+Work in limited palettes without flattening your layers, import editable Affinity
+and PDF artwork, and extend the editor with classic plug-ins and JavaScript.
 
 **[Download](#download)** · **[Try in your browser](https://www.patchyimageeditor.com)** · **[Features](#features)** · **[Full gallery](docs/screenshots.md)**
 
@@ -85,13 +87,18 @@ See it in action.  Click an image for the full-size capture.
 | Workflow | What you get |
 | --- | --- |
 | **Layered Photoshop files** | PSD and PSB, editable text, groups, masks, clipping, blend modes, and layer styles. |
+| **Pixel art and game assets** | Paint in a fixed palette while keeping layers, text, and effects editable. Use retro or custom palettes, named colors, and indexed PNG/BMP export, alongside seamless tiling, sprite sheets, image sequences, DDS textures, and animated GIF/WebP. |
+| **Affinity documents** | Import .af, .afphoto, .afdesign, and .afpub files with editable text, vectors, masks, supported adjustments, and layer effects, then continue editing or save as PSD. [Support and limitations](docs/features.md#affinity-import). |
+| **PDF documents** | Import pages as editable text, vectors, and images on desktop; export single or multi-page PDFs with editable or flattened content. |
 | **Non-destructive editing** | Adjustment layers, embedded and linked Smart Objects, editable Smart Filters, and shared filter masks. |
 | **Paint and retouch** | Pressure-aware brushes, Mixer Brush, stroke smoothing, healing, cloning, Patch, Remove Object, Liquify, and selections, including Object Selection that picks out an object from a dragged box. |
 | **Text and vectors** | Rich and vertical text, paragraph controls, Warp Text, Pen paths, shape layers, vector masks, SVG, and image tracing. |
-| **PDF documents** | Import pages as editable text, vectors, and images on desktop; export single or multi-page PDFs with editable or flattened content. |
-| **Photos and other formats** | 16-bit and 32-bit (HDR) editing, Camera Raw development, HEIC/HEIF photos, layered Affinity import, and common image formats. |
-| **Pixel art and game assets** | Named palettes, indexed export, seamless tiling, sprite sheets, image sequences, DDS textures, and animated GIF and WebP. |
-| **Extend your workflow** | The G'MIC filter library (nearly 400 filters, desktop), legacy Photoshop filters on Windows, JavaScript scripts, batch processing, command-line tools, and local MCP control. |
+| **Photos and other formats** | 16-bit and 32-bit (HDR) editing, Camera Raw development, HEIC/HEIF photos, and common image formats. |
+| **Extend your workflow** | The G'MIC filter library (nearly 400 filters, desktop), classic 32-bit and 64-bit Photoshop filter plug-ins on Windows, a built-in JavaScript editor, batch processing, command-line tools, and local MCP control. |
+
+Patchy's C++ foundation makes these integrations more straightforward: we can build
+on established C and C++ libraries such as G'MIC and implement classic Photoshop
+plug-in interfaces directly.
 
 [Full feature list and format support](docs/features.md) · [Scripting guide](scripts/bundled/scripting-guide.md) · [AI control setup](docs/ai-control.md)
 
