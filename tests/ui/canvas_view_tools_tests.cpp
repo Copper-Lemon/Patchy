@@ -3909,6 +3909,43 @@ void ui_right_dock_drags_below_content_minimum_with_scroll() {
   CHECK(!overflow->horizontalScrollBar()->isVisible());
 }
 
+// A handle drag that ends near the content-fit width snaps onto it, the width
+// that just fits the Layers footer, from either side.
+void ui_right_dock_drag_snaps_to_content_width() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  QApplication::processEvents();
+  auto* layers_dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
+  CHECK(layers_dock != nullptr);
+  auto* handle =
+      layers_dock->findChild<QWidget*>(QStringLiteral("rightDockResizeHandle"), Qt::FindDirectChildrenOnly);
+  CHECK(handle != nullptr);
+  const auto content_minimum = patchy::ui::MainWindowTestAccess::right_dock_content_minimum_width(window);
+  const auto drag_by = [&](int dx) {
+    const auto start = handle->rect().center();
+    QTest::mousePress(handle, Qt::LeftButton, Qt::NoModifier, start);
+    QTest::mouseMove(handle, start + QPoint(dx, 0));
+    QTest::mouseRelease(handle, Qt::LeftButton, Qt::NoModifier, start + QPoint(dx, 0));
+    QApplication::processEvents();
+    QApplication::processEvents();
+  };
+
+  // Well clear of the snap: the width follows the pointer.
+  drag_by(-60);
+  CHECK(layers_dock->width() == content_minimum + 60);
+  // Back to 7 px wider than the content width: snaps onto it.
+  drag_by(53);
+  CHECK(layers_dock->width() == content_minimum);
+  // Narrower than the content, then back to 6 px short of it: snaps again.
+  drag_by(50);
+  CHECK(layers_dock->width() == content_minimum - 50);
+  drag_by(-44);
+  CHECK(layers_dock->width() == content_minimum);
+  // Just past the snap distance stays where it was dropped.
+  drag_by(11);
+  CHECK(layers_dock->width() == content_minimum - 11);
+}
+
 // The column width handle stays usable while a non-modal preview dialog
 // (Invert here; filters, adjustments and G'MIC share the path) is open.
 void ui_right_dock_drag_works_during_preview_dialog() {
@@ -4408,6 +4445,7 @@ std::vector<patchy::test::TestCase> canvas_view_tools_tests() {
       {"ui_right_dock_contents_clear_width_handle", ui_right_dock_contents_clear_width_handle},
       {"ui_right_dock_drags_below_content_minimum_with_scroll",
        ui_right_dock_drags_below_content_minimum_with_scroll},
+      {"ui_right_dock_drag_snaps_to_content_width", ui_right_dock_drag_snaps_to_content_width},
       {"ui_right_dock_drag_works_during_preview_dialog", ui_right_dock_drag_works_during_preview_dialog},
       {"ui_short_panel_scroll_bar_drags_by_handle", ui_short_panel_scroll_bar_drags_by_handle},
       {"ui_tabbed_right_dock_drags_out_by_tab", ui_tabbed_right_dock_drags_out_by_tab},

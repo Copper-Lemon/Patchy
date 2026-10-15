@@ -257,6 +257,9 @@ constexpr int kRightDockMinimumWidth = 280;
 // Hard floor of a user- or script-set column width (the
 // patchy.ui.setSidePanelWidth clamp uses the same value).
 constexpr int kRightDockFloorWidth = 120;
+// A handle drag that ends within this many pixels of the content-fit width
+// lands exactly on it, the width with no dead strip and no sideways scroll.
+constexpr int kRightDockSnapDistance = 10;
 // Width the dock chrome adds around a panel: a dock at width W gives its
 // content widget W minus this.
 constexpr int kRightDockChromeWidth = 18;
@@ -722,6 +725,18 @@ void MainWindow::set_right_dock_stack_width(int width) {
   pin_right_dock_stack_width(std::clamp(width, kRightDockFloorWidth, max_width));
 }
 
+void MainWindow::drag_right_dock_stack_width(int width) {
+  // Near the content-fit width the drag snaps to it, and the column follows
+  // that width again (language switch, restyle) as it did before any drag.
+  update_right_dock_minimum_width();
+  const bool snap =
+      right_dock_minimum_width_ > 0 && std::abs(width - right_dock_minimum_width_) <= kRightDockSnapDistance;
+  set_right_dock_stack_width(snap ? right_dock_minimum_width_ : width);
+  if (snap) {
+    right_dock_width_follows_minimum_ = true;
+  }
+}
+
 void MainWindow::pin_right_dock_stack_width(int target_width) {
   right_dock_pinned_width_ = target_width;
   // One fixed-width dock pins the whole column (a column is no wider than its
@@ -955,7 +970,7 @@ bool MainWindow::handle_right_dock_resize_event(QObject* watched, QEvent* event)
         return false;
       }
       const auto delta = right_dock_resize_start_global_.x() - mouse_event->globalPosition().toPoint().x();
-      set_right_dock_stack_width(right_dock_resize_start_width_ + delta);
+      drag_right_dock_stack_width(right_dock_resize_start_width_ + delta);
       mouse_event->accept();
       return true;
     }
@@ -965,7 +980,7 @@ bool MainWindow::handle_right_dock_resize_event(QObject* watched, QEvent* event)
         return false;
       }
       const auto delta = right_dock_resize_start_global_.x() - mouse_event->globalPosition().toPoint().x();
-      set_right_dock_stack_width(right_dock_resize_start_width_ + delta);
+      drag_right_dock_stack_width(right_dock_resize_start_width_ + delta);
       right_dock_resizing_ = false;
       mouse_event->accept();
       return true;

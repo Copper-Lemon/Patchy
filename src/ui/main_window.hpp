@@ -456,6 +456,8 @@ private:
   void install_right_dock_width_handle(QDockWidget* dock);
   void update_right_dock_resize_handle_geometry(QWidget* host);
   void set_right_dock_stack_width(int width);
+  // The handle drag: set_right_dock_stack_width, snapped to the content-fit width nearby.
+  void drag_right_dock_stack_width(int width);
   void pin_right_dock_stack_width(int target_width);
   void reapply_right_dock_stack_width();
   void update_right_dock_minimum_width();
