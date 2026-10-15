@@ -2,6 +2,8 @@
 // run.sh against wlr-virtual-pointer-unstable-v1. Reads commands from stdin:
 //   move X Y   (absolute layout pixels in a W x H extent given on the command line)
 //   click      (left button press + release)
+//   press      (left button down; stays down until release, for drags)
+//   release
 //   sleep MS
 // The device lives until stdin closes, so clients keep their wl_pointer.
 #include <linux/input-event-codes.h>
@@ -59,6 +61,12 @@ int main(int argc, char **argv) {
       zwlr_virtual_pointer_v1_frame(p);
       wl_display_roundtrip(d);
       usleep(50000);
+      zwlr_virtual_pointer_v1_button(p, now_ms(), BTN_LEFT, WL_POINTER_BUTTON_STATE_RELEASED);
+      zwlr_virtual_pointer_v1_frame(p);
+    } else if (strncmp(line, "press", 5) == 0) {
+      zwlr_virtual_pointer_v1_button(p, now_ms(), BTN_LEFT, WL_POINTER_BUTTON_STATE_PRESSED);
+      zwlr_virtual_pointer_v1_frame(p);
+    } else if (strncmp(line, "release", 7) == 0) {
       zwlr_virtual_pointer_v1_button(p, now_ms(), BTN_LEFT, WL_POINTER_BUTTON_STATE_RELEASED);
       zwlr_virtual_pointer_v1_frame(p);
     } else if (sscanf(line, "sleep %u", &ms) == 1) {

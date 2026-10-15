@@ -446,6 +446,17 @@ private:
   // Qt-level fallback in eventFilter (offscreen platform).
   [[nodiscard]] bool title_bar_drag_area_contains(QPoint menu_bar_position) const;
   void clamp_window_to_available_screen();
+  // The tallest client area that keeps the whole frame on the window's screen:
+  // the available height less the decorations outside the client area and, on
+  // Wayland, a strip for a shell panel the compositor never reports. -1 with no
+  // screen.
+  [[nodiscard]] int available_window_height() const;
+  // Lowers the expanded right-dock floors (the Layers panel's 300 px first of
+  // all) until the window's minimum height fits available_window_height(), so
+  // a small screen or a large interface scale never leaves the bottom of the
+  // column off-screen (GitHub issue 108). yielding_dock, when given, gives up
+  // its expand demand before any other dock shrinks.
+  void fit_right_dock_floors_to_screen(QDockWidget* yielding_dock = nullptr);
   void save_window_geometry() const;
   bool restore_window_geometry();
   bool handle_right_dock_resize_event(QObject* watched, QEvent* event);
@@ -2666,6 +2677,9 @@ private:
   QPoint pen_hover_tooltip_global_pos_;
   bool native_resizable_frame_applied_{false};
   bool native_frame_geometry_resynced_{false};
+  bool wayland_first_show_clamped_{false};
+  // Tests stand in a short screen: a positive value replaces the screen-derived budget.
+  int available_window_height_override_{-1};
   bool pending_layer_thumbnail_refresh_{false};
   bool pending_channel_thumbnail_refresh_{false};
   bool chrome_resizing_{false};

@@ -825,6 +825,63 @@ void MainWindow::pin_right_dock_stack_width(int target_width) {
   }
 }
 
+void MainWindow::fit_right_dock_floors_to_screen(QDockWidget* yielding_dock) {
+  const int budget = available_window_height();
+  if (budget <= 0 || layout() == nullptr) {
+    return;
+  }
+  const auto overflow = [this, budget] { return minimumSizeHint().height() - budget; };
+  // Lowers one expanded dock's explicit floor, and the explicit floor of the
+  // panel inside it (the Layers panel's own 240 px, which the overflow area
+  // passes on as the dock's minimum hint), toward their layouts' minimums. A
+  // collapsed dock is pinned min == max to its title strip and keeps that.
+  const auto lower_explicit_floor = [](QWidget* widget, int by, int hard_floor = 0) {
+    if (widget == nullptr || widget->minimumHeight() <= 0) {
+      return;
+    }
+    const int layout_floor = widget->layout() != nullptr ? widget->layout()->minimumSize().height() : 0;
+    widget->setMinimumHeight(std::max({hard_floor, layout_floor, widget->minimumHeight() - by}));
+    widget->updateGeometry();
+  };
+  const auto shrink = [this, &overflow, &lower_explicit_floor](QDockWidget* dock) {
+    if (dock == nullptr || dock->isFloating() || dock->isHidden() || dock->widget() == nullptr ||
+        !dock->widget()->isVisibleTo(dock)) {
+      return;
+    }
+    const int over = overflow();
+    if (over <= 0) {
+      return;
+    }
+    auto* content = dock->widget();
+    if (auto* area = qobject_cast<QScrollArea*>(content); area != nullptr && area->widget() != nullptr) {
+      content = area->widget();
+    }
+    // The layer list's own 120 px floor sits under the panel's layout minimum;
+    // a couple of rows still show on the shortest screens.
+    lower_explicit_floor(content->findChild<QWidget*>(QStringLiteral("layerList")), over, 48);
+    lower_explicit_floor(content, over);
+    if (dock->minimumHeight() > 0) {
+      dock->setMinimumHeight(std::max(0, dock->minimumHeight() - over));
+    }
+    // Every layout item between the panel and the window caches its minimum
+    // until the widget it holds reports a geometry change.
+    if (content != dock->widget()) {
+      dock->widget()->updateGeometry();
+    }
+    dock->updateGeometry();
+    layout()->invalidate();
+  };
+  shrink(yielding_dock);
+  // The Layers panel's 300 px floor is the column's biggest fixed demand.
+  shrink(findChild<QDockWidget*>(QStringLiteral("layersDock")));
+  for (const auto& name : right_dock_stack_names()) {
+    if (overflow() <= 0) {
+      break;
+    }
+    shrink(findChild<QDockWidget*>(name));
+  }
+}
+
 void MainWindow::reapply_right_dock_stack_width() {
   if (right_dock_pinned_width_ > 0) {
     pin_right_dock_stack_width(right_dock_pinned_width_);
@@ -906,6 +963,13 @@ void MainWindow::handle_right_dock_panel_toggled(QDockWidget* dock, bool expande
   if (!isVisible()) {
     return;
   }
+  // The demand may only grow the window as far as the screen allows: past
+  // that, this dock and then the Layers floor give way, so the column keeps
+  // fitting (GitHub issue 108; on Wayland an oversize window cannot be moved
+  // or shrunk back onto the screen).
+  if (expanded && !dock->isFloating()) {
+    fit_right_dock_floors_to_screen(dock);
+  }
   const auto height_before = height();
   // One event-loop hop: the boosted minimum from apply_expanded_state has
   // been granted once the posted layout pass ran (timers fire after it).
@@ -917,6 +981,9 @@ void MainWindow::handle_right_dock_panel_toggled(QDockWidget* dock, bool expande
     // collapsed min == max pin must survive).
     if (expanded && dock->widget() != nullptr && dock->widget()->isVisible()) {
       dock->setMinimumHeight(expanded_minimum_height);
+      if (!dock->isFloating()) {
+        fit_right_dock_floors_to_screen(dock);
+      }
     }
     if (dock->isFloating()) {
       // No column redistributes space for a floating dock, so an expand with

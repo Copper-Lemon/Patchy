@@ -216,6 +216,12 @@ namespace patchy::ui {
 namespace {
 
 constexpr int kWindowResizeBorder = 10;
+// Wayland reports no work area, so the window keeps this much of the screen height free for
+// a shell panel (GNOME's top bar is about 32 logical px, a KDE panel about 44). Logical pixels.
+constexpr int kWaylandShellPanelAllowance = 48;
+// The clamp never asks for less than this: on an absurdly small screen the window simply
+// overflows rather than collapsing the column to nothing.
+constexpr int kSmallestClampedWindowHeight = 400;
 
 Qt::Edges resize_edges_for_window_position(QSize window_size, QPoint position) {
   Qt::Edges edges;
@@ -703,6 +709,18 @@ void MainWindow::showEvent(QShowEvent* event) {
     // settled before we re-sync Qt's geometry to the real client rect.
     QTimer::singleShot(0, this, [this] { resync_native_frame_geometry(); });
   }
+  if (!wayland_first_show_clamped_ &&
+      QGuiApplication::platformName().startsWith(QLatin1String("wayland"), Qt::CaseInsensitive)) {
+    wayland_first_show_clamped_ = true;
+    // Qt's client-side decoration (GNOME) exists only once the window is shown, so the
+    // constructor's clamp could not count it; an oversize window cannot be moved back onto
+    // a Wayland screen, so shrink it now while the compositor still accepts the first size.
+    QTimer::singleShot(0, this, [this] {
+      if (!isMaximized() && !isFullScreen() && height() > available_window_height()) {
+        clamp_window_to_available_screen();
+      }
+    });
+  }
 }
 
 bool MainWindow::title_bar_drag_area_contains(QPoint menu_bar_position) const {
@@ -790,6 +808,33 @@ void MainWindow::ensure_native_resizable_frame() {
 #endif
 }
 
+int MainWindow::available_window_height() const {
+  if (available_window_height_override_ > 0) {
+    return available_window_height_override_;
+  }
+  const QScreen* target_screen = screen();
+  if (target_screen == nullptr) {
+    target_screen = QGuiApplication::primaryScreen();
+  }
+  if (target_screen == nullptr) {
+    return -1;
+  }
+  const QRect available = target_screen->availableGeometry();
+  if (!available.isValid()) {
+    return -1;
+  }
+  // Zero for the custom chrome (frameless); a native title bar, or Qt's own
+  // Wayland decoration, once the window is shown.
+  const int decorations = std::max(0, frameGeometry().height() - height());
+  // Wayland reports the whole output as available: no protocol tells an app
+  // where a panel sits, and the app cannot move its window clear of one either
+  // (GitHub issue 108: GNOME's top bar hid the bottom of the column).
+  const bool wayland =
+      QGuiApplication::platformName().startsWith(QLatin1String("wayland"), Qt::CaseInsensitive);
+  const int shell_allowance = wayland ? kWaylandShellPanelAllowance : 0;
+  return std::max(kSmallestClampedWindowHeight, available.height() - decorations - shell_allowance);
+}
+
 void MainWindow::clamp_window_to_available_screen() {
   // A large interface scale (QT_SCALE_FACTOR) shrinks the logical desktop, so the default window
   // can be larger than the screen or land partly off it. Shrink to fit and nudge it fully on-screen.
@@ -805,8 +850,20 @@ void MainWindow::clamp_window_to_available_screen() {
     return;
   }
 
+  // A resize cannot go below the window's minimum, and the right column's
+  // floors used to hold that minimum above a 1366x768 laptop screen at a 125%
+  // scale, so the column's bottom panels sat off-screen and every expand grew
+  // the window further (GitHub issue 108).
+  fit_right_dock_floors_to_screen();
+  if (layout() != nullptr && isVisible()) {
+    // The window's explicit minimum is the layout's total from its last
+    // activation; refresh it now, or resize() below is clamped to the old one.
+    // Only once shown: an activation before the stylesheet lands would pin an
+    // unstyled, taller minimum on the window.
+    layout()->activate();
+  }
   const int target_width = std::min(width(), available.width());
-  const int target_height = std::min(height(), available.height());
+  const int target_height = std::min(height(), available_window_height());
   if (target_width != width() || target_height != height()) {
     resize(target_width, target_height);
   }

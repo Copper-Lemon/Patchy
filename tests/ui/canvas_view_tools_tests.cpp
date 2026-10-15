@@ -3003,7 +3003,10 @@ void ui_right_docks_collapse_layers_show_metadata_and_info_updates() {
   CHECK(history_list != nullptr);
   // Opens at the content-fit width; the user can drag it narrower.
   CHECK(layers_dock->width() >= 280);
-  CHECK(layers_dock->minimumHeight() >= 300);
+  // The 300 px Layers floor holds unless the screen is too short for it, in
+  // which case it yields exactly enough for the window to fit (GitHub issue 108).
+  CHECK(layers_dock->minimumHeight() >= 300 ||
+        window.minimumSizeHint().height() <= patchy::ui::MainWindowTestAccess::available_window_height(window));
   CHECK(layer_list->minimumHeight() >= 120);
   CHECK(properties_dock->maximumHeight() <= 240);
   CHECK(properties_dock->height() <= 240);
@@ -3733,6 +3736,100 @@ void ui_right_dock_panels_expand_within_window_height() {
     docks_height += dock->height();
   }
   CHECK(docks_height <= window.height());
+}
+
+// The right column's floors (the Layers panel's 300 px, the expand demands)
+// never hold the window's minimum height above the screen: a 1366x768 laptop
+// at a 125% scale on Wayland had the column's bottom panels off-screen, and
+// expanding one grew the window further out of view (GitHub issue 108). The
+// offscreen platform's 600 px screen stands in for that laptop.
+void ui_right_dock_floors_fit_the_screen_height() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* layers_dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
+  CHECK(layers_dock != nullptr);
+  if (layers_dock == nullptr) {
+    return;
+  }
+  // The offscreen screen is tall enough for the untouched floors; stand in a
+  // screen a little shorter than the window's minimum, as the laptop was.
+  const int real_budget = patchy::ui::MainWindowTestAccess::available_window_height(window);
+  CHECK(real_budget > 0);
+  CHECK(window.minimumSizeHint().height() <= real_budget);
+  // Qt re-derives a dock's explicit minimum from its content at every layout
+  // activation, so this reads as the 300 px floor or the content's minimum.
+  const int layers_floor_before = layers_dock->minimumHeight();
+  CHECK(layers_floor_before > 200);
+  const int budget = window.minimumSizeHint().height() - 30;
+  patchy::ui::MainWindowTestAccess::set_available_window_height(window, budget);
+  patchy::ui::MainWindowTestAccess::fit_right_dock_floors_to_screen(window);
+  QApplication::processEvents();
+  CHECK(window.minimumSizeHint().height() <= budget);
+  // The floor only drops as far as the budget needs; the panel's own layout
+  // minimum still holds.
+  CHECK(layers_dock->minimumHeight() < layers_floor_before);
+  CHECK(layers_dock->minimumSizeHint().height() > 0);
+  auto* layers_panel = window.findChild<QWidget*>(QStringLiteral("layersPanel"));
+  CHECK(layers_panel != nullptr && layers_panel->layout() != nullptr &&
+        layers_panel->minimumHeight() >= layers_panel->layout()->minimumSize().height());
+
+  // At the screen's height, expanding Properties takes its room from the
+  // Layers panel rather than growing the window: the expand demand yields to
+  // the budget before the layout pass sees it.
+  window.resize(window.width(), budget);
+  QApplication::processEvents();
+  CHECK(window.height() == budget);
+  auto* properties_toggle = window.findChild<QToolButton*>(QStringLiteral("propertiesDockCollapseButton"));
+  CHECK(properties_toggle != nullptr);
+  if (properties_toggle != nullptr) {
+    properties_toggle->setChecked(true);
+    QApplication::processEvents();
+    QApplication::processEvents();
+    CHECK(window.height() == budget);
+    CHECK(window.minimumSizeHint().height() <= budget);
+    const auto* properties_dock = window.findChild<QDockWidget*>(QStringLiteral("propertiesDock"));
+    CHECK(properties_dock != nullptr && properties_dock->height() > 40);
+    CHECK(layers_dock->height() < layers_floor_before);
+  }
+  // Once every panel is open the column's content minimums alone (the Info
+  // panel's four lines, the Properties scroll area) can exceed such a short
+  // screen; then the window grows only to that irreducible minimum, never
+  // because of a floor the fit could have lowered.
+  for (const auto* name : {"infoDockCollapseButton", "historyDockCollapseButton", "paletteDockCollapseButton"}) {
+    auto* toggle = window.findChild<QToolButton*>(QLatin1String(name));
+    CHECK(toggle != nullptr);
+    if (toggle == nullptr) {
+      continue;
+    }
+    toggle->setChecked(true);
+    QApplication::processEvents();
+    QApplication::processEvents();
+    CHECK(window.height() <= std::max(budget, window.minimumSizeHint().height()));
+    CHECK(layers_dock->minimumHeight() <= layers_dock->minimumSizeHint().height());
+  }
+  for (const auto* name : {"layersDock", "historyDock", "propertiesDock", "infoDock", "paletteDock"}) {
+    const auto* dock = window.findChild<QDockWidget*>(QLatin1String(name));
+    CHECK(dock != nullptr);
+    if (dock != nullptr) {
+      CHECK(dock->geometry().bottom() < window.height());
+    }
+  }
+  // Collapsing and re-expanding Layers re-asserts its 300 px floor, which must
+  // yield again instead of pushing the window off the screen.
+  auto* layers_toggle = window.findChild<QToolButton*>(QStringLiteral("layersDockCollapseButton"));
+  CHECK(layers_toggle != nullptr);
+  if (layers_toggle != nullptr) {
+    const int height_before = window.height();
+    layers_toggle->setChecked(false);
+    QApplication::processEvents();
+    layers_toggle->setChecked(true);
+    QApplication::processEvents();
+    QApplication::processEvents();
+    CHECK(window.height() <= std::max(height_before, window.minimumSizeHint().height()));
+    CHECK(layers_dock->minimumHeight() <= 300);
+  }
+  save_widget_artifact("ui_right_dock_floors_fit_screen", window);
+  patchy::ui::MainWindowTestAccess::set_available_window_height(window, 0);
 }
 
 void ui_collapsed_right_docks_have_uniform_title_height() {
@@ -4532,6 +4629,7 @@ std::vector<patchy::test::TestCase> canvas_view_tools_tests() {
       {"ui_collapsed_right_docks_keep_deep_layer_rows_readable",
        ui_collapsed_right_docks_keep_deep_layer_rows_readable},
       {"ui_right_dock_panels_expand_within_window_height", ui_right_dock_panels_expand_within_window_height},
+      {"ui_right_dock_floors_fit_the_screen_height", ui_right_dock_floors_fit_the_screen_height},
       {"ui_collapsed_right_docks_have_uniform_title_height",
        ui_collapsed_right_docks_have_uniform_title_height},
       {"ui_tabbed_right_dock_group_collapses_as_one", ui_tabbed_right_dock_group_collapses_as_one},

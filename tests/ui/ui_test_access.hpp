@@ -263,6 +263,14 @@ public:
     return window.right_dock_minimum_width_;
   }
 
+  // The client height that keeps the whole frame on the window's screen (GitHub issue 108).
+  static int available_window_height(MainWindow& window) { return window.available_window_height(); }
+  // Stands in a shorter screen than the offscreen platform's; 0 restores the real one.
+  static void set_available_window_height(MainWindow& window, int height) {
+    window.available_window_height_override_ = height > 0 ? height : -1;
+  }
+  static void fit_right_dock_floors_to_screen(MainWindow& window) { window.fit_right_dock_floors_to_screen(); }
+
   static void update_document_action_state(MainWindow& window) {
     window.update_document_action_state();
   }

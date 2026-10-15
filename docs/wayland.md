@@ -65,6 +65,56 @@ menu, submenu, the same menu as a context menu, combo list, QPushButton menu) an
 the property against the rectangles Qt computes. Offscreen cannot show the compositor's
 placement; the probe does.
 
+## A window taller than the screen (GitHub issue 108)
+
+Qt's `QScreen::availableGeometry` on Wayland is the whole output: no protocol reports a
+panel, and an app cannot move its window either, so `clamp_window_to_available_screen`
+could neither shrink the window below its minimum height nor nudge it onto the screen. On
+a 1366x768 laptop at a 125% scale the main window's minimum (the right column's 300 px
+Layers floor plus the collapsed strips, two options-bar rows, menu and status bars) was
+taller than the screen: the column's bottom panels sat under GNOME's top bar and off the
+bottom edge, and expanding Properties or Info demanded more height and grew the window
+further out of view, which the reporter saw as cropped panels.
+
+`MainWindow::available_window_height` is the client height that keeps the whole frame on
+the screen: the available height less the decorations outside the client area (Qt's own
+client-side title bar on GNOME, known only once the window is shown, hence the deferred
+first-show clamp on Wayland in `showEvent`) less `kWaylandShellPanelAllowance` (48 logical
+px) for the panel the compositor never reports. `fit_right_dock_floors_to_screen` lowers
+the expanded docks' explicit floors (the dock just expanded first, then Layers, including
+the Layers panel's own 240 px and the list's 120 px, then the rest of the column) until the
+window's minimum fits that budget; `clamp_window_to_available_screen` and
+`handle_right_dock_panel_toggled` call it, so an expand takes room from the column while
+the column has any to give. Qt re-derives a dock's minimum from its content at every layout
+activation (`QDockWidgetLayout` runs with `SetMinAndMaxSize`), so the floors that can yield
+are the explicit ones on the panels; once every panel is open, the content minimums alone
+(Info's four lines, the Properties scroll area) can still exceed a 1366x768 screen at 125%,
+and then the window grows to that irreducible minimum as before. Platform-neutral (a short
+Windows screen gets the same floors); only the panel allowance is Wayland-specific.
+`ui_right_dock_floors_fit_the_screen_height` covers it on the offscreen platform's 600 px
+screen. See [right-docks.md](right-docks.md).
+
+## Reproducing on a headless GNOME Shell
+
+`scripts/dev/wayland-gnome/gnome-rig.sh` runs the installed Flatpak on a headless mutter
+(`gnome-shell --headless --wayland --no-x11 --unsafe-mode --virtual-monitor <MON>`, its own
+session bus, env in `build/gnome-rig/env`), the setup the issue 100 and 108 reporter has (Qt
+draws its own title bar there). `start-shell` (with `MON=1366x768` for that laptop), then
+`patchy <scale>` launches the Flatpak as the single instance, `script <file.js>` forwards a
+`--run-script` to it (the script file must live under `$HOME`: the sandbox hides `/tmp`),
+and `drive` reads pointer commands on stdin (`gnome-input.py`: `move X Y` in output pixels,
+`press`, `release`, `click`, `sleep MS`, `shot NAME` through `org.gnome.Shell.Screenshot`).
+The pointer is `org.gnome.Mutter.RemoteDesktop` relative motion anchored at the bottom-left
+corner, because the top-left one is the Activities hot corner and opens the overview; if
+the overview is up anyway, `gdbus call ... org.gnome.Shell.Eval 'Main.overview.hide()'`.
+`stop` kills Patchy by Flatpak id and the shell by the pids it recorded; never by name.
+
+The sway rig is faster for anything that needs no GNOME specifics: `run.sh` with `KEEP=1`
+leaves the container up and `scripts/dev/wayland-popups/run-patchy.sh` launches, scripts,
+clicks (`vptr` now has `press`/`release` for drags) and captures the Flatpak on it. Both rigs
+share the single-instance socket: stop one Patchy before starting the next, or the launch
+only forwards to the running one.
+
 ## Measuring popup placement headlessly
 
 `scripts/dev/wayland-popups/run.sh <scale> [menu|combo] [fix]` runs on the Linux build
