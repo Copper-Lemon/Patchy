@@ -1,6 +1,6 @@
 # Rebuilding the README showcase
 
-The README uses a hero image and six feature captures. The [full gallery](screenshots.md)
+The README uses a hero image and seven feature captures. The [full gallery](screenshots.md)
 keeps the other examples. Every capture has a script or a `shot_readme_*` scene;
 do not replace one with a manually arranged desktop screenshot.
 
@@ -33,6 +33,7 @@ or `-Scene plugin_kpt5`. It requires the Windows 32-bit legacy helper.
 | `vector_tools.png` | `shot_readme_vector_tools` | Generated vector artwork with gradient fill, rounded corners, and a dashed pattern stroke |
 | `warp_text.png` | `shot_readme_warp_text` | Generated editable type; Japanese-capable font required |
 | `tilt_shift.png` | `shot_readme_tilt_shift` | `test-fixtures/readme/san_francisco_cityscape_cc0.jpg` |
+| `gmic.png` | `shot_readme_gmic` | `test-fixtures/readme/havana_vintage_car_cc0.jpg` (CC0), cropped around the car; needs a build with the G'MIC engine |
 | `long_shadow.png` (gallery only) | `shot_readme_long_shadow` | Generated editable type and live continuous shadows; no external artwork |
 
 Offscreen recipes live in `tests/ui/readme_screenshot_tests_*.cpp`. They create
@@ -52,8 +53,9 @@ and anchor editing with gradient paint, a dashed pattern stroke, and rounded cor
 The separate Levels, brush-dynamics, shape-appearance, and Affinity images are retired
 from the gallery. Their existing scenes remain regression coverage; the driver
 does not publish those artifacts. Brush dynamics are described with brush tips.
-Long Shadow and Smart Objects remain in the gallery; the README's six feature cards use
-Layer Styles and Object Selection instead.
+Long Shadow and Smart Objects remain in the gallery; the README's feature cards use
+Layer Styles and Object Selection instead. The G'MIC card spans both columns below the
+six paired cards.
 
 The Object Selection scene crops the Havana street photo to its lower half and runs
 `doc.selection.objectSelect` with one loose box around the vintage car, on the High
@@ -63,6 +65,13 @@ One-pixel marching ants vanish at thumbnail size, so the script inverts the sele
 fills a gray Saturation-mode layer and a 45% black layer through it, and inverts back
 (fill layers rather than a filter on the photo, so the photo layer stays untouched; a
 Desaturate menu command run from the script did not apply). The status bar shows "Running script", as in the KPT shot.
+
+The G'MIC scene opens the real Filter Library (scripts cannot open it) with the right half
+of the street photo selected, picks Rodilius with Lighter strokes, waits for the full-quality
+preview to land on the layer, and checks that the left half is untouched, so the canvas shows
+the original beside the result. The photo stays under the 1.5 megapixel draft threshold, so
+the first preview is the final one. The right dock is widened under the dialog so the whole
+photo stays in view beside it. Builds without the engine report a skip.
 
 The text showcase combines a live Warp Text preview with three warped words,
 a single boxed paragraph containing bold, italic, colored, and mixed-font runs,

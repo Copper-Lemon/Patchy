@@ -121,7 +121,8 @@ recovery live in the normal per-user folders (shared with a native Linux build).
   then `<file> patchy-mcp --attach` from a second launch, guarded edit, preview, reconnect.
   Extracted runs share one directory and would hide a socket-identity bug, so that test
   refuses `APPIMAGE_EXTRACT_AND_RUN`.
-- A real release runs all of the above plus `make-appimage.sh --tests`.
+- A real release runs all of the above plus `make-appimage.sh --tests`:
+  `release-all-automated.bat verify-linux` (`scripts/release/verify-linux.sh`) does it.
 - App-side unit tests: `appimage_environment_names_the_appimage_file`,
   `ui_update_available_dialog_offers_appimage_download` (Linux only),
   `ui_ai_setup_blurb_reports_missing_and_flatpak_forms`, and the `appimage_url` cases in

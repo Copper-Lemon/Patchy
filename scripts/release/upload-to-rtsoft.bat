@@ -2,7 +2,9 @@
 rem Uploads every platform's release artifacts (stable "latest" names), plus the
 rem wasm site to rtsoft.com/patchy. Per-platform: upload-windows-to-rtsoft.bat /
 rem upload-mac-to-rtsoft.bat / upload-linux-to-rtsoft.bat /
-rem upload-wasm-to-rtsoft.bat (each also runs standalone).
+rem upload-wasm-to-rtsoft.bat (each also runs standalone). With the argument
+rem "desktop" the wasm site is left alone: a release that ships no new web build
+rem must not upload the previous one again (release-all-automated.bat upload-desktop).
 rem cd to the repo root (this script lives in scripts\release) so the relative
 rem build\package paths in the per-platform scripts resolve no matter the launch
 rem cwd, and call the siblings by full path: cmd won't search the current directory
@@ -24,8 +26,10 @@ call "%~dp0upload-mac-to-rtsoft.bat" nopause
 if errorlevel 1 set "FAILED=%FAILED% macOS"
 call "%~dp0upload-linux-to-rtsoft.bat" nopause
 if errorlevel 1 set "FAILED=%FAILED% Linux"
+if /i "%~1"=="desktop" goto uploads_done
 call "%~dp0upload-wasm-to-rtsoft.bat" nopause
 if errorlevel 1 set "FAILED=%FAILED% wasm"
+:uploads_done
 
 echo.
 if defined FAILED (

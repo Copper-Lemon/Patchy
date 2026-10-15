@@ -66,6 +66,8 @@
 #include "ui/zoomable_image_preview.hpp"
 #include "ui/zoom_status_bar.hpp"
 #include "filters/builtin_filters.hpp"
+#include "filters/gmic/gmic_engine.hpp"
+#include "ui/gmic_filter_library_dialog.hpp"
 #include "psd/psd_document_io.hpp"
 #include "psd/psd_filter_effects.hpp"
 #include "render/compositor.hpp"
@@ -1733,6 +1735,102 @@ void shot_readme_tilt_shift() {
   CHECK(result.outcome == patchy::ui::VisualFilterGalleryOutcome::Cancelled);
 }
 
+// The G'MIC Filter Library over the Havana street photo: Rodilius previewing live
+// inside a selection of the right half, so the canvas shows the original beside the
+// result, with the filter tree and the generated parameter panel in the dialog.
+// Offscreen because scripts cannot open the dialog (docs/readme-showcase.md).
+void shot_readme_gmic() {
+  if (!patchy::gmic::engine_available()) {
+    std::cout << "[SKIP] this build has no G'MIC engine\n";
+    return;
+  }
+  const auto path = patchy::test::committed_format_fixture_path(
+      "readme", "havana_vintage_car_cc0.jpg");
+  QImage street(QString::fromStdString(path.string()));
+  CHECK(!street.isNull());
+  // The street with the car centered under the seam, kept under the 1.5 megapixel
+  // draft threshold so the first preview is already the full-quality one.
+  street = street.copy(1000, 500, 1800, 1475)
+               .scaled(1000, 820, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+  auto document = patchy::ui::document_from_qimage(street, "Havana street");
+  const int width = document.width();
+  const int height = document.height();
+  const int seam = width / 2;
+  patchy::ui::MainWindow window;
+  show_readme_shot_window(window);
+  // Wider than the other scenes: this capture spans both README columns. The dock
+  // is widened under the dialog so the whole photo stays in view beside it.
+  window.resize(1920, 1080);
+  QApplication::processEvents();
+  window.add_document_session(std::move(document), QStringLiteral("havana_street.jpg"));
+  close_untitled_start_tab(window);
+  patchy::ui::MainWindowTestAccess::set_right_dock_stack_width(window, 880);
+  QApplication::processEvents();
+  auto* canvas = require_canvas(window);
+  patchy::PixelBuffer mask(width, height, patchy::PixelFormat::gray8());
+  for (int y = 0; y < height; ++y) {
+    auto row = mask.row(y);
+    for (int x = 0; x < width; ++x) {
+      row[static_cast<std::size_t>(x)] = x >= seam ? 255 : 0;
+    }
+  }
+  canvas->replace_selection_from_grayscale(mask, QStringLiteral("Rectangular Marquee"));
+  require_action(window, "viewFitOnScreenAction")->trigger();
+  QApplication::processEvents();
+
+  const auto pixel_at = [&window](int x, int y) {
+    const auto& staged = std::as_const(patchy::ui::MainWindowTestAccess::document(window));
+    const auto active = staged.active_layer_id();
+    const auto* layer = active.has_value() ? staged.find_layer(*active) : nullptr;
+    CHECK(layer != nullptr);
+    const auto* px = layer->pixels().pixel(x - layer->bounds().x, y - layer->bounds().y);
+    return QColor(px[0], px[1], px[2]);
+  };
+  const QPoint left_probe(seam / 2, height / 2);
+  const QPoint right_probe(seam + seam / 2, height / 2);
+  const auto left_before = pixel_at(left_probe.x(), left_probe.y());
+  const auto right_before = pixel_at(right_probe.x(), right_probe.y());
+
+  bool captured = false;
+  std::exception_ptr error;
+  QTimer::singleShot(0, &window, [&] {
+    auto* dialog = window.findChild<patchy::ui::GmicFilterLibraryDialog*>();
+    try {
+      CHECK(dialog != nullptr);
+      // Amplitude, thickness, sharpness, orientations, offset, smoothness,
+      // color mode (Lighter), channels (All), value action (None): bright
+      // strokes that still leave the car and the buildings readable.
+      CHECK(dialog->select_filter("fx_rodilius",
+                                  {"7", "8", "300", "9", "0", "0", "1", "0", "0"}));
+      dialog->resize(880, 800);
+      auto* tree = dialog->findChild<QTreeWidget*>(QStringLiteral("gmicFilterTree"));
+      CHECK(tree != nullptr && tree->currentItem() != nullptr);
+      tree->scrollToItem(tree->currentItem(), QAbstractItemView::PositionAtCenter);
+      CHECK(process_events_until(
+          [&] { return pixel_at(right_probe.x(), right_probe.y()) != right_before; },
+          60000));
+      // One full-quality run lands at once; let the canvas drop its badge.
+      process_events_for(1000);
+      CHECK(pixel_at(left_probe.x(), left_probe.y()) == left_before);
+      const QPoint offset(window.width() - dialog->width() - 12, 150);
+      dialog->move(window.geometry().topLeft() + offset);
+      QApplication::processEvents();
+      reset_readme_status_bar(window);
+      auto base = window.grab().toImage();
+      draw_readme_overlay(base, dialog->grab().toImage(), offset);
+      save_readme_shot("shot_readme_gmic", base);
+      captured = true;
+    } catch (...) {
+      error = std::current_exception();
+    }
+    if (dialog != nullptr) dialog->reject();
+  });
+  require_action(window, "filterGmicLibraryAction")->trigger();
+  QApplication::processEvents();
+  if (error) std::rethrow_exception(error);
+  CHECK(captured);
+}
+
 QTreeWidgetItem* readme_style_item_for_storage_id(QTreeWidget& tree,
                                                   const QString& storage_id) {
   const std::function<QTreeWidgetItem*(QTreeWidgetItem*)> visit =
@@ -2909,6 +3007,7 @@ std::vector<patchy::test::TestCase> readme_screenshot_tests_part1() {
       {"shot_readme_pattern_manager", shot_readme_pattern_manager},
       {"shot_readme_smart_filters", shot_readme_smart_filters},
       {"shot_readme_tilt_shift", shot_readme_tilt_shift},
+      {"shot_readme_gmic", shot_readme_gmic},
       {"shot_readme_material_styles", shot_readme_material_styles},
       {"shot_readme_camera_raw", shot_readme_camera_raw},
       {"shot_readme_quick_mask", shot_readme_quick_mask},

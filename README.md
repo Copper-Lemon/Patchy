@@ -119,6 +119,9 @@ See it in action.  Click an image for the full-size capture.
     <td valign="top" width="50%"><a href="docs/images/screenshots/warp_text.png"><img src="docs/images/screenshots/warp_text.png" width="460" alt="Editable warped text, a paragraph with inline bold, italic, color and mixed fonts, tracked lettering, and vertical Japanese columns."></a><br><strong>Give type its own voice</strong><br>Warped text, mixed fonts and styles in one paragraph, letter spacing, and vertical Japanese.</td>
     <td valign="top" width="50%"><a href="docs/images/screenshots/tilt_shift.png"><img src="docs/images/screenshots/tilt_shift.png" width="460" alt="Tilt-Shift Blur with on-image controls and live preview in the Filter Gallery."></a><br><strong>Shape the focus</strong><br>Comes with many filters and a filter gallery, like Tilt-Shift Blur with live previews.</td>
   </tr>
+  <tr>
+    <td valign="top" colspan="2"><a href="docs/images/screenshots/gmic.png"><img src="docs/images/screenshots/gmic.png" width="930" alt="The G'MIC Filter Library with Rodilius selected among the Artistic filters, its settings beside the list, and a live preview on the right half of a Havana street photo, with the original on the left."></a><br><strong>Nearly 400 G'MIC filters</strong><br>Browse the G'MIC library, adjust the settings, and watch the result render live on your canvas. Here Rodilius runs inside a selection, with the original photo on the left.</td>
+  </tr>
 </table>
 
 [See the full gallery](docs/screenshots.md) for painting, palette mode, seamless textures, Camera Raw, long shadows, scripting, and more.
@@ -134,8 +137,8 @@ See it in action.  Click an image for the full-size capture.
 | **Non-destructive editing** | Adjustment layers, embedded and linked Smart Objects, editable Smart Filters, and shared filter masks. |
 | **Paint and retouch** | Pressure-aware brushes, Mixer Brush, stroke smoothing, healing, cloning, Patch, Remove Object, Liquify, and selections, including Object Selection that picks out an object from a dragged box. |
 | **Text and vectors** | Rich and vertical text, paragraph controls, Warp Text, Pen paths, shape layers, vector masks, SVG, and image tracing. |
-| **Photos and other formats** | 16-bit and 32-bit (HDR) editing, Camera Raw development, HEIC/HEIF photos, and common image formats. |
-| **Extend your workflow** | The G'MIC filter library (nearly 400 filters, desktop), classic 32-bit and 64-bit Photoshop filter plug-ins on Windows, a built-in JavaScript editor, batch processing, command-line tools, and local MCP control. |
+| **Photos and print** | 16-bit and 32-bit (HDR) editing, Camera Raw development, HEIC/HEIF and JPEG XL, CMYK proofing and CMYK JPEG, TIFF, and PDF export for print, and common image formats. |
+| **Extend your workflow** | The G'MIC filter library (nearly 400 filters with live preview, desktop), Last Filter to repeat any filter, classic 32-bit and 64-bit Photoshop filter plug-ins on Windows, a built-in JavaScript editor, batch processing, command-line tools, and local MCP control. |
 
 Patchy's C++ foundation makes these integrations more straightforward: we can build
 on established C and C++ libraries such as G'MIC and implement classic Photoshop
@@ -146,7 +149,7 @@ plug-in interfaces directly.
 **Local by design.** No telemetry, tracking, or uploads of your images. The browser build
 runs the same editor locally through WebAssembly. Desktop builds have more memory
 available and add printing, scanner/camera import, and command-line automation.
-Optional update checks contact GitHub, as do the Windows one-click update and Object Selection's High Quality model, each downloaded only if you ask for it. Twelve interface languages, dark and light
+Optional update checks contact GitHub, as do the one-click updates (Windows and the Linux AppImage) and Object Selection's High Quality model, each downloaded only if you ask for it. Twelve interface languages, dark and light
 schemes, and importable themes are included.
 
 ## PSD compatibility, measured
@@ -168,15 +171,16 @@ renders and difference maps for all nine columns. Read the
 tables, per-folder results, scoring rules, and limitations.
 
 **Know the limits:** editing is RGB at 8, 16, or 32 bits per channel (the browser
-build stops at 16). CMYK, Lab, and the other color modes convert to RGB on open, and
-there is no GPU acceleration. Unsupported Smart Filters can remain preview-locked,
+build stops at 16). CMYK work is proofing and export: CMYK Proof mode shows the print
+colors and saves CMYK JPEG, TIFF, and PDF, but pixels stay RGB. Lab and the other color
+modes convert to RGB on open, and there is no GPU acceleration. Unsupported Smart Filters can remain preview-locked,
 and Affinity import has format-specific limitations. See [current compatibility](docs/features.md#current-status).
 
 ## What's New
 
 ### 1.11 - October 15, 2026
 
-- G'MIC Filter Library: about 390 G'MIC filters built in (desktop), with a live preview on the canvas, draggable points for filters that take a position, filters that read or add several layers, and script access ([issue 87](https://github.com/SethRobinson/Patchy/issues/87))
+- G'MIC Filter Library: nearly 400 G'MIC filters built in (desktop), with a live preview on the canvas, draggable points for filters that take a position, filters that read or add several layers, and script access ([issue 87](https://github.com/SethRobinson/Patchy/issues/87))
 - CMYK for print: a CMYK working profile, CMYK color picker and Info readouts with a gamut warning, soft proofing with C, M, Y and K plates, CMYK export, and Image > Mode > CMYK Proof. CMYK JPEG and TIFF files open through their profile ([issue 90](https://github.com/SethRobinson/Patchy/issues/90))
 - JPEG XL: open and save .jxl files on every platform
 - Linux: an official AppImage with one-click self-update ([issue 83](https://github.com/SethRobinson/Patchy/issues/83))
@@ -248,7 +252,7 @@ Don't trust AI to create and submit PRs with no oversight, I'll delete ones that
 
 ## Independent development and compatibility
 
-Patchy is an independently developed image editor. Our goal is to build something powerful, fast, and free of unnecessary bloat, and ultimately better than Photoshop. Recreating Photoshop feature for feature is not the goal, even where familiar workflows make Patchy easier to use.
+Patchy is an independently developed image editor. Our goal is to build something powerful, fast, free of unnecessary bloat, and ultimately a tool that fits what I'm doing, especially for game-dev use cases. Recreating Photoshop feature for feature is not the goal.
 
 Our PSD compatibility work uses publicly available format documentation and observations of files and rendered output produced by a licensed copy of Photoshop. We have not decompiled or disassembled Photoshop. Patchy also implements the legacy 8BF plug-in interface for interoperability, using its own declarations without copying Adobe SDK code. This compatibility work helps people keep their documents editable and use existing plug-ins across applications.
 

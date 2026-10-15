@@ -20,8 +20,12 @@ if /i "%~1"=="mac" ( powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0.
 if /i "%~1"=="linux" ( powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0..\remote\release-linux.ps1" > "%LOG%" 2>&1 & goto done )
 if /i "%~1"=="upload-wasm" ( call "%~dp0upload-wasm-to-rtsoft.bat" nopause > "%LOG%" 2>&1 & goto done )
 if /i "%~1"=="upload-all" ( call "%~dp0upload-to-rtsoft.bat" > "%LOG%" 2>&1 & goto done )
+if /i "%~1"=="upload-desktop" ( call "%~dp0upload-to-rtsoft.bat" desktop > "%LOG%" 2>&1 & goto done )
+if /i "%~1"=="verify-windows" ( powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0verify-windows.ps1" > "%LOG%" 2>&1 & goto done )
+if /i "%~1"=="verify-mac" ( powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0verify-remote.ps1" -Target mac > "%LOG%" 2>&1 & goto done )
+if /i "%~1"=="verify-linux" ( powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0verify-remote.ps1" -Target linux > "%LOG%" 2>&1 & goto done )
 if /i "%~1"=="upload-github" ( call "%~dp0publish-github-release.bat" nopause > "%LOG%" 2>&1 & goto done )
-echo Unknown release target "%~1" ^(expected windows, mac, linux, wasm, upload-wasm, upload-all, or upload-github^). > "%LOG%"
+echo Unknown release target "%~1" ^(expected windows, mac, linux, wasm, verify-windows, verify-mac, verify-linux, upload-wasm, upload-all, upload-desktop, or upload-github^). > "%LOG%"
 >"%MARKER%" echo exit=2
 exit /b 2
 
