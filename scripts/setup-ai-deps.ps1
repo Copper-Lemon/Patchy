@@ -51,11 +51,10 @@ $Models = @(
      Sha256 = '6af3f249f7a5a6a8a3ef988b6814015e8c3a300977c135d1f9572ed2f2930cd7' },
   @{ Name = 'sam_mask_decoder_multi_int8.onnx'
      Url = 'https://github.com/SethRobinson/Patchy/releases/download/ai-models-1/sam_mask_decoder_multi_int8.onnx'
-     Sha256 = 'aa1410bec8f050b6017fba29ca07f16317029a8f74a98e5998aeed46680c10a6' },
-  @{ Name = 'birefnet_lite_general_1024_int8.onnx'
-     Url = 'https://github.com/SethRobinson/Patchy/releases/download/ai-models-1/birefnet_lite_general_1024_int8.onnx'
-     Sha256 = '0374fa9286b28506399d1ef44c5bd975e61deb2c0d5c6655b18f0815e27fed5e' }
+     Sha256 = 'aa1410bec8f050b6017fba29ca07f16317029a8f74a98e5998aeed46680c10a6' }
 )
+# Select Subject is held back pending patent review. Do not download BiRefNet;
+# existing local copies are left alone and the default build never stages them.
 
 if (-not $DepsDir) {
   $CommonDir = (git -C $PSScriptRoot rev-parse --path-format=absolute --git-common-dir).Trim()

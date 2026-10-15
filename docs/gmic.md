@@ -37,6 +37,8 @@ Every change carries a `PATCHY` marker; `git diff` against the tarball shows exa
 - `CImg.h`, `_matchpatch`: the patch correspondence search (PatchMatch) body is compiled out
   under `patchy_gmic_no_patch_algorithms` and throws "Not available in this build".
 - `gmic.cpp`, `inpaint_patch`: patch-based inpainting, the same.
+- `gmic.cpp`, `add_commands`: `gmic_command_policy.hpp` replaces restricted definitions
+  with error stubs, including continuation lines. Built-in `denoise` is refused at dispatch.
 - `CImg.h`: the four `popen` call sites go through `cimg::patchy_popen`, which starts nothing
   when `cimg_no_system_calls` is defined.
 - `CImg.h`, FFT: under `patchy_gmic_use_pocketfft` both `CImg<T>::FFT` entry points (per axis
@@ -45,7 +47,7 @@ Every change carries a `PATCHY` marker; `git diff` against the tarball shows exa
 
 To update G'MIC: replace the five files from the new tarball, reapply these changes
 (`scripts/dev/gmic/apply-patchy-changes.ps1 -Dir src\filters\gmic`, then
-`apply-patchy-fft.ps1` with the same argument; both did it for 4.0.5 and refuse when a line
+`apply-patchy-fft.ps1` and `apply-command-policy.ps1` with the same argument; all refuse when a line
 they expect has moved), rerun
 `scripts/dev/gmic/build_allowlist.py` and the `gmic_` tests, and compare the regenerated
 lists with the committed ones.
@@ -314,9 +316,8 @@ For 4.0.5 the library declares 440 filters; 394 are allowed and 46 are listed wi
 - `scripts/dev/gmic/build_allowlist.py` writes both files. A filter is left out when it is
   named (`NAMED`: the legal boundary, plus Custom Code), when it is an About or Testing page,
   when a command it reaches runs an external program or a neural network, or when it does not
-  run. Static reach analysis is deliberately minimal: it reads whole words as calls, and a
-  variable named `h` is also the help command, which once excluded Polaroid and Drop Shadow as
-  "interactive". Whether a filter works is decided by running it.
+  run. Static reach analysis reads whole words as calls and can mistake variables for commands;
+  actual execution decides whether a filter works.
 - `patchy_filters_run_failures.txt` (hand-maintained; `scripts/dev/gmic/record-run-failures.ps1
   -Log <test output>` appends what a test run reported and regenerates the lists) holds the
   filters that fail in this build. For 4.0.5: 5 need a window, 4 need data or fonts G'MIC
@@ -333,6 +334,10 @@ For 4.0.5 the library declares 440 filters; 394 are allowed and 46 are listed wi
   path the user chose.
 - The named list is by rule, not a legal review of each filter. The binding boundary is in
   [legal-constraints.md](legal-constraints.md).
+- The catalog is not the execution boundary. `gmic_command_policy.hpp` stubs excluded apply,
+  preview, private-helper and algorithm command families at registration, including later
+  redefinitions. Nested formula `run()`, aliases and `$$name` body copying get the refusal too.
+  Shared non-patch helpers and formulas remain usable; this is no sandbox or legal clearance.
 
 ### FFT
 
@@ -340,15 +345,13 @@ CImg has two FFT entry points (`CImg<T>::FFT` per axis and N-dimensional). With
 `cimg_use_fftw3` they call FFTW; otherwise the per-axis one is a radix-2 transform that throws
 on a size that is not a power of two. FFTW is GPL (or a paid licence), so it stays out, and
 Patchy routes both entry points through pocketfft instead (BSD-3-Clause, one header, the FFT
-behind NumPy and SciPy; chosen over a hand-written Bluestein, KissFFT, PFFFT and vDSP in
-October 2026 because it handles any size in N dimensions on every platform).
+behind NumPy and SciPy, supporting arbitrary sizes in N dimensions).
 
 `_patchy_pocketfft(real, imag, axes_mask, is_inverse)` copies each channel into complex
 doubles, transforms along the masked axes (1 = X, 2 = Y, 4 = Z) and copies back, keeping
 FFTW's scaling as CImg uses it: forward unscaled, inverse divided by each transformed length.
 pocketfft's own thread pool is off (`POCKETFFT_NO_MULTITHREADING`). Results match FFTW except
-in the last bits. This admitted 20 more filters (Fourier Transform, Bandpass, Blur [Angular],
-[Linear] and [Multidirectional], Rodilius, Make Seamless [Diffusion] and others).
+in the last bits.
 
 ## Tests
 
@@ -359,6 +362,9 @@ reporting, that `exec` starts nothing and that `matchpatch` and patch `inpaint` 
 abort, the FFT at sizes that are not powers of two (an impulse's flat spectrum and forward and
 inverse round trips, whole and per axis), and `gmic_allowlisted_filters_run_with_defaults`, which runs every allowed filter on
 a 48x40 image (about 40 s on the dev box).
+`gmic_engine_restricts_excluded_commands_and_aliases` checks every excluded apply/preview
+command, helpers, aliases, redefinitions and nested interpreters;
+`gmic_engine_custom_formula_cannot_run_excluded_filters` checks Blend formulas and an allowed control.
 
 UI (`tests/ui/gmic_tests.cpp`, filter `ui_gmic`; the panel, tree and render tests also run
 without the engine): the panel over all 440 declared filters and every control type; the
@@ -373,11 +379,8 @@ group, memory refusal, script gates); and
 `ui_gmic_library_dialog_previews_every_chosen_layer_and_explains_the_result` (multi-layer
 preview, previewed added layers below their source, eyes-only Layers panel, Preview off,
 Cancel, OK carrying eyes, Ball's sphere on top, the notes, CRT Scanlines, About G'MIC).
-Core: `gmic_output_layer_names_carry_layer_settings`.
-
-Sweeps (October 2026, manual): every filter at defaults via `layer.applyGmic` on a 900 px
-photo (plain, off-canvas, selection, 16-bit, three layers) and on a 60x45 layer in a 120x90
-document (a one-image filter's bounds match in `active` and `all`).
+`ui_gmic_custom_formula_rejects_excluded_commands_without_editing_layers` pins refusal without
+changing layer pixels or count. Core: `gmic_output_layer_names_carry_layer_settings`.
 
 ## Known gaps
 
@@ -387,7 +390,7 @@ document (a one-image filter's bounds match in `active` and `all`).
 - The interpreter prints some filter messages to standard output.
 - A draft is the whole image reduced, never a 1:1 crop of what the canvas shows, so fine
   detail is only judged once the full run lands. G'MIC's own preview commands (guides,
-  split views) are unused and untested.
+  split views) are unused; restricted ones are tested for refusal only.
 - Of the filters that declare multi-layer input, only Blend [Average All] has an automated
   test of its result; the others are covered by the run-everything core test and the
   three-layer real-image sweep, which check that they run, not what they produce.

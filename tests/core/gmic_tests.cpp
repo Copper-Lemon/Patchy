@@ -410,6 +410,81 @@ void gmic_engine_leaves_out_programs_and_patch_algorithms() {
   CHECK(patch.error.find("Not available in this build") != std::string::npos);
 }
 
+// Catalog hiding alone is insufficient: formulas can call run(), and $$name can
+// copy a command into an alias. Exercise the real interpreter and library rather
+// than testing the policy's name matching in isolation.
+void gmic_engine_restricts_excluded_commands_and_aliases() {
+  const gmic::Engine engine(standard_library());
+  std::ifstream in(patchy::test::source_root_path() / "src" / "filters" / "gmic" /
+                   "patchy_filters_excluded.txt", std::ios::binary);
+  std::ostringstream text;
+  text << in.rdbuf();
+  const auto excluded = gmic::parse_allowlist(text.str());
+  CHECK(excluded.size() > 40U);
+  const auto original = quadrants(16, 16);
+  bool all_refused = true;
+  const auto refused = [&](const std::string& command) {
+    std::vector<gmic::Image> images{original};
+    const auto result = engine.run(command, images);
+    const bool rejected = !result.ok && result.error.find("Not available in this build") != std::string::npos;
+    const bool unchanged = images.size() == 1U && images.front().samples == original.samples;
+    if (!rejected || !unchanged) {
+      std::cerr << "  command was not restricted: " << command << " | " << result.error << '\n';
+    }
+    all_refused = all_refused && rejected && unchanged;
+  };
+  for (const auto& id : excluded) {
+    const auto* filter = standard_catalog().find(id);
+    CHECK(filter != nullptr);
+    refused(gmic::command_line(*filter, {}, false));
+    // gui_no_preview is a shared placeholder, not the excluded filter's code.
+    if (!filter->preview_command.empty() && filter->preview_command != "_none_" &&
+        filter->preview_command != "gui_no_preview") {
+      refused(gmic::command_line(*filter, {}, true));
+    }
+  }
+  for (const auto* command : {
+           "_fx_blur_dof", "__fx_blur_motion_preview_args", "+fx_blur_motion[0]",
+           "blend_seamless", "seamcarve", "syntexturize", "nn_lib", "inpaint_matchpatch", "denoise 1",
+           "m \"patchy_alias : fx_blur_motion\" patchy_alias",
+           "m \"patchy_alias : $${fx_blur_motion}\" patchy_alias",
+           "m \"fx_blur_motion : fill 0\" fx_blur_motion",
+           "eval \"run('fx_blur_', 'motion')\"",
+           "parallel \"fx_blur_motion\""}) {
+    refused(command);
+  }
+  CHECK(all_refused);
+}
+
+void gmic_engine_custom_formula_cannot_run_excluded_filters() {
+  const gmic::Engine engine(standard_library());
+  const auto* blend = standard_catalog().find("fx_blend");
+  const auto* motion = standard_catalog().find("fx_blur_motion");
+  CHECK(blend != nullptr && motion != nullptr);
+  auto values = gmic::default_values(*blend);
+  CHECK(values.size() == 5U);
+  values[0] = "6";  // Custom formula.
+  const auto first = quadrants(16, 16);
+  auto second = first;
+  for (std::size_t i = 0; i < second.samples.size() * 3U / 4U; ++i) second.samples[i] *= 0.5F;
+  std::vector<gmic::Image> images{first, second};
+  values[4] = gmic::quoted_text_value("run('" + gmic::command_line(*motion, {}, false) + "') + (a+b)/2");
+  const auto blocked = engine.run(gmic::command_line(*blend, values, false), images);
+  CHECK(!blocked.ok);
+  CHECK(blocked.error.find("Not available in this build") != std::string::npos);
+  CHECK(images.size() == 2U);
+  CHECK(images[0].samples == first.samples && images[1].samples == second.samples);
+
+  // Legitimate formulas and internal command calls still work.
+  values[4] = gmic::quoted_text_value("run('status 1')*0 + (a+b)/2");
+  const auto allowed = engine.run(gmic::command_line(*blend, values, false), images);
+  if (!allowed.ok) std::cerr << "  formula: " << allowed.error << '\n';
+  CHECK(allowed.ok && images.size() == 1U);
+  for (std::size_t i = 0; i < first.samples.size(); ++i) {
+    CHECK(close_to(images[0].samples[i], (first.samples[i] + second.samples[i]) * 0.5F));
+  }
+}
+
 // The engine's FFT is pocketfft, which has to work at sizes that are not powers of two and keep
 // FFTW's scaling (forward unscaled, inverse divided by the transformed lengths).
 void gmic_engine_fft_works_at_any_size() {
@@ -497,6 +572,10 @@ std::vector<patchy::test::TestCase> gmic_tests() {
                   {"gmic_engine_fft_works_at_any_size", gmic_engine_fft_works_at_any_size},
                   {"gmic_engine_leaves_out_programs_and_patch_algorithms",
                    gmic_engine_leaves_out_programs_and_patch_algorithms},
+                  {"gmic_engine_restricts_excluded_commands_and_aliases",
+                   gmic_engine_restricts_excluded_commands_and_aliases},
+                  {"gmic_engine_custom_formula_cannot_run_excluded_filters",
+                   gmic_engine_custom_formula_cannot_run_excluded_filters},
                   {"gmic_engine_stops_on_request", gmic_engine_stops_on_request},
                   {"gmic_engine_reports_progress_as_a_percentage", gmic_engine_reports_progress_as_a_percentage},
                   {"gmic_allowlisted_filters_run_with_defaults", gmic_allowlisted_filters_run_with_defaults}});

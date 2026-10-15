@@ -1599,10 +1599,67 @@ void ui_filter_gallery_tilt_shift_overlay_syncs_and_freezes_during_drag() {
   CHECK(result.outcome == patchy::ui::VisualFilterGalleryOutcome::Cancelled);
 }
 
-// Patent design constraint (Apple US 8971623; docs/smart-objects.md "Patents
-// and trademarks"): the tilt-shift boundary marks must stay short grip bars
+// Patent design constraint (Apple US 8971623; docs/legal-constraints.md):
+// the tilt-shift boundary marks must stay short grip bars
 // near the center axis. This test fails if anyone reintroduces boundary
 // lines that span the image and divide it around the center.
+void ui_filter_gallery_tilt_shift_grips_never_span_the_visible_image() {
+  patchy::ui::ZoomableImagePreview preview;
+  preview.resize(320, 240);
+  QImage source(256, 192, QImage::Format_ARGB32);
+  source.fill(QColor(128, 128, 128));
+  preview.set_image(source);
+  preview.show();
+  const auto capture = [&](int ratio) {
+    QImage result(preview.width() * ratio, preview.height() * ratio, QImage::Format_ARGB32);
+    result.setDevicePixelRatio(ratio);
+    result.fill(Qt::transparent);
+    preview.render(&result);
+    return result;
+  };
+  for (const auto zoom : {1.0, 0.25, 0.125, 0.0625, 2.0}) {
+    // The final case also exercises a viewport-clipped, off-centre image.
+    preview.zoom_to(zoom, QPointF(0.0, 0.0));
+    const auto pan = preview.property("previewPanOffset").toPoint();
+    const QSizeF size(source.width() * zoom, source.height() * zoom);
+    const auto displayed = QRectF(QPointF((preview.width() - size.width()) / 2.0,
+                                          (preview.height() - size.height()) / 2.0) + pan, size);
+    const auto visible = displayed.intersected(QRectF(preview.rect()));
+    for (const auto ratio : {1, 2}) {
+      preview.set_tilt_shift_overlay(std::nullopt);
+      const auto before = capture(ratio);
+      const auto left = static_cast<int>(std::ceil(visible.left() * ratio));
+      const auto top = static_cast<int>(std::ceil(visible.top() * ratio));
+      const auto right = static_cast<int>(std::floor(visible.right() * ratio)) - 1;
+      const auto bottom = static_cast<int>(std::floor(visible.bottom() * ratio)) - 1;
+      for (const auto center : {QPointF(0.5, 0.5), QPointF(0.03, 0.07), QPointF(0.98, 0.94)}) {
+        for (const auto angle : {0.0, 33.0, 90.0, 149.0}) {
+          preview.set_tilt_shift_overlay(patchy::ui::NormalizedTiltShiftOverlay{
+              center, angle, 0.1, 0.2});
+          const auto after = capture(ratio);
+          // No overlay ink may join any two image edges, even at a corner or
+          // through a pen cap/handle. Compare pixels, not implementation geometry.
+          for (auto x = left; x <= right; ++x) {
+            CHECK(after.pixel(x, top) == before.pixel(x, top));
+            CHECK(after.pixel(x, bottom) == before.pixel(x, bottom));
+          }
+          for (auto y = top; y <= bottom; ++y) {
+            CHECK(after.pixel(left, y) == before.pixel(left, y));
+            CHECK(after.pixel(right, y) == before.pixel(right, y));
+          }
+          if (center == QPointF(0.5, 0.5) && zoom <= 1.0) {
+            CHECK(after != before);  // Small images must still show controls.
+          }
+          if (zoom == 0.125 && ratio == 2 && center == QPointF(0.5, 0.5) && angle == 0.0) {
+            ensure_artifact_dir();
+            CHECK(after.save(QStringLiteral("test-artifacts/ui_tilt_shift_small_grips.png")));
+          }
+        }
+      }
+    }
+  }
+}
+
 void ui_filter_gallery_tilt_shift_overlay_uses_grip_bars() {
   GallerySettingsRestorer gallery_settings;
   ensure_artifact_dir();
@@ -2373,6 +2430,8 @@ std::vector<patchy::test::TestCase> destructive_filters_gallery_tests_part2() {
        ui_filter_gallery_tilt_shift_overlay_syncs_and_freezes_during_drag},
       {"ui_filter_gallery_tilt_shift_overlay_uses_grip_bars",
        ui_filter_gallery_tilt_shift_overlay_uses_grip_bars},
+      {"ui_filter_gallery_tilt_shift_grips_never_span_the_visible_image",
+       ui_filter_gallery_tilt_shift_grips_never_span_the_visible_image},
       {"ui_filter_gallery_heavy_thumbnail_queue_yields_to_event_loop",
        ui_filter_gallery_heavy_thumbnail_queue_yields_to_event_loop},
       {"ui_filter_gallery_unwinding_call_disarms_in_flight_renders",
