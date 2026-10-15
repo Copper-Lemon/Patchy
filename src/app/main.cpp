@@ -15,6 +15,7 @@
 #include "ui/app_style.hpp"
 #include "ui/theme_manager.hpp"
 #include "ui/user_fonts.hpp"
+#include "ui/wayland_popup_anchor.hpp"
 #ifdef PATCHY_MCP_EXECUTABLE
 #include "app/mcp_server.hpp"
 #include <QTemporaryDir>
@@ -348,6 +349,9 @@ int main(int argc, char* argv[]) {
   // pinning); must match packaging/linux/com.rtsoft.patchy.desktop.
   QGuiApplication::setDesktopFileName(QStringLiteral("com.rtsoft.patchy"));
 #endif
+  // Qt 6.11 places menus and combo lists off their anchor on Wayland at a non-100% interface
+  // scale (GitHub issue 100); a no-op elsewhere.
+  patchy::ui::install_wayland_popup_anchor_fix();
   // Slider grooves snap to the click; tool flyouts open on a short hold (see the style above).
   app.setStyle(new patchy::ui::AppStyle);
   app.setApplicationName(QStringLiteral("Patchy"));

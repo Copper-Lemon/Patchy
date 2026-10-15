@@ -1134,6 +1134,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/main_window_document_dialogs.cpp
       src/ui/main_window_files.cpp
       src/ui/network_mounts.cpp
+      src/ui/wayland_popup_anchor.hpp
+      src/ui/wayland_popup_anchor.cpp
       src/ui/main_window_history.cpp
       src/ui/main_window_layer_ops.cpp
       src/ui/main_window_ai_selection.cpp

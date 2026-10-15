@@ -2,6 +2,7 @@
 #include "ui/app_style.hpp"
 #include "ui/canvas_widget.hpp"
 #include "ui/recent_file_list.hpp"
+#include "ui/wayland_popup_anchor.hpp"
 #include "core/adjustment_layer.hpp"
 #include "core/contour_presets.hpp"
 #include "core/gradient_presets.hpp"
@@ -154,6 +155,7 @@
 #include <QMetaObject>
 #include <QMouseEvent>
 #include <QMenu>
+#include <QMainWindow>
 #include <QMenuBar>
 #include <QMimeData>
 #include <QMessageBox>
@@ -1498,6 +1500,98 @@ void ui_network_mount_classification_uses_deepest_mount_point() {
 #else
   CHECK(live.empty());
 #endif
+}
+
+// GitHub issue 100: Qt 6.11 on Wayland anchors menu bar menus, submenus, QPushButton menus
+// and combo lists with an unscaled rectangle, so at a 90% or 125% interface scale they
+// open off their item. The filter overrides the anchor through Qt's window property with
+// the rectangle Qt computes, scaled. Offscreen runs the filter on any platform: the
+// properties it leaves on each popup window are what the Wayland plug-in would read.
+void ui_wayland_popup_anchor_fix_scales_qt_anchor_rects() {
+  using patchy::ui::scale_popup_anchor_rect;
+  using patchy::ui::wayland_popup_anchor_fix_needed;
+  CHECK(wayland_popup_anchor_fix_needed(QStringLiteral("wayland"), QVersionNumber(6, 11, 2), 1.25));
+  CHECK(wayland_popup_anchor_fix_needed(QStringLiteral("wayland-egl"), QVersionNumber(6, 11, 0), 0.9));
+  CHECK(!wayland_popup_anchor_fix_needed(QStringLiteral("wayland"), QVersionNumber(6, 8, 3), 1.25));
+  CHECK(!wayland_popup_anchor_fix_needed(QStringLiteral("wayland"), QVersionNumber(6, 12, 0), 1.25));
+  CHECK(!wayland_popup_anchor_fix_needed(QStringLiteral("xcb"), QVersionNumber(6, 11, 2), 1.25));
+  CHECK(!wayland_popup_anchor_fix_needed(QStringLiteral("wayland"), QVersionNumber(6, 11, 2), 1.0));
+  // The rectangles Qt 6.11 sent unscaled in the probe runs (docs/wayland.md).
+  CHECK(scale_popup_anchor_rect(QRect(0, 0, 127, 22), 1.25) == QRect(0, 0, 159, 28));
+  CHECK(scale_popup_anchor_rect(QRect(41, 0, 46, 19), 0.9) == QRect(37, 0, 41, 17));
+
+  constexpr double kScale = 1.25;
+  const char* const property = "_q_waylandPopupAnchorRect";
+  QMainWindow window;
+  auto* central = new QWidget(&window);
+  auto* combo = new QComboBox(central);
+  combo->addItems({QStringLiteral("RGB Color"), QStringLiteral("Grayscale"), QStringLiteral("Bitmap")});
+  combo->setGeometry(20, 30, 160, 24);
+  auto* button = new QPushButton(QStringLiteral("More"), central);
+  button->setGeometry(20, 80, 90, 24);
+  auto* button_menu = new QMenu(button);
+  button_menu->addAction(QStringLiteral("Delete"));
+  button->setMenu(button_menu);
+  window.setCentralWidget(central);
+  window.menuBar()->addMenu(QStringLiteral("File"))->addAction(QStringLiteral("New"));
+  QMenu* image = window.menuBar()->addMenu(QStringLiteral("Image"));
+  QMenu* mode = image->addMenu(QStringLiteral("Mode"));
+  mode->addAction(QStringLiteral("Grayscale"));
+  image->addAction(QStringLiteral("Adjustments"));
+  window.resize(640, 480);
+  window.show();
+  QCoreApplication::processEvents();
+
+  QObject* filter = patchy::ui::create_wayland_popup_anchor_filter(kScale, &window);
+  qApp->installEventFilter(filter);
+  const auto anchor = [property](QWidget* popup) {
+    return popup->windowHandle() != nullptr ? popup->windowHandle()->property(property) : QVariant();
+  };
+
+  // Menu bar menu: the item's rectangle in window coordinates.
+  QMenuBar* bar = window.menuBar();
+  bar->setActiveAction(image->menuAction());
+  QCoreApplication::processEvents();
+  CHECK(image->isVisible());
+  const QRect bar_item = bar->actionGeometry(image->menuAction()).translated(bar->mapTo(&window, QPoint(0, 0)));
+  CHECK(anchor(image).toRect() == scale_popup_anchor_rect(bar_item, kScale));
+
+  // Submenu: its item's rectangle in the parent menu.
+  image->setActiveAction(mode->menuAction());
+  QKeyEvent right(QEvent::KeyPress, Qt::Key_Right, Qt::NoModifier);
+  QCoreApplication::sendEvent(image, &right);
+  QCoreApplication::processEvents();
+  CHECK(mode->isVisible());
+  CHECK(anchor(mode).toRect() == scale_popup_anchor_rect(image->actionGeometry(mode->menuAction()), kScale));
+  mode->hide();
+  image->hide();
+  QCoreApplication::processEvents();
+
+  // The same menu as a context menu: Qt sets no anchor there, so neither does the filter.
+  mode->popup(window.mapToGlobal(QPoint(300, 200)));
+  QCoreApplication::processEvents();
+  CHECK(mode->isVisible());
+  CHECK(!anchor(mode).isValid());
+  mode->hide();
+
+  // Combo box list: the combo's rectangle.
+  combo->showPopup();
+  QCoreApplication::processEvents();
+  QWidget* list_popup = combo->view()->window();
+  CHECK(list_popup != &window && list_popup->isVisible());
+  CHECK(anchor(list_popup).toRect() ==
+        scale_popup_anchor_rect(QRect(combo->mapTo(&window, QPoint(0, 0)), combo->size()), kScale));
+  combo->hidePopup();
+
+  // QPushButton menu (the layers panel's adjustment button): the button's rectangle.
+  button->showMenu();
+  QCoreApplication::processEvents();
+  CHECK(button_menu->isVisible());
+  CHECK(anchor(button_menu).toRect() ==
+        scale_popup_anchor_rect(QRect(button->mapTo(&window, QPoint(0, 0)), button->size()), kScale));
+  button_menu->close();
+
+  qApp->removeEventFilter(filter);
 }
 
 void ui_recent_history_checks_in_background_and_skips_network_paths() {
@@ -6279,6 +6373,7 @@ std::vector<patchy::test::TestCase> app_shell_tests() {
        ui_open_remembers_last_directory_and_lists_recent_folders},
       {"ui_network_mount_classification_uses_deepest_mount_point",
        ui_network_mount_classification_uses_deepest_mount_point},
+      {"ui_wayland_popup_anchor_fix_scales_qt_anchor_rects", ui_wayland_popup_anchor_fix_scales_qt_anchor_rects},
       {"ui_recent_history_checks_in_background_and_skips_network_paths",
        ui_recent_history_checks_in_background_and_skips_network_paths},
       {"ui_open_dialog_hides_name_filter_details", ui_open_dialog_hides_name_filter_details},

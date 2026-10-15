@@ -94,7 +94,7 @@ Read these before acting in the named area:
 | User-facing text, translation catalogs, languages, `LocalizationManager`, unit suffixes | [docs/localization.md](docs/localization.md) |
 | Layers panel (rows, thumbnails, click selection, disclosure arrow, visibility eye, drags to another document, Alt-drag duplicate) | [docs/layer-panel.md](docs/layer-panel.md) |
 | Tests, offscreen behavior, visual QA, app and README screenshots, suite failure diagnosis | [docs/testing.md](docs/testing.md) |
-| Platform-guarded code, macOS/Linux behavior, remote builds | [docs/platform.md](docs/platform.md) |
+| Platform-guarded code, macOS/Linux behavior, remote builds | [docs/platform.md](docs/platform.md); Wayland: [docs/wayland.md](docs/wayland.md) |
 | WebAssembly builds, the wasm-core preset, emsdk provisioning | [docs/wasm.md](docs/wasm.md); wasm memory/telemetry in [docs/wasm-memory.md](docs/wasm-memory.md); wasm input/focus/hotkeys in [docs/wasm-input.md](docs/wasm-input.md) |
 | Patents, licensing, trademarks, bundled assets, or a feature adjacent to a legal boundary | [docs/legal-constraints.md](docs/legal-constraints.md), which links every patent research record (`docs/patent-research*.md`) |
 | PSD descriptors, layer styles, write/corruption rules | [docs/ps-compat.md](docs/ps-compat.md) |
@@ -120,7 +120,7 @@ Read these before acting in the named area:
 - Photoshop reads a document's text fonts and content from its own `Txt2` block, not the layers, and trusts it over the TySh. Patchy rebuilds that block on every save (an authored object per regenerated type layer, untouched objects kept, no layout caches); a new TySh key needs its Txt2 twin in `psd_text_engine_block.cpp` or Photoshop shows the stale object. Format, key map and what Photoshop accepts: [docs/txt2.md](docs/txt2.md); see also [docs/ps-compat.md](docs/ps-compat.md).
 - Every gradient descriptor Patchy writes carries at least two transparency stops, and a file that already has none heals on save. An empty `Trns` list makes Photoshop discard the layer behind its "unknown data" prompt; `scripts\dev\photoshop-open-check.ps1` detects that prompt per file. See [docs/ps-compat.md](docs/ps-compat.md).
 - Never leave a Qt host lookup pending at quit. `QNetworkAccessManager` resolves through `QHostInfo`'s thread pool, and `~QCoreApplication` waits for that pool with no timeout (a stalled `getaddrinfo` froze macOS quits, GitHub issue 48). `update_checker.cpp` resolves the host on a detached thread first; any new network client does the same (docs/testing.md). The tracked-worker wait after `app.exec()` is bounded too (`finish_after_event_loop`): a worker still blocked after 10 s ends the process without destructors after dropping the recovery folder, so never rely on a destructor for anything the user could lose.
-- Agent tooling: the Claude Code Bash tool rewrites backslash escapes inside heredocs; write it to a file and run it.
+- Claude Code's Bash tool rewrites backslash escapes in heredocs; write a file and run it.
 
 ## Feature index
 
