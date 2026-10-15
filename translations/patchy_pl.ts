@@ -20782,6 +20782,13 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
     </message>
 </context>
 <context>
+    <name>patchy::ui::MarkdownViewerDialog</name>
+    <message>
+        <source>Close</source>
+        <translation>Zamknij</translation>
+    </message>
+</context>
+<context>
     <name>patchy::ui::McpActivity</name>
     <message>
         <source>AI editing: %1</source>

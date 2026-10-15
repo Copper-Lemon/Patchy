@@ -79,6 +79,7 @@
 #endif
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QToolButton>
 #include <QScopeGuard>
 #include <QStandardPaths>
 #include <QStatusBar>
@@ -4216,7 +4217,16 @@ void ui_script_scripting_guide_opens_from_help() {
       save_widget_artifact("scripting_guide_viewer", *viewer);
     }
     saw_guide = true;
-    viewer->close();
+    // The guide closes like the other Help dialogs: a Close button at the
+    // bottom and the chrome's X in the title bar (GitHub issue 107).
+    CHECK(viewer->findChild<QToolButton*>(QStringLiteral("dialogChromeCloseButton")) != nullptr);
+    auto* close_button = viewer->findChild<QPushButton*>(QStringLiteral("markdownViewerCloseButton"));
+    CHECK(close_button != nullptr);
+    if (close_button != nullptr) {
+      close_button->click();
+    } else {
+      viewer->close();
+    }
   });
   dismisser->start(30);
   help_button->click();

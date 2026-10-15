@@ -480,8 +480,7 @@ void MainWindow::open_scripting_guide() {
   const auto bundled = bundled_scripts_directory();
   const auto path =
       bundled.isEmpty() ? QString() : bundled + QStringLiteral("/scripting-guide.md");
-  auto* dialog = new MarkdownViewerDialog(this);
-  dialog->setWindowTitle(tr("Scripting Guide"));
+  auto* dialog = new MarkdownViewerDialog(tr("Scripting Guide"), this);
   if (!dialog->load_file(path)) {
     delete dialog;
     show_status_error(tr("The scripting guide (scripting-guide.md) is missing from the bundled "

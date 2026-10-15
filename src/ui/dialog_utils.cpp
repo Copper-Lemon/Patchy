@@ -1238,6 +1238,10 @@ void install_save_file_recent_dropdown(QFileDialog& dialog, const QStringList& r
 
 }  // namespace
 
+QIcon dialog_chrome_close_icon() {
+  return dialog_close_icon();
+}
+
 namespace {
 
 // Frame, QSS padding, line-edit text margins, and the caret around the value

@@ -19,6 +19,7 @@
 class QAction;
 class QBoxLayout;
 class QDialog;
+class QIcon;
 class QAbstractSpinBox;
 class QDoubleSpinBox;
 class QFormLayout;
@@ -200,6 +201,9 @@ void mark_dialog_always_centered(QDialog& dialog);
 void remember_dialog_position(QDialog& dialog);
 int exec_dialog(QDialog& dialog);
 int run_non_modal_dialog(QDialog& dialog);
+// The X glyph the dark dialog chrome's title bar uses, for a frameless dialog
+// that draws its own corner close button (About).
+QIcon dialog_chrome_close_icon();
 #ifdef Q_OS_WASM
 // Installs the app-wide wasm dialog guards: the modal burial raise and the
 // initial-focus repair (see dialog_utils.cpp). exec_dialog and

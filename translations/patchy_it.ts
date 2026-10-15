@@ -20719,6 +20719,13 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
     </message>
 </context>
 <context>
+    <name>patchy::ui::MarkdownViewerDialog</name>
+    <message>
+        <source>Close</source>
+        <translation>Chiudi</translation>
+    </message>
+</context>
+<context>
     <name>patchy::ui::McpActivity</name>
     <message>
         <source>AI editing: %1</source>

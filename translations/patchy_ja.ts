@@ -20656,6 +20656,13 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
     </message>
 </context>
 <context>
+    <name>patchy::ui::MarkdownViewerDialog</name>
+    <message>
+        <source>Close</source>
+        <translation>閉じる</translation>
+    </message>
+</context>
+<context>
     <name>patchy::ui::McpActivity</name>
     <message>
         <source>Pause</source>

@@ -20656,6 +20656,13 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
     </message>
 </context>
 <context>
+    <name>patchy::ui::MarkdownViewerDialog</name>
+    <message>
+        <source>Close</source>
+        <translation>关闭</translation>
+    </message>
+</context>
+<context>
     <name>patchy::ui::McpActivity</name>
     <message>
         <source>AI editing: %1</source>

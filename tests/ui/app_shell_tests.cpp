@@ -4801,6 +4801,15 @@ void ui_about_dialog_shows_labeled_external_links() {
     auto* dialog = find_top_level_dialog(QStringLiteral("patchySplashScreen"));
     CHECK(dialog != nullptr);
 
+    // The X in the upper right, like every chrome dialog's title bar (GitHub issue 107).
+    auto* close_glyph = dialog->findChild<QToolButton*>(QStringLiteral("splashCloseGlyphButton"));
+    CHECK(close_glyph != nullptr);
+    if (close_glyph != nullptr) {
+      CHECK(close_glyph->isVisible());
+      CHECK(close_glyph->geometry().right() >= dialog->width() - 8);
+      CHECK(close_glyph->geometry().top() <= 8);
+    }
+
     const auto link_labels = dialog->findChildren<QLabel*>(QStringLiteral("splashHome"));
     CHECK(link_labels.size() == 2);
     QString combined_text;

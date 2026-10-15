@@ -13,12 +13,13 @@ namespace patchy::ui {
 // and in-app help. External links open in the system browser. Currently used
 // for the scripting guide (Help in the Script Manager and Help > Scripting
 // Guide, via MainWindow::open_scripting_guide); non-modal callers go through
-// run_non_modal_dialog as usual.
+// run_non_modal_dialog as usual. It wears the dark dialog chrome (title bar
+// with an X) and closes from a Close button too (GitHub issue 107).
 class MarkdownViewerDialog : public QDialog {
   Q_OBJECT
 
 public:
-  explicit MarkdownViewerDialog(QWidget* parent = nullptr);
+  explicit MarkdownViewerDialog(const QString& title, QWidget* parent = nullptr);
 
   // Loads and renders the markdown file; false when it does not exist (the
   // caller reports; the dialog just stays empty).

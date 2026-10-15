@@ -5,8 +5,12 @@
 
 #include "ui/markdown_viewer_dialog.hpp"
 
+#include "ui/dialog_utils.hpp"
+
 #include <QColor>
 #include <QFileInfo>
+#include <QHBoxLayout>
+#include <QPushButton>
 #include <QTextBlock>
 #include <QTextBrowser>
 #include <QTextCharFormat>
@@ -42,15 +46,32 @@ void recolor_anchors(QTextDocument& document) {
 
 }  // namespace
 
-MarkdownViewerDialog::MarkdownViewerDialog(QWidget* parent) : QDialog(parent) {
+MarkdownViewerDialog::MarkdownViewerDialog(const QString& title, QWidget* parent) : QDialog(parent) {
   setObjectName(QStringLiteral("markdownViewerDialog"));
   resize(780, 820);
-  auto* layout = new QVBoxLayout(this);
-  layout->setContentsMargins(0, 0, 0, 0);
+  // The same chrome as the other Help dialogs (About, Set up AI Control): a
+  // title bar with an X, a Close button at the bottom, and a corner grip since
+  // the frameless window has no native resize border (GitHub issue 107).
+  auto* root = new QVBoxLayout(this);
+  auto* content = install_dark_dialog_chrome(*this, root, title);
+  content->setContentsMargins(0, 0, 0, 0);
+  content->setSpacing(0);
   browser_ = new QTextBrowser(this);
   browser_->setObjectName(QStringLiteral("markdownViewerBrowser"));
   browser_->setOpenExternalLinks(true);
-  layout->addWidget(browser_);
+  content->addWidget(browser_, 1);
+
+  auto* buttons = new QHBoxLayout();
+  buttons->setContentsMargins(12, 8, 8, 8);
+  buttons->setSpacing(8);
+  buttons->addStretch(1);
+  auto* close = new QPushButton(tr("Close"), this);
+  close->setObjectName(QStringLiteral("markdownViewerCloseButton"));
+  close->setDefault(true);
+  connect(close, &QPushButton::clicked, this, &QDialog::reject);
+  buttons->addWidget(close);
+  buttons->addWidget(new VisibleSizeGrip(this), 0, Qt::AlignBottom);
+  content->addLayout(buttons);
 }
 
 bool MarkdownViewerDialog::load_file(const QString& path) {

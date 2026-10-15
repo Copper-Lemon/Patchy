@@ -26,6 +26,7 @@
 #include <QStandardPaths>
 #include <QString>
 #include <QTimer>
+#include <QToolButton>
 #include <QUrl>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -152,6 +153,18 @@ public:
       }
       QPushButton#splashCloseButton:hover {
         background: @splash_primary_hover_bg;
+      }
+      QToolButton#splashCloseGlyphButton {
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        padding: 0;
+      }
+      QToolButton#splashCloseGlyphButton:hover {
+        background: @window_close_hover_bg;
+      }
+      QToolButton#splashCloseGlyphButton:pressed {
+        background: @window_close_pressed_bg;
       }
     )"));
 
@@ -343,6 +356,21 @@ public:
     // height compressed the column on Windows until a move forced a relayout.
     layout->activate();
     setFixedHeight(std::max(kMinimumDialogHeight, layout->totalHeightForWidth(kDialogWidth)));
+
+    // The X every chrome dialog has in its upper right, so About closes the
+    // same way as the other Help dialogs (GitHub issue 107). It floats over
+    // the dialog's margin, outside the layout.
+    close_glyph_ = new QToolButton(this);
+    close_glyph_->setObjectName(QStringLiteral("splashCloseGlyphButton"));
+    close_glyph_->setAutoRaise(false);
+    close_glyph_->setFocusPolicy(Qt::NoFocus);
+    close_glyph_->setIcon(dialog_chrome_close_icon());
+    close_glyph_->setIconSize(QSize(16, 16));
+    close_glyph_->setFixedSize(30, 30);
+    close_glyph_->setToolTip(QObject::tr("Close"));
+    connect(close_glyph_, &QToolButton::clicked, this, &QDialog::accept);
+    place_close_glyph();
+    close_glyph_->raise();
   }
 
 #ifndef Q_OS_WASM
@@ -364,6 +392,11 @@ public:
   }
 
 protected:
+  void resizeEvent(QResizeEvent* event) override {
+    QDialog::resizeEvent(event);
+    place_close_glyph();
+  }
+
   // Frameless, so there is no title bar to grab; dragging any non-interactive
   // area moves the dialog instead. Only presses that no child widget consumed
   // reach these handlers, so the links and buttons keep working.
@@ -395,6 +428,13 @@ protected:
   }
 
 private:
+  void place_close_glyph() {
+    if (close_glyph_ != nullptr) {
+      close_glyph_->move(width() - close_glyph_->width() - 4, 4);
+    }
+  }
+
+  QToolButton* close_glyph_{nullptr};
   QLabel* status_{nullptr};
   bool dragging_{false};
   QPoint drag_position_;
