@@ -101,7 +101,8 @@ the plugin alone, so the kit's frameworks stay as shipped.
 
 macOS produces `build/mac-release/Patchy.app`; Linux produces
 `build/linux-release/patchy`. `packaging/macos/make-dmg.sh` and
-`packaging/linux/make-flatpak.sh` create the distributable artifacts. Both test suites
+`packaging/linux/make-flatpak.sh` and `packaging/linux/make-appimage.sh`
+([appimage.md](appimage.md)) create the distributable artifacts. Both test suites
 run offscreen on all three platforms (`QT_QPA_PLATFORM=offscreen`).
 
 ## MSVC Release codegen

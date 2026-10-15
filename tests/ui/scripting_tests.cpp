@@ -4113,6 +4113,23 @@ void ui_ai_setup_blurb_reports_missing_and_flatpak_forms() {
   CHECK(!sandboxed.contains(QStringLiteral("NOT FOUND (expected")));
   CHECK(!sandboxed.contains(QChar(0x2014)));
 
+  // An AppImage: the connector is the .AppImage file with the patchy-mcp argument (its
+  // AppRun dispatches), never the per-launch /tmp/.mount_* binary, and the skill folder in
+  // that mount is flagged as temporary.
+  patchy::ui::AiControlPaths appimage;
+  appimage.appimage_path = QStringLiteral("/home/someone/Apps/PatchyLinux.AppImage");
+  appimage.connector_path = QStringLiteral("/tmp/.mount_PatchyAbc/usr/bin/patchy-mcp");
+  appimage.skill_directory = QStringLiteral("/tmp/.mount_PatchyAbc/usr/share/patchy/ai/patchy-control");
+  appimage.setup_document_path = appimage.skill_directory + QStringLiteral("/references/setup.md");
+  const auto appimage_blurb = patchy::ui::ai_setup_blurb_text(appimage);
+  CHECK(appimage_blurb.contains(
+      QStringLiteral("Command: %1 patchy-mcp").arg(QDir::toNativeSeparators(QStringLiteral("\"/home/someone/Apps/PatchyLinux.AppImage\"")))));
+  CHECK(!appimage_blurb.contains(QStringLiteral("usr/bin/patchy-mcp")));
+  CHECK(appimage_blurb.contains(QStringLiteral("disappears when Patchy closes")));
+  CHECK(appimage_blurb.contains(QStringLiteral("Local (only while Patchy is open)")));
+  CHECK(!appimage_blurb.contains(QStringLiteral("NOT FOUND (expected")));
+  CHECK(!appimage_blurb.contains(QChar(0x2014)));
+
   // A resolved layout quotes native paths so folders with spaces survive a paste.
   patchy::ui::AiControlPaths resolved;
   resolved.connector_path = QStringLiteral("/opt/My Apps/patchy-mcp");

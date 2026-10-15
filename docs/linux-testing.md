@@ -1,6 +1,10 @@
 # Linux testing: the Flatpak's own Qt
 
-Patchy ships on Linux only as a Flatpak, and the Flatpak takes Qt from the
+This page covers the Flatpak. The AppImage is built and tested on its own toolchain
+(Ubuntu 22.04, GCC 12, aqt Qt 6.8.3): `packaging/linux/make-appimage.sh --tests` and
+`packaging/linux/appimage/test-appimage.sh`, described in [appimage.md](appimage.md).
+
+The Flatpak takes Qt from the
 `org.kde.Platform` runtime named in `packaging/linux/flatpak/com.rtsoft.patchy.yml`
 (6.11 as of October 2026). The Windows and macOS builds use Qt 6.8.3. Linux verification
 therefore runs on the runtime's Qt, never on a different one (Seth, October 13, 2026):

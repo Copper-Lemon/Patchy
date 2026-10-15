@@ -114,6 +114,34 @@
       }
     },
     {
+      "name": "linux-appimage",
+      "displayName": "Linux AppImage build (inside the Ubuntu 22.04 container only; see docs/appimage.md)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/appimage",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "gcc-12",
+        "CMAKE_CXX_COMPILER": "g++-12",
+        "CMAKE_INSTALL_PREFIX": "/usr",
+        "CMAKE_PREFIX_PATH": "/opt/qt/6.8.3/gcc_64",
+        "PATCHY_BUILD_APP": "ON",
+        "PATCHY_BUILD_TESTS": "OFF",
+        "PATCHY_REQUIRE_AI_SELECTION": "ON",
+        "PATCHY_GMIC_THREADS": "ON",
+        "PATCHY_ONNXRUNTIME_DIR": "/opt/deps/onnxruntime/1.30.0/linux-x64",
+        "PATCHY_AI_MODELS_DIR": "/opt/deps/ai-models"
+      }
+    },
+    {
+      "name": "linux-appimage-tests",
+      "displayName": "Linux AppImage toolchain with tests (inside the Ubuntu 22.04 container only)",
+      "inherits": "linux-appimage",
+      "binaryDir": "${sourceDir}/build/appimage-tests",
+      "cacheVariables": {
+        "PATCHY_BUILD_TESTS": "ON"
+      }
+    },
+    {
       "name": "wasm-core",
       "displayName": "WebAssembly engine + core tests (Emscripten, no Qt; see docs/wasm.md)",
       "generator": "Ninja",
@@ -203,6 +231,14 @@
     {
       "name": "linux-asan",
       "configurePreset": "linux-asan"
+    },
+    {
+      "name": "linux-appimage",
+      "configurePreset": "linux-appimage"
+    },
+    {
+      "name": "linux-appimage-tests",
+      "configurePreset": "linux-appimage-tests"
     },
     {
       "name": "wasm-core",

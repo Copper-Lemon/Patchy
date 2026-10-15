@@ -1373,19 +1373,20 @@ void ui_point_text_render_keeps_glyph_overhang() {
                              ? patchy::parse_layer_affine_transform(transform_value->second)
                              : std::nullopt;
   CHECK(transform.has_value());
+  // Read through value_or: GCC 12 reports the guarded (*transform)[i] reads as maybe-uninitialized.
+  const auto pen_transform = transform.value_or(decltype(transform)::value_type{});
   const auto italic = committed->metadata().find(patchy::kLayerMetadataTextItalic);
   CHECK(italic != committed->metadata().end() && italic->second == "true");
   std::printf("  committed %dx%d at (%d,%d); transform (%.3f, %.3f)\n", committed_bounds.width, committed_bounds.height,
-              committed_bounds.x, committed_bounds.y, transform.has_value() ? (*transform)[4] : 0.0,
-              transform.has_value() ? (*transform)[5] : 0.0);
+              committed_bounds.x, committed_bounds.y, pen_transform[4], pen_transform[5]);
   std::fflush(stdout);
   // The buffer starts left of the pen to hold the "j" hook, and keeps a clear margin all round.
   CHECK(committed_bounds.x < pen.x());
   CHECK(pixel_buffer_border_is_clear(committed_pixels));
   // The transform still names the pen.
   if (transform.has_value()) {
-    CHECK(std::abs((*transform)[4] - pen.x()) < 1e-6);
-    CHECK(std::abs((*transform)[5] - pen.y()) < 1e-6);
+    CHECK(std::abs(pen_transform[4] - pen.x()) < 1e-6);
+    CHECK(std::abs(pen_transform[5] - pen.y()) < 1e-6);
   }
 
   // Re-enter on the glyphs: the preview and a second apply reproduce the pixels in place.

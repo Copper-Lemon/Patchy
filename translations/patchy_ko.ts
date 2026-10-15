@@ -9909,6 +9909,10 @@ RGB: %2, %3, %4</translation>
         <source>Animated JPEG XL: imported %1 frames as layers</source>
         <translation>애니메이션 JPEG XL: %1개 프레임을 레이어로 가져왔습니다</translation>
     </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
+        <translation>이 Patchy 빌드는 HEIC 이미지를 디코딩할 수 없습니다. Flatpak 버전의 Patchy는 디코딩할 수 있습니다.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10143,6 +10147,10 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Close</source>
         <translation>닫기</translation>
+    </message>
+    <message>
+        <source>Patchy is running from an AppImage; the skill folder exists only while Patchy is open.</source>
+        <translation>Patchy가 AppImage에서 실행되고 있습니다. 스킬 폴더는 Patchy가 열려 있는 동안에만 존재합니다.</translation>
     </message>
 </context>
 <context>
@@ -20444,6 +20452,38 @@ You can still download it in your browser.</source>
     <message>
         <source>Saved animated JPEG XL copy %1</source>
         <translation>애니메이션 JPEG XL 사본 저장됨: %1</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Download the new AppImage, quit Patchy, and replace this file with it:
+
+%3</source>
+        <translation>Patchy %1을(를) 사용할 수 있습니다. 버전 %2을(를) 사용하고 있습니다.
+
+새 AppImage를 다운로드하고 Patchy를 종료한 후 이 파일을 새 파일로 교체하세요:
+
+%3</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage is no longer on this computer.</source>
+        <translation>다운로드한 AppImage가 더 이상 이 컴퓨터에 없습니다.</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage does not match the checksum published for this update.</source>
+        <translation>다운로드한 AppImage가 이 업데이트에 대해 게시된 체크섬과 일치하지 않습니다.</translation>
+    </message>
+    <message>
+        <source>The new AppImage could not be put in place of this one.</source>
+        <translation>새 AppImage로 이 AppImage를 교체할 수 없습니다.</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, replace this AppImage, and start again. You will be asked about unsaved work first.</source>
+        <translation>Patchy %1을(를) 사용할 수 있습니다. 버전 %2을(를) 사용하고 있습니다.
+
+Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 다시 시작할 수 있습니다. 먼저 저장하지 않은 작업에 대해 묻습니다.</translation>
     </message>
 </context>
 <context>

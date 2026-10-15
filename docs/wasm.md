@@ -486,7 +486,7 @@ worker would compose the frame inside paintEvent anyway.
 
 ## Release deployment (rtsoft.com/patchy)
 
-Batch-file details live in [release-process.md](release-process.md):
+Batch-file details live in [release-wasm.md](release-wasm.md):
 `build-wasm.bat` stages `build\package\wasm-site`,
 `upload-wasm-to-rtsoft.bat` publishes to `rtsoft.com/patchy`; local-server
 wrappers above.
@@ -498,13 +498,13 @@ needs `Cross-Origin-Opener-Policy: same-origin` and
 and the shell page checks `window.crossOriginIsolated` before fetching the
 wasm and names the two headers in its error; the post-upload curl check
 that catches a host silently dropping them is in
-[release-process.md](release-process.md). Every asset is same-origin, so no
+[release-wasm.md](release-wasm.md). Every asset is same-origin, so no
 per-asset CORP headers are needed.
 
 The deployed page is a Patchy-branded shell from
 `packaging\web\patchy.html.in`, not Qt's generated `patchy.html` (the
 dev-loop page; staging, cache tags, and the compressed `.br`/`.gz` serving
-negotiation are in [release-process.md](release-process.md)). Emscripten
+negotiation are in [release-wasm.md](release-wasm.md)). Emscripten
 has no download-progress callback, so the page fetches `patchy.wasm` itself
 with a byte-counting reader into one preallocated exact-size buffer,
 compiles it with `WebAssembly.compile`, and passes the module to `qtLoad`

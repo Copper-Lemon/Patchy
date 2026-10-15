@@ -1,5 +1,7 @@
 #include "ui/ai_control_paths.hpp"
 
+#include "ui/appimage_environment.hpp"
+
 #include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
@@ -41,6 +43,7 @@ AiControlPaths resolve_ai_control_paths() {
     }
   }
   paths.flatpak = qEnvironmentVariableIsSet("FLATPAK_ID");
+  paths.appimage_path = appimage_file_path();
   return paths;
 }
 
@@ -68,6 +71,9 @@ QString ai_setup_blurb_text(const AiControlPaths& paths) {
           << QStringLiteral("  (Patchy runs as a Flatpak; the local copy is inside its sandbox at "
                             "%1/references/setup.md)")
                  .arg(flatpak_skill);
+  } else if (!paths.appimage_path.isEmpty() && !paths.setup_document_path.isEmpty()) {
+    lines << QStringLiteral("  Local (only while Patchy is open): %1").arg(quoted(paths.setup_document_path))
+          << QStringLiteral("  Online: %1").arg(url);
   } else if (paths.setup_document_path.isEmpty()) {
     lines << QStringLiteral("  Local: not installed; use the online copy")
           << QStringLiteral("  Online: %1").arg(url);
@@ -83,6 +89,11 @@ QString ai_setup_blurb_text(const AiControlPaths& paths) {
           << QStringLiteral("   (the program is \"flatpak\" with the arguments run "
                             "--command=patchy-mcp %1)")
                  .arg(app_id);
+  } else if (!paths.appimage_path.isEmpty()) {
+    const auto argument = QString::fromLatin1(kAppImageConnectorArgument);
+    lines << QStringLiteral("   Command: %1 %2").arg(quoted(paths.appimage_path), argument)
+          << QStringLiteral("   (the program is the Patchy AppImage file itself, with the argument %1)")
+                 .arg(argument);
   } else if (paths.connector_path.isEmpty()) {
     lines << QStringLiteral("   Command: NOT FOUND (expected %1)").arg(expected("patchy-mcp"));
   } else {
@@ -102,6 +113,10 @@ QString ai_setup_blurb_text(const AiControlPaths& paths) {
     lines << QStringLiteral("   NOT FOUND (expected %1)").arg(expected("ai/patchy-control"));
   } else {
     lines << QStringLiteral("   %1").arg(quoted(paths.skill_directory));
+    if (!paths.appimage_path.isEmpty()) {
+      lines << QStringLiteral("   (inside the running AppImage: this folder disappears when Patchy "
+                              "closes, so copy SKILL.md now)");
+    }
   }
   lines << QStringLiteral("3. Call \"get_info\", read get_help(workflow) and get_help(api), and call get_state. In attached mode, use the returned stateToken as expectedState for every editing tool.")
         << QStringLiteral("   For the setup test, create a new 64x64 document without changing any existing documents, "

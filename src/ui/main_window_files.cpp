@@ -5,6 +5,7 @@
 // function moves from main_window.cpp; behavior must stay identical.
 
 #include "ui/main_window.hpp"
+#include "ui/appimage_environment.hpp"
 #include "ui/main_window_shared.hpp"
 #include "ui/network_mounts.hpp"
 #include "ui/object_selection_model_download.hpp"
@@ -4302,6 +4303,12 @@ void MainWindow::print_document() {
 }
 
 bool MainWindow::can_install_update(const UpdateInfo& update) const {
+  // An AppImage replaces its own file (docs/auto-update.md, "AppImage"); everything else
+  // needs the Windows installer's copy.
+  if (const auto appimage = appimage_file_path(); !appimage.isEmpty()) {
+    return update_has_appimage_install(update) &&
+           self_update_override_for_tests_.value_or(appimage_can_be_replaced(appimage));
+  }
   return update_has_installer(update) && self_update_override_for_tests_.value_or(installed_copy_can_self_update());
 }
 
@@ -4309,13 +4316,29 @@ void MainWindow::download_and_install_update(const UpdateInfo& update) {
 #if defined(Q_OS_WASM)
   Q_UNUSED(update);
 #else
+  // The file this update installs: the Windows installer, or for an AppImage the new
+  // AppImage, downloaded as a hidden file beside the running one so the final rename stays
+  // in one folder.
+  const auto appimage = appimage_file_path();
+  const bool appimage_update = !appimage.isEmpty();
+  const auto file_name = appimage_update ? appimage_update_download_name(appimage, update.version)
+                                         : update_installer_file_name();
+  const auto file_url = appimage_update ? update.appimage_install_url : update.installer_url;
+  const auto file_size = appimage_update ? update.appimage_install_size : update.installer_size;
+  const auto file_sha256 = appimage_update ? update.appimage_install_sha256 : update.installer_sha256;
+  QUrl browser_url = update.download_url;
+  if (appimage_update) {
+    browser_url = update.appimage_url.isEmpty() ? QUrl(QString::fromLatin1(kAppImageDownloadUrl)) : update.appimage_url;
+  }
   const auto megabytes = [](qint64 bytes) { return static_cast<int>((bytes + 500000) / 1000000); };
-  const auto total_mb = megabytes(update.installer_size);
+  const auto total_mb = megabytes(file_size);
   const auto progress_text = [&](qint64 received) {
     return tr("Downloading Patchy %1... %2 of %3 MB").arg(update.version).arg(megabytes(received)).arg(total_mb);
   };
-  const auto folder = update_download_folder_for_tests_.isEmpty() ? update_download_folder(update.version)
-                                                                  : update_download_folder_for_tests_;
+  QString folder = update_download_folder_for_tests_;
+  if (folder.isEmpty()) {
+    folder = appimage_update ? QFileInfo(appimage).absolutePath() : update_download_folder(update.version);
+  }
   std::optional<QProgressDialog> dialog;
   dialog.emplace(progress_text(0), tr("Cancel"), 0, 1000, this);
   dialog->setObjectName(QStringLiteral("updateDownloadDialog"));
@@ -4326,12 +4349,9 @@ void MainWindow::download_and_install_update(const UpdateInfo& update) {
   ModelDownloadResult result;
   bool done = false;
   QEventLoop wait_loop;
-  // Pinned by size and SHA-256 and written through QSaveFile; an installer already
-  // downloaded for this version (an update cancelled at the save prompt) is reused.
-  auto job = start_model_download(
-      this, folder,
-      {DownloadableModelFile{update_installer_file_name(), update.installer_url, update.installer_size,
-                             update.installer_sha256}},
+  // Pinned by size and SHA-256 and written through QSaveFile; a file already downloaded
+  // for this version (an update cancelled at the save prompt) is reused.
+  auto job = start_model_download(this, folder, {DownloadableModelFile{file_name, file_url, file_size, file_sha256}},
       [&](qint64 received, qint64 total) {
         dialog->setLabelText(progress_text(received));
         dialog->setValue(total > 0 ? static_cast<int>(received * 999 / total) : 0);
@@ -4358,17 +4378,21 @@ void MainWindow::download_and_install_update(const UpdateInfo& update) {
     failure.addButton(tr("Not Now"), QMessageBox::RejectRole);
     failure.setDefaultButton(browser_button);
     exec_dialog(failure);
-    if (failure.clickedButton() == browser_button && !QDesktopServices::openUrl(update.download_url)) {
+    if (failure.clickedButton() == browser_button && !QDesktopServices::openUrl(browser_url)) {
       show_status_error(tr("Could not open the download link"));
     }
     return;
   }
   // closeEvent asks about unsaved work as on any quit, then starts the installer, which
-  // waits for this process before it replaces anything.
-  pending_update_install_ = UpdateInstallerLaunch{QDir(folder).filePath(update_installer_file_name()),
+  // waits for this process before it replaces anything (an AppImage: puts the new file in
+  // place and starts it once this process has exited).
+  pending_update_install_ = UpdateInstallerLaunch{QDir(folder).filePath(file_name),
                                                   QCoreApplication::applicationDirPath(),
-                                                  QCoreApplication::applicationPid(), update.installer_size,
-                                                  update.installer_sha256, update.download_url};
+                                                  QCoreApplication::applicationPid(),
+                                                  file_size,
+                                                  file_sha256,
+                                                  browser_url,
+                                                  appimage};
   if (!close() && pending_update_install_.has_value()) {
     pending_update_install_.reset();
     statusBar()->showMessage(tr("The update was not installed because Patchy stayed open"));
@@ -4378,14 +4402,20 @@ void MainWindow::download_and_install_update(const UpdateInfo& update) {
 
 void MainWindow::show_update_launch_failure(const UpdateLaunchResult& result, const QUrl& browser_download_url) {
   QString reason;
+  const bool appimage = !appimage_file_path().isEmpty();
   switch (result.failure) {
     case UpdateLaunchFailure::None:
       return;
     case UpdateLaunchFailure::InstallerMissing:
-      reason = tr("The downloaded installer is no longer on this computer.");
+      reason = appimage ? tr("The downloaded AppImage is no longer on this computer.")
+                        : tr("The downloaded installer is no longer on this computer.");
       break;
     case UpdateLaunchFailure::ChecksumMismatch:
-      reason = tr("The downloaded installer does not match the checksum published for this update.");
+      reason = appimage ? tr("The downloaded AppImage does not match the checksum published for this update.")
+                        : tr("The downloaded installer does not match the checksum published for this update.");
+      break;
+    case UpdateLaunchFailure::ReplaceFailed:
+      reason = tr("The new AppImage could not be put in place of this one.");
       break;
     case UpdateLaunchFailure::NotSigned:
       reason = tr("The downloaded installer is not signed by %1, the publisher of this copy of Patchy.")
@@ -4431,9 +4461,31 @@ void MainWindow::show_update_available(const UpdateInfo& update) {
   // polkit/root prompt, GitHub issue 14); without it flatpak 1.14 also fails outright on
   // a machine that has no system-wide installation ("While opening repository").
   const auto install_command = QStringLiteral("flatpak update --user -y com.rtsoft.patchy");
-  const auto update_text = tr("Patchy %1 is available. You are using version %2.\n\n"
-                              "To update, paste this into a terminal:\n\n%3")
-                               .arg(update.version, QStringLiteral(PATCHY_VERSION), install_command);
+  // An AppImage is one file (docs/appimage.md). With the manifest's pinned AppImage and a
+  // writable folder it replaces itself (docs/auto-update.md, "AppImage"); otherwise its
+  // prompt names the file and downloads the AppImage, not the Flatpak bundle the linux
+  // entry's download_url points at.
+  const auto appimage = appimage_file_path();
+  QString update_text;
+  if (appimage.isEmpty()) {
+    update_text = tr("Patchy %1 is available. You are using version %2.\n\n"
+                     "To update, paste this into a terminal:\n\n%3")
+                      .arg(update.version, QStringLiteral(PATCHY_VERSION), install_command);
+  } else if (self_update) {
+    update_text = tr("Patchy %1 is available. You are using version %2.\n\n"
+                     "Patchy can download the update, replace this AppImage, and start again. "
+                     "You will be asked about unsaved work first.")
+                      .arg(update.version, QStringLiteral(PATCHY_VERSION));
+  } else {
+    update_text = tr("Patchy %1 is available. You are using version %2.\n\n"
+                     "Download the new AppImage, quit Patchy, and replace this file with it:\n\n%3")
+                      .arg(update.version, QStringLiteral(PATCHY_VERSION), appimage);
+  }
+  QUrl download_url = update.download_url;
+  if (!appimage.isEmpty()) {
+    download_url = update.appimage_url.isEmpty() ? QUrl(QString::fromLatin1(kAppImageDownloadUrl))
+                                                 : update.appimage_url;
+  }
 #else
   const auto update_text =
       (self_update ? tr("Patchy %1 is available. You are using version %2.\n\n"
@@ -4446,12 +4498,13 @@ void MainWindow::show_update_available(const UpdateInfo& update) {
   QMessageBox dialog(QMessageBox::Information, tr("Update Available"), update_text, QMessageBox::NoButton, this);
   dialog.setObjectName(QStringLiteral("updateAvailableMessageBox"));
   dialog.setTextInteractionFlags(Qt::TextSelectableByMouse);
+  QPushButton* copy_button = nullptr;
 #if defined(Q_OS_LINUX)
-  auto* copy_button = dialog.addButton(tr("Copy Command"), QMessageBox::AcceptRole);
-  copy_button->setObjectName(QStringLiteral("updateCopyCommandButton"));
-  dialog.setDefaultButton(copy_button);
-#else
-  QAbstractButton* copy_button = nullptr;
+  if (appimage.isEmpty()) {
+    copy_button = dialog.addButton(tr("Copy Command"), QMessageBox::AcceptRole);
+    copy_button->setObjectName(QStringLiteral("updateCopyCommandButton"));
+    dialog.setDefaultButton(copy_button);
+  }
 #endif
   QAbstractButton* install_button = nullptr;
   QAbstractButton* download_button = nullptr;
@@ -4462,9 +4515,10 @@ void MainWindow::show_update_available(const UpdateInfo& update) {
     install_button = button;
   } else {
     auto* button = dialog.addButton(tr("Download"), QMessageBox::AcceptRole);
-#if !defined(Q_OS_LINUX)
-    dialog.setDefaultButton(button);
-#endif
+    button->setObjectName(QStringLiteral("updateDownloadButton"));
+    if (copy_button == nullptr) {
+      dialog.setDefaultButton(button);
+    }
     download_button = button;
   }
   dialog.addButton(tr("Not Now"), QMessageBox::RejectRole);
@@ -4483,7 +4537,7 @@ void MainWindow::show_update_available(const UpdateInfo& update) {
     set_stored_update_skipped_version(update.version);
   }
 #if defined(Q_OS_LINUX)
-  if (dialog.clickedButton() == copy_button) {
+  if (copy_button != nullptr && dialog.clickedButton() == copy_button) {
     if (auto* clipboard = QApplication::clipboard(); clipboard != nullptr) {
       clipboard->setText(install_command);
     }
@@ -4491,10 +4545,10 @@ void MainWindow::show_update_available(const UpdateInfo& update) {
     return;
   }
 #else
-  Q_UNUSED(copy_button);
+  const auto& download_url = update.download_url;
 #endif
   if (download_button != nullptr && dialog.clickedButton() == download_button &&
-      !QDesktopServices::openUrl(update.download_url)) {
+      !QDesktopServices::openUrl(download_url)) {
     show_status_error(tr("Could not open the download link"));
   }
 }
@@ -4534,6 +4588,11 @@ void MainWindow::begin_startup_update_check() {
   // A one-click update leaves the installer for this version in the temp folder. It may
   // still be exiting when the copy it installed starts, so the cleanup waits a little.
   QTimer::singleShot(30000, this, [] { remove_update_download(QStringLiteral(PATCHY_VERSION)); });
+  // An AppImage update cancelled at the save prompt leaves its download beside the file;
+  // once this version runs (updated some other way), it is no longer needed.
+  if (const auto appimage = appimage_file_path(); !appimage.isEmpty()) {
+    remove_appimage_update_download(appimage, QStringLiteral(PATCHY_VERSION));
+  }
   {
     auto settings = app_settings();
     if (!settings.value(QStringLiteral("updates/checkOnStartup"), true).toBool()) {

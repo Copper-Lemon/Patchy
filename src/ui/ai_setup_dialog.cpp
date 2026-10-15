@@ -1,4 +1,5 @@
 #include "ui/ai_setup_dialog.hpp"
+#include "ui/appimage_environment.hpp"
 
 #include "ui/dialog_utils.hpp"
 #include "ui/theme_qss.hpp"
@@ -144,6 +145,15 @@ AiSetupDialog::AiSetupDialog(const AiControlPaths& paths, QWidget* parent)
     status_lines << tr("Skill folder: %1").arg(QString::fromLatin1(kFlatpakSkillDirectory));
     warnings << tr("Patchy is running inside a Flatpak sandbox; the skill folder is only "
                    "visible from inside it.");
+  } else if (!paths_.appimage_path.isEmpty()) {
+    status_lines << tr("Connector: %1")
+                        .arg(QStringLiteral("\"%1\" %2")
+                                 .arg(paths_.appimage_path, QString::fromLatin1(kAppImageConnectorArgument)));
+    if (!paths_.skill_directory.isEmpty()) {
+      status_lines << tr("Skill folder: %1").arg(paths_.skill_directory);
+    }
+    warnings << tr("Patchy is running from an AppImage; the skill folder exists only while "
+                   "Patchy is open.");
   } else {
     if (paths_.connector_path.isEmpty()) {
       warnings << tr("The patchy-mcp connector was not found next to Patchy. Reinstall Patchy or "

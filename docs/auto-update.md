@@ -1,13 +1,15 @@
-# One-click update (Windows)
+# One-click update (Windows installer, Linux AppImage)
 
 Read this before touching the update prompt, `latest_version.json`'s installer keys, the
 installer's update mode, or the release announcement step.
 
 On Windows, a copy of Patchy that the installer put there can update itself from the update
 prompt: **Update Now** downloads the installer, closes Patchy through the normal save
-prompts, installs into the same folder, and starts Patchy again. Everything else keeps the
-browser download: the portable zip, a development build, macOS, Linux, and any manifest that
-does not carry the installer keys.
+prompts, installs into the same folder, and starts Patchy again. The Linux AppImage does
+the same by replacing its own file ("AppImage" below). Everything else keeps the browser
+download: the portable zip, a development build, macOS, the Flatpak (whose prompt shows
+the `flatpak update` command), an AppImage in a read-only folder, and any manifest that
+does not carry the pinned keys.
 
 ## When the startup check runs
 
@@ -105,6 +107,48 @@ The key name is permanent, like the other three.
   bumping `version`; `publish-github-release.ps1` prints them. Still announce last
   (docs/release-process.md). A manifest with a new `version` and stale installer keys would
   fail the checksum and fall back to the browser download.
+
+## AppImage
+
+An AppImage is one file ([appimage.md](appimage.md)), so its update is a download and a
+rename; there is no installer.
+
+- **Keys** (permanent, in the `linux` entry; the Flatpak ignores them):
+  `appimage_install_url`, `appimage_install_size`, `appimage_install_sha256` (all or none,
+  the same rules as the installer keys), and `appimage_min_version`, the off switch with
+  `installer_min_version`'s semantics. `appimage_url` stays the browser download.
+  `read_appimage_install_fields` (`update_checker.cpp`) also requires the URL to start with
+  `kAppImageReleaseDownloadPrefix`, this repository's GitHub release downloads: no publisher
+  signature backs an AppImage, so a manifest edit alone must not be able to point it at
+  another host. `PATCHY_UPDATE_MANIFEST_URL` lifts that, as it lifts the https rule.
+- **When:** `can_install_update` is true for an AppImage (`appimage_file_path()`) when the
+  keys are present and `appimage_can_be_replaced` (the file exists and its folder is
+  writable). The prompt says Patchy will replace this AppImage; otherwise it keeps the
+  download prompt that names the file.
+- **Download:** the same `download_and_install_update` and `start_model_download`, into the
+  AppImage's own folder as the hidden `.<file name>.update-<version>`
+  (`appimage_update_download_name`), so the final rename stays in one folder. An update
+  cancelled at the save prompt keeps it for reuse; the copy that runs that version deletes it
+  at startup (`remove_appimage_update_download`, exact name).
+- **On close:** the pending `UpdateInstallerLaunch` carries `appimage_target`, and
+  `launch_update_installer` runs `replace_appimage`: size and SHA-256 again, mode 0755, one
+  `std::filesystem::rename` over the running file. The running copy's mount keeps the old
+  data until it exits, and nothing ever sees a half-written AppImage. A failure
+  (`InstallerMissing`, `ChecksumMismatch`, `ReplaceFailed`) refuses the close and offers the
+  browser download, as on Windows. Then a detached `/bin/sh` waiter starts the new file once
+  this process has exited (at most two minutes later), so the new copy cannot forward its
+  launch to the old one; it runs without the old launch's `APPIMAGE`/`APPDIR`. A waiter that
+  cannot start does not fail the update: the next launch runs the new version.
+- **Connectors** started from the old file keep running from their own mounts; connector
+  freshness watches the `.AppImage` file, so they report `updateNotice`.
+- **Announce** with the four `linux` keys `publish-github-release.ps1` prints
+  (`appimage_install_url` is the versioned `releases/download/v<version>/` URL).
+- **Tests:** `update_manifest_parser_handles_supported_cases` (the keys, the host rule, the
+  off switch), `update_appimage_replacement_checks_and_renames` (every platform), and
+  `ui_update_one_click_replaces_appimage_on_close` (Linux: prompt, download, save prompt,
+  settled close, real replacement, read-only fallback). Not automated: the relaunch waiter
+  and a real update between two released AppImages; try one with `PATCHY_UPDATE_MANIFEST_URL`
+  pointing at a loopback manifest before the first release that ships it.
 
 ## Connectors that are running during an update
 

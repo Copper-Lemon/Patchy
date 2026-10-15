@@ -1857,14 +1857,9 @@ void MainWindow::handle_vector_shape_size_value_changed(bool width_changed, doub
   }
   const QSignalBlocker width_blocker(vector_shape_width_spin_);
   const QSignalBlocker height_blocker(vector_shape_height_spin_);
-  const std::optional<QSignalBlocker> properties_width_blocker =
-      properties_shape_width_spin_ != nullptr
-          ? std::optional<QSignalBlocker>(std::in_place, properties_shape_width_spin_)
-          : std::nullopt;
-  const std::optional<QSignalBlocker> properties_height_blocker =
-      properties_shape_height_spin_ != nullptr
-          ? std::optional<QSignalBlocker>(std::in_place, properties_shape_height_spin_)
-          : std::nullopt;
+  // QSignalBlocker accepts a null object (the Properties panel may not exist).
+  const QSignalBlocker properties_width_blocker(properties_shape_width_spin_);
+  const QSignalBlocker properties_height_blocker(properties_shape_height_spin_);
   vector_shape_width_spin_->setValue(width);
   vector_shape_height_spin_->setValue(height);
   if (properties_shape_width_spin_ != nullptr) {

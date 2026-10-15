@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdlib>
 #include <cstring>
 #include <stdexcept>
 
@@ -140,6 +141,12 @@ FormatReadResult read_heif(std::span<const std::uint8_t> bytes) {
 #elif defined(__EMSCRIPTEN__)
   throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "Unable to decode this HEIC image outside a browser."));
 #else
+  // Only the Flatpak gets a HEIF plug-in (from its KDE runtime). The AppImage and source
+  // builds use a Qt without one (docs/appimage.md).
+  if (std::getenv("FLATPAK_ID") == nullptr) {
+    throw std::runtime_error(PATCHY_TRANSLATE_NOOP(
+        "QObject", "This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can."));
+  }
   throw std::runtime_error(
       PATCHY_TRANSLATE_NOOP("QObject", "Unable to decode this HEIC image. HEIC decoding needs the Flatpak codec extension; "
       "install it with: flatpak install --user flathub org.freedesktop.Platform.codecs-extra//25.08-extra"));

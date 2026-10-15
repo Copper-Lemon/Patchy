@@ -9909,6 +9909,10 @@ RGB：%2, %3, %4</translation>
         <source>Animated JPEG XL: imported %1 frames as layers</source>
         <translation>動畫 JPEG XL: 已將 %1 個影格匯入為圖層</translation>
     </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
+        <translation>此版本的 Patchy 無法解碼 HEIC 影像。Flatpak 版本的 Patchy 可以。</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10143,6 +10147,10 @@ RGB：%2, %3, %4</translation>
     <message>
         <source>Close</source>
         <translation>關閉</translation>
+    </message>
+    <message>
+        <source>Patchy is running from an AppImage; the skill folder exists only while Patchy is open.</source>
+        <translation>Patchy 正從 AppImage 執行，技能資料夾只在 Patchy 開啟期間存在。</translation>
     </message>
 </context>
 <context>
@@ -20444,6 +20452,38 @@ You can still download it in your browser.</source>
     <message>
         <source>Saved animated JPEG XL copy %1</source>
         <translation>已儲存動畫 JPEG XL 副本 %1</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Download the new AppImage, quit Patchy, and replace this file with it:
+
+%3</source>
+        <translation>Patchy %1 已經推出，您目前使用的是 %2 版。
+
+請下載新的 AppImage，結束 Patchy，然後用它取代此檔案：
+
+%3</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage is no longer on this computer.</source>
+        <translation>下載的 AppImage 已不在這部電腦上。</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage does not match the checksum published for this update.</source>
+        <translation>下載的 AppImage 與此更新公布的總和檢查碼不符。</translation>
+    </message>
+    <message>
+        <source>The new AppImage could not be put in place of this one.</source>
+        <translation>無法用新的 AppImage 取代這個 AppImage。</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, replace this AppImage, and start again. You will be asked about unsaved work first.</source>
+        <translation>Patchy %1 已經推出，您目前使用的是 %2 版。
+
+Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前會詢問您如何處理未儲存的工作。</translation>
     </message>
 </context>
 <context>

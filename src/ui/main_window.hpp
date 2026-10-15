@@ -2615,7 +2615,8 @@ private:
   // paths so an unattended run can never block on a dialog.
   bool cli_automation_mode_{false};
   // One-click update (docs/auto-update.md). can_install_update is true for an update whose
-  // manifest entry pins an installer, on a copy the Windows installer made.
+  // manifest entry pins an installer, on a copy the Windows installer made, or pins an
+  // AppImage, on an AppImage whose folder is writable.
   // download_and_install_update fetches it behind a progress dialog, then close()s; the
   // accepted closeEvent starts the installer from pending_update_install_, and a cancelled
   // close drops it. The three members below are MainWindowTestAccess seams.

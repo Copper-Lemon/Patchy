@@ -9969,6 +9969,10 @@ RGB: %2, %3, %4</translation>
         <source>Animated JPEG XL: imported %1 frames as layers</source>
         <translation>Animowany JPEG XL: zaimportowano %1 klatek jako warstwy</translation>
     </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
+        <translation>Ta wersja Patchy nie może dekodować obrazów HEIC. Wersja Flatpak programu Patchy to potrafi.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -10203,6 +10207,10 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Close</source>
         <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>Patchy is running from an AppImage; the skill folder exists only while Patchy is open.</source>
+        <translation>Patchy działa z pliku AppImage; folder umiejętności istnieje tylko wtedy, gdy Patchy jest otwarty.</translation>
     </message>
 </context>
 <context>
@@ -20570,6 +20578,38 @@ Nadal możesz pobrać ją w przeglądarce.</translation>
     <message>
         <source>Saved animated JPEG XL copy %1</source>
         <translation>Zapisano kopię animowanego JPEG XL: %1</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Download the new AppImage, quit Patchy, and replace this file with it:
+
+%3</source>
+        <translation>Dostępny jest Patchy %1. Używasz wersji %2.
+
+Pobierz nowy plik AppImage, zamknij Patchy i zastąp nim ten plik:
+
+%3</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage is no longer on this computer.</source>
+        <translation>Pobranego pliku AppImage nie ma już na tym komputerze.</translation>
+    </message>
+    <message>
+        <source>The downloaded AppImage does not match the checksum published for this update.</source>
+        <translation>Pobrany plik AppImage nie zgadza się z sumą kontrolną opublikowaną dla tej aktualizacji.</translation>
+    </message>
+    <message>
+        <source>The new AppImage could not be put in place of this one.</source>
+        <translation>Nie udało się zastąpić tego pliku AppImage nowym.</translation>
+    </message>
+    <message>
+        <source>Patchy %1 is available. You are using version %2.
+
+Patchy can download the update, replace this AppImage, and start again. You will be asked about unsaved work first.</source>
+        <translation>Dostępny jest Patchy %1. Używasz wersji %2.
+
+Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić się ponownie. Najpierw pojawi się pytanie o niezapisaną pracę.</translation>
     </message>
 </context>
 <context>

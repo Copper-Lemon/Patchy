@@ -57,24 +57,33 @@ bool is_download_url_usable(const QUrl& url) {
   return scheme == QStringLiteral("http") || scheme == QStringLiteral("https");
 }
 
-// The self-install fields (manifest keys are permanent: installer_url, installer_size,
-// installer_sha256). All three or none: a partial or malformed set leaves the update a
-// browser download.
-void read_installer_fields(const QJsonObject& platform_entry, const QString& current_version, UpdateInfo& update) {
-  // The remote off switch: "installer_min_version" (a permanent key) names the oldest running
-  // version allowed to install by itself. Older copies keep the browser download, so a
-  // release whose self-update turns out broken is switched back from the manifest alone,
-  // while fixed versions carry on. A value that does not parse switches it off for everyone.
-  const auto min_version = platform_entry.value(QStringLiteral("installer_min_version"));
+// A file the update can install by itself, pinned by the manifest: the Windows installer
+// (installer_url, installer_size, installer_sha256, installer_min_version) or the AppImage
+// (appimage_install_url, appimage_install_size, appimage_install_sha256,
+// appimage_min_version). Every key name is permanent. All three or none: a partial or
+// malformed set leaves the update a browser download.
+struct PinnedDownload {
+  QUrl url;
+  qint64 size{0};
+  QByteArray sha256;  // lowercase hex
+};
+
+std::optional<PinnedDownload> read_pinned_download(const QJsonObject& platform_entry, const QString& current_version,
+                                                   const QString& prefix, const QString& min_version_key) {
+  // The remote off switch: the min-version key names the oldest running version allowed to
+  // install by itself. Older copies keep the browser download, so a release whose
+  // self-update turns out broken is switched back from the manifest alone, while fixed
+  // versions carry on. A value that does not parse switches it off for everyone.
+  const auto min_version = platform_entry.value(min_version_key);
   if (!min_version.isUndefined()) {
     const auto required = min_version.toString().trimmed();
     if (!parse_dotted_version(required).has_value() || update_version_is_newer(required, current_version)) {
-      return;
+      return std::nullopt;
     }
   }
-  const QUrl url(platform_entry.value(QStringLiteral("installer_url")).toString().trimmed());
-  const auto size = static_cast<qint64>(platform_entry.value(QStringLiteral("installer_size")).toDouble(0.0));
-  const auto sha256 = platform_entry.value(QStringLiteral("installer_sha256")).toString().trimmed().toLower().toLatin1();
+  const QUrl url(platform_entry.value(prefix + QStringLiteral("_url")).toString().trimmed());
+  const auto size = static_cast<qint64>(platform_entry.value(prefix + QStringLiteral("_size")).toDouble(0.0));
+  const auto sha256 = platform_entry.value(prefix + QStringLiteral("_sha256")).toString().trimmed().toLower().toLatin1();
   // https only. A manifest named by PATCHY_UPDATE_MANIFEST_URL (tests, a local trial of the
   // whole update) may also use http: whoever sets that variable already chooses the manifest
   // and with it the checksum.
@@ -86,11 +95,38 @@ void read_installer_fields(const QJsonObject& platform_entry, const QString& cur
   constexpr qint64 kLargestInstallerBytes = qint64{2} * 1024 * 1024 * 1024;
   if (!url.isValid() || !scheme_ok || url.host().isEmpty() || size <= 0 || size > kLargestInstallerBytes ||
       sha256.size() != 64 || QByteArray::fromHex(sha256).toHex() != sha256) {
+    return std::nullopt;
+  }
+  return PinnedDownload{url, size, sha256};
+}
+
+void read_installer_fields(const QJsonObject& platform_entry, const QString& current_version, UpdateInfo& update) {
+  const auto pinned = read_pinned_download(platform_entry, current_version, QStringLiteral("installer"),
+                                           QStringLiteral("installer_min_version"));
+  if (pinned.has_value()) {
+    update.installer_url = pinned->url;
+    update.installer_size = pinned->size;
+    update.installer_sha256 = pinned->sha256;
+  }
+}
+
+void read_appimage_install_fields(const QJsonObject& platform_entry, const QString& current_version,
+                                  UpdateInfo& update) {
+  const auto pinned = read_pinned_download(platform_entry, current_version, QStringLiteral("appimage_install"),
+                                           QStringLiteral("appimage_min_version"));
+  if (!pinned.has_value()) {
     return;
   }
-  update.installer_url = url;
-  update.installer_size = size;
-  update.installer_sha256 = sha256;
+  // No publisher signature backs an AppImage, so its source is pinned too: this repository's
+  // GitHub release downloads (kAppImageReleaseDownloadPrefix). A manifest chosen through
+  // PATCHY_UPDATE_MANIFEST_URL (a local trial) may name any host, as for the scheme.
+  if (!qEnvironmentVariableIsSet("PATCHY_UPDATE_MANIFEST_URL") &&
+      !pinned->url.toString().startsWith(QString::fromLatin1(kAppImageReleaseDownloadPrefix))) {
+    return;
+  }
+  update.appimage_install_url = pinned->url;
+  update.appimage_install_size = pinned->size;
+  update.appimage_install_sha256 = pinned->sha256;
 }
 
 QUrl cache_busted_manifest_url() {
@@ -106,6 +142,11 @@ QUrl cache_busted_manifest_url() {
 bool update_has_installer(const UpdateInfo& update) {
   return update.installer_url.isValid() && !update.installer_url.isEmpty() && update.installer_size > 0 &&
          !update.installer_sha256.isEmpty();
+}
+
+bool update_has_appimage_install(const UpdateInfo& update) {
+  return update.appimage_install_url.isValid() && !update.appimage_install_url.isEmpty() &&
+         update.appimage_install_size > 0 && !update.appimage_install_sha256.isEmpty();
 }
 
 bool update_checks_available() {
@@ -226,6 +267,11 @@ UpdateCheckResult inspect_update_manifest(const QByteArray& json, const QString&
   result.status = UpdateCheckStatus::UpdateAvailable;
   result.update = UpdateInfo{platform, latest_version, download_url};
   read_installer_fields(platform_entry, current_version, *result.update);
+  read_appimage_install_fields(platform_entry, current_version, *result.update);
+  if (const QUrl appimage_url(platform_entry.value(QStringLiteral("appimage_url")).toString().trimmed());
+      is_download_url_usable(appimage_url)) {
+    result.update->appimage_url = appimage_url;
+  }
   return result;
 }
 
