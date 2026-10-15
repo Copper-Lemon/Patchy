@@ -595,6 +595,91 @@ void ui_gmic_filter_applies_inside_selection_and_undoes() {
   CHECK(layer_pixel(window, 50, 50) == QColor(0xc0, 0x30, 0x20));
 }
 
+// A filter that changes the image size (CRT Scanlines enlarges it fourfold) still applies
+// inside a selection: the whole result, placed where it lands without one, is seen through
+// the layer's frame, so the layer keeps its size and nothing outside the selection changes.
+// The dialog previews it and says so; OK commits the same.
+void ui_gmic_size_changing_filter_stays_inside_the_selection() {
+  if (!gmic::engine_available()) {
+    return;
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* canvas = require_canvas(window);
+  const QColor red(0xc0, 0x30, 0x20);
+  // A layer of its own, 200 x 200, so the fourfold run stays small.
+  CHECK(run_script(window, QStringLiteral("var doc = app.activeDocument; var red = doc.addLayer('Red');"
+                                          "red.fillRect(0, 0, 200, 200, '#c03020'); doc.activeLayer = red;")));
+  auto& document = MainWindowTestAccess::document(window);
+  const auto active = document.active_layer_id();
+  CHECK(active.has_value());
+  if (!active.has_value()) {
+    return;
+  }
+  const auto bounds = [&] { return std::as_const(document).find_layer(*active)->bounds(); };
+  const auto original_bounds = bounds();
+  CHECK(original_bounds.width == 200 && original_bounds.height == 200);
+  const auto kept_size = [&] {
+    const auto now = bounds();
+    return now.x == original_bounds.x && now.y == original_bounds.y && now.width == original_bounds.width &&
+           now.height == original_bounds.height;
+  };
+  patchy::PixelBuffer mask(document.width(), document.height(), patchy::PixelFormat::gray8());
+  for (int y = 0; y < mask.height(); ++y) {
+    auto row = mask.row(y);
+    for (int x = 0; x < mask.width(); ++x) {
+      row[static_cast<std::size_t>(x)] = (x < 100 && y < 100) ? 255 : 0;
+    }
+  }
+  canvas->replace_selection_from_grayscale(mask, QStringLiteral("Square selection"));
+  CHECK(canvas->has_selection());
+  // Scanlines darken some rows of the enlarged red; the selected square shows them.
+  const auto selection_changed = [&] {
+    for (int y = 40; y < 60; ++y) {
+      if (layer_pixel(window, 50, y) != red) {
+        return true;
+      }
+    }
+    return false;
+  };
+  const auto outside_untouched = [&] {
+    return layer_pixel(window, 150, 150) == red && layer_pixel(window, 50, 150) == red &&
+           layer_pixel(window, 150, 50) == red;
+  };
+
+  CHECK(window.apply_gmic_filter("fx_crt_scanlines", {}));
+  CHECK(kept_size());
+  CHECK(selection_changed());
+  CHECK(outside_untouched());
+  require_action_by_text(window, QStringLiteral("Undo"))->trigger();
+  QApplication::processEvents();
+  CHECK(!selection_changed());
+
+  const auto has_note = [](const patchy::ui::GmicFilterLibraryDialog& dialog, const QString& start) {
+    for (const auto& note : dialog.result_notes()) {
+      if (note.startsWith(start)) {
+        return true;
+      }
+    }
+    return false;
+  };
+  run_library_dialog(window, [&](patchy::ui::GmicFilterLibraryDialog& dialog) {
+    CHECK(dialog.select_filter("fx_crt_scanlines"));
+    CHECK(wait_until(selection_changed));
+    CHECK(kept_size());
+    CHECK(outside_untouched());
+    const QString size = QStringLiteral("%1 x %2").arg(original_bounds.width * 4).arg(original_bounds.height * 4);
+    CHECK(wait_until([&] {
+      return has_note(dialog, QStringLiteral("CRT Scanlines returns a %1 pixel image.").arg(size));
+    }));
+    CHECK(!has_note(dialog, QStringLiteral("Changes the layer size")));
+    dialog.accept();
+  });
+  CHECK(kept_size());
+  CHECK(selection_changed());
+  CHECK(outside_untouched());
+}
+
 // A filter that returns several images: the first replaces the active layer, the
 // others become new layers above it with the name and blend mode the filter gave
 // them, all in one undo step.
@@ -1427,6 +1512,9 @@ void ui_gmic_library_dialog_puts_point_handles_on_the_canvas() {
     return parts.size() == 2 ? QPointF(parts[0].toDouble(), parts[1].toDouble()) : QPointF(-1.0, -1.0);
   };
 
+  canvas->set_tool(patchy::ui::CanvasTool::Brush);
+  const auto brush_cursor = canvas->cursor().shape();
+  CHECK(brush_cursor != Qt::ArrowCursor);
   CHECK(canvas->preview_point_handle_count() == 0);
   run_library_dialog(window, [&](patchy::ui::GmicFilterLibraryDialog& dialog) {
     CHECK(canvas->preview_point_handle_count() == 0);
@@ -1440,12 +1528,21 @@ void ui_gmic_library_dialog_puts_point_handles_on_the_canvas() {
     CHECK(close_to(canvas->preview_point_handle(0), center, 0.01));
     CHECK(close_to(first_point(dialog), QPointF(50.0, 50.0), 0.01));
 
-    // Dragging the marker moves the value.
+    // The markers own the cursor, whatever the tool: a hand over a marker, a closed hand
+    // while dragging one, an arrow elsewhere.
     const QPoint start = canvas->preview_point_handle_widget_position(0).toPoint();
     const QPoint end = start + QPoint(30, 20);
+    QTest::mouseMove(canvas, start + QPoint(60, 60));
+    CHECK(canvas->cursor().shape() == Qt::ArrowCursor);
+    QTest::mouseMove(canvas, start);
+    CHECK(canvas->cursor().shape() == Qt::OpenHandCursor);
+
+    // Dragging the marker moves the value.
     QTest::mousePress(canvas, Qt::LeftButton, Qt::NoModifier, start);
+    CHECK(canvas->cursor().shape() == Qt::ClosedHandCursor);
     QTest::mouseMove(canvas, end);
     QTest::mouseRelease(canvas, Qt::LeftButton, Qt::NoModifier, end);
+    CHECK(canvas->cursor().shape() == Qt::OpenHandCursor);
     QApplication::processEvents();
     const QPointF dragged = canvas->preview_point_handle(0);
     CHECK(dragged.x() > center.x() && dragged.y() > center.y());
@@ -1486,6 +1583,8 @@ void ui_gmic_library_dialog_puts_point_handles_on_the_canvas() {
     dialog.reject();
   });
   CHECK(canvas->preview_point_handle_count() == 0);
+  // The tool's own cursor comes back with the dialog gone.
+  CHECK(canvas->cursor().shape() == brush_cursor);
 }
 }  // namespace
 
@@ -1496,6 +1595,8 @@ std::vector<patchy::test::TestCase> gmic_ui_tests() {
       {"ui_gmic_library_dialog_browses_searches_and_resets", ui_gmic_library_dialog_browses_searches_and_resets},
       {"ui_gmic_library_dialog_renders_in_the_app_theme", ui_gmic_library_dialog_renders_in_the_app_theme},
       {"ui_gmic_filter_applies_inside_selection_and_undoes", ui_gmic_filter_applies_inside_selection_and_undoes},
+      {"ui_gmic_size_changing_filter_stays_inside_the_selection",
+       ui_gmic_size_changing_filter_stays_inside_the_selection},
       {"ui_gmic_library_dialog_previews_on_the_layer_and_commits",
        ui_gmic_library_dialog_previews_on_the_layer_and_commits},
       {"ui_gmic_color_swatch_previews_while_picking", ui_gmic_color_swatch_previews_while_picking},

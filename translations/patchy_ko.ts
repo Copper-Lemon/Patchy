@@ -20248,10 +20248,6 @@ You can still download it in your browser.</source>
 %2</translation>
     </message>
     <message>
-        <source>%1 changes the layer size. Deselect before applying it.</source>
-        <translation>%1은(는) 레이어 크기를 변경합니다. 적용하기 전에 선택을 해제하세요.</translation>
-    </message>
-    <message>
         <source>Applied %1 (new layers: %2)</source>
         <translation>%1을(를) 적용했습니다 (새 레이어: %2)</translation>
     </message>
@@ -20640,6 +20636,10 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
     <message>
         <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches. Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors, and CMYK saves and exports also convert colors through it.</source>
         <translation>Patchy는 RGB로 편집합니다. 이 프로파일은 색상 피커, 정보 패널, CMYK 견본에서 CMYK 값의 의미를 정합니다. 이미지 &gt; 모드 &gt; CMYK 교정, 보기 &gt; 색상 교정, CMYK 저장 및 내보내기도 이 프로파일로 색상을 변환합니다.</translation>
+    </message>
+    <message>
+        <source>%1 returns a %2 x %3 pixel image. Only the part over the selection is applied, and the layer keeps its size. Deselect to apply the whole result.</source>
+        <translation>%1은(는) %2 x %3 픽셀 이미지를 반환합니다. 선택 영역에 겹치는 부분만 적용되며 레이어 크기는 그대로 유지됩니다. 전체 결과를 적용하려면 선택을 해제하세요.</translation>
     </message>
 </context>
 <context>

@@ -20364,10 +20364,6 @@ Nadal możesz pobrać ją w przeglądarce.</translation>
 %2</translation>
     </message>
     <message>
-        <source>%1 changes the layer size. Deselect before applying it.</source>
-        <translation>%1 zmienia rozmiar warstwy. Usuń zaznaczenie przed zastosowaniem.</translation>
-    </message>
-    <message>
         <source>Applied %1 (new layers: %2)</source>
         <translation>Zastosowano %1 (nowe warstwy: %2)</translation>
     </message>
@@ -20766,6 +20762,10 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
     <message>
         <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches. Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors, and CMYK saves and exports also convert colors through it.</source>
         <translation>Patchy edytuje w RGB. Ten profil określa znaczenie wartości CMYK w próbniku kolorów, panelu Informacje i próbkach CMYK. Obraz &gt; Tryb &gt; Próba CMYK, Widok &gt; Próba kolorów oraz zapisy i eksporty CMYK także konwertują kolory przez ten profil.</translation>
+    </message>
+    <message>
+        <source>%1 returns a %2 x %3 pixel image. Only the part over the selection is applied, and the layer keeps its size. Deselect to apply the whole result.</source>
+        <translation>%1 zwraca obraz o rozmiarze %2 x %3 pikseli. Stosowana jest tylko część nad zaznaczeniem, a warstwa zachowuje swój rozmiar. Usuń zaznaczenie, aby zastosować cały wynik.</translation>
     </message>
 </context>
 <context>

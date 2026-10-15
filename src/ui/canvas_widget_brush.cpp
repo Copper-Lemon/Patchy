@@ -666,7 +666,7 @@ void CanvasWidget::invalidate_brush_hover_outline(const QRect& previous_outline)
 
 void CanvasWidget::draw_brush_hover_outline(QPainter& painter) const {
   if (!brush_hover_position_valid_ || !brush_outline_uses_overlay() || brush_adjust_dragging_ ||
-      spacebar_panning_) {
+      spacebar_panning_ || !preview_points_.empty()) {
     return;
   }
   painter.save();

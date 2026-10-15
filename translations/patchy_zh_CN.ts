@@ -20248,10 +20248,6 @@ You can still download it in your browser.</source>
 %2</translation>
     </message>
     <message>
-        <source>%1 changes the layer size. Deselect before applying it.</source>
-        <translation>%1 会更改图层大小。请在应用前取消选择。</translation>
-    </message>
-    <message>
         <source>Applied %1 (new layers: %2)</source>
         <translation>已应用 %1 (新图层: %2)</translation>
     </message>
@@ -20640,6 +20636,10 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
     <message>
         <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches. Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors, and CMYK saves and exports also convert colors through it.</source>
         <translation>Patchy 以 RGB 编辑。此配置文件决定拾色器、信息面板和 CMYK 色板中 CMYK 数值的含义。图像 &gt; 模式 &gt; CMYK 校样、视图 &gt; 校样颜色以及 CMYK 保存与导出也通过它转换颜色。</translation>
+    </message>
+    <message>
+        <source>%1 returns a %2 x %3 pixel image. Only the part over the selection is applied, and the layer keeps its size. Deselect to apply the whole result.</source>
+        <translation>%1 返回 %2 x %3 像素的图像。只应用选区上方的部分，图层保持原尺寸。取消选择即可应用整个结果。</translation>
     </message>
 </context>
 <context>

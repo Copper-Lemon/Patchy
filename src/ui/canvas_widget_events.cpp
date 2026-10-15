@@ -1422,6 +1422,11 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
   }
   emit_info_for_widget_position(event->pos());
   track_brush_hover_position(event->pos());
+  if (!preview_points_.empty()) {
+    // Hover switches between the hand over a preview marker and the arrow elsewhere.
+    last_mouse_position_ = event->pos();
+    update_tool_cursor();
+  }
   if (brush_adjust_dragging_) {
     if ((event->buttons() & Qt::RightButton) != 0) {
       update_brush_adjust_drag(event->pos());

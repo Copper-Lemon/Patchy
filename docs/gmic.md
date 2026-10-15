@@ -17,10 +17,8 @@ CeCILL 2.1; Patchy uses them under CeCILL-C (LGPL-like: linking is allowed, chan
 library are published, which this repository does). Nothing from G'MIC-Qt (GPL 3) is used,
 including its filter translations.
 
-Not vendored: the community filters and `gmic_stdlib_community.h` (upstream's generated array
-holding the standard library plus community filters, compressed).
-`patchy_stub/gmic_stdlib_community.h` replaces it with an empty array, and the engine installs
-the standard library text itself.
+Not vendored: the community filters and upstream's compressed `gmic_stdlib_community.h`;
+`patchy_stub/` replaces it with an empty array and the engine installs the library text itself.
 
 `src/filters/gmic/pocketfft/` holds `pocketfft_hdronly.h` and `LICENSE.md` from
 mreineck/pocketfft, cpp branch, commit `c90e55b3d529f8efa40ed01a20de22405f45fc65` (BSD-3-Clause;
@@ -84,9 +82,7 @@ lists with the committed ones.
   runs each filter on a thread of its own, so the second run crashed (`fill` in Dices). `make-dmg.sh` refuses a build
   whose cache lacks `PATCHY_GMIC_OPENMP_ENABLED=TRUE`. G'MIC compiles its in-loop abort
   checks out on Apple platforms (`gmic.h`), so a stale run there stops at the next command.
-  Sixteen filters at their defaults on a 3000x1975 photograph took 260 s single-threaded and
-  118 s with OpenMP on Windows, 316 s and 54 s on the 24-core Mac (Rodilius and Frame
-  [Painting] do not speed up). The thread count stays level across runs: each run's
+  The thread count stays level across runs: each run's
   interpreter thread ends and its team with it.
   `patchy_stub/zlib.h` maps zlib onto the vendored miniz (G'MIC embeds palettes, shapes and
   fonts as compressed data), so the target links `patchy_psd`, which compiles miniz. It also
@@ -95,9 +91,8 @@ lists with the committed ones.
   `patchy_ui` is a static library).
 - `gmic.cpp` and `patchy_stub/` are excluded from the lupdate source list.
 
-Measured for 4.0.5: the engine adds about 5 to 6 MB to a binary; `gmic.cpp` compiles in
-roughly a minute on MSVC, GCC 13 and Apple clang 21 (1.3 to 2.1 GB of compiler memory), and
-compiles under Emscripten.
+4.0.5: the engine adds 5 to 6 MB to a binary; `gmic.cpp` takes about a minute and up to
+2.1 GB of compiler memory (MSVC, GCC 13, Apple clang 21) and compiles under Emscripten.
 
 ## Code
 
@@ -205,8 +200,11 @@ a document action, created only when `gmic::engine_available()`).
       differs in size from what it replaces is centred on it (a frame grows evenly; CRT
       Scanlines multiplies the size by its Upscale Factor, 4 by default, past the canvas).
     - The selection applies to each replaced layer in its own frame (outside restored, edge
-      blended by coverage); a result that changes frame is refused while a selection
-      exists. New layers ignore it.
+      blended by coverage). A result of another size (CRT Phosphors, CRT Scanlines, frames)
+      is placed where it lands without a selection and seen through the layer's frame
+      (`filter_bounds` keeps the whole result's): the layer keeps its size, uncovered
+      selected pixels keep the original, and a result note says so (Seth, October 2026, as
+      Krita masks output by the selection). New layers ignore it.
     - `commit_gmic_render` writes every changed layer and new one under one undo snapshot;
       the status bar gives the count or new size.
   - **Memory.** A run holds float copies (16 bytes a pixel for RGBA): Patchy's planar
@@ -264,8 +262,7 @@ a document action, created only when `gmic::engine_available()`).
     (`gmic_full_ms_per_megapixel_`, under 400 ms estimated). `PATCHY_GMIC_DRAFT_PIXELS`
     overrides the megapixel budget for tests. OK while the full run for the accepted
     settings is in flight waits for that run (`wait_for_gmic_run`) instead of starting
-    another; a request that repeats what is already rendering is dropped. Cartoon on
-    3000x1975: draft 1.9 s, full 23 s.
+    another; a request that repeats what is already rendering is dropped.
   - Non-modal (`run_non_modal_dialog`): the canvas can be zoomed and panned.
   - **Point handles.** `GmicParameterPanel::points()` lists the visible point parameters in
     percent of the image the filter works on (the active layer, each chosen layer taking the
@@ -274,7 +271,9 @@ a document action, created only when `gmic::engine_available()`).
     position or the input layers change, and `move_point` is the way back. MainWindow turns
     them into `CanvasWidget::set_preview_point_handles` (canvas_widget_preview_points.cpp):
     markers in document coordinates that win the left press over the active tool within
-    10 px, report every move, and are removed when the dialog ends. A marker being dragged
+    10 px, report every move, and are removed when the dialog ends. While markers exist they
+    own the cursor (`apply_preview_point_cursor`): open hand over one, closed hand while
+    dragging, arrow elsewhere (the Zoom tool keeps its own); no brush ring is drawn. A marker being dragged
     keeps the pointer's position when its owner echoes the move back. A point the
     filter declares hidden is not one, and the two blur filters that are not offered would
     get none
@@ -316,8 +315,7 @@ For 4.0.5 the library declares 440 filters; 394 are allowed and 46 are listed wi
 - `scripts/dev/gmic/build_allowlist.py` writes both files. A filter is left out when it is
   named (`NAMED`: the legal boundary, plus Custom Code), when it is an About or Testing page,
   when a command it reaches runs an external program or a neural network, or when it does not
-  run. Static reach analysis reads whole words as calls and can mistake variables for commands;
-  actual execution decides whether a filter works.
+  run. Reach analysis can mistake variables for commands; execution decides.
 - `patchy_filters_run_failures.txt` (hand-maintained; `scripts/dev/gmic/record-run-failures.ps1
   -Log <test output>` appends what a test run reported and regenerates the lists) holds the
   filters that fail in this build. For 4.0.5: 5 need a window, 4 need data or fonts G'MIC
@@ -378,7 +376,8 @@ result, a locked layer read only, a partial layer keeping its size, hidden layer
 group, memory refusal, script gates); and
 `ui_gmic_library_dialog_previews_every_chosen_layer_and_explains_the_result` (multi-layer
 preview, previewed added layers below their source, eyes-only Layers panel, Preview off,
-Cancel, OK carrying eyes, Ball's sphere on top, the notes, CRT Scanlines, About G'MIC).
+Cancel, OK carrying eyes, Ball's sphere on top, the notes, CRT Scanlines, About G'MIC);
+`ui_gmic_size_changing_filter_stays_inside_the_selection`; the point-handle test pins the cursor.
 `ui_gmic_custom_formula_rejects_excluded_commands_without_editing_layers` pins refusal without
 changing layer pixels or count. Core: `gmic_output_layer_names_carry_layer_settings`.
 
@@ -394,8 +393,6 @@ changing layer pixels or count. Core: `gmic_output_layer_names_carry_layer_setti
 - Of the filters that declare multi-layer input, only Blend [Average All] has an automated
   test of its result; the others are covered by the run-everything core test and the
   three-layer real-image sweep, which check that they run, not what they produce.
-- A filter decides its own output size, so a result can be a pixel or two larger than the
-  layer (Array [Faded] on an odd height) and is then refused while a selection exists.
 - Split Colors at its default tolerance makes one layer per color: on a photograph it runs
   for minutes and has to be cancelled. Filters that return animation frames add up to
   about 100 layers.

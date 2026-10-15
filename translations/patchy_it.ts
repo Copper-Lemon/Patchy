@@ -20306,10 +20306,6 @@ Puoi comunque scaricarlo nel browser.</translation>
 %2</translation>
     </message>
     <message>
-        <source>%1 changes the layer size. Deselect before applying it.</source>
-        <translation>%1 cambia le dimensioni del livello. Deseleziona prima di applicarlo.</translation>
-    </message>
-    <message>
         <source>Applied %1 (new layers: %2)</source>
         <translation>%1 applicato (nuovi livelli: %2)</translation>
     </message>
@@ -20703,6 +20699,10 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
     <message>
         <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches. Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors, and CMYK saves and exports also convert colors through it.</source>
         <translation>Patchy lavora in RGB. Questo profilo stabilisce il significato dei valori CMYK nel selettore colore, nel pannello Info e nei campioni CMYK. Anche Immagine &gt; Metodo &gt; Prova CMYK, Visualizza &gt; Colori prova e i salvataggi e le esportazioni CMYK convertono i colori tramite questo profilo.</translation>
+    </message>
+    <message>
+        <source>%1 returns a %2 x %3 pixel image. Only the part over the selection is applied, and the layer keeps its size. Deselect to apply the whole result.</source>
+        <translation>%1 restituisce un'immagine di %2 x %3 pixel. Viene applicata solo la parte sopra la selezione e il livello mantiene le sue dimensioni. Deseleziona per applicare l'intero risultato.</translation>
     </message>
 </context>
 <context>

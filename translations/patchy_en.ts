@@ -20245,10 +20245,6 @@ You can still download it in your browser.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>%1 changes the layer size. Deselect before applying it.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Applied %1 (new layers: %2)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -20635,6 +20631,10 @@ Patchy can download the update, replace this AppImage, and start again. You will
     </message>
     <message>
         <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches. Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors, and CMYK saves and exports also convert colors through it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 returns a %2 x %3 pixel image. Only the part over the selection is applied, and the layer keeps its size. Deselect to apply the whole result.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

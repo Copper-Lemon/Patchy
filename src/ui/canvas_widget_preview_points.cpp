@@ -37,6 +37,7 @@ void CanvasWidget::set_preview_point_handles(std::vector<QPointF> document_posit
   }
   preview_points_ = std::move(document_positions);
   preview_point_moved_ = std::move(moved);
+  update_tool_cursor();
   update();
 }
 
@@ -47,6 +48,7 @@ void CanvasWidget::clear_preview_point_handles() {
   preview_points_.clear();
   preview_point_moved_ = {};
   preview_point_drag_ = -1;
+  update_tool_cursor();
   update();
 }
 
@@ -64,21 +66,45 @@ QPointF CanvasWidget::preview_point_handle_widget_position(int index) const {
   return widget_position_f(preview_point_handle(index));
 }
 
-bool CanvasWidget::press_preview_point_handle(QMouseEvent* event) {
-  if (preview_points_.empty() || event->button() != Qt::LeftButton) {
-    return false;
-  }
+int CanvasWidget::preview_point_handle_at(QPointF widget_position) const {
   // The topmost (last drawn) marker under the pointer wins.
   int hit = -1;
   double best = kHandleGrabRadius;
   for (int index = 0; index < static_cast<int>(preview_points_.size()); ++index) {
     const double distance =
-        QLineF(widget_position_f(preview_points_[static_cast<std::size_t>(index)]), event->position()).length();
+        QLineF(widget_position_f(preview_points_[static_cast<std::size_t>(index)]), widget_position).length();
     if (distance <= best) {
       best = distance;
       hit = index;
     }
   }
+  return hit;
+}
+
+bool CanvasWidget::apply_preview_point_cursor() {
+  if (preview_points_.empty()) {
+    return false;
+  }
+  if (preview_point_drag_ >= 0) {
+    setCursor(Qt::ClosedHandCursor);
+    return true;
+  }
+  if (preview_point_handle_at(QPointF(last_mouse_position_)) >= 0) {
+    setCursor(Qt::OpenHandCursor);
+    return true;
+  }
+  if (tool_ == CanvasTool::Zoom) {
+    return false;  // still works while the dialog locks edits
+  }
+  setCursor(Qt::ArrowCursor);
+  return true;
+}
+
+bool CanvasWidget::press_preview_point_handle(QMouseEvent* event) {
+  if (preview_points_.empty() || event->button() != Qt::LeftButton) {
+    return false;
+  }
+  const int hit = preview_point_handle_at(event->position());
   if (hit < 0) {
     return false;
   }
@@ -86,6 +112,8 @@ bool CanvasWidget::press_preview_point_handle(QMouseEvent* event) {
   // Keep the marker under the pointer where it was grabbed, not snapped to its centre.
   preview_point_drag_offset_ =
       widget_position_f(preview_points_[static_cast<std::size_t>(hit)]) - event->position();
+  last_mouse_position_ = event->pos();
+  update_tool_cursor();
   update();
   return true;
 }
@@ -98,8 +126,10 @@ bool CanvasWidget::move_preview_point_handle(QMouseEvent* event, bool finished) 
   const int index = preview_point_drag_;
   const QPointF position = document_position_f(event->position() + preview_point_drag_offset_);
   preview_points_[static_cast<std::size_t>(index)] = position;
+  last_mouse_position_ = event->pos();
   if (finished) {
     preview_point_drag_ = -1;
+    update_tool_cursor();
   }
   update();
   if (preview_point_moved_) {

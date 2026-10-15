@@ -328,6 +328,9 @@ void CanvasWidget::update_tool_cursor() {
     setCursor(transient_read_cursor_);
     return;
   }
+  if (apply_preview_point_cursor()) {
+    return;
+  }
   if (tool_ == CanvasTool::Move) {
     setCursor(Qt::SizeAllCursor);
     return;

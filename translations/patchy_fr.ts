@@ -20306,10 +20306,6 @@ Vous pouvez toujours la télécharger dans votre navigateur.</translation>
 %2</translation>
     </message>
     <message>
-        <source>%1 changes the layer size. Deselect before applying it.</source>
-        <translation>%1 modifie la taille du calque. Désélectionnez avant de l&apos;appliquer.</translation>
-    </message>
-    <message>
         <source>Applied %1 (new layers: %2)</source>
         <translation>%1 appliqué (nouveaux calques : %2)</translation>
     </message>
@@ -20703,6 +20699,10 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
     <message>
         <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches. Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors, and CMYK saves and exports also convert colors through it.</source>
         <translation>Patchy travaille en RVB. Ce profil définit la signification des valeurs CMJN dans le sélecteur de couleur, le panneau Informations et les nuanciers CMJN. Image &gt; Mode &gt; Épreuve CMJN, Affichage &gt; Couleurs d&apos;épreuve, ainsi que les enregistrements et exportations CMJN, convertissent aussi les couleurs selon ce profil.</translation>
+    </message>
+    <message>
+        <source>%1 returns a %2 x %3 pixel image. Only the part over the selection is applied, and the layer keeps its size. Deselect to apply the whole result.</source>
+        <translation>%1 renvoie une image de %2 x %3 pixels. Seule la partie située sur la sélection est appliquée, et le calque garde sa taille. Désélectionnez pour appliquer le résultat entier.</translation>
     </message>
 </context>
 <context>

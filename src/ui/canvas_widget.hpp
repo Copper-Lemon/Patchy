@@ -1626,6 +1626,11 @@ private:
   void draw_preview_point_handles(QPainter& painter) const;
   [[nodiscard]] bool press_preview_point_handle(QMouseEvent* event);
   [[nodiscard]] bool move_preview_point_handle(QMouseEvent* event, bool finished);
+  // The marker a press at `widget_position` would grab (the topmost within reach), or -1.
+  [[nodiscard]] int preview_point_handle_at(QPointF widget_position) const;
+  // While markers are shown the canvas cursor is theirs: a hand over a marker or while
+  // dragging one, an arrow elsewhere (the dialog locks the tool). False with no markers.
+  bool apply_preview_point_cursor();
   [[nodiscard]] bool preview_render_overlay_visible() const;
   void show_processing_overlay(QString message = {});
   void hide_processing_overlay();

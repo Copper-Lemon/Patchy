@@ -20364,10 +20364,6 @@ You can still download it in your browser.</source>
 %2</translation>
     </message>
     <message>
-        <source>%1 changes the layer size. Deselect before applying it.</source>
-        <translation>«%1» изменяет размер слоя. Снимите выделение перед применением.</translation>
-    </message>
-    <message>
         <source>Applied %1 (new layers: %2)</source>
         <translation>Применено %1 (новых слоёв: %2)</translation>
     </message>
@@ -20766,6 +20762,10 @@ Patchy может скачать обновление, заменить этот
     <message>
         <source>Patchy edits in RGB. This profile sets what CMYK numbers mean in the color picker, the Info panel and CMYK swatches. Image &gt; Mode &gt; CMYK Proof, View &gt; Proof Colors, and CMYK saves and exports also convert colors through it.</source>
         <translation>Patchy редактирует в RGB. Этот профиль определяет значение чисел CMYK в палитре цветов, панели «Инфо» и образцах CMYK. Изображение &gt; Режим &gt; CMYK-цветопроба, Вид &gt; Цветопроба, а также сохранение и экспорт в CMYK тоже преобразуют цвета через него.</translation>
+    </message>
+    <message>
+        <source>%1 returns a %2 x %3 pixel image. Only the part over the selection is applied, and the layer keeps its size. Deselect to apply the whole result.</source>
+        <translation>%1 возвращает изображение размером %2 x %3 пикселей. Применяется только часть над выделением, а слой сохраняет свой размер. Снимите выделение, чтобы применить весь результат.</translation>
     </message>
 </context>
 <context>
