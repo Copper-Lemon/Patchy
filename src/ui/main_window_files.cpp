@@ -32,6 +32,7 @@
 #include "formats/exr_document_io.hpp"
 #include "formats/hdr_document_io.hpp"
 #include "formats/jp2_document_io.hpp"
+#include "formats/avif_document_io.hpp"
 #include "formats/image_open_diagnosis.hpp"
 #include "formats/heif_document_io.hpp"
 #include "formats/jxl_document_io.hpp"
@@ -687,6 +688,15 @@ const QList<FileFormatEntry>& file_format_entries() {
                     {},
                     false,
                     false});
+    // AVIF decodes everywhere through the vendored libavif + dav1d (docs/avif.md); dav1d has
+    // no encoder, so the row is read-only. The browser build has no AV1 decoder and hides it.
+    QStringList avif_extensions;
+    if (avif::is_available()) {
+      for (const auto& extension : avif::avif_extensions()) {
+        avif_extensions.push_back(QString::fromStdString(extension));
+      }
+    }
+    list.push_back({QT_TRANSLATE_NOOP("QObject", "AVIF Image"), avif_extensions, {}, false, false});
     // JPEG XR reads and writes, but only where the in-box Windows codec exists: Qt has no
     // JPEG XR plugin, so on macOS/Linux/wasm the row would advertise an open and a save that
     // can only fail. Gate the whole row like the PDF row's conditional open half.
@@ -1128,9 +1138,6 @@ QString open_failure_reason(const QString& decoder_error, const QString& path, c
       return QObject::tr("This is a %1 file, not %2, and Patchy cannot open %1 files.").arg(detail, claimed);
     case Reason::UnsupportedFormat:
       return QObject::tr("Patchy cannot open %1 files.").arg(detail);
-    case Reason::AvifNeedsSystemDecoder:
-      return QObject::tr("This AVIF image needs a system AV1 decoder, which this computer does not have. On "
-                         "Windows, install the AV1 Video Extension from the Microsoft Store.");
     case Reason::JpegTruncated:
       return QObject::tr("The JPEG data ends early: the file was cut short while it was downloaded or copied.");
     case Reason::JpegNoFrame:
@@ -1426,6 +1433,25 @@ OpenDocumentResult load_document_from_path(QString path) {
     }
     pixels_in_source_space = result.pixels_in_source_space;
     orientation_applied = result.orientation_applied;
+  } else if (avif::is_avif_extension(extension.toStdString()) && avif::is_available()) {
+    // Before the registry row so image-sequence frames get translated layer names
+    // (docs/avif.md). The reader applies the container's rotation and mirror itself.
+    avif::ReadOptions read_options;
+    read_options.frame_name = [](int index, std::uint32_t delay) {
+      return (QObject::tr("Frame %1").arg(index) + QLatin1Char(' ') +
+              QString::fromStdString(animation::format_delay_seconds_token(delay)))
+          .toStdString();
+    };
+    auto result = avif::read_avif_detailed(read_all_file_bytes(path), read_options);
+    opened = std::move(result.read.document);
+    for (const auto& notice : result.read.notices) {
+      import_notices.push_back(translated_file_message(notice));
+    }
+    if (result.frame_count > 1) {
+      import_notices.push_back(QObject::tr("Animated AVIF: imported %1 frames as layers").arg(result.frame_count));
+    }
+    pixels_in_source_space = result.pixels_in_source_space;
+    orientation_applied = result.orientation_applied;
   } else if (raw::is_camera_raw_extension(extension.toStdString())) {
     const auto settings = load_raw_develop_settings(path);
     auto result = raw::read_camera_raw(read_all_file_bytes(path), settings.params);
@@ -1446,7 +1472,8 @@ OpenDocumentResult load_document_from_path(QString path) {
       static const std::set<std::string> kDensitylessFormats = {
           "patchy.formats.ico", "patchy.formats.tga", "patchy.formats.aseprite",
           "patchy.formats.pcx", "patchy.formats.ilbm", "patchy.formats.rttex",
-          "patchy.formats.dds", "patchy.formats.hdr", "patchy.formats.exr", "patchy.formats.jp2"};
+          "patchy.formats.dds", "patchy.formats.hdr", "patchy.formats.exr", "patchy.formats.jp2",
+          "patchy.formats.avif"};
       if (kDensitylessFormats.contains(handler->identifier)) {
         opened.print_settings().horizontal_ppi = kUntaggedImportPpi;
         opened.print_settings().vertical_ppi = kUntaggedImportPpi;

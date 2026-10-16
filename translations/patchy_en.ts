@@ -10004,10 +10004,6 @@ RGB: %2, %3, %4</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>This AVIF image needs a system AV1 decoder, which this computer does not have. On Windows, install the AV1 Video Extension from the Microsoft Store.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>This file is not an OpenEXR image</source>
         <translation type="unfinished"></translation>
     </message>
@@ -10108,19 +10104,55 @@ RGB: %2, %3, %4</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>AVIF: the clean aperture (crop) property was invalid and was ignored</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The AVIF image is too large to open</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The AVIF image could not be decoded</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This file is not an AVIF image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The AVIF decoder could not be created</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The AVIF file is damaged or not supported</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>AVIF: the image sequence is very large; later frames were not imported</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>AVIF: a frame of the image sequence could not be decoded; the frames before it were imported</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>AVIF: HDR (PQ or HLG) color was imported as stored, without tone mapping</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>AVIF images cannot be opened in the browser build of Patchy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>AVIF Image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Animated AVIF: imported %1 frames as layers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>This build of Patchy cannot decode HEIC images.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>This build of Patchy cannot decode HEIC images because the installed libheif library is too old. Patchy needs libheif 1.12 or newer.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>This HEIC image&apos;s bit depth is not supported by the installed libheif library.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>libheif returned an invalid HEIF pixel buffer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -10130,9 +10162,21 @@ Fedora: sudo dnf install libheif</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>This build of Patchy cannot decode HEIC images because the installed libheif library is too old. Patchy needs libheif 1.12 or newer.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>The system&apos;s libheif library has no HEVC decoder plug-in, so Patchy cannot decode HEIC images. Install it and try again.
 Debian/Ubuntu: sudo apt install libheif-plugin-libde265
 Fedora (RPM Fusion): sudo dnf install libheif-freeworld</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This HEIC image&apos;s bit depth is not supported by the installed libheif library.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>libheif returned an invalid HEIF pixel buffer</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

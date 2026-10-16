@@ -10016,10 +10016,6 @@ RGB: %2, %3, %4</translation>
         <translation>Patchy non può aprire file %1.</translation>
     </message>
     <message>
-        <source>This AVIF image needs a system AV1 decoder, which this computer does not have. On Windows, install the AV1 Video Extension from the Microsoft Store.</source>
-        <translation>Questa immagine AVIF richiede un decodificatore AV1 di sistema, che questo computer non ha. Su Windows, installa l&apos;estensione video AV1 dal Microsoft Store.</translation>
-    </message>
-    <message>
         <source>This file is not an OpenEXR image</source>
         <translation>Questo file non è un&apos;immagine OpenEXR</translation>
     </message>
@@ -10120,20 +10116,56 @@ RGB: %2, %3, %4</translation>
         <translation>Questo file OpenEXR non ha canali R, G, B o Y da mostrare</translation>
     </message>
     <message>
+        <source>AVIF: the clean aperture (crop) property was invalid and was ignored</source>
+        <translation>AVIF: la proprietà di apertura pulita (ritaglio) non era valida ed è stata ignorata</translation>
+    </message>
+    <message>
+        <source>The AVIF image is too large to open</source>
+        <translation>L’immagine AVIF è troppo grande per essere aperta</translation>
+    </message>
+    <message>
+        <source>The AVIF image could not be decoded</source>
+        <translation>Impossibile decodificare l’immagine AVIF</translation>
+    </message>
+    <message>
+        <source>This file is not an AVIF image</source>
+        <translation>Questo file non è un’immagine AVIF</translation>
+    </message>
+    <message>
+        <source>The AVIF decoder could not be created</source>
+        <translation>Impossibile creare il decodificatore AVIF</translation>
+    </message>
+    <message>
+        <source>The AVIF file is damaged or not supported</source>
+        <translation>Il file AVIF è danneggiato o non supportato</translation>
+    </message>
+    <message>
+        <source>AVIF: the image sequence is very large; later frames were not imported</source>
+        <translation>AVIF: la sequenza di immagini è molto grande; i fotogrammi successivi non sono stati importati</translation>
+    </message>
+    <message>
+        <source>AVIF: a frame of the image sequence could not be decoded; the frames before it were imported</source>
+        <translation>AVIF: un fotogramma della sequenza di immagini non è stato decodificato; i fotogrammi precedenti sono stati importati</translation>
+    </message>
+    <message>
+        <source>AVIF: HDR (PQ or HLG) color was imported as stored, without tone mapping</source>
+        <translation>AVIF: il colore HDR (PQ o HLG) è stato importato così come memorizzato, senza mappatura dei toni</translation>
+    </message>
+    <message>
+        <source>AVIF images cannot be opened in the browser build of Patchy</source>
+        <translation>Le immagini AVIF non possono essere aperte nella versione browser di Patchy</translation>
+    </message>
+    <message>
+        <source>AVIF Image</source>
+        <translation>Immagine AVIF</translation>
+    </message>
+    <message>
+        <source>Animated AVIF: imported %1 frames as layers</source>
+        <translation>AVIF animato: %1 fotogrammi importati come livelli</translation>
+    </message>
+    <message>
         <source>This build of Patchy cannot decode HEIC images.</source>
         <translation>Questa versione di Patchy non può decodificare le immagini HEIC.</translation>
-    </message>
-    <message>
-        <source>This build of Patchy cannot decode HEIC images because the installed libheif library is too old. Patchy needs libheif 1.12 or newer.</source>
-        <translation>Questa versione di Patchy non può decodificare le immagini HEIC perché la libreria libheif installata è troppo vecchia. Patchy richiede libheif 1.12 o successivo.</translation>
-    </message>
-    <message>
-        <source>This HEIC image&apos;s bit depth is not supported by the installed libheif library.</source>
-        <translation>La profondità di bit di questa immagine HEIC non è supportata dalla libreria libheif installata.</translation>
-    </message>
-    <message>
-        <source>libheif returned an invalid HEIF pixel buffer</source>
-        <translation>libheif ha restituito un buffer di pixel HEIF non valido</translation>
     </message>
     <message>
         <source>This build of Patchy cannot decode HEIC images because the system&apos;s libheif library is not installed. Install it and try again.
@@ -10144,12 +10176,24 @@ Debian/Ubuntu: sudo apt install libheif1
 Fedora: sudo dnf install libheif</translation>
     </message>
     <message>
+        <source>This build of Patchy cannot decode HEIC images because the installed libheif library is too old. Patchy needs libheif 1.12 or newer.</source>
+        <translation>Questa versione di Patchy non può decodificare le immagini HEIC perché la libreria libheif installata è troppo vecchia. Patchy richiede libheif 1.12 o successivo.</translation>
+    </message>
+    <message>
         <source>The system&apos;s libheif library has no HEVC decoder plug-in, so Patchy cannot decode HEIC images. Install it and try again.
 Debian/Ubuntu: sudo apt install libheif-plugin-libde265
 Fedora (RPM Fusion): sudo dnf install libheif-freeworld</source>
         <translation>La libreria libheif del sistema non ha un plug-in di decodifica HEVC, quindi Patchy non può decodificare le immagini HEIC. Installalo e riprova.
 Debian/Ubuntu: sudo apt install libheif-plugin-libde265
 Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
+    </message>
+    <message>
+        <source>This HEIC image&apos;s bit depth is not supported by the installed libheif library.</source>
+        <translation>La profondità di bit di questa immagine HEIC non è supportata dalla libreria libheif installata.</translation>
+    </message>
+    <message>
+        <source>libheif returned an invalid HEIF pixel buffer</source>
+        <translation>libheif ha restituito un buffer di pixel HEIF non valido</translation>
     </message>
 </context>
 <context>

@@ -8,7 +8,7 @@ Read before changing format I/O, open/save filters, notices, or alpha/mask impor
 - One filter table: `file_format_entries()` (main_window_files.cpp) generates open/save/export filters, `is_supported_image_extension`, `save_file_filter_for_path`, and `path_with_default_extension`. Display names sit in `QT_TRANSLATE_NOOP("QObject", ...)` and are shown through `translate_data_text` ([localization.md](localization.md)).
 - A new format needs one table row, one registry row, one writer branch. A new openable extension also goes in `$PatchyOpenWithExtensions` (packaging/windows/InstallPatchy.ps1), the Windows "Open with" list; PDF is left out of it on purpose.
 
-- When QImageReader rejects a file, `open_failure_reason` (main_window_files.cpp) replaces Qt's two generic strings with what `diagnose_undecodable_image` (image_open_diagnosis.cpp, Qt-free; `undecodable_image_diagnosis_names_the_real_reason`) reads from the bytes: empty, text, another format's signature (a rename hint when Patchy opens it, "cannot open" otherwise, the AVIF system-decoder note), a cut-short, 12-bit, lossless or hierarchical JPEG, a TIFF codec the libtiff Qt bundles lacks, or a TIFF sample layout Qt rejects (cgohlke/imagecodecs-samples sweep, notes in agents_local.md: 8/16-bit int, 32-bit float and 1/2/4-bit gray open; odd depths, 64-bit, 32-bit integer and packed color fail). JPEG-compressed TIFF (compression 7) decodes instead: `ui/tiff_jpeg_reader.cpp` splices JPEGTables into each strip or tile and decodes through Qt's JPEG reader (`ui_jpeg_compressed_tiff_opens_through_the_jpeg_decoder`); old-style JPEG (6) and 12-bit strips still fail, with their reasons. The Open failed box shows the full native path (GitHub issues 112 and 117). Radiance HDR, OpenEXR and JPEG 2000: [hdr-formats.md](hdr-formats.md).
+- When QImageReader rejects a file, `open_failure_reason` (main_window_files.cpp) replaces Qt's two generic strings with what `diagnose_undecodable_image` (image_open_diagnosis.cpp, Qt-free; `undecodable_image_diagnosis_names_the_real_reason`) reads from the bytes: empty, text, another format's signature (a rename hint when Patchy opens it, "cannot open" otherwise), a cut-short, 12-bit, lossless or hierarchical JPEG, a TIFF codec the libtiff Qt bundles lacks, or a TIFF sample layout Qt rejects (cgohlke/imagecodecs-samples sweep, notes in agents_local.md: 8/16-bit int, 32-bit float and 1/2/4-bit gray open; odd depths, 64-bit, 32-bit integer and packed color fail). JPEG-compressed TIFF (compression 7) decodes instead: `ui/tiff_jpeg_reader.cpp` splices JPEGTables into each strip or tile and decodes through Qt's JPEG reader (`ui_jpeg_compressed_tiff_opens_through_the_jpeg_decoder`); old-style JPEG (6) and 12-bit strips still fail, with their reasons. The Open failed box shows the native path (issues 112 and 117). HDR/EXR/JPEG 2000: [hdr-formats.md](hdr-formats.md); AVIF: [avif.md](avif.md).
 
 ## Open-dialog filter contract
 
@@ -18,11 +18,11 @@ The Open dialog reopens on the row picked last time (settings key `lastOpenFilte
 
 The visible portion must keep a `*.` token. The Windows 11 native dialog appends the complete semicolon-joined pattern list to any filter name without one, so the all-formats row uses the short `(*.psd *.png *.jpg and more)` hint instead of ~50 patterns. `ui_open_dialog_hides_name_filter_details` pins the shape.
 
-Desktop file drops copy the accepted local paths and queue processing on the main window after the drop handler returns. Never enter import dialogs or decode inside the native drop callback: Windows Explorer waits for it (a RAW or PDF dialog would block it). Main-window, canvas, tab-area, and floating-window drops share this path and keep drop order; cancelling one import still opens the rest; closing the main window first discards the queue.
+Desktop file drops copy the accepted local paths and queue processing on the main window after the handler returns. Never enter import dialogs or decode inside the native drop callback: Windows Explorer waits for it (a RAW or PDF dialog would block it). Main-window, canvas, tab-area, and floating-window drops share this path and keep drop order; cancelling one import still opens the rest; closing the main window first discards the queue.
 
 ## Per-format catalogue
 
-Everything reads AND writes except camera raw, HEIF/HEIC, and .af (read-only); JPEG XR reads and writes on Windows only. Modules live in src/formats/, Qt-free, explicit-endian via `binary_le.hpp` (LE) or `psd_binary.hpp` (BE).
+Everything reads and writes except camera raw, HEIF/HEIC, AVIF and .af (read-only); JPEG XR reads and writes on Windows only. Modules live in src/formats/, Qt-free, explicit-endian via `binary_le.hpp` (LE) or `psd_binary.hpp` (BE).
 
 - PSD/PSB: PSB section below plus [ps-compat.md](ps-compat.md); 16/32-bit files open at their depth while deep editing is on ([high-bit-depth.md](high-bit-depth.md)), else convert to 8-bit (section below). An unnamed layer record takes Photoshop's display name: "Layer N" (N counts ordinary layers from the bottom, 1-based), or "Background" for a bottom record with no transparency channel.
 - BMP: includes 32-bit `BI_RGB`/compression 0, whose 4th byte Patchy keeps (feeds document-alpha import below).
@@ -44,7 +44,7 @@ Read-only LibRaw import through `raw_document_io.{hpp,cpp}`, always to an 8-bit 
 
 ## HEIF/HEIC (.heic/.heif/.hif)
 
-Read-only, 8-bit, decoded only by an OS-, distribution- or browser-supplied decoder (never a shipped HEVC codec). Per-platform paths, messages and tests: [heif.md](heif.md).
+Read-only, 8-bit, decoded only by an OS-, distribution- or browser-supplied decoder (never a shipped HEVC codec); AVIF is a separate reader ([avif.md](avif.md)). Per-platform paths, messages and tests: [heif.md](heif.md).
 
 ## .af (Affinity)
 

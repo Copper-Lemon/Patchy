@@ -364,10 +364,6 @@ UndecodableImageDiagnosis diagnose_undecodable_image(std::span<const std::uint8_
       result.detail = detected->name;
       return result;
     }
-    if (family == "avif") {
-      result.reason = Reason::AvifNeedsSystemDecoder;  // decoded only by the OS (Windows AV1 extension, macOS)
-      return result;
-    }
     if (family == "jpeg") {
       result.reason = diagnose_jpeg(bytes);
       return result;

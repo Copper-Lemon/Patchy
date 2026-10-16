@@ -30,6 +30,7 @@
 #include "formats/exr_document_io.hpp"
 #include "formats/hdr_document_io.hpp"
 #include "formats/jp2_document_io.hpp"
+#include "formats/avif_document_io.hpp"
 #include "formats/rttex_document_io.hpp"
 #include "formats/tga_document_io.hpp"
 #include "core/rect_utils.hpp"
@@ -2751,6 +2752,11 @@ void write_flat_image_file(const Document& document, const QString& path, const 
   // others; Patchy never writes HEVC.
   if (heif::is_heif_extension(lower)) {
     throw std::runtime_error("HEIC/HEIF images are read-only in Patchy; save as PNG or PSD instead.");
+  }
+  // AVIF is decode-only too (dav1d has no encoder); the KDE runtime's kimg_avif plug-in could
+  // otherwise AV1-encode a hand-typed .avif on the Flatpak alone (docs/avif.md).
+  if (avif::is_avif_extension(lower)) {
+    throw std::runtime_error("AVIF images are read-only in Patchy; save as PNG or PSD instead.");
   }
   if (lower == "tga") {
     tga::DocumentIo::write_file(document, to_filesystem_path(path));

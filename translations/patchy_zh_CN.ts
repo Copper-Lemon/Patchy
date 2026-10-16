@@ -9986,10 +9986,6 @@ RGB：%2, %3, %4</translation>
         <translation>Patchy 无法打开 %1 文件。</translation>
     </message>
     <message>
-        <source>This AVIF image needs a system AV1 decoder, which this computer does not have. On Windows, install the AV1 Video Extension from the Microsoft Store.</source>
-        <translation>此 AVIF 图像需要系统 AV1 解码器，而这台计算机没有。在 Windows 上，请从 Microsoft Store 安装 AV1 Video Extension。</translation>
-    </message>
-    <message>
         <source>This file is not an OpenEXR image</source>
         <translation>此文件不是 OpenEXR 图像</translation>
     </message>
@@ -10090,20 +10086,56 @@ RGB：%2, %3, %4</translation>
         <translation>此 OpenEXR 文件没有可显示的 R、G、B 或 Y 通道</translation>
     </message>
     <message>
+        <source>AVIF: the clean aperture (crop) property was invalid and was ignored</source>
+        <translation>AVIF: 净孔径（裁剪）属性无效，已忽略</translation>
+    </message>
+    <message>
+        <source>The AVIF image is too large to open</source>
+        <translation>AVIF 图像太大，无法打开</translation>
+    </message>
+    <message>
+        <source>The AVIF image could not be decoded</source>
+        <translation>无法解码 AVIF 图像</translation>
+    </message>
+    <message>
+        <source>This file is not an AVIF image</source>
+        <translation>该文件不是 AVIF 图像</translation>
+    </message>
+    <message>
+        <source>The AVIF decoder could not be created</source>
+        <translation>无法创建 AVIF 解码器</translation>
+    </message>
+    <message>
+        <source>The AVIF file is damaged or not supported</source>
+        <translation>AVIF 文件已损坏或不受支持</translation>
+    </message>
+    <message>
+        <source>AVIF: the image sequence is very large; later frames were not imported</source>
+        <translation>AVIF: 图像序列非常大；后面的帧未导入</translation>
+    </message>
+    <message>
+        <source>AVIF: a frame of the image sequence could not be decoded; the frames before it were imported</source>
+        <translation>AVIF: 图像序列中的一帧无法解码；已导入它之前的帧</translation>
+    </message>
+    <message>
+        <source>AVIF: HDR (PQ or HLG) color was imported as stored, without tone mapping</source>
+        <translation>AVIF: HDR (PQ 或 HLG) 颜色已按存储原样导入，未做色调映射</translation>
+    </message>
+    <message>
+        <source>AVIF images cannot be opened in the browser build of Patchy</source>
+        <translation>浏览器版 Patchy 无法打开 AVIF 图像</translation>
+    </message>
+    <message>
+        <source>AVIF Image</source>
+        <translation>AVIF 图像</translation>
+    </message>
+    <message>
+        <source>Animated AVIF: imported %1 frames as layers</source>
+        <translation>动画 AVIF: 已将 %1 帧导入为图层</translation>
+    </message>
+    <message>
         <source>This build of Patchy cannot decode HEIC images.</source>
         <translation>此版本的 Patchy 无法解码 HEIC 图像。</translation>
-    </message>
-    <message>
-        <source>This build of Patchy cannot decode HEIC images because the installed libheif library is too old. Patchy needs libheif 1.12 or newer.</source>
-        <translation>已安装的 libheif 库版本过旧，因此此版本的 Patchy 无法解码 HEIC 图像。Patchy 需要 libheif 1.12 或更新版本。</translation>
-    </message>
-    <message>
-        <source>This HEIC image&apos;s bit depth is not supported by the installed libheif library.</source>
-        <translation>已安装的 libheif 库不支持此 HEIC 图像的位深度。</translation>
-    </message>
-    <message>
-        <source>libheif returned an invalid HEIF pixel buffer</source>
-        <translation>libheif 返回了无效的 HEIF 像素缓冲区</translation>
     </message>
     <message>
         <source>This build of Patchy cannot decode HEIC images because the system&apos;s libheif library is not installed. Install it and try again.
@@ -10114,12 +10146,24 @@ Debian/Ubuntu: sudo apt install libheif1
 Fedora: sudo dnf install libheif</translation>
     </message>
     <message>
+        <source>This build of Patchy cannot decode HEIC images because the installed libheif library is too old. Patchy needs libheif 1.12 or newer.</source>
+        <translation>已安装的 libheif 库版本过旧，因此此版本的 Patchy 无法解码 HEIC 图像。Patchy 需要 libheif 1.12 或更新版本。</translation>
+    </message>
+    <message>
         <source>The system&apos;s libheif library has no HEVC decoder plug-in, so Patchy cannot decode HEIC images. Install it and try again.
 Debian/Ubuntu: sudo apt install libheif-plugin-libde265
 Fedora (RPM Fusion): sudo dnf install libheif-freeworld</source>
         <translation>系统的 libheif 库没有 HEVC 解码器插件，因此 Patchy 无法解码 HEIC 图像。请安装后重试。
 Debian/Ubuntu: sudo apt install libheif-plugin-libde265
 Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
+    </message>
+    <message>
+        <source>This HEIC image&apos;s bit depth is not supported by the installed libheif library.</source>
+        <translation>已安装的 libheif 库不支持此 HEIC 图像的位深度。</translation>
+    </message>
+    <message>
+        <source>libheif returned an invalid HEIF pixel buffer</source>
+        <translation>libheif 返回了无效的 HEIF 像素缓冲区</translation>
     </message>
 </context>
 <context>

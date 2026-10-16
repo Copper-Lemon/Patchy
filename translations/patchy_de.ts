@@ -10016,10 +10016,6 @@ RGB: %2, %3, %4</translation>
         <translation>Patchy kann %1-Dateien nicht öffnen.</translation>
     </message>
     <message>
-        <source>This AVIF image needs a system AV1 decoder, which this computer does not have. On Windows, install the AV1 Video Extension from the Microsoft Store.</source>
-        <translation>Dieses AVIF-Bild braucht einen AV1-Decoder des Systems, den dieser Computer nicht hat. Installieren Sie unter Windows die AV1 Video Extension aus dem Microsoft Store.</translation>
-    </message>
-    <message>
         <source>This file is not an OpenEXR image</source>
         <translation>Diese Datei ist kein OpenEXR-Bild</translation>
     </message>
@@ -10120,20 +10116,56 @@ RGB: %2, %3, %4</translation>
         <translation>Diese OpenEXR-Datei hat keine R-, G-, B- oder Y-Kanäle, die angezeigt werden könnten</translation>
     </message>
     <message>
+        <source>AVIF: the clean aperture (crop) property was invalid and was ignored</source>
+        <translation>AVIF: Die Clean-Aperture-Eigenschaft (Zuschnitt) war ungültig und wurde ignoriert</translation>
+    </message>
+    <message>
+        <source>The AVIF image is too large to open</source>
+        <translation>Das AVIF-Bild ist zu groß zum Öffnen</translation>
+    </message>
+    <message>
+        <source>The AVIF image could not be decoded</source>
+        <translation>Das AVIF-Bild konnte nicht dekodiert werden</translation>
+    </message>
+    <message>
+        <source>This file is not an AVIF image</source>
+        <translation>Diese Datei ist kein AVIF-Bild</translation>
+    </message>
+    <message>
+        <source>The AVIF decoder could not be created</source>
+        <translation>Der AVIF-Decoder konnte nicht erstellt werden</translation>
+    </message>
+    <message>
+        <source>The AVIF file is damaged or not supported</source>
+        <translation>Die AVIF-Datei ist beschädigt oder wird nicht unterstützt</translation>
+    </message>
+    <message>
+        <source>AVIF: the image sequence is very large; later frames were not imported</source>
+        <translation>AVIF: Die Bildsequenz ist sehr groß; spätere Bilder wurden nicht importiert</translation>
+    </message>
+    <message>
+        <source>AVIF: a frame of the image sequence could not be decoded; the frames before it were imported</source>
+        <translation>AVIF: Ein Bild der Bildsequenz konnte nicht dekodiert werden; die Bilder davor wurden importiert</translation>
+    </message>
+    <message>
+        <source>AVIF: HDR (PQ or HLG) color was imported as stored, without tone mapping</source>
+        <translation>AVIF: HDR-Farben (PQ oder HLG) wurden wie gespeichert importiert, ohne Tone-Mapping</translation>
+    </message>
+    <message>
+        <source>AVIF images cannot be opened in the browser build of Patchy</source>
+        <translation>AVIF-Bilder können in der Browser-Version von Patchy nicht geöffnet werden</translation>
+    </message>
+    <message>
+        <source>AVIF Image</source>
+        <translation>AVIF-Bild</translation>
+    </message>
+    <message>
+        <source>Animated AVIF: imported %1 frames as layers</source>
+        <translation>AVIF-Animation: %1 Bilder als Ebenen importiert</translation>
+    </message>
+    <message>
         <source>This build of Patchy cannot decode HEIC images.</source>
         <translation>Diese Patchy-Version kann keine HEIC-Bilder dekodieren.</translation>
-    </message>
-    <message>
-        <source>This build of Patchy cannot decode HEIC images because the installed libheif library is too old. Patchy needs libheif 1.12 or newer.</source>
-        <translation>Diese Patchy-Version kann keine HEIC-Bilder dekodieren, weil die installierte libheif-Bibliothek zu alt ist. Patchy benötigt libheif 1.12 oder neuer.</translation>
-    </message>
-    <message>
-        <source>This HEIC image&apos;s bit depth is not supported by the installed libheif library.</source>
-        <translation>Die Bittiefe dieses HEIC-Bilds wird von der installierten libheif-Bibliothek nicht unterstützt.</translation>
-    </message>
-    <message>
-        <source>libheif returned an invalid HEIF pixel buffer</source>
-        <translation>libheif hat einen ungültigen HEIF-Pixelpuffer zurückgegeben</translation>
     </message>
     <message>
         <source>This build of Patchy cannot decode HEIC images because the system&apos;s libheif library is not installed. Install it and try again.
@@ -10144,12 +10176,24 @@ Debian/Ubuntu: sudo apt install libheif1
 Fedora: sudo dnf install libheif</translation>
     </message>
     <message>
+        <source>This build of Patchy cannot decode HEIC images because the installed libheif library is too old. Patchy needs libheif 1.12 or newer.</source>
+        <translation>Diese Patchy-Version kann keine HEIC-Bilder dekodieren, weil die installierte libheif-Bibliothek zu alt ist. Patchy benötigt libheif 1.12 oder neuer.</translation>
+    </message>
+    <message>
         <source>The system&apos;s libheif library has no HEVC decoder plug-in, so Patchy cannot decode HEIC images. Install it and try again.
 Debian/Ubuntu: sudo apt install libheif-plugin-libde265
 Fedora (RPM Fusion): sudo dnf install libheif-freeworld</source>
         <translation>Die libheif-Bibliothek des Systems hat kein HEVC-Decoder-Plug-in, daher kann Patchy keine HEIC-Bilder dekodieren. Installieren Sie es und versuchen Sie es erneut.
 Debian/Ubuntu: sudo apt install libheif-plugin-libde265
 Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
+    </message>
+    <message>
+        <source>This HEIC image&apos;s bit depth is not supported by the installed libheif library.</source>
+        <translation>Die Bittiefe dieses HEIC-Bilds wird von der installierten libheif-Bibliothek nicht unterstützt.</translation>
+    </message>
+    <message>
+        <source>libheif returned an invalid HEIF pixel buffer</source>
+        <translation>libheif hat einen ungültigen HEIF-Pixelpuffer zurückgegeben</translation>
     </message>
 </context>
 <context>

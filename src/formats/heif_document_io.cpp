@@ -55,6 +55,12 @@ bool sniff(std::span<const std::uint8_t> bytes) {
   if (box_size < 16 || (box_size % 4) != 0) {
     return false;
   }
+  // An AVIF major brand decides the file even though its compatible brands list the generic
+  // mif1/msf1: those files belong to the AVIF reader (docs/avif.md).
+  const std::string_view major(reinterpret_cast<const char*>(bytes.data() + 8), 4);
+  if (major == "avif" || major == "avis") {
+    return false;
+  }
   if (is_heif_brand(bytes, 8)) {
     return true;
   }

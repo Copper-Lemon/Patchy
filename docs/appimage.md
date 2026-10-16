@@ -109,7 +109,8 @@ behind. Wherever a path is shown, stored or compared across launches, use it (or
   linuxdeploy copies only what the binary links, and dlopen links nothing. The loader
   uses `RTLD_LOCAL`, so the host library's codecs stay out of the app's symbol namespace;
   its own `libjpeg`/`libpng` dependencies resolve to the bundled copies when the sonames
-  match, which is the ABI those libraries keep.
+  match, which is the ABI those libraries keep. AVIF needs no plug-in: the decoder is
+  compiled in ([avif.md](avif.md)).
 
 Single-instance forwarding needs nothing: its name is per user, not per path. Settings and
 recovery live in the normal per-user folders (shared with a native Linux build).
