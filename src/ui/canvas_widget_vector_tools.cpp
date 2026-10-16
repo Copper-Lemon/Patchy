@@ -388,6 +388,32 @@ bool CanvasWidget::handle_pen_key(QKeyEvent* event) {
   }
 }
 
+// Path overlay glyphs. GitHub issue 105 asked for points that read without zooming
+// in: 7 px anchor squares and 7 px handle knobs, each with a contrasting 1.5 px
+// outline so they stand out on light and dark pixels alike (Figma's convention).
+// A selected anchor is accent under a white outline; an unselected anchor and every
+// knob are white under an accent outline.
+namespace {
+constexpr double kAnchorHalf = 3.5;
+constexpr double kKnobRadius = 3.5;
+constexpr double kGlyphOutline = 1.5;
+// Widget pixels a glyph can reach past its point (half size plus outline and
+// antialiasing); repaint regions around path points pad by this much.
+constexpr double kGlyphReach = 6.0;
+
+void draw_anchor_glyph(QPainter& painter, QPointF center, bool selected, const QColor& accent) {
+  painter.setPen(QPen(selected ? QColor(Qt::white) : accent, kGlyphOutline));
+  painter.setBrush(selected ? QBrush(accent) : QBrush(Qt::white));
+  painter.drawRect(QRectF(center.x() - kAnchorHalf, center.y() - kAnchorHalf, 2.0 * kAnchorHalf, 2.0 * kAnchorHalf));
+}
+
+void draw_knob_glyph(QPainter& painter, QPointF center, const QColor& accent) {
+  painter.setPen(QPen(accent, kGlyphOutline));
+  painter.setBrush(Qt::white);
+  painter.drawEllipse(center, kKnobRadius, kKnobRadius);
+}
+}  // namespace
+
 void CanvasWidget::draw_pen_overlay(QPainter& painter) {
   if (tool_ != CanvasTool::Pen || !pen_session_active_ || pen_anchors_.empty()) {
     return;
@@ -435,17 +461,15 @@ void CanvasWidget::draw_pen_overlay(QPainter& painter) {
     painter.setPen(QPen(accent, 1.0));
     painter.drawLine(to_screen(last.in_x, last.in_y), to_screen(last.anchor_x, last.anchor_y));
     painter.drawLine(to_screen(last.anchor_x, last.anchor_y), to_screen(last.out_x, last.out_y));
-    painter.setBrush(accent);
-    painter.drawEllipse(to_screen(last.in_x, last.in_y), 2.5, 2.5);
-    painter.drawEllipse(to_screen(last.out_x, last.out_y), 2.5, 2.5);
+    draw_knob_glyph(painter, to_screen(last.in_x, last.in_y), accent);
+    draw_knob_glyph(painter, to_screen(last.out_x, last.out_y), accent);
   }
 
-  // Anchor squares; the first anchor doubles as the close target.
-  painter.setPen(QPen(QColor(30, 34, 40), 1.0));
+  // Anchor squares; the first anchor doubles as the close target and draws hollow.
   for (std::size_t i = 0; i < pen_anchors_.size(); ++i) {
     const auto center = to_screen(pen_anchors_[i].anchor_x, pen_anchors_[i].anchor_y);
-    painter.setBrush(i == 0 && pen_anchors_.size() >= 3 ? QBrush(Qt::white) : QBrush(accent));
-    painter.drawRect(QRectF(center.x() - 2.5, center.y() - 2.5, 5.0, 5.0));
+    const bool close_target = i == 0 && pen_anchors_.size() >= 3;
+    draw_anchor_glyph(painter, center, !close_target, accent);
   }
   painter.restore();
 }
@@ -942,7 +966,7 @@ QRectF CanvasWidget::path_overlay_preview_document_rect() const {
     }
     const QRectF rect(QPointF(bounds->left, bounds->top), QPointF(bounds->right, bounds->bottom));
     // Anchor squares and handle knobs extend a few widget pixels past the path.
-    const auto pad = 4.0 / std::max(zoom_, 1e-6);
+    const auto pad = kGlyphReach / std::max(zoom_, 1e-6);
     dirty = dirty.united(rect.adjusted(-pad, -pad, pad, pad))
                 .united(transform.mapRect(rect).adjusted(-pad, -pad, pad, pad));
   };
@@ -2122,9 +2146,7 @@ void CanvasWidget::draw_path_edit_overlay(QPainter& painter) {
           const auto center = to_screen(extra_transform, anchor.anchor_x, anchor.anchor_y);
           const bool selected = selected_it != extra_selected_anchors_.end() &&
                                 selected_it->second.contains({s, a});
-          painter.setPen(QPen(selected ? accent : QColor(30, 34, 40), 1.0));
-          painter.setBrush(selected ? QBrush(accent) : QBrush(Qt::white));
-          painter.drawRect(QRectF(center.x() - 2.5, center.y() - 2.5, 5.0, 5.0));
+          draw_anchor_glyph(painter, center, selected, accent);
         }
       }
     }
@@ -2142,12 +2164,12 @@ void CanvasWidget::draw_path_edit_overlay(QPainter& painter) {
     const auto center = to_screen(target_transform, anchor.anchor_x, anchor.anchor_y);
     const auto in_screen = to_screen(target_transform, anchor.in_x, anchor.in_y);
     const auto out_screen = to_screen(target_transform, anchor.out_x, anchor.out_y);
+    painter.setPen(QPen(accent, 1.0));
+    painter.setBrush(Qt::NoBrush);
     painter.drawLine(in_screen, center);
     painter.drawLine(center, out_screen);
-    painter.setBrush(accent);
-    painter.drawEllipse(in_screen, 2.5, 2.5);
-    painter.drawEllipse(out_screen, 2.5, 2.5);
-    painter.setBrush(Qt::NoBrush);
+    draw_knob_glyph(painter, in_screen, accent);
+    draw_knob_glyph(painter, out_screen, accent);
   }
 
   // Anchor squares: filled when selected, hollow otherwise.
@@ -2156,10 +2178,7 @@ void CanvasWidget::draw_path_edit_overlay(QPainter& painter) {
     for (int a = 0; a < static_cast<int>(subpath.anchors.size()); ++a) {
       const auto center = to_screen(target_transform, subpath.anchors[static_cast<std::size_t>(a)].anchor_x,
                                     subpath.anchors[static_cast<std::size_t>(a)].anchor_y);
-      const bool selected = path_selected_anchors_.contains({s, a});
-      painter.setPen(QPen(selected ? accent : QColor(30, 34, 40), 1.0));
-      painter.setBrush(selected ? QBrush(accent) : QBrush(Qt::white));
-      painter.drawRect(QRectF(center.x() - 2.5, center.y() - 2.5, 5.0, 5.0));
+      draw_anchor_glyph(painter, center, path_selected_anchors_.contains({s, a}), accent);
     }
   }
 
