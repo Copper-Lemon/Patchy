@@ -716,6 +716,11 @@ void MainWindow::showEvent(QShowEvent* event) {
     // constructor's clamp could not count it; an oversize window cannot be moved back onto
     // a Wayland screen, so shrink it now while the compositor still accepts the first size.
     QTimer::singleShot(0, this, [this] {
+      if (wayland_maximize_on_first_show_) {
+        wayland_maximize_on_first_show_ = false;
+        showMaximized();
+        return;
+      }
       if (!isMaximized() && !isFullScreen() && height() > available_window_height()) {
         clamp_window_to_available_screen();
       }
@@ -909,8 +914,16 @@ bool MainWindow::restore_window_geometry() {
   setGeometry(normal);
   clamp_window_to_available_screen();
   if (settings.value(QStringLiteral("window/maximized"), false).toBool()) {
-    // Defer to the windowing system on show; the clamped geometry above becomes the restore bounds.
-    setWindowState(windowState() | Qt::WindowMaximized);
+    if (QGuiApplication::platformName().startsWith(QLatin1String("wayland"), Qt::CaseInsensitive)) {
+      // A maximize requested before the first configure is dropped by the compositor
+      // (GNOME), leaving a normal-size window that Qt still reports as maximized and
+      // whose decoration shows the restore glyph (GitHub issue 132). Ask once the
+      // window is up instead (showEvent's first-show turn).
+      wayland_maximize_on_first_show_ = true;
+    } else {
+      // Defer to the windowing system on show; the clamped geometry above becomes the restore bounds.
+      setWindowState(windowState() | Qt::WindowMaximized);
+    }
   }
   return true;
 }

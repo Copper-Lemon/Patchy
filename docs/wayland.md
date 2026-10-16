@@ -94,6 +94,35 @@ Windows screen gets the same floors); only the panel allowance is Wayland-specif
 `ui_right_dock_floors_fit_the_screen_height` covers it on the offscreen platform's 600 px
 screen. See [right-docks.md](right-docks.md).
 
+## A restored maximized window (GitHub issue 132)
+
+`restore_window_geometry` used to set `Qt::WindowMaximized` before the first show. On
+Wayland the compositor can drop a maximize requested before the first configure (GNOME did,
+in the AppImage): the window came up at its normal size while Qt still reported it maximized
+and its decoration showed the restore glyph, and the first-show clamp skipped it as
+"maximized". Now the restore only records `wayland_maximize_on_first_show_` on Wayland and
+`showEvent`'s first-show turn calls `showMaximized()` once the surface exists; other platforms
+keep the pre-show state. Verify on the GNOME rig: seed `window/normalGeometry` and
+`window/maximized=true` in the rig's settings file, launch, and read
+`meta_window.get_maximized()` plus `get_frame_rect()` through `Shell.Eval`.
+
+## Pick Screen Color (GitHub issue 128)
+
+The color picker's "Pick Screen Color" cannot work the X11 way on Wayland: a compositor
+neither lets Patchy's transparent overlay cover other applications' windows nor answers
+`QScreen::grabWindow`. On a `wayland*` platform `start_screen_pick` (color_panel.cpp)
+calls `org.freedesktop.portal.Screenshot.PickColor` through
+`src/ui/portal_color_pick.cpp` (QtDBus, `PATCHY_HAVE_QT_DBUS`; the overlay remains the
+fallback when the bus is unreachable). The portal runs the compositor's own picker
+(GNOME's magnifier) and answers on `org.freedesktop.portal.Request.Response` at the path
+`portal_request_path` derives from the bus name and `handle_token`; the subscription is
+made before the call so an early answer is not lost. The result is sRGB `(ddd)`. The
+canvas eyedropper's off-document sample (`screen_color_at_global_position`) still reads
+nothing on Wayland: that is a drag, and the portal picker is a one-shot modal flow.
+Manual check: on GNOME or KDE Wayland open the color picker, press Pick Screen Color,
+pick over another application's window; the swatch takes that color. Cancelling with
+Escape leaves the color unchanged.
+
 ## Reproducing on a headless GNOME Shell
 
 `scripts/dev/wayland-gnome/gnome-rig.sh` runs the installed Flatpak on a headless mutter

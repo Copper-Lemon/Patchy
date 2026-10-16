@@ -2687,6 +2687,8 @@ private:
   bool native_resizable_frame_applied_{false};
   bool native_frame_geometry_resynced_{false};
   bool wayland_first_show_clamped_{false};
+  // A restored maximized state on Wayland is requested after the first show (issue 132).
+  bool wayland_maximize_on_first_show_{false};
   // Tests stand in a short screen: a positive value replaces the screen-derived budget.
   int available_window_height_override_{-1};
   bool pending_layer_thumbnail_refresh_{false};
