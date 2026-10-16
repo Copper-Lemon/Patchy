@@ -2277,12 +2277,16 @@ void ui_rotate_canvas_arbitrary_dialog_rotates_and_expands_canvas() {
   CHECK(info->text().contains(QStringLiteral("1024 x 768 px")));
   // GitHub issue 139: the half turn and the whole-image flips sit beside them, and
   // the Layer > Arrange menu turns the selected layers.
-  CHECK(require_action(window, "imageRotate180Action")->text().contains(QStringLiteral("180")));
+  // The mnemonic sits inside the number ("Rotate 1&80"), so compare without it.
+  const auto menu_text = [&](const char* name) {
+    return require_action(window, name)->text().remove(QLatin1Char('&'));
+  };
+  CHECK(menu_text("imageRotate180Action").contains(QStringLiteral("180")));
   CHECK(require_action(window, "imageFlipHorizontalAction")->text().contains(QStringLiteral("Horizontal")));
   CHECK(require_action(window, "imageFlipVerticalAction")->text().contains(QStringLiteral("Vertical")));
   CHECK(require_action(window, "layerRotateClockwiseAction")->text().contains(QStringLiteral("Right")));
   CHECK(require_action(window, "layerRotateCounterclockwiseAction")->text().contains(QStringLiteral("Left")));
-  CHECK(require_action(window, "layerRotate180Action")->text().contains(QStringLiteral("180")));
+  CHECK(menu_text("layerRotate180Action").contains(QStringLiteral("180")));
   CHECK(require_action(window, "imageRotateClockwiseAction")->text().contains(QStringLiteral("Right")));
   CHECK(require_action(window, "imageRotateCounterclockwiseAction")->text().contains(QStringLiteral("Left")));
 
