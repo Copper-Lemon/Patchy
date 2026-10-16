@@ -2628,6 +2628,19 @@ void MainWindow::refresh_options_bar() {
   // Runs on every passive transform-box change (each Move-tool press), so it
   // reports under PATCHY_UI_PROFILE=1 like the other per-interaction refreshes.
   const UiProfileScope profile_scope("refresh_options_bar");
+  // The sticky bar height must not learn from the half-swapped control set this
+  // pass goes through (options_flow_layout.hpp).
+  struct UpdatingScope {
+    OptionsFlowContainer* container;
+    ~UpdatingScope() {
+      if (container != nullptr) {
+        container->set_updating(false);
+      }
+    }
+  } updating_scope{options_flow_container_};
+  if (options_flow_container_ != nullptr) {
+    options_flow_container_->set_updating(true);
+  }
   const bool has_document = has_active_document();
   const bool edit_allowed = has_document && !preview_dialog_edit_locked();
   const auto transform_state =

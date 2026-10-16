@@ -475,22 +475,26 @@ void ui_options_bar_keeps_one_height_across_tools() {
   }
   std::printf("  widest row %d px; single-row bar %d px\n", widest_row, single_row_height);
 
+  // At a width where some tool needs two rows, the bar grows the first time such a
+  // tool is picked and then stays, so switching back never moves the canvas; a
+  // tool that fits never adds an empty second row on its own (the empty-row
+  // complaint on issue 91). A resize forgets the reservation.
   int wrapped_rows = 0;
   for (const int width : {1366, 1024, 800}) {
+    require_action(window, "toolMoveAction")->trigger();
     window.resize(width, 738);
     settle();
-    int common_height = 0;
+    int common_height = options_bar->height();
+    CHECK(common_height == single_row_height);  // Move fits one row everywhere
     for (auto* action : tools) {
       action->trigger();
       settle();
-      if (common_height == 0) {
-        common_height = options_bar->height();
-      }
-      if (options_bar->height() != common_height) {
-        std::fprintf(stderr, "  %d px: %s makes the bar %d px, others %d px\n", width,
+      if (options_bar->height() < common_height) {
+        std::fprintf(stderr, "  %d px: %s shrank the bar to %d px from %d px\n", width,
                      qPrintable(action->objectName()), options_bar->height(), common_height);
       }
-      CHECK(options_bar->height() == common_height);
+      CHECK(options_bar->height() >= common_height);
+      common_height = std::max(common_height, options_bar->height());
       if (width == 1366) {
         const auto [right, lines] = options_row_extent(*options);
         if (lines > 1) {

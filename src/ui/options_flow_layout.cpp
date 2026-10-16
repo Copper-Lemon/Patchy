@@ -209,13 +209,20 @@ int OptionsFlowContainer::height_for(int width) const {
   if (flow == nullptr) {
     return layout() != nullptr ? layout()->heightForWidth(width) : 0;
   }
+  // The visible controls' wrapped height: the active tool's row, plus whatever a
+  // transform or text session adds.
   const int live = flow->heightForWidth(width);
-  if (!flow->has_rows()) {
-    return live;
+  if (updating_) {
+    return std::max(live, reserved_width_ == width ? reserved_height_ : 0);
   }
-  // The live row counts too: a transform or text session can add controls no
-  // tool row carries.
-  return std::max(live, flow->measure_rows(width).height);
+  if (width != reserved_width_) {
+    // A new width: forget what the old width needed.
+    reserved_width_ = width;
+    reserved_height_ = live;
+  } else {
+    reserved_height_ = std::max(reserved_height_, live);
+  }
+  return reserved_height_;
 }
 
 }  // namespace patchy::ui

@@ -4,9 +4,9 @@ How the Options bar keeps one height and fits narrow windows (GitHub issue 91). 
 
 ## One height per window width
 
-- The bar's height depends on the window width, never on the active tool. A height change on a tool switch moves the tool palette, the canvas and the docks.
-- `MainWindow::refresh_options_bar_rows` hands `FlowLayout` (`src/ui/options_flow_layout.hpp`) every tool's row: the widgets `refresh_options_bar` would show for that tool under the current vector mode, live shape layer and crop style. It rebuilds the rows only when that key changes. The text session's apply/cancel pair counts as part of the Text row, so opening an editor never grows the bar.
-- `OptionsFlowContainer` reports the tallest row at its width, or the live row if that is taller (transform and warp sessions are not tool rows).
+- The bar never shrinks on a tool switch, because a height change there moves the tool palette, the canvas and the docks. Nor does it grow before it has to: `OptionsFlowContainer` reports the visible controls' wrapped height, kept sticky per width (the tallest any tool needed since the last width change), so a tool that fits one row never shows an empty second row, a tool that needs two grows the bar once and later tools keep it, and a resize resets the reservation to the current tool. Reserving every tool's tallest row in advance was the first attempt and showed an empty second row at widths where only one tool wrapped (GitHub issue 91).
+- `refresh_options_bar` swaps control visibility under `set_updating(true)`: a layout pass in the middle can see the old and new controls together, and the reservation must not learn that transient height.
+- `MainWindow::refresh_options_bar_rows` hands `FlowLayout` (`src/ui/options_flow_layout.hpp`) every tool's row: the widgets `refresh_options_bar` would show for that tool under the current vector mode, live shape layer and crop style. It rebuilds the rows only when that key changes. The rows drive the slider collapse below, which stays global so the bar looks the same from tool to tool.
 - Hidden widgets are measured the way `QWidgetItem` would measure them shown, after `ensurePolished`. A widget added to the flow outside `register_option_action` is invisible to the measure and can still grow the bar.
 
 ## Duplicate sliders drop first

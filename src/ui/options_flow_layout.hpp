@@ -74,9 +74,12 @@ private:
 };
 
 // Hosts the Options bar controls in a FlowLayout and reports the height for its
-// current width so the surrounding QToolBar grows to a second row. With rows
-// set, that height is the tallest tool row at this width, so it depends on the
-// window width alone and stays put across tool switches.
+// current width so the surrounding QToolBar grows to a second row. The height
+// is the current tool's wrapped height, kept sticky: once a tool has used a
+// second row at this width the bar keeps it across tool switches (nothing moves
+// when switching back), and a width change resets the reservation to what the
+// current tool needs. Reserving the tallest row of every tool in advance showed
+// an empty second row for tools that fit (GitHub issue 91).
 class OptionsFlowContainer final : public QWidget {
 public:
   using QWidget::QWidget;
@@ -91,6 +94,10 @@ public:
   void set_collapse_applied(bool collapsed) { collapse_applied_ = collapsed; }
   [[nodiscard]] bool collapse_applied() const { return collapse_applied_; }
   void set_collapse_changed_callback(std::function<void()> callback) { collapse_changed_ = std::move(callback); }
+  // While MainWindow::refresh_options_bar swaps control visibility, a layout pass
+  // can see both the old and the new controls at once; the reservation must not
+  // grow from that transient, so it is frozen until the swap is done.
+  void set_updating(bool updating) { updating_ = updating; }
 
 protected:
   void resizeEvent(QResizeEvent* event) override;
@@ -99,7 +106,11 @@ private:
   [[nodiscard]] int height_for(int width) const;
 
   bool collapse_applied_ = false;
+  bool updating_ = false;
   std::function<void()> collapse_changed_;
+  // The sticky reservation: the tallest height any tool row needed at reserved_width_.
+  mutable int reserved_width_ = -1;
+  mutable int reserved_height_ = 0;
 };
 
 }  // namespace patchy::ui
