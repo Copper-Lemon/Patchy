@@ -568,9 +568,9 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
                   QKeySequence(Qt::CTRL | Qt::ALT | Qt::SHIFT | Qt::Key_S));
   register_hotkey(page_setup_action, "file.page_setup");
   // Cmd+, is the universal macOS settings shortcut (Qt maps CTRL to Cmd there);
-  // Windows/Linux keep Preferences unbound by default.
+  // Windows/Linux take Photoshop's Ctrl+K (GitHub issue 144).
   register_hotkey(preferences_action, "file.preferences",
-                  platform_hotkey(QKeySequence(), QKeySequence(Qt::CTRL | Qt::Key_Comma)));
+                  platform_hotkey(QKeySequence(Qt::CTRL | Qt::Key_K), QKeySequence(Qt::CTRL | Qt::Key_Comma)));
 
   connect(new_action, &QAction::triggered, this, [this] { create_new_document(); });
   connect(open_action, &QAction::triggered, this, [this] { open_document(); });

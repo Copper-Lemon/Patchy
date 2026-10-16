@@ -3261,6 +3261,43 @@ void ui_preferences_wheel_over_unfocused_control_scrolls_the_page() {
 
 // GitHub issue 92: the frameless Preferences dialog resizes by its corner grip, its pages
 // grow with it, and the size comes back the next time it opens.
+// GitHub issue 146: the interval combos take the width of their longest entry, so
+// "Every 2 weeks" and "10 minute(s)" never elide in the field or its popup.
+void ui_preferences_interval_combos_fit_their_longest_entry() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  run_preferences_dialog(window, /*accept=*/false, [](QDialog& dialog) {
+    int seen = 0;
+    for (const auto* name : {"preferencesUpdateCheckIntervalCombo", "preferencesRecoveryIntervalCombo"}) {
+      auto* combo = dialog.findChild<QComboBox*>(QString::fromLatin1(name));
+      if (combo == nullptr) {
+        continue;  // the update combo is absent in builds without update checks
+      }
+      ++seen;
+      CHECK(combo->sizeAdjustPolicy() == QComboBox::AdjustToContents);
+      const QFontMetrics metrics(combo->font());
+      int longest = 0;
+      for (int i = 0; i < combo->count(); ++i) {
+        longest = std::max(longest, metrics.horizontalAdvance(combo->itemText(i)));
+      }
+      CHECK(combo->width() >= longest);
+    }
+    CHECK(seen >= 1);
+  });
+}
+
+// GitHub issue 144: Preferences answers Photoshop's Ctrl+K off macOS (Cmd+, there).
+void ui_preferences_hotkey_is_ctrl_k_off_macos() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* action = require_hotkey_action(window, QStringLiteral("file.preferences"));
+#ifdef Q_OS_MACOS
+  CHECK(action->shortcut() == QKeySequence(Qt::CTRL | Qt::Key_Comma));
+#else
+  CHECK(action->shortcut() == QKeySequence(Qt::CTRL | Qt::Key_K));
+#endif
+}
+
 void ui_preferences_dialog_resizes_and_remembers_its_size() {
   SettingsValueRestorer restore_size(QStringLiteral("preferences/dialogSize"));
   {
@@ -6724,6 +6761,9 @@ std::vector<patchy::test::TestCase> app_shell_tests() {
       {"ui_preferences_wheel_over_unfocused_control_scrolls_the_page",
        ui_preferences_wheel_over_unfocused_control_scrolls_the_page},
       {"ui_preferences_dialog_resizes_and_remembers_its_size", ui_preferences_dialog_resizes_and_remembers_its_size},
+      {"ui_preferences_interval_combos_fit_their_longest_entry",
+       ui_preferences_interval_combos_fit_their_longest_entry},
+      {"ui_preferences_hotkey_is_ctrl_k_off_macos", ui_preferences_hotkey_is_ctrl_k_off_macos},
       {"ui_update_check_interval_gates_the_startup_check", ui_update_check_interval_gates_the_startup_check},
       {"ui_update_startup_check_honors_stored_interval", ui_update_startup_check_honors_stored_interval},
       {"ui_update_preference_persists_check_interval", ui_update_preference_persists_check_interval},
