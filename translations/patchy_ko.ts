@@ -9973,6 +9973,18 @@ RGB: %2, %3, %4</translation>
         <source>The TIFF header or its first directory is damaged.</source>
         <translation>TIFF 헤더 또는 첫 번째 디렉터리가 손상되었습니다.</translation>
     </message>
+    <message>
+        <source>This TIFF stores %1 bits per sample. The TIFF decoder reads 8 and 16-bit integer, 32-bit floating-point, and 1, 2 and 4-bit grayscale samples.</source>
+        <translation>이 TIFF는 샘플당 %1비트로 저장되어 있습니다. TIFF 디코더는 8비트와 16비트 정수, 32비트 부동소수점, 1, 2, 4비트 회색조 샘플을 읽습니다.</translation>
+    </message>
+    <message>
+        <source>This TIFF stores 32-bit integer samples; the TIFF decoder reads 32-bit samples only as floating point.</source>
+        <translation>이 TIFF는 32비트 정수 샘플을 저장합니다. TIFF 디코더는 32비트 샘플을 부동소수점으로만 읽습니다.</translation>
+    </message>
+    <message>
+        <source>This TIFF packs %1-bit color samples; the TIFF decoder reads fewer than 8 bits per sample only for grayscale images.</source>
+        <translation>이 TIFF는 %1비트 컬러 샘플을 압축해 저장합니다. TIFF 디코더는 회색조 이미지에서만 샘플당 8비트 미만을 읽습니다.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

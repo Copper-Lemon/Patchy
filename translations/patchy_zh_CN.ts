@@ -9973,6 +9973,18 @@ RGB：%2, %3, %4</translation>
         <source>The TIFF header or its first directory is damaged.</source>
         <translation>TIFF 文件头或其第一个目录已损坏。</translation>
     </message>
+    <message>
+        <source>This TIFF stores %1 bits per sample. The TIFF decoder reads 8 and 16-bit integer, 32-bit floating-point, and 1, 2 and 4-bit grayscale samples.</source>
+        <translation>此 TIFF 每个采样存储 %1 位。TIFF 解码器只读取 8 位和 16 位整数、32 位浮点以及 1、2 和 4 位灰度采样。</translation>
+    </message>
+    <message>
+        <source>This TIFF stores 32-bit integer samples; the TIFF decoder reads 32-bit samples only as floating point.</source>
+        <translation>此 TIFF 存储 32 位整数采样；TIFF 解码器只能将 32 位采样作为浮点读取。</translation>
+    </message>
+    <message>
+        <source>This TIFF packs %1-bit color samples; the TIFF decoder reads fewer than 8 bits per sample only for grayscale images.</source>
+        <translation>此 TIFF 打包了 %1 位彩色采样；TIFF 解码器只对灰度图像读取每采样少于 8 位的数据。</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

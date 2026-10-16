@@ -8,7 +8,7 @@ Read before changing format I/O, open/save filters, notices, or alpha/mask impor
 - One filter table: `file_format_entries()` (main_window_files.cpp) generates open/save/export filters, `is_supported_image_extension`, `save_file_filter_for_path`, and `path_with_default_extension`. Display names sit in `QT_TRANSLATE_NOOP("QObject", ...)` and are shown through `translate_data_text` ([localization.md](localization.md)).
 - A new format needs one table row, one registry row, one writer branch. A new openable extension also goes in `$PatchyOpenWithExtensions` (packaging/windows/InstallPatchy.ps1), the Windows "Open with" list; PDF is left out of it on purpose.
 
-- When QImageReader rejects a file, `open_failure_reason` (main_window_files.cpp) replaces Qt's two generic strings with what `diagnose_undecodable_image` (formats/image_open_diagnosis.cpp, Qt-free; test `undecodable_image_diagnosis_names_the_real_reason`) reads from the bytes: an empty file, text content, another format's signature (with a rename hint when Patchy opens that format), a cut-short, 12-bit, lossless or hierarchical JPEG, or a TIFF codec the libtiff Qt bundles lacks (JPEG-in-TIFF above all; the probe on Qt 6.8.3 showed every other variant, CMYK, float, 16-bit and multipage included, opening). The Open failed box shows the full native path (GitHub issues 112 and 117).
+- When QImageReader rejects a file, `open_failure_reason` (main_window_files.cpp) replaces Qt's two generic strings with what `diagnose_undecodable_image` (formats/image_open_diagnosis.cpp, Qt-free; test `undecodable_image_diagnosis_names_the_real_reason`) reads from the bytes: an empty file, text content, another format's signature (with a rename hint when Patchy opens that format), a cut-short, 12-bit, lossless or hierarchical JPEG, a TIFF codec the libtiff Qt bundles lacks (JPEG, JPEG 2000, JPEG XL, JPEG XR, PNG, WebP, LZMA, ZSTD, LERC, JBIG), or a TIFF sample layout Qt's reader rejects. That layout list was measured on the cgohlke/imagecodecs-samples corpus (`local-test-fixtures/imagecodecs-samples`, CC BY 4.0, 316 TIFFs and 6 JPEGs; the sweep script is in agents_local.md): Qt 6.8.3 opens 8 and 16-bit integer samples in every arrangement, 32-bit only as float, 1/2/4-bit only grayscale, CMYK, planar, tiled and multi-frame files, and fails on odd depths, 64-bit, 32-bit integers, packed color, CMYK+alpha planar, and 16-bit planar+tiled. The Open failed box shows the full native path (GitHub issues 112 and 117).
 
 ## Open-dialog filter contract
 
@@ -96,17 +96,9 @@ Everything except PSD/Aseprite flat-exports through `write_flat_image_file`. `Im
 - Layer styles: imported `lfx2`/`lrFX` blocks stay byte-identical until that layer's style is edited. Edited Satin regenerates PS's native 12-field `ChFX` descriptor with its non-anti-aliased Linear contour. Custom contour curves and contour anti-aliasing stay byte-preserved while untouched (the dialog warns that editing normalizes them). Gradient Overlay and gradient Stroke preserve, render, and edit each stop's native `Mdpn` midpoint without changing the private `plFX` version.
 - Layer origins are preserved verbatim, however far off-canvas (the old origin clamp silently SHIFTED content). Corruption guard: |origin| <= 2^23. `psd_far_offcanvas_layer_keeps_true_origin` pins it.
 
-## Damaged PackBits scanlines
+## Damaged PackBits scanlines and reader limits
 
-Legacy PSDs carry corrupt RLE scanlines that Photoshop still opens, so image-channel readers recover instead of failing. `decode_packbits_scanline` (psd_descriptor.cpp) is the lenient decoder every layer, composite, and saved-channel row goes through: an overrunning run is clipped, a short scanline keeps zeroes, and the result is always exactly the channel width. Each row's declared byte count still positions the stream, so a damaged row cannot desync later rows (Photoshop abandons the channel at the first bad row; Patchy resyncs on the row table, verified against PS 2026). Readers count recovered rows; `append_damaged_row_notice` emits ONE notice per document. Everything else (patterns, brushes, filter effects, ILBM) keeps the strict `decode_packbits`; its exact-length contract catches misparses.
-
-Validate headers before buffer allocation: reject zero or over-limit canvases (PSD 30,000, PSB 300,000 per side). Form layer/mask rectangles in 64-bit and reject sizes past the PSB limit. Descriptor nesting (`Objc`/`VlLs`/`ObAr`) errors past 64 levels; check item counts against remaining bytes before reserve. Group nesting caps at 64 (Photoshop allows 10): flatten deeper boundary records into the deepest kept group and drop their folder records.
-
-PSD channels/extra data use bounded sub-readers. PSD/PSB writing caps expanded
-native layer records, including group boundaries, at Photoshop's limit of 8000.
-Empty documents save a transparent placeholder without changing the live
-tree. PCX/ILBM validate encoded length; PCX and strict PackBits cap their initial
-reserve and grow as runs decode. Aseprite cels also grow as decoded. JXR float decode uses bounded WIC row batches.
+Moved to [psd-reader-hardening.md](psd-reader-hardening.md): the lenient per-row PackBits decoder, the header and nesting limits every PSD/PSB read enforces, and the writer caps.
 
 ## Import notices
 

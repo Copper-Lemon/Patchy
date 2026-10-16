@@ -10033,6 +10033,18 @@ RGB: %2, %3, %4</translation>
         <source>The TIFF header or its first directory is damaged.</source>
         <translation>Заголовок TIFF или его первый каталог повреждён.</translation>
     </message>
+    <message>
+        <source>This TIFF stores %1 bits per sample. The TIFF decoder reads 8 and 16-bit integer, 32-bit floating-point, and 1, 2 and 4-bit grayscale samples.</source>
+        <translation>Этот TIFF хранит %1 бит на отсчёт. Декодер TIFF читает 8- и 16-битные целые, 32-битные числа с плавающей точкой и 1-, 2- и 4-битные оттенки серого.</translation>
+    </message>
+    <message>
+        <source>This TIFF stores 32-bit integer samples; the TIFF decoder reads 32-bit samples only as floating point.</source>
+        <translation>Этот TIFF хранит 32-битные целочисленные отсчёты; декодер TIFF читает 32-битные отсчёты только как числа с плавающей точкой.</translation>
+    </message>
+    <message>
+        <source>This TIFF packs %1-bit color samples; the TIFF decoder reads fewer than 8 bits per sample only for grayscale images.</source>
+        <translation>Этот TIFF упаковывает %1-битные цветовые отсчёты; декодер TIFF читает меньше 8 бит на отсчёт только для изображений в оттенках серого.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

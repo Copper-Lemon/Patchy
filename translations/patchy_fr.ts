@@ -9961,11 +9961,11 @@ RVB : %2, %3, %4</translation>
     </message>
     <message>
         <source>The file holds text, not image data: a web page or an error message saved under an image name.</source>
-        <translation>Le fichier contient du texte, pas des données d'image : une page web ou un message d'erreur enregistré sous un nom d'image.</translation>
+        <translation>Le fichier contient du texte, pas des données d&apos;image : une page web ou un message d&apos;erreur enregistré sous un nom d&apos;image.</translation>
     </message>
     <message>
         <source>This is a %1 file, not %2. Give it the .%3 extension and open it again.</source>
-        <translation>Ceci est un fichier %1, pas %2. Donnez-lui l'extension .%3 et ouvrez-le à nouveau.</translation>
+        <translation>Ceci est un fichier %1, pas %2. Donnez-lui l&apos;extension .%3 et ouvrez-le à nouveau.</translation>
     </message>
     <message>
         <source>This is a %1 file, not %2, and Patchy cannot open %1 files.</source>
@@ -9973,11 +9973,11 @@ RVB : %2, %3, %4</translation>
     </message>
     <message>
         <source>The JPEG data ends early: the file was cut short while it was downloaded or copied.</source>
-        <translation>Les données JPEG s'arrêtent trop tôt : le fichier a été tronqué lors du téléchargement ou de la copie.</translation>
+        <translation>Les données JPEG s&apos;arrêtent trop tôt : le fichier a été tronqué lors du téléchargement ou de la copie.</translation>
     </message>
     <message>
         <source>The JPEG header is damaged: no frame description precedes the image data.</source>
-        <translation>L'en-tête JPEG est endommagé : aucune description de trame ne précède les données d'image.</translation>
+        <translation>L&apos;en-tête JPEG est endommagé : aucune description de trame ne précède les données d&apos;image.</translation>
     </message>
     <message>
         <source>This JPEG uses lossless coding, which the JPEG decoder does not support.</source>
@@ -10001,7 +10001,19 @@ RVB : %2, %3, %4</translation>
     </message>
     <message>
         <source>The TIFF header or its first directory is damaged.</source>
-        <translation>L'en-tête TIFF ou son premier répertoire est endommagé.</translation>
+        <translation>L&apos;en-tête TIFF ou son premier répertoire est endommagé.</translation>
+    </message>
+    <message>
+        <source>This TIFF stores %1 bits per sample. The TIFF decoder reads 8 and 16-bit integer, 32-bit floating-point, and 1, 2 and 4-bit grayscale samples.</source>
+        <translation>Ce TIFF stocke %1 bits par échantillon. Le décodeur TIFF lit les entiers 8 et 16 bits, les flottants 32 bits et les niveaux de gris 1, 2 et 4 bits.</translation>
+    </message>
+    <message>
+        <source>This TIFF stores 32-bit integer samples; the TIFF decoder reads 32-bit samples only as floating point.</source>
+        <translation>Ce TIFF stocke des échantillons entiers 32 bits ; le décodeur TIFF ne lit les échantillons 32 bits qu'en virgule flottante.</translation>
+    </message>
+    <message>
+        <source>This TIFF packs %1-bit color samples; the TIFF decoder reads fewer than 8 bits per sample only for grayscale images.</source>
+        <translation>Ce TIFF compacte des échantillons couleur de %1 bits ; le décodeur TIFF ne lit moins de 8 bits par échantillon que pour les images en niveaux de gris.</translation>
     </message>
 </context>
 <context>

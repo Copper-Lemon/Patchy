@@ -1641,7 +1641,8 @@ void undecodable_image_diagnosis_names_the_real_reason() {
   CHECK(diagnose_undecodable_image(Bytes{0x12, 0x34, 0x56, 0x78, 0x9a}, "jpg").reason == Reason::JpegNoFrame);
 
   // TIFF: a one-entry IFD carrying the Compression tag, in both byte orders and BigTIFF.
-  const auto tiff = [](bool little_endian, bool big, std::uint16_t compression) {
+  const auto tiff = [](bool little_endian, bool big, std::uint16_t compression, std::uint16_t bits = 8,
+                       std::uint16_t samples = 3, std::uint16_t sample_format = 1) {
     Bytes b;
     const auto put = [&b, little_endian](std::uint64_t value, int width) {
       for (int i = 0; i < width; ++i) {
@@ -1656,22 +1657,32 @@ void undecodable_image_diagnosis_names_the_real_reason() {
       put(8, 2);
       put(0, 2);
       put(16, 8);  // first IFD
-      put(1, 8);   // one entry
-      put(259, 2);
-      put(3, 2);
-      put(1, 8);
-      put(compression, 2);
-      put(0, 6);
+      put(4, 8);   // four entries
+      const std::pair<std::uint16_t, std::uint16_t> fields[] = {
+          {std::uint16_t{258}, bits}, {std::uint16_t{259}, compression}, {std::uint16_t{277}, samples},
+          {std::uint16_t{339}, sample_format}};
+      for (const auto& [tag, value] : fields) {
+        put(tag, 2);
+        put(3, 2);
+        put(1, 8);
+        put(value, 2);
+        put(0, 6);
+      }
       put(0, 8);  // next IFD
     } else {
       put(42, 2);
       put(8, 4);
-      put(1, 2);
-      put(259, 2);
-      put(3, 2);
-      put(1, 4);
-      put(compression, 2);
-      put(0, 2);
+      put(4, 2);
+      const std::pair<std::uint16_t, std::uint16_t> fields[] = {
+          {std::uint16_t{258}, bits}, {std::uint16_t{259}, compression}, {std::uint16_t{277}, samples},
+          {std::uint16_t{339}, sample_format}};
+      for (const auto& [tag, value] : fields) {
+        put(tag, 2);
+        put(3, 2);
+        put(1, 4);
+        put(value, 2);
+        put(0, 2);
+      }
       put(0, 4);
     }
     return b;
@@ -1688,6 +1699,21 @@ void undecodable_image_diagnosis_names_the_real_reason() {
   CHECK(big_lzw.reason == Reason::Unknown);
   const auto odd = diagnose_undecodable_image(tiff(true, false, 60000), "tif");
   CHECK(odd.reason == Reason::TiffUnsupportedCompression && odd.detail == "code 60000");
+  // Sample layouts Qt's reader rejects (measured on the imagecodecs-samples corpus).
+  const auto bits12 = diagnose_undecodable_image(tiff(true, false, 1, 12, 1), "tif");
+  CHECK(bits12.reason == Reason::TiffUnsupportedBitDepth && bits12.detail == "12");
+  const auto bits64 = diagnose_undecodable_image(tiff(false, true, 1, 64, 3, 3), "tif");
+  CHECK(bits64.reason == Reason::TiffUnsupportedBitDepth && bits64.detail == "64");
+  CHECK(diagnose_undecodable_image(tiff(true, false, 1, 32, 3, 1), "tif").reason == Reason::TiffIntegerSamples);
+  CHECK(diagnose_undecodable_image(tiff(true, false, 1, 32, 3, 3), "tif").reason == Reason::Unknown);
+  const auto packed = diagnose_undecodable_image(tiff(true, false, 1, 4, 3), "tif");
+  CHECK(packed.reason == Reason::TiffPackedColor && packed.detail == "4");
+  CHECK(diagnose_undecodable_image(tiff(true, false, 1, 4, 1), "tif").reason == Reason::Unknown);
+  CHECK(diagnose_undecodable_image(tiff(true, false, 1, 16, 4, 2), "tif").reason == Reason::Unknown);
+  const auto jxr = diagnose_undecodable_image(tiff(true, false, 34934), "tif");
+  CHECK(jxr.reason == Reason::TiffUnsupportedCompression && jxr.detail == "JPEG XR");
+  // The codec is reported before the layout: a 12-bit JPEG-in-TIFF names the codec.
+  CHECK(diagnose_undecodable_image(tiff(true, false, 7, 12), "tif").reason == Reason::TiffJpegCompression);
   Bytes short_tiff = tiff(true, false, 7);
   short_tiff.resize(12);
   CHECK(diagnose_undecodable_image(short_tiff, "tif").reason == Reason::TiffUnreadable);

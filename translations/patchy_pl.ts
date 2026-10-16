@@ -10033,6 +10033,18 @@ RGB: %2, %3, %4</translation>
         <source>The TIFF header or its first directory is damaged.</source>
         <translation>Nagłówek TIFF lub jego pierwszy katalog jest uszkodzony.</translation>
     </message>
+    <message>
+        <source>This TIFF stores %1 bits per sample. The TIFF decoder reads 8 and 16-bit integer, 32-bit floating-point, and 1, 2 and 4-bit grayscale samples.</source>
+        <translation>Ten TIFF przechowuje %1 bitów na próbkę. Dekoder TIFF czyta liczby całkowite 8- i 16-bitowe, zmiennoprzecinkowe 32-bitowe oraz skalę szarości 1-, 2- i 4-bitową.</translation>
+    </message>
+    <message>
+        <source>This TIFF stores 32-bit integer samples; the TIFF decoder reads 32-bit samples only as floating point.</source>
+        <translation>Ten TIFF przechowuje 32-bitowe próbki całkowite; dekoder TIFF czyta próbki 32-bitowe tylko jako zmiennoprzecinkowe.</translation>
+    </message>
+    <message>
+        <source>This TIFF packs %1-bit color samples; the TIFF decoder reads fewer than 8 bits per sample only for grayscale images.</source>
+        <translation>Ten TIFF upakowuje %1-bitowe próbki koloru; dekoder TIFF czyta mniej niż 8 bitów na próbkę tylko w obrazach w skali szarości.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

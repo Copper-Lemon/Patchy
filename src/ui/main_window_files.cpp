@@ -1118,6 +1118,17 @@ QString open_failure_reason(const QString& decoder_error, const QString& path, c
       return QObject::tr("This TIFF uses %1 compression, which the TIFF decoder does not support. Save it again "
                          "with LZW, ZIP or no compression.")
           .arg(detail);
+    case Reason::TiffUnsupportedBitDepth:
+      return QObject::tr("This TIFF stores %1 bits per sample. The TIFF decoder reads 8 and 16-bit integer, 32-bit "
+                         "floating-point, and 1, 2 and 4-bit grayscale samples.")
+          .arg(detail);
+    case Reason::TiffIntegerSamples:
+      return QObject::tr("This TIFF stores 32-bit integer samples; the TIFF decoder reads 32-bit samples only as "
+                         "floating point.");
+    case Reason::TiffPackedColor:
+      return QObject::tr("This TIFF packs %1-bit color samples; the TIFF decoder reads fewer than 8 bits per sample "
+                         "only for grayscale images.")
+          .arg(detail);
     case Reason::TiffUnreadable:
       return QObject::tr("The TIFF header or its first directory is damaged.");
     case Reason::Unknown:

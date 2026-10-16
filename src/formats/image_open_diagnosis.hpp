@@ -27,6 +27,9 @@ enum class UndecodableImageReason {
   Jpeg12Bit,                   // sample precision other than 8
   TiffJpegCompression,         // compression 6 or 7: the bundled libtiff has no JPEG codec
   TiffUnsupportedCompression,  // another codec that libtiff lacks; `detail` names it
+  TiffUnsupportedBitDepth,     // bits per sample outside what Qt's TIFF reader decodes; `detail` is the count
+  TiffIntegerSamples,          // 32-bit samples that are integers (Qt reads 32-bit only as float)
+  TiffPackedColor,             // 1, 2 or 4-bit samples on a color image (Qt packs only grayscale); `detail` is the count
   TiffUnreadable,              // no TIFF header, or the first directory cannot be parsed
 };
 
@@ -34,6 +37,7 @@ struct UndecodableImageDiagnosis {
   UndecodableImageReason reason{UndecodableImageReason::Unknown};
   // DifferentFormat: the detected format's display name ("PNG", "HEIC", "JPEG 2000").
   // TiffUnsupportedCompression: the codec's name ("LZMA", "ZSTD", "WebP", "JBIG").
+  // TiffUnsupportedBitDepth, TiffPackedColor: the bits per sample as decimal text.
   std::string detail;
   // DifferentFormat only: the extension that format normally carries, when Patchy opens
   // it ("png", "heic"); empty for formats Patchy cannot open (JPEG 2000, archives).

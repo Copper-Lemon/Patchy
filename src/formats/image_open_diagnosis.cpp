@@ -223,6 +223,8 @@ constexpr TiffCodec kTiffCodecs[] = {
     {34712, "JPEG 2000", false},
     {34887, "LERC", false},
     {34925, "LZMA", false},
+    {34933, "PNG", false},
+    {34934, "JPEG XR", false},
     {50000, "ZSTD", false},
     {50001, "WebP", false},
     {50002, "JPEG XL", false},
@@ -259,34 +261,78 @@ constexpr TiffCodec kTiffCodecs[] = {
     result.reason = Reason::TiffUnreadable;
     return result;
   }
+  // The first value of a SHORT or LONG tag, inline or behind the value offset.
+  std::uint16_t compression = 1;
+  std::uint16_t bits_per_sample = 1;
+  std::uint16_t samples_per_pixel = 1;
+  std::uint16_t sample_format = 1;
   for (std::uint64_t i = 0; i < entries; ++i) {
     const auto entry = static_cast<std::size_t>(ifd + count_width + i * entry_size);
     const auto tag = read_u16(bytes, entry, little_endian);
-    if (tag != 259) {  // Compression
+    if (tag != 258 && tag != 259 && tag != 277 && tag != 339) {
       continue;
     }
     const auto type = read_u16(bytes, entry + 2, little_endian);
-    const auto value_at = entry + 4 + (big_tiff ? 8 : 4);
-    // SHORT (3) is what every writer uses; a LONG (4) still reads as its low word.
-    const auto compression = type == 4 ? static_cast<std::uint16_t>(read_uint(bytes, value_at, 4, little_endian) & 0xffffU)
-                                       : read_u16(bytes, value_at, little_endian);
-    for (const auto& codec : kTiffCodecs) {
-      if (codec.code != compression) {
-        continue;
-      }
-      if (codec.supported) {
-        return result;  // Unknown: the codec is fine, something else failed
-      }
+    if (type != 3 && type != 4) {
+      continue;
+    }
+    // Entry layout: tag (2), type (2), count (4, BigTIFF 8), value or offset (4, BigTIFF 8).
+    const auto count = read_uint(bytes, entry + 4, offset_width, little_endian);
+    const std::size_t value_size = type == 3 ? 2 : 4;
+    auto value_at = entry + 4 + offset_width;
+    if (count * value_size > offset_width) {
+      value_at = static_cast<std::size_t>(read_uint(bytes, value_at, offset_width, little_endian));
+    }
+    if (count == 0 || value_at + value_size > bytes.size()) {
+      continue;
+    }
+    const auto value = static_cast<std::uint16_t>(read_uint(bytes, value_at, value_size, little_endian) & 0xffffU);
+    switch (tag) {
+      case 258: bits_per_sample = value; break;
+      case 259: compression = value; break;
+      case 277: samples_per_pixel = value; break;
+      default: sample_format = value; break;
+    }
+  }
+  bool codec_known = false;
+  for (const auto& codec : kTiffCodecs) {
+    if (codec.code != compression) {
+      continue;
+    }
+    codec_known = true;
+    if (!codec.supported) {
       result.reason = (compression == 6 || compression == 7) ? Reason::TiffJpegCompression
                                                               : Reason::TiffUnsupportedCompression;
       result.detail = codec.name;
       return result;
     }
+  }
+  if (!codec_known) {
     result.reason = Reason::TiffUnsupportedCompression;
     result.detail = "code " + std::to_string(compression);
     return result;
   }
-  return result;  // no Compression tag: uncompressed, so the failure is elsewhere
+  // Sample layouts, as Qt 6.8's TIFF reader actually behaves on the imagecodecs-samples
+  // corpus: 8 and 16-bit integer (any sign, planar or not, with alpha or extra samples),
+  // 32-bit only as IEEE float, and 1, 2 and 4-bit only for grayscale. Everything else
+  // (odd depths, 64-bit, 32-bit integers, packed color) fails with the generic message.
+  const bool depth_supported = bits_per_sample == 1 || bits_per_sample == 2 || bits_per_sample == 4 ||
+                               bits_per_sample == 8 || bits_per_sample == 16 || bits_per_sample == 32;
+  if (!depth_supported) {
+    result.reason = Reason::TiffUnsupportedBitDepth;
+    result.detail = std::to_string(bits_per_sample);
+    return result;
+  }
+  if (bits_per_sample == 32 && sample_format != 3) {
+    result.reason = Reason::TiffIntegerSamples;
+    return result;
+  }
+  if (bits_per_sample < 8 && samples_per_pixel >= 3) {
+    result.reason = Reason::TiffPackedColor;
+    result.detail = std::to_string(bits_per_sample);
+    return result;
+  }
+  return result;  // the layout and codec are fine; the failure is elsewhere
 }
 
 }  // namespace

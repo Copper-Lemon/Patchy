@@ -9965,7 +9965,7 @@ RGB: %2, %3, %4</translation>
     </message>
     <message>
         <source>This is a %1 file, not %2. Give it the .%3 extension and open it again.</source>
-        <translation>Questo è un file %1, non %2. Assegnagli l'estensione .%3 e aprilo di nuovo.</translation>
+        <translation>Questo è un file %1, non %2. Assegnagli l&apos;estensione .%3 e aprilo di nuovo.</translation>
     </message>
     <message>
         <source>This is a %1 file, not %2, and Patchy cannot open %1 files.</source>
@@ -9977,7 +9977,7 @@ RGB: %2, %3, %4</translation>
     </message>
     <message>
         <source>The JPEG header is damaged: no frame description precedes the image data.</source>
-        <translation>L'intestazione JPEG è danneggiata: nessuna descrizione del frame precede i dati immagine.</translation>
+        <translation>L&apos;intestazione JPEG è danneggiata: nessuna descrizione del frame precede i dati immagine.</translation>
     </message>
     <message>
         <source>This JPEG uses lossless coding, which the JPEG decoder does not support.</source>
@@ -10001,7 +10001,19 @@ RGB: %2, %3, %4</translation>
     </message>
     <message>
         <source>The TIFF header or its first directory is damaged.</source>
-        <translation>L'intestazione TIFF o la sua prima directory è danneggiata.</translation>
+        <translation>L&apos;intestazione TIFF o la sua prima directory è danneggiata.</translation>
+    </message>
+    <message>
+        <source>This TIFF stores %1 bits per sample. The TIFF decoder reads 8 and 16-bit integer, 32-bit floating-point, and 1, 2 and 4-bit grayscale samples.</source>
+        <translation>Questo TIFF memorizza %1 bit per campione. Il decodificatore TIFF legge interi a 8 e 16 bit, virgola mobile a 32 bit e scala di grigi a 1, 2 e 4 bit.</translation>
+    </message>
+    <message>
+        <source>This TIFF stores 32-bit integer samples; the TIFF decoder reads 32-bit samples only as floating point.</source>
+        <translation>Questo TIFF memorizza campioni interi a 32 bit; il decodificatore TIFF legge i campioni a 32 bit solo come virgola mobile.</translation>
+    </message>
+    <message>
+        <source>This TIFF packs %1-bit color samples; the TIFF decoder reads fewer than 8 bits per sample only for grayscale images.</source>
+        <translation>Questo TIFF impacchetta campioni colore a %1 bit; il decodificatore TIFF legge meno di 8 bit per campione solo nelle immagini in scala di grigi.</translation>
     </message>
 </context>
 <context>
