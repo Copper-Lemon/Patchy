@@ -9925,6 +9925,54 @@ RGB：%2, %3, %4</translation>
 
 %2</translation>
     </message>
+    <message>
+        <source>The file is empty (0 bytes).</source>
+        <translation>檔案是空的（0 位元組）。</translation>
+    </message>
+    <message>
+        <source>The file holds text, not image data: a web page or an error message saved under an image name.</source>
+        <translation>檔案包含的是文字而不是影像資料：以影像名稱儲存的網頁或錯誤訊息。</translation>
+    </message>
+    <message>
+        <source>This is a %1 file, not %2. Give it the .%3 extension and open it again.</source>
+        <translation>這是 %1 檔案，不是 %2。請將副檔名改為 .%3 後重新開啟。</translation>
+    </message>
+    <message>
+        <source>This is a %1 file, not %2, and Patchy cannot open %1 files.</source>
+        <translation>這是 %1 檔案，不是 %2，而 Patchy 無法開啟 %1 檔案。</translation>
+    </message>
+    <message>
+        <source>The JPEG data ends early: the file was cut short while it was downloaded or copied.</source>
+        <translation>JPEG 資料過早結束：檔案在下載或複製時被截斷。</translation>
+    </message>
+    <message>
+        <source>The JPEG header is damaged: no frame description precedes the image data.</source>
+        <translation>JPEG 檔頭已損壞：影像資料之前沒有畫格描述。</translation>
+    </message>
+    <message>
+        <source>This JPEG uses lossless coding, which the JPEG decoder does not support.</source>
+        <translation>此 JPEG 使用無損編碼，JPEG 解碼器不支援。</translation>
+    </message>
+    <message>
+        <source>This JPEG uses hierarchical coding, which the JPEG decoder does not support.</source>
+        <translation>此 JPEG 使用階層編碼，JPEG 解碼器不支援。</translation>
+    </message>
+    <message>
+        <source>This JPEG stores 12-bit samples; only 8-bit JPEG can be decoded.</source>
+        <translation>此 JPEG 儲存 12 位元取樣；只能解碼 8 位元 JPEG。</translation>
+    </message>
+    <message>
+        <source>This TIFF is JPEG-compressed, which the TIFF decoder does not support. Save it again with LZW, ZIP or no compression.</source>
+        <translation>此 TIFF 使用 JPEG 壓縮，TIFF 解碼器不支援。請以 LZW、ZIP 或無壓縮重新儲存。</translation>
+    </message>
+    <message>
+        <source>This TIFF uses %1 compression, which the TIFF decoder does not support. Save it again with LZW, ZIP or no compression.</source>
+        <translation>此 TIFF 使用 %1 壓縮，TIFF 解碼器不支援。請以 LZW、ZIP 或無壓縮重新儲存。</translation>
+    </message>
+    <message>
+        <source>The TIFF header or its first directory is damaged.</source>
+        <translation>TIFF 檔頭或其第一個目錄已損壞。</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

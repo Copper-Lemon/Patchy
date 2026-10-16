@@ -28,6 +28,7 @@
 #include "filters/builtin_filters.hpp"
 #include "formats/aseprite_document_io.hpp"
 #include "formats/bmp_document_io.hpp"
+#include "formats/image_open_diagnosis.hpp"
 #include "formats/heif_document_io.hpp"
 #include "formats/jxl_document_io.hpp"
 #include "formats/jxr_document_io.hpp"
@@ -1075,6 +1076,56 @@ std::vector<std::uint8_t> read_all_file_bytes(const QString& path) {
   return std::vector<std::uint8_t>(bytes, bytes + data.size());
 }
 
+// Qt reports every decode failure as "Unable to read image data" or "Unsupported image
+// format". When the bytes show the real reason, say that instead (GitHub issue 117).
+QString open_failure_reason(const QString& decoder_error, const QString& path, const QString& extension) {
+  std::vector<std::uint8_t> bytes;
+  try {
+    bytes = read_all_file_bytes(path);
+  } catch (const std::exception&) {
+    return decoder_error;
+  }
+  const auto diagnosis = formats::diagnose_undecodable_image(bytes, extension.toStdString());
+  const auto detail = QString::fromStdString(diagnosis.detail);
+  const auto claimed = extension.toUpper();
+  using Reason = formats::UndecodableImageReason;
+  switch (diagnosis.reason) {
+    case Reason::EmptyFile:
+      return QObject::tr("The file is empty (0 bytes).");
+    case Reason::TextContent:
+      return QObject::tr("The file holds text, not image data: a web page or an error message saved under an "
+                         "image name.");
+    case Reason::DifferentFormat:
+      if (!diagnosis.suggested_extension.empty()) {
+        return QObject::tr("This is a %1 file, not %2. Give it the .%3 extension and open it again.")
+            .arg(detail, claimed, QString::fromStdString(diagnosis.suggested_extension));
+      }
+      return QObject::tr("This is a %1 file, not %2, and Patchy cannot open %1 files.").arg(detail, claimed);
+    case Reason::JpegTruncated:
+      return QObject::tr("The JPEG data ends early: the file was cut short while it was downloaded or copied.");
+    case Reason::JpegNoFrame:
+      return QObject::tr("The JPEG header is damaged: no frame description precedes the image data.");
+    case Reason::JpegLossless:
+      return QObject::tr("This JPEG uses lossless coding, which the JPEG decoder does not support.");
+    case Reason::JpegHierarchical:
+      return QObject::tr("This JPEG uses hierarchical coding, which the JPEG decoder does not support.");
+    case Reason::Jpeg12Bit:
+      return QObject::tr("This JPEG stores 12-bit samples; only 8-bit JPEG can be decoded.");
+    case Reason::TiffJpegCompression:
+      return QObject::tr("This TIFF is JPEG-compressed, which the TIFF decoder does not support. Save it again "
+                         "with LZW, ZIP or no compression.");
+    case Reason::TiffUnsupportedCompression:
+      return QObject::tr("This TIFF uses %1 compression, which the TIFF decoder does not support. Save it again "
+                         "with LZW, ZIP or no compression.")
+          .arg(detail);
+    case Reason::TiffUnreadable:
+      return QObject::tr("The TIFF header or its first directory is damaged.");
+    case Reason::Unknown:
+      break;
+  }
+  return decoder_error;
+}
+
 bool is_svg_extension(const QString& extension) {
   return extension == QStringLiteral("svg") || extension == QStringLiteral("svgz");
 }
@@ -1169,7 +1220,7 @@ OpenDocumentResult load_document_from_path(QString path) {
     reader.setAutoTransform(true);
     const auto image = reader.read();
     if (image.isNull()) {
-      throw std::runtime_error(reader.errorString().toStdString());
+      throw std::runtime_error(open_failure_reason(reader.errorString(), path, extension).toStdString());
     }
     orientation_applied = reader.transformation() != QImageIOHandler::TransformationNone;
     // Animated GIFs import every frame as a layer, frame 1 on TOP and all layers visible,

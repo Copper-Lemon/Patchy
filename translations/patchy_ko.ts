@@ -9925,6 +9925,54 @@ RGB: %2, %3, %4</translation>
 
 %2</translation>
     </message>
+    <message>
+        <source>The file is empty (0 bytes).</source>
+        <translation>파일이 비어 있습니다(0바이트).</translation>
+    </message>
+    <message>
+        <source>The file holds text, not image data: a web page or an error message saved under an image name.</source>
+        <translation>파일에 이미지 데이터가 아닌 텍스트가 들어 있습니다. 이미지 이름으로 저장된 웹 페이지나 오류 메시지입니다.</translation>
+    </message>
+    <message>
+        <source>This is a %1 file, not %2. Give it the .%3 extension and open it again.</source>
+        <translation>이 파일은 %2이(가) 아니라 %1 파일입니다. 확장자를 .%3(으)로 바꾼 뒤 다시 여세요.</translation>
+    </message>
+    <message>
+        <source>This is a %1 file, not %2, and Patchy cannot open %1 files.</source>
+        <translation>이 파일은 %2이(가) 아니라 %1 파일이며, Patchy는 %1 파일을 열 수 없습니다.</translation>
+    </message>
+    <message>
+        <source>The JPEG data ends early: the file was cut short while it was downloaded or copied.</source>
+        <translation>JPEG 데이터가 일찍 끝납니다. 다운로드나 복사 중에 파일이 잘렸습니다.</translation>
+    </message>
+    <message>
+        <source>The JPEG header is damaged: no frame description precedes the image data.</source>
+        <translation>JPEG 헤더가 손상되었습니다. 이미지 데이터 앞에 프레임 설명이 없습니다.</translation>
+    </message>
+    <message>
+        <source>This JPEG uses lossless coding, which the JPEG decoder does not support.</source>
+        <translation>이 JPEG는 무손실 코딩을 사용하며, JPEG 디코더가 지원하지 않습니다.</translation>
+    </message>
+    <message>
+        <source>This JPEG uses hierarchical coding, which the JPEG decoder does not support.</source>
+        <translation>이 JPEG는 계층 코딩을 사용하며, JPEG 디코더가 지원하지 않습니다.</translation>
+    </message>
+    <message>
+        <source>This JPEG stores 12-bit samples; only 8-bit JPEG can be decoded.</source>
+        <translation>이 JPEG는 12비트 샘플을 저장합니다. 8비트 JPEG만 디코딩할 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>This TIFF is JPEG-compressed, which the TIFF decoder does not support. Save it again with LZW, ZIP or no compression.</source>
+        <translation>이 TIFF는 JPEG로 압축되어 있으며, TIFF 디코더가 지원하지 않습니다. LZW, ZIP 또는 무압축으로 다시 저장하세요.</translation>
+    </message>
+    <message>
+        <source>This TIFF uses %1 compression, which the TIFF decoder does not support. Save it again with LZW, ZIP or no compression.</source>
+        <translation>이 TIFF는 %1 압축을 사용하며, TIFF 디코더가 지원하지 않습니다. LZW, ZIP 또는 무압축으로 다시 저장하세요.</translation>
+    </message>
+    <message>
+        <source>The TIFF header or its first directory is damaged.</source>
+        <translation>TIFF 헤더 또는 첫 번째 디렉터리가 손상되었습니다.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

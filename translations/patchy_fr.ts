@@ -9955,6 +9955,54 @@ RVB : %2, %3, %4</translation>
 
 %2</translation>
     </message>
+    <message>
+        <source>The file is empty (0 bytes).</source>
+        <translation>Le fichier est vide (0 octet).</translation>
+    </message>
+    <message>
+        <source>The file holds text, not image data: a web page or an error message saved under an image name.</source>
+        <translation>Le fichier contient du texte, pas des données d'image : une page web ou un message d'erreur enregistré sous un nom d'image.</translation>
+    </message>
+    <message>
+        <source>This is a %1 file, not %2. Give it the .%3 extension and open it again.</source>
+        <translation>Ceci est un fichier %1, pas %2. Donnez-lui l'extension .%3 et ouvrez-le à nouveau.</translation>
+    </message>
+    <message>
+        <source>This is a %1 file, not %2, and Patchy cannot open %1 files.</source>
+        <translation>Ceci est un fichier %1, pas %2, et Patchy ne peut pas ouvrir les fichiers %1.</translation>
+    </message>
+    <message>
+        <source>The JPEG data ends early: the file was cut short while it was downloaded or copied.</source>
+        <translation>Les données JPEG s'arrêtent trop tôt : le fichier a été tronqué lors du téléchargement ou de la copie.</translation>
+    </message>
+    <message>
+        <source>The JPEG header is damaged: no frame description precedes the image data.</source>
+        <translation>L'en-tête JPEG est endommagé : aucune description de trame ne précède les données d'image.</translation>
+    </message>
+    <message>
+        <source>This JPEG uses lossless coding, which the JPEG decoder does not support.</source>
+        <translation>Ce JPEG utilise un codage sans perte, que le décodeur JPEG ne prend pas en charge.</translation>
+    </message>
+    <message>
+        <source>This JPEG uses hierarchical coding, which the JPEG decoder does not support.</source>
+        <translation>Ce JPEG utilise un codage hiérarchique, que le décodeur JPEG ne prend pas en charge.</translation>
+    </message>
+    <message>
+        <source>This JPEG stores 12-bit samples; only 8-bit JPEG can be decoded.</source>
+        <translation>Ce JPEG stocke des échantillons 12 bits ; seul le JPEG 8 bits peut être décodé.</translation>
+    </message>
+    <message>
+        <source>This TIFF is JPEG-compressed, which the TIFF decoder does not support. Save it again with LZW, ZIP or no compression.</source>
+        <translation>Ce TIFF est compressé en JPEG, ce que le décodeur TIFF ne prend pas en charge. Enregistrez-le à nouveau en LZW, ZIP ou sans compression.</translation>
+    </message>
+    <message>
+        <source>This TIFF uses %1 compression, which the TIFF decoder does not support. Save it again with LZW, ZIP or no compression.</source>
+        <translation>Ce TIFF utilise la compression %1, que le décodeur TIFF ne prend pas en charge. Enregistrez-le à nouveau en LZW, ZIP ou sans compression.</translation>
+    </message>
+    <message>
+        <source>The TIFF header or its first directory is damaged.</source>
+        <translation>L'en-tête TIFF ou son premier répertoire est endommagé.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

@@ -1,0 +1,47 @@
+#pragma once
+
+// Explains why an image file the decoders rejected could not be opened, from its bytes
+// alone (GitHub issue 117). Qt's QImageReader reports every failure as one of two generic
+// strings ("Unable to read image data", "Unsupported image format"); this probe names the
+// real reason for the common ones: an empty file, text saved under an image name, another
+// format's bytes behind the extension, a JPEG cut short or using a coding process the
+// decoder lacks, a TIFF compressed with a codec the bundled libtiff was built without.
+// Never throws and never decodes pixels.
+
+#include <cstdint>
+#include <span>
+#include <string>
+#include <string_view>
+
+namespace patchy::formats {
+
+enum class UndecodableImageReason {
+  Unknown,                     // nothing recognizable: keep the decoder's own message
+  EmptyFile,                   // 0 bytes
+  TextContent,                 // HTML, XML or plain text saved under an image name
+  DifferentFormat,             // `detail` names what the bytes really are
+  JpegTruncated,               // the stream ends before its EOI marker, or a segment runs past the end
+  JpegNoFrame,                 // no frame header before the scan data, or no JPEG header at all
+  JpegLossless,                // SOF3/SOF7/SOF11/SOF15
+  JpegHierarchical,            // SOF5/SOF6/SOF13/SOF14
+  Jpeg12Bit,                   // sample precision other than 8
+  TiffJpegCompression,         // compression 6 or 7: the bundled libtiff has no JPEG codec
+  TiffUnsupportedCompression,  // another codec that libtiff lacks; `detail` names it
+  TiffUnreadable,              // no TIFF header, or the first directory cannot be parsed
+};
+
+struct UndecodableImageDiagnosis {
+  UndecodableImageReason reason{UndecodableImageReason::Unknown};
+  // DifferentFormat: the detected format's display name ("PNG", "HEIC", "JPEG 2000").
+  // TiffUnsupportedCompression: the codec's name ("LZMA", "ZSTD", "WebP", "JBIG").
+  std::string detail;
+  // DifferentFormat only: the extension that format normally carries, when Patchy opens
+  // it ("png", "heic"); empty for formats Patchy cannot open (JPEG 2000, archives).
+  std::string suggested_extension;
+};
+
+// `extension` is the file's own extension without the dot, in any case ("jpg", "TIF").
+[[nodiscard]] UndecodableImageDiagnosis diagnose_undecodable_image(std::span<const std::uint8_t> bytes,
+                                                                   std::string_view extension) noexcept;
+
+}  // namespace patchy::formats

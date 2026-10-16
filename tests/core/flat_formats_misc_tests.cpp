@@ -21,6 +21,7 @@
 #include "formats/ico_document_io.hpp"
 #include "formats/ilbm_document_io.hpp"
 #include "formats/image_density_probe.hpp"
+#include "formats/image_open_diagnosis.hpp"
 #include "formats/palette_io.hpp"
 #include "formats/pcx_document_io.hpp"
 #include "formats/raw_document_io.hpp"
@@ -81,6 +82,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <unordered_set>
 #include <utility>
@@ -1573,6 +1575,125 @@ void webp_animation_millisecond_tokens_preserve_gif_rounding() {
   }
 }
 
+// GitHub issue 117: the reason a rejected JPEG or TIFF could not be opened, from its bytes.
+void undecodable_image_diagnosis_names_the_real_reason() {
+  using patchy::formats::diagnose_undecodable_image;
+  using Reason = patchy::formats::UndecodableImageReason;
+  using Bytes = std::vector<std::uint8_t>;
+  const auto of = [](std::string_view text) {
+    return Bytes(text.begin(), text.end());
+  };
+
+  CHECK(diagnose_undecodable_image(Bytes{}, "jpg").reason == Reason::EmptyFile);
+  CHECK(diagnose_undecodable_image(of("<!DOCTYPE html><html><body>Not found</body></html>"), "jpg").reason ==
+        Reason::TextContent);
+  CHECK(diagnose_undecodable_image(of("this is not a PNG"), "png").reason == Reason::TextContent);
+
+  // Another format's bytes behind the extension, with the rename hint only for formats Patchy opens.
+  const Bytes png_head{0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 'I', 'H', 'D', 'R'};
+  const auto png_as_jpg = diagnose_undecodable_image(png_head, "JPG");
+  CHECK(png_as_jpg.reason == Reason::DifferentFormat);
+  CHECK(png_as_jpg.detail == "PNG");
+  CHECK(png_as_jpg.suggested_extension == "png");
+  // The same bytes under their own extension are not "different": a damaged PNG stays Unknown.
+  CHECK(diagnose_undecodable_image(png_head, "png").reason == Reason::Unknown);
+  Bytes heic{0, 0, 0, 0x18, 'f', 't', 'y', 'p', 'h', 'e', 'i', 'c', 0, 0, 0, 0};
+  const auto heic_as_jpg = diagnose_undecodable_image(heic, "jpeg");
+  CHECK(heic_as_jpg.reason == Reason::DifferentFormat && heic_as_jpg.detail == "HEIC" &&
+        heic_as_jpg.suggested_extension == "heic");
+  CHECK(diagnose_undecodable_image(heic, "heif").reason == Reason::Unknown);
+  const Bytes jp2{0, 0, 0, 0x0c, 'j', 'P', ' ', ' ', 0x0d, 0x0a, 0x87, 0x0a};
+  const auto jp2_as_jpg = diagnose_undecodable_image(jp2, "jpg");
+  CHECK(jp2_as_jpg.reason == Reason::DifferentFormat && jp2_as_jpg.detail == "JPEG 2000" &&
+        jp2_as_jpg.suggested_extension.empty());
+  const auto pdf_as_tif = diagnose_undecodable_image(of("%PDF-1.7 ..."), "tif");
+  CHECK(pdf_as_tif.reason == Reason::DifferentFormat && pdf_as_tif.detail == "PDF");
+  CHECK(diagnose_undecodable_image(of("<?xml version=\"1.0\"?><svg xmlns=\"x\"/>"), "jpg").detail == "SVG");
+
+  // JPEG: SOI, an APP0, a frame header, then scan data with or without EOI.
+  const auto jpeg = [](std::uint8_t frame_marker, std::uint8_t precision, bool with_scan, bool with_eoi) {
+    Bytes b{0xff, 0xd8, 0xff, 0xe0, 0, 16, 'J', 'F', 'I', 'F', 0, 1, 1, 0, 0, 1, 0, 1, 0, 0};
+    if (frame_marker != 0) {
+      const Bytes sof{0xff, frame_marker, 0, 11, precision, 0, 8, 0, 8, 1, 1, 0x11, 0};
+      b.insert(b.end(), sof.begin(), sof.end());
+    }
+    if (with_scan) {
+      const Bytes sos{0xff, 0xda, 0, 8, 1, 1, 0, 0, 63, 0, 0x12, 0x34, 0x56, 0x78};
+      b.insert(b.end(), sos.begin(), sos.end());
+    }
+    if (with_eoi) {
+      b.push_back(0xff);
+      b.push_back(0xd9);
+    }
+    return b;
+  };
+  CHECK(diagnose_undecodable_image(jpeg(0xc0, 8, true, true), "jpg").reason == Reason::Unknown);
+  CHECK(diagnose_undecodable_image(jpeg(0xc0, 8, true, false), "jpg").reason == Reason::JpegTruncated);
+  CHECK(diagnose_undecodable_image(jpeg(0xc2, 8, false, false), "jpg").reason == Reason::JpegTruncated);
+  CHECK(diagnose_undecodable_image(jpeg(0, 8, true, true), "jpg").reason == Reason::JpegNoFrame);
+  CHECK(diagnose_undecodable_image(jpeg(0xc3, 8, true, true), "jpg").reason == Reason::JpegLossless);
+  CHECK(diagnose_undecodable_image(jpeg(0xc5, 8, true, true), "jpg").reason == Reason::JpegHierarchical);
+  CHECK(diagnose_undecodable_image(jpeg(0xc1, 12, true, true), "jpg").reason == Reason::Jpeg12Bit);
+  // A segment length that runs past the end of the file (a cut-short header).
+  Bytes cut = jpeg(0xc0, 8, true, true);
+  cut.resize(8);
+  CHECK(diagnose_undecodable_image(cut, "jpg").reason == Reason::JpegTruncated);
+  CHECK(diagnose_undecodable_image(Bytes{0x12, 0x34, 0x56, 0x78, 0x9a}, "jpg").reason == Reason::JpegNoFrame);
+
+  // TIFF: a one-entry IFD carrying the Compression tag, in both byte orders and BigTIFF.
+  const auto tiff = [](bool little_endian, bool big, std::uint16_t compression) {
+    Bytes b;
+    const auto put = [&b, little_endian](std::uint64_t value, int width) {
+      for (int i = 0; i < width; ++i) {
+        const int shift = little_endian ? i * 8 : (width - 1 - i) * 8;
+        b.push_back(static_cast<std::uint8_t>((value >> shift) & 0xff));
+      }
+    };
+    b.push_back(little_endian ? 'I' : 'M');
+    b.push_back(little_endian ? 'I' : 'M');
+    if (big) {
+      put(43, 2);
+      put(8, 2);
+      put(0, 2);
+      put(16, 8);  // first IFD
+      put(1, 8);   // one entry
+      put(259, 2);
+      put(3, 2);
+      put(1, 8);
+      put(compression, 2);
+      put(0, 6);
+      put(0, 8);  // next IFD
+    } else {
+      put(42, 2);
+      put(8, 4);
+      put(1, 2);
+      put(259, 2);
+      put(3, 2);
+      put(1, 4);
+      put(compression, 2);
+      put(0, 2);
+      put(0, 4);
+    }
+    return b;
+  };
+  CHECK(diagnose_undecodable_image(tiff(true, false, 7), "tif").reason == Reason::TiffJpegCompression);
+  CHECK(diagnose_undecodable_image(tiff(false, false, 6), "tiff").reason == Reason::TiffJpegCompression);
+  CHECK(diagnose_undecodable_image(tiff(true, false, 5), "tif").reason == Reason::Unknown);
+  CHECK(diagnose_undecodable_image(tiff(false, false, 32773), "tif").reason == Reason::Unknown);
+  const auto lzma = diagnose_undecodable_image(tiff(true, false, 34925), "tif");
+  CHECK(lzma.reason == Reason::TiffUnsupportedCompression && lzma.detail == "LZMA");
+  const auto webp = diagnose_undecodable_image(tiff(true, true, 50001), "tif");
+  CHECK(webp.reason == Reason::TiffUnsupportedCompression && webp.detail == "WebP");
+  const auto big_lzw = diagnose_undecodable_image(tiff(false, true, 5), "tif");
+  CHECK(big_lzw.reason == Reason::Unknown);
+  const auto odd = diagnose_undecodable_image(tiff(true, false, 60000), "tif");
+  CHECK(odd.reason == Reason::TiffUnsupportedCompression && odd.detail == "code 60000");
+  Bytes short_tiff = tiff(true, false, 7);
+  short_tiff.resize(12);
+  CHECK(diagnose_undecodable_image(short_tiff, "tif").reason == Reason::TiffUnreadable);
+  CHECK(diagnose_undecodable_image(Bytes{0x12, 0x34, 0x56, 0x78, 0x9a}, "tif").reason == Reason::TiffUnreadable);
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> flat_formats_misc_tests() {
@@ -1594,6 +1715,7 @@ std::vector<patchy::test::TestCase> flat_formats_misc_tests() {
       {"gif_document_write_quantizes_and_round_trips", gif_document_write_quantizes_and_round_trips},
       {"gif_animation_encodes_frames_delays_and_loop", gif_animation_encodes_frames_delays_and_loop},
       {"gif_layer_name_delay_token_round_trips", gif_layer_name_delay_token_round_trips},
+      {"undecodable_image_diagnosis_names_the_real_reason", undecodable_image_diagnosis_names_the_real_reason},
       {"aseprite_imports_layers_groups_and_palette", aseprite_imports_layers_groups_and_palette},
       {"aseprite_indexed_transparent_index", aseprite_indexed_transparent_index},
       {"aseprite_rejects_adobe_swatch_ase", aseprite_rejects_adobe_swatch_ase},

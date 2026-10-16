@@ -9925,6 +9925,54 @@ Mixed selection</source>
 
 %2</translation>
     </message>
+    <message>
+        <source>The file is empty (0 bytes).</source>
+        <translation>ファイルが空です（0 バイト）。</translation>
+    </message>
+    <message>
+        <source>The file holds text, not image data: a web page or an error message saved under an image name.</source>
+        <translation>ファイルには画像データではなくテキストが含まれています。画像の名前で保存された Web ページやエラーメッセージです。</translation>
+    </message>
+    <message>
+        <source>This is a %1 file, not %2. Give it the .%3 extension and open it again.</source>
+        <translation>これは %2 ではなく %1 ファイルです。拡張子を .%3 に変えて、もう一度開いてください。</translation>
+    </message>
+    <message>
+        <source>This is a %1 file, not %2, and Patchy cannot open %1 files.</source>
+        <translation>これは %2 ではなく %1 ファイルで、Patchy は %1 ファイルを開けません。</translation>
+    </message>
+    <message>
+        <source>The JPEG data ends early: the file was cut short while it was downloaded or copied.</source>
+        <translation>JPEG データが途中で終わっています。ダウンロードやコピーの途中でファイルが切れています。</translation>
+    </message>
+    <message>
+        <source>The JPEG header is damaged: no frame description precedes the image data.</source>
+        <translation>JPEG ヘッダーが壊れています。画像データの前にフレーム記述がありません。</translation>
+    </message>
+    <message>
+        <source>This JPEG uses lossless coding, which the JPEG decoder does not support.</source>
+        <translation>この JPEG はロスレス符号化を使っており、JPEG デコーダーが対応していません。</translation>
+    </message>
+    <message>
+        <source>This JPEG uses hierarchical coding, which the JPEG decoder does not support.</source>
+        <translation>この JPEG は階層符号化を使っており、JPEG デコーダーが対応していません。</translation>
+    </message>
+    <message>
+        <source>This JPEG stores 12-bit samples; only 8-bit JPEG can be decoded.</source>
+        <translation>この JPEG は 12 ビットのサンプルを格納しています。デコードできるのは 8 ビット JPEG だけです。</translation>
+    </message>
+    <message>
+        <source>This TIFF is JPEG-compressed, which the TIFF decoder does not support. Save it again with LZW, ZIP or no compression.</source>
+        <translation>この TIFF は JPEG 圧縮されており、TIFF デコーダーが対応していません。LZW、ZIP、または無圧縮で保存し直してください。</translation>
+    </message>
+    <message>
+        <source>This TIFF uses %1 compression, which the TIFF decoder does not support. Save it again with LZW, ZIP or no compression.</source>
+        <translation>この TIFF は %1 圧縮を使っており、TIFF デコーダーが対応していません。LZW、ZIP、または無圧縮で保存し直してください。</translation>
+    </message>
+    <message>
+        <source>The TIFF header or its first directory is damaged.</source>
+        <translation>TIFF ヘッダーまたは最初のディレクトリが壊れています。</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

@@ -534,6 +534,7 @@ add_library(patchy_formats
   src/formats/heif_document_io.cpp
   src/formats/ico_document_io.cpp
   src/formats/image_density_probe.cpp
+  src/formats/image_open_diagnosis.cpp
   src/formats/ilbm_document_io.cpp
   src/formats/jxl_document_io.cpp
   src/formats/jxr_document_io.cpp
