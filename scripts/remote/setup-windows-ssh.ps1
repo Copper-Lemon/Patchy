@@ -34,7 +34,11 @@ $ErrorActionPreference = 'Stop'
 $here = $PSScriptRoot
 
 function Finish([int]$code) {
-  if ($Pause) { Read-Host 'Press Enter to close' | Out-Null }
+  if ($Pause) {
+    # Drop keys typed while the script ran, so a stray Enter cannot close the window unseen.
+    try { $Host.UI.RawUI.FlushInputBuffer() } catch {}
+    Read-Host 'Press Enter to close' | Out-Null
+  }
   exit $code
 }
 
@@ -63,7 +67,21 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
     Write-Host "UAC elevation was declined or failed: $($_.Exception.Message)" -ForegroundColor Red
     Finish 3
   }
-  Write-Host "Elevated run finished with exit code $($p.ExitCode); details in $(Join-Path $here 'setup-windows-ssh.log')."
+  # Repeat the elevated window's result here, so it stays on screen even when that window
+  # is gone (it closes on Enter, and a key pressed during the long install can be that Enter).
+  $logPath = Join-Path $here 'setup-windows-ssh.log'
+  if (Test-Path $logPath) {
+    $lines = @(Get-Content -Path $logPath)
+    $stars = @(for ($i = 0; $i -lt $lines.Count; $i++) { if ($lines[$i] -match '^\*{10,}$') { $i } })
+    if ($stars.Count -ge 3 -and $stars[2] -gt $stars[1] + 1) { $lines = $lines[($stars[1] + 1)..($stars[2] - 1)] }
+    Write-Host ''
+    Write-Host '== result of the elevated run =='
+    foreach ($line in $lines) {
+      $color = if ($line -match '\bFAIL\b|^ERROR') { 'Red' } elseif ($line -match '== PASS') { 'Green' } else { (Get-Host).UI.RawUI.ForegroundColor }
+      Write-Host $line -ForegroundColor $color
+    }
+  }
+  Write-Host "Elevated run finished with exit code $($p.ExitCode); full log in $logPath."
   Finish $p.ExitCode
 }
 
@@ -89,7 +107,7 @@ try {
   $cap = Get-WindowsCapability -Online -Name 'OpenSSH.Server*' | Select-Object -First 1
   if (-not $cap) { throw 'Windows reports no OpenSSH.Server capability' }
   if ($cap.State -ne 'Installed') {
-    Write-Host "installing $($cap.Name) (a minute or two; it needs Windows Update to be reachable)"
+    Write-Host "installing $($cap.Name) (it can take 15 minutes and needs Windows Update to be reachable; leave this window alone)"
     Add-WindowsCapability -Online -Name $cap.Name | Out-Null
   }
   Set-Service -Name sshd -StartupType Automatic
