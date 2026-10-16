@@ -262,6 +262,29 @@ void ui_marquee_click_outside_canvas_deselects() {
   CHECK(sel->contains(QPoint(10, 10)));
 }
 
+// GitHub issue 142: the W x H readout is a HUD pill right beside the pointer,
+// not bare text 24 px away that vanished on busy artwork.
+void ui_marquee_drag_readout_draws_a_pill_by_the_pointer() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* canvas = require_canvas(window);
+  canvas->set_tool(patchy::ui::CanvasTool::Marquee);
+  const auto from = canvas->widget_position_for_document_point(QPoint(40, 40));
+  const auto to = canvas->widget_position_for_document_point(QPoint(240, 160));
+  send_mouse(*canvas, QEvent::MouseButtonPress, from, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*canvas, QEvent::MouseMove, to, Qt::NoButton, Qt::LeftButton);
+  QApplication::processEvents();
+  const auto image = canvas->grab().toImage();
+  const auto hud = patchy::ui::theme().canvas_hud_bg;  // drawn at alpha 236 over the white canvas
+  const QColor expected((hud.red() * 236 + 255 * 19) / 255, (hud.green() * 236 + 255 * 19) / 255,
+                        (hud.blue() * 236 + 255 * 19) / 255);
+  CHECK(color_close(image.pixelColor(to + QPoint(15, 17)), expected, 24));
+  // Below the pill there is only canvas.
+  CHECK(color_close(image.pixelColor(to + QPoint(15, 60)), Qt::white, 8));
+  send_mouse(*canvas, QEvent::MouseButtonRelease, to, Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+}
+
 void ui_marquee_shift_drag_constrains_to_square() {
   patchy::ui::MainWindow window;
   show_window(window);
@@ -2205,6 +2228,7 @@ std::vector<patchy::test::TestCase> selection_marquee_lasso_tests_part1() {
       {"ui_marquee_selection_modifiers_work", ui_marquee_selection_modifiers_work},
       {"ui_marquee_click_outside_canvas_deselects", ui_marquee_click_outside_canvas_deselects},
       {"ui_marquee_shift_drag_constrains_to_square", ui_marquee_shift_drag_constrains_to_square},
+      {"ui_marquee_drag_readout_draws_a_pill_by_the_pointer", ui_marquee_drag_readout_draws_a_pill_by_the_pointer},
       {"ui_marquee_drag_keeps_minimum_one_pixel", ui_marquee_drag_keeps_minimum_one_pixel},
       {"ui_selection_toolbar_modes_work", ui_selection_toolbar_modes_work},
       {"ui_ctrl_a_selects_entire_canvas", ui_ctrl_a_selects_entire_canvas},

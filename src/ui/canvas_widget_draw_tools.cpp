@@ -755,20 +755,40 @@ void CanvasWidget::draw_drag_size_readout(QPainter& painter) const {
   const auto readout = tr("%1 x %2 px").arg(rect.width()).arg(rect.height());
   const auto anchor = widget_position(corner);
   const auto metrics = painter.fontMetrics();
-  const auto text_width = metrics.horizontalAdvance(readout);
-  QPointF text_position(static_cast<double>(anchor.x()) + 16.0,
-                        static_cast<double>(anchor.y()) + 24.0 + static_cast<double>(metrics.ascent()));
-  text_position.setX(std::clamp(text_position.x(), 4.0, std::max(4.0, static_cast<double>(width() - text_width - 4))));
-  text_position.setY(std::clamp(text_position.y(), static_cast<double>(metrics.ascent()) + 4.0,
-                                std::max(static_cast<double>(metrics.ascent()) + 4.0,
-                                         static_cast<double>(height()) - static_cast<double>(metrics.descent()) - 4.0)));
-  // Same outlined-text treatment as draw_brush_adjust_readout so it reads on any artwork.
-  painter.setPen(QColor(20, 23, 28, 220));
-  for (const auto& offset : {QPointF(-1.0, 0.0), QPointF(1.0, 0.0), QPointF(0.0, -1.0), QPointF(0.0, 1.0)}) {
-    painter.drawText(text_position + offset, readout);
+  // A HUD pill just below-right of the pointer, the Free Transform readout's
+  // look: the bare outlined text 16/24 px away vanished on busy artwork
+  // (GitHub issue 142).
+  constexpr int kPadX = 6;
+  constexpr int kPadY = 3;
+  QRect pill(anchor + QPoint(12, 14),
+             QSize(metrics.horizontalAdvance(readout) + 2 * kPadX, metrics.height() + 2 * kPadY));
+  const int left = rulers_visible_ ? kLeftRulerWidth : 0;
+  const int top = rulers_visible_ ? kTopRulerHeight : 0;
+  const QRect bounds(left, top, std::max(1, width() - left), std::max(1, height() - top));
+  if (pill.right() > bounds.right() - 4) {
+    pill.moveRight(bounds.right() - 4);
   }
-  painter.setPen(QColor(245, 248, 252));
-  painter.drawText(text_position, readout);
+  if (pill.bottom() > bounds.bottom() - 4) {
+    pill.moveBottom(bounds.bottom() - 4);
+  }
+  if (pill.left() < bounds.left() + 4) {
+    pill.moveLeft(bounds.left() + 4);
+  }
+  if (pill.top() < bounds.top() + 4) {
+    pill.moveTop(bounds.top() + 4);
+  }
+  painter.save();
+  painter.setRenderHint(QPainter::Antialiasing, true);
+  QPainterPath panel_path;
+  panel_path.addRoundedRect(QRectF(pill), 4.0, 4.0);
+  auto hud_fill = theme().canvas_hud_bg;
+  hud_fill.setAlpha(236);
+  painter.fillPath(panel_path, hud_fill);
+  painter.setPen(QPen(theme().canvas_hud_border, 1.0));
+  painter.drawPath(panel_path);
+  painter.setPen(theme().canvas_hud_text);
+  painter.drawText(pill.adjusted(kPadX, 0, -kPadX, 0), Qt::AlignLeft | Qt::AlignVCenter, readout);
+  painter.restore();
 }
 
 QRect CanvasWidget::drag_readout_widget_rect() const {
