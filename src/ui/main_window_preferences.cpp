@@ -836,6 +836,9 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
     update_interval_combo->addItem(tr("Weekly"), 7);
     update_interval_combo->addItem(tr("Every 2 weeks"), 14);
     update_interval_combo->addItem(tr("Monthly"), 30);
+    // Sized to the longest entry: the row's long checkbox text otherwise squeezes
+    // the combo until its entries elide (GitHub issue 146).
+    update_interval_combo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
     update_interval_combo->setToolTip(
         tr("How often Patchy looks for a new version when it starts. The About window always checks."));
     update_interval_combo->setCurrentIndex(
@@ -863,6 +866,7 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
   for (const int minutes : kRecoveryIntervalMinutes) {
     recovery_combo->addItem(tr("%n minute(s)", nullptr, minutes), minutes);
   }
+  recovery_combo->setSizeAdjustPolicy(QComboBox::AdjustToContents);  // issue 146, as above
   recovery_combo->setCurrentIndex(recovery_combo->findData(stored_recovery_interval_minutes()));
   recovery_combo->setEnabled(recovery_check->isChecked());
   connect(recovery_check, &QCheckBox::toggled, recovery_combo, &QComboBox::setEnabled);
