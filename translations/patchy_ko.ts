@@ -20950,6 +20950,90 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
         <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
         <translation>약 400개의 G&apos;MIC 필터, Patchy 데스크톱 버전에서 제공</translation>
     </message>
+    <message>
+        <source>Rotate Layer &amp;Right</source>
+        <translation>레이어를 오른쪽으로 회전(&amp;R)</translation>
+    </message>
+    <message>
+        <source>Rotate Layer &amp;Left</source>
+        <translation>레이어를 왼쪽으로 회전(&amp;L)</translation>
+    </message>
+    <message>
+        <source>Rotate Layer 1&amp;80</source>
+        <translation>레이어를 180도 회전(&amp;8)</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees clockwise</source>
+        <translation>선택한 레이어를 시계 방향으로 90도 회전합니다.</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees counterclockwise</source>
+        <translation>선택한 레이어를 시계 반대 방향으로 90도 회전합니다.</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 180 degrees</source>
+        <translation>선택한 레이어를 180도 회전합니다.</translation>
+    </message>
+    <message>
+        <source>Rotate 1&amp;80</source>
+        <translation>180도 회전(&amp;8)</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Horizontal</source>
+        <translation>수평으로 뒤집기(&amp;H)</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Vertical</source>
+        <translation>수직으로 뒤집기(&amp;V)</translation>
+    </message>
+    <message>
+        <source>Rotate the canvas 180 degrees</source>
+        <translation>캔버스를 180도 회전합니다.</translation>
+    </message>
+    <message>
+        <source>Mirror the whole image left to right</source>
+        <translation>전체 이미지를 좌우로 뒤집습니다.</translation>
+    </message>
+    <message>
+        <source>Mirror the whole image top to bottom</source>
+        <translation>전체 이미지를 상하로 뒤집습니다.</translation>
+    </message>
+    <message>
+        <source>Use Free Transform or rasterize Smart Objects before rotating</source>
+        <translation>회전하기 전에 자유 변형을 사용하거나 스마트 개체를 래스터화하세요.</translation>
+    </message>
+    <message>
+        <source>Rotate layer</source>
+        <translation>레이어 회전</translation>
+    </message>
+    <message>
+        <source>Rotated layer clockwise</source>
+        <translation>레이어를 시계 방향으로 회전했습니다.</translation>
+    </message>
+    <message>
+        <source>Rotated layer counterclockwise</source>
+        <translation>레이어를 시계 반대 방향으로 회전했습니다.</translation>
+    </message>
+    <message>
+        <source>Rotated layer 180 degrees</source>
+        <translation>레이어를 180도 회전했습니다.</translation>
+    </message>
+    <message>
+        <source>Rotated canvas 180 degrees</source>
+        <translation>캔버스를 180도 회전했습니다.</translation>
+    </message>
+    <message>
+        <source>Flip canvas</source>
+        <translation>캔버스 뒤집기</translation>
+    </message>
+    <message>
+        <source>Flipped canvas horizontally</source>
+        <translation>캔버스를 수평으로 뒤집었습니다.</translation>
+    </message>
+    <message>
+        <source>Flipped canvas vertically</source>
+        <translation>캔버스를 수직으로 뒤집었습니다.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

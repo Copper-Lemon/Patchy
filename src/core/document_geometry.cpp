@@ -1432,4 +1432,126 @@ void wrap_offset_document(Document& document, std::int32_t dx, std::int32_t dy) 
                                  Rect::from_size(width, height));
 }
 
+namespace {
+
+// Mirrors one layer (and its subtree) about the canvas: pixels, mask and bounds.
+void flip_layer_in_canvas(Layer& layer, std::int32_t document_width, std::int32_t document_height,
+                          bool horizontal) {
+  if (layer.kind() == LayerKind::Group) {
+    for (auto& child : layer.children()) {
+      flip_layer_in_canvas(child, document_width, document_height, horizontal);
+    }
+    return;
+  }
+  if (auto& mask = layer.mask(); mask.has_value()) {
+    if (horizontal) {
+      flip_pixels_horizontal(mask->pixels);
+      mask->bounds.x = document_width - mask->bounds.x - mask->bounds.width;
+    } else {
+      flip_pixels_vertical(mask->pixels);
+      mask->bounds.y = document_height - mask->bounds.y - mask->bounds.height;
+    }
+  }
+  if (layer.kind() == LayerKind::Pixel) {
+    if (horizontal) {
+      flip_pixels_horizontal(layer.pixels());
+    } else {
+      flip_pixels_vertical(layer.pixels());
+    }
+  }
+  const auto old_bounds = layer.bounds();
+  if (!old_bounds.empty()) {
+    layer.set_bounds(horizontal ? Rect{document_width - old_bounds.x - old_bounds.width, old_bounds.y,
+                                       old_bounds.width, old_bounds.height}
+                                : Rect{old_bounds.x, document_height - old_bounds.y - old_bounds.height,
+                                       old_bounds.width, old_bounds.height});
+  }
+}
+
+void flip_document(Document& document, bool horizontal) {
+  const auto width = document.width();
+  const auto height = document.height();
+  const std::array<double, 6> matrix = horizontal
+                                           ? std::array<double, 6>{-1.0, 0.0, 0.0, 1.0, static_cast<double>(width), 0.0}
+                                           : std::array<double, 6>{1.0, 0.0, 0.0, -1.0, 0.0, static_cast<double>(height)};
+  compose_document_text_transforms(document.layers(), matrix);
+  compose_document_smart_object_placements(document.layers(), matrix);
+  for (auto& layer : document.layers()) {
+    flip_layer_in_canvas(layer, width, height, horizontal);
+  }
+  for (auto& channel : document.channels()) {
+    auto pixels = std::as_const(channel).pixels();
+    if (horizontal) {
+      flip_pixels_horizontal(pixels);
+    } else {
+      flip_pixels_vertical(pixels);
+    }
+    channel.set_pixels(std::move(pixels));
+  }
+  transform_document_vector_data(document, matrix, Rect::from_size(width, height));
+}
+
+// A quarter turn of one pixel layer about the canvas, then a translation that
+// puts the layer's center back where it was.
+Rect rotate_layer_about_its_center(Document& document, LayerId layer_id, bool clockwise) {
+  auto* layer = pixel_layer_any_depth(document, layer_id);
+  if (layer == nullptr) {
+    return {};
+  }
+  const auto old_bounds = layer->bounds();
+  const double center_x = old_bounds.x + old_bounds.width / 2.0;
+  const double center_y = old_bounds.y + old_bounds.height / 2.0;
+  const auto width = document.width();
+  const auto height = document.height();
+  if (clockwise) {
+    rotate_layer_clockwise(*layer, height);
+  } else {
+    rotate_layer_counterclockwise(*layer, width);
+  }
+  const auto turned = layer->bounds();
+  const auto dx = static_cast<std::int32_t>(std::lround(center_x - (turned.x + turned.width / 2.0)));
+  const auto dy = static_cast<std::int32_t>(std::lround(center_y - (turned.y + turned.height / 2.0)));
+  translate_layer_and_mask(*layer, dx, dy);
+  // Clockwise maps (x, y) -> (H - y, x), counterclockwise (x, y) -> (y, W - x);
+  // the translation rides on the constant terms.
+  const std::array<double, 6> matrix =
+      clockwise ? std::array<double, 6>{0.0, 1.0, -1.0, 0.0, static_cast<double>(height + dx),
+                                        static_cast<double>(dy)}
+                : std::array<double, 6>{0.0, -1.0, 1.0, 0.0, static_cast<double>(dx),
+                                        static_cast<double>(width + dy)};
+  compose_text_layer_transform(*layer, matrix);
+  compose_smart_object_placement(*layer, matrix);
+  transform_layer_vector_data(document, *layer, matrix, Rect::from_size(width, height));
+  return unite_rect(old_bounds, layer->bounds());
+}
+
+}  // namespace
+
+void rotate_document_180(Document& document) {
+  rotate_document_clockwise(document);
+  rotate_document_clockwise(document);
+}
+
+void flip_document_horizontal(Document& document) {
+  flip_document(document, true);
+}
+
+void flip_document_vertical(Document& document) {
+  flip_document(document, false);
+}
+
+Rect rotate_layer_clockwise(Document& document, LayerId layer_id) {
+  return rotate_layer_about_its_center(document, layer_id, true);
+}
+
+Rect rotate_layer_counterclockwise(Document& document, LayerId layer_id) {
+  return rotate_layer_about_its_center(document, layer_id, false);
+}
+
+Rect rotate_layer_180(Document& document, LayerId layer_id) {
+  const auto first = rotate_layer_about_its_center(document, layer_id, true);
+  const auto second = rotate_layer_about_its_center(document, layer_id, true);
+  return unite_rect(first, second);
+}
+
 }  // namespace patchy

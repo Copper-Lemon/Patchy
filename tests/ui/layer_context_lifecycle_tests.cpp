@@ -2275,6 +2275,14 @@ void ui_rotate_canvas_arbitrary_dialog_rotates_and_expands_canvas() {
     return;
   }
   CHECK(info->text().contains(QStringLiteral("1024 x 768 px")));
+  // GitHub issue 139: the half turn and the whole-image flips sit beside them, and
+  // the Layer > Arrange menu turns the selected layers.
+  CHECK(require_action(window, "imageRotate180Action")->text().contains(QStringLiteral("180")));
+  CHECK(require_action(window, "imageFlipHorizontalAction")->text().contains(QStringLiteral("Horizontal")));
+  CHECK(require_action(window, "imageFlipVerticalAction")->text().contains(QStringLiteral("Vertical")));
+  CHECK(require_action(window, "layerRotateClockwiseAction")->text().contains(QStringLiteral("Right")));
+  CHECK(require_action(window, "layerRotateCounterclockwiseAction")->text().contains(QStringLiteral("Left")));
+  CHECK(require_action(window, "layerRotate180Action")->text().contains(QStringLiteral("180")));
   CHECK(require_action(window, "imageRotateClockwiseAction")->text().contains(QStringLiteral("Right")));
   CHECK(require_action(window, "imageRotateCounterclockwiseAction")->text().contains(QStringLiteral("Left")));
 
@@ -2833,8 +2841,50 @@ void ui_document_tab_context_menu_file_actions() {
 
 }  // namespace
 
+// GitHub issue 139: Image > Flip Horizontal mirrors an off-center layer about the
+// canvas, and Layer > Arrange > Rotate Layer Right turns it about its own center.
+void ui_image_flip_and_layer_rotate_menu_actions_apply() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto& document = patchy::ui::MainWindowTestAccess::document(window);
+  if (document.layers().empty()) {
+    (void)document.add_pixel_layer("Background", solid_pixels(document.width(), document.height(),
+                                                              patchy::PixelFormat::rgba8(), QColor(Qt::white)));
+  }
+  // A layer smaller than the canvas: added canvas-sized, then given its own buffer.
+  const auto layer_id = document.add_pixel_layer("Block", solid_pixels(document.width(), document.height(),
+                                                                       patchy::PixelFormat::rgba8(),
+                                                                       QColor(0, 0, 0, 0))).id();
+  document.find_layer(layer_id)->set_pixels(solid_pixels(60, 20, patchy::PixelFormat::rgba8(), QColor(200, 30, 30)));
+  document.find_layer(layer_id)->set_bounds(patchy::Rect{100, 50, 60, 20});
+  document.set_active_layer(layer_id);
+  patchy::ui::MainWindowTestAccess::refresh_layer_ui(window);
+
+  require_action(window, "imageFlipHorizontalAction")->trigger();
+  QApplication::processEvents();
+  {
+    const auto* layer = std::as_const(document).find_layer(layer_id);
+    CHECK(layer != nullptr);
+    CHECK(layer->bounds().x == document.width() - 100 - 60 && layer->bounds().y == 50);
+  }
+  require_action_by_text(window, QStringLiteral("Undo"))->trigger();
+  QApplication::processEvents();
+  CHECK(std::as_const(document).find_layer(layer_id)->bounds().x == 100);
+
+  require_action(window, "layerRotateClockwiseAction")->trigger();
+  QApplication::processEvents();
+  {
+    const auto* layer = std::as_const(document).find_layer(layer_id);
+    CHECK(layer != nullptr);
+    CHECK(layer->bounds().width == 20 && layer->bounds().height == 60);
+    CHECK(layer->bounds().x == 120 && layer->bounds().y == 30);  // center (130, 60) kept
+  }
+  CHECK(window.statusBar()->currentMessage() == QStringLiteral("Rotated layer clockwise"));
+}
+
 std::vector<patchy::test::TestCase> layer_context_lifecycle_tests() {
   return {
+      {"ui_image_flip_and_layer_rotate_menu_actions_apply", ui_image_flip_and_layer_rotate_menu_actions_apply},
       {"ui_move_layer_menu_selects_overlapping_layers_and_reveals_rows",
        ui_move_layer_menu_selects_overlapping_layers_and_reveals_rows},
       {"ui_move_layer_menu_respects_pixels_masks_and_visibility",

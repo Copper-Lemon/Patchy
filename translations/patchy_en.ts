@@ -20940,6 +20940,90 @@ Patchy can download the update, replace this AppImage, and start again. You will
         <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Rotate Layer &amp;Right</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rotate Layer &amp;Left</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rotate Layer 1&amp;80</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees clockwise</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees counterclockwise</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 180 degrees</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rotate 1&amp;80</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Flip &amp;Horizontal</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Flip &amp;Vertical</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rotate the canvas 180 degrees</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mirror the whole image left to right</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mirror the whole image top to bottom</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use Free Transform or rasterize Smart Objects before rotating</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rotate layer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rotated layer clockwise</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rotated layer counterclockwise</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rotated layer 180 degrees</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rotated canvas 180 degrees</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Flip canvas</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Flipped canvas horizontally</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Flipped canvas vertically</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

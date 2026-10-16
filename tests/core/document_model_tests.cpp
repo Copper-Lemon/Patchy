@@ -738,8 +738,84 @@ void ungroup_layer_releases_children_in_place_and_order() {
 
 }  // namespace
 
+// GitHub issue 139: whole-image flips mirror layers, masks and channels about the
+// canvas; Rotate 180 is two exact quarter turns.
+void document_flips_and_half_turn_mirror_every_layer_and_channel() {
+  patchy::Document document(10, 6, patchy::PixelFormat::rgba8());
+  (void)document.add_pixel_layer("Background", solid_rgba(10, 6, 255, 255, 255, 255));
+  auto pixels = solid_rgba(4, 2, 10, 20, 30, 255);
+  pixels.pixel(0, 0)[0] = 200;  // a marker in the top-left corner
+  // A layer smaller than the canvas: added canvas-sized, then given its own buffer.
+  const auto layer_id = document.add_pixel_layer("Paint", solid_rgba(10, 6, 0, 0, 0, 0)).id();
+  document.find_layer(layer_id)->set_pixels(std::move(pixels));
+  document.find_layer(layer_id)->set_bounds(patchy::Rect{1, 1, 4, 2});
+
+  patchy::flip_document_horizontal(document);
+  {
+    const auto* layer = std::as_const(document).find_layer(layer_id);
+    CHECK(layer->bounds().x == 5 && layer->bounds().y == 1);  // 10 - 1 - 4
+    CHECK(layer->pixels().pixel(3, 0)[0] == 200);              // the marker moved to the right edge
+  }
+  patchy::flip_document_horizontal(document);
+  {
+    const auto* layer = std::as_const(document).find_layer(layer_id);
+    CHECK(layer->bounds().x == 1 && layer->pixels().pixel(0, 0)[0] == 200);
+  }
+  patchy::flip_document_vertical(document);
+  {
+    const auto* layer = std::as_const(document).find_layer(layer_id);
+    CHECK(layer->bounds().y == 3 && layer->bounds().x == 1);  // 6 - 1 - 2
+    CHECK(layer->pixels().pixel(0, 1)[0] == 200);
+  }
+  patchy::flip_document_vertical(document);
+  patchy::rotate_document_180(document);
+  CHECK(document.width() == 10 && document.height() == 6);
+  {
+    const auto* layer = std::as_const(document).find_layer(layer_id);
+    CHECK(layer->bounds().x == 5 && layer->bounds().y == 3);  // mirrored on both axes
+    CHECK(layer->pixels().pixel(3, 1)[0] == 200);
+  }
+}
+
+// GitHub issue 139: a layer's quarter turn keeps its center and swaps its size.
+void layer_quarter_turns_keep_the_layer_center() {
+  patchy::Document document(40, 30, patchy::PixelFormat::rgba8());
+  (void)document.add_pixel_layer("Background", solid_rgba(40, 30, 255, 255, 255, 255));
+  auto pixels = solid_rgba(6, 2, 10, 20, 30, 255);
+  pixels.pixel(0, 0)[0] = 200;  // top-left marker
+  const auto layer_id = document.add_pixel_layer("Paint", solid_rgba(40, 30, 0, 0, 0, 0)).id();
+  document.find_layer(layer_id)->set_pixels(std::move(pixels));
+  document.find_layer(layer_id)->set_bounds(patchy::Rect{10, 8, 6, 2});  // center (13, 9)
+
+  const auto affected = patchy::rotate_layer_clockwise(document, layer_id);
+  CHECK(!affected.empty());
+  {
+    const auto* layer = std::as_const(document).find_layer(layer_id);
+    CHECK(layer->bounds().width == 2 && layer->bounds().height == 6);
+    CHECK(layer->bounds().x == 12 && layer->bounds().y == 6);  // still centered on (13, 9)
+    CHECK(layer->pixels().pixel(1, 0)[0] == 200);              // top-left went to the top-right
+  }
+  (void)patchy::rotate_layer_counterclockwise(document, layer_id);
+  {
+    const auto* layer = std::as_const(document).find_layer(layer_id);
+    CHECK(layer->bounds().x == 10 && layer->bounds().y == 8 && layer->bounds().width == 6);
+    CHECK(layer->pixels().pixel(0, 0)[0] == 200);
+  }
+  (void)patchy::rotate_layer_180(document, layer_id);
+  {
+    const auto* layer = std::as_const(document).find_layer(layer_id);
+    CHECK(layer->bounds().x == 10 && layer->bounds().y == 8);
+    CHECK(layer->pixels().pixel(5, 1)[0] == 200);
+  }
+  // A document channel and an empty layer id are left alone.
+  CHECK(patchy::rotate_layer_clockwise(document, patchy::LayerId{999999U}).empty());
+}
+
 std::vector<patchy::test::TestCase> document_model_tests() {
   return {
+      {"document_flips_and_half_turn_mirror_every_layer_and_channel",
+       document_flips_and_half_turn_mirror_every_layer_and_channel},
+      {"layer_quarter_turns_keep_the_layer_center", layer_quarter_turns_keep_the_layer_center},
       {"pixel_buffer_tracks_shape_and_rows", pixel_buffer_tracks_shape_and_rows},
       {"pixel_buffer_copy_shares_storage_until_mutated", pixel_buffer_copy_shares_storage_until_mutated},
       {"document_snapshot_shares_pixels_when_only_moving_a_layer",

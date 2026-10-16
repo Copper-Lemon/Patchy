@@ -20950,6 +20950,90 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
         <translation>400 近い G&apos;MIC フィルター（デスクトップ版 Patchy）</translation>
     </message>
+    <message>
+        <source>Rotate Layer &amp;Right</source>
+        <translation>レイヤーを右に回転(&amp;R)</translation>
+    </message>
+    <message>
+        <source>Rotate Layer &amp;Left</source>
+        <translation>レイヤーを左に回転(&amp;L)</translation>
+    </message>
+    <message>
+        <source>Rotate Layer 1&amp;80</source>
+        <translation>レイヤーを 180 度回転(&amp;8)</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees clockwise</source>
+        <translation>選択したレイヤーを時計回りに 90 度回転します</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees counterclockwise</source>
+        <translation>選択したレイヤーを反時計回りに 90 度回転します</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 180 degrees</source>
+        <translation>選択したレイヤーを 180 度回転します</translation>
+    </message>
+    <message>
+        <source>Rotate 1&amp;80</source>
+        <translation>180 度回転(&amp;8)</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Horizontal</source>
+        <translation>水平方向に反転(&amp;H)</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Vertical</source>
+        <translation>垂直方向に反転(&amp;V)</translation>
+    </message>
+    <message>
+        <source>Rotate the canvas 180 degrees</source>
+        <translation>キャンバスを 180 度回転します</translation>
+    </message>
+    <message>
+        <source>Mirror the whole image left to right</source>
+        <translation>画像全体を左右反転します</translation>
+    </message>
+    <message>
+        <source>Mirror the whole image top to bottom</source>
+        <translation>画像全体を上下反転します</translation>
+    </message>
+    <message>
+        <source>Use Free Transform or rasterize Smart Objects before rotating</source>
+        <translation>スマートオブジェクトを回転するには、自由変形を使用するかラスタライズしてください</translation>
+    </message>
+    <message>
+        <source>Rotate layer</source>
+        <translation>レイヤーを回転</translation>
+    </message>
+    <message>
+        <source>Rotated layer clockwise</source>
+        <translation>レイヤーを時計回りに回転しました</translation>
+    </message>
+    <message>
+        <source>Rotated layer counterclockwise</source>
+        <translation>レイヤーを反時計回りに回転しました</translation>
+    </message>
+    <message>
+        <source>Rotated layer 180 degrees</source>
+        <translation>レイヤーを 180 度回転しました</translation>
+    </message>
+    <message>
+        <source>Rotated canvas 180 degrees</source>
+        <translation>キャンバスを 180 度回転しました</translation>
+    </message>
+    <message>
+        <source>Flip canvas</source>
+        <translation>キャンバスを反転</translation>
+    </message>
+    <message>
+        <source>Flipped canvas horizontally</source>
+        <translation>キャンバスを水平方向に反転しました</translation>
+    </message>
+    <message>
+        <source>Flipped canvas vertically</source>
+        <translation>キャンバスを垂直方向に反転しました</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

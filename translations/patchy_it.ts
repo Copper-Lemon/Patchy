@@ -10233,7 +10233,7 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     </message>
     <message>
         <source>Animated PNG: imported the default image only (%1)</source>
-        <translation>PNG animato: importata solo l'immagine predefinita (%1)</translation>
+        <translation>PNG animato: importata solo l&apos;immagine predefinita (%1)</translation>
     </message>
 </context>
 <context>
@@ -21012,6 +21012,90 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
     <message>
         <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
         <translation>Quasi 400 filtri G&apos;MIC, nella versione desktop di Patchy</translation>
+    </message>
+    <message>
+        <source>Rotate Layer &amp;Right</source>
+        <translation>&amp;Ruota livello a destra</translation>
+    </message>
+    <message>
+        <source>Rotate Layer &amp;Left</source>
+        <translation>Ruota livello a &amp;sinistra</translation>
+    </message>
+    <message>
+        <source>Rotate Layer 1&amp;80</source>
+        <translation>Ruota livello di 1&amp;80°</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees clockwise</source>
+        <translation>Ruota i livelli selezionati di 90 gradi in senso orario</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees counterclockwise</source>
+        <translation>Ruota i livelli selezionati di 90 gradi in senso antiorario</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 180 degrees</source>
+        <translation>Ruota i livelli selezionati di 180 gradi</translation>
+    </message>
+    <message>
+        <source>Rotate 1&amp;80</source>
+        <translation>Ruota di 1&amp;80°</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Horizontal</source>
+        <translation>Rifletti in &amp;orizzontale</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Vertical</source>
+        <translation>Rifletti in &amp;verticale</translation>
+    </message>
+    <message>
+        <source>Rotate the canvas 180 degrees</source>
+        <translation>Ruota il quadro di 180 gradi</translation>
+    </message>
+    <message>
+        <source>Mirror the whole image left to right</source>
+        <translation>Specchia l'intera immagine da sinistra a destra</translation>
+    </message>
+    <message>
+        <source>Mirror the whole image top to bottom</source>
+        <translation>Specchia l'intera immagine dall'alto in basso</translation>
+    </message>
+    <message>
+        <source>Use Free Transform or rasterize Smart Objects before rotating</source>
+        <translation>Usa Trasformazione libera o rasterizza gli oggetti avanzati prima di ruotare</translation>
+    </message>
+    <message>
+        <source>Rotate layer</source>
+        <translation>Ruota livello</translation>
+    </message>
+    <message>
+        <source>Rotated layer clockwise</source>
+        <translation>Livello ruotato in senso orario</translation>
+    </message>
+    <message>
+        <source>Rotated layer counterclockwise</source>
+        <translation>Livello ruotato in senso antiorario</translation>
+    </message>
+    <message>
+        <source>Rotated layer 180 degrees</source>
+        <translation>Livello ruotato di 180 gradi</translation>
+    </message>
+    <message>
+        <source>Rotated canvas 180 degrees</source>
+        <translation>Quadro ruotato di 180 gradi</translation>
+    </message>
+    <message>
+        <source>Flip canvas</source>
+        <translation>Rifletti quadro</translation>
+    </message>
+    <message>
+        <source>Flipped canvas horizontally</source>
+        <translation>Quadro riflesso in orizzontale</translation>
+    </message>
+    <message>
+        <source>Flipped canvas vertically</source>
+        <translation>Quadro riflesso in verticale</translation>
     </message>
 </context>
 <context>

@@ -280,6 +280,20 @@ std::size_t remove_layers_outside_canvas(Document& document, Rect canvas);
                                  EditColor extension_color);
 void rotate_document_clockwise(Document& document);
 void rotate_document_counterclockwise(Document& document);
+// Two quarter turns: exact, no resampling (Image > Rotate 180, GitHub issue 139).
+void rotate_document_180(Document& document);
+// Mirrors the whole document about the canvas center: every layer's pixels, bounds
+// and mask, the document channels, text transforms, smart-object placements and
+// vector data (Image > Flip Horizontal / Vertical, GitHub issue 139).
+void flip_document_horizontal(Document& document);
+void flip_document_vertical(Document& document);
+// Quarter turns of one pixel layer about its own center (Layer > Arrange > Rotate,
+// GitHub issue 139): pixels, mask, text transform and vector data turn together
+// and the layer's center stays put (rounded to whole pixels). Returns the union of
+// the old and new bounds, or an empty rect when the layer is not a pixel layer.
+[[nodiscard]] Rect rotate_layer_clockwise(Document& document, LayerId layer_id);
+[[nodiscard]] Rect rotate_layer_counterclockwise(Document& document, LayerId layer_id);
+[[nodiscard]] Rect rotate_layer_180(Document& document, LayerId layer_id);
 // Rotates the whole document by any angle (positive = clockwise on screen) about its
 // center and enlarges the canvas to the rotated image's bounding box, like Photoshop's
 // Image > Rotate > Arbitrary. Exposed corners follow the rotated-crop fill rules

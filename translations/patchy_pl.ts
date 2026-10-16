@@ -21076,6 +21076,90 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
         <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
         <translation>Blisko 400 filtrów G&apos;MIC w wersji Patchy na komputery</translation>
     </message>
+    <message>
+        <source>Rotate Layer &amp;Right</source>
+        <translation>Obróć warstwę w p&amp;rawo</translation>
+    </message>
+    <message>
+        <source>Rotate Layer &amp;Left</source>
+        <translation>Obróć warstwę w &amp;lewo</translation>
+    </message>
+    <message>
+        <source>Rotate Layer 1&amp;80</source>
+        <translation>Obróć warstwę o 1&amp;80°</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees clockwise</source>
+        <translation>Obróć zaznaczone warstwy o 90 stopni zgodnie z ruchem wskazówek zegara</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees counterclockwise</source>
+        <translation>Obróć zaznaczone warstwy o 90 stopni przeciwnie do ruchu wskazówek zegara</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 180 degrees</source>
+        <translation>Obróć zaznaczone warstwy o 180 stopni</translation>
+    </message>
+    <message>
+        <source>Rotate 1&amp;80</source>
+        <translation>Obróć o 1&amp;80°</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Horizontal</source>
+        <translation>Odbij w &amp;poziomie</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Vertical</source>
+        <translation>Odbij w pio&amp;nie</translation>
+    </message>
+    <message>
+        <source>Rotate the canvas 180 degrees</source>
+        <translation>Obróć płótno o 180 stopni</translation>
+    </message>
+    <message>
+        <source>Mirror the whole image left to right</source>
+        <translation>Odbij cały obraz w poziomie</translation>
+    </message>
+    <message>
+        <source>Mirror the whole image top to bottom</source>
+        <translation>Odbij cały obraz w pionie</translation>
+    </message>
+    <message>
+        <source>Use Free Transform or rasterize Smart Objects before rotating</source>
+        <translation>Przed obróceniem użyj opcji Swobodne przekształcanie lub rasteryzuj obiekty inteligentne</translation>
+    </message>
+    <message>
+        <source>Rotate layer</source>
+        <translation>Obróć warstwę</translation>
+    </message>
+    <message>
+        <source>Rotated layer clockwise</source>
+        <translation>Obrócono warstwę zgodnie z ruchem wskazówek zegara</translation>
+    </message>
+    <message>
+        <source>Rotated layer counterclockwise</source>
+        <translation>Obrócono warstwę przeciwnie do ruchu wskazówek zegara</translation>
+    </message>
+    <message>
+        <source>Rotated layer 180 degrees</source>
+        <translation>Obrócono warstwę o 180 stopni</translation>
+    </message>
+    <message>
+        <source>Rotated canvas 180 degrees</source>
+        <translation>Obrócono płótno o 180 stopni</translation>
+    </message>
+    <message>
+        <source>Flip canvas</source>
+        <translation>Odbij płótno</translation>
+    </message>
+    <message>
+        <source>Flipped canvas horizontally</source>
+        <translation>Odbito płótno w poziomie</translation>
+    </message>
+    <message>
+        <source>Flipped canvas vertically</source>
+        <translation>Odbito płótno w pionie</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

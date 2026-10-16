@@ -1041,6 +1041,33 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   auto* layer_up_action = layer_arrange_menu->addAction(tr("Move Layer &Up"));
   auto* layer_down_action = layer_arrange_menu->addAction(tr("Move Layer &Down"));
   layer_arrange_menu->addSeparator();
+  // Quarter and half turns of the selected layers (GitHub issue 139), beside the flips.
+  auto* layer_rotate_cw_action = layer_arrange_menu->addAction(tr("Rotate Layer &Right"));
+  auto* layer_rotate_ccw_action = layer_arrange_menu->addAction(tr("Rotate Layer &Left"));
+  auto* layer_rotate_180_action = layer_arrange_menu->addAction(tr("Rotate Layer 1&80"));
+  layer_rotate_cw_action->setObjectName(QStringLiteral("layerRotateClockwiseAction"));
+  layer_rotate_ccw_action->setObjectName(QStringLiteral("layerRotateCounterclockwiseAction"));
+  layer_rotate_180_action->setObjectName(QStringLiteral("layerRotate180Action"));
+  bind_action_text(layer_rotate_cw_action, QT_TR_NOOP("Rotate Layer &Right"));
+  bind_action_text(layer_rotate_ccw_action, QT_TR_NOOP("Rotate Layer &Left"));
+  bind_action_text(layer_rotate_180_action, QT_TR_NOOP("Rotate Layer 1&80"));
+  bind_translated_status_tip(layer_rotate_cw_action, QT_TR_NOOP("Rotate the selected layers 90 degrees clockwise"));
+  bind_translated_status_tip(layer_rotate_ccw_action,
+                             QT_TR_NOOP("Rotate the selected layers 90 degrees counterclockwise"));
+  bind_translated_status_tip(layer_rotate_180_action, QT_TR_NOOP("Rotate the selected layers 180 degrees"));
+  for (auto* action : {layer_rotate_cw_action, layer_rotate_ccw_action, layer_rotate_180_action}) {
+    apply_bound_translation(action);
+    action->setIcon(simple_icon(QStringLiteral("rotate")));
+  }
+  register_hotkey(layer_rotate_cw_action, "layer.rotate_cw");
+  register_hotkey(layer_rotate_ccw_action, "layer.rotate_ccw");
+  register_hotkey(layer_rotate_180_action, "layer.rotate_180");
+  connect(layer_rotate_cw_action, &QAction::triggered, this, [this] { rotate_active_layers_clockwise(); });
+  connect(layer_rotate_ccw_action, &QAction::triggered, this, [this] { rotate_active_layers_counterclockwise(); });
+  connect(layer_rotate_180_action, &QAction::triggered, this, [this] { rotate_active_layers_180(); });
+  for (auto* action : {layer_rotate_cw_action, layer_rotate_ccw_action, layer_rotate_180_action}) {
+    register_document_action(action);
+  }
   auto* flip_h_action = layer_arrange_menu->addAction(tr("Flip Layer &Horizontal"));
   auto* flip_v_action = layer_arrange_menu->addAction(tr("Flip Layer &Vertical"));
   // Align / Distribute nest under Arrange: the Layer menu sits at its 23-row
@@ -1510,7 +1537,35 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   // names and hotkey ids keep their persisted clockwise/counterclockwise identities.
   auto* rotate_cw_action = image_menu->addAction(tr("Rotate &Right"));
   auto* rotate_ccw_action = image_menu->addAction(tr("Rotate &Left"));
+  auto* rotate_180_action = image_menu->addAction(tr("Rotate 1&80"));
   auto* rotate_arbitrary_action = image_menu->addAction(tr("Rotate &Arbitrary..."));
+  // Whole-image flips beside the rotations (GitHub issue 139).
+  auto* image_flip_h_action = image_menu->addAction(tr("Flip &Horizontal"));
+  auto* image_flip_v_action = image_menu->addAction(tr("Flip &Vertical"));
+  rotate_180_action->setObjectName(QStringLiteral("imageRotate180Action"));
+  image_flip_h_action->setObjectName(QStringLiteral("imageFlipHorizontalAction"));
+  image_flip_v_action->setObjectName(QStringLiteral("imageFlipVerticalAction"));
+  bind_action_text(rotate_180_action, QT_TR_NOOP("Rotate 1&80"));
+  bind_action_text(image_flip_h_action, QT_TR_NOOP("Flip &Horizontal"));
+  bind_action_text(image_flip_v_action, QT_TR_NOOP("Flip &Vertical"));
+  bind_translated_status_tip(rotate_180_action, QT_TR_NOOP("Rotate the canvas 180 degrees"));
+  bind_translated_status_tip(image_flip_h_action, QT_TR_NOOP("Mirror the whole image left to right"));
+  bind_translated_status_tip(image_flip_v_action, QT_TR_NOOP("Mirror the whole image top to bottom"));
+  for (auto* action : {rotate_180_action, image_flip_h_action, image_flip_v_action}) {
+    apply_bound_translation(action);
+  }
+  rotate_180_action->setIcon(simple_icon(QStringLiteral("rotate")));
+  image_flip_h_action->setIcon(simple_icon(QStringLiteral("FH")));
+  image_flip_v_action->setIcon(simple_icon(QStringLiteral("FV")));
+  register_hotkey(rotate_180_action, "image.rotate_180");
+  register_hotkey(image_flip_h_action, "image.flip_horizontal");
+  register_hotkey(image_flip_v_action, "image.flip_vertical");
+  connect(rotate_180_action, &QAction::triggered, this, [this] { rotate_canvas_180(); });
+  connect(image_flip_h_action, &QAction::triggered, this, [this] { flip_canvas_horizontal(); });
+  connect(image_flip_v_action, &QAction::triggered, this, [this] { flip_canvas_vertical(); });
+  for (auto* action : {rotate_180_action, image_flip_h_action, image_flip_v_action}) {
+    register_document_action(action);
+  }
   rotate_cw_action->setObjectName(QStringLiteral("imageRotateClockwiseAction"));
   rotate_ccw_action->setObjectName(QStringLiteral("imageRotateCounterclockwiseAction"));
   rotate_arbitrary_action->setObjectName(QStringLiteral("imageRotateArbitraryAction"));

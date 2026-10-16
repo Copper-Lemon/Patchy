@@ -10233,7 +10233,7 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     </message>
     <message>
         <source>Animated PNG: imported the default image only (%1)</source>
-        <translation>PNG animé : seule l'image par défaut a été importée (%1)</translation>
+        <translation>PNG animé : seule l&apos;image par défaut a été importée (%1)</translation>
     </message>
 </context>
 <context>
@@ -21012,6 +21012,90 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
     <message>
         <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
         <translation>Près de 400 filtres G&apos;MIC, dans la version de bureau de Patchy</translation>
+    </message>
+    <message>
+        <source>Rotate Layer &amp;Right</source>
+        <translation>Rotation &amp;horaire du calque</translation>
+    </message>
+    <message>
+        <source>Rotate Layer &amp;Left</source>
+        <translation>Rotation &amp;antihoraire du calque</translation>
+    </message>
+    <message>
+        <source>Rotate Layer 1&amp;80</source>
+        <translation>Rotation du calque à 1&amp;80°</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees clockwise</source>
+        <translation>Faire pivoter les calques sélectionnés de 90 degrés dans le sens horaire</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees counterclockwise</source>
+        <translation>Faire pivoter les calques sélectionnés de 90 degrés dans le sens antihoraire</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 180 degrees</source>
+        <translation>Faire pivoter les calques sélectionnés de 180 degrés</translation>
+    </message>
+    <message>
+        <source>Rotate 1&amp;80</source>
+        <translation>Rotation à 1&amp;80°</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Horizontal</source>
+        <translation>Symétrie axe &amp;horizontal</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Vertical</source>
+        <translation>Symétrie axe &amp;vertical</translation>
+    </message>
+    <message>
+        <source>Rotate the canvas 180 degrees</source>
+        <translation>Faire pivoter la zone de travail de 180 degrés</translation>
+    </message>
+    <message>
+        <source>Mirror the whole image left to right</source>
+        <translation>Inverser toute l'image de gauche à droite</translation>
+    </message>
+    <message>
+        <source>Mirror the whole image top to bottom</source>
+        <translation>Inverser toute l'image de haut en bas</translation>
+    </message>
+    <message>
+        <source>Use Free Transform or rasterize Smart Objects before rotating</source>
+        <translation>Utilisez la transformation manuelle ou pixellisez les objets dynamiques avant de faire pivoter</translation>
+    </message>
+    <message>
+        <source>Rotate layer</source>
+        <translation>Rotation du calque</translation>
+    </message>
+    <message>
+        <source>Rotated layer clockwise</source>
+        <translation>Calque pivoté dans le sens horaire</translation>
+    </message>
+    <message>
+        <source>Rotated layer counterclockwise</source>
+        <translation>Calque pivoté dans le sens antihoraire</translation>
+    </message>
+    <message>
+        <source>Rotated layer 180 degrees</source>
+        <translation>Calque pivoté de 180 degrés</translation>
+    </message>
+    <message>
+        <source>Rotated canvas 180 degrees</source>
+        <translation>Zone de travail pivotée de 180 degrés</translation>
+    </message>
+    <message>
+        <source>Flip canvas</source>
+        <translation>Symétrie de la zone de travail</translation>
+    </message>
+    <message>
+        <source>Flipped canvas horizontally</source>
+        <translation>Zone de travail inversée horizontalement</translation>
+    </message>
+    <message>
+        <source>Flipped canvas vertically</source>
+        <translation>Zone de travail inversée verticalement</translation>
     </message>
 </context>
 <context>

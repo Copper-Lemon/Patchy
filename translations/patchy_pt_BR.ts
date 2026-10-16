@@ -21013,6 +21013,90 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
         <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
         <translation>Quase 400 filtros G&apos;MIC, na versão para desktop do Patchy</translation>
     </message>
+    <message>
+        <source>Rotate Layer &amp;Right</source>
+        <translation>Gi&amp;rar camada para a direita</translation>
+    </message>
+    <message>
+        <source>Rotate Layer &amp;Left</source>
+        <translation>Girar camada para a &amp;esquerda</translation>
+    </message>
+    <message>
+        <source>Rotate Layer 1&amp;80</source>
+        <translation>Girar camada 1&amp;80°</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees clockwise</source>
+        <translation>Girar as camadas selecionadas 90 graus no sentido horário</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees counterclockwise</source>
+        <translation>Girar as camadas selecionadas 90 graus no sentido anti-horário</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 180 degrees</source>
+        <translation>Girar as camadas selecionadas 180 graus</translation>
+    </message>
+    <message>
+        <source>Rotate 1&amp;80</source>
+        <translation>Girar 1&amp;80°</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Horizontal</source>
+        <translation>Inverter &amp;horizontal</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Vertical</source>
+        <translation>Inverter &amp;vertical</translation>
+    </message>
+    <message>
+        <source>Rotate the canvas 180 degrees</source>
+        <translation>Girar a tela 180 graus</translation>
+    </message>
+    <message>
+        <source>Mirror the whole image left to right</source>
+        <translation>Espelhar toda a imagem da esquerda para a direita</translation>
+    </message>
+    <message>
+        <source>Mirror the whole image top to bottom</source>
+        <translation>Espelhar toda a imagem de cima para baixo</translation>
+    </message>
+    <message>
+        <source>Use Free Transform or rasterize Smart Objects before rotating</source>
+        <translation>Use Transformação livre ou rasterize objetos inteligentes antes de girar</translation>
+    </message>
+    <message>
+        <source>Rotate layer</source>
+        <translation>Girar camada</translation>
+    </message>
+    <message>
+        <source>Rotated layer clockwise</source>
+        <translation>Camada girada no sentido horário</translation>
+    </message>
+    <message>
+        <source>Rotated layer counterclockwise</source>
+        <translation>Camada girada no sentido anti-horário</translation>
+    </message>
+    <message>
+        <source>Rotated layer 180 degrees</source>
+        <translation>Camada girada 180 graus</translation>
+    </message>
+    <message>
+        <source>Rotated canvas 180 degrees</source>
+        <translation>Tela girada 180 graus</translation>
+    </message>
+    <message>
+        <source>Flip canvas</source>
+        <translation>Inverter tela</translation>
+    </message>
+    <message>
+        <source>Flipped canvas horizontally</source>
+        <translation>Tela invertida horizontalmente</translation>
+    </message>
+    <message>
+        <source>Flipped canvas vertically</source>
+        <translation>Tela invertida verticalmente</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

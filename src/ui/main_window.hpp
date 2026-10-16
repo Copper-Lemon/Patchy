@@ -1538,6 +1538,11 @@ private:
   void refresh_quick_mask_ui();
   void flip_active_layer_horizontal();
   void flip_active_layer_vertical();
+  // Layer > Arrange > Rotate (GitHub issue 139): quarter and half turns of the
+  // selected pixel layers about their own centers.
+  void rotate_active_layers_clockwise();
+  void rotate_active_layers_counterclockwise();
+  void rotate_active_layers_180();
   // Layer > Arrange > Align / Distribute on the selected layers (a selected
   // folder moves as one unit); also the Move tool's options-bar buttons.
   // docs/alignment.md owns the Align To rule and the refusal set.
@@ -1555,6 +1560,12 @@ private:
   void commit_crop_rect(QRect rect, double angle_degrees);
   void rotate_canvas_clockwise();
   void rotate_canvas_counterclockwise();
+  // Image > Rotate 180 / Flip Horizontal / Flip Vertical (GitHub issue 139).
+  void rotate_canvas_180();
+  void flip_canvas_horizontal();
+  void flip_canvas_vertical();
+  void transform_whole_canvas(const char* undo_name, const QString& status, void (*apply)(Document&));
+  void rotate_active_layers(const char* undo_name, const QString& status, Rect (*turn)(Document&, LayerId));
   // Image > Rotate Arbitrary...: asks for an angle and direction, rotates the whole
   // canvas about its center, and enlarges it to fit (main_window_document_dialogs.cpp).
   void rotate_canvas_arbitrary();

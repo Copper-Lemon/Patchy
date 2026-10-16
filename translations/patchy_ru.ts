@@ -21076,6 +21076,90 @@ Patchy может скачать обновление, заменить этот
         <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
         <translation>Почти 400 фильтров G&apos;MIC в настольной версии Patchy</translation>
     </message>
+    <message>
+        <source>Rotate Layer &amp;Right</source>
+        <translation>Повернуть слой вп&amp;раво</translation>
+    </message>
+    <message>
+        <source>Rotate Layer &amp;Left</source>
+        <translation>Повернуть слой в&amp;лево</translation>
+    </message>
+    <message>
+        <source>Rotate Layer 1&amp;80</source>
+        <translation>Повернуть слой на 1&amp;80°</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees clockwise</source>
+        <translation>Повернуть выбранные слои на 90 градусов по часовой стрелке.</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees counterclockwise</source>
+        <translation>Повернуть выбранные слои на 90 градусов против часовой стрелки.</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 180 degrees</source>
+        <translation>Повернуть выбранные слои на 180 градусов.</translation>
+    </message>
+    <message>
+        <source>Rotate 1&amp;80</source>
+        <translation>Повернуть на 1&amp;80°</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Horizontal</source>
+        <translation>Отразить по &amp;горизонтали</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Vertical</source>
+        <translation>Отразить по &amp;вертикали</translation>
+    </message>
+    <message>
+        <source>Rotate the canvas 180 degrees</source>
+        <translation>Поверните холст на 180 градусов.</translation>
+    </message>
+    <message>
+        <source>Mirror the whole image left to right</source>
+        <translation>Отразить всё изображение слева направо.</translation>
+    </message>
+    <message>
+        <source>Mirror the whole image top to bottom</source>
+        <translation>Отразить всё изображение сверху вниз.</translation>
+    </message>
+    <message>
+        <source>Use Free Transform or rasterize Smart Objects before rotating</source>
+        <translation>Используйте «Свободное трансформирование» или растрируйте смарт-объекты перед поворотом.</translation>
+    </message>
+    <message>
+        <source>Rotate layer</source>
+        <translation>Поворот слоя</translation>
+    </message>
+    <message>
+        <source>Rotated layer clockwise</source>
+        <translation>Слой повёрнут по часовой стрелке</translation>
+    </message>
+    <message>
+        <source>Rotated layer counterclockwise</source>
+        <translation>Слой повёрнут против часовой стрелки</translation>
+    </message>
+    <message>
+        <source>Rotated layer 180 degrees</source>
+        <translation>Слой повёрнут на 180 градусов</translation>
+    </message>
+    <message>
+        <source>Rotated canvas 180 degrees</source>
+        <translation>Холст повёрнут на 180 градусов</translation>
+    </message>
+    <message>
+        <source>Flip canvas</source>
+        <translation>Отражение холста</translation>
+    </message>
+    <message>
+        <source>Flipped canvas horizontally</source>
+        <translation>Холст отражён по горизонтали</translation>
+    </message>
+    <message>
+        <source>Flipped canvas vertically</source>
+        <translation>Холст отражён по вертикали</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

@@ -21013,6 +21013,90 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
         <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
         <translation>Fast 400 G&apos;MIC-Filter, in der Desktop-Version von Patchy</translation>
     </message>
+    <message>
+        <source>Rotate Layer &amp;Right</source>
+        <translation>Ebene nach &amp;rechts drehen</translation>
+    </message>
+    <message>
+        <source>Rotate Layer &amp;Left</source>
+        <translation>Ebene nach &amp;links drehen</translation>
+    </message>
+    <message>
+        <source>Rotate Layer 1&amp;80</source>
+        <translation>Ebene um 1&amp;80° drehen</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees clockwise</source>
+        <translation>Dreht die ausgewählten Ebenen um 90 Grad im Uhrzeigersinn</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees counterclockwise</source>
+        <translation>Dreht die ausgewählten Ebenen um 90 Grad gegen den Uhrzeigersinn</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 180 degrees</source>
+        <translation>Dreht die ausgewählten Ebenen um 180 Grad</translation>
+    </message>
+    <message>
+        <source>Rotate 1&amp;80</source>
+        <translation>Um 1&amp;80° drehen</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Horizontal</source>
+        <translation>&amp;Horizontal spiegeln</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Vertical</source>
+        <translation>&amp;Vertikal spiegeln</translation>
+    </message>
+    <message>
+        <source>Rotate the canvas 180 degrees</source>
+        <translation>Dreht die Arbeitsfläche um 180 Grad</translation>
+    </message>
+    <message>
+        <source>Mirror the whole image left to right</source>
+        <translation>Spiegelt das ganze Bild von links nach rechts</translation>
+    </message>
+    <message>
+        <source>Mirror the whole image top to bottom</source>
+        <translation>Spiegelt das ganze Bild von oben nach unten</translation>
+    </message>
+    <message>
+        <source>Use Free Transform or rasterize Smart Objects before rotating</source>
+        <translation>Verwenden Sie Frei transformieren oder rastern Sie Smartobjekte vor dem Drehen</translation>
+    </message>
+    <message>
+        <source>Rotate layer</source>
+        <translation>Ebene drehen</translation>
+    </message>
+    <message>
+        <source>Rotated layer clockwise</source>
+        <translation>Ebene im Uhrzeigersinn gedreht</translation>
+    </message>
+    <message>
+        <source>Rotated layer counterclockwise</source>
+        <translation>Ebene gegen den Uhrzeigersinn gedreht</translation>
+    </message>
+    <message>
+        <source>Rotated layer 180 degrees</source>
+        <translation>Ebene um 180 Grad gedreht</translation>
+    </message>
+    <message>
+        <source>Rotated canvas 180 degrees</source>
+        <translation>Arbeitsfläche um 180 Grad gedreht</translation>
+    </message>
+    <message>
+        <source>Flip canvas</source>
+        <translation>Arbeitsfläche spiegeln</translation>
+    </message>
+    <message>
+        <source>Flipped canvas horizontally</source>
+        <translation>Arbeitsfläche horizontal gespiegelt</translation>
+    </message>
+    <message>
+        <source>Flipped canvas vertically</source>
+        <translation>Arbeitsfläche vertikal gespiegelt</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

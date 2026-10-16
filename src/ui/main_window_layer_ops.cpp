@@ -4619,6 +4619,59 @@ void MainWindow::flip_active_layer_horizontal() {
   refresh_layer_controls();
 }
 
+// Layer > Arrange > Rotate (GitHub issue 139): the flip handler's guards (channel
+// targets, smart objects, pixel locks) apply unchanged; `turn` does the geometry.
+void MainWindow::rotate_active_layers(const char* undo_name, const QString& status,
+                                      Rect (*turn)(Document&, LayerId)) {
+  if (canvas_ != nullptr) {
+    const auto target = canvas_->layer_edit_target();
+    if (target == CanvasWidget::LayerEditTarget::DocumentChannel ||
+        CanvasWidget::is_component_preview(target)) {
+      return;
+    }
+  }
+  select_only_layer_if_none_active();
+  const auto ids = selected_or_active_layer_ids();
+  if (ids.empty()) {
+    return;
+  }
+  if (std::any_of(ids.begin(), ids.end(), [this](LayerId id) {
+        const auto* layer = std::as_const(document()).find_layer(id);
+        return layer != nullptr && layer_tree_contains_smart_object(*layer);
+      })) {
+    show_status_error(tr("Use Free Transform or rasterize Smart Objects before rotating"));
+    return;
+  }
+  const auto editable_ids = layer_ids_without_image_pixel_lock(ids);
+  if (show_pixel_lock_message_if_all_locked(ids, editable_ids)) {
+    return;
+  }
+
+  auto& doc = document();
+  push_undo_snapshot(QCoreApplication::translate(kMainWindowTranslationContext, undo_name));
+  Rect affected;
+  for (const auto id : editable_ids) {
+    affected = unite_rect(affected, turn(doc, id));
+  }
+  canvas_->document_changed(to_qrect(affected));
+  refresh_layer_list();
+  refresh_layer_controls();
+  statusBar()->showMessage(status);
+}
+
+void MainWindow::rotate_active_layers_clockwise() {
+  rotate_active_layers(QT_TR_NOOP("Rotate layer"), tr("Rotated layer clockwise"), &patchy::rotate_layer_clockwise);
+}
+
+void MainWindow::rotate_active_layers_counterclockwise() {
+  rotate_active_layers(QT_TR_NOOP("Rotate layer"), tr("Rotated layer counterclockwise"),
+                       &patchy::rotate_layer_counterclockwise);
+}
+
+void MainWindow::rotate_active_layers_180() {
+  rotate_active_layers(QT_TR_NOOP("Rotate layer"), tr("Rotated layer 180 degrees"), &patchy::rotate_layer_180);
+}
+
 void MainWindow::flip_active_layer_vertical() {
   if (canvas_ != nullptr) {
     const auto target = canvas_->layer_edit_target();
@@ -4777,6 +4830,41 @@ void MainWindow::rotate_canvas_clockwise() {
   refresh_layer_controls();
   refresh_document_info();
   statusBar()->showMessage(tr("Rotated canvas clockwise"));
+}
+
+// Image > Rotate 180 / Flip (GitHub issue 139): the canvas keeps its size, so
+// unlike the quarter turns nothing needs recentering.
+void MainWindow::transform_whole_canvas(const char* undo_name, const QString& status, void (*apply)(Document&)) {
+  auto& doc = document();
+  if (refuse_document_geometry_change()) {
+    return;
+  }
+  push_undo_snapshot(QCoreApplication::translate(kMainWindowTranslationContext, undo_name));
+  apply(doc);
+  canvas_->clear_selection();
+  const auto previous_channel_target = canvas_->layer_edit_target();
+  const auto previous_channel_id = canvas_->active_document_channel_id();
+  const auto previous_channel_display = canvas_->mask_display_mode();
+  canvas_->set_document(&doc);
+  restore_channel_target_after_document_reset(previous_channel_target, previous_channel_id,
+                                              previous_channel_display);
+  refresh_layer_list();
+  refresh_layer_controls();
+  refresh_document_info();
+  statusBar()->showMessage(status);
+}
+
+void MainWindow::rotate_canvas_180() {
+  transform_whole_canvas(QT_TR_NOOP("Rotate canvas"), tr("Rotated canvas 180 degrees"), &patchy::rotate_document_180);
+}
+
+void MainWindow::flip_canvas_horizontal() {
+  transform_whole_canvas(QT_TR_NOOP("Flip canvas"), tr("Flipped canvas horizontally"),
+                         &patchy::flip_document_horizontal);
+}
+
+void MainWindow::flip_canvas_vertical() {
+  transform_whole_canvas(QT_TR_NOOP("Flip canvas"), tr("Flipped canvas vertically"), &patchy::flip_document_vertical);
 }
 
 void MainWindow::rotate_canvas_counterclockwise() {

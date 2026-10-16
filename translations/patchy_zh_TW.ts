@@ -20950,6 +20950,90 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
         <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
         <translation>近 400 個 G&apos;MIC 濾鏡，見 Patchy 桌面版</translation>
     </message>
+    <message>
+        <source>Rotate Layer &amp;Right</source>
+        <translation>向右旋轉圖層(&amp;R)</translation>
+    </message>
+    <message>
+        <source>Rotate Layer &amp;Left</source>
+        <translation>向左旋轉圖層(&amp;L)</translation>
+    </message>
+    <message>
+        <source>Rotate Layer 1&amp;80</source>
+        <translation>旋轉圖層 180 度(&amp;8)</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees clockwise</source>
+        <translation>將所選圖層順時針旋轉 90 度</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 90 degrees counterclockwise</source>
+        <translation>將所選圖層逆時針旋轉 90 度</translation>
+    </message>
+    <message>
+        <source>Rotate the selected layers 180 degrees</source>
+        <translation>將所選圖層旋轉 180 度</translation>
+    </message>
+    <message>
+        <source>Rotate 1&amp;80</source>
+        <translation>旋轉 180 度(&amp;8)</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Horizontal</source>
+        <translation>水平翻轉(&amp;H)</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Vertical</source>
+        <translation>垂直翻轉(&amp;V)</translation>
+    </message>
+    <message>
+        <source>Rotate the canvas 180 degrees</source>
+        <translation>將版面旋轉 180 度</translation>
+    </message>
+    <message>
+        <source>Mirror the whole image left to right</source>
+        <translation>將整張影像左右鏡像</translation>
+    </message>
+    <message>
+        <source>Mirror the whole image top to bottom</source>
+        <translation>將整張影像上下鏡像</translation>
+    </message>
+    <message>
+        <source>Use Free Transform or rasterize Smart Objects before rotating</source>
+        <translation>請使用任意變形，或先點陣化智慧型物件再旋轉</translation>
+    </message>
+    <message>
+        <source>Rotate layer</source>
+        <translation>旋轉圖層</translation>
+    </message>
+    <message>
+        <source>Rotated layer clockwise</source>
+        <translation>已將圖層順時針旋轉</translation>
+    </message>
+    <message>
+        <source>Rotated layer counterclockwise</source>
+        <translation>已將圖層逆時針旋轉</translation>
+    </message>
+    <message>
+        <source>Rotated layer 180 degrees</source>
+        <translation>已將圖層旋轉 180 度</translation>
+    </message>
+    <message>
+        <source>Rotated canvas 180 degrees</source>
+        <translation>已將版面旋轉 180 度</translation>
+    </message>
+    <message>
+        <source>Flip canvas</source>
+        <translation>翻轉版面</translation>
+    </message>
+    <message>
+        <source>Flipped canvas horizontally</source>
+        <translation>已將版面水平翻轉</translation>
+    </message>
+    <message>
+        <source>Flipped canvas vertically</source>
+        <translation>已將版面垂直翻轉</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
