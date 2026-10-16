@@ -3,7 +3,10 @@
 #include "formats/af_document_io.hpp"
 #include "formats/aseprite_document_io.hpp"
 #include "formats/bmp_document_io.hpp"
+#include "formats/exr_document_io.hpp"
+#include "formats/hdr_document_io.hpp"
 #include "formats/heif_document_io.hpp"
+#include "formats/jp2_document_io.hpp"
 #include "formats/ico_document_io.hpp"
 #include "formats/ilbm_document_io.hpp"
 #include "formats/jxl_document_io.hpp"
@@ -166,6 +169,28 @@ void register_builtin_formats(FormatRegistry& registry) {
                              [](std::span<const std::uint8_t> bytes) { return dds::read_dds(bytes); },
                              [](const Document& document) { return dds::write_dds(document); },
                              [](std::span<const std::uint8_t> bytes) { return dds::sniff(bytes); }});
+  // Radiance HDR and OpenEXR open as 32-bit floating-point documents and write the
+  // flattened document's linear light (docs/hdr-formats.md). Patchy's own RGBE code; EXR
+  // through the vendored tinyexr.
+  registry.register_handler({"patchy.formats.hdr",
+                             "Radiance HDR Image",
+                             hdr::hdr_extensions(),
+                             [](std::span<const std::uint8_t> bytes) { return hdr::read_hdr(bytes); },
+                             [](const Document& document) { return hdr::write_hdr(document); },
+                             [](std::span<const std::uint8_t> bytes) { return hdr::sniff(bytes); }});
+  registry.register_handler({"patchy.formats.exr",
+                             "OpenEXR Image",
+                             exr::exr_extensions(),
+                             [](std::span<const std::uint8_t> bytes) { return exr::read_exr(bytes); },
+                             [](const Document& document) { return exr::write_exr(document); },
+                             [](std::span<const std::uint8_t> bytes) { return exr::sniff(bytes); }});
+  // JPEG 2000 through the vendored OpenJPEG (docs/hdr-formats.md, docs/legal-constraints.md).
+  registry.register_handler({"patchy.formats.jp2",
+                             "JPEG 2000 Image",
+                             jp2::jp2_extensions(),
+                             [](std::span<const std::uint8_t> bytes) { return jp2::read_jp2(bytes); },
+                             [](const Document& document) { return jp2::write_jp2(document); },
+                             [](std::span<const std::uint8_t> bytes) { return jp2::sniff(bytes); }});
   // JPEG XL through the vendored libjxl on every platform (docs/jxl.md). The encoder's
   // patches and dots stay off on every write (docs/legal-constraints.md).
   registry.register_handler({"patchy.formats.jxl",

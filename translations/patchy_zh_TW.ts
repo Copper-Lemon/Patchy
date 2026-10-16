@@ -9993,6 +9993,106 @@ RGB：%2, %3, %4</translation>
         <source>This AVIF image needs a system AV1 decoder, which this computer does not have. On Windows, install the AV1 Video Extension from the Microsoft Store.</source>
         <translation>此 AVIF 影像需要系統的 AV1 解碼器，而這台電腦沒有。在 Windows 上，請從 Microsoft Store 安裝 AV1 Video Extension。</translation>
     </message>
+    <message>
+        <source>This file is not an OpenEXR image</source>
+        <translation>此檔案不是 OpenEXR 影像</translation>
+    </message>
+    <message>
+        <source>The OpenEXR file is damaged or truncated</source>
+        <translation>OpenEXR 檔案已損壞或被截斷</translation>
+    </message>
+    <message>
+        <source>Multi-part OpenEXR files are not supported</source>
+        <translation>不支援多部分 OpenEXR 檔案</translation>
+    </message>
+    <message>
+        <source>Deep OpenEXR files are not supported</source>
+        <translation>不支援 Deep OpenEXR 檔案</translation>
+    </message>
+    <message>
+        <source>The OpenEXR file could not be decoded</source>
+        <translation>無法解碼 OpenEXR 檔案</translation>
+    </message>
+    <message>
+        <source>Cannot write an empty image as OpenEXR</source>
+        <translation>無法將空白影像寫成 OpenEXR</translation>
+    </message>
+    <message>
+        <source>The OpenEXR file could not be written</source>
+        <translation>無法寫入 OpenEXR 檔案</translation>
+    </message>
+    <message>
+        <source>The Radiance HDR file is damaged or truncated</source>
+        <translation>Radiance HDR 檔案已損壞或被截斷</translation>
+    </message>
+    <message>
+        <source>This file is not a Radiance HDR image</source>
+        <translation>此檔案不是 Radiance HDR 影像</translation>
+    </message>
+    <message>
+        <source>This Radiance HDR file uses a pixel format Patchy does not read</source>
+        <translation>此 Radiance HDR 檔案使用 Patchy 無法讀取的像素格式</translation>
+    </message>
+    <message>
+        <source>XYZE Radiance HDR files are not supported; save the file as RGBE</source>
+        <translation>不支援 XYZE 格式的 Radiance HDR 檔案；請將檔案儲存為 RGBE</translation>
+    </message>
+    <message>
+        <source>This Radiance HDR file uses an image orientation Patchy does not read</source>
+        <translation>此 Radiance HDR 檔案使用 Patchy 無法讀取的影像方向</translation>
+    </message>
+    <message>
+        <source>Cannot write an empty image as Radiance HDR</source>
+        <translation>無法將空白影像寫成 Radiance HDR</translation>
+    </message>
+    <message>
+        <source>This file is not a JPEG 2000 image</source>
+        <translation>此檔案不是 JPEG 2000 影像</translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 decoder could not be created</source>
+        <translation>無法建立 JPEG 2000 解碼器</translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 file is damaged or truncated</source>
+        <translation>JPEG 2000 檔案已損壞或被截斷</translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 image could not be decoded</source>
+        <translation>無法解碼 JPEG 2000 影像</translation>
+    </message>
+    <message>
+        <source>This JPEG 2000 image has a channel layout Patchy does not read</source>
+        <translation>此 JPEG 2000 影像的色版配置 Patchy 無法讀取</translation>
+    </message>
+    <message>
+        <source>CMYK JPEG 2000 image: converted to RGB with a plain ink mix</source>
+        <translation>CMYK JPEG 2000 影像：已用簡單油墨混合轉換為 RGB</translation>
+    </message>
+    <message>
+        <source>Cannot write an empty image as JPEG 2000</source>
+        <translation>無法將空白影像寫成 JPEG 2000</translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 file could not be written</source>
+        <translation>無法寫入 JPEG 2000 檔案</translation>
+    </message>
+    <message>
+        <source>Radiance HDR Image</source>
+        <translation>Radiance HDR 影像</translation>
+    </message>
+    <message>
+        <source>OpenEXR Image</source>
+        <translation>OpenEXR 影像</translation>
+    </message>
+    <message>
+        <source>JPEG 2000 Image</source>
+        <translation>JPEG 2000 影像</translation>
+    </message>
+    <message>
+        <source>This OpenEXR file has no R, G, B or Y channels to show</source>
+        <translation>此 OpenEXR 檔案沒有可顯示的 R、G、B 或 Y 色版</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

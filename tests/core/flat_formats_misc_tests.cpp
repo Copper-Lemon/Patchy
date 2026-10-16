@@ -22,6 +22,10 @@
 #include "formats/ilbm_document_io.hpp"
 #include "formats/image_density_probe.hpp"
 #include "formats/image_open_diagnosis.hpp"
+#include "formats/exr_document_io.hpp"
+#include "formats/hdr_document_io.hpp"
+#include "formats/jp2_document_io.hpp"
+#include "core/pixel_depth.hpp"
 #include "formats/palette_io.hpp"
 #include "formats/pcx_document_io.hpp"
 #include "formats/raw_document_io.hpp"
@@ -1606,10 +1610,6 @@ void undecodable_image_diagnosis_names_the_real_reason() {
   const auto jp2_as_jpg = diagnose_undecodable_image(jp2, "jpg");
   CHECK(jp2_as_jpg.reason == Reason::DifferentFormat && jp2_as_jpg.detail == "JPEG 2000" &&
         jp2_as_jpg.suggested_extension.empty());
-  const auto pdf_as_tif = diagnose_undecodable_image(of("%PDF-1.7 ..."), "tif");
-  CHECK(pdf_as_tif.reason == Reason::DifferentFormat && pdf_as_tif.detail == "PDF");
-  CHECK(diagnose_undecodable_image(of("<?xml version=\"1.0\"?><svg xmlns=\"x\"/>"), "jpg").detail == "SVG");
-
   // An honest name for a format Patchy has no decoder for (JPEG 2000, QOI, OpenEXR, ...).
   const auto jp2_as_jp2 = diagnose_undecodable_image(jp2, "jp2");
   CHECK(jp2_as_jp2.reason == Reason::UnsupportedFormat && jp2_as_jp2.detail == "JPEG 2000");
@@ -1621,6 +1621,10 @@ void undecodable_image_diagnosis_names_the_real_reason() {
   Bytes avif{0, 0, 0, 0x1c, 'f', 't', 'y', 'p', 'a', 'v', 'i', 'f', 0, 0, 0, 0};
   CHECK(diagnose_undecodable_image(avif, "avif").reason == Reason::AvifNeedsSystemDecoder);
   CHECK(diagnose_undecodable_image(avif, "jpg").detail == "AVIF");
+  const auto pdf_as_tif = diagnose_undecodable_image(of("%PDF-1.7 ..."), "tif");
+  CHECK(pdf_as_tif.reason == Reason::DifferentFormat && pdf_as_tif.detail == "PDF");
+  CHECK(diagnose_undecodable_image(of("<?xml version=\"1.0\"?><svg xmlns=\"x\"/>"), "jpg").detail == "SVG");
+
   // JPEG: SOI, an APP0, a frame header, then scan data with or without EOI.
   const auto jpeg = [](std::uint8_t frame_marker, std::uint8_t precision, bool with_scan, bool with_eoi) {
     Bytes b{0xff, 0xd8, 0xff, 0xe0, 0, 16, 'J', 'F', 'I', 'F', 0, 1, 1, 0, 0, 1, 0, 1, 0, 0};
@@ -1732,6 +1736,158 @@ void undecodable_image_diagnosis_names_the_real_reason() {
   CHECK(diagnose_undecodable_image(Bytes{0x12, 0x34, 0x56, 0x78, 0x9a}, "tif").reason == Reason::TiffUnreadable);
 }
 
+// Radiance HDR, OpenEXR and JPEG 2000 round trips through Patchy's own writers (docs/hdr-formats.md).
+patchy::Document float_document_for_hdr_tests(std::int32_t width, std::int32_t height) {
+  using patchy::BitDepth;
+  const auto format = patchy::with_bit_depth(patchy::PixelFormat::rgba8(), BitDepth::Float32);
+  patchy::Document document(width, height, format);
+  document.color_state().bit_depth = BitDepth::Float32;
+  patchy::PixelBuffer pixels(width, height, format);
+  for (std::int32_t y = 0; y < height; ++y) {
+    auto* row = reinterpret_cast<float*>(pixels.row(y).data());
+    for (std::int32_t x = 0; x < width; ++x) {
+      // A range of linear values: dark, mid, bright and well over 1.0 (HDR), with runs.
+      const float base = static_cast<float>((x / 4) * 4 + y) * 0.37F;
+      row[x * 4 + 0] = base;
+      row[x * 4 + 1] = base * 0.5F + 0.01F;
+      row[x * 4 + 2] = (x % 7 == 0) ? 12.5F : base * 0.1F;
+      row[x * 4 + 3] = 1.0F;
+    }
+  }
+  document.add_pixel_layer("Background", std::move(pixels));
+  return document;
+}
+
+void check_float_round_trip(const patchy::Document& original, const patchy::Document& reopened,
+                            float relative_tolerance) {
+  CHECK(reopened.width() == original.width() && reopened.height() == original.height());
+  CHECK(std::as_const(reopened).color_state().bit_depth == patchy::BitDepth::Float32);
+  CHECK(std::as_const(reopened).layers().size() == 1);
+  if (std::as_const(reopened).layers().empty() || reopened.width() != original.width()) {
+    return;
+  }
+  const auto& a = std::as_const(original).layers().front().pixels();
+  const auto& b = std::as_const(reopened).layers().front().pixels();
+  float worst = 0.0F;
+  for (std::int32_t y = 0; y < original.height(); ++y) {
+    const auto* ra = reinterpret_cast<const float*>(a.row(y).data());
+    const auto* rb = reinterpret_cast<const float*>(b.row(y).data());
+    for (std::int32_t x = 0; x < original.width(); ++x) {
+      // Relative to the pixel's largest channel (RGBE's shared exponent sets the precision).
+      const float largest = std::max({1e-3F, std::abs(ra[x * 4]), std::abs(ra[x * 4 + 1]), std::abs(ra[x * 4 + 2])});
+      for (int c = 0; c < 4; ++c) {
+        worst = std::max(worst, std::abs(ra[x * 4 + c] - rb[x * 4 + c]) / largest);
+      }
+    }
+  }
+  CHECK(worst <= relative_tolerance);
+}
+
+void hdr_rgbe_round_trips_linear_values() {
+  std::uint8_t rgbe[4];
+  const float rgb[3] = {0.5F, 2.0F, 100.0F};
+  patchy::hdr::float_to_rgbe(rgb, rgbe);
+  float back[3];
+  patchy::hdr::rgbe_to_float(rgbe, back);
+  // RGBE shares one exponent: each channel's error is relative to the largest channel.
+  for (int c = 0; c < 3; ++c) {
+    CHECK(std::abs(back[c] - rgb[c]) / 100.0F < 0.005F);
+  }
+  const float zero[3] = {0.0F, 0.0F, 0.0F};
+  patchy::hdr::float_to_rgbe(zero, rgbe);
+  CHECK(rgbe[3] == 0);
+
+  // Run-length scanlines (width 24) and flat ones (width 4) both read back.
+  for (const auto width : {24, 4}) {
+    const auto document = float_document_for_hdr_tests(width, 5);
+    const auto bytes = patchy::hdr::write_hdr(document);
+    CHECK(patchy::hdr::sniff(bytes));
+    const auto reopened = patchy::hdr::read_hdr(bytes);
+    check_float_round_trip(document, reopened.document, 0.01F);
+  }
+  // A bottom-up file flips its rows.
+  {
+    const auto document = float_document_for_hdr_tests(4, 3);
+    auto bytes = patchy::hdr::write_hdr(document);
+    const std::string header(bytes.begin(), bytes.end());
+    const auto at = header.find("-Y 3");
+    CHECK(at != std::string::npos);
+    bytes[at] = '+';
+    const auto flipped = patchy::hdr::read_hdr(bytes);
+    const auto* top =
+        reinterpret_cast<const float*>(std::as_const(flipped.document).layers().front().pixels().row(0).data());
+    const auto* original_bottom =
+        reinterpret_cast<const float*>(std::as_const(document).layers().front().pixels().row(2).data());
+    const float largest = std::max({1e-3F, original_bottom[0], original_bottom[1], original_bottom[2]});
+    CHECK(std::abs(top[0] - original_bottom[0]) / largest < 0.01F);
+  }
+  bool rejected = false;
+  try {
+    const std::string truncated = "#?RADIANCE\n";
+    (void)patchy::hdr::read_hdr(std::vector<std::uint8_t>(truncated.begin(), truncated.end()));
+  } catch (const std::exception&) {
+    rejected = true;
+  }
+  CHECK(rejected);
+}
+
+void exr_round_trips_float_rgba() {
+  const auto document = float_document_for_hdr_tests(13, 7);
+  const auto bytes = patchy::exr::write_exr(document);
+  CHECK(patchy::exr::sniff(bytes));
+  const auto reopened = patchy::exr::read_exr(bytes);
+  check_float_round_trip(document, reopened.document, 1e-6F);
+  bool rejected = false;
+  try {
+    (void)patchy::exr::read_exr(std::vector<std::uint8_t>{0x76, 0x2f, 0x31, 0x01, 2, 0, 0, 0});
+  } catch (const std::exception&) {
+    rejected = true;
+  }
+  CHECK(rejected);
+}
+
+void jp2_round_trips_losslessly_at_8_and_16_bits() {
+  using patchy::BitDepth;
+  for (const auto depth : {BitDepth::UInt8, BitDepth::UInt16}) {
+    const auto format = patchy::with_bit_depth(patchy::PixelFormat::rgba8(), depth);
+    patchy::Document document(19, 11, format);
+    document.color_state().bit_depth = depth;
+    patchy::PixelBuffer pixels(19, 11, format);
+    for (std::int32_t y = 0; y < 11; ++y) {
+      auto row = pixels.row(y);
+      for (std::int32_t x = 0; x < 19; ++x) {
+        const int values[4] = {x * 13 % 256, y * 23 % 256, (x + y) * 7 % 256, x < 10 ? 255 : 128};
+        for (int c = 0; c < 4; ++c) {
+          if (depth == BitDepth::UInt8) {
+            row[x * 4 + c] = static_cast<std::uint8_t>(values[c]);
+          } else {
+            reinterpret_cast<std::uint16_t*>(row.data())[x * 4 + c] = static_cast<std::uint16_t>(values[c] * 257);
+          }
+        }
+      }
+    }
+    const patchy::PixelBuffer expected = pixels;
+    document.add_pixel_layer("Background", std::move(pixels));
+    const auto bytes = patchy::jp2::write_jp2(document);
+    CHECK(patchy::jp2::sniff(bytes));
+    const auto reopened = patchy::jp2::read_jp2(bytes);
+    CHECK(reopened.document.width() == 19 && reopened.document.height() == 11);
+    CHECK(std::as_const(reopened.document).color_state().bit_depth == depth);
+    const auto& back = std::as_const(reopened.document).layers().front().pixels();
+    CHECK(back.data().size() == expected.data().size());
+    if (back.data().size() == expected.data().size()) {
+      CHECK(std::equal(back.data().begin(), back.data().end(), expected.data().begin()));
+    }
+  }
+  bool rejected = false;
+  try {
+    (void)patchy::jp2::read_jp2(std::vector<std::uint8_t>{0xff, 0x4f, 0xff, 0x51, 0, 0});
+  } catch (const std::exception&) {
+    rejected = true;
+  }
+  CHECK(rejected);
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> flat_formats_misc_tests() {
@@ -1754,6 +1910,9 @@ std::vector<patchy::test::TestCase> flat_formats_misc_tests() {
       {"gif_animation_encodes_frames_delays_and_loop", gif_animation_encodes_frames_delays_and_loop},
       {"gif_layer_name_delay_token_round_trips", gif_layer_name_delay_token_round_trips},
       {"undecodable_image_diagnosis_names_the_real_reason", undecodable_image_diagnosis_names_the_real_reason},
+      {"hdr_rgbe_round_trips_linear_values", hdr_rgbe_round_trips_linear_values},
+      {"exr_round_trips_float_rgba", exr_round_trips_float_rgba},
+      {"jp2_round_trips_losslessly_at_8_and_16_bits", jp2_round_trips_losslessly_at_8_and_16_bits},
       {"aseprite_imports_layers_groups_and_palette", aseprite_imports_layers_groups_and_palette},
       {"aseprite_indexed_transparent_index", aseprite_indexed_transparent_index},
       {"aseprite_rejects_adobe_swatch_ase", aseprite_rejects_adobe_swatch_ase},

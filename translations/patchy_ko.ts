@@ -9993,6 +9993,106 @@ RGB: %2, %3, %4</translation>
         <source>This AVIF image needs a system AV1 decoder, which this computer does not have. On Windows, install the AV1 Video Extension from the Microsoft Store.</source>
         <translation>이 AVIF 이미지는 시스템 AV1 디코더가 필요하지만 이 컴퓨터에는 없습니다. Windows에서는 Microsoft Store에서 AV1 Video Extension을 설치하세요.</translation>
     </message>
+    <message>
+        <source>This file is not an OpenEXR image</source>
+        <translation>이 파일은 OpenEXR 이미지가 아닙니다</translation>
+    </message>
+    <message>
+        <source>The OpenEXR file is damaged or truncated</source>
+        <translation>OpenEXR 파일이 손상되었거나 잘렸습니다</translation>
+    </message>
+    <message>
+        <source>Multi-part OpenEXR files are not supported</source>
+        <translation>멀티파트 OpenEXR 파일은 지원하지 않습니다</translation>
+    </message>
+    <message>
+        <source>Deep OpenEXR files are not supported</source>
+        <translation>Deep OpenEXR 파일은 지원하지 않습니다</translation>
+    </message>
+    <message>
+        <source>The OpenEXR file could not be decoded</source>
+        <translation>OpenEXR 파일을 디코딩할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>Cannot write an empty image as OpenEXR</source>
+        <translation>빈 이미지는 OpenEXR로 저장할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>The OpenEXR file could not be written</source>
+        <translation>OpenEXR 파일을 저장할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>The Radiance HDR file is damaged or truncated</source>
+        <translation>Radiance HDR 파일이 손상되었거나 잘렸습니다</translation>
+    </message>
+    <message>
+        <source>This file is not a Radiance HDR image</source>
+        <translation>이 파일은 Radiance HDR 이미지가 아닙니다</translation>
+    </message>
+    <message>
+        <source>This Radiance HDR file uses a pixel format Patchy does not read</source>
+        <translation>이 Radiance HDR 파일은 Patchy가 읽지 않는 픽셀 형식을 사용합니다</translation>
+    </message>
+    <message>
+        <source>XYZE Radiance HDR files are not supported; save the file as RGBE</source>
+        <translation>XYZE Radiance HDR 파일은 지원하지 않습니다. 파일을 RGBE로 저장하세요</translation>
+    </message>
+    <message>
+        <source>This Radiance HDR file uses an image orientation Patchy does not read</source>
+        <translation>이 Radiance HDR 파일은 Patchy가 읽지 않는 이미지 방향을 사용합니다</translation>
+    </message>
+    <message>
+        <source>Cannot write an empty image as Radiance HDR</source>
+        <translation>빈 이미지는 Radiance HDR로 저장할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>This file is not a JPEG 2000 image</source>
+        <translation>이 파일은 JPEG 2000 이미지가 아닙니다</translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 decoder could not be created</source>
+        <translation>JPEG 2000 디코더를 만들 수 없습니다</translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 file is damaged or truncated</source>
+        <translation>JPEG 2000 파일이 손상되었거나 잘렸습니다</translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 image could not be decoded</source>
+        <translation>JPEG 2000 이미지를 디코딩할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>This JPEG 2000 image has a channel layout Patchy does not read</source>
+        <translation>이 JPEG 2000 이미지는 Patchy가 읽지 않는 채널 구성을 사용합니다</translation>
+    </message>
+    <message>
+        <source>CMYK JPEG 2000 image: converted to RGB with a plain ink mix</source>
+        <translation>CMYK JPEG 2000 이미지: 단순 잉크 혼합으로 RGB로 변환했습니다</translation>
+    </message>
+    <message>
+        <source>Cannot write an empty image as JPEG 2000</source>
+        <translation>빈 이미지는 JPEG 2000으로 저장할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 file could not be written</source>
+        <translation>JPEG 2000 파일을 저장할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>Radiance HDR Image</source>
+        <translation>Radiance HDR 이미지</translation>
+    </message>
+    <message>
+        <source>OpenEXR Image</source>
+        <translation>OpenEXR 이미지</translation>
+    </message>
+    <message>
+        <source>JPEG 2000 Image</source>
+        <translation>JPEG 2000 이미지</translation>
+    </message>
+    <message>
+        <source>This OpenEXR file has no R, G, B or Y channels to show</source>
+        <translation>이 OpenEXR 파일에는 표시할 R, G, B 또는 Y 채널이 없습니다</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

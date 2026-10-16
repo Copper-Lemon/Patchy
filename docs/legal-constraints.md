@@ -84,6 +84,13 @@ Design in [gmic.md](gmic.md); claim record in [patent-research-gmic.md](patent-r
   the 2006-2009 priority dates are at or past term), but that reasoning has not been through
   a claim-level review, so it is not a licence to vendor a codec. See [jxr.md](jxr.md) for
   the design and [file-formats.md](file-formats.md) for the wiring.
+- JPEG 2000 (ISO/IEC 15444-1), OpenEXR and Radiance HDR may ship in-process codecs
+  (October 2026 engineering read, record in [patent-research-formats.md](patent-research-formats.md)):
+  OpenJPEG (BSD-2) for JPEG 2000 Part 1 only, tinyexr (BSD-3) for OpenEXR, Patchy's own
+  RGBE code for HDR. Conditions: Part 1 only (no Part 2 extensions, no HTJ2K beyond what
+  OpenJPEG's decoder already carries, no JPIP), library sources only with their LICENSE
+  files beside them and entries in `NOTICE-THIRD-PARTY.md`, and no deep or multi-part EXR
+  features. Both vendored libraries are upgraded only with a fresh licence read.
 - JPEG XL may vendor libjxl (October 2026 engineering claim read, not counsel's opinion;
   record in [patent-research-formats.md](patent-research-formats.md)). Conditions, all
   binding: (1) a pinned upstream release with no algorithmic changes, since Google's

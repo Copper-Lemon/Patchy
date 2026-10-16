@@ -135,7 +135,7 @@ Read the linked document before working on a feature; it owns the constraints.
 - **Palette mode:** [docs/palette-mode.md](docs/palette-mode.md). CMYK: [docs/cmyk.md](docs/cmyk.md).
 - **16/32-bit editing (on; `PATCHY_DEEP_EDITING=0` off):** [docs/high-bit-depth.md](docs/high-bit-depth.md).
 - **File formats, PSB, HEIF/HEIC, and flat-image alpha:** [docs/file-formats.md](docs/file-formats.md); Camera Raw in [docs/camera-raw.md](docs/camera-raw.md), Affinity in [docs/af-format.md](docs/af-format.md), animated GIF/WebP in [docs/animation.md](docs/animation.md). Image metadata (File Info): [docs/file-info.md](docs/file-info.md).
-- **JPEG XR (.jxr, HDR tone map) and JPEG XL (.jxl):** [docs/jxr.md](docs/jxr.md), [docs/jxl.md](docs/jxl.md); codec rules in [docs/legal-constraints.md](docs/legal-constraints.md).
+- **JPEG XR, JPEG XL, JPEG 2000, Radiance HDR, OpenEXR:** [docs/jxr.md](docs/jxr.md), [docs/jxl.md](docs/jxl.md), [docs/hdr-formats.md](docs/hdr-formats.md); codec rules in [docs/legal-constraints.md](docs/legal-constraints.md).
 - **Proton (.rttex) and DDS (.dds) textures:** [docs/rttex.md](docs/rttex.md), [docs/dds.md](docs/dds.md).
 - **PDF import/export (editable layers, flat, the image-page writer and quality presets, pass-through of imported pages, `pdfopen`/`pdfsave` profiling):** [docs/pdf.md](docs/pdf.md).
 - **Document channels:** [docs/channels.md](docs/channels.md).
@@ -159,7 +159,7 @@ Read the linked document before working on a feature; it owns the constraints.
 - **SVG import/export:** [docs/svg.md](docs/svg.md).
 - **Trace Image to Shapes (raster to vector):** [docs/image-trace.md](docs/image-trace.md) and the "Vector tracing" boundary in [docs/legal-constraints.md](docs/legal-constraints.md).
 - **Float windows and document activation:** [docs/float-windows.md](docs/float-windows.md).
-- **Scanner, photocopy, Divide Scanned Photos, sprite-sheet, image-sequence, seamless-tiling import, and Files as Layers (Layers-panel file drop, Import command, Paste of copied files):** [docs/import.md](docs/import.md).
+- **Scanner, photocopy, Divide Scanned Photos, sprite-sheet, image-sequence, seamless-tiling import, and Files as Layers:** [docs/import.md](docs/import.md).
 - **Plug-ins and legacy 8BF support (Windows):** [docs/plugins.md](docs/plugins.md), with the clean-room ABI boundary in [docs/legal-constraints.md](docs/legal-constraints.md).
 - **G'MIC Filter Library:** [docs/gmic.md](docs/gmic.md).
 - **JavaScript scripting and bundled scripts:** [docs/scripting.md](docs/scripting.md). The MCP connector and patchy-control skill: [docs/ai-control.md](docs/ai-control.md).

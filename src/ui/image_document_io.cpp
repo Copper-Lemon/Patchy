@@ -27,6 +27,9 @@
 #include "formats/jxr_document_io.hpp"
 #include "formats/pcx_document_io.hpp"
 #include "formats/dds_document_io.hpp"
+#include "formats/exr_document_io.hpp"
+#include "formats/hdr_document_io.hpp"
+#include "formats/jp2_document_io.hpp"
 #include "formats/rttex_document_io.hpp"
 #include "formats/tga_document_io.hpp"
 #include "core/rect_utils.hpp"
@@ -2782,6 +2785,20 @@ void write_flat_image_file(const Document& document, const QString& path, const 
     dds_options.compression = dds::resolve_compression(options.dds_compression, options.dds_source);
     dds_options.generate_mipmaps = dds::resolve_mipmaps(options.dds_mipmaps, options.dds_source);
     dds::write_dds_file(document, to_filesystem_path(path), dds_options, notices);
+    return;
+  }
+  // Radiance HDR, OpenEXR and JPEG 2000: the registry's byte writers, through the same
+  // atomic save as the other flat formats (docs/hdr-formats.md).
+  if (hdr::is_hdr_extension(lower)) {
+    write_bytes_with_save_file(path, hdr::write_hdr(document));
+    return;
+  }
+  if (exr::is_exr_extension(lower)) {
+    write_bytes_with_save_file(path, exr::write_exr(document));
+    return;
+  }
+  if (jp2::is_jp2_extension(lower)) {
+    write_bytes_with_save_file(path, jp2::write_jp2(document));
     return;
   }
   if (lower == "gif") {

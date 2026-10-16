@@ -9993,6 +9993,106 @@ Mixed selection</source>
         <source>This AVIF image needs a system AV1 decoder, which this computer does not have. On Windows, install the AV1 Video Extension from the Microsoft Store.</source>
         <translation>この AVIF 画像にはシステムの AV1 デコーダーが必要ですが、このコンピューターにはありません。Windows では Microsoft Store から AV1 Video Extension をインストールしてください。</translation>
     </message>
+    <message>
+        <source>This file is not an OpenEXR image</source>
+        <translation>このファイルは OpenEXR 画像ではありません</translation>
+    </message>
+    <message>
+        <source>The OpenEXR file is damaged or truncated</source>
+        <translation>OpenEXR ファイルが壊れているか途中で切れています</translation>
+    </message>
+    <message>
+        <source>Multi-part OpenEXR files are not supported</source>
+        <translation>マルチパートの OpenEXR ファイルには対応していません</translation>
+    </message>
+    <message>
+        <source>Deep OpenEXR files are not supported</source>
+        <translation>Deep OpenEXR ファイルには対応していません</translation>
+    </message>
+    <message>
+        <source>The OpenEXR file could not be decoded</source>
+        <translation>OpenEXR ファイルをデコードできませんでした</translation>
+    </message>
+    <message>
+        <source>Cannot write an empty image as OpenEXR</source>
+        <translation>空の画像は OpenEXR として書き出せません</translation>
+    </message>
+    <message>
+        <source>The OpenEXR file could not be written</source>
+        <translation>OpenEXR ファイルを書き出せませんでした</translation>
+    </message>
+    <message>
+        <source>The Radiance HDR file is damaged or truncated</source>
+        <translation>Radiance HDR ファイルが壊れているか途中で切れています</translation>
+    </message>
+    <message>
+        <source>This file is not a Radiance HDR image</source>
+        <translation>このファイルは Radiance HDR 画像ではありません</translation>
+    </message>
+    <message>
+        <source>This Radiance HDR file uses a pixel format Patchy does not read</source>
+        <translation>この Radiance HDR ファイルは Patchy が読めないピクセル形式を使っています</translation>
+    </message>
+    <message>
+        <source>XYZE Radiance HDR files are not supported; save the file as RGBE</source>
+        <translation>XYZE 形式の Radiance HDR ファイルには対応していません。RGBE で保存してください</translation>
+    </message>
+    <message>
+        <source>This Radiance HDR file uses an image orientation Patchy does not read</source>
+        <translation>この Radiance HDR ファイルは Patchy が読めない画像の向きを使っています</translation>
+    </message>
+    <message>
+        <source>Cannot write an empty image as Radiance HDR</source>
+        <translation>空の画像は Radiance HDR として書き出せません</translation>
+    </message>
+    <message>
+        <source>This file is not a JPEG 2000 image</source>
+        <translation>このファイルは JPEG 2000 画像ではありません</translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 decoder could not be created</source>
+        <translation>JPEG 2000 デコーダーを作成できませんでした</translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 file is damaged or truncated</source>
+        <translation>JPEG 2000 ファイルが壊れているか途中で切れています</translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 image could not be decoded</source>
+        <translation>JPEG 2000 画像をデコードできませんでした</translation>
+    </message>
+    <message>
+        <source>This JPEG 2000 image has a channel layout Patchy does not read</source>
+        <translation>この JPEG 2000 画像は Patchy が読めないチャンネル構成です</translation>
+    </message>
+    <message>
+        <source>CMYK JPEG 2000 image: converted to RGB with a plain ink mix</source>
+        <translation>CMYK の JPEG 2000 画像: 単純なインク混合で RGB に変換しました</translation>
+    </message>
+    <message>
+        <source>Cannot write an empty image as JPEG 2000</source>
+        <translation>空の画像は JPEG 2000 として書き出せません</translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 file could not be written</source>
+        <translation>JPEG 2000 ファイルを書き出せませんでした</translation>
+    </message>
+    <message>
+        <source>Radiance HDR Image</source>
+        <translation>Radiance HDR 画像</translation>
+    </message>
+    <message>
+        <source>OpenEXR Image</source>
+        <translation>OpenEXR 画像</translation>
+    </message>
+    <message>
+        <source>JPEG 2000 Image</source>
+        <translation>JPEG 2000 画像</translation>
+    </message>
+    <message>
+        <source>This OpenEXR file has no R, G, B or Y channels to show</source>
+        <translation>この OpenEXR ファイルには表示できる R、G、B、Y チャンネルがありません</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

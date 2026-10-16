@@ -29,6 +29,9 @@
 #include "filters/builtin_filters.hpp"
 #include "formats/aseprite_document_io.hpp"
 #include "formats/bmp_document_io.hpp"
+#include "formats/exr_document_io.hpp"
+#include "formats/hdr_document_io.hpp"
+#include "formats/jp2_document_io.hpp"
 #include "formats/image_open_diagnosis.hpp"
 #include "formats/heif_document_io.hpp"
 #include "formats/jxl_document_io.hpp"
@@ -710,6 +713,21 @@ const QList<FileFormatEntry>& file_format_entries() {
       dds_extensions.push_back(QString::fromStdString(extension));
     }
     list.push_back({QT_TRANSLATE_NOOP("QObject", "DirectDraw Surface"), dds_extensions, dds_extensions, true, true});
+    // Radiance HDR, OpenEXR and JPEG 2000 read and write everywhere through Patchy's own
+    // code and vendored codecs (docs/hdr-formats.md); saves use the primary extension.
+    const auto string_list = [](const std::vector<std::string>& extensions) {
+      QStringList list;
+      for (const auto& extension : extensions) {
+        list.push_back(QString::fromStdString(extension));
+      }
+      return list;
+    };
+    list.push_back({QT_TRANSLATE_NOOP("QObject", "Radiance HDR Image"), string_list(hdr::hdr_extensions()),
+                    {QStringLiteral("hdr")}, true, true});
+    list.push_back({QT_TRANSLATE_NOOP("QObject", "OpenEXR Image"), string_list(exr::exr_extensions()),
+                    {QStringLiteral("exr")}, true, true});
+    list.push_back({QT_TRANSLATE_NOOP("QObject", "JPEG 2000 Image"), string_list(jp2::jp2_extensions()),
+                    {QStringLiteral("jp2")}, true, true});
     return list;
   }();
   return entries;
@@ -1102,6 +1120,11 @@ QString open_failure_reason(const QString& decoder_error, const QString& path, c
             .arg(detail, claimed, QString::fromStdString(diagnosis.suggested_extension));
       }
       return QObject::tr("This is a %1 file, not %2, and Patchy cannot open %1 files.").arg(detail, claimed);
+    case Reason::UnsupportedFormat:
+      return QObject::tr("Patchy cannot open %1 files.").arg(detail);
+    case Reason::AvifNeedsSystemDecoder:
+      return QObject::tr("This AVIF image needs a system AV1 decoder, which this computer does not have. On "
+                         "Windows, install the AV1 Video Extension from the Microsoft Store.");
     case Reason::JpegTruncated:
       return QObject::tr("The JPEG data ends early: the file was cut short while it was downloaded or copied.");
     case Reason::JpegNoFrame:
@@ -1121,11 +1144,6 @@ QString open_failure_reason(const QString& decoder_error, const QString& path, c
           .arg(detail);
     case Reason::TiffUnsupportedBitDepth:
       return QObject::tr("This TIFF stores %1 bits per sample. The TIFF decoder reads 8 and 16-bit integer, 32-bit "
-    case Reason::UnsupportedFormat:
-      return QObject::tr("Patchy cannot open %1 files.").arg(detail);
-    case Reason::AvifNeedsSystemDecoder:
-      return QObject::tr("This AVIF image needs a system AV1 decoder, which this computer does not have. On "
-                         "Windows, install the AV1 Video Extension from the Microsoft Store.");
                          "floating-point, and 1, 2 and 4-bit grayscale samples.")
           .arg(detail);
     case Reason::TiffIntegerSamples:
@@ -1422,7 +1440,7 @@ OpenDocumentResult load_document_from_path(QString path) {
       static const std::set<std::string> kDensitylessFormats = {
           "patchy.formats.ico", "patchy.formats.tga", "patchy.formats.aseprite",
           "patchy.formats.pcx", "patchy.formats.ilbm", "patchy.formats.rttex",
-          "patchy.formats.dds"};
+          "patchy.formats.dds", "patchy.formats.hdr", "patchy.formats.exr", "patchy.formats.jp2"};
       if (kDensitylessFormats.contains(handler->identifier)) {
         opened.print_settings().horizontal_ppi = kUntaggedImportPpi;
         opened.print_settings().vertical_ppi = kUntaggedImportPpi;

@@ -517,6 +517,21 @@ both source images as CC0). SHA-256: `3d8d3847ba40844b1d829366065261f34cc4b4acc3
 (patches), `2a47b6766264ac6243a43bbb85684688717591bb3bd9b4c2db56226192418b4e`
 (patches_lossless). They are test data only and are not distributed with Patchy.
 
+## tinyexr 1.0.9
+
+`src/formats/tinyexr/tinyexr.h` vendors tinyexr 1.0.9 (https://github.com/syoyo/tinyexr),
+the single-header OpenEXR reader and writer, compiled into `patchy_formats` for the
+.exr format (docs/hdr-formats.md) with its ZIP codec routed to the vendored miniz.
+tinyexr is BSD-3-Clause; the license is included at `src/formats/tinyexr/LICENSE`.
+
+## OpenJPEG 2.5.3
+
+`src/formats/openjpeg/` vendors the core library (src/lib/openjp2) of OpenJPEG 2.5.3
+(https://github.com/uclouvain/openjpeg), the JPEG 2000 Part 1 codec, built as the
+static `patchy_openjpeg` archive for the .jp2/.j2k formats (docs/hdr-formats.md). No
+tools, plug-ins or JPIP code are included. OpenJPEG is BSD-2-Clause; the license is
+included at `src/formats/openjpeg/LICENSE`.
+
 ## libjxl 0.12.0 with Highway, Brotli and skcms
 
 JPEG XL import and export statically links the libjxl 0.12.0 codec from

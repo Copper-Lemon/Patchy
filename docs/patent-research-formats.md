@@ -34,3 +34,19 @@ Research record for Patchy's PSD format and copyright position, the HEIF codec b
   - *Trademark*: no registration of "JPEG" or "JPEG XL" was found (USPTO, EUIPO and Justia searches were partly blocked). [jpeg.org/terms](https://jpeg.org/terms.html) treats committee names and logos as proprietary. Naming the format is nominative; ship no committee logos.
   - *Proposed implementation, for a later code task*: `cmake/patchy_jxl.cmake` modelled on `patchy_webp.cmake` (a pinned private static archive with prefixed symbols), a Qt-free `src/formats/jxl_document_io.{hpp,cpp}`, a registry row with a writer, and a new `docs/jxl.md`, because `file-formats.md` has room only for a pointer.
 - **Trademarks**: "Smart Object(s)", "Smart Filter(s)", "Filter Gallery", "Healing Brush", "Content-Aware", and "PSD" are absent from Adobe's published trademark list (May 21, 2026 edition; also absent from the 2009 edition) and from all 601 Adobe-owned US trademark records; the existing SMART FILTER / SMART OBJECT registrations belong to unrelated companies. PHOTOSHOP is registered (e.g. Reg. 1,850,242, renewed) and policed against generic-verb use and cybersquatting. Photopea uses the feature names verbatim commercially; Krita/Affinity rename theirs (File/Filter Layers, Live Filters), the conservative norm. Patchy's usage stays nominative (the terms describe Photoshop's own stored data), product branding contains no Adobe marks, and README.md carries the attribution notice in Adobe's preferred format. UI look-and-feel claims are weak doctrine (Apple v. Microsoft, 35 F.3d 1435 (9th Cir. 1994); Lotus v. Borland, 49 F.3d 807 (1st Cir. 1995)) and no Adobe UI trade-dress enforcement was found; original tool icons keep extra distance. The gallery's display name was deliberately changed from "Visual Filters & Looks" to "Filter Gallery" in July 2026 after this sweep confirmed "Filter Gallery" is not an Adobe mark (nominative use of a descriptive feature name, the Photopea precedent); persisted identifiers kept their original names.
+- **JPEG 2000, OpenEXR and Radiance HDR reviewed 2026-10-16**, before the code landed.
+  - *JPEG 2000*: ISO/IEC 15444-1 (2000) was standardized under a royalty-free baseline
+    agreement among the Part 1 patent holders (the JPEG committee's stated goal for Part 1;
+    Part 2 extensions were never covered). The core Part 1 patents, filed 1996-2000, have
+    expired by their 20-year terms. OpenJPEG (UCLouvain, BSD-2-Clause) is the ISO reference
+    implementation and ships in Chrome's PDF viewer, GDAL, Ghostscript and most Linux
+    distributions, which is the distribution precedent Patchy relies on. Only the Part 1
+    decoder/encoder in `src/lib/openjp2` is vendored; HTJ2K (Part 15, `ht_dec.c`) comes with
+    it as upstream ships it and is decode-only. Unverified: the ISO patent database itself
+    (blocked to automated fetches, as with JPEG XL).
+  - *OpenEXR*: an open ILM format since 2003 (BSD-3 reference library, Academy Software
+    Foundation since 2019); no patent declarations are known for the format or the PIZ/ZIP/RLE
+    codecs Patchy reads. The B44 and DWA codecs are not implemented by tinyexr and not read.
+  - *Radiance HDR*: Greg Ward's 1980s RGBE encoding, published in Graphics Gems II (1991);
+    no patents. Patchy's reader and writer are its own code.
+  - Not counsel's opinion. Binding engineering rule in [legal-constraints.md](legal-constraints.md).

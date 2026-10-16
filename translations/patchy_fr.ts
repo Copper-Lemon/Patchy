@@ -10023,6 +10023,106 @@ RVB : %2, %3, %4</translation>
         <source>This AVIF image needs a system AV1 decoder, which this computer does not have. On Windows, install the AV1 Video Extension from the Microsoft Store.</source>
         <translation>Cette image AVIF a besoin d&apos;un décodeur AV1 système, que cet ordinateur n&apos;a pas. Sous Windows, installez l&apos;extension vidéo AV1 depuis le Microsoft Store.</translation>
     </message>
+    <message>
+        <source>This file is not an OpenEXR image</source>
+        <translation>Ce fichier n&apos;est pas une image OpenEXR</translation>
+    </message>
+    <message>
+        <source>The OpenEXR file is damaged or truncated</source>
+        <translation>Le fichier OpenEXR est endommagé ou tronqué</translation>
+    </message>
+    <message>
+        <source>Multi-part OpenEXR files are not supported</source>
+        <translation>Les fichiers OpenEXR multi-parties ne sont pas pris en charge</translation>
+    </message>
+    <message>
+        <source>Deep OpenEXR files are not supported</source>
+        <translation>Les fichiers OpenEXR profonds (deep) ne sont pas pris en charge</translation>
+    </message>
+    <message>
+        <source>The OpenEXR file could not be decoded</source>
+        <translation>Le fichier OpenEXR n&apos;a pas pu être décodé</translation>
+    </message>
+    <message>
+        <source>Cannot write an empty image as OpenEXR</source>
+        <translation>Impossible d&apos;écrire une image vide en OpenEXR</translation>
+    </message>
+    <message>
+        <source>The OpenEXR file could not be written</source>
+        <translation>Le fichier OpenEXR n&apos;a pas pu être écrit</translation>
+    </message>
+    <message>
+        <source>The Radiance HDR file is damaged or truncated</source>
+        <translation>Le fichier Radiance HDR est endommagé ou tronqué</translation>
+    </message>
+    <message>
+        <source>This file is not a Radiance HDR image</source>
+        <translation>Ce fichier n&apos;est pas une image Radiance HDR</translation>
+    </message>
+    <message>
+        <source>This Radiance HDR file uses a pixel format Patchy does not read</source>
+        <translation>Ce fichier Radiance HDR utilise un format de pixel que Patchy ne lit pas</translation>
+    </message>
+    <message>
+        <source>XYZE Radiance HDR files are not supported; save the file as RGBE</source>
+        <translation>Les fichiers Radiance HDR XYZE ne sont pas pris en charge ; enregistrez le fichier en RGBE</translation>
+    </message>
+    <message>
+        <source>This Radiance HDR file uses an image orientation Patchy does not read</source>
+        <translation>Ce fichier Radiance HDR utilise une orientation d&apos;image que Patchy ne lit pas</translation>
+    </message>
+    <message>
+        <source>Cannot write an empty image as Radiance HDR</source>
+        <translation>Impossible d&apos;écrire une image vide en Radiance HDR</translation>
+    </message>
+    <message>
+        <source>This file is not a JPEG 2000 image</source>
+        <translation>Ce fichier n&apos;est pas une image JPEG 2000</translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 decoder could not be created</source>
+        <translation>Le décodeur JPEG 2000 n&apos;a pas pu être créé</translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 file is damaged or truncated</source>
+        <translation>Le fichier JPEG 2000 est endommagé ou tronqué</translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 image could not be decoded</source>
+        <translation>L&apos;image JPEG 2000 n&apos;a pas pu être décodée</translation>
+    </message>
+    <message>
+        <source>This JPEG 2000 image has a channel layout Patchy does not read</source>
+        <translation>Cette image JPEG 2000 a une disposition de canaux que Patchy ne lit pas</translation>
+    </message>
+    <message>
+        <source>CMYK JPEG 2000 image: converted to RGB with a plain ink mix</source>
+        <translation>Image JPEG 2000 CMJN : convertie en RVB par un simple mélange d&apos;encres</translation>
+    </message>
+    <message>
+        <source>Cannot write an empty image as JPEG 2000</source>
+        <translation>Impossible d&apos;écrire une image vide en JPEG 2000</translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 file could not be written</source>
+        <translation>Le fichier JPEG 2000 n&apos;a pas pu être écrit</translation>
+    </message>
+    <message>
+        <source>Radiance HDR Image</source>
+        <translation>Image Radiance HDR</translation>
+    </message>
+    <message>
+        <source>OpenEXR Image</source>
+        <translation>Image OpenEXR</translation>
+    </message>
+    <message>
+        <source>JPEG 2000 Image</source>
+        <translation>Image JPEG 2000</translation>
+    </message>
+    <message>
+        <source>This OpenEXR file has no R, G, B or Y channels to show</source>
+        <translation>Ce fichier OpenEXR n'a aucun canal R, G, B ou Y à afficher</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
