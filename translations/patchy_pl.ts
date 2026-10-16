@@ -9966,10 +9966,6 @@ RGB: %2, %3, %4</translation>
         <translation>Animowany JPEG XL: zaimportowano %1 klatek jako warstwy</translation>
     </message>
     <message>
-        <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
-        <translation>Ta wersja Patchy nie może dekodować obrazów HEIC. Wersja Flatpak programu Patchy to potrafi.</translation>
-    </message>
-    <message>
         <source>CMYK image: converted to RGB through the profile %1</source>
         <translation>Obraz CMYK: przekonwertowany na RGB przez profil %1</translation>
     </message>
@@ -10152,6 +10148,38 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>This OpenEXR file has no R, G, B or Y channels to show</source>
         <translation>Ten plik OpenEXR nie ma kanałów R, G, B ani Y do wyświetlenia</translation>
+    </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images.</source>
+        <translation>Ta wersja Patchy nie może dekodować obrazów HEIC.</translation>
+    </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images because the installed libheif library is too old. Patchy needs libheif 1.12 or newer.</source>
+        <translation>Ta wersja Patchy nie może dekodować obrazów HEIC, ponieważ zainstalowana biblioteka libheif jest za stara. Patchy wymaga libheif 1.12 lub nowszej.</translation>
+    </message>
+    <message>
+        <source>This HEIC image&apos;s bit depth is not supported by the installed libheif library.</source>
+        <translation>Głębia bitowa tego obrazu HEIC nie jest obsługiwana przez zainstalowaną bibliotekę libheif.</translation>
+    </message>
+    <message>
+        <source>libheif returned an invalid HEIF pixel buffer</source>
+        <translation>libheif zwrócił nieprawidłowy bufor pikseli HEIF</translation>
+    </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images because the system&apos;s libheif library is not installed. Install it and try again.
+Debian/Ubuntu: sudo apt install libheif1
+Fedora: sudo dnf install libheif</source>
+        <translation>Ta wersja Patchy nie może dekodować obrazów HEIC, ponieważ systemowa biblioteka libheif nie jest zainstalowana. Zainstaluj ją i spróbuj ponownie.
+Debian/Ubuntu: sudo apt install libheif1
+Fedora: sudo dnf install libheif</translation>
+    </message>
+    <message>
+        <source>The system&apos;s libheif library has no HEVC decoder plug-in, so Patchy cannot decode HEIC images. Install it and try again.
+Debian/Ubuntu: sudo apt install libheif-plugin-libde265
+Fedora (RPM Fusion): sudo dnf install libheif-freeworld</source>
+        <translation>Systemowa biblioteka libheif nie ma wtyczki dekodera HEVC, więc Patchy nie może dekodować obrazów HEIC. Zainstaluj ją i spróbuj ponownie.
+Debian/Ubuntu: sudo apt install libheif-plugin-libde265
+Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     </message>
 </context>
 <context>

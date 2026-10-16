@@ -20,10 +20,14 @@ namespace patchy::heif {
 //   - WebAssembly browser app: a WASM-only libheif build parses the container and invokes
 //     the browser's HEVC VideoDecoder through WebCodecs. No software HEVC codec or encoder
 //     is compiled into the application.
-//   - macOS/Linux: read_heif() always throws; the registry-error -> QImageReader fallback
-//     in load_document_from_path then decodes via Qt's qmacheif (ImageIO) / the KDE
-//     runtime's kimg_heif (libheif + the runtime's codecs-extra extension). The thrown
-//     message is what the user sees when Qt cannot decode either.
+//   - Linux (native builds and the AppImage): read_heif() loads the distribution's own
+//     libheif with dlopen at run time (heif_document_io_linux.cpp); nothing is linked or
+//     bundled, and the HEVC decoder is the distro's plug-in package. The thrown message
+//     names the package to install when the library or its HEVC plug-in is missing.
+//   - macOS, and Linux inside the Flatpak: read_heif() always throws; the registry-error
+//     -> QImageReader fallback in load_document_from_path then decodes via Qt's qmacheif
+//     (ImageIO) / the KDE runtime's kimg_heif (libheif + the runtime's codecs-extra
+//     extension). The thrown message is what the user sees when Qt cannot decode either.
 
 // Lowercase extensions (no dot) routed to the HEIF reader; single source of truth for the
 // registry and the file dialog filter, like raw::camera_raw_extensions().
@@ -51,6 +55,17 @@ struct OrientedImage {
 };
 [[nodiscard]] OrientedImage apply_exif_orientation(std::span<const std::uint8_t> rgba, std::int32_t width,
                                                    std::int32_t height, int orientation);
+
+#if defined(__linux__) && !defined(__EMSCRIPTEN__)
+// Linux outside the Flatpak: whether the distribution's libheif loaded and exposes the
+// symbols read_heif needs (heif_document_io_linux.cpp). The Open dialog's HEIF row keys
+// on it. The PATCHY_HEIF_LIBRARY environment variable replaces the library name or path
+// the loader tries ("libheif.so.1", then "libheif.so"); tests point it at a missing file.
+[[nodiscard]] bool host_libheif_available();
+// Empty when the library loaded; otherwise the user-facing message read_heif throws
+// (which package to install, or that the library is too old).
+[[nodiscard]] std::string host_libheif_load_error();
+#endif
 
 // Marker prefixes on Windows codec-missing errors. The UI strips them from the display
 // text and shows an "Open Microsoft Store" button for the matching package.

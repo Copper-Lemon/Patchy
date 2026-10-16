@@ -63,6 +63,7 @@
 #include <cctype>
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <exception>
@@ -869,7 +870,7 @@ void heif_reads_quadrant_fixture_if_available() {
         starts_with(patchy::heif::kHevcPackageMissingMarker) ||
         message.find("system codec") != std::string::npos ||
         message.find("Flatpak codec extension") != std::string::npos ||
-        message.find("cannot decode HEIC images") != std::string::npos ||  // AppImage and source builds
+        message.find("cannot decode HEIC images") != std::string::npos ||  // Linux: libheif or its HEVC plug-in missing
         message.find("outside a browser") != std::string::npos) {
       std::cout << "[SKIP] HEIC platform decoder unavailable: " << message << '\n';
       return;
@@ -978,7 +979,7 @@ void heif_decodes_real_photos_if_available() {
           message.starts_with(patchy::heif::kHevcPackageMissingMarker) ||
           message.find("system codec") != std::string::npos ||
           message.find("Flatpak codec extension") != std::string::npos ||
-          message.find("cannot decode HEIC images") != std::string::npos ||  // AppImage and source builds
+          message.find("cannot decode HEIC images") != std::string::npos ||  // Linux: libheif or its HEVC plug-in missing
           message.find("outside a browser") != std::string::npos) {
         std::cout << "[SKIP] HEIC platform decoder unavailable: " << message << '\n';
         return;
@@ -990,6 +991,94 @@ void heif_decodes_real_photos_if_available() {
 }
 
 }  // namespace
+
+#if defined(__linux__) && !defined(__EMSCRIPTEN__)
+
+// Scoped environment override; restores the previous value (or unsets) on scope exit.
+class ScopedEnvironmentVariable {
+public:
+  ScopedEnvironmentVariable(const char* name, const char* value) : name_(name) {
+    if (const char* previous = std::getenv(name); previous != nullptr) {
+      previous_ = previous;
+    }
+    setenv(name, value, 1);
+  }
+  ~ScopedEnvironmentVariable() {
+    if (previous_.has_value()) {
+      setenv(name_, previous_->c_str(), 1);
+    } else {
+      unsetenv(name_);
+    }
+  }
+  ScopedEnvironmentVariable(const ScopedEnvironmentVariable&) = delete;
+  ScopedEnvironmentVariable& operator=(const ScopedEnvironmentVariable&) = delete;
+
+private:
+  const char* name_;
+  std::optional<std::string> previous_;
+};
+
+void heif_linux_loader_reports_missing_library() {
+  // Outside the Flatpak the Linux reader dlopens the distribution's libheif. With the
+  // library name pointed at a file that cannot exist, the loader must fail with the
+  // deterministic "install libheif1" message and nothing may crash or leak a handle.
+  const ScopedEnvironmentVariable override_library("PATCHY_HEIF_LIBRARY",
+                                                   "/nonexistent/patchy-missing-libheif.so.1");
+  const bool flatpak = std::getenv("FLATPAK_ID") != nullptr;
+  if (flatpak) {
+    // The Flatpak build never consults the host library (kimg_heif decodes there).
+    CHECK(!patchy::heif::host_libheif_available());
+    std::cout << "[SKIP] Flatpak sandbox: the host libheif loader is not used\n";
+    return;
+  }
+  CHECK(!patchy::heif::host_libheif_available());
+  const auto load_error = patchy::heif::host_libheif_load_error();
+  CHECK(load_error.find("libheif1") != std::string::npos);
+  CHECK(load_error.find("cannot decode HEIC images") != std::string::npos);
+
+  const auto bytes = read_binary_file(patchy::test::committed_format_fixture_path("heif", "quadrants.heic"));
+  CHECK(!bytes.empty());
+  bool threw = false;
+  try {
+    (void)patchy::heif::read_heif(bytes);
+  } catch (const std::exception& error) {
+    threw = true;
+    CHECK(std::string(error.what()) == load_error);
+  }
+  CHECK(threw);
+}
+
+void heif_linux_loader_decodes_or_names_the_missing_plugin_if_available() {
+  // With the real library: either the quadrant fixture decodes (HEVC plug-in present) or
+  // the failure names the plug-in package. Any other error is a loader bug.
+  if (std::getenv("FLATPAK_ID") != nullptr) {
+    std::cout << "[SKIP] Flatpak sandbox: the host libheif loader is not used\n";
+    return;
+  }
+  if (!patchy::heif::host_libheif_available()) {
+    std::cout << "[SKIP] host libheif unavailable: " << patchy::heif::host_libheif_load_error() << '\n';
+    return;
+  }
+  const auto bytes = read_binary_file(patchy::test::committed_format_fixture_path("heif", "quadrants.heic"));
+  CHECK(!bytes.empty());
+  try {
+    const auto result = patchy::heif::read_heif(bytes);
+    CHECK(result.document.width() == 64);
+    CHECK(result.document.height() == 48);
+    CHECK(result.document.layers().front().name() == "Background");
+    const auto& pixels = std::as_const(result.document.layers().front()).pixels();
+    CHECK(pixels.pixel(10, 10)[0] > 200);  // red quadrant
+    CHECK(pixels.pixel(54, 10)[1] > 200);  // green
+    CHECK(pixels.pixel(10, 40)[2] > 200);  // blue
+    CHECK(pixels.pixel(54, 40)[0] > 200 && pixels.pixel(54, 40)[1] > 200 && pixels.pixel(54, 40)[2] > 200);
+  } catch (const std::exception& error) {
+    const std::string message = error.what();
+    CHECK(message.find("libheif-plugin-libde265") != std::string::npos);
+    std::cout << "[SKIP] host libheif has no HEVC decoder plug-in: " << message << '\n';
+  }
+}
+
+#endif  // __linux__ && !__EMSCRIPTEN__
 
 std::vector<patchy::test::TestCase> raw_heif_tests() {
   return {
@@ -1015,5 +1104,10 @@ std::vector<patchy::test::TestCase> raw_heif_tests() {
       {"heif_orientation_mapping_matches_exif_semantics", heif_orientation_mapping_matches_exif_semantics},
       {"heif_reads_quadrant_fixture_if_available", heif_reads_quadrant_fixture_if_available},
       {"heif_decodes_real_photos_if_available", heif_decodes_real_photos_if_available},
+#if defined(__linux__) && !defined(__EMSCRIPTEN__)
+      {"heif_linux_loader_reports_missing_library", heif_linux_loader_reports_missing_library},
+      {"heif_linux_loader_decodes_or_names_the_missing_plugin_if_available",
+       heif_linux_loader_decodes_or_names_the_missing_plugin_if_available},
+#endif
   };
 }

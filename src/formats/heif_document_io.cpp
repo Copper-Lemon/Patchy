@@ -5,7 +5,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cstdlib>
 #include <cstring>
 #include <stdexcept>
 
@@ -128,12 +127,12 @@ OrientedImage apply_exif_orientation(std::span<const std::uint8_t> rgba, std::in
   return out;
 }
 
-#if !defined(_WIN32) && !defined(PATCHY_HEIF_WEBCODECS)
+#if !defined(_WIN32) && !defined(PATCHY_HEIF_WEBCODECS) && !defined(PATCHY_HEIF_HOST_LIBHEIF)
 
-// macOS/Linux defer to the Qt fallback (load_document_from_path retries a failed registry
-// read through QImageReader, which has qmacheif on macOS and the KDE runtime's kimg_heif
-// on Linux). The node-only wasm-core build also keeps this stub because node has no
-// browser VideoDecoder.
+// macOS defers to the Qt fallback (load_document_from_path retries a failed registry read
+// through QImageReader, which has qmacheif there). The node-only wasm-core build also
+// keeps this stub because node has no browser VideoDecoder. Linux compiles
+// heif_document_io_linux.cpp instead (PATCHY_HEIF_HOST_LIBHEIF, CMakeLists.txt).
 FormatReadResult read_heif(std::span<const std::uint8_t> bytes) {
   (void)bytes;
 #ifdef __APPLE__
@@ -141,18 +140,10 @@ FormatReadResult read_heif(std::span<const std::uint8_t> bytes) {
 #elif defined(__EMSCRIPTEN__)
   throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "Unable to decode this HEIC image outside a browser."));
 #else
-  // Only the Flatpak gets a HEIF plug-in (from its KDE runtime). The AppImage and source
-  // builds use a Qt without one (docs/appimage.md).
-  if (std::getenv("FLATPAK_ID") == nullptr) {
-    throw std::runtime_error(PATCHY_TRANSLATE_NOOP(
-        "QObject", "This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can."));
-  }
-  throw std::runtime_error(
-      PATCHY_TRANSLATE_NOOP("QObject", "Unable to decode this HEIC image. HEIC decoding needs the Flatpak codec extension; "
-      "install it with: flatpak install --user flathub org.freedesktop.Platform.codecs-extra//25.08-extra"));
+  throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "This build of Patchy cannot decode HEIC images."));
 #endif
 }
 
-#endif  // !_WIN32 && !PATCHY_HEIF_WEBCODECS
+#endif  // !_WIN32 && !PATCHY_HEIF_WEBCODECS && !PATCHY_HEIF_HOST_LIBHEIF
 
 }  // namespace patchy::heif

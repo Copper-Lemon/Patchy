@@ -114,7 +114,7 @@ and tests inside the same SDK; see [docs/linux-testing.md](../../docs/linux-test
   libheif, and its freedesktop 25.08 base declares `codecs-extra` (the HEVC decoder),
   which flatpak installs with the runtime for repository and bundle installs alike
   (verified October 2026: the committed `quadrants.heic` opens in a fresh install).
-  Patchy bundles no HEVC code. The open-error hint in `heif_document_io.cpp` names
+  Patchy bundles no HEVC code. The open-error hint in `heif_document_io_linux.cpp` names
   `org.freedesktop.Platform.codecs-extra//25.08-extra` and must follow the runtime's
   base version.
 - The source is `type: dir`, skipping build output and root `test-artifacts` (Unix

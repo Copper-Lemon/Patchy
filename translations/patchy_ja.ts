@@ -9906,10 +9906,6 @@ Mixed selection</source>
         <translation>アニメーション JPEG XL: %1 フレームをレイヤーとして読み込みました</translation>
     </message>
     <message>
-        <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
-        <translation>このビルドの Patchy は HEIC 画像をデコードできません。Flatpak 版の Patchy ならデコードできます。</translation>
-    </message>
-    <message>
         <source>CMYK image: converted to RGB through the profile %1</source>
         <translation>CMYK 画像: プロファイル %1 で RGB に変換しました</translation>
     </message>
@@ -10092,6 +10088,38 @@ Mixed selection</source>
     <message>
         <source>This OpenEXR file has no R, G, B or Y channels to show</source>
         <translation>この OpenEXR ファイルには表示できる R、G、B、Y チャンネルがありません</translation>
+    </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images.</source>
+        <translation>このビルドの Patchy は HEIC 画像をデコードできません。</translation>
+    </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images because the installed libheif library is too old. Patchy needs libheif 1.12 or newer.</source>
+        <translation>インストールされている libheif ライブラリが古すぎるため、このビルドの Patchy は HEIC 画像をデコードできません。Patchy には libheif 1.12 以降が必要です。</translation>
+    </message>
+    <message>
+        <source>This HEIC image&apos;s bit depth is not supported by the installed libheif library.</source>
+        <translation>この HEIC 画像のビット深度は、インストールされている libheif ライブラリではサポートされていません。</translation>
+    </message>
+    <message>
+        <source>libheif returned an invalid HEIF pixel buffer</source>
+        <translation>libheif が無効な HEIF ピクセルバッファーを返しました</translation>
+    </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images because the system&apos;s libheif library is not installed. Install it and try again.
+Debian/Ubuntu: sudo apt install libheif1
+Fedora: sudo dnf install libheif</source>
+        <translation>システムの libheif ライブラリがインストールされていないため、このビルドの Patchy は HEIC 画像をデコードできません。インストールしてから、もう一度お試しください。
+Debian/Ubuntu: sudo apt install libheif1
+Fedora: sudo dnf install libheif</translation>
+    </message>
+    <message>
+        <source>The system&apos;s libheif library has no HEVC decoder plug-in, so Patchy cannot decode HEIC images. Install it and try again.
+Debian/Ubuntu: sudo apt install libheif-plugin-libde265
+Fedora (RPM Fusion): sudo dnf install libheif-freeworld</source>
+        <translation>システムの libheif ライブラリに HEVC デコーダープラグインがないため、Patchy は HEIC 画像をデコードできません。インストールしてから、もう一度お試しください。
+Debian/Ubuntu: sudo apt install libheif-plugin-libde265
+Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     </message>
 </context>
 <context>

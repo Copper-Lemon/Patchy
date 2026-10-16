@@ -1,0 +1,543 @@
+// Linux HEIF/HEIC decode through the distribution's own libheif, loaded with dlopen at run
+// time (compiled for native Linux builds and the AppImage, see CMakeLists). Patchy links
+// nothing: the library and its HEVC decoder plug-in (libde265 on Debian/Ubuntu, the RPM
+// Fusion build on Fedora) come from the user's package manager, so the binary ships no
+// HEVC decoder and the AppImage must never bundle libheif (docs/legal-constraints.md,
+// docs/appimage.md). Inside the Flatpak this file still compiles but steps aside:
+// the KDE runtime's kimg_heif plug-in plus the codecs-extra extension decode through the
+// QImageReader fallback instead (heif_document_io.hpp).
+//
+// The C ABI mirrored below is the subset libheif has kept unchanged since 1.12 (Ubuntu
+// 22.04): enum values, the error struct and the version-tagged decoding options are
+// append-only in libheif. Nothing from the vendored 1.23 headers is included because the
+// host library may be older than them.
+
+#include "formats/heif_document_io.hpp"
+
+#include "formats/image_density_probe.hpp"
+#include "support/translate_noop.hpp"
+
+#define CMS_NO_REGISTER_KEYWORD 1
+#include "lcms2.h"
+
+#include <dlfcn.h>
+
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <limits>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+namespace patchy::heif {
+
+namespace {
+
+constexpr std::uint64_t kMaximumPixels = 268'435'456;  // 256 Mpx, matching the WIC reader.
+constexpr std::size_t kMaximumIccProfileBytes = 16U * 1024U * 1024U;
+constexpr std::size_t kMaximumExifMetadataBytes = 16U * 1024U * 1024U;
+
+// Environment override for the library name or path. Tests point it at a missing file to
+// pin the "not installed" message; a user can point it at a libheif outside the loader's
+// search path.
+constexpr const char* kLibraryOverrideVariable = "PATCHY_HEIF_LIBRARY";
+
+// ---- libheif C ABI (stable subset, see the file comment) ----
+
+struct heif_context;
+struct heif_image_handle;
+struct heif_image;
+using heif_item_id = std::uint32_t;
+
+struct HeifError {
+  int code;
+  int subcode;
+  const char* message;
+};
+
+// Prefix of libheif's heif_decoding_options. Versions only append fields, so a struct
+// allocated by any newer library can be read and written through this view.
+struct HeifDecodingOptions {
+  std::uint8_t version;
+  std::uint8_t ignore_transformations;  // version 1; 0 applies irot/imir/clap (the default)
+  void* start_progress;
+  void* on_progress;
+  void* end_progress;
+  void* progress_user_data;
+  std::uint8_t convert_hdr_to_8bit;  // version 2
+};
+
+constexpr int kErrorOk = 0;
+constexpr int kErrorUnsupportedFeature = 4;
+constexpr int kErrorDecoderPluginError = 7;
+constexpr int kErrorPluginLoadingError = 11;
+constexpr int kSuberrorUnsupportedCodec = 3000;
+constexpr int kSuberrorNoMatchingDecoderInstalled = 6003;
+constexpr int kCompressionHevc = 1;
+constexpr int kColorspaceRgb = 1;
+constexpr int kChromaInterleavedRgba = 11;
+constexpr int kChannelInterleaved = 10;
+
+struct Library {
+  void* handle{nullptr};
+  // User-facing reason the library is unusable; empty when every symbol resolved.
+  std::string error;
+  std::string resolved_name;
+
+  heif_context* (*context_alloc)(){nullptr};
+  void (*context_free)(heif_context*){nullptr};
+  HeifError (*context_read_from_memory_without_copy)(heif_context*, const void*, std::size_t, const void*){nullptr};
+  HeifError (*context_get_primary_image_handle)(heif_context*, heif_image_handle**){nullptr};
+  int (*context_get_number_of_top_level_images)(heif_context*){nullptr};
+  int (*image_handle_get_width)(const heif_image_handle*){nullptr};
+  int (*image_handle_get_height)(const heif_image_handle*){nullptr};
+  int (*image_handle_has_alpha_channel)(const heif_image_handle*){nullptr};
+  std::size_t (*image_handle_get_raw_color_profile_size)(const heif_image_handle*){nullptr};
+  HeifError (*image_handle_get_raw_color_profile)(const heif_image_handle*, void*){nullptr};
+  int (*image_handle_get_list_of_metadata_block_IDs)(const heif_image_handle*, const char*, heif_item_id*, int){nullptr};
+  std::size_t (*image_handle_get_metadata_size)(const heif_image_handle*, heif_item_id){nullptr};
+  HeifError (*image_handle_get_metadata)(const heif_image_handle*, heif_item_id, void*){nullptr};
+  void (*image_handle_release)(const heif_image_handle*){nullptr};
+  HeifDecodingOptions* (*decoding_options_alloc)(){nullptr};
+  void (*decoding_options_free)(HeifDecodingOptions*){nullptr};
+  HeifError (*decode_image)(const heif_image_handle*, heif_image**, int, int, const HeifDecodingOptions*){nullptr};
+  int (*image_get_width)(const heif_image*, int){nullptr};
+  int (*image_get_height)(const heif_image*, int){nullptr};
+  int (*image_get_bits_per_pixel)(const heif_image*, int){nullptr};
+  const std::uint8_t* (*image_get_plane_readonly)(const heif_image*, int, int*){nullptr};
+  void (*image_release)(const heif_image*){nullptr};
+  // Optional (newer libheif): null when the host library predates them.
+  int (*image_handle_is_premultiplied_alpha)(const heif_image_handle*){nullptr};
+  int (*have_decoder_for_format)(int){nullptr};
+};
+
+// Both package messages end with the exact install command per distribution, the way the
+// Flatpak message carries its "flatpak install" line: the open-failed box shows them as
+// selectable text, so the user can copy the line straight into a terminal.
+constexpr std::string_view kLibraryMissingMessage = PATCHY_TRANSLATE_NOOP(
+    "QObject",
+    "This build of Patchy cannot decode HEIC images because the system's libheif library is not installed. "
+    "Install it and try again.\nDebian/Ubuntu: sudo apt install libheif1\nFedora: sudo dnf install libheif");
+
+constexpr std::string_view kLibraryTooOldMessage = PATCHY_TRANSLATE_NOOP(
+    "QObject",
+    "This build of Patchy cannot decode HEIC images because the installed libheif library is too old. "
+    "Patchy needs libheif 1.12 or newer.");
+
+constexpr std::string_view kHevcPluginMissingMessage = PATCHY_TRANSLATE_NOOP(
+    "QObject",
+    "The system's libheif library has no HEVC decoder plug-in, so Patchy cannot decode HEIC images. "
+    "Install it and try again.\nDebian/Ubuntu: sudo apt install libheif-plugin-libde265\n"
+    "Fedora (RPM Fusion): sudo dnf install libheif-freeworld");
+
+constexpr std::string_view kFlatpakCodecMessage = PATCHY_TRANSLATE_NOOP(
+    "QObject",
+    "Unable to decode this HEIC image. HEIC decoding needs the Flatpak codec extension; "
+    "install it with: flatpak install --user flathub org.freedesktop.Platform.codecs-extra//25.08-extra");
+
+template <typename Function>
+bool resolve(void* handle, const char* name, Function& target) {
+  target = reinterpret_cast<Function>(dlsym(handle, name));
+  return target != nullptr;
+}
+
+Library load_library(const std::string& override_name) {
+  Library library;
+  std::vector<std::string> candidates;
+  if (!override_name.empty()) {
+    candidates.push_back(override_name);
+  } else {
+    candidates = {"libheif.so.1", "libheif.so"};
+  }
+  for (const auto& candidate : candidates) {
+    // RTLD_LOCAL: libheif's own dependencies (libde265, libx265, libaom, ...) must not
+    // leak symbols into Patchy's global namespace next to its vendored codecs.
+    if (void* handle = dlopen(candidate.c_str(), RTLD_NOW | RTLD_LOCAL); handle != nullptr) {
+      library.handle = handle;
+      library.resolved_name = candidate;
+      break;
+    }
+  }
+  if (library.handle == nullptr) {
+    library.error = std::string(kLibraryMissingMessage);
+    return library;
+  }
+
+  void* handle = library.handle;
+  const bool complete =
+      resolve(handle, "heif_context_alloc", library.context_alloc) &&
+      resolve(handle, "heif_context_free", library.context_free) &&
+      resolve(handle, "heif_context_read_from_memory_without_copy", library.context_read_from_memory_without_copy) &&
+      resolve(handle, "heif_context_get_primary_image_handle", library.context_get_primary_image_handle) &&
+      resolve(handle, "heif_context_get_number_of_top_level_images", library.context_get_number_of_top_level_images) &&
+      resolve(handle, "heif_image_handle_get_width", library.image_handle_get_width) &&
+      resolve(handle, "heif_image_handle_get_height", library.image_handle_get_height) &&
+      resolve(handle, "heif_image_handle_has_alpha_channel", library.image_handle_has_alpha_channel) &&
+      resolve(handle, "heif_image_handle_get_raw_color_profile_size", library.image_handle_get_raw_color_profile_size) &&
+      resolve(handle, "heif_image_handle_get_raw_color_profile", library.image_handle_get_raw_color_profile) &&
+      resolve(handle, "heif_image_handle_get_list_of_metadata_block_IDs", library.image_handle_get_list_of_metadata_block_IDs) &&
+      resolve(handle, "heif_image_handle_get_metadata_size", library.image_handle_get_metadata_size) &&
+      resolve(handle, "heif_image_handle_get_metadata", library.image_handle_get_metadata) &&
+      resolve(handle, "heif_image_handle_release", library.image_handle_release) &&
+      resolve(handle, "heif_decoding_options_alloc", library.decoding_options_alloc) &&
+      resolve(handle, "heif_decoding_options_free", library.decoding_options_free) &&
+      resolve(handle, "heif_decode_image", library.decode_image) &&
+      resolve(handle, "heif_image_get_width", library.image_get_width) &&
+      resolve(handle, "heif_image_get_height", library.image_get_height) &&
+      resolve(handle, "heif_image_get_bits_per_pixel", library.image_get_bits_per_pixel) &&
+      resolve(handle, "heif_image_get_plane_readonly", library.image_get_plane_readonly) &&
+      resolve(handle, "heif_image_release", library.image_release);
+  if (!complete) {
+    library.error = std::string(kLibraryTooOldMessage);
+    return library;
+  }
+  resolve(handle, "heif_image_handle_is_premultiplied_alpha", library.image_handle_is_premultiplied_alpha);
+  resolve(handle, "heif_have_decoder_for_format", library.have_decoder_for_format);
+  return library;
+}
+
+// Loaded once per library name and never closed (a decode may still be running on
+// another thread when the next lookup happens, and the handle is tiny).
+const Library& library() {
+  static std::mutex mutex;
+  static std::map<std::string, std::unique_ptr<Library>> libraries;
+  const char* override_value = std::getenv(kLibraryOverrideVariable);
+  const std::string name = override_value != nullptr ? override_value : "";
+  const std::lock_guard<std::mutex> lock(mutex);
+  auto found = libraries.find(name);
+  if (found == libraries.end()) {
+    found = libraries.emplace(name, std::make_unique<Library>(load_library(name))).first;
+  }
+  return *found->second;
+}
+
+[[nodiscard]] bool running_in_flatpak() {
+  return std::getenv("FLATPAK_ID") != nullptr;
+}
+
+[[nodiscard]] bool codec_missing(const HeifError& error) {
+  if (error.code == kErrorPluginLoadingError) {
+    return true;
+  }
+  if (error.subcode == kSuberrorUnsupportedCodec || error.subcode == kSuberrorNoMatchingDecoderInstalled) {
+    return true;
+  }
+  // Older libheif builds report a missing decoder with a generic code and a message.
+  if (error.code == kErrorUnsupportedFeature || error.code == kErrorDecoderPluginError) {
+    const std::string_view message = error.message != nullptr ? error.message : "";
+    return message.find("ecoder") != std::string_view::npos || message.find("codec") != std::string_view::npos;
+  }
+  return false;
+}
+
+[[noreturn]] void throw_heif_error(std::string_view operation, const HeifError& error) {
+  if (codec_missing(error)) {
+    throw std::runtime_error(std::string(kHevcPluginMissingMessage));
+  }
+  const std::string detail = error.message != nullptr ? error.message : "unknown error";
+  throw std::runtime_error(std::string(operation) + ": " + detail);
+}
+
+void require_ok(std::string_view operation, const HeifError& error) {
+  if (error.code != kErrorOk) {
+    throw_heif_error(operation, error);
+  }
+}
+
+struct ContextDeleter {
+  const Library* lib;
+  void operator()(heif_context* value) const noexcept { lib->context_free(value); }
+};
+struct HandleDeleter {
+  const Library* lib;
+  void operator()(heif_image_handle* value) const noexcept { lib->image_handle_release(value); }
+};
+struct ImageDeleter {
+  const Library* lib;
+  void operator()(heif_image* value) const noexcept { lib->image_release(value); }
+};
+struct OptionsDeleter {
+  const Library* lib;
+  void operator()(HeifDecodingOptions* value) const noexcept { lib->decoding_options_free(value); }
+};
+
+void ignore_lcms_error(cmsContext /*context*/, cmsUInt32Number /*code*/, const char* /*text*/) {}
+
+// Same transform as the browser reader's (heif_document_io_wasm.cpp): an RGB ICC profile
+// (iPhone = Display P3) bakes to sRGB, which is what the Windows WIC path and Qt's
+// fallback produce too, so a HEIC opens with identical colors on every platform.
+class RgbIccToSrgbTransform {
+public:
+  static std::optional<RgbIccToSrgbTransform> create(std::span<const std::uint8_t> profile_bytes) {
+    if (profile_bytes.empty() || profile_bytes.size() > kMaximumIccProfileBytes ||
+        profile_bytes.size() > std::numeric_limits<cmsUInt32Number>::max()) {
+      return std::nullopt;
+    }
+    RgbIccToSrgbTransform result;
+    result.context_ = cmsCreateContext(nullptr, nullptr);
+    if (result.context_ == nullptr) {
+      return std::nullopt;
+    }
+    cmsSetLogErrorHandlerTHR(result.context_, ignore_lcms_error);
+    cmsHPROFILE source = cmsOpenProfileFromMemTHR(result.context_, profile_bytes.data(),
+                                                  static_cast<cmsUInt32Number>(profile_bytes.size()));
+    if (source == nullptr) {
+      return std::nullopt;
+    }
+    cmsHPROFILE destination = nullptr;
+    if (cmsGetColorSpace(source) == cmsSigRgbData) {
+      destination = cmsCreate_sRGBProfileTHR(result.context_);
+    }
+    if (destination != nullptr) {
+      result.transform_ = cmsCreateTransformTHR(result.context_, source, TYPE_RGBA_8, destination, TYPE_RGBA_8,
+                                                INTENT_RELATIVE_COLORIMETRIC,
+                                                cmsFLAGS_BLACKPOINTCOMPENSATION | cmsFLAGS_COPY_ALPHA | cmsFLAGS_NOCACHE);
+      cmsCloseProfile(destination);
+    }
+    cmsCloseProfile(source);
+    if (result.transform_ == nullptr) {
+      return std::nullopt;
+    }
+    return result;
+  }
+
+  RgbIccToSrgbTransform() = default;
+  RgbIccToSrgbTransform(const RgbIccToSrgbTransform&) = delete;
+  RgbIccToSrgbTransform& operator=(const RgbIccToSrgbTransform&) = delete;
+  RgbIccToSrgbTransform(RgbIccToSrgbTransform&& other) noexcept
+      : context_(std::exchange(other.context_, nullptr)), transform_(std::exchange(other.transform_, nullptr)) {}
+  RgbIccToSrgbTransform& operator=(RgbIccToSrgbTransform&& other) noexcept {
+    if (this != &other) {
+      reset();
+      context_ = std::exchange(other.context_, nullptr);
+      transform_ = std::exchange(other.transform_, nullptr);
+    }
+    return *this;
+  }
+  ~RgbIccToSrgbTransform() { reset(); }
+
+  void convert(const std::uint8_t* source, std::uint8_t* destination, std::size_t pixel_count) const {
+    cmsDoTransform(transform_, source, destination, static_cast<cmsUInt32Number>(pixel_count));
+  }
+
+private:
+  void reset() noexcept {
+    if (transform_ != nullptr) {
+      cmsDeleteTransform(transform_);
+      transform_ = nullptr;
+    }
+    if (context_ != nullptr) {
+      cmsDeleteContext(context_);
+      context_ = nullptr;
+    }
+  }
+
+  cmsContext context_{nullptr};
+  cmsHTRANSFORM transform_{nullptr};
+};
+
+[[nodiscard]] std::vector<std::uint8_t> read_icc_profile(const Library& lib, const heif_image_handle& handle) {
+  const auto profile_size = lib.image_handle_get_raw_color_profile_size(&handle);
+  if (profile_size == 0 || profile_size > kMaximumIccProfileBytes) {
+    return {};
+  }
+  std::vector<std::uint8_t> profile(profile_size);
+  if (lib.image_handle_get_raw_color_profile(&handle, profile.data()).code != kErrorOk) {
+    return {};
+  }
+  return profile;
+}
+
+[[nodiscard]] std::uint32_t read_u32_be(std::span<const std::uint8_t> bytes, std::size_t offset) {
+  return (static_cast<std::uint32_t>(bytes[offset]) << 24U) | (static_cast<std::uint32_t>(bytes[offset + 1U]) << 16U) |
+         (static_cast<std::uint32_t>(bytes[offset + 2U]) << 8U) | static_cast<std::uint32_t>(bytes[offset + 3U]);
+}
+
+[[nodiscard]] std::optional<formats::ImageDensity> read_exif_density(const Library& lib, const heif_image_handle& handle) {
+  heif_item_id metadata_id = 0;
+  if (lib.image_handle_get_list_of_metadata_block_IDs(&handle, "Exif", &metadata_id, 1) < 1) {
+    return std::nullopt;
+  }
+  const auto metadata_size = lib.image_handle_get_metadata_size(&handle, metadata_id);
+  if (metadata_size < 5U || metadata_size > kMaximumExifMetadataBytes) {
+    return std::nullopt;
+  }
+  std::vector<std::uint8_t> metadata(metadata_size);
+  if (lib.image_handle_get_metadata(&handle, metadata_id, metadata.data()).code != kErrorOk) {
+    return std::nullopt;
+  }
+  // HEIF Exif items start with a u32 offset to the TIFF header (ISO 23008-12 A.2.1).
+  const auto tiff_offset = static_cast<std::size_t>(read_u32_be(metadata, 0)) + 4U;
+  if (tiff_offset >= metadata.size()) {
+    return std::nullopt;
+  }
+  return formats::probe_exif_tiff_density(std::span<const std::uint8_t>(metadata).subspan(tiff_offset));
+}
+
+[[nodiscard]] bool has_meaningful_alpha(const std::uint8_t* plane, int stride, std::int32_t width, std::int32_t height) {
+  for (std::int32_t y = 0; y < height; ++y) {
+    const auto* row = plane + static_cast<std::size_t>(y) * static_cast<std::size_t>(stride);
+    for (std::int32_t x = 0; x < width; ++x) {
+      if (row[static_cast<std::size_t>(x) * 4U + 3U] != 0xFFU) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+void unpremultiply_row(std::uint8_t* rgba, std::int32_t width) {
+  for (std::int32_t x = 0; x < width; ++x, rgba += 4) {
+    const unsigned alpha = rgba[3];
+    if (alpha == 0 || alpha == 255) {
+      continue;
+    }
+    for (int channel = 0; channel < 3; ++channel) {
+      const unsigned value = (static_cast<unsigned>(rgba[channel]) * 255U + alpha / 2U) / alpha;
+      rgba[channel] = static_cast<std::uint8_t>(value > 255U ? 255U : value);
+    }
+  }
+}
+
+}  // namespace
+
+bool host_libheif_available() {
+  return !running_in_flatpak() && library().error.empty();
+}
+
+std::string host_libheif_load_error() {
+  return library().error;
+}
+
+FormatReadResult read_heif(std::span<const std::uint8_t> bytes) {
+  if (running_in_flatpak()) {
+    // The registry error sends load_document_from_path to QImageReader, where the KDE
+    // runtime's kimg_heif decodes. This text shows only when that fails too.
+    throw std::runtime_error(std::string(kFlatpakCodecMessage));
+  }
+  const Library& lib = library();
+  if (!lib.error.empty()) {
+    throw std::runtime_error(lib.error);
+  }
+  if (!sniff(bytes)) {
+    throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "This file is not a supported HEIC/HEIF image"));
+  }
+  if (lib.have_decoder_for_format != nullptr && lib.have_decoder_for_format(kCompressionHevc) == 0) {
+    // libheif 1.15+ with its HEVC decoder in a separate package that is not installed.
+    throw std::runtime_error(std::string(kHevcPluginMissingMessage));
+  }
+
+  std::unique_ptr<heif_context, ContextDeleter> context(lib.context_alloc(), ContextDeleter{&lib});
+  if (!context) {
+    throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "Unable to initialize the HEIF parser"));
+  }
+  require_ok("Unable to parse this HEIC/HEIF image",
+             lib.context_read_from_memory_without_copy(context.get(), bytes.data(), bytes.size(), nullptr));
+
+  heif_image_handle* raw_handle = nullptr;
+  require_ok("Unable to find the primary HEIF image", lib.context_get_primary_image_handle(context.get(), &raw_handle));
+  std::unique_ptr<heif_image_handle, HandleDeleter> handle(raw_handle, HandleDeleter{&lib});
+
+  // Bound the decode before asking for pixels: the handle reports the displayed size
+  // (after irot), which is what the output buffer will hold.
+  const int handle_width = lib.image_handle_get_width(handle.get());
+  const int handle_height = lib.image_handle_get_height(handle.get());
+  if (handle_width <= 0 || handle_height <= 0 ||
+      static_cast<std::uint64_t>(handle_width) * static_cast<std::uint64_t>(handle_height) > kMaximumPixels) {
+    throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "This HEIF image's dimensions are not supported"));
+  }
+
+  const auto density = read_exif_density(lib, *handle);
+  const auto icc_profile = read_icc_profile(lib, *handle);
+  std::optional<RgbIccToSrgbTransform> icc_transform;
+  if (!icc_profile.empty()) {
+    icc_transform = RgbIccToSrgbTransform::create(icc_profile);
+  }
+  const bool premultiplied =
+      lib.image_handle_is_premultiplied_alpha != nullptr && lib.image_handle_has_alpha_channel(handle.get()) != 0 &&
+      lib.image_handle_is_premultiplied_alpha(handle.get()) != 0;
+
+  std::unique_ptr<HeifDecodingOptions, OptionsDeleter> options(lib.decoding_options_alloc(), OptionsDeleter{&lib});
+  if (!options) {
+    throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "Unable to initialize HEIF decoding options"));
+  }
+  // Defaults apply the container's rotation, mirroring and clean-aperture crop. 10-bit
+  // files (iPhone HDR captures) come down to 8 bits inside libheif.
+  if (options->version >= 2) {
+    options->convert_hdr_to_8bit = 1;
+  }
+
+  heif_image* raw_image = nullptr;
+  require_ok("Unable to decode this HEIC image",
+             lib.decode_image(handle.get(), &raw_image, kColorspaceRgb, kChromaInterleavedRgba, options.get()));
+  std::unique_ptr<heif_image, ImageDeleter> image(raw_image, ImageDeleter{&lib});
+
+  const int width_value = lib.image_get_width(image.get(), kChannelInterleaved);
+  const int height_value = lib.image_get_height(image.get(), kChannelInterleaved);
+  if (width_value <= 0 || height_value <= 0 ||
+      static_cast<std::uint64_t>(width_value) * static_cast<std::uint64_t>(height_value) > kMaximumPixels) {
+    throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "This HEIF image's dimensions are not supported"));
+  }
+  if (lib.image_get_bits_per_pixel(image.get(), kChannelInterleaved) != 32) {
+    // An old libheif without convert_hdr_to_8bit hands back 16-bit interleaved samples.
+    throw std::runtime_error(PATCHY_TRANSLATE_NOOP(
+        "QObject", "This HEIC image's bit depth is not supported by the installed libheif library."));
+  }
+  const auto width = static_cast<std::int32_t>(width_value);
+  const auto height = static_cast<std::int32_t>(height_value);
+
+  int stride = 0;
+  const auto* plane = lib.image_get_plane_readonly(image.get(), kChannelInterleaved, &stride);
+  const auto tight_stride = static_cast<std::size_t>(width) * 4U;
+  if (plane == nullptr || stride < 0 || static_cast<std::size_t>(stride) < tight_stride) {
+    throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "libheif returned an invalid HEIF pixel buffer"));
+  }
+
+  const bool has_alpha = has_meaningful_alpha(plane, stride, width, height);
+  const auto pixel_format = has_alpha ? PixelFormat::rgba8() : PixelFormat::rgb8();
+  PixelBuffer pixels(width, height, pixel_format);
+  std::vector<std::uint8_t> scratch_row(tight_stride);
+  for (std::int32_t y = 0; y < height; ++y) {
+    const auto* source = plane + static_cast<std::size_t>(y) * static_cast<std::size_t>(stride);
+    auto destination = pixels.row(y);
+    const std::uint8_t* rgba = source;
+    if (premultiplied && has_alpha) {
+      std::memcpy(scratch_row.data(), source, tight_stride);
+      unpremultiply_row(scratch_row.data(), width);
+      rgba = scratch_row.data();
+    }
+    if (icc_transform.has_value()) {
+      // In place when the row is already in the scratch buffer; the transform accepts
+      // overlapping source and destination.
+      icc_transform->convert(rgba, scratch_row.data(), static_cast<std::size_t>(width));
+      rgba = scratch_row.data();
+    }
+    if (has_alpha) {
+      std::memcpy(destination.data(), rgba, tight_stride);
+    } else {
+      for (std::int32_t x = 0; x < width; ++x) {
+        std::memcpy(destination.data() + static_cast<std::size_t>(x) * 3U, rgba + static_cast<std::size_t>(x) * 4U, 3U);
+      }
+    }
+  }
+
+  FormatReadResult result;
+  result.document = Document(width, height, pixel_format);
+  result.document.print_settings().horizontal_ppi = density.has_value() ? density->horizontal_ppi : 72.0;
+  result.document.print_settings().vertical_ppi = density.has_value() ? density->vertical_ppi : 72.0;
+  result.document.add_pixel_layer("Background", std::move(pixels));
+  if (const int image_count = lib.context_get_number_of_top_level_images(context.get()); image_count > 1) {
+    result.notices.push_back("Opened the primary image only (" + std::to_string(image_count) + " images in the file)");
+  }
+  return result;
+}
+
+}  // namespace patchy::heif

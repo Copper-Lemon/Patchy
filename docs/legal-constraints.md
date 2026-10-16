@@ -1,6 +1,6 @@
 # Binding legal and licensing constraints
 
-Read this file before changing any feature named below or introducing an adjacent implementation. The claim-level research record lives in [patent-research.md](patent-research.md) and, for content-aware fill, [patent-research-inpainting.md](patent-research-inpainting.md), with alignment guides in [patent-research-alignment.md](patent-research-alignment.md), automatic selection in [patent-research-selection.md](patent-research-selection.md), the G'MIC filters in [patent-research-gmic.md](patent-research-gmic.md), soft proofing in [patent-research-proofing.md](patent-research-proofing.md), and format law, codecs, and trademarks in [patent-research-formats.md](patent-research-formats.md); detailed compatibility records live in [smart-objects.md](smart-objects.md), [selection-tools.md](selection-tools.md), [liquify.md](liquify.md), [brushes.md](brushes.md), [vector-tools.md](vector-tools.md), [image-trace.md](image-trace.md), [file-formats.md](file-formats.md), and [af-format.md](af-format.md). These constraints are binding even when a broader feature appears technically straightforward.
+Read this file before changing any feature named below or introducing an adjacent implementation. The claim-level research record lives in [patent-research.md](patent-research.md) and, for content-aware fill, [patent-research-inpainting.md](patent-research-inpainting.md), with alignment guides in [patent-research-alignment.md](patent-research-alignment.md), automatic selection in [patent-research-selection.md](patent-research-selection.md), the G'MIC filters in [patent-research-gmic.md](patent-research-gmic.md), soft proofing in [patent-research-proofing.md](patent-research-proofing.md), and format law, codecs, and trademarks in [patent-research-formats.md](patent-research-formats.md); detailed compatibility records live in [smart-objects.md](smart-objects.md), [selection-tools.md](selection-tools.md), [liquify.md](liquify.md), [brushes.md](brushes.md), [vector-tools.md](vector-tools.md), [image-trace.md](image-trace.md), [file-formats.md](file-formats.md), and [af-format.md](af-format.md). These constraints bind even when a feature looks straightforward.
 
 ## Selection tools
 
@@ -68,17 +68,19 @@ Design in [gmic.md](gmic.md); claim record in [patent-research-gmic.md](patent-r
 - "Smart Object(s)", "Smart Filter(s)", "Filter Gallery", and "PSD" are not Adobe trademarks in the reviewed record. PHOTOSHOP is registered and policed. Use referential language such as "compatible with Adobe Photoshop"; never use Adobe marks in Patchy's product name, icons, or branding, and retain README.md's Trademark Notice.
 - Bundled art and textures must never come from AI image generation. Acceptable sources are code generation or real photography/human artwork under a commercially compatible license, preferably CC0. Every third-party asset needs a `NOTICE-THIRD-PARTY.md` entry and must ship losslessly. Poly Haven textures are human-made.
 - HEIC/HEIF decoding must use a platform or browser-provided HEVC decoder. Native builds
-  keep their existing platform-codec paths. The browser build may statically link the
-  vendored libheif container parser and its WebCodecs adapter, but every software HEVC
-  codec backend and HEVC encoder must remain disabled. Never vendor or link libde265, x265, or
-  another HEVC decoder/encoder, and do not add HEIC encoding. The WASM CMake option block,
+  keep their platform-codec paths; Linux dlopens the distribution's own libheif and its
+  decoder plug-in at run time and ships nothing (the AppImage never bundles libheif).
+  The browser build may statically link the vendored libheif container parser and its
+  WebCodecs adapter, but every software HEVC codec backend and HEVC encoder must remain
+  disabled. Never vendor or link libde265, x265, or another HEVC decoder/encoder, and do
+  not add HEIC encoding. The WASM CMake option block,
   the runtime `VideoDecoder.isConfigSupported()` check, and the distribution obligations
   recorded in `NOTICE-THIRD-PARTY.md` are binding parts of this boundary. See
-  [file-formats.md](file-formats.md) for the platform and browser design.
+  [heif.md](heif.md) for the platform and browser design.
 - JPEG XR decoding and encoding must use the in-box Windows Imaging Component codec. Never
   vendor or link jxrlib, libjxr, or another JPEG XR codec, and never add a JPEG XR path to a
-  non-Windows build, without a new review. The boundary is cheap to hold and worth holding:
-  Patchy ships no codec, so no JPEG XR patent reads on the binary at all. The underlying
+  non-Windows build, without a new review. Patchy ships no codec, so no JPEG XR patent reads
+  on the binary. The underlying
   position is friendlier than HEVC's (Microsoft placed the JPEG XR patents under the Open
   Specification Promise and released the reference implementation under BSD-2-Clause, and
   the 2006-2009 priority dates are at or past term), but that reasoning has not been through

@@ -100,9 +100,16 @@ behind. Wherever a path is shown, stored or compared across launches, use it (or
   ([auto-update.md](auto-update.md), "AppImage"). Otherwise it names the file, Download is
   the default button and opens `linux.appimage_url` (else `kAppImageDownloadUrl`, the
   GitHub permalink). Never a flatpak command.
-- HEIC: aqt's Qt has no HEIF plug-in, so the AppImage cannot open HEIC (the error says the
-  Flatpak can). Bundling kimageformats + libheif + an HEVC decoder is a legal question
-  ([legal-constraints.md](legal-constraints.md)).
+- HEIC: aqt's Qt has no HEIF plug-in. Instead the app dlopens the host's `libheif.so.1`
+  at run time (`heif_document_io_linux.cpp`, GitHub issue 117), so HEIC opens wherever
+  the distro's libheif and its HEVC plug-in are installed (Ubuntu/Debian: `libheif1` plus,
+  on 24.04 and later, `libheif-plugin-libde265`; Fedora: `libheif` plus RPM Fusion's
+  `libheif-freeworld`). The open error shows the exact install command. The AppImage must never
+  bundle libheif or an HEVC decoder ([legal-constraints.md](legal-constraints.md));
+  linuxdeploy copies only what the binary links, and dlopen links nothing. The loader
+  uses `RTLD_LOCAL`, so the host library's codecs stay out of the app's symbol namespace;
+  its own `libjpeg`/`libpng` dependencies resolve to the bundled copies when the sonames
+  match, which is the ABI those libraries keep.
 
 Single-instance forwarding needs nothing: its name is per user, not per path. Settings and
 recovery live in the normal per-user folders (shared with a native Linux build).
