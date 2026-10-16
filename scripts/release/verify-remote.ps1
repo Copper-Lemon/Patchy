@@ -10,9 +10,11 @@ upload order"):
 
 Run it after that target's builder (release-all-automated.bat verify-mac / verify-linux do
 this unattended); it refuses while build\release-logs\<target>.exit reports a failed build.
-Logs: build\release-logs\verify-<target>-suites.log and verify-<target>.log, each with an
-.exit marker. A step passes only with exit 0, no [FAIL] line and, for step 2, the script's
-closing "ALL ... RELEASE CHECKS PASSED" line.
+Logs: build\release-logs\verify-<target>-suites.log and verify-<target>-checks.log, each with
+an .exit marker. A step passes only with exit 0, no [FAIL] line and, for step 2, the script's
+closing "ALL ... RELEASE CHECKS PASSED" line. Never name a log verify-<target>.log here: that
+is where release-worker.bat redirects this script's own output, so the checks redirect would
+fail on the lock and the closing tail would echo the file back into itself without end.
 #>
 param(
   [Parameter(Mandatory = $true)][ValidateSet('mac', 'linux')][string]$Target,
@@ -62,7 +64,7 @@ if (-not $SkipSuites) {
 $script = (Get-Content (Join-Path $PSScriptRoot "verify-$Target.sh") -Raw) -replace "`r", ''
 $scriptCopy = Join-Path $logs "verify-$Target.sh.tmp"
 [IO.File]::WriteAllText($scriptCopy, $script, (New-Object System.Text.UTF8Encoding($false)))
-$log = Join-Path $logs "verify-$Target.log"
+$log = Join-Path $logs "verify-$Target-checks.log"
 Write-Output "== $Target release checks (verify-$Target.sh $version on $remoteHost) =="
 $code = Invoke-CmdLine ('ssh -o ConnectTimeout=30 ' + $remoteHost + ' "bash -s -- ' + $version + '" < "' +
                        $scriptCopy + '" > "' + $log + '" 2>&1')
