@@ -592,9 +592,11 @@ void CanvasWidget::draw_shape_preview(QPainter& painter, QRect exposed_rect) {
 
 bool CanvasWidget::draw_shape_appearance_preview(QPainter& painter,
                                                  const ShapePreviewAppearance& appearance) {
-  // Approximation notes: stroke draws centered regardless of the committed
-  // inside alignment, and line arrowheads appear at commit; both stay close
-  // enough for a live drag preview.
+  // Approximation note: line arrowheads appear at commit. The stroke itself
+  // follows the committed alignment, join and cap (issue 125): an inside or
+  // outside stroke is the double-width centered band clipped to the fill
+  // region or its complement, the same construction rasterize_vector_stroke
+  // uses, so the shape neither shrinks nor changes its corners on release.
   QPainterPath path;
   const auto to_widget = [this](QPointF document_point) {
     return widget_position_f(document_point);
@@ -697,10 +699,29 @@ bool CanvasWidget::draw_shape_appearance_preview(QPainter& painter,
   painter.drawPath(path);
   if (appearance.stroke_enabled && appearance.stroke.style() != Qt::NoBrush &&
       appearance.stroke_width > 0.0) {
+    const bool centered = appearance.stroke_alignment == VectorStrokeAlignment::Center;
+    const double band_width =
+        std::max(0.5, appearance.stroke_width * zoom_) * (centered ? 1.0 : 2.0);
+    QPen pen(widget_space_brush(appearance.stroke), band_width);
+    pen.setJoinStyle(appearance.stroke_join == VectorStrokeJoin::Round   ? Qt::RoundJoin
+                     : appearance.stroke_join == VectorStrokeJoin::Bevel ? Qt::BevelJoin
+                                                                         : Qt::MiterJoin);
+    pen.setCapStyle(appearance.stroke_cap == VectorStrokeCap::Round    ? Qt::RoundCap
+                    : appearance.stroke_cap == VectorStrokeCap::Square ? Qt::SquareCap
+                                                                       : Qt::FlatCap);
+    pen.setMiterLimit(std::max(1.0, appearance.stroke_miter_limit));
+    painter.save();
+    if (appearance.stroke_alignment == VectorStrokeAlignment::Inside) {
+      painter.setClipPath(path, Qt::IntersectClip);
+    } else if (appearance.stroke_alignment == VectorStrokeAlignment::Outside) {
+      QPainterPath outside;
+      outside.addRect(QRectF(rect()).adjusted(-band_width, -band_width, band_width, band_width));
+      painter.setClipPath(outside.subtracted(path), Qt::IntersectClip);
+    }
     painter.setBrush(Qt::NoBrush);
-    painter.setPen(QPen(widget_space_brush(appearance.stroke),
-                        std::max(0.5, appearance.stroke_width * zoom_)));
+    painter.setPen(pen);
     painter.drawPath(path);
+    painter.restore();
   }
   painter.restore();
   return true;

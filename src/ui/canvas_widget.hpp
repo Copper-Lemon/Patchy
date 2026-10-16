@@ -899,6 +899,13 @@ public:
     bool stroke_enabled{false};
     QBrush stroke{Qt::NoBrush};
     double stroke_width{1.0};
+    // The committed stroke's geometry (GitHub issue 125): the preview once drew a
+    // centered band with Qt's default bevel join, so a wide stroke jumped inward
+    // and its corners changed shape on release.
+    VectorStrokeAlignment stroke_alignment{VectorStrokeAlignment::Inside};
+    VectorStrokeJoin stroke_join{VectorStrokeJoin::Miter};
+    VectorStrokeCap stroke_cap{VectorStrokeCap::Butt};
+    double stroke_miter_limit{100.0};
     int line_weight{1};
   };
   void set_shape_preview_appearance_callback(

@@ -1608,6 +1608,63 @@ void ui_shape_mode_drag_previews_fill_appearance() {
   QApplication::processEvents();
 }
 
+// GitHub issue 125: the live preview once drew the stroke as a centered band
+// with Qt's default bevel join, so a wide stroke jumped inward and its corners
+// changed shape on release. The preview now follows the committed inside
+// alignment: stroke pixels sit inside the dragged rectangle, none outside it,
+// and the corner is filled to the tip.
+void ui_shape_mode_drag_previews_stroke_inside_the_shape() {
+  VectorSettingsGuard settings_guard;
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* canvas = require_canvas(window);
+  canvas->set_zoom(1.0);
+  QApplication::processEvents();
+
+  canvas->set_tool(patchy::ui::CanvasTool::Rectangle);  // Shape mode default
+  auto* radius_spin = window.findChild<QSpinBox*>(QStringLiteral("shapeCornerRadiusSpin"));
+  auto* stroke_check = window.findChild<QCheckBox*>(QStringLiteral("vectorStrokeCheck"));
+  auto* stroke_width = window.findChild<QDoubleSpinBox*>(QStringLiteral("vectorStrokeWidthSpin"));
+  CHECK(radius_spin != nullptr && stroke_check != nullptr && stroke_width != nullptr);
+  if (radius_spin == nullptr || stroke_check == nullptr || stroke_width == nullptr) {
+    return;
+  }
+  radius_spin->setValue(0);
+  stroke_check->setChecked(true);
+  stroke_width->setValue(16);
+  auto& fill = patchy::ui::MainWindowTestAccess::current_vector_fill(window);
+  fill = patchy::VectorFill{};
+  fill.color = patchy::RgbColor{255, 255, 255};
+  auto& stroke = patchy::ui::MainWindowTestAccess::current_vector_stroke_paint(window);
+  stroke = patchy::VectorFill{};
+  stroke.color = patchy::RgbColor{220, 30, 30};
+  QApplication::processEvents();
+
+  const QPoint from(300, 250);
+  const QPoint to(600, 450);
+  send_mouse(*canvas, QEvent::MouseButtonPress, canvas->widget_position_for_document_point(from),
+             Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*canvas, QEvent::MouseMove, canvas->widget_position_for_document_point(to),
+             Qt::NoButton, Qt::LeftButton);
+  QApplication::processEvents();
+  const QColor stroke_color(220, 30, 30);
+  // Inside the left edge: stroke. Outside it: the untouched white canvas.
+  CHECK(color_close(canvas_pixel(*canvas, QPoint(305, 350)), stroke_color, 30));
+  CHECK(color_close(canvas_pixel(*canvas, QPoint(295, 350)), Qt::white, 30));
+  // The corner is filled right to the tip (a centered bevel left it hollow).
+  CHECK(color_close(canvas_pixel(*canvas, QPoint(303, 253)), stroke_color, 30));
+  // Past the stroke depth the fill shows.
+  CHECK(color_close(canvas_pixel(*canvas, QPoint(330, 350)), Qt::white, 30));
+  CHECK(color_close(canvas_pixel(*canvas, QPoint(450, 350)), Qt::white, 30));
+  send_mouse(*canvas, QEvent::MouseButtonRelease, canvas->widget_position_for_document_point(to),
+             Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  // The committed shape agrees with the preview at the same points.
+  CHECK(color_close(canvas_pixel(*canvas, QPoint(305, 350)), stroke_color, 30));
+  CHECK(color_close(canvas_pixel(*canvas, QPoint(295, 350)), Qt::white, 30));
+  CHECK(color_close(canvas_pixel(*canvas, QPoint(303, 253)), stroke_color, 30));
+}
+
 void ui_paths_panel_clipping_path_toggle() {
   VectorSettingsGuard settings_guard;
   patchy::ui::MainWindow window;
@@ -4932,6 +4989,8 @@ std::vector<patchy::test::TestCase> vector_shape_tool_tests() {
       {"ui_paths_panel_clipping_path_toggle", ui_paths_panel_clipping_path_toggle},
       {"ui_shape_mode_drag_previews_fill_appearance",
        ui_shape_mode_drag_previews_fill_appearance},
+      {"ui_shape_mode_drag_previews_stroke_inside_the_shape",
+       ui_shape_mode_drag_previews_stroke_inside_the_shape},
       {"ui_shape_geometry_edits_live_shape", ui_shape_geometry_edits_live_shape},
       {"ui_new_gradient_fill_layer_spans_canvas", ui_new_gradient_fill_layer_spans_canvas},
       {"ui_paths_panel_actions_follow_row_selection", ui_paths_panel_actions_follow_row_selection},

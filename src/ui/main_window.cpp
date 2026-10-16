@@ -8731,11 +8731,18 @@ void MainWindow::configure_canvas(CanvasWidget* canvas) {
       [this]() -> std::optional<CanvasWidget::ShapePreviewAppearance> {
         // Pulled at draw time from the application-wide options-bar state, so
         // the preview can never desync from what the commit will produce.
+        // The same content the release commits, so alignment, join and cap
+        // cannot drift between the preview and the shape layer (issue 125).
+        const auto content = current_shape_appearance_content();
         CanvasWidget::ShapePreviewAppearance appearance;
-        appearance.fill = vector_fill_preview_brush(current_vector_fill_);
-        appearance.stroke_enabled = current_vector_stroke_enabled_;
-        appearance.stroke = vector_fill_preview_brush(current_vector_stroke_paint_);
-        appearance.stroke_width = current_vector_stroke_width_;
+        appearance.fill = vector_fill_preview_brush(content.fill);
+        appearance.stroke_enabled = content.stroke.enabled;
+        appearance.stroke = vector_fill_preview_brush(content.stroke.content);
+        appearance.stroke_width = content.stroke.width;
+        appearance.stroke_alignment = content.stroke.alignment;
+        appearance.stroke_join = content.stroke.join;
+        appearance.stroke_cap = content.stroke.cap;
+        appearance.stroke_miter_limit = content.stroke.miter_limit;
         appearance.line_weight = static_cast<int>(std::lround(current_vector_line_weight_));
         return appearance;
       });

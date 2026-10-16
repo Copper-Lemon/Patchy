@@ -9,7 +9,9 @@ Rules: docs/legal-constraints.md.
 
 Shape | Path | Pixels persists as `tools/vectorToolMode` (default Shape).
 Shape drags preview options-bar fill/stroke at draw time for the Content
-target; mask/channel/quick-mask targets always rasterize. Release creates a
+target, with the committed stroke alignment, join and cap (the inside/outside
+band clipped by the fill path, as in `rasterize_vector_stroke`; issue 125);
+mask/channel/quick-mask targets always rasterize. Release creates a
 shape layer from live parameters (rect, rounded rect via Radius, ellipse,
 line with Weight) and the options-bar paints. Stroke alignment defaults to
 Inside, like PS. Combine (New Layer / Add / Subtract / Intersect / Exclude)
@@ -183,31 +185,27 @@ and vector masks (convert to a smart object or rasterize first).
 ## Appearance editing and fill layers
 
 The Shape Appearance dialog opens from the vector badge, the layer and
-canvas context menus ([tools.md](tools.md); a shape row's double-click opens
-Layer Style, like every row), the options-bar Appearance... button, Layer >
+canvas context menus ([tools.md](tools.md)), the options-bar Appearance... button, Layer >
 Shape > Shape Appearance... (`layer.shape_appearance`), the Properties
 panel's Edit Appearance..., and a Path Select / Direct Select double-click on
-the shape's geometry. Reset restores the factory appearance, fill in the
-foreground color (geometry stays). Controls: paint kind, width, alignment, caps, joins, dash presets
+the shape's geometry. Reset restores the factory appearance (geometry stays). Controls: paint kind, width, alignment, caps, joins, dash presets
 (Custom keeps PSD dash arrays). `pattern_linked` anchors at the effects
 reference point when on and document origin when off; offsets add either way
 (PatternTileSampler).
 
 Geometry requires one modeled origination covering every subpath: rect
 bounds and radii, ellipse bounds, or line endpoints/weight. A radius makes a
-rect rounded. Chain buttons bracket their linked rows between labels and
-fields: `shapeGeometryLinkButton` keeps W/H in the ratio captured when
+rect rounded. Chain buttons sit between labels and fields: `shapeGeometryLinkButton` keeps W/H in the ratio captured when
 switched on; `shapeGeometryRadiusLinkButton` edits all four radii together,
-on by default only when the corners agree. Dialogs are the patent-cleared
-route; on-canvas gizmos stay excluded. The dialog also edits layer Opacity and Fill opacity,
+on by default only when the corners agree. Dialogs are the patent-cleared route; no on-canvas gizmos. The dialog also edits layer Opacity and Fill opacity,
 the stroke's own opacity (vstk strokeStyleOpacity), and Feather / Density
-(Edge group); all PSD-native, one "Shape appearance" undo entry.
+(Edge group); all PSD-native, one undo entry.
 
 Edits preview live and restore on cancel or exception; a PSD-read
 gradient/pattern stroke stays untouched unless re-picked. The preview
 rasterizes on a worker: the vector MODEL applies synchronously, baked pixels
 lag, requests coalesce, the pattern anchor rides a scratch layer; accept
-commits the in-flight result (60 s timeout fallback).
+commits the in-flight result (60 s timeout).
 
 Layer > New Fill Layer creates Solid Color, Gradient (FG-to-BG linear), and
 Pattern fill layers as shape layers with an empty path (whole canvas); a
