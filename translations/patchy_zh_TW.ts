@@ -2112,10 +2112,6 @@
         <translation>有一個非等向的 SVG 變形已依面積縮放比例近似筆畫寬度</translation>
     </message>
     <message>
-        <source>An SVG stroke more opaque than its fill was clamped to the fill opacity</source>
-        <translation>有一個 SVG 筆畫的不透明度高於其填色，已限制為填色的不透明度</translation>
-    </message>
-    <message>
         <source>Complex SVG text positioning was reduced to a plain text layer</source>
         <translation>複雜的 SVG 文字定位已簡化為純文字圖層</translation>
     </message>

@@ -2112,10 +2112,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>An SVG stroke more opaque than its fill was clamped to the fill opacity</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Complex SVG text positioning was reduced to a plain text layer</source>
         <translation type="unfinished"></translation>
     </message>

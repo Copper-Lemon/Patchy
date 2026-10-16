@@ -1123,6 +1123,9 @@ struct Importer {
   std::vector<CssRule> css{};
   std::unordered_map<std::string, const XmlNode*> ids{};
   Document document{1, 1, PixelFormat::rgba8()};
+  // import_shape leaves the stroke half of a split shape here; import_children
+  // places it right above the fill half.
+  std::optional<Layer> split_stroke_layer_;
   Rect canvas{};
   // The outermost viewport in user units (the viewBox size, else the canvas): what a
   // percentage resolves against in userSpaceOnUse paint-server coordinates.
@@ -2070,14 +2073,25 @@ struct Importer {
 
     // Opacity model: the layer carries opacity x fill-opacity (x solid-fill
     // alpha); the stroke's own opacity divides that back out. A stroke more
-    // opaque than the fill cannot be represented and clamps with a notice.
+    // opaque than the fill cannot ride the same layer, so it becomes a second,
+    // fill-less shape layer over the fill (GitHub issue 111: an opaque white
+    // outline on an rgba(…, 0.2) fill used to clamp to 20% and vanish).
     const bool has_fill = content.fill.kind != VectorFillKind::None;
     const double fill_factor = has_fill ? style.fill_opacity * fill_paint.alpha : 1.0;
     const double layer_opacity = std::clamp(style.opacity * fill_factor, 0.0, 1.0);
     const double stroke_target = style.stroke_opacity * stroke_paint.alpha;
     stroke.opacity = std::clamp(fill_factor > 1e-6 ? stroke_target / fill_factor : stroke_target, 0.0, 1.0);
-    if (stroke.enabled && stroke_target > fill_factor + 1e-6) {
-      notice(PATCHY_TRANSLATE_NOOP("QObject", "An SVG stroke more opaque than its fill was clamped to the fill opacity"));
+    std::optional<VectorShapeContent> outline;
+    if (stroke.enabled && has_fill && stroke_target > fill_factor + 1e-6 && node.name != "line") {
+      outline.emplace();
+      outline->path = content.path;
+      outline->fill = VectorFill{.kind = VectorFillKind::None};
+      outline->stroke = stroke;
+      outline->stroke.opacity = 1.0;
+      if (live.has_value()) {
+        outline->origination = {*live};
+      }
+      stroke = VectorStroke{};
     }
 
     // A plain stroked <line> becomes Photoshop's live Line shape: the weight-w
@@ -2116,12 +2130,20 @@ struct Importer {
                                                                                   : "Shape";
     Layer layer = make_shape_layer(node, type, std::move(content), style, transform);
     layer.set_opacity(static_cast<float>(layer_opacity));
+    if (outline.has_value()) {
+      // Named after the fill half, so the pair reads as one element in the panel.
+      Layer outline_layer =
+          make_shape_layer(node, type, std::move(*outline), style, transform, layer.name() + " Stroke");
+      outline_layer.set_opacity(static_cast<float>(std::clamp(style.opacity * stroke_target, 0.0, 1.0)));
+      split_stroke_layer_ = std::move(outline_layer);
+    }
     return layer;
   }
 
   Layer make_shape_layer(const XmlNode& node, const std::string& type, VectorShapeContent content, const Style& style,
-                         const Affine& transform) {
-    Layer layer(document.allocate_layer_id(), name_for(node, type), LayerKind::Pixel);
+                         const Affine& transform, std::optional<std::string> name = std::nullopt) {
+    Layer layer(document.allocate_layer_id(), name.has_value() ? std::move(*name) : name_for(node, type),
+                LayerKind::Pixel);
     layer.metadata()[kLayerMetadataVectorShape] = "1";
     mark_layer_vector_block_dirty(layer);  // no preserved PSD blocks: always regenerate on save
     layer.set_blend_mode(detail::blend_mode_from_css(style.blend));
@@ -2400,6 +2422,11 @@ struct Importer {
       }
       if (layer.has_value()) {
         layers.push_back(std::move(*layer));
+        if (split_stroke_layer_.has_value()) {
+          // The stroke half of a shape whose stroke outweighs its fill, above its fill.
+          layers.push_back(std::move(*split_stroke_layer_));
+          split_stroke_layer_.reset();
+        }
       } else {
         static const std::set<std::string, std::less<>> kKnownDrawables = {
             "text", "image", "path", "rect", "circle", "ellipse", "line", "polygon", "polyline"};

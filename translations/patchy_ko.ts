@@ -2136,10 +2136,6 @@
         <translation>이방성 SVG 변환은 영역 배율을 기준으로 획 너비를 근사화했습니다.</translation>
     </message>
     <message>
-        <source>An SVG stroke more opaque than its fill was clamped to the fill opacity</source>
-        <translation>채우기보다 더 불투명한 SVG 획이 채우기 불투명도로 고정되었습니다.</translation>
-    </message>
-    <message>
         <source>Complex SVG text positioning was reduced to a plain text layer</source>
         <translation>복잡한 SVG 텍스트 위치 지정이 일반 텍스트 레이어로 축소되었습니다.</translation>
     </message>

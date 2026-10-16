@@ -2112,10 +2112,6 @@
         <translation>Una trasformazione SVG anisotropa ha approssimato lo spessore di una traccia in base alla scala dell&apos;area</translation>
     </message>
     <message>
-        <source>An SVG stroke more opaque than its fill was clamped to the fill opacity</source>
-        <translation>Una traccia SVG più opaca del suo riempimento è stata limitata all&apos;opacità del riempimento</translation>
-    </message>
-    <message>
         <source>Complex SVG text positioning was reduced to a plain text layer</source>
         <translation>Un posizionamento complesso del testo SVG è stato ridotto a un livello di testo semplice</translation>
     </message>

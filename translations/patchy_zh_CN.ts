@@ -2112,10 +2112,6 @@
         <translation>一个各向异性的 SVG 变换按其面积缩放比例近似了描边宽度</translation>
     </message>
     <message>
-        <source>An SVG stroke more opaque than its fill was clamped to the fill opacity</source>
-        <translation>一个比填充更不透明的 SVG 描边已被限制为填充的不透明度</translation>
-    </message>
-    <message>
         <source>Complex SVG text positioning was reduced to a plain text layer</source>
         <translation>复杂的 SVG 文本定位已简化为普通文字图层</translation>
     </message>

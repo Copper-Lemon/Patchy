@@ -2112,10 +2112,6 @@
         <translation>Eine anisotrope SVG-Transformation hat eine Konturstärke anhand ihrer Flächenskalierung angenähert</translation>
     </message>
     <message>
-        <source>An SVG stroke more opaque than its fill was clamped to the fill opacity</source>
-        <translation>Eine SVG-Kontur, die deckender als ihre Fläche war, wurde auf die Deckkraft der Fläche begrenzt</translation>
-    </message>
-    <message>
         <source>Complex SVG text positioning was reduced to a plain text layer</source>
         <translation>Eine komplexe SVG-Textpositionierung wurde auf eine einfache Textebene reduziert</translation>
     </message>

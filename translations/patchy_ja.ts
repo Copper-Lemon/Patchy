@@ -7598,10 +7598,6 @@ Mixed selection</source>
         <translation>非等方的な SVG 変形のため、線幅は面積の拡大縮小率で近似されました</translation>
     </message>
     <message>
-        <source>An SVG stroke more opaque than its fill was clamped to the fill opacity</source>
-        <translation>塗りより不透明な SVG の線は、塗りの不透明度に制限されました</translation>
-    </message>
-    <message>
         <source>Complex SVG text positioning was reduced to a plain text layer</source>
         <translation>複雑な SVG のテキスト配置は単純なテキストレイヤーに簡略化されました</translation>
     </message>

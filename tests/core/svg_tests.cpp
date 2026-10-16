@@ -212,6 +212,50 @@ void svg_import_opacity_and_blend() {
   CHECK(std::abs(document.layers()[3].vector_shape()->stroke.width - 3.0) < 1e-9);
 }
 
+// A stroke more opaque than a translucent fill cannot ride the fill layer's
+// opacity, so the element splits into a fill layer and a fill-less stroke
+// layer above it; an opaque white outline on an rgba(…, 0.2) fill used to be
+// clamped to 20% and disappear (GitHub issue 111).
+void svg_import_splits_strokes_more_opaque_than_their_fill() {
+  std::vector<std::string> notices;
+  const auto document = read_svg(
+      "<svg width=\"800\" height=\"600\">"
+      "<circle cx=\"400\" cy=\"300\" r=\"120\" fill=\"rgba(255,255,255,0.2)\" stroke=\"white\" stroke-width=\"2\"/>"
+      "<rect x=\"200\" y=\"150\" width=\"400\" height=\"300\" fill=\"none\" stroke=\"white\" stroke-width=\"2\"/>"
+      "<polygon points=\"400,100 500,250 300,250\" fill=\"rgba(255,200,50,0.7)\" stroke=\"white\"/>"
+      "<rect width=\"10\" height=\"10\" fill=\"#ff0000\" stroke=\"#000000\" opacity=\"0.5\"/>"
+      "</svg>",
+      &notices);
+  const auto& layers = document.layers();
+  CHECK(layers.size() == 6);
+  if (layers.size() != 6) {
+    return;
+  }
+  // Circle: the fill half keeps the 20% alpha, the stroke half is opaque.
+  CHECK(layers[0].vector_shape() != nullptr && layers[0].vector_shape()->fill.kind != VectorFillKind::None);
+  CHECK(!layers[0].vector_shape()->stroke.enabled);
+  CHECK(std::abs(layers[0].opacity() - 0.2F) < 0.001F);
+  CHECK(layers[1].name() == layers[0].name() + " Stroke");
+  CHECK(layers[1].vector_shape() != nullptr && layers[1].vector_shape()->fill.kind == VectorFillKind::None);
+  CHECK(layers[1].vector_shape()->stroke.enabled);
+  CHECK(std::abs(layers[1].vector_shape()->stroke.width - 2.0) < 1e-9);
+  CHECK(std::abs(layers[1].vector_shape()->stroke.opacity - 1.0) < 1e-9);
+  CHECK(std::abs(layers[1].opacity() - 1.0F) < 0.001F);
+  CHECK(layers[1].vector_shape()->path.subpaths.size() == layers[0].vector_shape()->path.subpaths.size());
+  // A fill-less rect keeps its stroke on one layer.
+  CHECK(layers[2].vector_shape()->stroke.enabled && layers[2].vector_shape()->fill.kind == VectorFillKind::None);
+  // Polygon at 70%: split too, the default 1 px white stroke opaque.
+  CHECK(std::abs(layers[3].opacity() - 0.7F) < 0.001F);
+  CHECK(!layers[3].vector_shape()->stroke.enabled);
+  CHECK(layers[4].vector_shape()->stroke.enabled && std::abs(layers[4].opacity() - 1.0F) < 0.001F);
+  // Element opacity scales both halves alike, so an opaque fill with an opaque
+  // stroke at opacity 0.5 stays one layer.
+  CHECK(layers[5].vector_shape()->stroke.enabled && std::abs(layers[5].opacity() - 0.5F) < 0.001F);
+  for (const auto& notice : notices) {
+    CHECK(notice.find("more opaque") == std::string::npos);
+  }
+}
+
 // --- live shapes -------------------------------------------------------------
 
 void svg_import_live_shapes_and_transform_gating() {
@@ -1087,6 +1131,7 @@ std::vector<patchy::test::TestCase> svg_tests() {
       {"svg_import_builds_layer_stack_in_document_order", svg_import_builds_layer_stack_in_document_order},
       {"svg_import_styles_cascade_and_colors", svg_import_styles_cascade_and_colors},
       {"svg_import_opacity_and_blend", svg_import_opacity_and_blend},
+      {"svg_import_splits_strokes_more_opaque_than_their_fill", svg_import_splits_strokes_more_opaque_than_their_fill},
       {"svg_import_live_shapes_and_transform_gating", svg_import_live_shapes_and_transform_gating},
       {"svg_import_gradients", svg_import_gradients},
       {"svg_import_user_space_gradients_follow_the_element_transform",

@@ -2136,10 +2136,6 @@
         <translation>Anizotropowa transformacja SVG przybliżała szerokość obrysu na podstawie skali obszaru</translation>
     </message>
     <message>
-        <source>An SVG stroke more opaque than its fill was clamped to the fill opacity</source>
-        <translation>Krycie obrysu SVG większe od krycia jego wypełnienia ograniczono do krycia wypełnienia</translation>
-    </message>
-    <message>
         <source>Complex SVG text positioning was reduced to a plain text layer</source>
         <translation>Złożone pozycjonowanie tekstu SVG zostało zredukowane do warstwy zwykłego tekstu</translation>
     </message>

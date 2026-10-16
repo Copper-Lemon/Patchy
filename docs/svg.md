@@ -83,8 +83,10 @@ post-open passes (below), `MainWindow::define_custom_shape_from_svg_*`
   (holes and unions both correct; a self-intersecting single subpath keeps
   even-odd semantics, the one approximation).
 - **Opacity**: layer opacity = element opacity x fill-opacity x solid-fill
-  alpha; stroke opacity divides that back out (a stroke more opaque than its
-  fill clamps, with a notice).
+  alpha; stroke opacity divides that back out. A stroke more opaque than its
+  fill (an opaque outline on an `rgba(…, 0.2)` fill, GitHub issue 111) cannot
+  share that layer, so the element imports as two shape layers: the fill, then
+  a fill-less "<name> Stroke" layer at the stroke's own opacity.
 - **Gradients**: linear/radial with href template inheritance, objectBoundingBox
   and userSpaceOnUse units, gradientTransform, stop-opacity. Geometry maps
   onto the calibrated GdFl model (span = center chord; docs/vector-tools.md);

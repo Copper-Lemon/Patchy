@@ -2136,10 +2136,6 @@
         <translation>При анизотропном преобразовании SVG толщина обводки приближённо вычислена по масштабу площади</translation>
     </message>
     <message>
-        <source>An SVG stroke more opaque than its fill was clamped to the fill opacity</source>
-        <translation>Непрозрачность обводки SVG, превышавшая непрозрачность заливки, ограничена значением заливки</translation>
-    </message>
-    <message>
         <source>Complex SVG text positioning was reduced to a plain text layer</source>
         <translation>Сложное позиционирование текста SVG было сведено к простому текстовому слою.</translation>
     </message>
