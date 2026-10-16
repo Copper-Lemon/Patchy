@@ -1322,7 +1322,7 @@ void ui_transform_rotate_drag_pivots_on_reference_point() {
   auto* pivot_label = window.findChild<QLabel*>(QStringLiteral("freeTransformPivotLabel"));
   CHECK(pivot_label != nullptr);
   CHECK(pivot_label->isVisible());
-  CHECK(pivot_label->text() == QStringLiteral("Pivot:"));
+  CHECK(pivot_label->text() == QStringLiteral("Pivot"));  // no colon on the bar (issue 127)
   const auto before = require_transform_state(*canvas);
   const QPointF pivot_document(filled_rect->x(), filled_rect->y());
   CHECK(std::abs(before.reference_position.x() - pivot_document.x()) < 0.01);

@@ -3162,6 +3162,46 @@ void ui_layer_opacity_control_defers_slow_rendering_and_undoes_once() {
   CHECK(std::abs(edited_layer->opacity() - 1.0F) <= 0.001F);
 }
 
+// Options-bar labels show no trailing colon (GitHub issue 127): the "Name:"
+// source strings stay shared with the dialog forms, and the bound-text binding
+// drops the colon on the bar, in every language (the fullwidth colon too).
+void ui_options_bar_labels_drop_the_trailing_colon() {
+  CHECK(patchy::ui::strip_trailing_colon(QStringLiteral("Opacity:")) == QStringLiteral("Opacity"));
+  CHECK(patchy::ui::strip_trailing_colon(QStringLiteral("Opacity")) == QStringLiteral("Opacity"));
+  CHECK(patchy::ui::strip_trailing_colon(QString::fromUtf8("\xe4\xb8\x8d\xe9\x80\x8f\xef\xbc\x9a")) ==
+        QString::fromUtf8("\xe4\xb8\x8d\xe9\x80\x8f"));
+
+  patchy::ui::MainWindow window;
+  show_window(window);
+  for (const auto* tool : {"Brush", "Marquee", "Crop", "Rect"}) {
+    require_action_by_text(window, QString::fromLatin1(tool))->trigger();
+    QApplication::processEvents();
+    int visible_labels = 0;
+    for (auto* label : window.findChildren<QLabel*>()) {
+      // The Crop ratio's ":" between its two fields is a separator, not a name.
+      if (!label->isVisible() || !label->property("optionLabel").toBool() ||
+          label->text() == QStringLiteral(":")) {
+        continue;
+      }
+      ++visible_labels;
+      if (label->text().endsWith(QLatin1Char(':'))) {
+        std::printf("  %s keeps a colon: %s\n", tool, label->text().toUtf8().constData());
+      }
+      CHECK(!label->text().endsWith(QLatin1Char(':')));
+    }
+    CHECK(visible_labels > 0);
+  }
+  // The marquee's Feather label sits in its own group, bound the same way.
+  require_action_by_text(window, QStringLiteral("Marquee"))->trigger();
+  QApplication::processEvents();
+  auto* feather_group = window.findChild<QWidget*>(QStringLiteral("selectionFeatherGroup"));
+  if (feather_group != nullptr) {
+    if (auto* feather_label = feather_group->findChild<QLabel*>(); feather_label != nullptr) {
+      CHECK(feather_label->text() == QStringLiteral("Feather"));
+    }
+  }
+}
+
 // Options-bar labels scrub their field (GitHub issue 46): a horizontal drag on
 // "Size:" moves brushSizeSpin one step per pixel, ten with Shift, clamped to the
 // range; a plain click changes nothing; the label wears the SizeHor cursor.
@@ -3175,7 +3215,7 @@ void ui_options_bar_label_scrub_changes_spin_value() {
   CHECK(size_spin->property(patchy::ui::kScrubHandleInstalledProperty).toBool());
   QLabel* size_label = nullptr;
   for (auto* label : window.findChildren<QLabel*>()) {
-    if (label->isVisible() && label->text() == QStringLiteral("Size:") &&
+    if (label->isVisible() && label->text() == QStringLiteral("Size") &&
         label->property("optionLabel").toBool()) {
       size_label = label;
     }
@@ -4622,6 +4662,7 @@ std::vector<patchy::test::TestCase> canvas_view_tools_tests() {
        ui_options_bar_spinboxes_show_their_extremes_unclipped},
       {"ui_right_docks_collapse_layers_show_metadata_and_info_updates",
        ui_right_docks_collapse_layers_show_metadata_and_info_updates},
+      {"ui_options_bar_labels_drop_the_trailing_colon", ui_options_bar_labels_drop_the_trailing_colon},
       {"ui_options_bar_label_scrub_changes_spin_value", ui_options_bar_label_scrub_changes_spin_value},
       {"ui_dialog_scrub_labels_pair_every_row_shape", ui_dialog_scrub_labels_pair_every_row_shape},
       {"ui_layer_opacity_prefix_scrub_is_one_undo_entry", ui_layer_opacity_prefix_scrub_is_one_undo_entry},

@@ -177,6 +177,11 @@ constexpr auto kTranslationContextProperty = "patchy.translationContext";
 constexpr auto kTranslationTextProperty = "patchy.translationText";
 constexpr auto kTranslationToolTipProperty = "patchy.translationToolTip";
 constexpr auto kTranslationStatusTipProperty = "patchy.translationStatusTip";
+// A QLabel with this property set shows its bound text without a trailing colon
+// (ASCII or fullwidth). Options-bar labels share their "Name:" source strings
+// with dialog forms, where the colon stays; the bar itself reads cleaner
+// without it (GitHub issue 127).
+constexpr auto kTranslationStripsTrailingColonProperty = "patchy.translationStripsTrailingColon";
 constexpr auto kMainWindowTranslationContext = "patchy::ui::MainWindow";
 
 // The application-wide dark QSS theme (defined in main_window_theme.cpp);
@@ -190,6 +195,8 @@ void bind_translated_tooltip(QObject* object, const char* source,
 void apply_bound_translation(QObject* object);
 void bind_action_text(QAction* action, const char* source);
 void bind_widget_text(QObject* object, const char* source);
+// "Opacity:" / "不透明度：" without the colon; text without one is returned as is.
+[[nodiscard]] QString strip_trailing_colon(QString text);
 void bind_tooltip(QObject* object, const char* source);
 
 // Property naming the recent-folders submenu so rebuilds can find it.

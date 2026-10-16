@@ -478,6 +478,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   const auto add_option_label = [options_content, add_option_widget](const char* source,
                                                                      std::initializer_list<CanvasTool> tools) {
     auto* label = new QLabel(options_content);
+    label->setProperty(kTranslationStripsTrailingColonProperty, true);  // issue 127
     bind_widget_text(label, source);
     label->setProperty("optionLabel", true);
     label->setAlignment(Qt::AlignVCenter);
@@ -605,6 +606,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
     auto* pivot_label = new QLabel(QCoreApplication::translate(kMainWindowTranslationContext, "Pivot:"), toolbar);
     pivot_label->setObjectName(QStringLiteral("freeTransformPivotLabel"));
     pivot_label->setProperty("optionLabel", true);
+    pivot_label->setProperty(kTranslationStripsTrailingColonProperty, true);
     pivot_label->setAlignment(Qt::AlignVCenter);
     bind_widget_text(pivot_label, QT_TR_NOOP("Pivot:"));
     add_transform_option_widget(pivot_label);
@@ -645,6 +647,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   const auto make_transform_label = [toolbar, add_transform_option_widget](const char* source) {
     auto* label = new QLabel(QCoreApplication::translate(kMainWindowTranslationContext, source), toolbar);
     label->setProperty("optionLabel", true);
+    label->setProperty(kTranslationStripsTrailingColonProperty, true);
     label->setAlignment(Qt::AlignVCenter);
     bind_widget_text(label, source);
     add_transform_option_widget(label);
@@ -817,6 +820,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   {
     auto* label = new QLabel(QObject::tr("Warp:"), toolbar);
     label->setProperty("optionLabel", true);
+    label->setProperty(kTranslationStripsTrailingColonProperty, true);
     label->setAlignment(Qt::AlignVCenter);
     bind_widget_text(label, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Warp:"));
     add_warp_option_widget(label);
@@ -855,6 +859,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   {
     auto* label = new QLabel(QObject::tr("Bend:"), toolbar);
     label->setProperty("optionLabel", true);
+    label->setProperty(kTranslationStripsTrailingColonProperty, true);
     label->setAlignment(Qt::AlignVCenter);
     bind_widget_text(label, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Bend:"));
     add_warp_option_widget(label);
@@ -1021,6 +1026,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   // (GitHub issue 106).
   feather_layout->setSpacing(kOptionsBarItemSpacing);
   auto* feather_label = new QLabel(tr("Feather:"), feather_group);
+  feather_label->setProperty(kTranslationStripsTrailingColonProperty, true);
   bind_widget_text(feather_label, QT_TR_NOOP("Feather:"));
   feather_label->setAlignment(Qt::AlignCenter);
   feather_layout->addWidget(feather_label);

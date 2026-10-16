@@ -526,6 +526,15 @@ void bind_translated_tooltip(QObject* object, const char* source, const char* co
   object->setProperty(kTranslationToolTipProperty, QString::fromUtf8(source));
 }
 
+QString strip_trailing_colon(QString text) {
+  auto trimmed = text.trimmed();
+  if (trimmed.endsWith(QLatin1Char(':')) || trimmed.endsWith(QChar(0xFF1A))) {
+    trimmed.chop(1);
+    return trimmed.trimmed();
+  }
+  return text;
+}
+
 void apply_bound_translation(QObject* object) {
   if (object == nullptr) {
     return;
@@ -542,7 +551,9 @@ void apply_bound_translation(QObject* object) {
     } else if (auto* toolbar = qobject_cast<QToolBar*>(object); toolbar != nullptr) {
       toolbar->setWindowTitle(text);
     } else if (auto* label = qobject_cast<QLabel*>(object); label != nullptr) {
-      label->setText(text);
+      label->setText(label->property(kTranslationStripsTrailingColonProperty).toBool()
+                         ? strip_trailing_colon(text)
+                         : text);
     } else if (auto* line_edit = qobject_cast<QLineEdit*>(object); line_edit != nullptr) {
       // Line edits carry user data in text(); the bound translation targets
       // the placeholder.
