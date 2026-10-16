@@ -123,6 +123,11 @@ void ThemeManager::set_preference(ColorSchemePreference preference, bool persist
   if (persist) {
     auto settings = app_settings();
     settings.setValue(color_scheme_key(), color_scheme_preference_to_token(preference));
+    // Always drop the stored custom theme id, not only when one is active now: the
+    // Preferences combo previews a built-in scheme without persisting, which already
+    // cleared the active custom theme, so the commit that follows used to leave the
+    // old id behind and the next launch re-applied it (GitHub issue 133).
+    settings.setValue(custom_theme_id_key(), QString());
   }
   if (had_custom_theme) {
     // clear_custom_theme() mirrors and force-applies against the preference_

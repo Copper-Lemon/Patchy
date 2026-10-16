@@ -3558,6 +3558,30 @@ void ui_color_scheme_cancel_restores_entry_scheme() {
   CHECK(settings.value(QStringLiteral("preferences/colorScheme")).toString() == QStringLiteral("dark"));
 }
 
+// GitHub issue 133: the Preferences combo previews a built-in scheme without persisting,
+// which already clears the active custom theme; the OK that follows must still clear the
+// STORED custom theme id, or the next launch re-applies the old theme over the new scheme.
+void ui_color_scheme_commit_after_preview_clears_stored_custom_theme() {
+  SettingsValueRestorer restore_scheme(QStringLiteral("preferences/colorScheme"));
+  SettingsValueRestorer restore_custom(QStringLiteral("preferences/customThemeId"));
+  ColorSchemeRestorer restore_active;
+  patchy::ui::CustomTheme custom;
+  custom.name = QStringLiteral("Darkest-like");
+  custom.base = patchy::ui::ColorScheme::Dark;
+  custom.palette = patchy::ui::dark_palette();
+  auto& manager = patchy::ui::ThemeManager::instance();
+  manager.set_custom_theme(QStringLiteral("bundled:darkest.patchytheme"), custom, /*persist=*/true);
+  CHECK(patchy::ui::app_settings().value(QStringLiteral("preferences/customThemeId")).toString() ==
+        QStringLiteral("bundled:darkest.patchytheme"));
+  // The live preview of a built-in scheme (persist off) clears the active custom theme...
+  manager.set_preference(patchy::ui::ColorSchemePreference::Light, /*persist=*/false);
+  CHECK(!manager.active_custom_theme_id().has_value());
+  // ...and the commit (persist on) must clear the stored id although none is active now.
+  manager.set_preference(patchy::ui::ColorSchemePreference::Light, /*persist=*/true);
+  auto settings = patchy::ui::app_settings();
+  CHECK(settings.value(QStringLiteral("preferences/customThemeId")).toString().isEmpty());
+  CHECK(settings.value(QStringLiteral("preferences/colorScheme")).toString() == QStringLiteral("light"));
+}
 void ui_color_scheme_follow_system_tracks_style_hints() {
   SettingsValueRestorer restore_scheme(QStringLiteral("preferences/colorScheme"));
   ColorSchemeRestorer restore_active;
@@ -6546,6 +6570,8 @@ std::vector<patchy::test::TestCase> app_shell_tests() {
       {"gui_scale_percent_normalizes_to_offered_steps", gui_scale_percent_normalizes_to_offered_steps},
       {"ui_color_scheme_preference_persists_setting", ui_color_scheme_preference_persists_setting},
       {"ui_color_scheme_cancel_restores_entry_scheme", ui_color_scheme_cancel_restores_entry_scheme},
+      {"ui_color_scheme_commit_after_preview_clears_stored_custom_theme",
+       ui_color_scheme_commit_after_preview_clears_stored_custom_theme},
       {"ui_color_scheme_follow_system_tracks_style_hints",
        ui_color_scheme_follow_system_tracks_style_hints},
       {"ui_theme_file_round_trips_full_palette", ui_theme_file_round_trips_full_palette},
