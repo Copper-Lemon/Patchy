@@ -1064,6 +1064,52 @@ QString answer_deferred_open_dialog(const std::function<void()>& trigger) {
   return opened_in;
 }
 
+// The Open dialog comes back on the format row picked last time instead of the
+// all-formats row (GitHub issue 114). Nothing is picked here, so the test seeds
+// the remembered row itself and checks the dialog honors it.
+void ui_open_dialog_remembers_last_filter() {
+  SettingsValueRestorer filter_restorer(QStringLiteral("lastOpenFilter"));
+  patchy::ui::app_settings().remove(QStringLiteral("lastOpenFilter"));
+  patchy::ui::MainWindow window;
+  show_window(window);
+  QStringList rows;
+  QString selected_first;
+  QString selected_second;
+  const auto open_and_read = [&](QString* selected) {
+    bool answered = false;
+    QTimer poll;
+    poll.setInterval(10);
+    QObject::connect(&poll, &QTimer::timeout, [&] {
+      auto* dialog = qobject_cast<QFileDialog*>(find_top_level_dialog(QStringLiteral("openFileDialog")));
+      if (dialog == nullptr || !dialog->isVisible()) {
+        return;
+      }
+      poll.stop();
+      rows = dialog->nameFilters();
+      *selected = dialog->selectedNameFilter();
+      answered = true;
+      dialog->reject();
+    });
+    poll.start();
+    require_action(window, "fileOpenAction")->trigger();
+    process_events_until([&] { return answered; }, 10000);
+    poll.stop();
+    CHECK(answered);
+  };
+  open_and_read(&selected_first);
+  CHECK(rows.size() > 2);
+  if (rows.size() <= 2) {
+    return;
+  }
+  // Without a remembered row the all-formats row leads.
+  CHECK(selected_first == rows.front());
+  patchy::ui::app_settings().setValue(QStringLiteral("lastOpenFilter"), rows[1]);
+  open_and_read(&selected_second);
+  CHECK(selected_second == rows[1]);
+  // A cancelled dialog leaves the remembered row alone.
+  CHECK(patchy::ui::app_settings().value(QStringLiteral("lastOpenFilter")).toString() == rows[1]);
+}
+
 void ui_open_recent_folders_list_two_hundred_folders_with_filter() {
   ensure_artifact_dir();
   QStringList recent_folders;

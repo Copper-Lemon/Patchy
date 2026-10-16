@@ -790,6 +790,21 @@ QString last_open_directory() {
   return default_file_dialog_directory();
 }
 
+// The Open dialog reopens on the format row picked last time instead of the
+// all-formats row (GitHub issue 114). A cancelled dialog keeps the old pick; a
+// row that no longer exists (language switch) falls back to the default.
+QString remembered_open_filter() {
+  return app_settings().value(QStringLiteral("lastOpenFilter")).toString();
+}
+
+void remember_open_filter(const QString& filter) {
+  if (filter.isEmpty()) {
+    return;
+  }
+  auto settings = app_settings();
+  settings.setValue(QStringLiteral("lastOpenFilter"), filter);
+}
+
 void remember_open_directory_for_path(const QString& path) {
   const QFileInfo info(path);
   const auto directory = info.absoluteDir();
@@ -1711,8 +1726,11 @@ void MainWindow::open_document() {
   }
   // Multi-select: every picked file becomes its own document, in dialog order,
   // exactly as a multi-file drop does; the last one opened ends up active.
-  const auto paths = get_open_file_names(this, tr("Open"), last_open_directory(), open_file_filter(), nullptr,
-                                         QStringLiteral("openFileDialog"), FilterNameDetails::Hidden);
+  auto selected_filter = remembered_open_filter();
+  const auto paths = get_open_file_names(this, tr("Open"), last_open_directory(), open_file_filter(),
+                                         &selected_filter, QStringLiteral("openFileDialog"),
+                                         FilterNameDetails::Hidden);
+  remember_open_filter(paths.isEmpty() ? QString() : selected_filter);
   for (const auto& path : paths) {
     open_document_path(path);
   }
@@ -5189,8 +5207,10 @@ void MainWindow::open_recent_folder(const QString& dir) {
     return;
   }
   const auto start_dir = QFileInfo(dir).isDir() ? dir : last_open_directory();
-  const auto paths = get_open_file_names(this, tr("Open"), start_dir, open_file_filter(), nullptr,
+  auto selected_filter = remembered_open_filter();
+  const auto paths = get_open_file_names(this, tr("Open"), start_dir, open_file_filter(), &selected_filter,
                                          QStringLiteral("openFileDialog"), FilterNameDetails::Hidden);
+  remember_open_filter(paths.isEmpty() ? QString() : selected_filter);
   for (const auto& path : paths) {
     open_document_path(path);
   }

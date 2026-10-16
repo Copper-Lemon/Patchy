@@ -2424,10 +2424,12 @@ QString get_open_file_name(QWidget* parent, const QString& caption, const QStrin
   return wasm_files::pick_open_file(parent, caption, filter);
 #else
   QFileDialog dialog(parent, caption, QString(), filter);
-  configure_file_dialog(dialog, object_name, dir, QFileDialog::AcceptOpen, QFileDialog::ExistingFile, selected_filter);
+  // The option first: setting it after the filter pick rebuilds the filter list and
+  // drops the pick back to the first row (GitHub issue 114).
   if (filter_details == FilterNameDetails::Hidden) {
     dialog.setOption(QFileDialog::HideNameFilterDetails, true);
   }
+  configure_file_dialog(dialog, object_name, dir, QFileDialog::AcceptOpen, QFileDialog::ExistingFile, selected_filter);
   if (exec_dialog(dialog) != QDialog::Accepted) {
     return {};
   }
@@ -2448,10 +2450,12 @@ QStringList get_open_file_names(QWidget* parent, const QString& caption, const Q
   return path.isEmpty() ? QStringList() : QStringList{std::move(path)};
 #else
   QFileDialog dialog(parent, caption, QString(), filter);
-  configure_file_dialog(dialog, object_name, dir, QFileDialog::AcceptOpen, QFileDialog::ExistingFiles, selected_filter);
+  // The option first: setting it after the filter pick rebuilds the filter list and
+  // drops the pick back to the first row (GitHub issue 114).
   if (filter_details == FilterNameDetails::Hidden) {
     dialog.setOption(QFileDialog::HideNameFilterDetails, true);
   }
+  configure_file_dialog(dialog, object_name, dir, QFileDialog::AcceptOpen, QFileDialog::ExistingFiles, selected_filter);
   if (exec_dialog(dialog) != QDialog::Accepted) {
     return {};
   }
