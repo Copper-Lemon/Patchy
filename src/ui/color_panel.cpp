@@ -202,17 +202,22 @@ void draw_crosshair_marker(QPainter& painter, QPointF center) {
 }
 
 std::vector<QColor> basic_colors() {
-  // 8 columns x 4 rows: a grayscale ramp, then vivid / dark / light hue rows.
-  // Curated to avoid the near-duplicates the old 48-swatch grid contained.
+  // 8 columns x 6 rows: a grayscale ramp, the pure hues, then the same eight hues
+  // as pastel, light, medium and dark rows (the grid philipzae proposed in GitHub
+  // issue 141; it replaced a 4-row set with fewer tints and shades).
   return {
       QColor(0, 0, 0),       QColor(48, 48, 48),    QColor(96, 96, 96),    QColor(128, 128, 128),
       QColor(160, 160, 160), QColor(192, 192, 192), QColor(224, 224, 224), QColor(255, 255, 255),
-      QColor(255, 0, 0),     QColor(255, 128, 0),   QColor(255, 255, 0),   QColor(0, 200, 0),
-      QColor(0, 200, 200),   QColor(0, 96, 255),    QColor(128, 0, 255),   QColor(255, 0, 255),
-      QColor(128, 0, 0),     QColor(128, 64, 0),    QColor(128, 128, 0),   QColor(0, 100, 0),
-      QColor(0, 100, 100),   QColor(0, 0, 160),     QColor(64, 0, 128),    QColor(128, 0, 96),
-      QColor(255, 160, 160), QColor(255, 200, 128), QColor(255, 255, 160), QColor(160, 230, 160),
-      QColor(160, 224, 224), QColor(160, 200, 255), QColor(200, 160, 255), QColor(255, 180, 224),
+      QColor(255, 0, 0),     QColor(255, 128, 0),   QColor(255, 255, 0),   QColor(0, 255, 0),
+      QColor(96, 255, 255),  QColor(0, 0, 255),     QColor(128, 0, 128),   QColor(255, 18, 254),
+      QColor(246, 175, 149), QColor(254, 206, 163), QColor(255, 244, 177), QColor(165, 211, 177),
+      QColor(164, 215, 220), QColor(167, 178, 222), QColor(193, 165, 208), QColor(232, 177, 209),
+      QColor(232, 79, 56),   QColor(243, 153, 63),  QColor(255, 234, 66),  QColor(25, 167, 94),
+      QColor(1, 172, 183),   QColor(63, 106, 178),  QColor(138, 75, 153),  QColor(210, 80, 151),
+      QColor(192, 14, 15),   QColor(210, 81, 32),   QColor(220, 195, 1),   QColor(1, 130, 54),
+      QColor(0, 133, 141),   QColor(2, 67, 139),    QColor(98, 27, 113),   QColor(172, 4, 109),
+      QColor(121, 14, 0),    QColor(126, 69, 0),    QColor(133, 121, 0),   QColor(0, 83, 32),
+      QColor(0, 83, 86),     QColor(2, 40, 86),     QColor(63, 10, 69),    QColor(109, 1, 67),
   };
 }
 
