@@ -205,8 +205,8 @@ constexpr TiffCodec kTiffCodecs[] = {
     {3, "CCITT T.4", true},
     {4, "CCITT T.6", true},
     {5, "LZW", true},
-    {6, "JPEG", false},
-    {7, "JPEG", false},
+    {6, "JPEG", false},  // old-style JPEG (TIFF 6.0 section 22), which nothing decodes any more
+    {7, "JPEG", true},   // Patchy decodes these itself (src/ui/tiff_jpeg_reader.cpp)
     {8, "Deflate", true},
     {9, "JBIG (T.85)", false},
     {10, "JBIG (T.43)", false},

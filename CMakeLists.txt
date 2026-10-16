@@ -1142,6 +1142,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/main_window_history.cpp
       src/ui/main_window_layer_ops.cpp
       src/ui/main_window_ai_selection.cpp
+      src/ui/tiff_jpeg_reader.cpp
       src/ui/main_window_layer_panel.cpp
       src/ui/main_window_palette.cpp
       src/ui/main_window_plugins.cpp

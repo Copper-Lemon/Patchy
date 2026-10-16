@@ -1698,7 +1698,9 @@ void undecodable_image_diagnosis_names_the_real_reason() {
     }
     return b;
   };
-  CHECK(diagnose_undecodable_image(tiff(true, false, 7), "tif").reason == Reason::TiffJpegCompression);
+  // Compression 7 is decoded by Patchy itself now (src/ui/tiff_jpeg_reader.cpp): a failure with it
+  // means the sample layout, so plain 8-bit says Unknown and 12-bit names the depth.
+  CHECK(diagnose_undecodable_image(tiff(true, false, 7), "tif").reason == Reason::Unknown);
   CHECK(diagnose_undecodable_image(tiff(false, false, 6), "tiff").reason == Reason::TiffJpegCompression);
   CHECK(diagnose_undecodable_image(tiff(true, false, 5), "tif").reason == Reason::Unknown);
   CHECK(diagnose_undecodable_image(tiff(false, false, 32773), "tif").reason == Reason::Unknown);
@@ -1723,8 +1725,7 @@ void undecodable_image_diagnosis_names_the_real_reason() {
   CHECK(diagnose_undecodable_image(tiff(true, false, 1, 16, 4, 2), "tif").reason == Reason::Unknown);
   const auto jxr = diagnose_undecodable_image(tiff(true, false, 34934), "tif");
   CHECK(jxr.reason == Reason::TiffUnsupportedCompression && jxr.detail == "JPEG XR");
-  // The codec is reported before the layout: a 12-bit JPEG-in-TIFF names the codec.
-  CHECK(diagnose_undecodable_image(tiff(true, false, 7, 12), "tif").reason == Reason::TiffJpegCompression);
+  CHECK(diagnose_undecodable_image(tiff(true, false, 7, 12), "tif").reason == Reason::TiffUnsupportedBitDepth);
   Bytes short_tiff = tiff(true, false, 7);
   short_tiff.resize(12);
   CHECK(diagnose_undecodable_image(short_tiff, "tif").reason == Reason::TiffUnreadable);

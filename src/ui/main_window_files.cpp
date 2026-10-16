@@ -7,6 +7,7 @@
 #include "ui/main_window.hpp"
 #include "ui/appimage_environment.hpp"
 #include "ui/main_window_shared.hpp"
+#include "ui/tiff_jpeg_reader.hpp"
 #include "ui/recent_file_list.hpp"
 #include "ui/network_mounts.hpp"
 #include "ui/object_selection_model_download.hpp"
@@ -1234,7 +1235,15 @@ OpenDocumentResult load_document_from_path(QString path) {
     }
     QImageReader reader(path);
     reader.setAutoTransform(true);
-    const auto image = reader.read();
+    auto image = reader.read();
+    if (image.isNull() && (extension == QStringLiteral("tif") || extension == QStringLiteral("tiff"))) {
+      // Qt's libtiff has no JPEG codec; JPEG-compressed TIFFs decode strip by strip
+      // through Qt's JPEG reader instead (GitHub issue 117).
+      const auto bytes = read_all_file_bytes(path);
+      if (tiff_jpeg::is_jpeg_compressed_tiff(bytes)) {
+        image = tiff_jpeg::read_jpeg_compressed_tiff(bytes).image;
+      }
+    }
     if (image.isNull()) {
       throw std::runtime_error(open_failure_reason(reader.errorString(), path, extension).toStdString());
     }

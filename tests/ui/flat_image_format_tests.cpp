@@ -1,6 +1,7 @@
 #include "formats/animation_timing.hpp"
 #include "formats/webp_animation_io.hpp"
 #include "color/color_management.hpp"
+#include "ui/tiff_jpeg_reader.hpp"
 #include "ui/qt_paths.hpp"
 #include "unicode_path_names.hpp"
 #include "ui/canvas_widget.hpp"
@@ -3127,6 +3128,143 @@ void ui_jxl_animated_save_round_trips() {
   CHECK(reopened.metadata().values.at(patchy::jxl::kLoopCountMetadata) == "2");
 }
 
+
+// GitHub issue 117: Qt's libtiff has no JPEG codec, so JPEG-compressed TIFFs (compression 7)
+// decode strip by strip through Qt's JPEG reader, with the shared JPEGTables spliced in.
+void ui_jpeg_compressed_tiff_opens_through_the_jpeg_decoder() {
+  ensure_artifact_dir();
+  QImage source(24, 16, QImage::Format_RGB32);
+  for (int y = 0; y < source.height(); ++y) {
+    for (int x = 0; x < source.width(); ++x) {
+      source.setPixelColor(x, y, QColor(x * 10, y * 15, 200 - x * 4));
+    }
+  }
+  // Two strips of 8 rows. Each strip is its own JPEG; its tables move to JPEGTables so
+  // the strips are abbreviated streams, as libtiff writes them.
+  const int rows_per_strip = 8;
+  std::vector<QByteArray> strips;
+  QByteArray tables;
+  for (int strip = 0; strip < 2; ++strip) {
+    QByteArray jpeg;
+    QBuffer buffer(&jpeg);
+    buffer.open(QIODevice::WriteOnly);
+    CHECK(source.copy(0, strip * rows_per_strip, source.width(), rows_per_strip).save(&buffer, "JPEG", 100));
+    // Walk the markers up to SOS: DQT (0xdb) and DHT (0xc4) go to the tables, the rest stays.
+    QByteArray abbreviated;
+    abbreviated.append(QByteArray::fromHex("ffd8"));
+    QByteArray strip_tables;
+    qsizetype at = 2;
+    while (at + 4 <= jpeg.size()) {
+      const auto marker = static_cast<unsigned char>(jpeg[at + 1]);
+      if (marker == 0xda) {
+        abbreviated.append(jpeg.mid(at));  // SOS and the entropy-coded data through EOI
+        break;
+      }
+      const auto length = (static_cast<unsigned char>(jpeg[at + 2]) << 8) | static_cast<unsigned char>(jpeg[at + 3]);
+      const auto segment = jpeg.mid(at, 2 + length);
+      (marker == 0xdb || marker == 0xc4 ? strip_tables : abbreviated).append(segment);
+      at += 2 + length;
+    }
+    if (tables.isEmpty()) {
+      tables.append(QByteArray::fromHex("ffd8"));
+      tables.append(strip_tables);
+      tables.append(QByteArray::fromHex("ffd9"));
+    }
+    strips.push_back(abbreviated);
+  }
+
+  // A little-endian classic TIFF: header, one IFD of eleven entries, then the data area.
+  QByteArray tiff;
+  const auto put8 = [&tiff](unsigned v) { tiff.append(static_cast<char>(static_cast<unsigned char>(v & 0xffU))); };
+  const auto put16 = [&put8](unsigned v) { put8(v); put8(v >> 8); };
+  const auto put32 = [&put8](unsigned v) { put8(v); put8(v >> 8); put8(v >> 16); put8(v >> 24); };
+  const unsigned ifd_at = 8;
+  const unsigned entry_count = 11;
+  unsigned data_at = ifd_at + 2 + entry_count * 12 + 4;
+  const unsigned bits_at = data_at;
+  data_at += 6;
+  const unsigned offsets_at = data_at;
+  data_at += 8;
+  const unsigned counts_at = data_at;
+  data_at += 8;
+  const unsigned tables_at = data_at;
+  data_at += static_cast<unsigned>(tables.size());
+  const unsigned strip0_at = data_at;
+  const unsigned strip1_at = strip0_at + static_cast<unsigned>(strips[0].size());
+  tiff.append("II", 2);
+  put16(42);
+  put32(ifd_at);
+  put16(entry_count);
+  const auto entry = [&](unsigned tag, unsigned type, unsigned count, unsigned value) {
+    put16(tag);
+    put16(type);
+    put32(count);
+    if (type == 3 && count == 1) {
+      put16(value);
+      put16(0);
+    } else {
+      put32(value);
+    }
+  };
+  entry(256, 4, 1, static_cast<unsigned>(source.width()));
+  entry(257, 4, 1, static_cast<unsigned>(source.height()));
+  entry(258, 3, 3, bits_at);
+  entry(259, 3, 1, 7);
+  entry(262, 3, 1, 6);
+  entry(273, 4, 2, offsets_at);
+  entry(277, 3, 1, 3);
+  entry(278, 4, 1, static_cast<unsigned>(rows_per_strip));
+  entry(279, 4, 2, counts_at);
+  entry(284, 3, 1, 1);
+  entry(347, 7, static_cast<unsigned>(tables.size()), tables_at);
+  put32(0);
+  put16(8);
+  put16(8);
+  put16(8);
+  put32(strip0_at);
+  put32(strip1_at);
+  put32(static_cast<unsigned>(strips[0].size()));
+  put32(static_cast<unsigned>(strips[1].size()));
+  tiff.append(tables);
+  tiff.append(strips[0]);
+  tiff.append(strips[1]);
+
+  const std::span<const std::uint8_t> bytes(reinterpret_cast<const std::uint8_t*>(tiff.constData()),
+                                           static_cast<std::size_t>(tiff.size()));
+  CHECK(patchy::ui::tiff_jpeg::is_jpeg_compressed_tiff(bytes));
+  const auto decoded = patchy::ui::tiff_jpeg::read_jpeg_compressed_tiff(bytes);
+  CHECK(decoded.error.isEmpty());
+  CHECK(decoded.image.size() == source.size());
+  if (decoded.image.size() == source.size()) {
+    int worst = 0;
+    for (int y = 0; y < source.height(); ++y) {
+      for (int x = 0; x < source.width(); ++x) {
+        const auto a = source.pixelColor(x, y);
+        const auto b = decoded.image.pixelColor(x, y);
+        worst = std::max({worst, std::abs(a.red() - b.red()), std::abs(a.green() - b.green()),
+                          std::abs(a.blue() - b.blue())});
+      }
+    }
+    CHECK(worst <= 12);  // quality-100 JPEG round trip, chroma subsampling included
+  }
+
+  // The same bytes through the open path, where Qt's own reader fails first.
+  const auto path = QStringLiteral("test-artifacts/jpeg_compressed.tif");
+  {
+    QFile file(path);
+    CHECK(file.open(QIODevice::WriteOnly));
+    file.write(tiff);
+  }
+  // Whether Qt's own reader also opens it depends on the libtiff it was built with (the
+  // Flatpak's KDE runtime one has JPEG support); the open path must succeed either way.
+  patchy::ui::MainWindow window;
+  show_window(window);
+  patchy::ui::MainWindowTestAccess::open_document_path(window, QFileInfo(path).absoluteFilePath());
+  QApplication::processEvents();
+  const auto& document = patchy::ui::MainWindowTestAccess::document(window);
+  CHECK(document.width() == source.width() && document.height() == source.height());
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> flat_image_format_tests() {
@@ -3134,6 +3272,7 @@ std::vector<patchy::test::TestCase> flat_image_format_tests() {
       {"ui_qimage_import_export_preserves_alpha_and_formats", ui_qimage_import_export_preserves_alpha_and_formats},
       {"ui_deep_images_import_at_their_depth", ui_deep_images_import_at_their_depth},
       {"ui_qimage_import_export_writes_tiff_and_webp", ui_qimage_import_export_writes_tiff_and_webp},
+      {"ui_jpeg_compressed_tiff_opens_through_the_jpeg_decoder", ui_jpeg_compressed_tiff_opens_through_the_jpeg_decoder},
       {"ui_image_save_options_write_bmp_alpha_and_jpeg_quality",
        ui_image_save_options_write_bmp_alpha_and_jpeg_quality},
       {"ui_flat_alpha_round_trips_as_editable_mask", ui_flat_alpha_round_trips_as_editable_mask},
