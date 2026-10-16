@@ -12,12 +12,16 @@ fitting, selection coverage, stroke sampling, and mask baking through
 `tests/ui/vector_point_editing_tests.cpp`, `tests/ui/vector_commands_tests.cpp`.
 
 Overlay glyphs (`draw_pen_overlay`, `draw_path_edit_overlay`, canvas_widget_vector_tools.cpp):
-7 px anchor squares and 7 px round handle knobs, each under a 1.5 px contrasting outline
-(a selected anchor is accent under white; an unselected anchor and every knob are white
-under accent), sized to read without zooming in (GitHub issue 105). `kGlyphReach` (6 px)
-is how far a glyph reaches past its point; every repaint region around path points pads
-by it. The tests' `accent_overlay_near` probes 3 px around a point for the accent, which
-the outline still satisfies.
+visibility comes from contrast, not size (GitHub issue 105; a first, larger-only pass still
+vanished on a light pasteboard). The accent is a saturated blue (`path_overlay_accent`, 30 136
+255), every glyph is three-tone, and handle lines sit on a translucent dark halo
+(`draw_handle_line`: 3 px black at 43 percent under a 1.4 px accent line). Anchors are 8 px
+squares with a dark 1 px edge: white with an accent inner ring when unselected (Photoshop's
+hollow anchor), accent with a white inner ring when selected. Handle knobs are 8 px white
+discs with the dark edge and an accent dot. `kGlyphReach` (7 px) is how far a glyph reaches
+past its point; every repaint region around path points pads by it. The tests'
+`accent_overlay_near` probes 3 px around a point for the accent, which the inner ring and the
+knob dot satisfy.
 
 ## One classifier, three consumers
 

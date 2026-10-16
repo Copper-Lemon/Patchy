@@ -388,29 +388,57 @@ bool CanvasWidget::handle_pen_key(QKeyEvent* event) {
   }
 }
 
-// Path overlay glyphs. GitHub issue 105 asked for points that read without zooming
-// in: 7 px anchor squares and 7 px handle knobs, each with a contrasting 1.5 px
-// outline so they stand out on light and dark pixels alike (Figma's convention).
-// A selected anchor is accent under a white outline; an unselected anchor and every
-// knob are white under an accent outline.
+// Path overlay glyphs. GitHub issue 105 asked for points and handles that read
+// without zooming in. Size alone did not do it: the controls need CONTRAST on every
+// background (a light pasteboard, a pale photo, a saturated shape fill), which is
+// how Photoshop and Figma get away with small glyphs. So every glyph is three-tone:
+// a dark 1 px edge, a white band, and the accent (a saturated blue rather than the
+// old pale one); handle lines ride on a translucent dark halo.
 namespace {
-constexpr double kAnchorHalf = 3.5;
-constexpr double kKnobRadius = 3.5;
-constexpr double kGlyphOutline = 1.5;
-// Widget pixels a glyph can reach past its point (half size plus outline and
-// antialiasing); repaint regions around path points pad by this much.
-constexpr double kGlyphReach = 6.0;
+constexpr double kAnchorHalf = 4.0;  // 8 px square
+constexpr double kKnobRadius = 4.0;  // 8 px round knob
+// Widget pixels a glyph can reach past its point (half size, edge and antialiasing);
+// repaint regions around path points pad by this much.
+constexpr double kGlyphReach = 7.0;
 
-void draw_anchor_glyph(QPainter& painter, QPointF center, bool selected, const QColor& accent) {
-  painter.setPen(QPen(selected ? QColor(Qt::white) : accent, kGlyphOutline));
-  painter.setBrush(selected ? QBrush(accent) : QBrush(Qt::white));
-  painter.drawRect(QRectF(center.x() - kAnchorHalf, center.y() - kAnchorHalf, 2.0 * kAnchorHalf, 2.0 * kAnchorHalf));
+[[nodiscard]] QColor path_overlay_accent() {
+  return QColor(30, 136, 255);
 }
 
+[[nodiscard]] QColor glyph_ink() {
+  return QColor(20, 24, 30);
+}
+
+// Unselected: white square, dark edge, accent inner ring (Photoshop's hollow anchor).
+// Selected: accent square, dark edge, white inner ring (its solid anchor).
+void draw_anchor_glyph(QPainter& painter, QPointF center, bool selected, const QColor& accent) {
+  const QRectF box(center.x() - kAnchorHalf, center.y() - kAnchorHalf, 2.0 * kAnchorHalf, 2.0 * kAnchorHalf);
+  painter.setPen(QPen(glyph_ink(), 1.0));
+  painter.setBrush(selected ? QBrush(accent) : QBrush(Qt::white));
+  painter.drawRect(box);
+  painter.setPen(QPen(selected ? QColor(Qt::white) : accent, 1.0));
+  painter.setBrush(Qt::NoBrush);
+  painter.drawRect(box.adjusted(1.0, 1.0, -1.0, -1.0));
+}
+
+// A white disc with a dark edge and an accent dot in the middle.
 void draw_knob_glyph(QPainter& painter, QPointF center, const QColor& accent) {
-  painter.setPen(QPen(accent, kGlyphOutline));
+  painter.setPen(QPen(glyph_ink(), 1.0));
   painter.setBrush(Qt::white);
   painter.drawEllipse(center, kKnobRadius, kKnobRadius);
+  painter.setPen(Qt::NoPen);
+  painter.setBrush(accent);
+  painter.drawEllipse(center, kKnobRadius - 1.75, kKnobRadius - 1.75);
+}
+
+// The direction line from an anchor to its handle knob: a 1.4 px accent line on a
+// 3 px translucent dark halo, visible over light and saturated pixels alike.
+void draw_handle_line(QPainter& painter, QPointF from, QPointF to, const QColor& accent) {
+  painter.setBrush(Qt::NoBrush);
+  painter.setPen(QPen(QColor(0, 0, 0, 110), 3.0, Qt::SolidLine, Qt::RoundCap));
+  painter.drawLine(from, to);
+  painter.setPen(QPen(accent, 1.4, Qt::SolidLine, Qt::RoundCap));
+  painter.drawLine(from, to);
 }
 }  // namespace
 
@@ -425,7 +453,7 @@ void CanvasWidget::draw_pen_overlay(QPainter& painter) {
 
   painter.save();
   painter.setRenderHint(QPainter::Antialiasing, true);
-  const QColor accent(116, 192, 255);
+  const QColor accent = path_overlay_accent();
 
   QPainterPath outline;
   outline.moveTo(to_screen(pen_anchors_[0].anchor_x, pen_anchors_[0].anchor_y));
@@ -458,9 +486,8 @@ void CanvasWidget::draw_pen_overlay(QPainter& painter) {
 
   // Handles of the anchor under construction.
   if (pen_handle_dragging_ && last.smooth) {
-    painter.setPen(QPen(accent, 1.0));
-    painter.drawLine(to_screen(last.in_x, last.in_y), to_screen(last.anchor_x, last.anchor_y));
-    painter.drawLine(to_screen(last.anchor_x, last.anchor_y), to_screen(last.out_x, last.out_y));
+    draw_handle_line(painter, to_screen(last.in_x, last.in_y), to_screen(last.anchor_x, last.anchor_y), accent);
+    draw_handle_line(painter, to_screen(last.anchor_x, last.anchor_y), to_screen(last.out_x, last.out_y), accent);
     draw_knob_glyph(painter, to_screen(last.in_x, last.in_y), accent);
     draw_knob_glyph(painter, to_screen(last.out_x, last.out_y), accent);
   }
@@ -2075,7 +2102,7 @@ void CanvasWidget::draw_path_edit_overlay(QPainter& painter) {
   }
   painter.save();
   painter.setRenderHint(QPainter::Antialiasing, true);
-  const QColor accent(116, 192, 255);
+  const QColor accent = path_overlay_accent();
 
   // A layer-owned target path rides its layer's Move/Free Transform preview
   // (display only); document paths (work path, saved rows) stay put.
@@ -2164,10 +2191,8 @@ void CanvasWidget::draw_path_edit_overlay(QPainter& painter) {
     const auto center = to_screen(target_transform, anchor.anchor_x, anchor.anchor_y);
     const auto in_screen = to_screen(target_transform, anchor.in_x, anchor.in_y);
     const auto out_screen = to_screen(target_transform, anchor.out_x, anchor.out_y);
-    painter.setPen(QPen(accent, 1.0));
-    painter.setBrush(Qt::NoBrush);
-    painter.drawLine(in_screen, center);
-    painter.drawLine(center, out_screen);
+    draw_handle_line(painter, in_screen, center, accent);
+    draw_handle_line(painter, center, out_screen, accent);
     draw_knob_glyph(painter, in_screen, accent);
     draw_knob_glyph(painter, out_screen, accent);
   }
@@ -2552,7 +2577,7 @@ void CanvasWidget::cancel_path_transform() {
 void CanvasWidget::draw_path_transform_overlay(QPainter& painter) {
   painter.save();
   painter.setRenderHint(QPainter::Antialiasing, true);
-  const QColor accent(116, 192, 255);
+  const QColor accent = path_overlay_accent();
 
   // The transformed path outline.
   const auto preview = path_transform_preview_path();
