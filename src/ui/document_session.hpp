@@ -8,6 +8,7 @@
 
 #include "core/document.hpp"
 #include "core/layer.hpp"
+#include "core/stroke_patch.hpp"
 #include "ui/canvas_widget.hpp"
 #include "ui/image_document_io.hpp"
 
@@ -27,7 +28,17 @@ class DocumentFloatWindow;
 
 struct DocumentSession {
   struct HistoryState {
+    // The whole document at this point in history, or an empty Document when
+    // `patch` holds the state instead.
     Document document;
+    // A paint stroke's record (core/stroke_patch.hpp): this state equals the
+    // next newer state (or the live document) with the patch's `before`
+    // pixels written back. Undo/redo write the patch into the live document
+    // in place instead of swapping documents; the memory budget counts its
+    // bytes. Eviction from the stack front is always safe because a patch
+    // depends only on newer states.
+    std::optional<StrokePatch> patch;
+    [[nodiscard]] bool is_stroke_patch() const noexcept { return patch.has_value(); }
     std::int64_t revision{0};
     // Selection state at this point in history, so undo/redo restores the
     // selection alongside the pixels (and selection-only edits are undoable).

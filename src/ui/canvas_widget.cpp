@@ -305,6 +305,9 @@ void CanvasWidget::set_document_internal(Document* document, bool preserve_frame
   invalidate_vector_preview();
   cancel_pointer_gestures();
   painting_ = false;
+  // An armed stroke ends with the outgoing document (the host validates the
+  // entry before shrinking it).
+  finish_paint_stroke_history();
   clear_brush_stroke_tracking();
   reset_brush_smoothing();
   reset_axis_constrained_stroke();
@@ -1129,6 +1132,38 @@ void CanvasWidget::cancel_smart_filter_mask_edit() {
 
 void CanvasWidget::set_before_edit_callback(std::function<void(QString)> callback) {
   before_edit_callback_ = std::move(callback);
+}
+
+void CanvasWidget::set_paint_stroke_history_callback(std::function<void(const PaintStrokeHistoryEvent&)> callback) {
+  paint_stroke_history_callback_ = std::move(callback);
+}
+
+void CanvasWidget::arm_paint_stroke_history() {
+  paint_stroke_history_armed_ = false;
+  if (!paint_stroke_history_callback_ || document_ == nullptr || quick_mask_active_) {
+    return;
+  }
+  if (layer_edit_target_ != LayerEditTarget::Content && layer_edit_target_ != LayerEditTarget::Mask &&
+      layer_edit_target_ != LayerEditTarget::DocumentChannel) {
+    return;
+  }
+  paint_stroke_history_event_ = PaintStrokeHistoryEvent{};
+  paint_stroke_history_event_.target = layer_edit_target_;
+  paint_stroke_history_event_.layer_id = document_->active_layer_id().value_or(0);
+  paint_stroke_history_event_.channel_id = active_document_channel_id_;
+  paint_stroke_history_armed_ = true;
+  paint_stroke_history_callback_(paint_stroke_history_event_);
+}
+
+void CanvasWidget::finish_paint_stroke_history() {
+  if (!paint_stroke_history_armed_) {
+    return;
+  }
+  paint_stroke_history_armed_ = false;
+  paint_stroke_history_event_.phase = PaintStrokeHistoryEvent::Phase::Finish;
+  if (paint_stroke_history_callback_) {
+    paint_stroke_history_callback_(paint_stroke_history_event_);
+  }
 }
 
 void CanvasWidget::set_selection_history_callback(std::function<void(QString, SelectionSnapshot, bool)> callback) {

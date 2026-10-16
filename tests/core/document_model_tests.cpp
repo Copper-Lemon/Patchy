@@ -3,6 +3,7 @@
 #include "core/blend_math.hpp"
 #include "core/document.hpp"
 #include "core/document_memory.hpp"
+#include "core/stroke_patch.hpp"
 #include "core/layer_render_utils.hpp"
 #include "core/layer_metadata.hpp"
 #include "render/compositor.hpp"
@@ -203,6 +204,98 @@ void document_memory_accounting_is_cow_aware() {
   patchy::PixelStorageSet empty_seen;
   CHECK(patchy::accumulate_unique_pixel_bytes(empty_document, no_exclusions, empty_seen) == 0);
   CHECK(empty_seen.empty());
+}
+
+// Per-stroke history (core/stroke_patch.hpp): a patch holds only the stroke's
+// rectangle, restores and redoes it exactly, and the capture refuses whenever
+// the stroke changed anything else.
+void stroke_patch_captures_and_restores_only_the_stroke_rect() {
+  using patchy::StrokePatch;
+  patchy::Document document(64, 48, patchy::PixelFormat::rgba8());
+  const auto layer_id = document.add_pixel_layer("Paint", solid_rgba(64, 48, 10, 20, 30, 255)).id();
+  const auto masked_id = document.add_pixel_layer("Masked", solid_rgba(64, 48, 1, 2, 3, 255)).id();
+  patchy::LayerMask mask;
+  mask.bounds = patchy::Rect{4, 2, 40, 30};
+  mask.pixels = patchy::PixelBuffer(40, 30, patchy::PixelFormat::gray8());
+  mask.pixels.clear(255);
+  document.find_layer(masked_id)->set_mask(std::move(mask));
+  const patchy::Document snapshot = document;
+
+  // Nothing written yet: the snapshot costs nothing, so there is no patch.
+  CHECK(!patchy::capture_stroke_patch(snapshot, document, StrokePatch::Target::LayerContent, layer_id, 0,
+                                      patchy::Rect{8, 4, 12, 8})
+             .has_value());
+
+  // A write inside the reported rectangle becomes a patch of that rectangle.
+  auto& live = document.find_layer(layer_id)->pixels();
+  for (std::int32_t y = 4; y < 12; ++y) {
+    for (std::int32_t x = 8; x < 20; ++x) {
+      live.pixel(x, y)[0] = 200;
+    }
+  }
+  const auto pixel_revision_before = std::as_const(document).find_layer(layer_id)->pixel_revision();
+  auto patch = patchy::capture_stroke_patch(snapshot, document, StrokePatch::Target::LayerContent, layer_id, 0,
+                                            patchy::Rect{6, 2, 16, 12});
+  CHECK(patch.has_value());
+  CHECK(patch->rect.x == 6 && patch->rect.y == 2 && patch->rect.width == 16 && patch->rect.height == 12);
+  CHECK(patch->byte_size() == 16U * 12U * 4U);
+  CHECK(patch->before.pixel(2, 2)[0] == 10);
+  // The capture reads through const access: no revision moved.
+  CHECK(std::as_const(document).find_layer(layer_id)->pixel_revision() == pixel_revision_before);
+
+  // Restore puts the snapshot bytes back (and remembers the stroke for redo).
+  const patchy::PixelBuffer after_stroke = std::as_const(document).find_layer(layer_id)->pixels();
+  CHECK(patchy::apply_stroke_patch(document, *patch, /*restore_before=*/true));
+  CHECK(std::as_const(document).find_layer(layer_id)->pixel_revision() != pixel_revision_before);
+  CHECK(patch->byte_size() == 2U * 16U * 12U * 4U);
+  {
+    const auto& restored = std::as_const(document).find_layer(layer_id)->pixels();
+    const auto& original = std::as_const(snapshot).find_layer(layer_id)->pixels();
+    CHECK(std::equal(restored.data().begin(), restored.data().end(), original.data().begin()));
+  }
+  CHECK(patchy::apply_stroke_patch(document, *patch, /*restore_before=*/false));
+  {
+    const auto& redone = std::as_const(document).find_layer(layer_id)->pixels();
+    CHECK(std::equal(redone.data().begin(), redone.data().end(), after_stroke.data().begin()));
+  }
+
+  // A second detached buffer (the mask) means the stroke changed more than its
+  // target: no patch. A write outside the reported rectangle is caught the same
+  // way, since the rectangle then clips to the buffer but the detach is real.
+  patchy::Document two_writes = snapshot;
+  two_writes.find_layer(layer_id)->pixels().pixel(8, 4)[0] = 7;
+  two_writes.find_layer(masked_id)->mask()->pixels.pixel(0, 0)[0] = 0;
+  CHECK(!patchy::capture_stroke_patch(snapshot, two_writes, StrokePatch::Target::LayerContent, layer_id, 0,
+                                      patchy::Rect{8, 4, 4, 4})
+             .has_value());
+  patchy::Document moved = snapshot;
+  moved.find_layer(layer_id)->pixels().pixel(8, 4)[0] = 7;
+  moved.find_layer(layer_id)->set_bounds(patchy::Rect{1, 0, 64, 48});
+  CHECK(!patchy::capture_stroke_patch(snapshot, moved, StrokePatch::Target::LayerContent, layer_id, 0,
+                                      patchy::Rect{8, 4, 4, 4})
+             .has_value());
+  patchy::Document outside = snapshot;
+  outside.find_layer(layer_id)->pixels().pixel(60, 40)[0] = 7;
+  CHECK(!patchy::capture_stroke_patch(snapshot, outside, StrokePatch::Target::LayerContent, layer_id, 0,
+                                      patchy::Rect{-10, -10, 5, 5})
+             .has_value());
+
+  // Mask target: the document rectangle maps through the mask's own origin.
+  patchy::Document mask_stroke = snapshot;
+  mask_stroke.find_layer(masked_id)->mask()->pixels.pixel(6, 3)[0] = 0;  // document (10, 5)
+  auto mask_patch = patchy::capture_stroke_patch(snapshot, mask_stroke, StrokePatch::Target::LayerMask, masked_id, 0,
+                                                 patchy::Rect{9, 4, 3, 3});
+  CHECK(mask_patch.has_value());
+  CHECK(mask_patch->rect.x == 5 && mask_patch->rect.y == 2 && mask_patch->rect.width == 3 && mask_patch->rect.height == 3);
+  CHECK(mask_patch->document_rect.x == 9 && mask_patch->document_rect.y == 4);
+  CHECK(mask_patch->before.pixel(1, 1)[0] == 255);
+  CHECK(patchy::apply_stroke_patch(mask_stroke, *mask_patch, /*restore_before=*/true));
+  CHECK(std::as_const(mask_stroke).find_layer(masked_id)->mask()->pixels.pixel(6, 3)[0] == 255);
+  CHECK(patchy::apply_stroke_patch(mask_stroke, *mask_patch, /*restore_before=*/false));
+  CHECK(std::as_const(mask_stroke).find_layer(masked_id)->mask()->pixels.pixel(6, 3)[0] == 0);
+  // A missing target applies nothing.
+  mask_stroke.find_layer(masked_id)->clear_mask();
+  CHECK(!patchy::apply_stroke_patch(mask_stroke, *mask_patch, /*restore_before=*/true));
 }
 
 void document_channels_validate_crud_revisions_and_cow() {
@@ -745,6 +838,8 @@ std::vector<patchy::test::TestCase> document_model_tests() {
       {"document_snapshot_shares_pixels_when_only_moving_a_layer",
        document_snapshot_shares_pixels_when_only_moving_a_layer},
       {"document_memory_accounting_is_cow_aware", document_memory_accounting_is_cow_aware},
+      {"stroke_patch_captures_and_restores_only_the_stroke_rect",
+       stroke_patch_captures_and_restores_only_the_stroke_rect},
       {"document_channels_validate_crud_revisions_and_cow",
        document_channels_validate_crud_revisions_and_cow},
       {"document_channel_geometry_tracks_image_and_canvas_operations",

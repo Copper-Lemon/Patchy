@@ -438,6 +438,27 @@ public:
     return window.session().redo_stack.size();
   }
 
+  // Per-stroke history (core/stroke_patch.hpp): whether the newest undo entry is a
+  // stroke patch rather than a whole-document snapshot, its bytes, and the switch that
+  // keeps strokes on the snapshot path so the two can be compared.
+  static bool top_undo_entry_is_stroke_patch(MainWindow& window) {
+    const auto& stack = window.session().undo_stack;
+    return !stack.empty() && stack.back().is_stroke_patch();
+  }
+  static std::size_t top_undo_entry_patch_bytes(MainWindow& window) {
+    const auto& stack = window.session().undo_stack;
+    return !stack.empty() && stack.back().is_stroke_patch() ? stack.back().patch->byte_size() : 0;
+  }
+  static void set_stroke_patch_history_enabled(MainWindow& window, bool enabled) {
+    window.stroke_patch_history_enabled_ = enabled;
+  }
+  // The retained-bytes cache is refreshed at push time (before a stroke detaches
+  // its layer) and after a patch shrink; this recomputes it from the live stacks.
+  static std::size_t recompute_history_retained_bytes(MainWindow& window) {
+    window.enforce_history_memory_budget(window.session());
+    return window.history_retained_bytes();
+  }
+
   // Context menus are painful to drive offscreen (precedent:
   // show_layer_context_menu); tests invoke the action directly.
   static void open_history_state_as_new_document(MainWindow& window, std::int64_t state_id) {

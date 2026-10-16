@@ -35,6 +35,7 @@
 #include <QPoint>
 #include <QPointer>
 #include <QRect>
+#include <QRegion>
 #include <QSet>
 #include <QString>
 #include <QStringList>
@@ -1910,17 +1911,47 @@ private:
   // kMinUndoStatesUnderPressure undo states per session. Redo stacks are
   // counted but never evicted (every push already clears redo).
   void enforce_history_memory_budget(const DocumentSession& push_target);
+  // What the canvas must recomposite after one or more history rotations:
+  // `full` once any step could not be region-diffed, else the union of the
+  // steps' changed document areas (empty: pixels identical).
+  struct HistoryRefreshRegion {
+    bool full{false};
+    QRegion region;
+  };
   // One data-only history rotation (no canvas or UI work, so jumps can loop it).
   // live_selection enters holding the live document's selection and exits
-  // holding the restored state's selection.
+  // holding the restored state's selection. A whole-document state swaps
+  // documents; a stroke-patch state writes its pixels into the live document
+  // in place. Either way `changed` accumulates the repaint need.
   void rotate_history_state(DocumentSession& target_session, bool backward,
-                            CanvasWidget::SelectionSnapshot& live_selection);
+                            CanvasWidget::SelectionSnapshot& live_selection, HistoryRefreshRegion& changed);
   // Shared canvas/panel refresh after undo/redo/jump rotations on the active
-  // session. before_document is the pre-restore document (left intact inside
-  // the opposite stack by the rotation) used for the partial-repaint diff.
-  void apply_history_restore_tail(DocumentSession& active_session, const Document& before_document,
+  // session, repainting only `changed`.
+  void apply_history_restore_tail(DocumentSession& active_session, const HistoryRefreshRegion& changed,
                                   CanvasWidget::SelectionSnapshot restored_selection,
                                   const QString& status_message);
+  // Per-stroke history (docs/performance.md, "History"). Begin remembers the
+  // snapshot a paint stroke just pushed; Finish shrinks that snapshot to a
+  // StrokePatch covering the stroke's bounds when the stroke changed nothing
+  // else, so a stroke retains its footprint instead of the painted layer.
+  void handle_paint_stroke_history_event(CanvasWidget* canvas, const CanvasWidget::PaintStrokeHistoryEvent& event);
+  // The whole document at a stored state: the snapshot itself, or the nearest
+  // newer snapshot (or the live document) with the intervening stroke patches
+  // written back (New Document From This State on a patch row).
+  [[nodiscard]] Document materialize_history_state(const DocumentSession& target_session, bool in_undo_stack,
+                                                   std::size_t index) const;
+  struct PendingStrokePatch {
+    std::int64_t session_id{0};
+    std::int64_t snapshot_state_id{0};
+    std::int64_t live_state_id{0};
+    StrokePatch::Target target{StrokePatch::Target::LayerContent};
+    LayerId layer_id{0};
+    ChannelId channel_id{0};
+  };
+  std::optional<PendingStrokePatch> pending_stroke_patch_;
+  // False keeps whole-document snapshots for paint strokes (PATCHY_STROKE_PATCH_HISTORY=0,
+  // or the MainWindowTestAccess seam the comparison tests use).
+  bool stroke_patch_history_enabled_{true};
   void update_undo_redo_actions();
   void show_about();
 

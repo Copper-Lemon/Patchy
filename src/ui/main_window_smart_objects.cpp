@@ -742,7 +742,7 @@ bool MainWindow::commit_smart_object_child_session(DocumentSession& child_sessio
   // operates on the active session).
   record_history_push(*parent,
                       DocumentSession::HistoryState{
-                          parent->document, parent->revision,
+                          parent->document, std::nullopt, parent->revision,
                           parent->canvas != nullptr ? parent->canvas->capture_selection_snapshot()
                                                     : CanvasWidget::SelectionSnapshot{},
                           {}, 0},
@@ -911,7 +911,7 @@ void MainWindow::refresh_external_smart_object_after_save(DocumentSession& child
   // operates on the active session).
   record_history_push(*parent,
                       DocumentSession::HistoryState{
-                          parent->document, parent->revision,
+                          parent->document, std::nullopt, parent->revision,
                           parent->canvas != nullptr ? parent->canvas->capture_selection_snapshot()
                                                     : CanvasWidget::SelectionSnapshot{},
                           {}, 0},

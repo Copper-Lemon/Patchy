@@ -1277,6 +1277,25 @@ public:
     return document_position_f(widget_position);
   }
   void set_before_edit_callback(std::function<void(QString)> callback);
+  // Paint-tool stroke lifecycle for the host's per-stroke history (docs/performance.md,
+  // "History"): Begin fires right after the stroke's before-edit callback pushed its
+  // snapshot and names the buffer the stroke will write (layer content, layer mask or
+  // saved channel); Finish fires once the stroke is over with the union of every dirty
+  // rectangle it reported, in document coordinates. Only the painting_ gestures (Brush,
+  // Eraser, Clone, Healing, Smudge, the local adjustment brushes, Mixer Brush, Pattern
+  // Stamp) emit it; Quick Mask and Smart Filter mask strokes never do.
+  struct PaintStrokeHistoryEvent {
+    enum class Phase {
+      Begin,
+      Finish
+    };
+    Phase phase{Phase::Begin};
+    LayerEditTarget target{LayerEditTarget::Content};
+    LayerId layer_id{0};
+    ChannelId channel_id{0};
+    QRect document_dirty{};
+  };
+  void set_paint_stroke_history_callback(std::function<void(const PaintStrokeHistoryEvent&)> callback);
   // Invoked when a selection-only edit completes and actually changed the
   // selection, so the host can push an undo entry holding the pre-edit state.
   // `coalesce` marks a continuation of a move sequence (drag/nudge): consecutive
@@ -1749,6 +1768,11 @@ private:
   [[nodiscard]] QRect widget_rect_for_document_rect(QRect document_rect) const;
   [[nodiscard]] QRectF widget_rect_for_document_rect(QRectF document_rect) const;
   bool begin_edit(QString label);
+  // Called right after a successful begin_edit by the painting_ gestures: emits the
+  // Begin history event and starts collecting the stroke's dirty rectangles.
+  void arm_paint_stroke_history();
+  // Emits the Finish event with the collected bounds (no-op when not armed).
+  void finish_paint_stroke_history();
   [[nodiscard]] CanvasTool effective_tool_for_input() const noexcept;
   void clear_brush_stroke_tracking() noexcept;
   void begin_axis_constrained_stroke(QPointF document_point) noexcept;
@@ -3100,6 +3124,11 @@ private:
   QImage pending_warp_source_image_{};
   std::optional<LayerId> move_transform_controls_layer_id_{};
   std::function<void(QString)> before_edit_callback_;
+  std::function<void(const PaintStrokeHistoryEvent&)> paint_stroke_history_callback_;
+  // Set between arm_paint_stroke_history and finish_paint_stroke_history;
+  // active_edit_target_changed_impl unions every reported region into the rect.
+  bool paint_stroke_history_armed_{false};
+  PaintStrokeHistoryEvent paint_stroke_history_event_{};
   std::function<void(QString, SelectionSnapshot, bool)> selection_history_callback_;
   std::function<void()> quick_mask_changed_callback_;
   std::function<bool(LayerId, QString, PixelBuffer, QRegion)> smart_filter_mask_committed_callback_;

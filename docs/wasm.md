@@ -18,7 +18,7 @@ All three configurations use Emscripten 4.0.7:
   `QThread::loopLevel()` definition; `canvas_widget_move.cpp` instead reads
   `QThreadData` through `Qt6::CorePrivate`.
 
-Stress/A-B harness: [performance.md](performance.md).
+Stress/A-B harness: [wasm-memory.md](wasm-memory.md).
 
 ## Toolchain setup
 
