@@ -618,6 +618,7 @@ public:
         return;
       }
       palette_->setMinimumWidth(kToolPaletteCollapsedMinWidth);
+      palette_->setMaximumWidth(QWIDGETSIZE_MAX);
       // One turn later (after Qt's own collapse handling), force a toolbar
       // layout pass: when the collapsed geometry matches the expanded one (a
       // tall window whose expansion had nothing left to reveal), Qt skips
@@ -686,6 +687,7 @@ private:
     }
     applying_ = true;
     palette_->setMinimumWidth(kToolPaletteCollapsedMinWidth);
+    palette_->setMaximumWidth(QWIDGETSIZE_MAX);
     if (auto* window_layout = palette_->window()->layout(); window_layout != nullptr) {
       // setMinimumWidth short-circuits when the value is unchanged, so force
       // the relayout that snaps any in-flight expansion animation and lets Qt
@@ -694,9 +696,15 @@ private:
       window_layout->activate();
     }
     const bool fits_collapsed = palette_->sizeHint().height() <= palette_->height();
-    const int expanded_width = palette_->width();
+    // Qt sizes the expansion from a square-root guess at the column count
+    // (QToolBarLayout::expandedSize), not from the columns the bar's height
+    // actually needs, and that guess reserved two empty columns beside the two
+    // in use (GitHub issue 124). The bar is pinned to the columns the layout
+    // filled: the right edge of the rightmost visible tool plus the margin.
+    const int expanded_width = std::min(palette_->width(), used_columns_width());
     if (!fits_collapsed && expanded_width > kToolPaletteCollapsedMinWidth) {
       palette_->setMinimumWidth(expanded_width);
+      palette_->setMaximumWidth(expanded_width);
     }
     applying_ = false;
     if (fits_collapsed) {
@@ -708,6 +716,28 @@ private:
         }
       });
     }
+  }
+
+  // The width the columns Qt filled actually need: the rightmost visible
+  // tool button's right edge plus the layout's right margin. The footer and
+  // the extension button are not tools.
+  int used_columns_width() const {
+    if (palette_ == nullptr) {
+      return 0;
+    }
+    const auto* footer = palette_->findChild<QWidget*>(QStringLiteral("toolPaletteFooter"));
+    int right = 0;
+    for (const auto* button : palette_->findChildren<QToolButton*>()) {
+      if (button == extension_ || button->isHidden() || (footer != nullptr && footer->isAncestorOf(button))) {
+        continue;
+      }
+      right = std::max(right, button->geometry().right() + 1);
+    }
+    if (right <= 0) {
+      return palette_->width();
+    }
+    const auto* layout = palette_->layout();
+    return right + (layout != nullptr ? layout->contentsMargins().right() : 0);
   }
 
   QPointer<QToolBar> palette_;
