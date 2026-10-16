@@ -49,8 +49,12 @@ QIcon AppStyle::standardIcon(StandardPixmap standard_icon, const QStyleOption* o
   if (standard_icon == SP_ToolBarHorizontalExtensionButton) {
     return themed_svg_icon(QStringLiteral("chevron-right"));
   }
+  // A vertical bar's overflow opens extra columns to the RIGHT, so its arrow
+  // points right too (GitHub issue 122: the old down arrow suggested the tools
+  // would slide up). The tool palette flips it to a left arrow while expanded
+  // (apply_extension_chevron in main_window_actions_tool_palette.cpp).
   if (standard_icon == SP_ToolBarVerticalExtensionButton) {
-    return themed_svg_icon(QStringLiteral("chevron-down"));
+    return themed_svg_icon(QStringLiteral("chevron-right"));
   }
   return QProxyStyle::standardIcon(standard_icon, option, widget);
 }

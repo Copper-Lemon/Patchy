@@ -509,6 +509,65 @@ void ui_tool_palette_overflow_hides_quick_mask_before_swatches() {
   save_widget_artifact("ui_tool_palette_overflow_pinned_footer", window);
 }
 
+// GitHub issues 126 and 124: after a window grows and shrinks again (a maximize and
+// restore, a panel expanding), the extension chevron must still sit whole above the footer
+// and never over a tool, and it must be visible whenever tools overflow.
+void ui_tool_palette_extension_survives_resize_cycles() {
+  patchy::ui::MainWindow window;
+  window.setAnimated(false);
+  show_window(window);
+  const auto setup = shrink_window_until_tool_palette_overflows(window);
+  auto* footer = setup.palette->findChild<QWidget*>(QStringLiteral("toolPaletteFooter"));
+  CHECK(footer != nullptr);
+  if (footer == nullptr) {
+    return;
+  }
+  const auto check_state = [&](const char* stage) {
+    QApplication::processEvents();
+    process_events_for(30);
+    bool any_tool_hidden = false;
+    for (auto* button : setup.palette->findChildren<QToolButton*>()) {
+      if (button != setup.extension && !footer->isAncestorOf(button) && button->isHidden()) {
+        any_tool_hidden = true;
+      }
+    }
+    if (any_tool_hidden && !setup.extension->isVisible()) {
+      std::printf("  %s: tools overflow but the extension button is hidden\n", stage);
+      CHECK(setup.extension->isVisible());
+    }
+    if (!setup.extension->isVisible()) {
+      return;
+    }
+    const auto ext = setup.extension->geometry();
+    if (ext.bottom() > footer->geometry().top() + 2 || ext.top() < 0) {
+      std::printf("  %s: extension %d..%d vs footer top %d\n", stage, ext.top(), ext.bottom(), footer->geometry().top());
+    }
+    CHECK(ext.bottom() <= footer->geometry().top() + 2);
+    CHECK(ext.top() >= 0);
+    for (auto* button : setup.palette->findChildren<QToolButton*>()) {
+      if (button == setup.extension || footer->isAncestorOf(button) || !button->isVisible()) {
+        continue;
+      }
+      if (ext.intersects(button->geometry())) {
+        std::printf("  %s: extension overlaps %s\n", stage, button->defaultAction() != nullptr
+                        ? button->defaultAction()->text().toUtf8().constData() : "a button");
+      }
+      CHECK(!ext.intersects(button->geometry()));
+    }
+  };
+  check_state("short");
+  const auto short_size = window.size();
+  for (int cycle = 0; cycle < 2; ++cycle) {
+    window.resize(1180, 1000);  // a maximize
+    check_state("tall");
+    window.resize(short_size);  // and its restore
+    check_state("short again");
+  }
+  window.resize(short_size.width(), short_size.height() - 60);  // a panel expanding below
+  check_state("shorter");
+  window.resize(short_size);
+  check_state("short once more");
+}
 void ui_tool_palette_extension_button_expands_palette() {
   patchy::ui::MainWindow window;
   // The expanded geometry is otherwise applied through the ~200ms main-window
@@ -518,8 +577,13 @@ void ui_tool_palette_extension_button_expands_palette() {
   const auto setup = shrink_window_until_tool_palette_overflows(window);
   CHECK(setup.quick_mask->isVisible());  // the footer never overflows
 
+  const auto rendered = [](const QIcon& icon) { return icon.pixmap(QSize(16, 16)).toImage(); };
+  // The arrow points where the expansion goes: right while collapsed, left once
+  // the extra column is open (GitHub issue 122).
+  CHECK(rendered(setup.extension->icon()) == rendered(patchy::ui::themed_svg_icon(QStringLiteral("chevron-right"))));
   setup.extension->click();
   CHECK(process_events_until([&] { return setup.palette->width() > 45; }));
+  CHECK(rendered(setup.extension->icon()) == rendered(patchy::ui::themed_svg_icon(QStringLiteral("chevron-left"))));
   CHECK(setup.foreground->isVisible());
   CHECK(setup.background->isVisible());
   CHECK(setup.quick_mask->isVisible());
@@ -5886,7 +5950,8 @@ void ui_app_style_keeps_desktop_icons_off_dialog_buttons_and_toolbars() {
   const auto vertical = style.standardIcon(QStyle::SP_ToolBarVerticalExtensionButton, nullptr, nullptr);
   CHECK(!horizontal.isNull() && !vertical.isNull());
   CHECK(rendered(horizontal) == rendered(patchy::ui::themed_svg_icon(QStringLiteral("chevron-right"))));
-  CHECK(rendered(vertical) == rendered(patchy::ui::themed_svg_icon(QStringLiteral("chevron-down"))));
+  // A vertical bar's overflow opens columns to the right (issue 122).
+  CHECK(rendered(vertical) == rendered(patchy::ui::themed_svg_icon(QStringLiteral("chevron-right"))));
   // Other standard icons still come from the platform style.
   CHECK(!style.standardIcon(QStyle::SP_DirIcon, nullptr, nullptr).isNull());
 }

@@ -38,6 +38,7 @@
     <file alias="expand.svg">icons/expand.svg</file>
     <file alias="chevron-down.svg">icons/chevron-down.svg</file>
     <file alias="chevron-right.svg">icons/chevron-right.svg</file>
+    <file alias="chevron-left.svg">icons/chevron-left.svg</file>
     <file alias="contract.svg">icons/contract.svg</file>
     <file alias="border.svg">icons/border.svg</file>
     <file alias="alpha.svg">icons/alpha.svg</file>

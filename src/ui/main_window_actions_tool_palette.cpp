@@ -579,6 +579,18 @@ private:
 
 constexpr int kToolPaletteCollapsedMinWidth = 43;
 
+// The overflow arrow points where the expansion goes (GitHub issue 122): right
+// while collapsed (the extra columns open to the right), left while expanded.
+// QToolBarExtension takes its icon from the style only on an orientation or
+// style change, so the checked state owns it in between.
+void apply_extension_chevron(QToolButton* extension) {
+  if (extension == nullptr) {
+    return;
+  }
+  extension->setIcon(themed_svg_icon(extension->isChecked() ? QStringLiteral("chevron-left")
+                                                            : QStringLiteral("chevron-right")));
+}
+
 // Qt expands the overflow columns by giving the bar a geometry wider than its
 // toolbar-area slot, overlaying the canvas. While the extension button stays
 // checked, this controller copies the measured expanded width into the bar's
@@ -594,7 +606,9 @@ public:
   ToolPaletteExpansionReservation(QToolBar* palette, QToolButton* extension)
       : QObject(palette), palette_(palette), extension_(extension) {
     palette->installEventFilter(this);
+    extension->installEventFilter(this);
     connect(extension, &QToolButton::toggled, this, [this](bool checked) {
+      apply_extension_chevron(extension_);
       suspend_window_animation();
       if (checked) {
         schedule_reservation();
@@ -622,6 +636,14 @@ public:
 
 protected:
   bool eventFilter(QObject* watched, QEvent* event) override {
+    if (watched == extension_) {
+      // QToolBarExtension::changeEvent re-reads the style's icon after this
+      // filter; restore the direction the checked state asks for.
+      if (event->type() == QEvent::StyleChange) {
+        QTimer::singleShot(0, this, [this] { apply_extension_chevron(extension_); });
+      }
+      return QObject::eventFilter(watched, event);
+    }
     if (event->type() == QEvent::Resize && !applying_ && extension_ != nullptr && extension_->isChecked()) {
       schedule_reservation();
     }
