@@ -478,6 +478,11 @@ void CanvasWidget::grayscale_target_changed(QRect document_rect, DocumentChangeR
 }
 
 void CanvasWidget::active_edit_target_changed_impl(QRegion document_region, DocumentChangeReason reason) {
+  if (paint_stroke_history_armed_) {
+    // Every write the stroke reports (dabs, wet edges, airbrush ticks) lands
+    // here, so the union is the stroke's per-stroke history footprint.
+    paint_stroke_history_event_.document_dirty |= document_region.boundingRect();
+  }
   // Mask/channel edit branches below return without document_changed_impl;
   // invalidate the retained move caches up front (harmlessly repeated when
   // the plain branch falls through to document_changed_impl).

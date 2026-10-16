@@ -142,6 +142,7 @@ add_library(patchy_core
   src/core/document_channel.cpp
   src/core/document_depth.cpp
   src/core/document_memory.cpp
+  src/core/stroke_patch.cpp
   src/core/document_recovery_store.cpp
   src/support/atomic_file_write.cpp
   src/core/environment.cpp
@@ -2087,6 +2088,7 @@ if(PATCHY_BUILD_TESTS)
       tests/ui/legacy_plugin_tests.cpp
       tests/ui/gmic_tests.cpp
       tests/ui/history_panel_tests.cpp
+      tests/ui/history_stroke_patch_tests.cpp
       tests/ui/file_info_tests.cpp
       tests/ui/composite_render_tests.cpp
       tests/ui/readme_screenshot_tests.cpp

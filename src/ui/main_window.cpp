@@ -7319,6 +7319,10 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
   install_ico_png_codec();
   install_rttex_jpeg_codec();
   print_page_layout_ = load_stored_print_page_layout();
+  // Diagnostic kill switch for the per-stroke history entries (docs/performance.md).
+  if (bool ok = false; qEnvironmentVariableIntValue("PATCHY_STROKE_PATCH_HISTORY", &ok) == 0 && ok) {
+    stroke_patch_history_enabled_ = false;
+  }
   if (use_custom_window_chrome()) {
     setWindowFlag(Qt::FramelessWindowHint, true);
   }
@@ -8575,6 +8579,9 @@ void MainWindow::configure_canvas(CanvasWidget* canvas) {
     if (auto* target_session = session_for_canvas(canvas); target_session != nullptr) {
       push_undo_snapshot(*target_session, std::move(label));
     }
+  });
+  canvas->set_paint_stroke_history_callback([this, canvas](const CanvasWidget::PaintStrokeHistoryEvent& event) {
+    handle_paint_stroke_history_event(canvas, event);
   });
   // The Patch tool's Enter with an outline and no drag opens the Remove
   // Object dialog, the same command as the Edit menu entry.

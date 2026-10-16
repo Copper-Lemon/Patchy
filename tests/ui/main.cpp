@@ -365,6 +365,7 @@ int main(int argc, char* argv[]) {
            legacy_plugin_tests,
            gmic_ui_tests,
            history_panel_tests,
+           history_stroke_patch_tests,
            file_info_tests,
            composite_render_tests,
            readme_screenshot_tests,

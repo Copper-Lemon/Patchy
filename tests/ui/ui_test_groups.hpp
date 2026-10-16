@@ -66,6 +66,7 @@ std::vector<patchy::test::TestCase> document_recovery_tests();
 std::vector<patchy::test::TestCase> mcp_tests();
 std::vector<patchy::test::TestCase> unicode_path_tests();
 std::vector<patchy::test::TestCase> history_panel_tests();
+std::vector<patchy::test::TestCase> history_stroke_patch_tests();
 std::vector<patchy::test::TestCase> file_info_tests();
 std::vector<patchy::test::TestCase> composite_render_tests();
 std::vector<patchy::test::TestCase> readme_screenshot_tests();

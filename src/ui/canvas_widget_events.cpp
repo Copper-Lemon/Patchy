@@ -832,6 +832,7 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
       return;
     }
     if (begin_edit(healing ? tr("Healing brush") : tr("Clone stamp"))) {
+      arm_paint_stroke_history();
       clone_source_cache_ = retouch_source_snapshot();
       clone_source_deep_ = document_->color_state().bit_depth != BitDepth::UInt8 ? retouch_source_deep()
                                                                                  : PixelBuffer{};
@@ -898,6 +899,7 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
         break;
     }
     if (begin_edit(label)) {
+      arm_paint_stroke_history();
       clear_brush_stroke_tracking();
       if (auto* layer = active_pixel_layer(); layer != nullptr && document_->active_layer_id().has_value()) {
         ensure_brush_stroke_layer_snapshot(*document_->active_layer_id(), std::as_const(*layer));
@@ -1328,6 +1330,7 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
       label = tr("Smudge");
     }
     if (begin_edit(label)) {
+      arm_paint_stroke_history();
       clear_brush_stroke_tracking();
       smudge_state_ = {};
       mixer_brush_state_ = {};
@@ -2335,6 +2338,8 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
     } else {
       notify_document_changed(DocumentChangeReason::BrushStrokeFinished);
     }
+    // After the final segment's dirty rect has been reported above.
+    finish_paint_stroke_history();
     return;
   }
 
@@ -3865,6 +3870,9 @@ void CanvasWidget::focusOutEvent(QFocusEvent* event) {
       notify_document_changed(DocumentChangeReason::BrushStrokeFinished);
     }
   }
+  // A stroke cut short by focus loss keeps what it painted; its history entry
+  // shrinks to that footprint like a released one.
+  finish_paint_stroke_history();
   QWidget::focusOutEvent(event);
 }
 

@@ -4,7 +4,7 @@ Deep reference for wasm memory: how the shared memory is constructed, what
 the in-app numbers mean, the telemetry publisher, the in-app budgets, and
 the resolved Safari 26 tab-kill record. Build, toolchain, and threading
 rules live in [wasm.md](wasm.md); the measurement harness and the mac-host
-workflow live in [performance.md](performance.md).
+workflow are the last two sections of this file.
 
 ## Construction: the shell page owns the memory
 
@@ -70,7 +70,7 @@ during the compile storm, then ~1.9 GB) and a 15-minute `stress` `standard` run
 holds flat at ~4.2 GB after a 6.4 GB early peak. Every browser therefore gets
 the threaded build, with no WebKit notice or `st/` routing. iOS was not
 retested. If the kill returns, rerun `wasm-safari-memtest.ps1 -Mode stress`
-(see [performance.md](performance.md)); `wasm-release-st` still builds for
+(the Safari/iOS section below); `wasm-release-st` still builds for
 comparison.
 
 What the investigation established, so it is not repeated:
@@ -97,3 +97,29 @@ What the investigation established, so it is not repeated:
   (ABI-locked; embind signatures changed) let the compile storm converge, and
   under stress it then climbed past 55 GB anyway, so an old toolchain only
   delays the pathology.
+
+## Headless wasm stress harness
+
+The harness page is `scripts/wasm/stress-harness.html` (staged by `build-wasm.bat` with the shared cache tag; production uploads exclude it, the beta upload ships it). It shims `requestAnimationFrame` onto `setTimeout`, re-implements the global timers on a Web Worker (Chrome and Safari throttle a hidden tab's main-thread timers to ~1/s; worker messages are exempt), suppresses `<a download>` clicks (overriding `HTMLAnchorElement.prototype.click`, since the save path clicks an unattached anchor), swallows the post-exit ExitStatus unhandled rejection, replicates patchy.html.in's `buildWasmMemory` (same knobs and ladders; keep in sync), and offers four workloads via `?mode=`: `stress` (passes `arguments: ['--stress-test=<preset>', '--stress-report-dir', '/stressout']` to qtLoad and polls the report from MEMFS via the exported `FS`), `soak` (writes `scripts/wasm/memsoak.js` into MEMFS from a `preRun` hook and runs it via `--run-script`; iterations chain through setTimeout so telemetry ticks between rounds), `open` (sends `?file=` through the real browser-drop path and checks open plus source cleanup), and `idle`. The CLI workloads end through qtloader's exit funnel: the CLI completion paths call `exit_cli_application` (ui/cli_exit.hpp), which on wasm shuts the Emscripten runtime down so `qt.onExit` fires and the harness records the `exited` terminal stage with the CLI exit code (crashes still report through the abort funnel; a bare `QCoreApplication::exit` would park the tab and make soak mode look wedged, see the exit rule in [wasm.md](wasm.md)). memsoak.js holds its run open for one trailing settle window so the last iteration's post-close sample lands before the exit. The first run of a new binary (or port) pays V8 tier-up and is discarded as warm-up; configs are compared in interleaved pairs on two ports, never sequentially (machine-load drift beats most effects).
+
+For the exact large-open regression, stage a hard link and the raw harness:
+
+```powershell
+New-Item -ItemType HardLink -Path build\wasm-release\wasm-open-fixture.psd -Target 'local-test-fixtures\psd\C2Kyoto Nintendo NES Cartridge Label Template (Front).psd'
+Copy-Item scripts\wasm\stress-harness.html build\wasm-release\stress-harness.html
+pwsh -File scripts\wasm\serve-app.ps1 8974
+```
+
+Open `http://localhost:8974/stress-harness.html?mode=open`. Pass means
+`open-passed` with `transferReleased: true`; `?timeout=` overrides 600000 ms.
+Remove both staged files and stop port 8974 afterward.
+
+Instrumentation on the page: an on-screen HUD (heap/used/cap/stage), 2 s `POST /memtest-sample` samples that `scripts/wasm/serve.py` appends to a JSONL (silently inert on plain Apache; the path avoids the word "telemetry", which content blockers kill), and a localStorage black box journaled synchronously at each load stage (memory-constructed, fetch, compile, qtload-start, loaded, running+Ns) so a browser memory kill, which fires no catchable event, is reported by the NEXT load as a banner with the death stage and last heap numbers. Three consecutive unclean ends gate the next boot behind a click so Safari's kill-then-reload loop cannot hammer a device. In-app numbers come from `globalThis.patchyMemStats` (ui/wasm_memory_telemetry.cpp, see [wasm-memory.md](wasm-memory.md)); the publisher is diagnostics opt-in (`?PATCHY_MEM_STATS=1`, implied by `?PATCHY_MEM_LOG=1`), the harness enables it automatically, and release visitors run without it.
+
+## Safari/iOS memory diagnostics (mac build host)
+
+`scripts\remote\wasm-safari-memtest.ps1` runs a full measured Safari session on the mac build host from Windows: pushes the staged site plus helpers to `~/patchy-memtest/`, starts `scripts/wasm/serve.py` on port 8993 (COOP/COEP; localhost is a secure context, so the threaded build boots), drives Safari via `scripts/remote/safari-memtest.py`, and copies the results back to `build\memtest-results\<run-id>\` (samples.csv, telemetry JSONL, events.log, summary.json, webkit-log.txt on a kill). Modes: `-Mode stress|soak|idle` (harness page, unattended) and `-Mode interactive` (real patchy.html; Seth drives, the sampler records, Safari and the server stay up). `-Knobs 'PATCHY_WASM_MAX_MB=1024&PATCHY_WASM_POOL=8'` forwards the shell-page memory knobs for A/B runs without rebuilding.
+
+The sampler tracks the number WebKit's kill policy watches: per-process `footprint` of the app's WebContent process (identified as the first new WebContent instance crossing 300 MB), plus Safari and the GPU process (canvas/IOSurface growth lands there, invisible to wasm-side numbers). Reading the curves: used grows while heap stays flat = in-app leak; heap steps up at workload peaks while used returns low = peak ratchet (wasm memory never shrinks); WebContent footprint grows while heap stays flat = browser-side growth; GPU process grows = canvas/IOSurface. The default `open` driver needs no setup and quits Safari via pkill afterwards. `-Driver webdriver` additionally polls `patchyMemStats` on the real patchy.html and detects kills via a page epoch sentinel; it needs a one-time `sudo safaridriver --enable` on the mac build host plus Safari > Develop > Developer Settings > Allow Remote Automation, and if an ssh-launched safaridriver cannot reach the window server, start `safaridriver -p 4723` once in a Terminal on the mac build host (the script attaches to a listener).
+
+iOS device runs use the beta deploy (`scripts\release\upload-wasm-to-rtsoft-beta.bat` publishes the same staged site plus the harness to https://www.rtsoft.com/patchy-beta/; an iPhone needs real https for SharedArrayBuffer, a LAN http server cannot boot the threaded build). Walk the memory knobs on the device against `stress-harness.html`; the black-box banner attributes deaths to a load stage. One-time device step: Settings > Apps > Safari > Advanced > Web Inspector ON (inspect from the mac build host's Safari Develop menu). After a death, fetch jetsam logs from the mac build host: `xcrun devicectl device copy from --device "<name>" --domain-type systemCrashLogs --source . --destination <dir>`, then read the newest JetsamEvent-*.ips: `per-process-limit` with a footprint near the chosen cap means the shared maximum was committed eagerly; `vm-pageshortage` well below limits means a transient spike (module compile or pool spawn).
