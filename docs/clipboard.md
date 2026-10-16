@@ -17,6 +17,24 @@ Text, file URLs without image data, and empty clipboards report the existing
 image itself to use this command; Edit > Paste retains its separate Files as
 Layers behavior for copied file URLs.
 
+## Edit > Copy and the system clipboard
+
+`copy_selection` (main_window_layer_ops.cpp) has two payloads. With a pixel selection on
+pixel layers it copies the selected pixels (`ClipboardPayload::pixels`) and puts the same
+image on the system clipboard. Without a selection, or with a text, shape, adjustment,
+folder or Smart Object layer among the copied ones, it copies whole layers
+(`layers_top_to_bottom`) and, since GitHub issue 116, also renders those layers by
+themselves (`render_layers_for_system_clipboard`: a scratch document with the copied
+layers and the Smart Object, filter and pattern stores they reference, cropped to the
+layers' bounds and trimmed to painted pixels) onto the system clipboard. It used to clear
+the system clipboard instead, which on Wayland reached the compositor as
+`set_selection(nil)` and left a paste in another program empty. Paste inside Patchy still
+prefers the layer payload because `set_system_clipboard_image` records the image's
+signature as Patchy's own; an image copied elsewhere afterwards wins, as before
+(`ui_external_clipboard_image_paste_overrides_internal_payload`). Hidden copied layers
+render nothing, so the clipboard is cleared as before. Test:
+`ui_whole_layer_copy_puts_its_pixels_on_the_system_clipboard`.
+
 ## Platforms
 
 Native builds read `QClipboard::Clipboard` in response to the action. This uses

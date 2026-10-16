@@ -705,6 +705,63 @@ std::optional<LayerCopyPixels> collect_layer_copy_pixels(const Document& documen
 
 }  // namespace
 
+QImage MainWindow::render_layers_for_system_clipboard(const std::vector<Layer>& layers_top_to_bottom) {
+  if (layers_top_to_bottom.empty()) {
+    return {};
+  }
+  const auto& source = std::as_const(document());
+  Document scratch(source.width(), source.height(), source.format());
+  scratch.color_state().bit_depth = source.color_state().bit_depth;
+  // What the copied layers may reference while they render: Smart Object sources,
+  // filter records and pattern tiles (shared payloads, so the copies are cheap).
+  scratch.metadata().smart_objects = source.metadata().smart_objects;
+  scratch.metadata().smart_filter_effects = source.metadata().smart_filter_effects;
+  scratch.metadata().patterns = source.metadata().patterns;
+  Rect painted;
+  bool whole_canvas = false;
+  for (auto it = layers_top_to_bottom.rbegin(); it != layers_top_to_bottom.rend(); ++it) {
+    if (it->kind() == LayerKind::Group) {
+      whole_canvas = true;  // a folder's extent is its children's; render the canvas and trim
+    } else {
+      painted = unite_rect(painted, it->bounds());
+    }
+    scratch.add_layer(*it);
+  }
+  const auto canvas_rect = Rect::from_size(source.width(), source.height());
+  const auto crop = whole_canvas ? canvas_rect : intersect_copy_rect(painted, canvas_rect);
+  if (crop.empty()) {
+    return {};
+  }
+  QImage image;
+  {
+    const ScopedDocumentDepthRender depth_render;
+    image = qimage_from_document_rect(scratch, QRect(crop.x, crop.y, crop.width, crop.height), true)
+                .convertToFormat(QImage::Format_ARGB32);
+  }
+  // Trim the fully transparent margins (a text layer's bounds include its line box, a
+  // masked layer's its hidden part).
+  int left = image.width();
+  int top = image.height();
+  int right = -1;
+  int bottom = -1;
+  for (int y = 0; y < image.height(); ++y) {
+    const auto* row = reinterpret_cast<const QRgb*>(image.constScanLine(y));
+    for (int x = 0; x < image.width(); ++x) {
+      if (qAlpha(row[x]) == 0) {
+        continue;
+      }
+      left = std::min(left, x);
+      right = std::max(right, x);
+      top = std::min(top, y);
+      bottom = y;
+    }
+  }
+  if (right < left) {
+    return {};
+  }
+  return image.copy(QRect(left, top, right - left + 1, bottom - top + 1));
+}
+
 void MainWindow::clear_system_clipboard() {
   if (auto* clipboard = QApplication::clipboard(); clipboard != nullptr) {
     const QSignalBlocker blocker(clipboard);
@@ -990,7 +1047,16 @@ void MainWindow::copy_selection() {
                                            payload.pattern_resources);
     }
     clipboard_ = std::move(payload);
-    clear_system_clipboard();
+    // Other programs get the layers' pixels too. This used to clear the system clipboard,
+    // so a paste into another app came up empty (GitHub issue 116, from a Wayland AppImage,
+    // where the clear reached the compositor as an empty selection). Paste inside Patchy
+    // still prefers the layer payload: the image's signature marks it as Patchy's own.
+    const auto rendered = render_layers_for_system_clipboard(clipboard_->layers_top_to_bottom);
+    if (rendered.isNull()) {
+      clear_system_clipboard();
+    } else {
+      set_system_clipboard_image(rendered);
+    }
     statusBar()->showMessage(tr("Copied %1 layer(s)").arg(static_cast<qulonglong>(selected_layers.size())));
     return;
   }

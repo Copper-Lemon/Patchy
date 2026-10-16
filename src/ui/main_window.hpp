@@ -988,6 +988,9 @@ private:
   void paste_clipboard(bool in_place = false);
   void clear_system_clipboard();
   void set_system_clipboard_image(const QImage& image);
+  // The copied layers composited by themselves and cropped to their painted
+  // pixels: what a whole-layer copy hands other programs (GitHub issue 116).
+  [[nodiscard]] QImage render_layers_for_system_clipboard(const std::vector<Layer>& layers_top_to_bottom);
   // Puts arbitrary mime data (Copy as SVG) on the system clipboard and drops
   // the internal layer clipboard so Paste reads the system data.
   void set_system_clipboard_mime(QMimeData* mime);

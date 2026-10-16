@@ -2798,6 +2798,45 @@ void ui_edit_conversion_scanline_rewrites_are_byte_identical() {
   CHECK(rgb_matches);
 }
 
+
+// GitHub issue 116: a whole-layer copy (no selection) also hands other programs the
+// layers' pixels, cropped to what they paint; it used to clear the system clipboard.
+// Paste inside Patchy still takes the internal layer payload.
+void ui_whole_layer_copy_puts_its_pixels_on_the_system_clipboard() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* canvas = require_canvas(window);
+  canvas->fit_to_view();
+  auto* layer_list = window.findChild<QListWidget*>(QStringLiteral("layerList"));
+  CHECK(layer_list != nullptr);
+  require_action(window, "layerNewAction")->trigger();
+  QApplication::processEvents();
+  canvas->set_primary_color(QColor(20, 200, 90));
+  canvas->set_tool(patchy::ui::CanvasTool::Marquee);
+  drag(*canvas, canvas->widget_position_for_document_point(QPoint(100, 60)),
+       canvas->widget_position_for_document_point(QPoint(220, 140)));
+  const auto painted = canvas->selected_document_rect();
+  CHECK(painted.has_value());
+  require_action(window, "layerFillForegroundAction")->trigger();
+  require_action(window, "editDeselectAction")->trigger();
+  QApplication::processEvents();
+  CHECK(!canvas->has_selection());
+
+  QApplication::clipboard()->clear();
+  const auto layers_before = layer_list->count();
+  require_action(window, "editCopyAction")->trigger();
+  QApplication::processEvents();
+  const auto image = QApplication::clipboard()->image().convertToFormat(QImage::Format_RGBA8888);
+  CHECK(!image.isNull());
+  CHECK(image.size() == painted->size());
+  CHECK(color_close(image.pixelColor(image.width() / 2, image.height() / 2), QColor(20, 200, 90), 4));
+  CHECK(image.pixelColor(0, 0).alpha() == 255);
+
+  require_action(window, "editPasteAction")->trigger();
+  QApplication::processEvents();
+  CHECK(layer_list->count() == layers_before + 1);
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> clipboard_free_transform_tests() {
@@ -2810,6 +2849,8 @@ std::vector<patchy::test::TestCase> clipboard_free_transform_tests() {
       {"ui_open_clipboard_rejects_empty_and_non_image_data_without_creating_tabs",
        ui_open_clipboard_rejects_empty_and_non_image_data_without_creating_tabs},
       {"ui_copy_paste_and_transform_pasted_layer_work", ui_copy_paste_and_transform_pasted_layer_work},
+      {"ui_whole_layer_copy_puts_its_pixels_on_the_system_clipboard",
+       ui_whole_layer_copy_puts_its_pixels_on_the_system_clipboard},
       {"ui_paste_clears_selection_and_undo_restores_it", ui_paste_clears_selection_and_undo_restores_it},
       {"ui_paste_file_urls_adds_layers", ui_paste_file_urls_adds_layers},
       {"ui_external_clipboard_image_paste_creates_centered_layer",
