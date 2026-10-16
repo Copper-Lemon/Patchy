@@ -848,6 +848,13 @@ void ui_color_picker_palette_dropdown_tracks_mode_and_choice() {
   combo->setCurrentIndex(vga_row);
   QApplication::processEvents();
   CHECK(grid->property("paletteColorCount").toInt() == 246);
+  // The grid keeps a gutter free of the scroll bar beside it (GitHub issue 137).
+  {
+    const auto gap = grid->property("paletteCellGap").toInt();
+    const auto cell = grid->property("paletteCellSize").toInt() + gap;
+    const auto columns = grid->property("paletteColumns").toInt();
+    CHECK(columns * cell - gap <= grid->width() - 4);
+  }
   const auto dink_row = combo->findData(QStringLiteral("dink"));
   CHECK(dink_row >= 0);
   combo->setCurrentIndex(dink_row);

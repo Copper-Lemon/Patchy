@@ -590,10 +590,14 @@ protected:
   }
 
 private:
+  // Pixels kept free at the right edge so the last column never touches the scroll
+  // bar that appears beside the long palettes (GitHub issue 137).
+  static constexpr int kScrollBarGutter = 4;
+
   [[nodiscard]] int cell_size() const noexcept { return color_count() > 64 ? 16 : kSwatchSize; }
   [[nodiscard]] int cell_gap() const noexcept { return color_count() > 64 ? 3 : kSwatchSpacing; }
   [[nodiscard]] int columns() const noexcept {
-    return std::max(1, (width() + cell_gap()) / (cell_size() + cell_gap()));
+    return std::max(1, (width() - kScrollBarGutter + cell_gap()) / (cell_size() + cell_gap()));
   }
 
   [[nodiscard]] QRect cell_rect(int index) const noexcept {
