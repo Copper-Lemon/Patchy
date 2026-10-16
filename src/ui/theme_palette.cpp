@@ -655,12 +655,16 @@ const ThemePalette& light_palette() {
     // clamps it to a heavy navy; match the icon accent instead so it reads as
     // the same family of marker and holds up on both an unselected light row and
     // the blue of a selected one.
-    light.layer_clip_badge = rgb(0x1668c4);
+    light.layer_clip_badge = rgb(0x1a73e8);
 
     // Icon ink. The flip lands close, but these are the most-looked-at pixels in
     // the app and deserve exact values.
     light.icon_ink = rgb(0x333a42);
-    light.icon_accent = rgb(0x1668c4);
+    // Brighter and more saturated than the first 0x1668c4: beside the dark ink
+    // on a light toolbar that navy read as more ink, so the accent marks on the
+    // tool icons vanished (GitHub issue 129). This one still clears the light
+    // tool palette background.
+    light.icon_accent = rgb(0x1a73e8);
     light.icon_accent_soft = rgb(0x5f9fe0);
     light.icon_accent_tint = rgb(0x5f9fe0);
     light.icon_danger = rgb(0xc0392b);
