@@ -2,6 +2,7 @@
 
 #include "formats/af_document_io.hpp"
 #include "formats/aseprite_document_io.hpp"
+#include "formats/avif_document_io.hpp"
 #include "formats/bmp_document_io.hpp"
 #include "formats/exr_document_io.hpp"
 #include "formats/hdr_document_io.hpp"
@@ -191,6 +192,14 @@ void register_builtin_formats(FormatRegistry& registry) {
                              [](std::span<const std::uint8_t> bytes) { return jp2::read_jp2(bytes); },
                              [](const Document& document) { return jp2::write_jp2(document); },
                              [](std::span<const std::uint8_t> bytes) { return jp2::sniff(bytes); }});
+  // AVIF through the vendored libavif + dav1d, decode only (docs/avif.md,
+  // docs/legal-constraints.md); the browser build registers the row with a throwing reader.
+  registry.register_handler({"patchy.formats.avif",
+                             "AVIF Image",
+                             avif::avif_extensions(),
+                             [](std::span<const std::uint8_t> bytes) { return avif::read_avif(bytes); },
+                             nullptr,
+                             [](std::span<const std::uint8_t> bytes) { return avif::sniff(bytes); }});
   // JPEG XL through the vendored libjxl on every platform (docs/jxl.md). The encoder's
   // patches and dots stay off on every write (docs/legal-constraints.md).
   registry.register_handler({"patchy.formats.jxl",

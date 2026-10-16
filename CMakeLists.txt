@@ -519,6 +519,9 @@ endif()
 include(cmake/patchy_webp.cmake)
 include(cmake/patchy_jxl.cmake)
 include(cmake/patchy_openjpeg.cmake)
+if(NOT EMSCRIPTEN)
+  include(cmake/patchy_avif.cmake)
+endif()
 
 add_library(patchy_formats
   src/formats/animation_timing.cpp
@@ -541,6 +544,7 @@ add_library(patchy_formats
   src/formats/hdr_document_io.cpp
   src/formats/exr_document_io.cpp
   src/formats/jp2_document_io.cpp
+  src/formats/avif_document_io.cpp
   src/formats/jxr_document_io.cpp
   src/formats/metadata/exif_tags.cpp
   src/formats/metadata/iptc_iim.cpp
@@ -587,6 +591,12 @@ add_library(patchy_formats
 # smart-filter blur (filters depends only on core, so no cycle).
 target_link_libraries(patchy_formats PUBLIC patchy_core patchy_render patchy_psd PRIVATE patchy_filters patchy_libraw)
 target_link_libraries(patchy_formats PRIVATE webp webpdemux libwebpmux patchy_jxl patchy_openjpeg)
+# AVIF decodes through the vendored libavif + dav1d on every native build; the browser build
+# compiles only the unavailable stub in avif_document_io.cpp (docs/avif.md).
+if(NOT EMSCRIPTEN)
+  target_link_libraries(patchy_formats PRIVATE patchy_avif)
+  target_compile_definitions(patchy_formats PRIVATE PATCHY_AVIF_DECODER=1)
+endif()
 # tinyexr includes "miniz.h" by that bare name (exr_document_io.cpp).
 target_include_directories(patchy_formats PRIVATE ${PROJECT_SOURCE_DIR}/src/formats/miniz)
 target_include_directories(patchy_formats PRIVATE src/formats/libwebp/src)
@@ -691,7 +701,7 @@ if(PATCHY_BUILD_APP)
          "${PROJECT_SOURCE_DIR}/src/*.hpp"
          "${PROJECT_SOURCE_DIR}/src/*.mm")
     list(FILTER PATCHY_LUPDATE_SOURCES EXCLUDE REGEX
-         "/src/(formats/(zstd|miniz|libheif|libraw|libjxl|stb|bcdec|bc7enc|openjpeg|tinyexr)|color/lcms2)/")
+         "/src/(formats/(zstd|miniz|libheif|libraw|libjxl|stb|bcdec|bc7enc|openjpeg|tinyexr|dav1d|libavif)|color/lcms2)/")
     # The vendored G'MIC interpreter holds no Patchy text.
     list(FILTER PATCHY_LUPDATE_SOURCES EXCLUDE REGEX "/src/filters/gmic/(gmic\\.cpp|patchy_stub/)")
     list(SORT PATCHY_LUPDATE_SOURCES)

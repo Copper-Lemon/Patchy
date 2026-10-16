@@ -10008,10 +10008,6 @@ RGB: %2, %3, %4</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>This AVIF image needs a system AV1 decoder, which this computer does not have. On Windows, install the AV1 Video Extension from the Microsoft Store.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>This file is not an OpenEXR image</source>
         <translation type="unfinished"></translation>
     </message>
@@ -10109,6 +10105,54 @@ RGB: %2, %3, %4</source>
     </message>
     <message>
         <source>This OpenEXR file has no R, G, B or Y channels to show</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>AVIF: the clean aperture (crop) property was invalid and was ignored</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The AVIF image is too large to open</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The AVIF image could not be decoded</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This file is not an AVIF image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The AVIF decoder could not be created</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The AVIF file is damaged or not supported</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>AVIF: the image sequence is very large; later frames were not imported</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>AVIF: a frame of the image sequence could not be decoded; the frames before it were imported</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>AVIF: HDR (PQ or HLG) color was imported as stored, without tone mapping</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>AVIF images cannot be opened in the browser build of Patchy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>AVIF Image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Animated AVIF: imported %1 frames as layers</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

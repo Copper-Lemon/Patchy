@@ -50,3 +50,18 @@ Research record for Patchy's PSD format and copyright position, the HEIF codec b
   - *Radiance HDR*: Greg Ward's 1980s RGBE encoding, published in Graphics Gems II (1991);
     no patents. Patchy's reader and writer are its own code.
   - Not counsel's opinion. Binding engineering rule in [legal-constraints.md](legal-constraints.md).
+- **AVIF / AV1 decoding reviewed 2026-10-16** (GitHub issue 120), Seth's decision the same day.
+  - *Grant*: the AV1 specification is published by the Alliance for Open Media under the
+    [AOM Patent License 1.0](https://aomedia.org/license/patent-license/), a royalty-free grant
+    from every member (Google, Amazon, Apple, Microsoft, Netflix, Mozilla, Intel, Nvidia,
+    Samsung and others) to implementers of the specification, with a defensive termination
+    clause. libavif (AOMediaCodec, BSD-2-Clause) and dav1d (VideoLAN, BSD-2-Clause) carry no
+    separate patent file; dav1d relies on the AOM grant like every AV1 decoder.
+  - *Counter-claims*: Sisvel's "AV1 patent pool" (announced 2019, licensors including Philips,
+    JVCKenwood, Dolby, Orange, Toshiba) asserts that non-member patents read on AV1; AOMedia
+    disputes this and no AV1 decoder distributor has been sued in the reviewed record.
+    Precedent Seth relies on: GIMP, Krita, Firefox, Chrome, ImageMagick, GNOME and KDE image
+    plug-ins all ship software AV1 decoders (dav1d or libaom) without a Sisvel licence.
+  - *Scope chosen*: decode only (dav1d has no encoder), which also keeps Patchy outside
+    every encoder-side claim; libavif's gain-map and sample-transform code compiles but
+    nothing calls it. No AV2 (avm) code. Not counsel's opinion.

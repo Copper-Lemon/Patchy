@@ -4,7 +4,7 @@ Repository-wide policy: read before any project action at task start. Reread onl
 
 If `agents_local.md` exists at the repository root, open and read it too. It holds knowledge specific to this checkout and developer, such as which systems it can ssh into for building. Anything sensitive goes in `agents_secret.md` beside it, read only when a task needs it. Both are optional and gitignored, and must never be checked in. This repository is public, so machine names, users, addresses, local paths, and credentials belong in those files, never in tracked files. A git worktree has no untracked files: look for them in the main checkout, the parent of `git rev-parse --path-format=absolute --git-common-dir`.
 
-Keep this file at or below 30,000 bytes. Detailed implementation knowledge belongs in `docs/<topic>.md`; read the relevant linked document before working in that area, update it when behavior changes, and do not duplicate its details here. Every file under `docs/` must also stay at or below 30,000 bytes: keep docs dense and current-state only. Cut narrative history, experiment logs, and restatements of constants that live in code; never cut normative rules, calibration facts recorded only in the doc, or headings cited from code comments.
+Keep this file at or below 30,000 bytes. Implementation knowledge belongs in `docs/<topic>.md`; read the linked document before working in that area, update it when behavior changes, and do not duplicate its details here. Every file under `docs/` must also stay at or below 30,000 bytes: keep docs dense and current-state only. Cut narrative history, experiment logs, and restatements of constants that live in code; never cut normative rules, calibration facts recorded only in the doc, or headings cited from code comments.
 
 ## Repository-wide rules
 
@@ -135,7 +135,7 @@ Read the linked document before working on a feature; it owns the constraints.
 - **Palette mode:** [docs/palette-mode.md](docs/palette-mode.md). CMYK: [docs/cmyk.md](docs/cmyk.md).
 - **16/32-bit editing (on; `PATCHY_DEEP_EDITING=0` off):** [docs/high-bit-depth.md](docs/high-bit-depth.md).
 - **File formats, PSB, HEIF/HEIC, and flat-image alpha:** [docs/file-formats.md](docs/file-formats.md); Camera Raw in [docs/camera-raw.md](docs/camera-raw.md), Affinity in [docs/af-format.md](docs/af-format.md), animated GIF/WebP in [docs/animation.md](docs/animation.md). Image metadata (File Info): [docs/file-info.md](docs/file-info.md).
-- **JPEG XR, JPEG XL, JPEG 2000, Radiance HDR, OpenEXR:** [docs/jxr.md](docs/jxr.md), [docs/jxl.md](docs/jxl.md), [docs/hdr-formats.md](docs/hdr-formats.md); codec rules in [docs/legal-constraints.md](docs/legal-constraints.md).
+- **JPEG XR, JPEG XL, JPEG 2000, Radiance HDR, OpenEXR, AVIF:** [docs/jxr.md](docs/jxr.md), [docs/jxl.md](docs/jxl.md), [docs/hdr-formats.md](docs/hdr-formats.md), [docs/avif.md](docs/avif.md); codec rules in [docs/legal-constraints.md](docs/legal-constraints.md).
 - **Proton (.rttex) and DDS (.dds) textures:** [docs/rttex.md](docs/rttex.md), [docs/dds.md](docs/dds.md).
 - **PDF import/export (editable layers, flat, the image-page writer and quality presets, pass-through of imported pages, `pdfopen`/`pdfsave` profiling):** [docs/pdf.md](docs/pdf.md).
 - **Document channels:** [docs/channels.md](docs/channels.md).

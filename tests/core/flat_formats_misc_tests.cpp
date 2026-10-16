@@ -14,6 +14,7 @@
 #include "formats/acv_curves_io.hpp"
 #include "formats/bmp_document_io.hpp"
 #include "formats/aseprite_document_io.hpp"
+#include "formats/avif_document_io.hpp"
 #include "formats/document_flatten.hpp"
 #include "formats/format_registry.hpp"
 #include "formats/gif_document_io.hpp"
@@ -1618,9 +1619,13 @@ void undecodable_image_diagnosis_names_the_real_reason() {
   CHECK(diagnose_undecodable_image(of("#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n"), "hdr").detail == "Radiance HDR");
   CHECK(diagnose_undecodable_image(Bytes{0x76, 0x2f, 0x31, 0x01, 2, 0, 0, 0}, "exr").reason == Reason::UnsupportedFormat);
   CHECK(diagnose_undecodable_image(of("qoif...."), "png").reason == Reason::DifferentFormat);
+  // AVIF decodes in-process now (docs/avif.md): under its own name a damaged file keeps the
+  // decoder's message, under another name the rename hint points at .avif.
   Bytes avif{0, 0, 0, 0x1c, 'f', 't', 'y', 'p', 'a', 'v', 'i', 'f', 0, 0, 0, 0};
-  CHECK(diagnose_undecodable_image(avif, "avif").reason == Reason::AvifNeedsSystemDecoder);
-  CHECK(diagnose_undecodable_image(avif, "jpg").detail == "AVIF");
+  CHECK(diagnose_undecodable_image(avif, "avif").reason == Reason::Unknown);
+  const auto avif_as_jpg = diagnose_undecodable_image(avif, "jpg");
+  CHECK(avif_as_jpg.reason == Reason::DifferentFormat && avif_as_jpg.detail == "AVIF" &&
+        avif_as_jpg.suggested_extension == "avif");
   const auto pdf_as_tif = diagnose_undecodable_image(of("%PDF-1.7 ..."), "tif");
   CHECK(pdf_as_tif.reason == Reason::DifferentFormat && pdf_as_tif.detail == "PDF");
   CHECK(diagnose_undecodable_image(of("<?xml version=\"1.0\"?><svg xmlns=\"x\"/>"), "jpg").detail == "SVG");
@@ -1888,6 +1893,170 @@ void jp2_round_trips_losslessly_at_8_and_16_bits() {
   CHECK(rejected);
 }
 
+
+// AVIF through the vendored libavif + dav1d (docs/avif.md). An 8x8 lossless 4:4:4 file written
+// by Pillow 12.1 (libavif/aom): red, green over blue, half-transparent white, in 511 bytes.
+constexpr std::uint8_t kQuadrantsAvif[] = {
+    0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69, 0x66, 0x00, 0x00, 0x00, 0x00,
+    0x61, 0x76, 0x69, 0x66, 0x6d, 0x69, 0x66, 0x31, 0x6d, 0x69, 0x61, 0x66, 0x4d, 0x41, 0x31, 0x41,
+    0x00, 0x00, 0x01, 0x86, 0x6d, 0x65, 0x74, 0x61, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x21,
+    0x68, 0x64, 0x6c, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x70, 0x69, 0x63, 0x74,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x0e, 0x70, 0x69, 0x74, 0x6d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x2c, 0x69,
+    0x6c, 0x6f, 0x63, 0x00, 0x00, 0x00, 0x00, 0x44, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00,
+    0x01, 0x00, 0x00, 0x01, 0xc5, 0x00, 0x00, 0x00, 0x3a, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x00,
+    0x00, 0x01, 0xae, 0x00, 0x00, 0x00, 0x17, 0x00, 0x00, 0x00, 0x42, 0x69, 0x69, 0x6e, 0x66, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x1a, 0x69, 0x6e, 0x66, 0x65, 0x02, 0x00, 0x00,
+    0x00, 0x00, 0x01, 0x00, 0x00, 0x61, 0x76, 0x30, 0x31, 0x43, 0x6f, 0x6c, 0x6f, 0x72, 0x00, 0x00,
+    0x00, 0x00, 0x1a, 0x69, 0x6e, 0x66, 0x65, 0x02, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x61,
+    0x76, 0x30, 0x31, 0x41, 0x6c, 0x70, 0x68, 0x61, 0x00, 0x00, 0x00, 0x00, 0x1a, 0x69, 0x72, 0x65,
+    0x66, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0e, 0x61, 0x75, 0x78, 0x6c, 0x00, 0x02, 0x00,
+    0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0xc3, 0x69, 0x70, 0x72, 0x70, 0x00, 0x00, 0x00, 0x9d, 0x69,
+    0x70, 0x63, 0x6f, 0x00, 0x00, 0x00, 0x14, 0x69, 0x73, 0x70, 0x65, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x10, 0x70, 0x69, 0x78, 0x69, 0x00,
+    0x00, 0x00, 0x00, 0x03, 0x08, 0x08, 0x08, 0x00, 0x00, 0x00, 0x0c, 0x61, 0x76, 0x31, 0x43, 0x81,
+    0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x13, 0x63, 0x6f, 0x6c, 0x72, 0x6e, 0x63, 0x6c, 0x78, 0x00,
+    0x01, 0x00, 0x0d, 0x00, 0x06, 0x80, 0x00, 0x00, 0x00, 0x0e, 0x70, 0x69, 0x78, 0x69, 0x00, 0x00,
+    0x00, 0x00, 0x01, 0x08, 0x00, 0x00, 0x00, 0x0c, 0x61, 0x76, 0x31, 0x43, 0x81, 0x00, 0x1c, 0x00,
+    0x00, 0x00, 0x00, 0x38, 0x61, 0x75, 0x78, 0x43, 0x00, 0x00, 0x00, 0x00, 0x75, 0x72, 0x6e, 0x3a,
+    0x6d, 0x70, 0x65, 0x67, 0x3a, 0x6d, 0x70, 0x65, 0x67, 0x42, 0x3a, 0x63, 0x69, 0x63, 0x70, 0x3a,
+    0x73, 0x79, 0x73, 0x74, 0x65, 0x6d, 0x73, 0x3a, 0x61, 0x75, 0x78, 0x69, 0x6c, 0x69, 0x61, 0x72,
+    0x79, 0x3a, 0x61, 0x6c, 0x70, 0x68, 0x61, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x69, 0x70, 0x6d, 0x61,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x01, 0x04, 0x01, 0x02, 0x83, 0x04, 0x00,
+    0x02, 0x04, 0x01, 0x05, 0x86, 0x07, 0x00, 0x00, 0x00, 0x59, 0x6d, 0x64, 0x61, 0x74, 0x12, 0x00,
+    0x0a, 0x05, 0x18, 0x08, 0xbf, 0x61, 0x50, 0x32, 0x0c, 0x10, 0x00, 0x00, 0x18, 0xde, 0xa2, 0x95,
+    0x3f, 0xbe, 0x84, 0xa5, 0x28, 0x12, 0x00, 0x0a, 0x05, 0x38, 0x08, 0xbf, 0x60, 0x90, 0x32, 0x2f,
+    0x10, 0x00, 0x00, 0x00, 0x0f, 0xfa, 0x40, 0x50, 0x52, 0xae, 0x04, 0x2e, 0x42, 0xd8, 0x40, 0x9c,
+    0xa1, 0x59, 0xe0, 0x20, 0x95, 0xf8, 0x2c, 0x68, 0x1d, 0xb6, 0x78, 0x98, 0xfe, 0x14, 0x34, 0x3a,
+    0x1f, 0x56, 0x47, 0xec, 0x18, 0x5e, 0xeb, 0xe0, 0xf3, 0x88, 0x43, 0x15, 0x5f, 0xf2, 0x80,
+};
+
+[[nodiscard]] bool avif_decoder_present() {
+  if (!patchy::avif::is_available()) {
+    std::cout << "[SKIP] this build has no AVIF decoder" << '\n';
+    return false;
+  }
+  return true;
+}
+
+void avif_decodes_synthetic_still_and_rejects_damage() {
+  CHECK(patchy::avif::is_avif_extension("avif"));
+  CHECK(patchy::avif::is_avif_extension(".AVIFS"));
+  CHECK(!patchy::avif::is_avif_extension("heic"));
+  const std::vector<std::uint8_t> bytes(std::begin(kQuadrantsAvif), std::end(kQuadrantsAvif));
+  CHECK(patchy::avif::sniff(bytes));
+  // The HEVC HEIF sniff and the AVIF sniff never claim each other's files.
+  CHECK(!patchy::heif::sniff(bytes));
+  const std::vector<std::uint8_t> heic{0,   0,   0,   0x18, 'f', 't', 'y', 'p', 'h', 'e', 'i', 'c',
+                                       0,   0,   0,   0,    'm', 'i', 'f', '1', 'h', 'e', 'i', 'c'};
+  CHECK(!patchy::avif::sniff(heic));
+  const auto* handler = patchy::builtin_format_registry().find_by_extension("avif");
+  CHECK(handler != nullptr && handler->identifier == "patchy.formats.avif" && !handler->can_write());
+  if (!avif_decoder_present()) {
+    return;
+  }
+  const auto result = patchy::avif::read_avif_detailed(bytes);
+  const auto& document = result.read.document;
+  CHECK(document.width() == 8 && document.height() == 8);
+  CHECK(std::as_const(document).color_state().bit_depth == patchy::BitDepth::UInt8);
+  CHECK(std::as_const(document).layers().size() == 1);
+  CHECK(result.frame_count == 1);
+  CHECK(!result.pixels_in_source_space);  // no ICC profile in the file
+  const auto& pixels = std::as_const(document).layers().front().pixels();
+  const auto close_to = [&](std::int32_t x, std::int32_t y, int r, int g, int b, int a) {
+    const auto px = pixels.pixel(x, y);
+    return std::abs(static_cast<int>(px[0]) - r) <= 4 && std::abs(static_cast<int>(px[1]) - g) <= 4 &&
+           std::abs(static_cast<int>(px[2]) - b) <= 4 && std::abs(static_cast<int>(px[3]) - a) <= 1;
+  };
+  CHECK(close_to(1, 1, 255, 0, 0, 255));
+  CHECK(close_to(6, 1, 0, 255, 0, 255));
+  CHECK(close_to(1, 6, 0, 0, 255, 255));
+  CHECK(close_to(6, 6, 255, 255, 255, 128));
+  // The registry reaches the same reader.
+  CHECK(handler->read(bytes).document.width() == 8);
+
+  bool rejected = false;
+  try {
+    const std::vector<std::uint8_t> truncated(bytes.begin(), bytes.begin() + 200);
+    (void)patchy::avif::read_avif(truncated);
+  } catch (const std::exception&) {
+    rejected = true;
+  }
+  CHECK(rejected);
+  rejected = false;
+  try {
+    (void)patchy::avif::read_avif(std::vector<std::uint8_t>{0x89, 'P', 'N', 'G', 0, 0, 0, 0});
+  } catch (const std::exception& error) {
+    rejected = std::string(error.what()).find("not an AVIF") != std::string::npos;
+  }
+  CHECK(rejected);
+}
+
+void avif_imports_image_sequence_frames_as_layers() {
+  if (!avif_decoder_present()) {
+    return;
+  }
+  // Three 4x4 frames (100, 200 and 300 ms) written by Pillow as an avis sequence.
+  const auto bytes = patchy::test::read_binary_file(patchy::test::committed_format_fixture_path("avif", "frames.avif"));
+  CHECK(patchy::avif::sniff(bytes));
+  int names = 0;
+  patchy::avif::ReadOptions options;
+  options.frame_name = [&](int index, std::uint32_t delay_ms) {
+    ++names;
+    return "F" + std::to_string(index) + "/" + std::to_string(delay_ms);
+  };
+  const auto result = patchy::avif::read_avif_detailed(bytes, options);
+  const auto& document = result.read.document;
+  CHECK(result.frame_count == 3);
+  CHECK(names == 3);
+  const auto& layers = std::as_const(document).layers();
+  CHECK(layers.size() == 3);
+  if (layers.size() == 3) {
+    // Frame 1 on top (the WebP and JPEG XL convention), delays in the names.
+    CHECK(layers.back().name() == "F1/100");
+    CHECK(layers[1].name() == "F2/200");
+    CHECK(layers.front().name() == "F3/300");
+    const auto top = layers.back().pixels().pixel(2, 2);
+    const auto bottom = layers.front().pixels().pixel(2, 2);
+    CHECK(top[0] < 8 && std::abs(static_cast<int>(top[2]) - 200) <= 4);        // frame 1: (0, 50, 200)
+    CHECK(std::abs(static_cast<int>(bottom[0]) - 200) <= 4 && bottom[2] < 48);  // frame 3: (200, 50, 40)
+  }
+  const auto& values = std::as_const(document).metadata().values;
+  CHECK(values.find(patchy::avif::kLoopCountMetadata) != values.end());
+}
+
+void avif_decodes_corpus_samples_if_available() {
+  if (!avif_decoder_present()) {
+    return;
+  }
+  // cgohlke/imagecodecs-samples (CC BY 4.0, untracked local fixtures): gray and RGB, with and
+  // without alpha, 8 and 16-bit, stills and sequences.
+  const auto directory = patchy::test::source_root_path() / "local-test-fixtures" / "imagecodecs-samples" / "images";
+  if (!std::filesystem::exists(directory / "rgb_u2.avif")) {
+    std::cout << "[SKIP] imagecodecs-samples fixtures missing: " << directory.string() << '\n';
+    return;
+  }
+  const bool deep = patchy::deep_editing_enabled();
+  int decoded = 0;
+  for (const auto& entry : std::filesystem::directory_iterator(directory)) {
+    const auto name = entry.path().filename().string();
+    if (!name.ends_with(".avif")) {
+      continue;
+    }
+    const auto result = patchy::avif::read_avif_detailed(patchy::test::read_binary_file(entry.path()));
+    const auto& document = result.read.document;
+    CHECK(document.width() > 0 && document.height() > 0);
+    const bool sixteen = name.find("_u2") != std::string::npos;
+    CHECK(std::as_const(document).color_state().bit_depth ==
+          (sixteen && deep ? patchy::BitDepth::UInt16 : patchy::BitDepth::UInt8));
+    const bool frames = name.find("_frames") != std::string::npos;
+    CHECK(frames ? result.frame_count > 1 : result.frame_count == 1);
+    CHECK(std::as_const(document).layers().size() == result.frame_count);
+    ++decoded;
+  }
+  CHECK(decoded == 12);
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> flat_formats_misc_tests() {
@@ -1913,6 +2082,9 @@ std::vector<patchy::test::TestCase> flat_formats_misc_tests() {
       {"hdr_rgbe_round_trips_linear_values", hdr_rgbe_round_trips_linear_values},
       {"exr_round_trips_float_rgba", exr_round_trips_float_rgba},
       {"jp2_round_trips_losslessly_at_8_and_16_bits", jp2_round_trips_losslessly_at_8_and_16_bits},
+      {"avif_decodes_synthetic_still_and_rejects_damage", avif_decodes_synthetic_still_and_rejects_damage},
+      {"avif_imports_image_sequence_frames_as_layers", avif_imports_image_sequence_frames_as_layers},
+      {"avif_decodes_corpus_samples_if_available", avif_decodes_corpus_samples_if_available},
       {"aseprite_imports_layers_groups_and_palette", aseprite_imports_layers_groups_and_palette},
       {"aseprite_indexed_transparent_index", aseprite_indexed_transparent_index},
       {"aseprite_rejects_adobe_swatch_ase", aseprite_rejects_adobe_swatch_ase},

@@ -9990,10 +9990,6 @@ Mixed selection</source>
         <translation>Patchy は %1 ファイルを開けません。</translation>
     </message>
     <message>
-        <source>This AVIF image needs a system AV1 decoder, which this computer does not have. On Windows, install the AV1 Video Extension from the Microsoft Store.</source>
-        <translation>この AVIF 画像にはシステムの AV1 デコーダーが必要ですが、このコンピューターにはありません。Windows では Microsoft Store から AV1 Video Extension をインストールしてください。</translation>
-    </message>
-    <message>
         <source>This file is not an OpenEXR image</source>
         <translation>このファイルは OpenEXR 画像ではありません</translation>
     </message>
@@ -10092,6 +10088,54 @@ Mixed selection</source>
     <message>
         <source>This OpenEXR file has no R, G, B or Y channels to show</source>
         <translation>この OpenEXR ファイルには表示できる R、G、B、Y チャンネルがありません</translation>
+    </message>
+    <message>
+        <source>AVIF: the clean aperture (crop) property was invalid and was ignored</source>
+        <translation>AVIF: クリーンアパーチャ (切り抜き) プロパティが無効だったため無視しました</translation>
+    </message>
+    <message>
+        <source>The AVIF image is too large to open</source>
+        <translation>AVIF 画像が大きすぎるため開けません</translation>
+    </message>
+    <message>
+        <source>The AVIF image could not be decoded</source>
+        <translation>AVIF 画像をデコードできませんでした</translation>
+    </message>
+    <message>
+        <source>This file is not an AVIF image</source>
+        <translation>このファイルは AVIF 画像ではありません</translation>
+    </message>
+    <message>
+        <source>The AVIF decoder could not be created</source>
+        <translation>AVIF デコーダーを作成できませんでした</translation>
+    </message>
+    <message>
+        <source>The AVIF file is damaged or not supported</source>
+        <translation>AVIF ファイルが破損しているか、サポートされていません</translation>
+    </message>
+    <message>
+        <source>AVIF: the image sequence is very large; later frames were not imported</source>
+        <translation>AVIF: 画像シーケンスが非常に大きいため、以降のフレームは読み込みませんでした</translation>
+    </message>
+    <message>
+        <source>AVIF: a frame of the image sequence could not be decoded; the frames before it were imported</source>
+        <translation>AVIF: 画像シーケンスのフレームをデコードできませんでした。その前のフレームは読み込みました</translation>
+    </message>
+    <message>
+        <source>AVIF: HDR (PQ or HLG) color was imported as stored, without tone mapping</source>
+        <translation>AVIF: HDR (PQ または HLG) の色はトーンマッピングなしで保存されたまま読み込みました</translation>
+    </message>
+    <message>
+        <source>AVIF images cannot be opened in the browser build of Patchy</source>
+        <translation>AVIF 画像はブラウザー版の Patchy では開けません</translation>
+    </message>
+    <message>
+        <source>AVIF Image</source>
+        <translation>AVIF 画像</translation>
+    </message>
+    <message>
+        <source>Animated AVIF: imported %1 frames as layers</source>
+        <translation>アニメーション AVIF: %1 フレームをレイヤーとして読み込みました</translation>
     </message>
 </context>
 <context>

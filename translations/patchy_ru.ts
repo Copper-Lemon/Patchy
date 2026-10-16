@@ -10050,10 +10050,6 @@ RGB: %2, %3, %4</translation>
         <translation>Patchy не может открыть файлы %1.</translation>
     </message>
     <message>
-        <source>This AVIF image needs a system AV1 decoder, which this computer does not have. On Windows, install the AV1 Video Extension from the Microsoft Store.</source>
-        <translation>Этому изображению AVIF нужен системный декодер AV1, которого на этом компьютере нет. В Windows установите расширение AV1 Video Extension из Microsoft Store.</translation>
-    </message>
-    <message>
         <source>This file is not an OpenEXR image</source>
         <translation>Этот файл не является изображением OpenEXR</translation>
     </message>
@@ -10152,6 +10148,54 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>This OpenEXR file has no R, G, B or Y channels to show</source>
         <translation>В этом файле OpenEXR нет каналов R, G, B или Y для показа</translation>
+    </message>
+    <message>
+        <source>AVIF: the clean aperture (crop) property was invalid and was ignored</source>
+        <translation>AVIF: свойство чистой апертуры (обрезки) было недопустимым и проигнорировано</translation>
+    </message>
+    <message>
+        <source>The AVIF image is too large to open</source>
+        <translation>Изображение AVIF слишком велико для открытия</translation>
+    </message>
+    <message>
+        <source>The AVIF image could not be decoded</source>
+        <translation>Не удалось декодировать изображение AVIF</translation>
+    </message>
+    <message>
+        <source>This file is not an AVIF image</source>
+        <translation>Этот файл не является изображением AVIF</translation>
+    </message>
+    <message>
+        <source>The AVIF decoder could not be created</source>
+        <translation>Не удалось создать декодер AVIF</translation>
+    </message>
+    <message>
+        <source>The AVIF file is damaged or not supported</source>
+        <translation>Файл AVIF поврежден или не поддерживается</translation>
+    </message>
+    <message>
+        <source>AVIF: the image sequence is very large; later frames were not imported</source>
+        <translation>AVIF: последовательность изображений очень велика; последующие кадры не импортированы</translation>
+    </message>
+    <message>
+        <source>AVIF: a frame of the image sequence could not be decoded; the frames before it were imported</source>
+        <translation>AVIF: не удалось декодировать кадр последовательности изображений; предыдущие кадры импортированы</translation>
+    </message>
+    <message>
+        <source>AVIF: HDR (PQ or HLG) color was imported as stored, without tone mapping</source>
+        <translation>AVIF: цвет HDR (PQ или HLG) импортирован как сохранен, без тональной компрессии</translation>
+    </message>
+    <message>
+        <source>AVIF images cannot be opened in the browser build of Patchy</source>
+        <translation>Изображения AVIF нельзя открыть в браузерной версии Patchy</translation>
+    </message>
+    <message>
+        <source>AVIF Image</source>
+        <translation>Изображение AVIF</translation>
+    </message>
+    <message>
+        <source>Animated AVIF: imported %1 frames as layers</source>
+        <translation>Анимированный AVIF: %1 кадров импортировано как слои</translation>
     </message>
 </context>
 <context>

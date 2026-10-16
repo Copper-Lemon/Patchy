@@ -9990,10 +9990,6 @@ RGB: %2, %3, %4</translation>
         <translation>Patchy는 %1 파일을 열 수 없습니다.</translation>
     </message>
     <message>
-        <source>This AVIF image needs a system AV1 decoder, which this computer does not have. On Windows, install the AV1 Video Extension from the Microsoft Store.</source>
-        <translation>이 AVIF 이미지는 시스템 AV1 디코더가 필요하지만 이 컴퓨터에는 없습니다. Windows에서는 Microsoft Store에서 AV1 Video Extension을 설치하세요.</translation>
-    </message>
-    <message>
         <source>This file is not an OpenEXR image</source>
         <translation>이 파일은 OpenEXR 이미지가 아닙니다</translation>
     </message>
@@ -10092,6 +10088,54 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>This OpenEXR file has no R, G, B or Y channels to show</source>
         <translation>이 OpenEXR 파일에는 표시할 R, G, B 또는 Y 채널이 없습니다</translation>
+    </message>
+    <message>
+        <source>AVIF: the clean aperture (crop) property was invalid and was ignored</source>
+        <translation>AVIF: 클린 애퍼처(자르기) 속성이 잘못되어 무시했습니다</translation>
+    </message>
+    <message>
+        <source>The AVIF image is too large to open</source>
+        <translation>AVIF 이미지가 너무 커서 열 수 없습니다</translation>
+    </message>
+    <message>
+        <source>The AVIF image could not be decoded</source>
+        <translation>AVIF 이미지를 디코딩할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>This file is not an AVIF image</source>
+        <translation>이 파일은 AVIF 이미지가 아닙니다</translation>
+    </message>
+    <message>
+        <source>The AVIF decoder could not be created</source>
+        <translation>AVIF 디코더를 만들 수 없습니다</translation>
+    </message>
+    <message>
+        <source>The AVIF file is damaged or not supported</source>
+        <translation>AVIF 파일이 손상되었거나 지원되지 않습니다</translation>
+    </message>
+    <message>
+        <source>AVIF: the image sequence is very large; later frames were not imported</source>
+        <translation>AVIF: 이미지 시퀀스가 매우 커서 이후 프레임은 가져오지 않았습니다</translation>
+    </message>
+    <message>
+        <source>AVIF: a frame of the image sequence could not be decoded; the frames before it were imported</source>
+        <translation>AVIF: 이미지 시퀀스의 프레임을 디코딩할 수 없어 그 앞의 프레임만 가져왔습니다</translation>
+    </message>
+    <message>
+        <source>AVIF: HDR (PQ or HLG) color was imported as stored, without tone mapping</source>
+        <translation>AVIF: HDR(PQ 또는 HLG) 색상을 톤 매핑 없이 저장된 그대로 가져왔습니다</translation>
+    </message>
+    <message>
+        <source>AVIF images cannot be opened in the browser build of Patchy</source>
+        <translation>AVIF 이미지는 Patchy의 브라우저 버전에서 열 수 없습니다</translation>
+    </message>
+    <message>
+        <source>AVIF Image</source>
+        <translation>AVIF 이미지</translation>
+    </message>
+    <message>
+        <source>Animated AVIF: imported %1 frames as layers</source>
+        <translation>애니메이션 AVIF: %1개 프레임을 레이어로 가져왔습니다</translation>
     </message>
 </context>
 <context>

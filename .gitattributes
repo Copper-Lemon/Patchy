@@ -37,5 +37,9 @@ src/formats/libheif/** -whitespace
 # Vendored libjxl, Highway, Brotli and skcms stay byte-for-byte upstream.
 src/formats/libjxl/** -whitespace
 
+# Vendored dav1d and libavif (with its libyuv subset) stay byte-for-byte upstream.
+src/formats/dav1d/** -whitespace
+src/formats/libavif/** -whitespace
+
 # Keep the upstream font license byte-for-byte, including its trailing spaces.
 third_party/fonts-web/nanum_gothic/OFL.txt -whitespace

@@ -102,7 +102,8 @@ behind. Wherever a path is shown, stored or compared across launches, use it (or
   GitHub permalink). Never a flatpak command.
 - HEIC: aqt's Qt has no HEIF plug-in, so the AppImage cannot open HEIC (the error says the
   Flatpak can). Bundling kimageformats + libheif + an HEVC decoder is a legal question
-  ([legal-constraints.md](legal-constraints.md)).
+  ([legal-constraints.md](legal-constraints.md)). AVIF needs no plug-in: the decoder is
+  compiled in ([avif.md](avif.md)).
 
 Single-instance forwarding needs nothing: its name is per user, not per path. Settings and
 recovery live in the normal per-user folders (shared with a native Linux build).

@@ -9990,10 +9990,6 @@ RGB：%2, %3, %4</translation>
         <translation>Patchy 無法開啟 %1 檔案。</translation>
     </message>
     <message>
-        <source>This AVIF image needs a system AV1 decoder, which this computer does not have. On Windows, install the AV1 Video Extension from the Microsoft Store.</source>
-        <translation>此 AVIF 影像需要系統的 AV1 解碼器，而這台電腦沒有。在 Windows 上，請從 Microsoft Store 安裝 AV1 Video Extension。</translation>
-    </message>
-    <message>
         <source>This file is not an OpenEXR image</source>
         <translation>此檔案不是 OpenEXR 影像</translation>
     </message>
@@ -10092,6 +10088,54 @@ RGB：%2, %3, %4</translation>
     <message>
         <source>This OpenEXR file has no R, G, B or Y channels to show</source>
         <translation>此 OpenEXR 檔案沒有可顯示的 R、G、B 或 Y 色版</translation>
+    </message>
+    <message>
+        <source>AVIF: the clean aperture (crop) property was invalid and was ignored</source>
+        <translation>AVIF: 淨孔徑（裁切）屬性無效，已忽略</translation>
+    </message>
+    <message>
+        <source>The AVIF image is too large to open</source>
+        <translation>AVIF 影像太大，無法開啟</translation>
+    </message>
+    <message>
+        <source>The AVIF image could not be decoded</source>
+        <translation>無法解碼 AVIF 影像</translation>
+    </message>
+    <message>
+        <source>This file is not an AVIF image</source>
+        <translation>此檔案不是 AVIF 影像</translation>
+    </message>
+    <message>
+        <source>The AVIF decoder could not be created</source>
+        <translation>無法建立 AVIF 解碼器</translation>
+    </message>
+    <message>
+        <source>The AVIF file is damaged or not supported</source>
+        <translation>AVIF 檔案已損毀或不受支援</translation>
+    </message>
+    <message>
+        <source>AVIF: the image sequence is very large; later frames were not imported</source>
+        <translation>AVIF: 影像序列非常大；後面的影格未匯入</translation>
+    </message>
+    <message>
+        <source>AVIF: a frame of the image sequence could not be decoded; the frames before it were imported</source>
+        <translation>AVIF: 影像序列中的一個影格無法解碼；已匯入它之前的影格</translation>
+    </message>
+    <message>
+        <source>AVIF: HDR (PQ or HLG) color was imported as stored, without tone mapping</source>
+        <translation>AVIF: HDR (PQ 或 HLG) 色彩已按儲存原樣匯入，未做色調對應</translation>
+    </message>
+    <message>
+        <source>AVIF images cannot be opened in the browser build of Patchy</source>
+        <translation>瀏覽器版 Patchy 無法開啟 AVIF 影像</translation>
+    </message>
+    <message>
+        <source>AVIF Image</source>
+        <translation>AVIF 影像</translation>
+    </message>
+    <message>
+        <source>Animated AVIF: imported %1 frames as layers</source>
+        <translation>動畫 AVIF: 已將 %1 個影格匯入為圖層</translation>
     </message>
 </context>
 <context>

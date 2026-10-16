@@ -10,11 +10,11 @@ Read this file before changing any feature named below or introducing an adjacen
 
 ## Filters and Smart Objects
 
-- Smart Objects, Smart Filters, and Filter Gallery architecture are cleared subject to the design boundaries below.
-- **Surface Blur may not compute through a value histogram.** Median and Dust & Scratches keep exactly one window histogram updated one pixel value at a time; never introduce column, merged, or slid histograms before the relevant expirations (US 8594445 and US 7920741). The calibrated outputs and constraint comments in `smart_filter_renderer.cpp` are binding.
-- **Tilt-Shift Blur uses short grip bars.** Never restore lines spanning or dividing the image before 2033 (Apple US 8971623). Grips shrink with the visible image; an inset clip keeps every overlay mark off its perimeter at every zoom, angle and center position, pinned by `ui_filter_gallery_tilt_shift_grips_never_span_the_visible_image`. The algorithm itself is clear.
-- **Lens Blur and Iris Blur remain fixed and geometric.** Lens Blur is one explicitly selected aperture convolution with no depth inference, classification, highlight detection, or per-pixel kernel. Iris Blur computes one round blur and blends it through one explicit ellipse. Do not add multiple pins, combined blur patterns, Photoshop-style iris boundary widgets, variable-radius kernels, bokeh thresholds, learned depth/focal mattes, splatting, or native `blurbTransform` authoring without a new review (US 8831371, US 9019310, US 8824793, US 2025/0104196). Imported Blur Gallery stacks remain byte-preserved and preview-locked; Patchy's Lens/Iris filters remain raster-only.
-- **Liquify remains manual, generic, and raster-only.** Never add face detection, landmarks, automatic face regions, face-feature controls, or deformation derived from a detected face without a new review (US 9646195). Do not invent or partially author Photoshop's native Liquify Smart Filter descriptor. Ordinary layers save the raster result, Smart Objects require rasterization, and imported unsupported stacks remain byte-preserved.
+- Smart Objects, Smart Filters and Filter Gallery architecture are cleared subject to the boundaries below.
+- **Surface Blur may not compute through a value histogram.** Median and Dust & Scratches keep exactly one window histogram updated one pixel value at a time; never introduce column, merged or slid histograms before the expirations (US 8594445, US 7920741). The calibrated outputs and constraint comments in `smart_filter_renderer.cpp` are binding.
+- **Tilt-Shift Blur uses short grip bars.** Never restore lines spanning or dividing the image before 2033 (Apple US 8971623). Grips shrink with the visible image; an inset clip keeps every overlay mark off its perimeter at every zoom, angle and center, pinned by `ui_filter_gallery_tilt_shift_grips_never_span_the_visible_image`. The algorithm itself is clear.
+- **Lens Blur and Iris Blur remain fixed and geometric.** Lens Blur is one explicitly selected aperture convolution with no depth inference, classification, highlight detection, or per-pixel kernel. Iris Blur computes one round blur and blends it through one explicit ellipse. Do not add multiple pins, combined blur patterns, Photoshop-style iris boundary widgets, variable-radius kernels, bokeh thresholds, learned depth/focal mattes, splatting or native `blurbTransform` authoring without a new review (US 8831371, US 9019310, US 8824793, US 2025/0104196). Imported Blur Gallery stacks stay byte-preserved and preview-locked; Patchy's Lens/Iris filters stay raster-only.
+- **Liquify remains manual, generic, and raster-only.** Never add face detection, landmarks, automatic face regions, face-feature controls or deformation derived from a detected face without a new review (US 9646195). Do not invent or partially author Photoshop's native Liquify Smart Filter descriptor. Ordinary layers save the raster result, Smart Objects require rasterization, imported unsupported stacks stay byte-preserved.
 - **Plastic Wrap keeps its fixed local height-field formula:** integer alpha-weighted luminance, box smoothing, gradient, and relief. Do not add material or lighting inference, classification, patch search or synthesis, or content-driven algorithm selection. Its PSD surface is the native three-integer `PlsW` descriptor; Patchy's renderer preserves bounds and alpha without claiming Photoshop-identical pixels.
 - **Unsharp Mask and Motion Blur remain fixed and user-directed.** Unsharp Mask uses one radius-selected low-pass plus explicit Amount and Threshold. Motion Blur uses one straight-line kernel from explicit Angle and Distance. Do not add ranking, inferred blur, automatic thresholds, patch search, deconvolution, shake estimation, tracking, optical flow, content-adaptive kernels, per-pixel paths, or Blur Gallery-style widgets without a new review.
 - **The auto adjustments (Auto Tone, Auto Contrast, Auto Color) use only whole-image tonal statistics with fixed constants** (August 2026): one 256-bin histogram per channel (merged for Auto Contrast) plus per-channel means, a fixed 0.1% clip per end, and the fixed 128 neutral midtone target, applied through the shared levels transfer. No spatial or sliding-window histograms, no content classification, no automatic selection between algorithms, and no learned or content-adaptive parameters; any of those needs a new review. The kernel and constants live in `src/filters/auto_levels_math.{hpp,cpp}`; this bullet is the binding boundary its constraint comment references. Prior-art record: [patent-research.md](patent-research.md).
@@ -68,30 +68,33 @@ Design in [gmic.md](gmic.md); claim record in [patent-research-gmic.md](patent-r
 - "Smart Object(s)", "Smart Filter(s)", "Filter Gallery", and "PSD" are not Adobe trademarks in the reviewed record. PHOTOSHOP is registered and policed. Use referential language such as "compatible with Adobe Photoshop"; never use Adobe marks in Patchy's product name, icons, or branding, and retain README.md's Trademark Notice.
 - Bundled art and textures must never come from AI image generation. Acceptable sources are code generation or real photography/human artwork under a commercially compatible license, preferably CC0. Every third-party asset needs a `NOTICE-THIRD-PARTY.md` entry and must ship losslessly. Poly Haven textures are human-made.
 - HEIC/HEIF decoding must use a platform or browser-provided HEVC decoder. Native builds
-  keep their existing platform-codec paths. The browser build may statically link the
+  keep their platform-codec paths. The browser build may statically link the
   vendored libheif container parser and its WebCodecs adapter, but every software HEVC
   codec backend and HEVC encoder must remain disabled. Never vendor or link libde265, x265, or
   another HEVC decoder/encoder, and do not add HEIC encoding. The WASM CMake option block,
   the runtime `VideoDecoder.isConfigSupported()` check, and the distribution obligations
-  recorded in `NOTICE-THIRD-PARTY.md` are binding parts of this boundary. See
-  [file-formats.md](file-formats.md) for the platform and browser design.
+  recorded in `NOTICE-THIRD-PARTY.md` are binding. Design: [file-formats.md](file-formats.md).
 - JPEG XR decoding and encoding must use the in-box Windows Imaging Component codec. Never
   vendor or link jxrlib, libjxr, or another JPEG XR codec, and never add a JPEG XR path to a
-  non-Windows build, without a new review. The boundary is cheap to hold and worth holding:
-  Patchy ships no codec, so no JPEG XR patent reads on the binary at all. The underlying
-  position is friendlier than HEVC's (Microsoft placed the JPEG XR patents under the Open
-  Specification Promise and released the reference implementation under BSD-2-Clause, and
-  the 2006-2009 priority dates are at or past term), but that reasoning has not been through
-  a claim-level review, so it is not a licence to vendor a codec. See [jxr.md](jxr.md) for
-  the design and [file-formats.md](file-formats.md) for the wiring.
+  non-Windows build, without a new review. Patchy ships no codec, so no JPEG XR patent reads
+  on the binary. The position is friendlier than HEVC's (Microsoft's Open Specification
+  Promise, a BSD-2 reference implementation, 2006-2009 priority dates at or past term) but
+  has had no claim-level review, so it is no licence to vendor a codec. Design:
+  [jxr.md](jxr.md); wiring: [file-formats.md](file-formats.md).
+- AVIF may ship an in-process AV1 decoder (Seth's decision, October 16, 2026; record in
+  [patent-research-formats.md](patent-research-formats.md)):
+  libavif 1.4.2 over dav1d 1.5.4, both BSD-2, decode only. Conditions: no AV1 encoder
+  (libaom, SVT-AV1, rav1e), AVIF writer or AV2/avm code without a new review; pinned,
+  unmodified upstream releases with LICENSE files beside them and `NOTICE-THIRD-PARTY.md`
+  entries. Design: [avif.md](avif.md).
 - JPEG 2000 (ISO/IEC 15444-1), OpenEXR and Radiance HDR may ship in-process codecs
-  (October 2026 engineering read, record in [patent-research-formats.md](patent-research-formats.md)):
+  (October 2026 read; record in [patent-research-formats.md](patent-research-formats.md)):
   OpenJPEG (BSD-2) for JPEG 2000 Part 1 only, tinyexr (BSD-3) for OpenEXR, Patchy's own
   RGBE code for HDR. Conditions: Part 1 only (no Part 2 extensions, no HTJ2K beyond what
-  OpenJPEG's decoder already carries, no JPIP), library sources only with their LICENSE
-  files beside them and entries in `NOTICE-THIRD-PARTY.md`, and no deep or multi-part EXR
-  features. Both vendored libraries are upgraded only with a fresh licence read.
-- JPEG XL may vendor libjxl (October 2026 engineering claim read, not counsel's opinion;
+  OpenJPEG's decoder carries, no JPIP), library sources only with LICENSE files beside them
+  and `NOTICE-THIRD-PARTY.md` entries, no deep or multi-part EXR. Upgrades need a new
+  licence read.
+- JPEG XL may vendor libjxl (October 2026 engineering read, not counsel's opinion;
   record in [patent-research-formats.md](patent-research-formats.md)). Conditions, all
   binding: (1) a pinned upstream release with no algorithmic changes, since Google's
   `PATENTS` grant covers only "this implementation" and excludes claims a modification
@@ -106,5 +109,5 @@ Design in [gmic.md](gmic.md); claim record in [patent-research-gmic.md](patent-r
   per-stream flush/re-initialize flag (Microsoft US 11,234,023 and its pending continuation).
   (5) A libjxl upgrade that changes `PATENTS`, or a newly exposed encoder feature, needs a new
   review. Use "JPEG XL" only as the format name; no JPEG committee logos.
-- Shipping dependencies must permit commercial distribution. GPL tools may be used locally for development or fixture generation only when they are not linked into or distributed with Patchy.
+- Shipping dependencies must permit commercial distribution. GPL tools may be used for development or fixture generation only when not linked into or distributed with Patchy.
 - No Photoshop SDK code or Adobe-created assets may enter this repository or a Patchy binary. The only exception is the self-authored regression material in `test-fixtures/psd/`, which is not Adobe artwork. The classic filter plug-in ABI that the legacy `.8bf` host speaks (`src/plugins/host/legacy_filter_abi.hpp`, `src/plugins/pipl.cpp`) is Patchy's own declaration written from the public plug-in documentation and from the observed behaviour of real plug-ins (September 2026): structure layouts, selector numbers and callback signatures are interoperability facts, but no SDK header, sample, resource template or documentation text may be copied into it, and every later addition follows the same rule. The `.8bf` files under `test-fixtures/photoshop-plugins/` and `local-test-fixtures/photoshop-plugins/` are third-party binaries used only as test data; they are never linked into or shipped with Patchy.
