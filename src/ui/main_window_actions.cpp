@@ -83,6 +83,7 @@
 #include "ui/splash_dialog.hpp"
 #include "ui/update_checker.hpp"
 #include "ui/zoom_status_bar.hpp"
+#include "ui/tool_palette_footer.hpp"
 #include "support/string_utils.hpp"
 
 #include <QAbstractItemView>

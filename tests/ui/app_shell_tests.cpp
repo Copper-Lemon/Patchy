@@ -56,6 +56,7 @@
 #include "ui/layer_style_dialog.hpp"
 #include "ui/localization.hpp"
 #include "ui/main_window.hpp"
+#include "ui/tool_palette_footer.hpp"
 #include "ui/print_dialog.hpp"
 #include "ui/selection_outline.hpp"
 #include "ui/sprite_sheet_dialog.hpp"
@@ -451,6 +452,17 @@ ToolPaletteOverflowSetup shrink_window_until_tool_palette_overflows(patchy::ui::
   process_events_for(60);
   CHECK(setup.quick_mask->isVisible());
   CHECK(!setup.extension->isVisible());
+  // The footer sits at the bottom of the bar, under the tools, never inside the
+  // toolbar layout.
+  auto* footer = setup.palette->findChild<QWidget*>(QStringLiteral("toolPaletteFooter"));
+  CHECK(footer != nullptr);
+  if (footer != nullptr) {
+    CHECK(footer->isVisible());
+    CHECK(footer->geometry().bottom() >= setup.palette->height() - 6);
+    CHECK(footer->geometry().top() > setup.palette->widgetForAction(require_action(window, "toolZoomAction"))
+                                         ->geometry()
+                                         .bottom());
+  }
 
   const int short_height = fits_height - 40;
   CHECK(short_height > 0);
@@ -469,12 +481,32 @@ void ui_tool_palette_overflow_hides_quick_mask_before_swatches() {
   show_window(window);
   const auto setup = shrink_window_until_tool_palette_overflows(window);
 
-  // Vertical overflow hides items tail-first, and the bottom cluster is
-  // ordered so Quick Mask, then Swap/Default, give way before the swatches.
-  CHECK(!setup.quick_mask->isVisible());
+  // The footer (color well, Quick Mask) is pinned to the bottom and never
+  // overflows: a short window folds the tools above it into the extension and
+  // the extension button sits above the footer, whole and unclipped.
+  CHECK(setup.quick_mask->isVisible());
   CHECK(setup.foreground->isVisible());
   CHECK(setup.background->isVisible());
   CHECK(setup.palette->width() <= 45);
+  auto* footer = setup.palette->findChild<QWidget*>(QStringLiteral("toolPaletteFooter"));
+  CHECK(footer != nullptr);
+  if (footer != nullptr) {
+    CHECK(footer->geometry().bottom() >= setup.palette->height() - 6);
+    // Qt lets the extension button run 2 px into the margin; the well's
+    // controls start below that.
+    CHECK(setup.extension->geometry().bottom() <= footer->geometry().top() + 2);
+    CHECK(setup.extension->geometry().bottom() < footer->geometry().top() + setup.foreground->geometry().top());
+    CHECK(setup.extension->geometry().top() >= 0);
+    CHECK(setup.extension->height() >= 12);
+    CHECK(setup.palette->rect().contains(setup.extension->geometry()));
+    // The swatches overlap foreground-over-background inside the 43 px well.
+    const auto fg = setup.foreground->geometry();
+    const auto bg = setup.background->geometry();
+    CHECK(fg.intersects(bg));
+    CHECK(fg.left() < bg.left() && fg.top() < bg.top());
+    CHECK(bg.right() < patchy::ui::ToolPaletteFooter::kWidth);
+  }
+  save_widget_artifact("ui_tool_palette_overflow_pinned_footer", window);
 }
 
 void ui_tool_palette_extension_button_expands_palette() {
@@ -484,7 +516,7 @@ void ui_tool_palette_extension_button_expands_palette() {
   window.setAnimated(false);
   show_window(window);
   const auto setup = shrink_window_until_tool_palette_overflows(window);
-  CHECK(!setup.quick_mask->isVisible());
+  CHECK(setup.quick_mask->isVisible());  // the footer never overflows
 
   setup.extension->click();
   CHECK(process_events_until([&] { return setup.palette->width() > 45; }));
@@ -507,7 +539,7 @@ void ui_tool_palette_extension_button_expands_palette() {
 
   setup.extension->click();
   CHECK(process_events_until([&] { return setup.palette->width() <= 45; }));
-  CHECK(!setup.quick_mask->isVisible());
+  CHECK(setup.quick_mask->isVisible());  // the footer never overflows
   CHECK(setup.foreground->isVisible());
 }
 
@@ -541,7 +573,7 @@ void ui_tool_palette_expansion_sticky_after_tool_pick() {
   setup.extension->click();
   CHECK(process_events_until([&] { return setup.palette->width() <= 45; }));
   CHECK(setup.palette->minimumWidth() == 43);
-  CHECK(!setup.quick_mask->isVisible());
+  CHECK(setup.quick_mask->isVisible());  // the footer never overflows
   CHECK(setup.foreground->isVisible());
 }
 

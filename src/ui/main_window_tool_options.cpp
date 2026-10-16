@@ -83,6 +83,7 @@
 #include "ui/splash_dialog.hpp"
 #include "ui/update_checker.hpp"
 #include "ui/zoom_status_bar.hpp"
+#include "ui/tool_palette_footer.hpp"
 #include "ui/theme_qss.hpp"
 #include "ui/theme_palette.hpp"
 #include "support/string_utils.hpp"
@@ -1645,12 +1646,12 @@ void MainWindow::refresh_color_buttons() {
   if (primary_color_button_ != nullptr) {
     primary_color_button_->setText(tr("FG"));
     primary_color_button_->setToolTip(named_tooltip(tr("Foreground color %1").arg(primary_color.name(QColor::HexRgb).toUpper()), primary_color));
-    set_themed_style(*primary_color_button_, color_button_style(primary_color));
+    primary_color_button_->set_color(primary_color);
   }
   if (secondary_color_button_ != nullptr) {
     secondary_color_button_->setText(tr("BG"));
     secondary_color_button_->setToolTip(named_tooltip(tr("Background color %1").arg(secondary_color.name(QColor::HexRgb).toUpper()), secondary_color));
-    set_themed_style(*secondary_color_button_, color_button_style(secondary_color));
+    secondary_color_button_->set_color(secondary_color);
   }
   refresh_text_color_button();
   refresh_gradient_controls_from_canvas();

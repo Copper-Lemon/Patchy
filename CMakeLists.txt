@@ -1124,6 +1124,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/main_window_actions_options_bar.cpp
       src/ui/options_flow_layout.hpp
       src/ui/options_flow_layout.cpp
+      src/ui/tool_palette_footer.hpp
+      src/ui/tool_palette_footer.cpp
       src/ui/main_window_actions_tool_palette.cpp
       src/ui/main_window_adjustments.cpp
       src/ui/main_window_channels.cpp

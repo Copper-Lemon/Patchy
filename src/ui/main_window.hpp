@@ -71,6 +71,10 @@ class QLineEdit;
 class QMenu;
 class QMimeData;
 class QPushButton;
+namespace patchy::ui {
+class ColorWellSwatch;
+class ToolPaletteFooter;
+}  // namespace patchy::ui
 class QShowEvent;
 class QSlider;
 class QSpinBox;
@@ -2065,8 +2069,10 @@ private:
   QList<QAction*> selection_context_actions_;
   // View > Seamless Tiling in Window: per-canvas state, so the check syncs on tab switch.
   QAction* tiling_mode_action_{nullptr};
-  QPushButton* primary_color_button_{nullptr};
-  QPushButton* secondary_color_button_{nullptr};
+  // The color well's swatches, inside tool_palette_footer_ (tool_palette_footer.hpp).
+  ColorWellSwatch* primary_color_button_{nullptr};
+  ColorWellSwatch* secondary_color_button_{nullptr};
+  ToolPaletteFooter* tool_palette_footer_{nullptr};
   QDialog* color_dialog_{nullptr};
   QCheckBox* move_auto_select_check_{nullptr};
   QCheckBox* move_show_transform_controls_check_{nullptr};

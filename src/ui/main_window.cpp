@@ -91,6 +91,7 @@
 #include "ui/splash_dialog.hpp"
 #include "ui/update_checker.hpp"
 #include "ui/zoom_status_bar.hpp"
+#include "ui/tool_palette_footer.hpp"
 #include "ui/theme_manager.hpp"
 #include "ui/theme_qss.hpp"
 #include "ui/user_fonts.hpp"

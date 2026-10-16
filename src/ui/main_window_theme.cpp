@@ -439,6 +439,36 @@ QString photoshop_style_template() {
       max-height: 24px;
       padding: 0;
     }
+    /* The footer's color well paints itself (tool_palette_footer.cpp); the
+       toolbar rules above must not size or decorate its pieces. The extension
+       chevron keeps Qt's own extent instead of the 24 px tool button height,
+       which clipped it against the bottom of the bar. */
+    QToolBar#toolPalette QPushButton#foregroundColorButton, QToolBar#toolPalette QPushButton#backgroundColorButton {
+      min-width: 22px;
+      max-width: 22px;
+      min-height: 22px;
+      max-height: 22px;
+      background: transparent;
+      border: 0;
+      padding: 0;
+    }
+    QToolBar#toolPalette QToolButton#colorSwapButton, QToolBar#toolPalette QToolButton#colorDefaultButton {
+      min-width: 14px;
+      max-width: 14px;
+      min-height: 14px;
+      max-height: 14px;
+      background: transparent;
+      border: 0;
+      padding: 0;
+    }
+    QToolBar#toolPalette QToolButton#qt_toolbar_ext_button {
+      min-height: 14px;
+      max-height: 14px;
+      padding: 0;
+    }
+    QWidget#toolPaletteFooter {
+      background: @tool_palette_bg;
+    }
     QToolButton[toolFlyout="true"]::menu-indicator {
       image: url(@icon(tool-flyout-corner));
       width: 7px;
@@ -452,9 +482,6 @@ QString photoshop_style_template() {
       background: @tool_palette_separator;
       height: 1px;
       margin: 3px 7px;
-    }
-    QWidget#toolPaletteSpacer {
-      background: @tool_palette_bg;
     }
     QToolBar#Options {
       background: @options_bar_bg;

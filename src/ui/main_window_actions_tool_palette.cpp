@@ -80,6 +80,7 @@
 #include "ui/splash_dialog.hpp"
 #include "ui/update_checker.hpp"
 #include "ui/zoom_status_bar.hpp"
+#include "ui/tool_palette_footer.hpp"
 #include "support/string_utils.hpp"
 
 #include <QAbstractItemView>
@@ -693,6 +694,90 @@ private:
   bool applying_{false};
 };
 
+// Keeps the footer in the toolbar layout's bottom contents margin: the layout
+// lays the tools and places the extension button above that margin, so the
+// footer never overflows and stays at the bottom of the collapsed column while
+// an expansion widens the bar. QToolBarLayout rewrites its margins from the
+// style on every polish, so the reservation is re-applied whenever it is lost.
+class ToolPaletteFooterPlacer final : public QObject {
+public:
+  ToolPaletteFooterPlacer(QToolBar* palette, ToolPaletteFooter* footer, QToolButton* extension)
+      : QObject(palette), palette_(palette), footer_(footer), extension_(extension) {
+    palette->installEventFilter(this);
+    if (extension != nullptr) {
+      extension->installEventFilter(this);
+    }
+    apply();
+  }
+
+protected:
+  bool eventFilter(QObject* watched, QEvent* event) override {
+    if (watched == extension_) {
+      // QToolBarLayout seats a vertical bar's extension button against the
+      // bar's bottom edge less the RIGHT margin (a Qt quirk), so the reserved
+      // bottom margin does not move it: lift it above the footer here.
+      if ((event->type() == QEvent::Move || event->type() == QEvent::Resize || event->type() == QEvent::Show) &&
+          !seating_extension_) {
+        seat_extension();
+      }
+      return false;
+    }
+    switch (event->type()) {
+      case QEvent::Resize:
+      case QEvent::Show:
+      case QEvent::LayoutRequest:
+        apply();
+        break;
+      case QEvent::StyleChange:
+      case QEvent::Polish:
+        // QToolBar::changeEvent runs after this filter and resets the margins.
+        QTimer::singleShot(0, this, [this] { apply(); });
+        break;
+      default:
+        break;
+    }
+    return false;
+  }
+
+private:
+  void apply() {
+    if (palette_ == nullptr || footer_ == nullptr || palette_->layout() == nullptr) {
+      return;
+    }
+    auto* layout = palette_->layout();
+    const auto margins = layout->contentsMargins();
+    // The top margin is the style's own; the bottom one carries the footer.
+    const int base = margins.top();
+    const int wanted = base + ToolPaletteFooter::kHeight;
+    if (margins.bottom() != wanted) {
+      layout->setContentsMargins(margins.left(), base, margins.right(), wanted);
+    }
+    footer_->setGeometry(0, std::max(0, palette_->height() - base - ToolPaletteFooter::kHeight),
+                         std::max(ToolPaletteFooter::kWidth, palette_->width()), ToolPaletteFooter::kHeight);
+    footer_->raise();
+    seat_extension();
+  }
+
+  void seat_extension() {
+    if (extension_ == nullptr || footer_ == nullptr || palette_ == nullptr || extension_->isHidden()) {
+      return;
+    }
+    const int limit = footer_->geometry().top() - 1;
+    const auto geometry = extension_->geometry();
+    if (geometry.bottom() <= limit) {
+      return;
+    }
+    seating_extension_ = true;
+    extension_->move(geometry.x(), std::max(0, limit - geometry.height() + 1));
+    seating_extension_ = false;
+  }
+
+  QPointer<QToolBar> palette_;
+  QPointer<ToolPaletteFooter> footer_;
+  QPointer<QToolButton> extension_;
+  bool seating_extension_{false};
+};
+
 // Tool icons are hand-authored SVGs in src/ui/icons/tool-*.svg (32x32 viewBox,
 // icon_ink strokes with one optional icon_accent accent). Author them in the dark
 // values from theme_palette.hpp; icon_theme.cpp recolors them per scheme at paint
@@ -1166,37 +1251,24 @@ void MainWindow::build_tool_palette(ActionBuildContext& ctx) {
   });
   ctx.type_menu->addAction(type_tool_action_);
 
-  auto* palette_spacer = new QWidget(tool_palette);
-  palette_spacer->setObjectName(QStringLiteral("toolPaletteSpacer"));
-  palette_spacer->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
-  tool_palette->addWidget(palette_spacer);
-  tool_palette->addSeparator();
-  // Swatches first on purpose: vertical overflow hides items tail-first into
-  // the extension button, so Quick Mask, then Swap/Default, disappear before
-  // the FG/BG swatches.
-  primary_color_button_ = new QPushButton(tr("FG"), tool_palette);
-  secondary_color_button_ = new QPushButton(tr("BG"), tool_palette);
-  primary_color_button_->setObjectName(QStringLiteral("foregroundColorButton"));
-  secondary_color_button_->setObjectName(QStringLiteral("backgroundColorButton"));
-  primary_color_button_->setToolTip(tr("Foreground color"));
-  secondary_color_button_->setToolTip(tr("Background color"));
-  tool_palette->addWidget(primary_color_button_);
-  tool_palette->addWidget(secondary_color_button_);
-  auto* default_colors_action = tool_palette->addAction(tr("Default Colors"));
-  auto* swap_colors_action = tool_palette->addAction(tr("Swap Colors"));
+  // The color well and Quick Mask live in a footer pinned to the bar's bottom,
+  // outside the toolbar layout, so they never fold into the extension and stay
+  // put while the tools above expand into extra columns (ToolPaletteFooterPlacer).
+  auto* default_colors_action = new QAction(tr("Default Colors"), this);
+  auto* swap_colors_action = new QAction(tr("Swap Colors"), this);
   default_colors_action->setObjectName(QStringLiteral("colorDefaultAction"));
   swap_colors_action->setObjectName(QStringLiteral("colorSwapAction"));
   default_colors_action->setIcon(simple_icon(QStringLiteral("D")));
   swap_colors_action->setIcon(simple_icon(QStringLiteral("X")));
   register_hotkey(default_colors_action, "color.default", QKeySequence(Qt::Key_D), QStringLiteral("color"));
   register_hotkey(swap_colors_action, "color.swap", QKeySequence(Qt::Key_X), QStringLiteral("color"));
-  tool_palette->addSeparator();
-  tool_palette->addAction(quick_mask_action_);
-  if (auto* quick_mask_button = qobject_cast<QToolButton*>(
-          tool_palette->widgetForAction(quick_mask_action_));
-      quick_mask_button != nullptr) {
-    quick_mask_button->setObjectName(QStringLiteral("quickMaskButton"));
-  }
+  tool_palette_footer_ = new ToolPaletteFooter(default_colors_action, swap_colors_action, quick_mask_action_, tool_palette);
+  primary_color_button_ = tool_palette_footer_->foreground();
+  secondary_color_button_ = tool_palette_footer_->background();
+  primary_color_button_->setToolTip(tr("Foreground color"));
+  secondary_color_button_->setToolTip(tr("Background color"));
+  new ToolPaletteFooterPlacer(tool_palette, tool_palette_footer_,
+                              tool_palette->findChild<QToolButton*>(QStringLiteral("qt_toolbar_ext_button")));
   connect(primary_color_button_, &QPushButton::clicked, this, [this] { choose_primary_color(); });
   connect(secondary_color_button_, &QPushButton::clicked, this, [this] { choose_secondary_color(); });
   connect(swap_colors_action, &QAction::triggered, this, [this] { swap_colors(); });
