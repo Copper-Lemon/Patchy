@@ -20721,6 +20721,18 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
         <extracomment>Filter menu; %1 is the filter that ran last. Runs it again with the same settings, no dialog.</extracomment>
         <translation>Último filtro: %1</translation>
     </message>
+    <message>
+        <source>The G&apos;MIC Filter Library, nearly 400 filters, is part of the desktop version of Patchy for Windows, macOS and Linux.</source>
+        <translation>A biblioteca de filtros G&apos;MIC, com quase 400 filtros, faz parte da versão para desktop do Patchy para Windows, macOS e Linux.</translation>
+    </message>
+    <message>
+        <source>Get the Desktop Version</source>
+        <translation>Obtenha a versão para desktop</translation>
+    </message>
+    <message>
+        <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
+        <translation>Quase 400 filtros G&apos;MIC, na versão para desktop do Patchy</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22490,10 +22502,6 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
         <translation>Mais recursos no seu computador</translation>
     </message>
     <message>
-        <source>More features, faster editing, and full access to your system fonts.</source>
-        <translation>Mais recursos, edição mais rápida e acesso total às fontes do sistema.</translation>
-    </message>
-    <message>
         <source>Download Patchy for Desktop</source>
         <translation>Baixar Patchy para desktop</translation>
     </message>
@@ -22540,6 +22548,10 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
     <message>
         <source>No matching recent files</source>
         <translation>Nenhum arquivo recente correspondente</translation>
+    </message>
+    <message>
+        <source>More features, nearly 400 G&apos;MIC filters, faster editing, and full access to your system fonts.</source>
+        <translation>Mais recursos, quase 400 filtros G&apos;MIC, edição mais rápida e acesso total às fontes do sistema.</translation>
     </message>
 </context>
 <context>

@@ -20721,6 +20721,18 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
         <extracomment>Filter menu; %1 is the filter that ran last. Runs it again with the same settings, no dialog.</extracomment>
         <translation>Dernier filtre : %1</translation>
     </message>
+    <message>
+        <source>The G&apos;MIC Filter Library, nearly 400 filters, is part of the desktop version of Patchy for Windows, macOS and Linux.</source>
+        <translation>La bibliothèque de filtres G&apos;MIC, près de 400 filtres, fait partie de la version de bureau de Patchy pour Windows, macOS et Linux.</translation>
+    </message>
+    <message>
+        <source>Get the Desktop Version</source>
+        <translation>Obtenir la version de bureau</translation>
+    </message>
+    <message>
+        <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
+        <translation>Près de 400 filtres G&apos;MIC, dans la version de bureau de Patchy</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22530,16 +22542,16 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
         <translation>Plus de possibilités sur votre ordinateur</translation>
     </message>
     <message>
-        <source>More features, faster editing, and full access to your system fonts.</source>
-        <translation>Plus de fonctions, des retouches plus rapides et un accès complet aux polices de votre système.</translation>
-    </message>
-    <message>
         <source>Download Patchy for Desktop</source>
         <translation>Télécharger Patchy pour ordinateur</translation>
     </message>
     <message>
         <source>Free · Windows, macOS &amp; Linux</source>
         <translation>Gratuit · Windows, macOS et Linux</translation>
+    </message>
+    <message>
+        <source>More features, nearly 400 G&apos;MIC filters, faster editing, and full access to your system fonts.</source>
+        <translation>Plus de fonctions, près de 400 filtres G&apos;MIC, une édition plus rapide et l&apos;accès à toutes vos polices système.</translation>
     </message>
 </context>
 <context>

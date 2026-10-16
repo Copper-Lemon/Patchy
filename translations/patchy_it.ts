@@ -20721,6 +20721,18 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
         <extracomment>Filter menu; %1 is the filter that ran last. Runs it again with the same settings, no dialog.</extracomment>
         <translation>Ultimo filtro: %1</translation>
     </message>
+    <message>
+        <source>The G&apos;MIC Filter Library, nearly 400 filters, is part of the desktop version of Patchy for Windows, macOS and Linux.</source>
+        <translation>La libreria di filtri G&apos;MIC, quasi 400 filtri, fa parte della versione desktop di Patchy per Windows, macOS e Linux.</translation>
+    </message>
+    <message>
+        <source>Get the Desktop Version</source>
+        <translation>Scarica la versione desktop</translation>
+    </message>
+    <message>
+        <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
+        <translation>Quasi 400 filtri G&apos;MIC, nella versione desktop di Patchy</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22530,16 +22542,16 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
         <translation>Più possibilità sul tuo desktop</translation>
     </message>
     <message>
-        <source>More features, faster editing, and full access to your system fonts.</source>
-        <translation>Più funzioni, modifiche più rapide e accesso completo ai font del tuo sistema.</translation>
-    </message>
-    <message>
         <source>Download Patchy for Desktop</source>
         <translation>Scarica Patchy per desktop</translation>
     </message>
     <message>
         <source>Free · Windows, macOS &amp; Linux</source>
         <translation>Gratis · Windows, macOS e Linux</translation>
+    </message>
+    <message>
+        <source>More features, nearly 400 G&apos;MIC filters, faster editing, and full access to your system fonts.</source>
+        <translation>Più funzioni, quasi 400 filtri G&apos;MIC, modifiche più rapide e accesso completo ai font di sistema.</translation>
     </message>
 </context>
 <context>

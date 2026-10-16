@@ -20721,6 +20721,18 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
         <extracomment>Filter menu; %1 is the filter that ran last. Runs it again with the same settings, no dialog.</extracomment>
         <translation>Último filtro: %1</translation>
     </message>
+    <message>
+        <source>The G&apos;MIC Filter Library, nearly 400 filters, is part of the desktop version of Patchy for Windows, macOS and Linux.</source>
+        <translation>La biblioteca de filtros G&apos;MIC, con casi 400 filtros, forma parte de la versión de escritorio de Patchy para Windows, macOS y Linux.</translation>
+    </message>
+    <message>
+        <source>Get the Desktop Version</source>
+        <translation>Obtener la versión de escritorio</translation>
+    </message>
+    <message>
+        <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
+        <translation>Casi 400 filtros G&apos;MIC, en la versión de escritorio de Patchy</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22530,16 +22542,16 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
         <translation>Más potencia en tu escritorio</translation>
     </message>
     <message>
-        <source>More features, faster editing, and full access to your system fonts.</source>
-        <translation>Más funciones, edición más rápida y acceso completo a las fuentes de tu sistema.</translation>
-    </message>
-    <message>
         <source>Download Patchy for Desktop</source>
         <translation>Descargar Patchy para escritorio</translation>
     </message>
     <message>
         <source>Free · Windows, macOS &amp; Linux</source>
         <translation>Gratis · Windows, macOS y Linux</translation>
+    </message>
+    <message>
+        <source>More features, nearly 400 G&apos;MIC filters, faster editing, and full access to your system fonts.</source>
+        <translation>Más funciones, casi 400 filtros G&apos;MIC, edición más rápida y acceso completo a las fuentes del sistema.</translation>
     </message>
 </context>
 <context>

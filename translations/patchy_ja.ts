@@ -20658,6 +20658,18 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <extracomment>Filter menu; %1 is the filter that ran last. Runs it again with the same settings, no dialog.</extracomment>
         <translation>前回のフィルター: %1</translation>
     </message>
+    <message>
+        <source>The G&apos;MIC Filter Library, nearly 400 filters, is part of the desktop version of Patchy for Windows, macOS and Linux.</source>
+        <translation>G&apos;MIC フィルターライブラリ（400 近いフィルター）は、Windows、macOS、Linux 向けデスクトップ版 Patchy に含まれています。</translation>
+    </message>
+    <message>
+        <source>Get the Desktop Version</source>
+        <translation>デスクトップ版を入手</translation>
+    </message>
+    <message>
+        <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
+        <translation>400 近い G&apos;MIC フィルター（デスクトップ版 Patchy）</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22466,16 +22478,16 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <translation>デスクトップでもっと快適に</translation>
     </message>
     <message>
-        <source>More features, faster editing, and full access to your system fonts.</source>
-        <translation>より多くの機能、より高速な編集、システム内のすべてのフォントを利用できます。</translation>
-    </message>
-    <message>
         <source>Download Patchy for Desktop</source>
         <translation>デスクトップ版Patchyをダウンロード</translation>
     </message>
     <message>
         <source>Free · Windows, macOS &amp; Linux</source>
         <translation>無料 · Windows、macOS、Linux</translation>
+    </message>
+    <message>
+        <source>More features, nearly 400 G&apos;MIC filters, faster editing, and full access to your system fonts.</source>
+        <translation>より多くの機能、400 近い G&apos;MIC フィルター、高速な編集、システムフォントへのフルアクセス。</translation>
     </message>
 </context>
 <context>

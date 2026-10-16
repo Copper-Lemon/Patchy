@@ -20658,6 +20658,18 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
         <extracomment>Filter menu; %1 is the filter that ran last. Runs it again with the same settings, no dialog.</extracomment>
         <translation>마지막 필터: %1</translation>
     </message>
+    <message>
+        <source>The G&apos;MIC Filter Library, nearly 400 filters, is part of the desktop version of Patchy for Windows, macOS and Linux.</source>
+        <translation>약 400개의 필터가 있는 G&apos;MIC 필터 라이브러리는 Windows, macOS, Linux용 Patchy 데스크톱 버전에 포함되어 있습니다.</translation>
+    </message>
+    <message>
+        <source>Get the Desktop Version</source>
+        <translation>데스크톱 버전 받기</translation>
+    </message>
+    <message>
+        <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
+        <translation>약 400개의 G&apos;MIC 필터, Patchy 데스크톱 버전에서 제공</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22426,10 +22438,6 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
         <translation>데스크탑에서 더 많은 성능을 발휘하세요</translation>
     </message>
     <message>
-        <source>More features, faster editing, and full access to your system fonts.</source>
-        <translation>더 많은 기능, 더 빠른 편집 및 시스템 글꼴에 대한 전체 액세스.</translation>
-    </message>
-    <message>
         <source>Download Patchy for Desktop</source>
         <translation>데스크톱용 Patchy 다운로드</translation>
     </message>
@@ -22476,6 +22484,10 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
     <message>
         <source>No matching recent files</source>
         <translation>일치하는 최근 파일이 없습니다.</translation>
+    </message>
+    <message>
+        <source>More features, nearly 400 G&apos;MIC filters, faster editing, and full access to your system fonts.</source>
+        <translation>더 많은 기능, 약 400개의 G&apos;MIC 필터, 더 빠른 편집, 시스템 글꼴 전체 사용.</translation>
     </message>
 </context>
 <context>

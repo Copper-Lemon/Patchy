@@ -20652,6 +20652,18 @@ Patchy can download the update, replace this AppImage, and start again. You will
         <extracomment>Filter menu; %1 is the filter that ran last. Runs it again with the same settings, no dialog.</extracomment>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>The G&apos;MIC Filter Library, nearly 400 filters, is part of the desktop version of Patchy for Windows, macOS and Linux.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Get the Desktop Version</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22461,15 +22473,15 @@ Patchy can download the update, replace this AppImage, and start again. You will
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>More features, faster editing, and full access to your system fonts.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Download Patchy for Desktop</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Free · Windows, macOS &amp; Linux</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>More features, nearly 400 G&apos;MIC filters, faster editing, and full access to your system fonts.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

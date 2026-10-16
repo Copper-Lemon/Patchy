@@ -20784,6 +20784,18 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
         <extracomment>Filter menu; %1 is the filter that ran last. Runs it again with the same settings, no dialog.</extracomment>
         <translation>Ostatni filtr: %1</translation>
     </message>
+    <message>
+        <source>The G&apos;MIC Filter Library, nearly 400 filters, is part of the desktop version of Patchy for Windows, macOS and Linux.</source>
+        <translation>Biblioteka filtrów G&apos;MIC, blisko 400 filtrów, jest częścią wersji Patchy na komputery z Windows, macOS i Linuksem.</translation>
+    </message>
+    <message>
+        <source>Get the Desktop Version</source>
+        <translation>Pobierz wersję na komputer stacjonarny</translation>
+    </message>
+    <message>
+        <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
+        <translation>Blisko 400 filtrów G&apos;MIC w wersji Patchy na komputery</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22554,10 +22566,6 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
         <translation>Większa moc na Twoim komputerze stacjonarnym</translation>
     </message>
     <message>
-        <source>More features, faster editing, and full access to your system fonts.</source>
-        <translation>Więcej funkcji, szybsza edycja i pełny dostęp do czcionek systemowych.</translation>
-    </message>
-    <message>
         <source>Download Patchy for Desktop</source>
         <translation>Pobierz Patchy na komputer</translation>
     </message>
@@ -22604,6 +22612,10 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
     <message>
         <source>No matching recent files</source>
         <translation>Brak pasujących ostatnich plików</translation>
+    </message>
+    <message>
+        <source>More features, nearly 400 G&apos;MIC filters, faster editing, and full access to your system fonts.</source>
+        <translation>Więcej funkcji, blisko 400 filtrów G&apos;MIC, szybsza edycja i pełny dostęp do czcionek systemowych.</translation>
     </message>
 </context>
 <context>

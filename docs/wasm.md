@@ -209,7 +209,8 @@ onto setTimeout before qtloader runs (harness below).
   works, because `pdf_export.cpp` only needs QtGui's QPdfWriter. A picked or
   dropped `.pdf` still enters the open pipeline and gets the stub's
   marker-tagged error, which the open-failed box turns into a "Get the
-  Desktop Version" download button (see [pdf.md](pdf.md)).
+  Desktop Version" download button (see [pdf.md](pdf.md)); the G'MIC row is a
+  stub.
   Deep editing stops at 16 bits (`depth_supported_on_platform`): 32-bit
   files open converted to 16 and Image > Mode and New Document offer no 32
   ([high-bit-depth.md](high-bit-depth.md)). Single-instance QLocalServer

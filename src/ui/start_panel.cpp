@@ -146,7 +146,8 @@ StartPanel::StartPanel(QWidget* parent) : QWidget(parent) {
     return label;
   };
   add_desktop_label(QT_TR_NOOP("More power on your desktop"), "startPanelDesktopTitle");
-  add_desktop_label(QT_TR_NOOP("More features, faster editing, and full access to your system fonts."),
+  add_desktop_label(QT_TR_NOOP("More features, nearly 400 G'MIC filters, faster editing, and full access to your "
+                               "system fonts."),
                     "startPanelDesktopDescription");
 
   auto* download_button = new QPushButton(desktop_card);

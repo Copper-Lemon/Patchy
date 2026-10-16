@@ -20721,6 +20721,18 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
         <extracomment>Filter menu; %1 is the filter that ran last. Runs it again with the same settings, no dialog.</extracomment>
         <translation>Letzter Filter: %1</translation>
     </message>
+    <message>
+        <source>The G&apos;MIC Filter Library, nearly 400 filters, is part of the desktop version of Patchy for Windows, macOS and Linux.</source>
+        <translation>Die G&apos;MIC-Filterbibliothek mit fast 400 Filtern ist Teil der Desktop-Version von Patchy für Windows, macOS und Linux.</translation>
+    </message>
+    <message>
+        <source>Get the Desktop Version</source>
+        <translation>Desktop-Version herunterladen</translation>
+    </message>
+    <message>
+        <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
+        <translation>Fast 400 G&apos;MIC-Filter, in der Desktop-Version von Patchy</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22530,16 +22542,16 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
         <translation>Mehr Möglichkeiten auf Ihrem Desktop</translation>
     </message>
     <message>
-        <source>More features, faster editing, and full access to your system fonts.</source>
-        <translation>Mehr Funktionen, schnellere Bearbeitung und voller Zugriff auf Ihre Systemschriften.</translation>
-    </message>
-    <message>
         <source>Download Patchy for Desktop</source>
         <translation>Patchy für den Desktop herunterladen</translation>
     </message>
     <message>
         <source>Free · Windows, macOS &amp; Linux</source>
         <translation>Kostenlos · Windows, macOS &amp; Linux</translation>
+    </message>
+    <message>
+        <source>More features, nearly 400 G&apos;MIC filters, faster editing, and full access to your system fonts.</source>
+        <translation>Mehr Funktionen, fast 400 G&apos;MIC-Filter, schnellere Bearbeitung und voller Zugriff auf Ihre Systemschriften.</translation>
     </message>
 </context>
 <context>

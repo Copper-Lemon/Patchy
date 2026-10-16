@@ -20658,6 +20658,18 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
         <extracomment>Filter menu; %1 is the filter that ran last. Runs it again with the same settings, no dialog.</extracomment>
         <translation>上次濾鏡：%1</translation>
     </message>
+    <message>
+        <source>The G&apos;MIC Filter Library, nearly 400 filters, is part of the desktop version of Patchy for Windows, macOS and Linux.</source>
+        <translation>G&apos;MIC 濾鏡庫（近 400 個濾鏡）包含在 Windows、macOS 與 Linux 的 Patchy 桌面版中。</translation>
+    </message>
+    <message>
+        <source>Get the Desktop Version</source>
+        <translation>取得桌面版</translation>
+    </message>
+    <message>
+        <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
+        <translation>近 400 個 G&apos;MIC 濾鏡，見 Patchy 桌面版</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22466,16 +22478,16 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
         <translation>桌面版，讓創作更得心應手</translation>
     </message>
     <message>
-        <source>More features, faster editing, and full access to your system fonts.</source>
-        <translation>更多功能、更快的編輯速度，還可使用所有系統字型。</translation>
-    </message>
-    <message>
         <source>Download Patchy for Desktop</source>
         <translation>下載Patchy桌面版</translation>
     </message>
     <message>
         <source>Free · Windows, macOS &amp; Linux</source>
         <translation>免費 · Windows、macOS和Linux</translation>
+    </message>
+    <message>
+        <source>More features, nearly 400 G&apos;MIC filters, faster editing, and full access to your system fonts.</source>
+        <translation>更多功能、近 400 個 G&apos;MIC 濾鏡、更快的編輯速度，以及完整使用系統字型。</translation>
     </message>
 </context>
 <context>

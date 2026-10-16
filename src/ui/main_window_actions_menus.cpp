@@ -1665,6 +1665,35 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
     register_document_action(gmic_library_action);
     filter_menu->addSeparator();
   }
+#ifdef Q_OS_WASM
+  else {
+    // The browser build ships no G'MIC engine, but the row stays so the library is
+    // discoverable: it explains that the nearly 400 filters come with the desktop
+    // version and offers the download, like the PDF stub (docs/wasm.md).
+    auto* gmic_promo_action = filter_menu->addAction(tr("G'&MIC Filter Library..."));
+    gmic_promo_action->setObjectName(QStringLiteral("filterGmicLibraryAction"));
+    gmic_promo_action->setIcon(simple_icon(QStringLiteral("GM")));
+    bind_action_text(gmic_promo_action, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "G'&MIC Filter Library..."));
+    gmic_promo_action->setStatusTip(tr("Nearly 400 G'MIC filters, in the desktop version of Patchy"));
+    bind_translated_status_tip(gmic_promo_action, "Nearly 400 G'MIC filters, in the desktop version of Patchy");
+    apply_bound_translation(gmic_promo_action);
+    refresh_action_tooltip(gmic_promo_action);
+    connect(gmic_promo_action, &QAction::triggered, this, [this] {
+      QMessageBox dialog(QMessageBox::Information, tr("G'MIC Filter Library"),
+                         tr("The G'MIC Filter Library, nearly 400 filters, is part of the desktop version of "
+                            "Patchy for Windows, macOS and Linux."),
+                         QMessageBox::Ok, this);
+      dialog.setObjectName(QStringLiteral("gmicDesktopOnlyMessageBox"));
+      auto* download_button = dialog.addButton(tr("Get the Desktop Version"), QMessageBox::ActionRole);
+      dialog.setDefaultButton(download_button);
+      exec_dialog(dialog);
+      if (dialog.clickedButton() == download_button) {
+        QDesktopServices::openUrl(QUrl(QStringLiteral("https://github.com/SethRobinson/Patchy#download")));
+      }
+    });
+    filter_menu->addSeparator();
+  }
+#endif
 
   const auto add_filter_submenu = [this, filter_menu](
                                       const char* object_name,

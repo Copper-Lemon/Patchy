@@ -20784,6 +20784,18 @@ Patchy может скачать обновление, заменить этот
         <extracomment>Filter menu; %1 is the filter that ran last. Runs it again with the same settings, no dialog.</extracomment>
         <translation>Последний фильтр: %1</translation>
     </message>
+    <message>
+        <source>The G&apos;MIC Filter Library, nearly 400 filters, is part of the desktop version of Patchy for Windows, macOS and Linux.</source>
+        <translation>Библиотека фильтров G&apos;MIC, почти 400 фильтров, входит в настольную версию Patchy для Windows, macOS и Linux.</translation>
+    </message>
+    <message>
+        <source>Get the Desktop Version</source>
+        <translation>Получить версию для ПК</translation>
+    </message>
+    <message>
+        <source>Nearly 400 G&apos;MIC filters, in the desktop version of Patchy</source>
+        <translation>Почти 400 фильтров G&apos;MIC в настольной версии Patchy</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22554,10 +22566,6 @@ Patchy может скачать обновление, заменить этот
         <translation>Больше возможностей на вашем рабочем столе</translation>
     </message>
     <message>
-        <source>More features, faster editing, and full access to your system fonts.</source>
-        <translation>Больше функций, более быстрое редактирование и полный доступ к системным шрифтам.</translation>
-    </message>
-    <message>
         <source>Download Patchy for Desktop</source>
         <translation>Скачать Patchy для рабочего стола</translation>
     </message>
@@ -22604,6 +22612,10 @@ Patchy может скачать обновление, заменить этот
     <message>
         <source>No matching recent files</source>
         <translation>Нет соответствующих последних файлов</translation>
+    </message>
+    <message>
+        <source>More features, nearly 400 G&apos;MIC filters, faster editing, and full access to your system fonts.</source>
+        <translation>Больше функций, почти 400 фильтров G&apos;MIC, быстрее редактирование и полный доступ к системным шрифтам.</translation>
     </message>
 </context>
 <context>
