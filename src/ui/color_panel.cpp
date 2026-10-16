@@ -6,6 +6,9 @@
 #include "ui/palette_panel.hpp"
 
 #include "ui/dialog_utils.hpp"
+#if PATCHY_HAVE_QT_DBUS
+#include "ui/portal_color_pick.hpp"
+#endif
 #include "ui/tool_cursors.hpp"
 #include "ui/theme_palette.hpp"
 #include "ui/theme_qss.hpp"
@@ -2161,6 +2164,19 @@ void PatchyColorPickerPrivate::start_screen_pick() {
   if (overlay_ != nullptr) {
     return;
   }
+#if PATCHY_HAVE_QT_DBUS
+  // A Wayland compositor neither lets the overlay cover other windows nor
+  // answers QScreen::grabWindow, so the pick runs through the desktop portal's
+  // own picker (GitHub issue 128). The overlay stays the X11 path.
+  if (portal_color_pick_preferred() &&
+      request_portal_color_pick(&owner_, [this](std::optional<QColor> picked) {
+        if (picked.has_value()) {
+          set_color(*picked, ColorChangeNotification::Yes);
+        }
+      })) {
+    return;
+  }
+#endif
   auto* overlay = new ScreenColorOverlay(*this);
   overlay_ = overlay;
   overlay->show();

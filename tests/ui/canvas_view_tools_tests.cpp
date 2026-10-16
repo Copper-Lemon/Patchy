@@ -210,6 +210,9 @@
 #include "ui_test_access.hpp"
 #include "ui_test_groups.hpp"
 #include "ui_test_support.hpp"
+#if PATCHY_HAVE_QT_DBUS
+#include "ui/portal_color_pick.hpp"
+#endif
 
 namespace {
 
@@ -762,6 +765,33 @@ void ui_canvas_trackpad_scroll_ignored_during_pointer_gesture() {
   send_scroll(*canvas, at, QPoint(4, 0), Qt::ScrollMomentum);
   CHECK(origin() == before + QPoint(16, 0));
 }
+
+#if PATCHY_HAVE_QT_DBUS
+// GitHub issue 128: the Wayland "Pick Screen Color" subscribes to the portal
+// request's Response before calling PickColor, at the path the portal derives
+// from the caller's unique bus name and handle token.
+void ui_portal_color_pick_request_path_follows_the_portal_convention() {
+  CHECK(patchy::ui::portal_request_path(QStringLiteral(":1.42"), QStringLiteral("patchy_pick_1")) ==
+        QStringLiteral("/org/freedesktop/portal/desktop/request/1_42/patchy_pick_1"));
+  CHECK(patchy::ui::portal_request_path(QStringLiteral(":1.0"), QStringLiteral("t")) ==
+        QStringLiteral("/org/freedesktop/portal/desktop/request/1_0/t"));
+  // Offscreen is not Wayland: the overlay picker stays in charge here.
+  CHECK(!patchy::ui::portal_color_pick_preferred());
+  // A finished request reports once and never again.
+  QObject context;
+  int reports = 0;
+  std::optional<QColor> reported;
+  auto* request = new patchy::ui::PortalColorPickRequest(&context, [&](std::optional<QColor> color) {
+    ++reports;
+    reported = color;
+  });
+  request->response(1, {});  // cancelled
+  request->response(0, {});
+  CHECK(reports == 1);
+  CHECK(!reported.has_value());
+  QApplication::processEvents();  // the request deletes itself
+}
+#endif
 
 void ui_own_window_color_sample_reads_widget_without_screen_grab() {
   // The macOS eyedropper samples Patchy's own windows by rendering them, so a pick on
@@ -4604,6 +4634,10 @@ std::vector<patchy::test::TestCase> canvas_view_tools_tests() {
       {"ui_canvas_wheel_matches_photoshop_navigation", ui_canvas_wheel_matches_photoshop_navigation},
       {"ui_canvas_wheel_zoom_mode_zooms_at_cursor", ui_canvas_wheel_zoom_mode_zooms_at_cursor},
       {"ui_canvas_trackpad_scroll_pans_both_axes", ui_canvas_trackpad_scroll_pans_both_axes},
+#if PATCHY_HAVE_QT_DBUS
+      {"ui_portal_color_pick_request_path_follows_the_portal_convention",
+       ui_portal_color_pick_request_path_follows_the_portal_convention},
+#endif
       {"ui_own_window_color_sample_reads_widget_without_screen_grab",
        ui_own_window_color_sample_reads_widget_without_screen_grab},
       {"ui_canvas_trackpad_scroll_ignored_during_pointer_gesture",

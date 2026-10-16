@@ -1481,6 +1481,18 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
         "-framework ImageCaptureCore"
       )
     endif()
+    if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
+      # "Pick Screen Color" on Wayland goes through the XDG desktop portal
+      # (src/ui/portal_color_pick.cpp, GitHub issue 128). Looked up as a separate
+      # package for the same reason as Qt6Pdf above: a kit without QtDBus keeps
+      # the app target and falls back to the overlay picker.
+      find_package(Qt6DBus QUIET)
+      if(TARGET Qt6::DBus)
+        target_sources(patchy_ui PRIVATE src/ui/portal_color_pick.cpp src/ui/portal_color_pick.hpp)
+        target_link_libraries(patchy_ui PRIVATE Qt6::DBus)
+        target_compile_definitions(patchy_ui PUBLIC PATCHY_HAVE_QT_DBUS=1)
+      endif()
+    endif()
     if(WIN32)
       # WIA scanner/camera acquisition (File > Import > From Scanner or Camera...).
       # legacy_plugin_runner_win.cpp drives the out-of-process 8BF host.
