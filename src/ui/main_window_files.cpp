@@ -538,6 +538,19 @@ struct FileFormatEntry {
   bool in_export_dialog;         // offered by File > Export Flat Image
 };
 
+// Whether this build can decode HEIF at all: Windows always registers a WIC codec
+// (a stub when the Store packages are missing, which the open path explains), the
+// browser build decodes through WebCodecs, and macOS/Linux depend on a Qt image
+// plug-in (qmacheif, kimg_heif in the Flatpak runtime; none in the AppImage).
+bool heif_decoder_available() {
+#if defined(Q_OS_WIN) || defined(Q_OS_WASM)
+  return true;
+#else
+  const auto formats = QImageReader::supportedImageFormats();
+  return formats.contains(QByteArrayLiteral("heic")) || formats.contains(QByteArrayLiteral("heif"));
+#endif
+}
+
 const QList<FileFormatEntry>& file_format_entries() {
   static const QList<FileFormatEntry> entries = [] {
     QList<FileFormatEntry> list = {
@@ -648,10 +661,15 @@ const QList<FileFormatEntry>& file_format_entries() {
                     false,
                     false});
     // HEIF/HEIC is decode-only like camera raw (platform codecs never encode for us and
-    // Patchy must not ship an HEVC encoder), so its entry is read-only too.
+    // Patchy must not ship an HEVC encoder), so its entry is read-only too. Where no
+    // decoder exists at all (the AppImage's Qt has no HEIF plug-in) the row is left out
+    // rather than advertising an open that can only fail (GitHub issue 113); a dropped
+    // or typed .heic path still reaches the sniffing open path and its explanation.
     QStringList heif_extensions;
-    for (const auto& extension : heif::heif_extensions()) {
-      heif_extensions.push_back(QString::fromStdString(extension));
+    if (heif_decoder_available()) {
+      for (const auto& extension : heif::heif_extensions()) {
+        heif_extensions.push_back(QString::fromStdString(extension));
+      }
     }
     list.push_back({QT_TRANSLATE_NOOP("QObject", "HEIF Image"),
                     heif_extensions,
