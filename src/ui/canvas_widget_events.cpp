@@ -780,6 +780,9 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
   if (!document_contains(document_point)) {
     // Move can recover selected layers from the grey area. Marquee/lasso and
     // brush strokes may also begin there, and Zoom uses the nearest frame point.
+    // Shape, Line and Text drags start there too, as in Photoshop: a shape or
+    // text box may hang partly off the canvas, and a pixel-mode shape clips to
+    // the document on commit (the release paths handle both already).
     const bool allows_off_canvas_press = (tool_ == CanvasTool::Move && event->button() == Qt::LeftButton) ||
                                          tool_ == CanvasTool::Marquee ||
                                          tool_ == CanvasTool::EllipticalMarquee ||
@@ -790,6 +793,12 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
                                          tool_ == CanvasTool::PatchTool ||
                                          tool_ == CanvasTool::Crop ||
                                          tool_ == CanvasTool::Zoom ||
+                                         tool_ == CanvasTool::Rectangle ||
+                                         tool_ == CanvasTool::Ellipse ||
+                                         tool_ == CanvasTool::Line ||
+                                         tool_ == CanvasTool::Polygon ||
+                                         tool_ == CanvasTool::CustomShape ||
+                                         tool_ == CanvasTool::Text ||
                                          (event->button() == Qt::LeftButton &&
                                           tool_supports_off_canvas_brush_strokes(effective_tool));
     if (!allows_off_canvas_press) {

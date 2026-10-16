@@ -113,6 +113,76 @@ void ui_shape_tool_creates_shape_layer_and_undoes() {
   CHECK(color_close(after_undo, Qt::white, 8));
 }
 
+// A shape or text drag may begin on the pasteboard, as in Photoshop: the press
+// used to be refused outside the document, while marquee drags were not.
+void ui_shape_and_text_drags_start_off_canvas() {
+  VectorSettingsGuard settings_guard;
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* canvas = require_canvas(window);
+  auto& document = patchy::ui::MainWindowTestAccess::document(window);
+  const auto initial_layers = document.layers().size();
+  // Zoom out so the pasteboard around the document is inside the widget.
+  canvas->set_zoom(0.5);
+  canvas->set_snap_enabled(false);
+  QApplication::processEvents();
+
+  canvas->set_tool(patchy::ui::CanvasTool::Rectangle);
+  CHECK(canvas->vector_tool_mode() == patchy::ui::VectorToolMode::Shape);
+  auto* radius_spin = window.findChild<QSpinBox*>(QStringLiteral("shapeCornerRadiusSpin"));
+  CHECK(radius_spin != nullptr);
+  radius_spin->setValue(0);
+  CHECK(canvas->rect().contains(canvas->widget_position_for_document_point(QPoint(-60, 40))));
+  shape_drag(*canvas, QPoint(-60, 40), QPoint(150, 200));
+
+  CHECK(document.layers().size() == initial_layers + 1);
+  const auto active = document.active_layer_id();
+  CHECK(active.has_value());
+  auto* layer = active.has_value() ? document.find_layer(*active) : nullptr;
+  CHECK(layer != nullptr);
+  if (layer != nullptr) {
+    CHECK(patchy::layer_is_vector_shape(*layer));
+    const auto* content = layer->vector_shape();
+    CHECK(content != nullptr && content->origination.size() == 1);
+    if (content != nullptr && content->origination.size() == 1) {
+      CHECK(std::abs(content->origination[0].left - (-60.0)) < 0.5);
+      CHECK(std::abs(content->origination[0].right - 150.0) < 0.5);
+    }
+    CHECK(layer->bounds().x == -60);
+  }
+
+  // The Text tool's box drag, from the pasteboard into the document.
+  patchy::Document text_document(96, 64, patchy::PixelFormat::rgba8());
+  patchy::ui::CanvasWidget text_canvas;
+  text_canvas.resize(420, 300);
+  text_canvas.set_document(&text_document);
+  text_canvas.set_zoom(2.0);
+  text_canvas.set_snap_enabled(false);
+  QPoint requested_point;
+  QRect requested_box;
+  int requests = 0;
+  text_canvas.set_text_requested_callback([&](QPoint point, QRect box) {
+    requested_point = point;
+    requested_box = box;
+    ++requests;
+  });
+  text_canvas.set_tool(patchy::ui::CanvasTool::Text);
+  text_canvas.show();
+  QApplication::processEvents();
+  drag(text_canvas, text_canvas.widget_position_for_document_point(QPoint(-12, -8)),
+       text_canvas.widget_position_for_document_point(QPoint(40, 30)));
+  CHECK(requests == 1);
+  CHECK(requested_box.isValid());
+  CHECK(requested_box.left() == -12);
+  CHECK(requested_box.top() == -8);
+  CHECK(requested_point == QPoint(-12, -8));
+  // A plain click on the pasteboard places point text there too.
+  click_widget_like_a_user(text_canvas, text_canvas.widget_position_for_document_point(QPoint(-20, 10)));
+  CHECK(requests == 2);
+  CHECK(requested_point == QPoint(-20, 10));
+  CHECK(!requested_box.isValid() || requested_box.isEmpty());
+}
+
 void ui_shape_tool_combine_extends_active_shape_layer() {
   VectorSettingsGuard settings_guard;
   patchy::ui::MainWindow window;
@@ -4795,6 +4865,7 @@ void ui_shape_appearance_unit_pick_sets_ruler_unit() {
 
 std::vector<patchy::test::TestCase> vector_shape_tool_tests() {
   return {
+      {"ui_shape_and_text_drags_start_off_canvas", ui_shape_and_text_drags_start_off_canvas},
       {"ui_shape_size_fields_follow_ruler_unit", ui_shape_size_fields_follow_ruler_unit},
       {"ui_shape_appearance_unit_pick_sets_ruler_unit", ui_shape_appearance_unit_pick_sets_ruler_unit},
       {"ui_shape_tool_creates_shape_layer_and_undoes", ui_shape_tool_creates_shape_layer_and_undoes},
