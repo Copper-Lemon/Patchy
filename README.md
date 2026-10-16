@@ -18,7 +18,7 @@ For bug reports and feature requests, please [open an issue](https://github.com/
 
 ## Download
 
-**Latest release: 1.11** · October 15, 2026 · [Release notes](#whats-new) · [All releases](https://github.com/SethRobinson/Patchy/releases)
+**Latest release: 1.12** · October 16, 2026 · [Release notes](#whats-new) · [All releases](https://github.com/SethRobinson/Patchy/releases)
 
 Windows releases are code signed by Seth A. Robinson; the macOS app is signed and
 notarized (Robinson Technologies Corporation); the Linux Flatpak repository is GPG
@@ -178,6 +178,18 @@ and Affinity import has format-specific limitations. See [current compatibility]
 
 ## What's New
 
+### 1.12 - October 16, 2026
+
+- Tool palette: a compact Photoshop-style color well that sits with Quick Mask in a footer pinned to the bottom of the palette. The footer stays put when a short screen expands the palette to a second column, and the overflow chevron is no longer clipped
+- Shape and text tools: a drag can now start outside the canvas, on the pasteboard, as marquee drags already could
+- Options bar: the bar keeps one row until the current tool's controls really need two, instead of reserving the tallest row of every tool ([issue 91](https://github.com/SethRobinson/Patchy/issues/91))
+- Pen tool: moving several anchors with the Direct Selection tool no longer leaves a trail of old handles, a layer mask stays targeted through undo, and the selection right-click menu is offered beside the marching ants ([issue 105](https://github.com/SethRobinson/Patchy/issues/105))
+- SVG import: a stroke more opaque than its fill becomes its own shape layer instead of vanishing ([issue 111](https://github.com/SethRobinson/Patchy/issues/111))
+- Open dialog: reopens on the format row picked last time ([issue 114](https://github.com/SethRobinson/Patchy/issues/114)), lists HEIF only where a decoder exists, such as not in the AppImage ([issue 113](https://github.com/SethRobinson/Patchy/issues/113)), and the open-failed message names the file ([issue 112](https://github.com/SethRobinson/Patchy/issues/112))
+- Interface: the Scripting Guide has the dialog chrome and a Close button and the About box has an X ([issue 107](https://github.com/SethRobinson/Patchy/issues/107)), the Feather label has the same gap to its field as every other options-bar label ([issue 106](https://github.com/SethRobinson/Patchy/issues/106)), and File Info never wraps the Created, Modified, Application and Format values ([issue 103](https://github.com/SethRobinson/Patchy/issues/103))
+- Linux: short screens keep the bottom panels on-screen, since the right column's panel floors now fit the screen height ([issue 108](https://github.com/SethRobinson/Patchy/issues/108), [issue 110](https://github.com/SethRobinson/Patchy/issues/110)), and on Wayland menus and combo lists open in place at a non-100% interface scale ([issue 100](https://github.com/SethRobinson/Patchy/issues/100))
+- Browser version: the Filter menu shows the G'MIC Filter Library row and explains that its nearly 400 filters need the desktop version
+
 ### 1.11 - October 15, 2026
 
 - G'MIC Filter Library: nearly 400 G'MIC filters built in (desktop), with a live preview on the canvas, draggable points for filters that take a position, filters that read or add several layers, and script access ([issue 87](https://github.com/SethRobinson/Patchy/issues/87))
@@ -189,12 +201,6 @@ and Affinity import has format-specific limitations. See [current compatibility]
 - Interface: the right panel opens at its content width and drags narrower ([issue 96](https://github.com/SethRobinson/Patchy/issues/96)), the options bar stays one row at 1366 px ([issue 91](https://github.com/SethRobinson/Patchy/issues/91)), the tool palette no longer mixes up when expanded ([issue 88](https://github.com/SethRobinson/Patchy/issues/88)), Open Recent is a scrolling list, Preferences can be resized and sets how often to check for updates ([issue 92](https://github.com/SethRobinson/Patchy/issues/92)), and dark stroke swatches are visible in the dark theme ([issue 89](https://github.com/SethRobinson/Patchy/issues/89)). Collapsing the Layers panel collapses its Channels and Paths tabs too, so no empty gap is left ([issue 101](https://github.com/SethRobinson/Patchy/issues/101))
 - Linux: dialog buttons and the toolbar overflow button no longer pick up dark icons from a light desktop theme ([issue 99](https://github.com/SethRobinson/Patchy/issues/99)), and on Wayland the side panels stay docked, since dragging one out could leave the mouse unresponsive ([issue 102](https://github.com/SethRobinson/Patchy/issues/102))
 - macOS: fixed a crash in accessibility tools when the Layers list changes ([issue 95](https://github.com/SethRobinson/Patchy/issues/95))
-
-### 1.10 - October 13, 2026
-
-- Windows: one-click updates. Starting with the release after this one, the update prompt can download the new version, close Patchy, install it and start it again. It asks about unsaved work first and needs no administrator rights. It checks signatures and SHA-256 checksums, and the manifest hosted here on github can also disable this system and go back to "here's the link, install it yourself" if I notice a problem with it later.
-- Object Selection: an optional High Quality model finds objects much more accurately. It is a 234 MB download, offered the first time you use the tool and managed in Preferences. Dragging a box now analyzes just that area for sharper edges, and Select Object is back in the selection right-click menu (was accidently removed in 1.09)
-- Huge bug fix: Copy Merged keeps the shape of the selection, and filters, adjustments and their previews blend soft selection edges instead of cutting them off. Script `applyFilter` honors the selection too
 
 [Older releases](RELEASE-HISTORY.md)
 

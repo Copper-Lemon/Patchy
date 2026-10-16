@@ -144,6 +144,19 @@
     <control>tablet</control>
   </supports>
   <releases>
+    <release version="1.12" date="2026-10-16">
+      <description>
+        <ul>
+          <li>A compact color well pinned to the bottom of the tool palette, with Quick Mask beside it</li>
+          <li>Shape and text drags can start outside the canvas</li>
+          <li>The options bar keeps one row until a tool needs two</li>
+          <li>Pen tool: no handle trails when moving several anchors, and masks stay targeted through undo</li>
+          <li>SVG import keeps strokes that are more opaque than their fill</li>
+          <li>The Open dialog remembers its format filter, lists HEIF only where supported, and names files it cannot read</li>
+          <li>Short screens keep the side panels on-screen, and Wayland menus open in place at any interface scale</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.11" date="2026-10-15">
       <description>
         <ul>
