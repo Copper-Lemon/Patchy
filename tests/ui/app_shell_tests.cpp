@@ -217,7 +217,6 @@
 #include <array>
 #include <cstdint>
 #include <cmath>
-#include <cstring>
 #include <exception>
 #include <filesystem>
 #include <fstream>
@@ -231,6 +230,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <map>
 #include <vector>
 
 #include "ui_test_access.hpp"
@@ -568,6 +568,83 @@ void ui_tool_palette_extension_survives_resize_cycles() {
   window.resize(short_size);
   check_state("short once more");
 }
+// GitHub issues 121 and 124 probes. Expanding the palette into extra columns
+// must keep the first column's buttons exactly where the collapsed column had
+// them (a 1 px shift of Move, Crop, Brush and Eraser was reported) and must
+// reserve only the columns it fills (a third, empty column was reported), and
+// both must hold across window resizes while the expansion stays open.
+void ui_tool_palette_expansion_keeps_columns_tight_and_aligned() {
+  patchy::ui::MainWindow window;
+  window.setAnimated(false);
+  show_window(window);
+  const auto setup = shrink_window_until_tool_palette_overflows(window);
+  auto* footer = setup.palette->findChild<QWidget*>(QStringLiteral("toolPaletteFooter"));
+  CHECK(footer != nullptr);
+  if (footer == nullptr) {
+    return;
+  }
+  const auto tool_buttons = [&] {
+    std::vector<QToolButton*> buttons;
+    for (auto* button : setup.palette->findChildren<QToolButton*>()) {
+      if (button != setup.extension && !footer->isAncestorOf(button) && button->isVisible()) {
+        buttons.push_back(button);
+      }
+    }
+    return buttons;
+  };
+  const auto name_of = [](QToolButton* button) {
+    return button->defaultAction() != nullptr ? button->defaultAction()->text().toUtf8() : QByteArray("a button");
+  };
+  std::map<QToolButton*, QRect> collapsed;
+  for (auto* button : tool_buttons()) {
+    collapsed[button] = button->geometry();
+  }
+  CHECK(!collapsed.empty());
+
+  setup.extension->click();
+  CHECK(process_events_until([&] { return setup.palette->width() > 45; }));
+  process_events_for(80);
+
+  const auto check_columns = [&](const char* stage) {
+    QApplication::processEvents();
+    process_events_for(80);
+    int max_right = 0;
+    int moved = 0;
+    for (auto* button : tool_buttons()) {
+      max_right = std::max(max_right, button->geometry().right());
+      const auto it = collapsed.find(button);
+      if (it == collapsed.end() || button->geometry().x() >= it->second.x() + it->second.width()) {
+        continue;  // a button that moved to an extra column (a shorter window needs more of them)
+      }
+      if (it->second.x() != button->geometry().x() || it->second.width() != button->geometry().width()) {
+        ++moved;
+        std::printf("  %s: %s was %dx%d at x=%d, now %dx%d at x=%d", stage, name_of(button).constData(),
+                    it->second.width(), it->second.height(), it->second.x(), button->width(), button->height(),
+                    button->geometry().x());
+        std::puts("");
+      }
+    }
+    const int slack = setup.palette->width() - max_right;
+    std::printf("  %s: palette width %d, rightmost tool edge %d, slack %d, extension checked %d", stage,
+                setup.palette->width(), max_right, slack, static_cast<int>(setup.extension->isChecked()));
+    std::puts("");
+    CHECK(moved == 0);
+    CHECK(slack < 40);
+  };
+  check_columns("expanded");
+  const auto short_size = window.size();
+  window.resize(short_size.width(), short_size.height() + 24);
+  check_columns("taller");
+  window.resize(short_size.width(), short_size.height() - 80);
+  check_columns("shorter");
+  window.resize(short_size);
+  check_columns("short again");
+  window.resize(1180, 1000);
+  check_columns("tall");
+  window.resize(short_size);
+  check_columns("short once more");
+}
+
 void ui_tool_palette_extension_button_expands_palette() {
   patchy::ui::MainWindow window;
   // The expanded geometry is otherwise applied through the ~200ms main-window
@@ -6583,6 +6660,8 @@ std::vector<patchy::test::TestCase> app_shell_tests() {
        ui_tool_palette_overflow_hides_quick_mask_before_swatches},
       {"ui_tool_palette_extension_survives_resize_cycles", ui_tool_palette_extension_survives_resize_cycles},
       {"ui_tool_palette_extension_button_expands_palette", ui_tool_palette_extension_button_expands_palette},
+      {"ui_tool_palette_expansion_keeps_columns_tight_and_aligned",
+       ui_tool_palette_expansion_keeps_columns_tight_and_aligned},
       {"ui_tool_palette_expansion_sticky_after_tool_pick", ui_tool_palette_expansion_sticky_after_tool_pick},
       {"ui_tool_palette_expanded_zoom_double_click_sets_actual_pixels",
        ui_tool_palette_expanded_zoom_double_click_sets_actual_pixels},

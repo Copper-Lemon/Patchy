@@ -425,9 +425,15 @@ QString photoshop_style_template() {
       padding: 3px 4px;
       spacing: 1px;
     }
+    /* 35 px outside (31 + padding + border): exactly the collapsed column's
+       content width (43 less the 4 px side margins), so the button fills the
+       column. A narrower button is centered inside the 35 px item while the
+       bar is collapsed but sits at the column's left edge once an expansion
+       makes every column as wide as the widest button, which moved the plain
+       tools 1 px on every expand (GitHub issue 121). */
     QToolBar#toolPalette QToolButton {
-      min-width: 28px;
-      max-width: 28px;
+      min-width: 31px;
+      max-width: 31px;
       min-height: 24px;
       max-height: 24px;
       padding: 1px;
