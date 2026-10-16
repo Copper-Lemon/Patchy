@@ -1125,7 +1125,7 @@ struct Importer {
   Document document{1, 1, PixelFormat::rgba8()};
   // import_shape leaves the stroke half of a split shape here; import_children
   // places it right above the fill half.
-  std::optional<Layer> split_stroke_layer_;
+  std::optional<Layer> split_stroke_layer_{};
   Rect canvas{};
   // The outermost viewport in user units (the viewBox size, else the canvas): what a
   // percentage resolves against in userSpaceOnUse paint-server coordinates.
