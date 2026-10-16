@@ -2517,7 +2517,7 @@ void MainWindow::open_document_path(QString path) {
     if (unattended_automation()) {
       fprintf(stderr, "Open failed: %s (%s)\n", error.what(), path.toUtf8().constData());
     } else {
-      show_open_failed_message_box(this, translated_file_message(error.what()), QFileInfo(path).fileName());
+      show_open_failed_message_box(this, translated_file_message(error.what()), QDir::toNativeSeparators(path));
     }
   }
 }
@@ -2662,7 +2662,7 @@ void MainWindow::reopen_document_session(DocumentSession& target_session) {
       statusBar()->showMessage(tr("Reopened %1. %2").arg(loaded->file_name, status_notes));
     }
   } catch (const std::exception& error) {
-    show_open_failed_message_box(this, translated_file_message(error.what()), QFileInfo(path).fileName());
+    show_open_failed_message_box(this, translated_file_message(error.what()), QDir::toNativeSeparators(path));
   }
 }
 

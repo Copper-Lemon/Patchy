@@ -1173,8 +1173,11 @@ void ui_open_failed_box_names_the_file() {
   process_events_until([&] { return answered; }, 10000);
   poll.stop();
   CHECK(answered);
-  CHECK(box_text.startsWith(QStringLiteral("not-really-an-image.png")));
-  CHECK(box_text.size() > QStringLiteral("not-really-an-image.png").size() + 2);
+  // The full path, not just the name: a batch open of many files needs to say which one
+  // failed and where it lives (GitHub issues 112 and 117).
+  CHECK(box_text.startsWith(QDir::toNativeSeparators(path)));
+  CHECK(box_text.contains(QStringLiteral("not-really-an-image.png")));
+  CHECK(box_text.size() > QDir::toNativeSeparators(path).size() + 2);
 }
 
 void ui_open_recent_folders_list_two_hundred_folders_with_filter() {
