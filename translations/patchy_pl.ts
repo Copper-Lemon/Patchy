@@ -21368,14 +21368,6 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
         <translation>Kolory niestandardowe</translation>
     </message>
     <message>
-        <source>Set Custom Color</source>
-        <translation>Ustaw kolor niestandardowy</translation>
-    </message>
-    <message>
-        <source>Set the selected custom color box to the current color (click a box to select it)</source>
-        <translation>Ustaw wybrane niestandardowe pole koloru na bieżący kolor (kliknij pole, aby je wybrać)</translation>
-    </message>
-    <message>
         <source>Square</source>
         <translation>Kwadrat</translation>
     </message>
@@ -21506,6 +21498,14 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
     <message>
         <source>This color is outside the gamut of %1 and prints as the color shown here. Click to use it.</source>
         <translation>Ten kolor jest poza gamutem %1 i drukuje się jak pokazany tu kolor. Kliknij, aby go użyć.</translation>
+    </message>
+    <message>
+        <source>Add Custom Color</source>
+        <translation>Dodaj kolor niestandardowy</translation>
+    </message>
+    <message>
+        <source>Add the current color at the front of the custom colors, or replace the selected box (click a box to select it)</source>
+        <translation>Dodaje bieżący kolor na początek kolorów niestandardowych lub zastępuje zaznaczone pole (kliknij pole, aby je zaznaczyć)</translation>
     </message>
 </context>
 <context>

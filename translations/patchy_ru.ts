@@ -21368,14 +21368,6 @@ Patchy может скачать обновление, заменить этот
         <translation>Пользовательские цвета</translation>
     </message>
     <message>
-        <source>Set Custom Color</source>
-        <translation>Установить собственный цвет</translation>
-    </message>
-    <message>
-        <source>Set the selected custom color box to the current color (click a box to select it)</source>
-        <translation>Установите для выбранного пользовательского цветового поля текущий цвет (щелкните поле, чтобы выбрать его)</translation>
-    </message>
-    <message>
         <source>Square</source>
         <translation>Квадрат</translation>
     </message>
@@ -21506,6 +21498,14 @@ Patchy может скачать обновление, заменить этот
     <message>
         <source>This color is outside the gamut of %1 and prints as the color shown here. Click to use it.</source>
         <translation>Этот цвет выходит за пределы цветового охвата %1 и печатается как показанный здесь цвет. Щелкните, чтобы использовать его.</translation>
+    </message>
+    <message>
+        <source>Add Custom Color</source>
+        <translation>Добавить собственный цвет</translation>
+    </message>
+    <message>
+        <source>Add the current color at the front of the custom colors, or replace the selected box (click a box to select it)</source>
+        <translation>Добавляет текущий цвет в начало собственных цветов или заменяет выбранное поле (щёлкните поле, чтобы выбрать его)</translation>
     </message>
 </context>
 <context>

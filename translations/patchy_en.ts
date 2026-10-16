@@ -21231,14 +21231,6 @@ Patchy can download the update, replace this AppImage, and start again. You will
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Set Custom Color</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Set the selected custom color box to the current color (click a box to select it)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Square</source>
         <translation type="unfinished"></translation>
     </message>
@@ -21368,6 +21360,14 @@ Patchy can download the update, replace this AppImage, and start again. You will
     </message>
     <message>
         <source>This color is outside the gamut of %1 and prints as the color shown here. Click to use it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add Custom Color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add the current color at the front of the custom colors, or replace the selected box (click a box to select it)</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

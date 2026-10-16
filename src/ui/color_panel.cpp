@@ -1262,10 +1262,11 @@ void PatchyColorPickerPrivate::build_ui() {
   // selected custom box, and stays disabled until a box is selected (clicking,
   // pasting into, or dropping onto a box selects it; drops also work with no
   // selection at all).
-  set_custom_button_ = new QPushButton(PatchyColorPicker::tr("Set Custom Color"), swatch_column);
+  set_custom_button_ = new QPushButton(PatchyColorPicker::tr("Add Custom Color"), swatch_column);
   set_custom_button_->setObjectName(QStringLiteral("patchySetCustomColorButton"));
   set_custom_button_->setToolTip(
-      PatchyColorPicker::tr("Set the selected custom color box to the current color (click a box to select it)"));
+      PatchyColorPicker::tr("Add the current color at the front of the custom colors, or replace the selected box "
+                            "(click a box to select it)"));
   QObject::connect(set_custom_button_, &QPushButton::clicked, &owner_, [this] { set_selected_custom_color(); });
   swatch_layout->addWidget(set_custom_button_);
   refresh_custom_controls();
@@ -2145,9 +2146,9 @@ void PatchyColorPickerPrivate::refresh_custom_controls() {
     refresh_custom_swatch(index);
   }
 
-  const bool has_selection = selected_custom_slot_ >= 0 && selected_custom_slot_ < kCustomColorCount;
   if (set_custom_button_ != nullptr) {
-    set_custom_button_->setEnabled(has_selection);
+    // Always usable: with no box selected it adds at the front (GitHub issue 140).
+    set_custom_button_->setEnabled(true);
   }
 }
 
@@ -2161,10 +2162,14 @@ void PatchyColorPickerPrivate::select_custom_color(int index) {
 
 void PatchyColorPickerPrivate::set_selected_custom_color() {
   if (selected_custom_slot_ < 0 || selected_custom_slot_ >= kCustomColorCount) {
-    return;
+    // No box selected: the color goes to the front, the others shift right and
+    // the last one drops off (GitHub issue 140).
+    std::rotate(custom_colors_.rbegin(), custom_colors_.rbegin() + 1, custom_colors_.rend());
+    custom_colors_[0] = color_;
+    selected_custom_slot_ = 0;
+  } else {
+    custom_colors_[static_cast<size_t>(selected_custom_slot_)] = color_;
   }
-
-  custom_colors_[static_cast<size_t>(selected_custom_slot_)] = color_;
   refresh_custom_controls();
   save_custom_colors();
 }

@@ -21260,14 +21260,6 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <translation>カスタム色</translation>
     </message>
     <message>
-        <source>Set Custom Color</source>
-        <translation>カスタム色を設定</translation>
-    </message>
-    <message>
-        <source>Set the selected custom color box to the current color (click a box to select it)</source>
-        <translation>選択したカスタム色ボックスを現在の色に設定します (ボックスをクリックして選択)</translation>
-    </message>
-    <message>
         <source>Hue:</source>
         <translation>色相:</translation>
     </message>
@@ -21378,6 +21370,14 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
     <message>
         <source>This color is outside the gamut of %1 and prints as the color shown here. Click to use it.</source>
         <translation>この色は %1 の色域外で、ここに表示された色で印刷されます。クリックするとその色を使用します。</translation>
+    </message>
+    <message>
+        <source>Add Custom Color</source>
+        <translation>カスタム色を追加</translation>
+    </message>
+    <message>
+        <source>Add the current color at the front of the custom colors, or replace the selected box (click a box to select it)</source>
+        <translation>現在の色をカスタム色の先頭に追加するか、選択中のボックスを置き換えます (ボックスをクリックして選択)</translation>
     </message>
 </context>
 <context>

@@ -21240,14 +21240,6 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
         <translation>맞춤 색상</translation>
     </message>
     <message>
-        <source>Set Custom Color</source>
-        <translation>사용자 지정 색상 설정</translation>
-    </message>
-    <message>
-        <source>Set the selected custom color box to the current color (click a box to select it)</source>
-        <translation>선택한 사용자 지정 색상 상자를 현재 색상으로 설정(상자를 클릭하여 선택)</translation>
-    </message>
-    <message>
         <source>Square</source>
         <translation>정사각형</translation>
     </message>
@@ -21378,6 +21370,14 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
     <message>
         <source>This color is outside the gamut of %1 and prints as the color shown here. Click to use it.</source>
         <translation>이 색상은 %1의 색상 영역 밖에 있으며 여기에 표시된 색상으로 인쇄됩니다. 클릭하면 그 색상을 사용합니다.</translation>
+    </message>
+    <message>
+        <source>Add Custom Color</source>
+        <translation>사용자 지정 색상 추가</translation>
+    </message>
+    <message>
+        <source>Add the current color at the front of the custom colors, or replace the selected box (click a box to select it)</source>
+        <translation>현재 색상을 사용자 지정 색상의 맨 앞에 추가하거나 선택한 상자를 바꿉니다(상자를 클릭하여 선택)</translation>
     </message>
 </context>
 <context>

@@ -21304,14 +21304,6 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
         <translation>Eigene Farben</translation>
     </message>
     <message>
-        <source>Set Custom Color</source>
-        <translation>Eigene Farbe festlegen</translation>
-    </message>
-    <message>
-        <source>Set the selected custom color box to the current color (click a box to select it)</source>
-        <translation>Das ausgewählte Feld für eigene Farben auf die aktuelle Farbe setzen (klicken Sie auf ein Feld, um es auszuwählen)</translation>
-    </message>
-    <message>
         <source>Square</source>
         <translation>Quadrat</translation>
     </message>
@@ -21442,6 +21434,14 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
     <message>
         <source>This color is outside the gamut of %1 and prints as the color shown here. Click to use it.</source>
         <translation>Diese Farbe liegt außerhalb des Farbumfangs von %1 und wird wie die hier gezeigte Farbe gedruckt. Klicken Sie, um sie zu verwenden.</translation>
+    </message>
+    <message>
+        <source>Add Custom Color</source>
+        <translation>Eigene Farbe hinzufügen</translation>
+    </message>
+    <message>
+        <source>Add the current color at the front of the custom colors, or replace the selected box (click a box to select it)</source>
+        <translation>Fügt die aktuelle Farbe vorne bei den eigenen Farben ein oder ersetzt das ausgewählte Feld (zum Auswählen auf ein Feld klicken)</translation>
     </message>
 </context>
 <context>

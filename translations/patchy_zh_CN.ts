@@ -21240,14 +21240,6 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
         <translation>自定颜色</translation>
     </message>
     <message>
-        <source>Set Custom Color</source>
-        <translation>设置自定颜色</translation>
-    </message>
-    <message>
-        <source>Set the selected custom color box to the current color (click a box to select it)</source>
-        <translation>将所选的自定颜色框设置为当前颜色 (单击颜色框可选择它)</translation>
-    </message>
-    <message>
         <source>Square</source>
         <translation>方形</translation>
     </message>
@@ -21378,6 +21370,14 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
     <message>
         <source>This color is outside the gamut of %1 and prints as the color shown here. Click to use it.</source>
         <translation>此颜色超出 %1 的色域，打印出来会是这里显示的颜色。单击以使用该颜色。</translation>
+    </message>
+    <message>
+        <source>Add Custom Color</source>
+        <translation>添加自定颜色</translation>
+    </message>
+    <message>
+        <source>Add the current color at the front of the custom colors, or replace the selected box (click a box to select it)</source>
+        <translation>将当前颜色添加到自定颜色的最前面，或替换所选色块（点击色块可选中）</translation>
     </message>
 </context>
 <context>

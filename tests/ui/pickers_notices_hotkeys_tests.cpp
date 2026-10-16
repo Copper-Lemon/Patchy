@@ -253,7 +253,14 @@ void ui_color_picker_changes_foreground_color() {
   CHECK(picker->findChild<QPushButton*>(QStringLiteral("patchyAddCustomColorButton")) == nullptr);
   CHECK(picker->findChild<QPushButton*>(QStringLiteral("patchyUpdateCustomColorButton")) == nullptr);
   CHECK(picker->findChild<QPushButton*>(QStringLiteral("patchyDeleteCustomColorButton")) == nullptr);
-  CHECK(!set_custom->isEnabled());
+  // Always usable (GitHub issue 140): with no box selected it adds the current
+  // color (white here) at the front and the others shift right.
+  CHECK(set_custom->isEnabled());
+  const auto previous_first = custom_swatches[0]->toolTip();
+  set_custom->click();
+  QApplication::processEvents();
+  CHECK(custom_swatches[0]->toolTip() == QStringLiteral("#FFFFFF"));
+  CHECK(custom_swatches[1]->toolTip() == previous_first);
   // Selecting a swatch must not resize it or shift the rows (a state-dependent
   // QSS border once grew the content box by 2px and made the grid jump).
   const auto unselected_geometry = custom_swatches[1]->geometry();
