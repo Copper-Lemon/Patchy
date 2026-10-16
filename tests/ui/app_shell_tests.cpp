@@ -5978,6 +5978,28 @@ void ui_theme_palettes_define_every_role() {
 // declaration, so a rule simply stops existing and only shows up as a wrongly
 // drawn control in one state. ThemedQss makes that a compile error for the shared
 // builders; this catches an inline blob that forgot to go through the helpers.
+// GitHub issue 123: the tab bars QMainWindow creates for tabified docks are
+// plain QTabBars, and the platform style's tab-base line (Fusion: 1px of the
+// palette's light color along the bar) showed as a stray white line beside
+// the Layers / Channels / Paths tabs on Linux. The theme turns the base off.
+void ui_dock_tab_bars_draw_no_native_base() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  QApplication::processEvents();
+
+  int dock_tab_bars = 0;
+  for (auto* tab_bar : window.findChildren<QTabBar*>()) {
+    // The document tab bar lives inside the central QTabWidget; the dock
+    // bars are the main window's own children.
+    if (tab_bar->parentWidget() != &window) {
+      continue;
+    }
+    ++dock_tab_bars;
+    CHECK(!tab_bar->drawBase());
+  }
+  CHECK(dock_tab_bars >= 1);
+}
+
 void ui_no_widget_ships_unresolved_theme_tokens() {
   patchy::ui::MainWindow window;
   show_window(window);
@@ -6637,6 +6659,7 @@ std::vector<patchy::test::TestCase> app_shell_tests() {
       {"ui_icon_color_map_covers_every_authored_color", ui_icon_color_map_covers_every_authored_color},
       {"ui_app_style_keeps_desktop_icons_off_dialog_buttons_and_toolbars",
        ui_app_style_keeps_desktop_icons_off_dialog_buttons_and_toolbars},
+      {"ui_dock_tab_bars_draw_no_native_base", ui_dock_tab_bars_draw_no_native_base},
       {"ui_no_widget_ships_unresolved_theme_tokens", ui_no_widget_ships_unresolved_theme_tokens},
       {"ui_theme_palettes_define_every_role", ui_theme_palettes_define_every_role},
       {"ui_theme_adjacent_roles_stay_distinguishable", ui_theme_adjacent_roles_stay_distinguishable},

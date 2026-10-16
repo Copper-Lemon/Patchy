@@ -1042,6 +1042,14 @@ QString photoshop_style_template() {
     QTabWidget::pane {
       border-top: 1px solid @tab_pane_border;
     }
+    /* The tab bars QMainWindow creates for tabified docks (and a floating
+       dock group's bar) are plain QTabBars whose base line the platform style
+       draws: Fusion paints a palette-light 1px line along the bar beside the
+       tabs, a stray white line next to Layers / Channels / Paths on Linux
+       (GitHub issue 123). The ::tab rules draw everything the bar needs. */
+    QMainWindow > QTabBar, QDockWidgetGroupWindow > QTabBar {
+      qproperty-drawBase: 0;
+    }
     QTabBar::tab {
       background: @tab_bg;
       color: @text_secondary;
