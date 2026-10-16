@@ -9937,6 +9937,12 @@ RGB: %2, %3, %4</source>
         <source>The file&apos;s CMYK profile %1 differs from the working CMYK profile %2, which CMYK saves use</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>%1
+
+%2</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

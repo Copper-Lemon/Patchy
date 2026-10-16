@@ -1110,6 +1110,41 @@ void ui_open_dialog_remembers_last_filter() {
   CHECK(patchy::ui::app_settings().value(QStringLiteral("lastOpenFilter")).toString() == rows[1]);
 }
 
+// A failed open names the file above the reason, so a multi-file import that
+// trips on one file says which (GitHub issue 112).
+void ui_open_failed_box_names_the_file() {
+  ensure_artifact_dir();
+  const auto path = QFileInfo(QStringLiteral("test-artifacts/not-really-an-image.png")).absoluteFilePath();
+  {
+    QFile file(path);
+    CHECK(file.open(QIODevice::WriteOnly));
+    file.write("this is not a PNG");
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+  QString box_text;
+  bool answered = false;
+  QTimer poll;
+  poll.setInterval(10);
+  QObject::connect(&poll, &QTimer::timeout, [&] {
+    auto* box = qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("openFailedMessageBox")));
+    if (box == nullptr || !box->isVisible()) {
+      return;
+    }
+    poll.stop();
+    box_text = box->text();
+    answered = true;
+    box->reject();
+  });
+  poll.start();
+  patchy::ui::MainWindowTestAccess::open_document_path(window, path);
+  process_events_until([&] { return answered; }, 10000);
+  poll.stop();
+  CHECK(answered);
+  CHECK(box_text.startsWith(QStringLiteral("not-really-an-image.png")));
+  CHECK(box_text.size() > QStringLiteral("not-really-an-image.png").size() + 2);
+}
+
 void ui_open_recent_folders_list_two_hundred_folders_with_filter() {
   ensure_artifact_dir();
   QStringList recent_folders;
@@ -6417,6 +6452,8 @@ std::vector<patchy::test::TestCase> app_shell_tests() {
        ui_open_recent_lists_two_hundred_files_in_one_scrolling_list},
       {"ui_open_recent_filter_narrows_entries_and_opens_first_match",
        ui_open_recent_filter_narrows_entries_and_opens_first_match},
+      {"ui_open_dialog_remembers_last_filter", ui_open_dialog_remembers_last_filter},
+      {"ui_open_failed_box_names_the_file", ui_open_failed_box_names_the_file},
       {"ui_open_recent_folders_list_two_hundred_folders_with_filter",
        ui_open_recent_folders_list_two_hundred_folders_with_filter},
       {"ui_recent_file_context_menu_copies_path", ui_recent_file_context_menu_copies_path},

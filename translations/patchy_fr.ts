@@ -9947,6 +9947,14 @@ RVB : %2, %3, %4</translation>
         <source>The file&apos;s CMYK profile %1 differs from the working CMYK profile %2, which CMYK saves use</source>
         <translation>Le profil CMJN du fichier, %1, diffère du profil CMJN de travail %2, utilisé par les enregistrements CMJN</translation>
     </message>
+    <message>
+        <source>%1
+
+%2</source>
+        <translation>%1
+
+%2</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

@@ -9917,6 +9917,14 @@ Mixed selection</source>
         <source>The file&apos;s CMYK profile %1 differs from the working CMYK profile %2, which CMYK saves use</source>
         <translation>ファイルの CMYK プロファイル %1 は、CMYK の保存に使われる作業用 CMYK プロファイル %2 と異なります</translation>
     </message>
+    <message>
+        <source>%1
+
+%2</source>
+        <translation>%1
+
+%2</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

@@ -1453,9 +1453,14 @@ void show_import_notices_popup(QWidget* parent, const QString& file_name, const 
 // Windows HEIC errors carry a marker naming the missing Microsoft Store codec package
 // (heif_document_io.hpp); those get an extra button that deep-links to that package's
 // Store page, Photos-app style.
-void show_open_failed_message_box(QWidget* parent, const QString& error_text) {
+// file_name, when given, heads the message: a multi-file import that fails on one
+// file must say which (GitHub issue 112).
+void show_open_failed_message_box(QWidget* parent, const QString& error_text, const QString& file_name = QString()) {
   QString display_text = error_text;
   QString store_product_id;
+  const auto with_file_name = [&file_name](const QString& text) {
+    return file_name.isEmpty() ? text : QObject::tr("%1\n\n%2").arg(file_name, text);
+  };
   // The wasm PDF stub's error: strip the marker and add a download button, Store-button
   // style, because the fix (the desktop build) is a link away.
   const auto pdf_desktop_only_marker = QString::fromUtf8(
@@ -1508,10 +1513,12 @@ void show_open_failed_message_box(QWidget* parent, const QString& error_text) {
     try_marker(heif::kHevcPackageMissingMarker, heif::kHevcStoreProductId);
   }
   if (store_product_id.isEmpty()) {
-    show_critical_message(parent, QObject::tr("Open failed"), display_text, QStringLiteral("openFailedMessageBox"));
+    show_critical_message(parent, QObject::tr("Open failed"), with_file_name(display_text),
+                          QStringLiteral("openFailedMessageBox"));
     return;
   }
-  QMessageBox dialog(QMessageBox::Critical, QObject::tr("Open failed"), display_text, QMessageBox::Ok, parent);
+  QMessageBox dialog(QMessageBox::Critical, QObject::tr("Open failed"), with_file_name(display_text), QMessageBox::Ok,
+                     parent);
   dialog.setObjectName(QStringLiteral("openFailedMessageBox"));
   auto* store_button = dialog.addButton(QObject::tr("Open Microsoft Store"), QMessageBox::ActionRole);
   dialog.setDefaultButton(store_button);
@@ -2510,7 +2517,7 @@ void MainWindow::open_document_path(QString path) {
     if (unattended_automation()) {
       fprintf(stderr, "Open failed: %s (%s)\n", error.what(), path.toUtf8().constData());
     } else {
-      show_open_failed_message_box(this, translated_file_message(error.what()));
+      show_open_failed_message_box(this, translated_file_message(error.what()), QFileInfo(path).fileName());
     }
   }
 }
@@ -2655,7 +2662,7 @@ void MainWindow::reopen_document_session(DocumentSession& target_session) {
       statusBar()->showMessage(tr("Reopened %1. %2").arg(loaded->file_name, status_notes));
     }
   } catch (const std::exception& error) {
-    show_open_failed_message_box(this, translated_file_message(error.what()));
+    show_open_failed_message_box(this, translated_file_message(error.what()), QFileInfo(path).fileName());
   }
 }
 

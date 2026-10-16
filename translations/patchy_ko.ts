@@ -9917,6 +9917,14 @@ RGB: %2, %3, %4</translation>
         <source>The file&apos;s CMYK profile %1 differs from the working CMYK profile %2, which CMYK saves use</source>
         <translation>파일의 CMYK 프로파일 %1이(가) CMYK 저장에 사용되는 작업 CMYK 프로파일 %2과(와) 다릅니다</translation>
     </message>
+    <message>
+        <source>%1
+
+%2</source>
+        <translation>%1
+
+%2</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
