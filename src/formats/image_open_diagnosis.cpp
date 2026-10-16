@@ -90,6 +90,11 @@ struct Detected {
   if (bytes_at(bytes, 0, "\0\0\0\x0cjP  \r\n\x87\n"sv) || bytes_at(bytes, 0, "\xff\x4f\xff\x51")) {
     return Detected{"JPEG 2000", "", "jp2"};
   }
+  if (bytes_at(bytes, 0, "qoif")) return Detected{"QOI", "", "qoi"};
+  if (bytes_at(bytes, 0, "#?RADIANCE") || bytes_at(bytes, 0, "#?RGBE")) return Detected{"Radiance HDR", "", "hdr"};
+  if (bytes_at(bytes, 0, "\x76\x2f\x31\x01")) return Detected{"OpenEXR", "", "exr"};
+  if (bytes_at(bytes, 0, "\x01\xda")) return Detected{"SGI", "", "sgi"};
+  if (bytes_at(bytes, 0, "RIFF") && bytes_at(bytes, 8, "ACON")) return Detected{"animated cursor", "", "ani"};
   if (bytes_at(bytes, 0, "8BPS")) return Detected{"Photoshop", "psd", "psd"};
   if (bytes_at(bytes, 0, "%PDF")) return Detected{"PDF", "pdf", "pdf"};
   if (bytes_at(bytes, 0, "DDS ")) return Detected{"DDS", "dds", "dds"};
@@ -351,6 +356,16 @@ UndecodableImageDiagnosis diagnose_undecodable_image(std::span<const std::uint8_
       result.reason = Reason::DifferentFormat;
       result.detail = detected->name;
       result.suggested_extension = detected->extension;
+      return result;
+    }
+    if (detected->extension[0] == '\0') {
+      // The name is honest; Patchy simply has no decoder for the format.
+      result.reason = Reason::UnsupportedFormat;
+      result.detail = detected->name;
+      return result;
+    }
+    if (family == "avif") {
+      result.reason = Reason::AvifNeedsSystemDecoder;  // decoded only by the OS (Windows AV1 extension, macOS)
       return result;
     }
     if (family == "jpeg") {

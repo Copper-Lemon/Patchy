@@ -9985,6 +9985,14 @@ RGB：%2, %3, %4</translation>
         <source>This TIFF packs %1-bit color samples; the TIFF decoder reads fewer than 8 bits per sample only for grayscale images.</source>
         <translation>此 TIFF 打包了 %1 位彩色采样；TIFF 解码器只对灰度图像读取每采样少于 8 位的数据。</translation>
     </message>
+    <message>
+        <source>Patchy cannot open %1 files.</source>
+        <translation>Patchy 无法打开 %1 文件。</translation>
+    </message>
+    <message>
+        <source>This AVIF image needs a system AV1 decoder, which this computer does not have. On Windows, install the AV1 Video Extension from the Microsoft Store.</source>
+        <translation>此 AVIF 图像需要系统 AV1 解码器，而这台计算机没有。在 Windows 上，请从 Microsoft Store 安装 AV1 Video Extension。</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

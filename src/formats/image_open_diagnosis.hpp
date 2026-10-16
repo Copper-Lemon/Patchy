@@ -20,6 +20,8 @@ enum class UndecodableImageReason {
   EmptyFile,                   // 0 bytes
   TextContent,                 // HTML, XML or plain text saved under an image name
   DifferentFormat,             // `detail` names what the bytes really are
+  UnsupportedFormat,           // the bytes match the extension, and Patchy has no decoder; `detail` names it
+  AvifNeedsSystemDecoder,      // a real AVIF: Patchy decodes it only through an OS-provided AV1 decoder
   JpegTruncated,               // the stream ends before its EOI marker, or a segment runs past the end
   JpegNoFrame,                 // no frame header before the scan data, or no JPEG header at all
   JpegLossless,                // SOF3/SOF7/SOF11/SOF15

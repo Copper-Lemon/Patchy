@@ -10009,11 +10009,19 @@ RVB : %2, %3, %4</translation>
     </message>
     <message>
         <source>This TIFF stores 32-bit integer samples; the TIFF decoder reads 32-bit samples only as floating point.</source>
-        <translation>Ce TIFF stocke des échantillons entiers 32 bits ; le décodeur TIFF ne lit les échantillons 32 bits qu'en virgule flottante.</translation>
+        <translation>Ce TIFF stocke des échantillons entiers 32 bits ; le décodeur TIFF ne lit les échantillons 32 bits qu&apos;en virgule flottante.</translation>
     </message>
     <message>
         <source>This TIFF packs %1-bit color samples; the TIFF decoder reads fewer than 8 bits per sample only for grayscale images.</source>
         <translation>Ce TIFF compacte des échantillons couleur de %1 bits ; le décodeur TIFF ne lit moins de 8 bits par échantillon que pour les images en niveaux de gris.</translation>
+    </message>
+    <message>
+        <source>Patchy cannot open %1 files.</source>
+        <translation>Patchy ne peut pas ouvrir les fichiers %1.</translation>
+    </message>
+    <message>
+        <source>This AVIF image needs a system AV1 decoder, which this computer does not have. On Windows, install the AV1 Video Extension from the Microsoft Store.</source>
+        <translation>Cette image AVIF a besoin d&apos;un décodeur AV1 système, que cet ordinateur n&apos;a pas. Sous Windows, installez l&apos;extension vidéo AV1 depuis le Microsoft Store.</translation>
     </message>
 </context>
 <context>

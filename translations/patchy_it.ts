@@ -10015,6 +10015,14 @@ RGB: %2, %3, %4</translation>
         <source>This TIFF packs %1-bit color samples; the TIFF decoder reads fewer than 8 bits per sample only for grayscale images.</source>
         <translation>Questo TIFF impacchetta campioni colore a %1 bit; il decodificatore TIFF legge meno di 8 bit per campione solo nelle immagini in scala di grigi.</translation>
     </message>
+    <message>
+        <source>Patchy cannot open %1 files.</source>
+        <translation>Patchy non può aprire file %1.</translation>
+    </message>
+    <message>
+        <source>This AVIF image needs a system AV1 decoder, which this computer does not have. On Windows, install the AV1 Video Extension from the Microsoft Store.</source>
+        <translation>Questa immagine AVIF richiede un decodificatore AV1 di sistema, che questo computer non ha. Su Windows, installa l&apos;estensione video AV1 dal Microsoft Store.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

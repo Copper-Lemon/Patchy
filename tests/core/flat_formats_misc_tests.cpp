@@ -1610,6 +1610,17 @@ void undecodable_image_diagnosis_names_the_real_reason() {
   CHECK(pdf_as_tif.reason == Reason::DifferentFormat && pdf_as_tif.detail == "PDF");
   CHECK(diagnose_undecodable_image(of("<?xml version=\"1.0\"?><svg xmlns=\"x\"/>"), "jpg").detail == "SVG");
 
+  // An honest name for a format Patchy has no decoder for (JPEG 2000, QOI, OpenEXR, ...).
+  const auto jp2_as_jp2 = diagnose_undecodable_image(jp2, "jp2");
+  CHECK(jp2_as_jp2.reason == Reason::UnsupportedFormat && jp2_as_jp2.detail == "JPEG 2000");
+  const auto qoi = diagnose_undecodable_image(of("qoif...."), "qoi");
+  CHECK(qoi.reason == Reason::UnsupportedFormat && qoi.detail == "QOI");
+  CHECK(diagnose_undecodable_image(of("#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n"), "hdr").detail == "Radiance HDR");
+  CHECK(diagnose_undecodable_image(Bytes{0x76, 0x2f, 0x31, 0x01, 2, 0, 0, 0}, "exr").reason == Reason::UnsupportedFormat);
+  CHECK(diagnose_undecodable_image(of("qoif...."), "png").reason == Reason::DifferentFormat);
+  Bytes avif{0, 0, 0, 0x1c, 'f', 't', 'y', 'p', 'a', 'v', 'i', 'f', 0, 0, 0, 0};
+  CHECK(diagnose_undecodable_image(avif, "avif").reason == Reason::AvifNeedsSystemDecoder);
+  CHECK(diagnose_undecodable_image(avif, "jpg").detail == "AVIF");
   // JPEG: SOI, an APP0, a frame header, then scan data with or without EOI.
   const auto jpeg = [](std::uint8_t frame_marker, std::uint8_t precision, bool with_scan, bool with_eoi) {
     Bytes b{0xff, 0xd8, 0xff, 0xe0, 0, 16, 'J', 'F', 'I', 'F', 0, 1, 1, 0, 0, 1, 0, 1, 0, 0};

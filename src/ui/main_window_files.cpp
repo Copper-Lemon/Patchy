@@ -1120,6 +1120,11 @@ QString open_failure_reason(const QString& decoder_error, const QString& path, c
           .arg(detail);
     case Reason::TiffUnsupportedBitDepth:
       return QObject::tr("This TIFF stores %1 bits per sample. The TIFF decoder reads 8 and 16-bit integer, 32-bit "
+    case Reason::UnsupportedFormat:
+      return QObject::tr("Patchy cannot open %1 files.").arg(detail);
+    case Reason::AvifNeedsSystemDecoder:
+      return QObject::tr("This AVIF image needs a system AV1 decoder, which this computer does not have. On "
+                         "Windows, install the AV1 Video Extension from the Microsoft Store.");
                          "floating-point, and 1, 2 and 4-bit grayscale samples.")
           .arg(detail);
     case Reason::TiffIntegerSamples:

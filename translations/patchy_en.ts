@@ -10003,6 +10003,114 @@ RGB: %2, %3, %4</source>
         <source>This TIFF packs %1-bit color samples; the TIFF decoder reads fewer than 8 bits per sample only for grayscale images.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Patchy cannot open %1 files.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This AVIF image needs a system AV1 decoder, which this computer does not have. On Windows, install the AV1 Video Extension from the Microsoft Store.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This file is not an OpenEXR image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The OpenEXR file is damaged or truncated</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Multi-part OpenEXR files are not supported</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Deep OpenEXR files are not supported</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The OpenEXR file could not be decoded</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot write an empty image as OpenEXR</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The OpenEXR file could not be written</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The Radiance HDR file is damaged or truncated</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This file is not a Radiance HDR image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This Radiance HDR file uses a pixel format Patchy does not read</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>XYZE Radiance HDR files are not supported; save the file as RGBE</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This Radiance HDR file uses an image orientation Patchy does not read</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot write an empty image as Radiance HDR</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This file is not a JPEG 2000 image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 decoder could not be created</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 file is damaged or truncated</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 image could not be decoded</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This JPEG 2000 image has a channel layout Patchy does not read</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>CMYK JPEG 2000 image: converted to RGB with a plain ink mix</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cannot write an empty image as JPEG 2000</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The JPEG 2000 file could not be written</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Radiance HDR Image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>OpenEXR Image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>JPEG 2000 Image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This OpenEXR file has no R, G, B or Y channels to show</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

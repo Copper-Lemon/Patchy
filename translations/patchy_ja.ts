@@ -9985,6 +9985,14 @@ Mixed selection</source>
         <source>This TIFF packs %1-bit color samples; the TIFF decoder reads fewer than 8 bits per sample only for grayscale images.</source>
         <translation>この TIFF は %1 ビットのカラーサンプルを詰めて格納しています。TIFF デコーダーが 8 ビット未満のサンプルを読めるのはグレースケール画像だけです。</translation>
     </message>
+    <message>
+        <source>Patchy cannot open %1 files.</source>
+        <translation>Patchy は %1 ファイルを開けません。</translation>
+    </message>
+    <message>
+        <source>This AVIF image needs a system AV1 decoder, which this computer does not have. On Windows, install the AV1 Video Extension from the Microsoft Store.</source>
+        <translation>この AVIF 画像にはシステムの AV1 デコーダーが必要ですが、このコンピューターにはありません。Windows では Microsoft Store から AV1 Video Extension をインストールしてください。</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
