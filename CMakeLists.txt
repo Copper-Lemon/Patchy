@@ -610,8 +610,8 @@ if(EMSCRIPTEN AND PATCHY_BUILD_APP)
   target_link_libraries(patchy_formats PRIVATE heif patchy_lcms2)
 elseif(WIN32)
   # HEIF/HEIC decodes through Windows Imaging Component (the Microsoft Store HEIF/HEVC
-  # codec packages provide the HEVC decoder. macOS/Linux decode HEIC via Qt image plugins
-  # instead, so they compile only the stub in heif_document_io.cpp.
+  # codec packages provide the HEVC decoder). macOS decodes HEIC via Qt's image plugin
+  # instead, so it compiles only the stub in heif_document_io.cpp.
   #
   # JPEG XR uses the same WIC plumbing (shared in wic_com.hpp), but its codec is in-box on
   # every supported Windows and covers encoding too. No other platform has a decoder and Qt
@@ -622,6 +622,14 @@ elseif(WIN32)
     src/formats/jxr_document_io_win.cpp
   )
   target_link_libraries(patchy_formats PRIVATE windowscodecs ole32)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  # HEIF/HEIC decodes through the distribution's own libheif, loaded with dlopen at run
+  # time (heif_document_io_linux.cpp). Nothing is linked: the AppImage must not bundle
+  # libheif or any HEVC decoder (docs/legal-constraints.md), and linuxdeploy only copies
+  # what the binary links. Little CMS bakes the file's ICC profile to sRGB as on wasm.
+  target_sources(patchy_formats PRIVATE src/formats/heif_document_io_linux.cpp)
+  target_compile_definitions(patchy_formats PRIVATE PATCHY_HEIF_HOST_LIBHEIF=1)
+  target_link_libraries(patchy_formats PRIVATE patchy_lcms2 ${CMAKE_DL_LIBS})
 endif()
 patchy_configure_target(patchy_formats)
 

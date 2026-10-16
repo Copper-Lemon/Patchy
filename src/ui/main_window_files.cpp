@@ -546,12 +546,18 @@ struct FileFormatEntry {
 
 // Whether this build can decode HEIF at all: Windows always registers a WIC codec
 // (a stub when the Store packages are missing, which the open path explains), the
-// browser build decodes through WebCodecs, and macOS/Linux depend on a Qt image
-// plug-in (qmacheif, kimg_heif in the Flatpak runtime; none in the AppImage).
+// browser build decodes through WebCodecs, native Linux builds and the AppImage load the
+// distribution's libheif at run time, and macOS and the Flatpak depend on a Qt image
+// plug-in (qmacheif, kimg_heif in the Flatpak runtime).
 bool heif_decoder_available() {
 #if defined(Q_OS_WIN) || defined(Q_OS_WASM)
   return true;
 #else
+#if defined(Q_OS_LINUX)
+  if (heif::host_libheif_available()) {
+    return true;
+  }
+#endif
   const auto formats = QImageReader::supportedImageFormats();
   return formats.contains(QByteArrayLiteral("heic")) || formats.contains(QByteArrayLiteral("heif"));
 #endif
@@ -668,7 +674,7 @@ const QList<FileFormatEntry>& file_format_entries() {
                     false});
     // HEIF/HEIC is decode-only like camera raw (platform codecs never encode for us and
     // Patchy must not ship an HEVC encoder), so its entry is read-only too. Where no
-    // decoder exists at all (the AppImage's Qt has no HEIF plug-in) the row is left out
+    // decoder exists at all (an AppImage on a machine without libheif) the row is left out
     // rather than advertising an open that can only fail (GitHub issue 113); a dropped
     // or typed .heic path still reaches the sniffing open path and its explanation.
     QStringList heif_extensions;
@@ -1485,9 +1491,9 @@ OpenDocumentResult load_document_from_path(QString path) {
     } catch (const std::exception& registry_error) {
       // Nonstandard files that a Qt plugin still understands (e.g. OS/2 BMPs) keep opening
       // through the Qt fallback; when Qt cannot read them either, report the registry
-      // reader's error, which names the real problem. Native macOS/Linux HEIC/HEIF
-      // relies on this by design: the registry read always throws there and Qt's
-      // platform plugin (qmacheif / the KDE runtime's kimg_heif) does the decoding.
+      // reader's error, which names the real problem. macOS and Flatpak HEIC/HEIF rely
+      // on this by design: the registry read always throws there and Qt's platform
+      // plugin (qmacheif / the KDE runtime's kimg_heif) does the decoding.
       QImageReader reader(path);
       reader.setAutoTransform(true);
       auto image = reader.read();

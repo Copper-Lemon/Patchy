@@ -9936,10 +9936,6 @@ RGB: %2, %3, %4</translation>
         <translation>JPEG XL-Animation: %1 Bilder als Ebenen importiert</translation>
     </message>
     <message>
-        <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
-        <translation>Dieser Build von Patchy kann keine HEIC-Bilder dekodieren. Die Flatpak-Version von Patchy kann es.</translation>
-    </message>
-    <message>
         <source>CMYK image: converted to RGB through the profile %1</source>
         <translation>CMYK-Bild: über das Profil %1 in RGB konvertiert</translation>
     </message>
@@ -10198,6 +10194,38 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>AVIF stores at most 12 bits per channel, so a 16-bit document is written with 12-bit samples. Saving a large image can take a while.</source>
         <translation>AVIF speichert höchstens 12 Bit pro Kanal, daher wird ein 16-Bit-Dokument mit 12-Bit-Samples geschrieben. Das Speichern eines großen Bildes kann eine Weile dauern.</translation>
+    </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images.</source>
+        <translation>Diese Patchy-Version kann keine HEIC-Bilder dekodieren.</translation>
+    </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images because the system&apos;s libheif library is not installed. Install it and try again.
+Debian/Ubuntu: sudo apt install libheif1
+Fedora: sudo dnf install libheif</source>
+        <translation>Diese Patchy-Version kann keine HEIC-Bilder dekodieren, weil die libheif-Bibliothek des Systems nicht installiert ist. Installieren Sie sie und versuchen Sie es erneut.
+Debian/Ubuntu: sudo apt install libheif1
+Fedora: sudo dnf install libheif</translation>
+    </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images because the installed libheif library is too old. Patchy needs libheif 1.12 or newer.</source>
+        <translation>Diese Patchy-Version kann keine HEIC-Bilder dekodieren, weil die installierte libheif-Bibliothek zu alt ist. Patchy benötigt libheif 1.12 oder neuer.</translation>
+    </message>
+    <message>
+        <source>The system&apos;s libheif library has no HEVC decoder plug-in, so Patchy cannot decode HEIC images. Install it and try again.
+Debian/Ubuntu: sudo apt install libheif-plugin-libde265
+Fedora (RPM Fusion): sudo dnf install libheif-freeworld</source>
+        <translation>Die libheif-Bibliothek des Systems hat kein HEVC-Decoder-Plug-in, daher kann Patchy keine HEIC-Bilder dekodieren. Installieren Sie es und versuchen Sie es erneut.
+Debian/Ubuntu: sudo apt install libheif-plugin-libde265
+Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
+    </message>
+    <message>
+        <source>This HEIC image&apos;s bit depth is not supported by the installed libheif library.</source>
+        <translation>Die Bittiefe dieses HEIC-Bilds wird von der installierten libheif-Bibliothek nicht unterstützt.</translation>
+    </message>
+    <message>
+        <source>libheif returned an invalid HEIF pixel buffer</source>
+        <translation>libheif hat einen ungültigen HEIF-Pixelpuffer zurückgegeben</translation>
     </message>
 </context>
 <context>

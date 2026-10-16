@@ -99,8 +99,9 @@ When a new version is out, Patchy's update prompt can download it, replace the A
 file and start again (if the file sits in a folder you can write to; otherwise it offers
 the download). AppImage tools such as Gear Lever or AppImageUpdate can also update it.
 For AI control, the connector command is the AppImage file with the argument
-`patchy-mcp` (Help > Set up AI Control shows the exact line). The AppImage cannot open
-HEIC images; the Flatpak can.
+`patchy-mcp` (Help > Set up AI Control shows the exact line). The AppImage opens HEIC
+images through your distribution's libheif (Ubuntu and Debian: the `libheif1` package,
+plus `libheif-plugin-libde265` on Ubuntu 24.04 and later); the Flatpak brings its own.
 
 ## Screenshots
 

@@ -1,12 +1,12 @@
 # Binding legal and licensing constraints
 
-Read this before changing any feature named below or adding an adjacent implementation. The claim-level research record lives in [patent-research.md](patent-research.md) and, for content-aware fill, [patent-research-inpainting.md](patent-research-inpainting.md), with alignment guides in [patent-research-alignment.md](patent-research-alignment.md), automatic selection in [patent-research-selection.md](patent-research-selection.md), the G'MIC filters in [patent-research-gmic.md](patent-research-gmic.md), soft proofing in [patent-research-proofing.md](patent-research-proofing.md), and format law, codecs and trademarks in [patent-research-formats.md](patent-research-formats.md); detailed compatibility records live in [smart-objects.md](smart-objects.md), [selection-tools.md](selection-tools.md), [liquify.md](liquify.md), [brushes.md](brushes.md), [vector-tools.md](vector-tools.md), [image-trace.md](image-trace.md), [file-formats.md](file-formats.md), and [af-format.md](af-format.md). These constraints are binding even when a broader feature looks technically straightforward.
+Read this before changing any feature named below or adding an adjacent implementation. The claim-level research record lives in [patent-research.md](patent-research.md) and, for content-aware fill, [patent-research-inpainting.md](patent-research-inpainting.md), with alignment guides in [patent-research-alignment.md](patent-research-alignment.md), automatic selection in [patent-research-selection.md](patent-research-selection.md), the G'MIC filters in [patent-research-gmic.md](patent-research-gmic.md), soft proofing in [patent-research-proofing.md](patent-research-proofing.md), and format law, codecs and trademarks in [patent-research-formats.md](patent-research-formats.md); detailed compatibility records live in [smart-objects.md](smart-objects.md), [selection-tools.md](selection-tools.md), [liquify.md](liquify.md), [brushes.md](brushes.md), [vector-tools.md](vector-tools.md), [image-trace.md](image-trace.md), [file-formats.md](file-formats.md), and [af-format.md](af-format.md). They bind even when a feature looks straightforward.
 
 ## Selection tools
 
 - **Quick Select solves once on mouse release.** Do not add live per-mouse-move classification or a selection preview before November 3, 2029 (Adobe US 8050498). Enhance Edge remains geometric, the solve uses one window per stroke, and input never selects among algorithms automatically (US 10698588 claims toggling graph cut and level-set refinement from the Add/Remove mode plus where the click lands relative to the selection; never switch mechanisms on that pair). `ui_quick_select_stroke_selects_object_and_is_undoable` enforces the no-mid-drag behavior.
 - **Automatic selection (Select Subject, Object Selection, their script calls) is one network solve from one prompt, combined by plain boolean** (October 2026, record in [patent-research-selection.md](patent-research-selection.md), design in [ai-selection.md](ai-selection.md)). Object Selection sends either one box or one positive point per solve, on mouse release only: never a negative point (US 11314982, to 2037), never a box plus points or any two prompt modalities together (US 11568627, to 2037), never a previous mask back into the decoder (SAM `mask_input` stays zero; US 11676279, to 2041), and never a distance-map input. Add and Subtract are selection booleans, not network inputs. Nothing segmented is shown before release, and there is no hover highlight or precomputed per-object masks (US 8050498; Adobe's allowed hover-preview application US 2023/0129341). Select Subject runs one fixed salient model once over the whole image and upsamples once: no network-located crop, second pass, or refinement of sub-regions (US 11244195 / US 12591950, to 2040). Select Background and Remove Background reuse that one result through plain inversion or as a layer mask. No detectors, class labels, text queries, or automatic choice between models (US 11107219, US 11631234, US 11972569, US 12260557); the user picks the command, and Object Selection's Standard or High Quality model by setting and download, never by image content. Zoom-to-box encodes the user's box grown by fixed geometry (`sam_box_region`) once and decodes the box once: never a network-located region, a second pass, or a refinement of a mask. Any SAM-family model must keep SAM's decoder without encoder skip connections (US 12051225 claim 16; SAM 2 and HQ-SAM wait on counsel). No edge-refinement brush or learned matting stage on the result (US 10068361, US 11593948). Changing a model, adding a prompt type, or adding refinement needs a new review. A single-pass whole-image matting model is reviewed in the record (2026-10-12): allowed as a replacement or a user-chosen alternative, never merged with or fed by the general model; Adobe US 12051225 claim 16 (transformer encoder plus skip-connected decoder producing an alpha matte, to about 2042-09) is an open item for counsel against the BiRefNet architecture, so Select Subject, Select Background and Remove Background stay out of releases until it is resolved (`PATCHY_ENABLE_SELECT_SUBJECT` off; Object Selection ships).
-- Magnetic Lasso and brush shape-dynamics patents are expired, so live snap display is allowed. Magnetic Lasso still constructs its selection region once in `finish_magnetic_lasso()`, clearly separate from Quick Select's prohibited live region classification.
+- Magnetic Lasso and brush shape-dynamics patents expired, so live snap display is allowed. Magnetic Lasso still constructs its selection region once in `finish_magnetic_lasso()`, separate from Quick Select's prohibited live region classification.
 
 ## Filters and Smart Objects
 
@@ -63,18 +63,20 @@ Design in [gmic.md](gmic.md); claim record in [patent-research-gmic.md](patent-r
 - **Open from Clipboard** creates only an unsaved in-memory raster document from
   the current clipboard image. The scoped review and claim analysis are in
   [clipboard.md](clipboard.md). Do not extend that assessment to automatic
-  clipboard-to-file/cloud storage or shortcut-bound destination locations.
-- PSD interoperability is based on observed output from a licensed Photoshop, never decompilation. Do not copy verbatim Adobe specification text into the repository; link to it. Use self-authored fixtures only and do not support the undocumented PSDC cloud-document format.
-- "Smart Object(s)", "Smart Filter(s)", "Filter Gallery", and "PSD" are not Adobe trademarks in the reviewed record. PHOTOSHOP is registered and policed. Use referential language such as "compatible with Adobe Photoshop"; never use Adobe marks in Patchy's product name, icons, or branding, and retain README.md's Trademark Notice.
-- Bundled art and textures must never come from AI image generation. Acceptable sources are code generation or real photography/human artwork under a commercially compatible license, preferably CC0. Every third-party asset needs a `NOTICE-THIRD-PARTY.md` entry and must ship losslessly. Poly Haven textures are human-made.
+  clipboard-to-file/cloud storage or shortcut-bound destinations.
+- PSD interoperability comes from observed output of a licensed Photoshop, never decompilation. Never copy verbatim Adobe specification text into the repository; link to it. Use self-authored fixtures only and do not support the undocumented PSDC cloud-document format.
+- "Smart Object(s)", "Smart Filter(s)", "Filter Gallery", and "PSD" are not Adobe trademarks in the reviewed record. PHOTOSHOP is registered and policed. Use referential language such as "compatible with Adobe Photoshop"; never put Adobe marks in Patchy's name, icons or branding, and keep README.md's Trademark Notice.
+- Bundled art and textures must never come from AI image generation. Acceptable sources: code generation, or real photography/human artwork under a commercially compatible license, preferably CC0. Every third-party asset needs a `NOTICE-THIRD-PARTY.md` entry and ships losslessly. Poly Haven textures are human-made.
 - HEIC/HEIF decoding must use a platform or browser-provided HEVC decoder. Native builds
-  keep their platform-codec paths. The browser build may statically link the
-  vendored libheif container parser and its WebCodecs adapter, but every software HEVC
-  codec backend and HEVC encoder must remain disabled. Never vendor or link libde265, x265 or
-  another HEVC decoder/encoder, and never add HEIC encoding. The WASM CMake option block,
-  the runtime `VideoDecoder.isConfigSupported()` check, and the distribution obligations
-  recorded in `NOTICE-THIRD-PARTY.md` are binding. Design: [file-formats.md](file-formats.md).
-- JPEG XR decoding and encoding must use the in-box Windows Imaging Component codec. Never
+  keep their platform-codec paths; Linux dlopens the distro's libheif and its HEVC plug-in
+  at run time and ships nothing (never bundle libheif in the AppImage).
+  The browser build may statically link the vendored libheif container parser and its
+  WebCodecs adapter, but every software HEVC codec backend and HEVC encoder must remain
+  disabled. Never vendor or link libde265, x265 or another HEVC decoder/encoder, and never
+  add HEIC encoding. The WASM CMake option block, the runtime
+  `VideoDecoder.isConfigSupported()` check, and the distribution obligations in
+  `NOTICE-THIRD-PARTY.md` are binding. See [heif.md](heif.md).
+- JPEG XR decoding and encoding must use Windows' in-box Imaging Component codec. Never
   vendor or link jxrlib, libjxr, or another JPEG XR codec, and never add a JPEG XR path to a
   non-Windows build, without a new review. Patchy ships no codec, so no JPEG XR patent reads
   on the binary. The position is friendlier than HEVC's (Microsoft's Open Specification
@@ -83,10 +85,10 @@ Design in [gmic.md](gmic.md); claim record in [patent-research-gmic.md](patent-r
   [jxr.md](jxr.md); wiring: [file-formats.md](file-formats.md).
 - AVIF may ship in-process AV1 codecs (Seth's decision, October 16, 2026; record in
   [patent-research-formats.md](patent-research-formats.md)): libavif 1.4.2 over dav1d
-  1.5.4 (decode) and libaom 3.15.2 (encode), all BSD-2; libaom's AOM Patent License 1.0
+  1.5.4 (decode) and libaom 3.15.2 (encode), BSD-2; libaom's AOM Patent License 1.0
   text is in `NOTICE-THIRD-PARTY.md`. Conditions: no other AV1 encoder (SVT-AV1, rav1e) or
-  AV2/avm code without a new review; pinned, unmodified releases with LICENSE files
-  beside them. Design: [avif.md](avif.md).
+  AV2/avm code without a new review; pinned, unmodified releases with LICENSE files.
+  Design: [avif.md](avif.md).
 - JPEG 2000 (ISO/IEC 15444-1), OpenEXR and Radiance HDR may ship in-process codecs
   (October 2026 read; record in [patent-research-formats.md](patent-research-formats.md)):
   OpenJPEG (BSD-2) for JPEG 2000 Part 1 only, tinyexr (BSD-3) for OpenEXR, Patchy's own

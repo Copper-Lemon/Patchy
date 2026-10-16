@@ -9906,10 +9906,6 @@ RGB：%2, %3, %4</translation>
         <translation>动画 JPEG XL: 已将 %1 帧导入为图层</translation>
     </message>
     <message>
-        <source>This build of Patchy cannot decode HEIC images. The Flatpak version of Patchy can.</source>
-        <translation>此版本的 Patchy 无法解码 HEIC 图像。Flatpak 版本的 Patchy 可以。</translation>
-    </message>
-    <message>
         <source>CMYK image: converted to RGB through the profile %1</source>
         <translation>CMYK 图像：已通过配置文件 %1 转换为 RGB</translation>
     </message>
@@ -10168,6 +10164,38 @@ RGB：%2, %3, %4</translation>
     <message>
         <source>AVIF stores at most 12 bits per channel, so a 16-bit document is written with 12-bit samples. Saving a large image can take a while.</source>
         <translation>AVIF 每通道最多存储 12 位，因此 16 位文档会以 12 位样本写入。保存大图像可能需要一段时间。</translation>
+    </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images.</source>
+        <translation>此版本的 Patchy 无法解码 HEIC 图像。</translation>
+    </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images because the system&apos;s libheif library is not installed. Install it and try again.
+Debian/Ubuntu: sudo apt install libheif1
+Fedora: sudo dnf install libheif</source>
+        <translation>系统未安装 libheif 库，因此此版本的 Patchy 无法解码 HEIC 图像。请安装后重试。
+Debian/Ubuntu: sudo apt install libheif1
+Fedora: sudo dnf install libheif</translation>
+    </message>
+    <message>
+        <source>This build of Patchy cannot decode HEIC images because the installed libheif library is too old. Patchy needs libheif 1.12 or newer.</source>
+        <translation>已安装的 libheif 库版本过旧，因此此版本的 Patchy 无法解码 HEIC 图像。Patchy 需要 libheif 1.12 或更新版本。</translation>
+    </message>
+    <message>
+        <source>The system&apos;s libheif library has no HEVC decoder plug-in, so Patchy cannot decode HEIC images. Install it and try again.
+Debian/Ubuntu: sudo apt install libheif-plugin-libde265
+Fedora (RPM Fusion): sudo dnf install libheif-freeworld</source>
+        <translation>系统的 libheif 库没有 HEVC 解码器插件，因此 Patchy 无法解码 HEIC 图像。请安装后重试。
+Debian/Ubuntu: sudo apt install libheif-plugin-libde265
+Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
+    </message>
+    <message>
+        <source>This HEIC image&apos;s bit depth is not supported by the installed libheif library.</source>
+        <translation>已安装的 libheif 库不支持此 HEIC 图像的位深度。</translation>
+    </message>
+    <message>
+        <source>libheif returned an invalid HEIF pixel buffer</source>
+        <translation>libheif 返回了无效的 HEIF 像素缓冲区</translation>
     </message>
 </context>
 <context>

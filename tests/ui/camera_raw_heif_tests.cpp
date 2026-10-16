@@ -1350,8 +1350,8 @@ void ui_heif_open_is_read_only_if_available() {
   patchy::ui::MainWindow window;
   show_window(window);
 
-  // Machines without a platform HEIC decoder (the remote Linux builder's aqt Qt has no
-  // kimg_heif; Windows may lack the Store codec packages) raise the open-failed box,
+  // Machines without a platform HEIC decoder (a Linux box without libheif or its HEVC
+  // plug-in; Windows may lack the Store codec packages) raise the open-failed box,
   // which would hang the offscreen suite without this repeating dismisser. Dismiss via
   // reject() so the Microsoft Store button can never be triggered from a test.
   bool saw_error = false;
@@ -1385,7 +1385,7 @@ void ui_heif_open_is_read_only_if_available() {
     const bool codec_unavailable = error_text.contains(QStringLiteral("Microsoft Store")) ||
                                    error_text.contains(QStringLiteral("system codec")) ||
                                    error_text.contains(QStringLiteral("Flatpak codec extension")) ||
-                                   error_text.contains(QStringLiteral("cannot decode HEIC images"));
+                                   error_text.contains(QStringLiteral("cannot decode HEIC images"));  // Linux libheif
     CHECK(codec_unavailable);
     std::cout << "[SKIP] HEIC platform decoder unavailable: " << error_text.toStdString() << '\n';
     return;
@@ -1396,7 +1396,7 @@ void ui_heif_open_is_read_only_if_available() {
   CHECK(document.height() == 48);
   CHECK(patchy::ui::MainWindowTestAccess::active_session_path(window) == path);
   CHECK(!patchy::ui::MainWindowTestAccess::active_session_is_modified(window));
-  // Same layer name on every platform, whichever decode path ran (WIC or Qt fallback).
+  // Same layer name on every platform, whichever decode path ran (WIC, libheif or Qt).
   CHECK(std::as_const(document).layers().front().name() == "Background");
   // Quadrant sanity on the decoded pixels (fixture: red / green / blue / white).
   const auto& pixels = std::as_const(document.layers().front()).pixels();
