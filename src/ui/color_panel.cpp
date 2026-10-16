@@ -157,6 +157,15 @@ QColor normalized_rgb_color(QColor color) {
   return color;
 }
 
+// The HSB fields show percentages (GitHub issue 149) over 0-255 channels.
+int percent_from_channel(int channel) {
+  return static_cast<int>(std::lround(std::clamp(channel, 0, 255) * 100.0 / 255.0));
+}
+
+int channel_from_percent(int percent) {
+  return static_cast<int>(std::lround(std::clamp(percent, 0, 100) * 255.0 / 100.0));
+}
+
 int bounded_channel(int value) {
   return std::clamp(value, 0, 255);
 }
@@ -1409,8 +1418,12 @@ void PatchyColorPickerPrivate::build_ui() {
   footer_row->addLayout(preview_column);
 
   hue_spin_ = create_spin(picker_column, QStringLiteral("patchyColorHueSpin"), 359);
-  saturation_spin_ = create_spin(picker_column, QStringLiteral("patchyColorSaturationSpin"), 255);
-  value_spin_ = create_spin(picker_column, QStringLiteral("patchyColorValueSpin"), 255);
+  // Saturation and Value read as percentages, like Photoshop's and GIMP's HSB fields
+  // (GitHub issue 149); the model keeps Qt's 0-255 channels.
+  saturation_spin_ = create_spin(picker_column, QStringLiteral("patchyColorSaturationSpin"), 100);
+  saturation_spin_->setSuffix(QStringLiteral("%"));
+  value_spin_ = create_spin(picker_column, QStringLiteral("patchyColorValueSpin"), 100);
+  value_spin_->setSuffix(QStringLiteral("%"));
   red_spin_ = create_spin(picker_column, QStringLiteral("patchyColorRedSpin"), 255);
   green_spin_ = create_spin(picker_column, QStringLiteral("patchyColorGreenSpin"), 255);
   blue_spin_ = create_spin(picker_column, QStringLiteral("patchyColorBlueSpin"), 255);
@@ -1528,18 +1541,18 @@ void PatchyColorPickerPrivate::connect_controls() {
     hue_ = std::clamp(hue, 0, 359);
     apply_hsv_color(ColorChangeNotification::Yes);
   });
-  QObject::connect(saturation_spin_, &QSpinBox::valueChanged, &owner_, [this](int saturation) {
+  QObject::connect(saturation_spin_, &QSpinBox::valueChanged, &owner_, [this](int percent) {
     if (syncing_) {
       return;
     }
-    saturation_ = bounded_channel(saturation);
+    saturation_ = channel_from_percent(percent);
     apply_hsv_color(ColorChangeNotification::Yes);
   });
-  QObject::connect(value_spin_, &QSpinBox::valueChanged, &owner_, [this](int value) {
+  QObject::connect(value_spin_, &QSpinBox::valueChanged, &owner_, [this](int percent) {
     if (syncing_) {
       return;
     }
-    value_ = bounded_channel(value);
+    value_ = channel_from_percent(percent);
     apply_hsv_color(ColorChangeNotification::Yes);
   });
   QObject::connect(red_spin_, &QSpinBox::valueChanged, &owner_, [this](int red) {
@@ -1718,8 +1731,8 @@ void PatchyColorPickerPrivate::sync_controls() {
   refresh_gamut_warning();
 
   hue_spin_->setValue(hue_);
-  saturation_spin_->setValue(saturation_);
-  value_spin_->setValue(value_);
+  saturation_spin_->setValue(percent_from_channel(saturation_));
+  value_spin_->setValue(percent_from_channel(value_));
   red_spin_->setValue(color_.red());
   green_spin_->setValue(color_.green());
   blue_spin_->setValue(color_.blue());

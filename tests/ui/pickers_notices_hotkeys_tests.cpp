@@ -493,8 +493,15 @@ void ui_color_picker_wheel_and_sliders_modes() {
   send_mouse(*wheel, QEvent::MouseButtonPress, QPoint(cx, cy), Qt::LeftButton, Qt::LeftButton);
   send_mouse(*wheel, QEvent::MouseButtonRelease, QPoint(cx, cy), Qt::LeftButton, Qt::NoButton);
   QApplication::processEvents();
-  CHECK(std::abs(sat_spin->value() - 128) <= 24);
-  CHECK(std::abs(val_spin->value() - 128) <= 24);
+  // The fields are percentages (GitHub issue 149): mid square reads about 50%.
+  CHECK(sat_spin->maximum() == 100 && val_spin->maximum() == 100);
+  CHECK(std::abs(sat_spin->value() - 50) <= 10);
+  CHECK(std::abs(val_spin->value() - 50) <= 10);
+  // Typing a percentage drives the model: 100% saturation at full value is the pure hue.
+  sat_spin->setValue(100);
+  val_spin->setValue(100);
+  QApplication::processEvents();
+  CHECK(picker->currentColor().saturation() == 255 && picker->currentColor().value() == 255);
   CHECK(std::abs(hue_spin->value() - 90) <= 6);  // hue unchanged by the square
 
   // --- Sliders mode: one gradient track per channel. ---
