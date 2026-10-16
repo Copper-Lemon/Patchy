@@ -103,6 +103,7 @@
 #include "ui/animation_preview_window.hpp"
 #include "formats/animation_timing.hpp"
 #include "formats/webp_animation_io.hpp"
+#include "ui/apng_reader.hpp"
 #include "ui/tile_preview_window.hpp"
 #include "ui/user_fonts.hpp"
 #include "ui/warp_text_dialog.hpp"
@@ -572,7 +573,7 @@ const QList<FileFormatEntry>& file_format_entries() {
        true,
        false},
       {QT_TRANSLATE_NOOP("QObject", "PNG Image"),
-       {QStringLiteral("png")},
+       {QStringLiteral("png"), QStringLiteral("apng")},
        {QStringLiteral("png")},
        true,
        true},
@@ -1265,6 +1266,38 @@ OpenDocumentResult load_document_from_path(QString path) {
         opened.print_settings().vertical_ppi = kUntaggedImportPpi;
         import_notices.push_back(QObject::tr("Animated WebP: imported %1 frames as layers").arg(index));
         return;
+      }
+    }
+    // Animated PNG (GitHub issue 119): Qt's reader returns the default image
+    // only, so the frames come through apng_reader and become layers the way
+    // GIF and WebP frames do (frame 1 on top, all visible, millisecond delay
+    // tokens). A damaged animation keeps the default image with a notice.
+    if (extension == QStringLiteral("png") || extension == QStringLiteral("apng")) {
+      const auto bytes = read_all_file_bytes(path);
+      if (apng::is_animated_png(bytes)) {
+        try {
+          auto animation = apng::read_animated_png(bytes);
+          std::vector<QImage> frames;
+          QStringList layer_names;
+          const QImage first_frame = animation.frames.front().image;
+          for (auto& frame : animation.frames) {
+            layer_names.push_back(QObject::tr("Frame %1").arg(frames.size() + 1) + QLatin1Char(' ') +
+                                  QString::fromStdString(animation::format_delay_seconds_token(frame.delay_ms)));
+            frames.push_back(std::move(frame.image));
+          }
+          const auto frame_count = static_cast<int>(frames.size());
+          if (auto imported = document_from_frames(std::move(frames), layer_names,
+                                                   {.first_frame_on_top = true, .all_layers_visible = true});
+              imported.has_value()) {
+            opened = std::move(*imported);
+            apply_imported_image_density(opened, bytes, first_frame);
+            import_notices.push_back(QObject::tr("Animated PNG: imported %1 frames as layers").arg(frame_count));
+            return;
+          }
+        } catch (const std::exception& error) {
+          import_notices.push_back(QObject::tr("Animated PNG: imported the default image only (%1)")
+                                       .arg(QString::fromUtf8(error.what())));
+        }
       }
     }
     QImageReader reader(path);

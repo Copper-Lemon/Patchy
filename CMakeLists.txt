@@ -1161,6 +1161,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/main_window_document_dialogs.cpp
       src/ui/main_window_files.cpp
       src/ui/tiff_jpeg_reader.cpp
+      src/ui/apng_reader.cpp
       src/ui/network_mounts.cpp
       src/ui/wayland_popup_anchor.hpp
       src/ui/wayland_popup_anchor.cpp

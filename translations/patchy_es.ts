@@ -10227,6 +10227,14 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>libheif returned an invalid HEIF pixel buffer</source>
         <translation>libheif devolvió un búfer de píxeles HEIF no válido</translation>
     </message>
+    <message>
+        <source>Animated PNG: imported %1 frames as layers</source>
+        <translation>PNG animado: %1 fotogramas importados como capas</translation>
+    </message>
+    <message>
+        <source>Animated PNG: imported the default image only (%1)</source>
+        <translation>PNG animado: solo se importó la imagen predeterminada (%1)</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

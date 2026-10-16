@@ -2,6 +2,7 @@
 #include "formats/webp_animation_io.hpp"
 #include "color/color_management.hpp"
 #include "ui/tiff_jpeg_reader.hpp"
+#include "ui/apng_reader.hpp"
 #include "ui/qt_paths.hpp"
 #include "unicode_path_names.hpp"
 #include "ui/canvas_widget.hpp"
@@ -3247,6 +3248,236 @@ void ui_jxl_animated_save_round_trips() {
 
 // GitHub issue 117: Qt's libtiff has no JPEG codec, so JPEG-compressed TIFFs (compression 7)
 // decode strip by strip through Qt's JPEG reader, with the shared JPEGTables spliced in.
+// Builds an APNG from frames (all the same color type: ARGB32 saves as RGBA 8-bit).
+// `regions` gives each frame's placement; the canvas is the first frame's size.
+struct ApngFrameSpec {
+  QImage image;
+  QPoint offset;
+  unsigned delay_num;
+  unsigned delay_den;
+  unsigned dispose;
+  unsigned blend;
+};
+
+QByteArray build_apng(const std::vector<ApngFrameSpec>& specs, bool default_in_animation,
+                      const QImage& separate_default = QImage(), bool duplicate_sequence = false) {
+  static const auto crc_table = [] {
+    std::array<unsigned, 256> table{};
+    for (unsigned n = 0; n < 256; ++n) {
+      unsigned c = n;
+      for (int k = 0; k < 8; ++k) c = (c & 1U) != 0 ? 0xedb88320U ^ (c >> 1) : c >> 1;
+      table[n] = c;
+    }
+    return table;
+  }();
+  const auto crc32 = [](const QByteArray& data) {
+    unsigned crc = 0xffffffffU;
+    for (const char byte : data) crc = crc_table[(crc ^ static_cast<unsigned char>(byte)) & 0xffU] ^ (crc >> 8);
+    return crc ^ 0xffffffffU;
+  };
+  const auto be32 = [](unsigned v) {
+    QByteArray out;
+    out.append(static_cast<char>(v >> 24)).append(static_cast<char>(v >> 16)).append(static_cast<char>(v >> 8))
+        .append(static_cast<char>(v));
+    return out;
+  };
+  const auto be16 = [](unsigned v) {
+    QByteArray out;
+    out.append(static_cast<char>(v >> 8)).append(static_cast<char>(v));
+    return out;
+  };
+  QByteArray apng;
+  const auto chunk = [&](const char* type, const QByteArray& data) {
+    apng.append(be32(static_cast<unsigned>(data.size())));
+    QByteArray body(type, 4);
+    body.append(data);
+    apng.append(body);
+    apng.append(be32(crc32(body)));
+  };
+  // PNG chunks of one frame, split into IHDR data and the concatenated IDAT data.
+  struct Parts { QByteArray ihdr; QByteArray idat; };
+  const auto parts_of = [](const QImage& image) {
+    QByteArray png;
+    QBuffer buffer(&png);
+    buffer.open(QIODevice::WriteOnly);
+    image.convertToFormat(QImage::Format_ARGB32).save(&buffer, "PNG");
+    Parts parts;
+    qsizetype at = 8;
+    while (at + 12 <= png.size()) {
+      const auto length = static_cast<unsigned>((static_cast<unsigned char>(png[at]) << 24) |
+                                                (static_cast<unsigned char>(png[at + 1]) << 16) |
+                                                (static_cast<unsigned char>(png[at + 2]) << 8) |
+                                                static_cast<unsigned char>(png[at + 3]));
+      const auto type = png.mid(at + 4, 4);
+      const auto data = png.mid(at + 8, static_cast<qsizetype>(length));
+      if (type == "IHDR") parts.ihdr = data;
+      if (type == "IDAT") parts.idat.append(data);
+      at += 12 + static_cast<qsizetype>(length);
+    }
+    return parts;
+  };
+  apng.append("\x89PNG\r\n\x1a\n", 8);
+  const auto first = parts_of(specs.front().image);
+  chunk("IHDR", first.ihdr);  // the canvas is the first frame's size
+  chunk("acTL", be32(static_cast<unsigned>(specs.size())) + be32(0));
+  unsigned sequence = 0;
+  const auto fctl = [&](const ApngFrameSpec& spec) {
+    QByteArray data;
+    data.append(be32(duplicate_sequence ? 0 : sequence++));
+    data.append(be32(static_cast<unsigned>(spec.image.width()))).append(be32(static_cast<unsigned>(spec.image.height())));
+    data.append(be32(static_cast<unsigned>(spec.offset.x()))).append(be32(static_cast<unsigned>(spec.offset.y())));
+    data.append(be16(spec.delay_num)).append(be16(spec.delay_den));
+    data.append(static_cast<char>(spec.dispose)).append(static_cast<char>(spec.blend));
+    chunk("fcTL", data);
+  };
+  if (default_in_animation) {
+    fctl(specs.front());
+    chunk("IDAT", first.idat);
+  } else {
+    chunk("IDAT", parts_of(separate_default).idat);
+  }
+  for (std::size_t i = default_in_animation ? 1 : 0; i < specs.size(); ++i) {
+    fctl(specs[i]);
+    QByteArray data = be32(duplicate_sequence ? 0 : sequence++);
+    data.append(parts_of(specs[i].image).idat);
+    chunk("fdAT", data);
+  }
+  chunk("IEND", {});
+  return apng;
+}
+
+std::span<const std::uint8_t> bytes_of(const QByteArray& data) {
+  return {reinterpret_cast<const std::uint8_t*>(data.constData()), static_cast<std::size_t>(data.size())};
+}
+
+QImage solid_frame(int width, int height, QColor color) {
+  QImage image(width, height, QImage::Format_ARGB32);
+  image.fill(color);
+  return image;
+}
+
+// GitHub issue 119: an animated PNG opens as one layer per frame, like GIF and
+// WebP: frame 1 on top, every layer visible, the delay as a seconds token.
+void ui_animated_png_imports_frames_as_layers() {
+  const auto apng = build_apng({{solid_frame(6, 4, QColor(255, 0, 0)), {0, 0}, 1, 10, 0, 0},
+                                {solid_frame(6, 4, QColor(0, 255, 0)), {0, 0}, 1, 2, 0, 0},
+                                {solid_frame(6, 4, QColor(0, 0, 255)), {0, 0}, 1, 1, 0, 0}},
+                               true);
+  CHECK(patchy::apng::is_animated_png(bytes_of(apng)));
+  const auto animation = patchy::apng::read_animated_png(bytes_of(apng));
+  CHECK(animation.width == 6 && animation.height == 4);
+  CHECK(animation.frames.size() == 3);
+  if (animation.frames.size() == 3) {
+    CHECK(animation.frames[0].delay_ms == 100);
+    CHECK(animation.frames[1].delay_ms == 500);
+    CHECK(animation.frames[2].delay_ms == 1000);
+    CHECK(animation.frames[0].image.pixelColor(2, 2) == QColor(255, 0, 0));
+    CHECK(animation.frames[1].image.pixelColor(2, 2) == QColor(0, 255, 0));
+    CHECK(animation.frames[2].image.pixelColor(5, 3) == QColor(0, 0, 255));
+  }
+
+  // A plain PNG is not an animation.
+  QByteArray plain;
+  {
+    QBuffer buffer(&plain);
+    buffer.open(QIODevice::WriteOnly);
+    solid_frame(6, 4, QColor(1, 2, 3)).save(&buffer, "PNG");
+  }
+  CHECK(!patchy::apng::is_animated_png(bytes_of(plain)));
+
+  const auto path = QStringLiteral("test-artifacts/animated.png");
+  {
+    QFile file(path);
+    CHECK(file.open(QIODevice::WriteOnly));
+    file.write(apng);
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+  patchy::ui::MainWindowTestAccess::open_document_path(window, QFileInfo(path).absoluteFilePath());
+  QApplication::processEvents();
+  const auto& document = patchy::ui::MainWindowTestAccess::document(window);
+  CHECK(document.width() == 6 && document.height() == 4);
+  CHECK(document.layers().size() == 3);
+  if (document.layers().size() == 3) {
+    // Frame 1 is the TOP layer (the last in the vector), like the GIF import.
+    CHECK(document.layers().back().name() == "Frame 1 " + patchy::animation::format_delay_seconds_token(100));
+    CHECK(document.layers().front().name() == "Frame 3 " + patchy::animation::format_delay_seconds_token(1000));
+    for (const auto& layer : document.layers()) {
+      CHECK(layer.visible());
+    }
+    CHECK(document.layers().back().pixels().pixel(1, 1)[0] == 255);
+    CHECK(document.layers().front().pixels().pixel(1, 1)[2] == 255);
+  }
+}
+
+// Sub-canvas frames composite with their offsets, dispose and blend ops: a
+// "background" disposal clears the frame's region before the next frame, and
+// "over" blending composites a translucent frame instead of replacing pixels.
+void ui_animated_png_composites_offsets_dispose_and_blend() {
+  const auto apng = build_apng({{solid_frame(4, 4, QColor(255, 0, 0)), {0, 0}, 1, 10, 0, 0},
+                                {solid_frame(2, 2, QColor(0, 0, 255)), {1, 1}, 1, 10, 1, 0},
+                                {solid_frame(4, 4, QColor(0, 255, 0, 128)), {0, 0}, 1, 10, 0, 1}},
+                               true);
+  const auto animation = patchy::apng::read_animated_png(bytes_of(apng));
+  CHECK(animation.frames.size() == 3);
+  if (animation.frames.size() != 3) {
+    return;
+  }
+  const auto& second = animation.frames[1].image;
+  CHECK(second.pixelColor(0, 0) == QColor(255, 0, 0));
+  CHECK(second.pixelColor(1, 1) == QColor(0, 0, 255));
+  CHECK(second.pixelColor(2, 2) == QColor(0, 0, 255));
+  CHECK(second.pixelColor(3, 3) == QColor(255, 0, 0));
+  const auto& third = animation.frames[2].image;
+  // Outside the disposed region: green over red.
+  const auto blended = third.pixelColor(0, 0);
+  CHECK(std::abs(blended.red() - 127) <= 2 && std::abs(blended.green() - 128) <= 2 && blended.blue() == 0 &&
+        blended.alpha() == 255);
+  // Inside it: the region was cleared, so the translucent green stands alone.
+  const auto cleared = third.pixelColor(1, 1);
+  CHECK(std::abs(cleared.alpha() - 128) <= 1 && cleared.red() == 0 && cleared.green() >= 250);
+}
+
+// A default image without a frame control is a fallback for still viewers and
+// not part of the animation; out-of-order sequence numbers reject the file,
+// and the open path then keeps the default image.
+void ui_animated_png_skips_separate_default_image_and_rejects_bad_sequences() {
+  const auto separate = build_apng({{solid_frame(4, 4, QColor(255, 0, 0)), {0, 0}, 1, 10, 0, 0},
+                                    {solid_frame(4, 4, QColor(0, 0, 255)), {0, 0}, 1, 10, 0, 0}},
+                                   false, solid_frame(4, 4, QColor(128, 128, 128)));
+  CHECK(patchy::apng::is_animated_png(bytes_of(separate)));
+  const auto animation = patchy::apng::read_animated_png(bytes_of(separate));
+  CHECK(animation.frames.size() == 2);
+  if (animation.frames.size() == 2) {
+    CHECK(animation.frames[0].image.pixelColor(0, 0) == QColor(255, 0, 0));
+    CHECK(animation.frames[1].image.pixelColor(0, 0) == QColor(0, 0, 255));
+  }
+
+  const auto broken = build_apng({{solid_frame(4, 4, QColor(255, 0, 0)), {0, 0}, 1, 10, 0, 0},
+                                  {solid_frame(4, 4, QColor(0, 0, 255)), {0, 0}, 1, 10, 0, 0}},
+                                 true, QImage(), true);
+  bool threw = false;
+  try {
+    (void)patchy::apng::read_animated_png(bytes_of(broken));
+  } catch (const std::exception&) {
+    threw = true;
+  }
+  CHECK(threw);
+  const auto path = QStringLiteral("test-artifacts/animated_bad_sequence.png");
+  {
+    QFile file(path);
+    CHECK(file.open(QIODevice::WriteOnly));
+    file.write(broken);
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+  patchy::ui::MainWindowTestAccess::open_document_path(window, QFileInfo(path).absoluteFilePath());
+  QApplication::processEvents();
+  const auto& document = patchy::ui::MainWindowTestAccess::document(window);
+  CHECK(document.width() == 4 && document.height() == 4);
+  CHECK(document.layers().size() == 1);
+}
+
 void ui_jpeg_compressed_tiff_opens_through_the_jpeg_decoder() {
   ensure_artifact_dir();
   QImage source(24, 16, QImage::Format_RGB32);
@@ -3389,6 +3620,10 @@ std::vector<patchy::test::TestCase> flat_image_format_tests() {
       {"ui_deep_images_import_at_their_depth", ui_deep_images_import_at_their_depth},
       {"ui_qimage_import_export_writes_tiff_and_webp", ui_qimage_import_export_writes_tiff_and_webp},
       {"ui_jpeg_compressed_tiff_opens_through_the_jpeg_decoder", ui_jpeg_compressed_tiff_opens_through_the_jpeg_decoder},
+      {"ui_animated_png_imports_frames_as_layers", ui_animated_png_imports_frames_as_layers},
+      {"ui_animated_png_composites_offsets_dispose_and_blend", ui_animated_png_composites_offsets_dispose_and_blend},
+      {"ui_animated_png_skips_separate_default_image_and_rejects_bad_sequences",
+       ui_animated_png_skips_separate_default_image_and_rejects_bad_sequences},
       {"ui_image_save_options_write_bmp_alpha_and_jpeg_quality",
        ui_image_save_options_write_bmp_alpha_and_jpeg_quality},
       {"ui_flat_alpha_round_trips_as_editable_mask", ui_flat_alpha_round_trips_as_editable_mask},

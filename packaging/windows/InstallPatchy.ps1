@@ -844,7 +844,7 @@ function Get-PatchyDefaultInstallRoot {
 # file_format_entries() in src/ui/main_window_files.cpp and the camera raw list in
 # src/formats/raw_document_io.cpp. PDF is left out on purpose.
 $PatchyOpenWithExtensions = @(
-    "psd", "psb", "png", "jpg", "jpeg", "bmp", "tif", "tiff", "webp", "gif",
+    "psd", "psb", "png", "apng", "jpg", "jpeg", "bmp", "tif", "tiff", "webp", "gif",
     "aseprite", "ase", "tga", "ico", "cur", "pcx", "lbm", "iff", "bbm", "svg", "svgz",
     "heic", "heif", "hif", "jxr", "wdp", "hdp", "jxl", "rttex", "dds",
     "hdr", "rgbe", "exr", "jp2", "j2k", "j2c", "jpc", "jpx", "jpf", "avif", "avifs",

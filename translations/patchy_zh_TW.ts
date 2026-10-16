@@ -10197,6 +10197,14 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>libheif returned an invalid HEIF pixel buffer</source>
         <translation>libheif 傳回了無效的 HEIF 像素緩衝區</translation>
     </message>
+    <message>
+        <source>Animated PNG: imported %1 frames as layers</source>
+        <translation>動畫 PNG: 已將 %1 個影格匯入為圖層</translation>
+    </message>
+    <message>
+        <source>Animated PNG: imported the default image only (%1)</source>
+        <translation>動畫 PNG：僅匯入預設影像 (%1)</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
