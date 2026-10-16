@@ -2151,14 +2151,16 @@ void ui_tool_palette_icons_render_sheet() {
   }
 
   // The Gradient icon is the one SVG relying on linearGradient support: its swatch must
-  // interpolate from the neutral left edge to a clearly blue right edge.
+  // interpolate from the light ink at the left edge to the dark icon surface at the
+  // right (GitHub issue 129 asked for a light-to-dark ramp; the old ink-to-accent ramp
+  // was two dark tones in the Light scheme).
   CHECK(!gradient_render.isNull());
   const auto gradient_left = gradient_render.pixel(5, 10);
   const auto gradient_right = gradient_render.pixel(15, 10);
   CHECK(qAlpha(gradient_left) > 200);
   CHECK(qAlpha(gradient_right) > 200);
-  CHECK(qBlue(gradient_right) - qRed(gradient_right) > 60);
-  CHECK(qBlue(gradient_left) - qRed(gradient_left) < 40);
+  CHECK(qGray(gradient_left) - qGray(gradient_right) > 60);
+  CHECK(std::abs(qBlue(gradient_right) - qRed(gradient_right)) < 40);
 
   ensure_artifact_dir();
   CHECK(sheet.save(QStringLiteral("test-artifacts/ui_tool_palette_icons_sheet.png")));
