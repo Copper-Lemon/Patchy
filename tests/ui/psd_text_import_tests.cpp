@@ -600,6 +600,12 @@ void ui_text_commit_records_photoshop_baseline_metrics_and_round_trips_psd() {
   }
   patchy::ui::MainWindow window;
   show_window(window);
+  // The second box reaches document y 890 at zoom 1, so the canvas must be taller than
+  // show_window's 780 px window gives it. The window used to grow past that on its own
+  // because the right column's panel floors exceeded the offscreen screen; they fit the
+  // screen now (issue 108), so ask for the height explicitly.
+  window.resize(1180, 1000);
+  QApplication::processEvents();
   patchy::Document document(1200, 900, patchy::PixelFormat::rgba8());
   document.add_pixel_layer("Background", solid_pixels(1200, 900, patchy::PixelFormat::rgba8(), QColor(Qt::white)));
   // 72 ppi so the options bar's 96 pt is 96 px (the default 300 ppi would make it 400 px).
