@@ -780,17 +780,27 @@ private:
     seat_extension();
   }
 
+  // Pins the extension button directly above the footer, in the band
+  // QToolBarLayout::layoutActions keeps free for it (the visible tools stop
+  // one extension extent above the content bottom). Qt itself seats the button
+  // at the bar's bottom edge, inside the footer, so every placement lifts it;
+  // the pin must also move it back DOWN: a window that grows after a shorter
+  // layout delivers the palette's Resize to this filter after the layout has
+  // already moved the button, so the lift that follows reads the footer's old,
+  // higher position, and a lift-only seat left the button over the last tool
+  // the taller column had just revealed (GitHub issue 126).
   void seat_extension() {
     if (extension_ == nullptr || footer_ == nullptr || palette_ == nullptr || extension_->isHidden()) {
       return;
     }
     const int limit = footer_->geometry().top() - 1;
     const auto geometry = extension_->geometry();
-    if (geometry.bottom() <= limit) {
+    const int wanted_top = std::max(0, limit - geometry.height() + 1);
+    if (geometry.top() == wanted_top) {
       return;
     }
     seating_extension_ = true;
-    extension_->move(geometry.x(), std::max(0, limit - geometry.height() + 1));
+    extension_->move(geometry.x(), wanted_top);
     seating_extension_ = false;
   }
 

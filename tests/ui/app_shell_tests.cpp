@@ -6581,6 +6581,7 @@ std::vector<patchy::test::TestCase> app_shell_tests() {
       {"ui_main_window_renders_color_controls", ui_main_window_renders_color_controls},
       {"ui_tool_palette_overflow_hides_quick_mask_before_swatches",
        ui_tool_palette_overflow_hides_quick_mask_before_swatches},
+      {"ui_tool_palette_extension_survives_resize_cycles", ui_tool_palette_extension_survives_resize_cycles},
       {"ui_tool_palette_extension_button_expands_palette", ui_tool_palette_extension_button_expands_palette},
       {"ui_tool_palette_expansion_sticky_after_tool_pick", ui_tool_palette_expansion_sticky_after_tool_pick},
       {"ui_tool_palette_expanded_zoom_double_click_sets_actual_pixels",
