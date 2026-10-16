@@ -24,6 +24,7 @@
 #include <QKeyEvent>
 #include <QMenu>
 #include <QMouseEvent>
+#include <QScopeGuard>
 #include <QPainter>
 #include <QPainterPath>
 
@@ -708,10 +709,58 @@ void CanvasWidget::apply_path_edit(VectorPath path, const QString& label,
   replace_path_edit_target(std::move(path), touched_groups);
 }
 
+namespace {
+
+// The reach of the path overlay in document space: anchors plus the direction
+// handles and their knobs, which the layer's own bounds do not cover (a handle
+// pulled above a shape). Empty for a path with no anchors.
+QRectF path_control_bounds(const VectorPath& path) {
+  bool any = false;
+  double left = 0.0;
+  double top = 0.0;
+  double right = 0.0;
+  double bottom = 0.0;
+  const auto include = [&](double x, double y) {
+    if (!any) {
+      left = right = x;
+      top = bottom = y;
+      any = true;
+      return;
+    }
+    left = std::min(left, x);
+    right = std::max(right, x);
+    top = std::min(top, y);
+    bottom = std::max(bottom, y);
+  };
+  for (const auto& subpath : path.subpaths) {
+    for (const auto& anchor : subpath.anchors) {
+      include(anchor.anchor_x, anchor.anchor_y);
+      include(anchor.in_x, anchor.in_y);
+      include(anchor.out_x, anchor.out_y);
+    }
+  }
+  return any ? QRectF(QPointF(left, top), QPointF(right, bottom)) : QRectF();
+}
+
+}  // namespace
+
 void CanvasWidget::replace_path_edit_target(VectorPath path, const std::vector<int>& touched_groups) {
   if (document_ == nullptr) {
     return;
   }
+  // Every branch below repaints the layer's bounds, but a live anchor or handle
+  // drag also moves the overlay, whose knobs reach past those bounds: without
+  // this the old knobs stayed on screen as a trail (GitHub issue 105). Old and
+  // new control bounds are joined and repainted whatever branch returns.
+  QRectF overlay = path_control_bounds(path);
+  if (const auto* current = path_edit_target_path(); current != nullptr) {
+    overlay = overlay.united(path_control_bounds(*current));
+  }
+  const auto repaint_overlay = qScopeGuard([this, overlay] {
+    if (!overlay.isEmpty()) {
+      update(widget_rect_for_document_rect(overlay).toAlignedRect().adjusted(-8, -8, 8, 8));
+    }
+  });
   if (layer_edit_target_ == LayerEditTarget::VectorMask) {
     if (auto* layer = vector_mask_target_layer(); layer != nullptr) {
       const auto old_effect_rect =

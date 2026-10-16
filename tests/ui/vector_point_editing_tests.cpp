@@ -13,6 +13,8 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QEvent>
+#include <QPaintEvent>
+#include <QRegion>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QListWidget>
@@ -835,6 +837,79 @@ void ui_direct_select_drags_marquee_selection_by_segment() {
   CHECK(!canvas->pen_session_active());
 }
 
+// Collects the regions the canvas is asked to paint; an offscreen grab repaints
+// everything and would hide a repaint that missed part of the overlay.
+class PaintRegionRecorder final : public QObject {
+public:
+  QRegion painted;
+
+protected:
+  bool eventFilter(QObject* /*watched*/, QEvent* event) override {
+    if (event->type() == QEvent::Paint) {
+      painted += static_cast<QPaintEvent*>(event)->region();
+    }
+    return false;
+  }
+};
+
+// A live anchor drag repaints where the overlay's handle knobs WERE, not only
+// the layer's bounds: a handle pulled above the shape used to leave a trail of
+// stale knobs along the drag (GitHub issue 105).
+void ui_anchor_drag_repaints_the_old_handle_knobs() {
+  VectorSettingsGuard settings_guard;
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* canvas = require_canvas(window);
+  auto& document = patchy::ui::MainWindowTestAccess::document(window);
+  const auto layer_id = make_rect_shape_layer(window, *canvas);  // corners (100,100)..(300,220)
+  {
+    // The top-left corner gets a smooth handle reaching 70 px above the shape.
+    auto* layer = document.find_layer(layer_id);
+    CHECK(layer != nullptr && layer->vector_shape() != nullptr);
+    if (layer == nullptr || layer->vector_shape() == nullptr) {
+      return;
+    }
+    auto content = *layer->vector_shape();
+    auto& anchor = content.path.subpaths[0].anchors[0];
+    anchor.smooth = true;
+    anchor.out_x = anchor.anchor_x + 60.0;
+    anchor.out_y = anchor.anchor_y - 70.0;
+    anchor.in_x = anchor.anchor_x - 60.0;
+    anchor.in_y = anchor.anchor_y + 70.0;
+    layer->set_vector_shape(std::move(content));
+  }
+  canvas->set_tool(patchy::ui::CanvasTool::DirectSelect);
+  drag(*canvas, canvas->widget_position_for_document_point(QPoint(60, 60)),
+       canvas->widget_position_for_document_point(QPoint(340, 260)));  // marquee around all four
+  QApplication::processEvents();
+  CHECK(canvas->path_edit_has_selection());
+
+  PaintRegionRecorder recorder;
+  canvas->installEventFilter(&recorder);
+  const auto press = canvas->widget_position_for_document_point(QPoint(100, 100));
+  send_mouse(*canvas, QEvent::MouseButtonPress, press, Qt::LeftButton, Qt::LeftButton);
+  QApplication::processEvents();
+  int knob_y = 30;  // the out handle's knob, document space
+  for (const int step : {20, 40, 60}) {
+    recorder.painted = QRegion();
+    const auto old_knob = canvas->widget_position_for_document_point(QPoint(160, knob_y));
+    send_mouse(*canvas, QEvent::MouseMove, canvas->widget_position_for_document_point(QPoint(100, 100 + step)),
+               Qt::NoButton, Qt::LeftButton);
+    QApplication::processEvents();
+    QApplication::processEvents();
+    const auto& anchor = anchor_at(document, layer_id, 0);
+    CHECK(std::abs(anchor.anchor_y - (100.0 + step)) < 1.0);
+    // The knob that was 70 px above the shape, outside the layer's bounds, is
+    // inside this move's repaint.
+    CHECK(recorder.painted.contains(old_knob));
+    knob_y = 30 + step;
+  }
+  send_mouse(*canvas, QEvent::MouseButtonRelease, canvas->widget_position_for_document_point(QPoint(100, 160)),
+             Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  canvas->removeEventFilter(&recorder);
+}
+
 // Shift during an anchor drag constrains movement to the nearest horizontal,
 // vertical, or 45-degree axis, re-evaluated per move against the total delta
 // from the press point (Photoshop's vertex constraint, never latched).
@@ -1171,6 +1246,7 @@ std::vector<patchy::test::TestCase> vector_point_editing_tests() {
        ui_ctrl_h_hides_path_points_with_selection_edges},
       {"ui_direct_select_drags_marquee_selection_by_segment",
        ui_direct_select_drags_marquee_selection_by_segment},
+      {"ui_anchor_drag_repaints_the_old_handle_knobs", ui_anchor_drag_repaints_the_old_handle_knobs},
       {"ui_direct_select_shift_drag_constrains_axis", ui_direct_select_shift_drag_constrains_axis},
       {"ui_direct_select_shift_toggle_mid_drag_reapplies_without_motion",
        ui_direct_select_shift_toggle_mid_drag_reapplies_without_motion},
