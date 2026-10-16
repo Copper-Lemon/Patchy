@@ -2135,7 +2135,7 @@ void ui_shape_options_group_stroke_controls_and_end_with_appearance() {
   auto* appearance = window.findChild<QPushButton*>(QStringLiteral("vectorAppearanceButton"));
   auto* options = window.findChild<QWidget*>(QStringLiteral("OptionsContent"));
   CHECK(stroke_check && stroke_width && stroke_swatch && stroke_label && appearance && options);
-  CHECK(stroke_label->text() == QStringLiteral("Stroke width:"));
+  CHECK(stroke_label->text() == QStringLiteral("Stroke width"));  // no colon on the bar (issue 127)
   CHECK(stroke_width->property(patchy::ui::kScrubHandleInstalledProperty).toBool());
   stroke_width->setValue(3.0);
 
