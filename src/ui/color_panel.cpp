@@ -82,6 +82,12 @@ constexpr int kChannelSliderHeight = 20;
 constexpr int kChannelSliderWidth = 184;
 constexpr int kSwatchSize = 24;
 constexpr int kSwatchSpacing = 5;
+// Pixels the palette grid keeps free at its right edge so the last column never
+// touches the scroll bar beside long palettes (GitHub issue 137). The scroll
+// area's minimum width includes it: the picker used to be exactly eight columns
+// plus the scroll bar wide, so the gutter alone dropped the first layout to
+// seven columns and a scroll bar until the palette was switched.
+constexpr int kPaletteScrollGutter = 4;
 constexpr int kCustomColorCount = 16;
 constexpr double kPi = 3.14159265358979323846;
 constexpr auto kCustomColorsKey = "colorPanel/customColors";
@@ -604,14 +610,10 @@ protected:
   }
 
 private:
-  // Pixels kept free at the right edge so the last column never touches the scroll
-  // bar that appears beside the long palettes (GitHub issue 137).
-  static constexpr int kScrollBarGutter = 4;
-
   [[nodiscard]] int cell_size() const noexcept { return color_count() > 64 ? 16 : kSwatchSize; }
   [[nodiscard]] int cell_gap() const noexcept { return color_count() > 64 ? 3 : kSwatchSpacing; }
   [[nodiscard]] int columns() const noexcept {
-    return std::max(1, (width() - kScrollBarGutter + cell_gap()) / (cell_size() + cell_gap()));
+    return std::max(1, (width() - kPaletteScrollGutter + cell_gap()) / (cell_size() + cell_gap()));
   }
 
   [[nodiscard]] QRect cell_rect(int index) const noexcept {
@@ -1235,9 +1237,9 @@ void PatchyColorPickerPrivate::build_ui() {
   palette_scroll->setStyleSheet(QStringLiteral(
       "QScrollArea { background: transparent; } QScrollArea > QWidget > QWidget { background: transparent; }"));
   palette_scroll->setWidget(palette_grid_);
-  // Wide enough for the classic 8-column block of 24px swatches plus the
-  // scrollbar gutter, tall enough for its classic 4 rows; big palettes scroll.
-  palette_scroll->setMinimumWidth(8 * (kSwatchSize + kSwatchSpacing) - kSwatchSpacing +
+  // Wide enough for the classic 8-column block of 24px swatches plus the grid's
+  // gutter and the scroll bar, tall enough for 4 rows; big palettes scroll.
+  palette_scroll->setMinimumWidth(8 * (kSwatchSize + kSwatchSpacing) - kSwatchSpacing + kPaletteScrollGutter +
                                   palette_scroll->verticalScrollBar()->sizeHint().width());
   palette_scroll->setMinimumHeight(4 * (kSwatchSize + kSwatchSpacing) - kSwatchSpacing);
   swatch_layout->addWidget(palette_scroll, 1);

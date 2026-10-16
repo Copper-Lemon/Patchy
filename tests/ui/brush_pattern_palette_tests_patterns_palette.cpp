@@ -839,6 +839,13 @@ void ui_color_picker_palette_dropdown_tracks_mode_and_choice() {
   auto* model = qobject_cast<QStandardItemModel*>(combo->model());
   CHECK(model != nullptr);
   CHECK(!model->item(1)->isEnabled());
+  // Basic colors open as the full eight columns at the picker's default size, with
+  // no scroll bar: the gutter (issue 137) must never cost the eighth column.
+  auto* grid_at_open = dialog->findChild<QWidget*>(QStringLiteral("patchyColorPaletteGrid"));
+  CHECK(grid_at_open != nullptr);
+  if (grid_at_open != nullptr) {
+    CHECK(grid_at_open->property("paletteColumns").toInt() == 8);
+  }
 
   // The big built-in palettes are present with their full color counts.
   auto* grid = dialog->findChild<QWidget*>(QStringLiteral("patchyColorPaletteGrid"));
