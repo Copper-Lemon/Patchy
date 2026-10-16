@@ -1630,6 +1630,12 @@ QWidget* make_layer_row_widget(const Layer& layer, QListWidgetItem* item, QWidge
 
   // The old "fx"/"smart" text badges are icon buttons now: clicking one opens the
   // layer styles dialog / the smart object contents for this row's layer.
+  // The badges form their own column after the text column, centered on the
+  // row: inside the details row they sat on the "Normal 100%" line, below the
+  // row's middle (GitHub issue 134).
+  auto* badge_row = new QHBoxLayout();
+  badge_row->setContentsMargins(0, 0, 0, 0);
+  badge_row->setSpacing(3);
   const auto add_badge_button = [&](const QString& object_name, const QString& icon_key,
                                     const QString& tooltip, std::function<void(LayerId)> open) {
     auto* badge = new QToolButton(row);
@@ -1651,7 +1657,7 @@ QWidget* make_layer_row_widget(const Layer& layer, QListWidgetItem* item, QWidge
         QTimer::singleShot(0, parent, [id, open] { open(id); });
       }
     });
-    details_row->addWidget(badge, 0, Qt::AlignVCenter);
+    badge_row->addWidget(badge, 0, Qt::AlignVCenter);
     return badge;
   };
   if (!layer.layer_style().empty()) {
@@ -1679,6 +1685,7 @@ QWidget* make_layer_row_widget(const Layer& layer, QListWidgetItem* item, QWidge
                      std::move(open_shape_appearance));
   }
   text_column->addLayout(details_row);
+  layout->addLayout(badge_row, 0);
 
   const auto direct_lock_flags = layer_lock_flags(layer);
   const auto effective_lock_flags = ancestor_lock_flags | direct_lock_flags;
