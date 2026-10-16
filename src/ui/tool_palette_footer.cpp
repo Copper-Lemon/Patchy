@@ -50,11 +50,9 @@ QSize ColorWellSwatch::sizeHint() const {
 void ColorWellSwatch::paintEvent(QPaintEvent* /*event*/) {
   QPainter painter(this);
   const QRect box = rect().adjusted(0, 0, -1, -1);
-  QColor fill = color_;
-  if (!isEnabled()) {
-    fill.setAlphaF(0.5F);
-  }
-  painter.fillRect(box, fill);
+  // Always opaque: with no document the swatches are disabled, and a translucent
+  // pair read as one odd overlapping shape. Only the border dims.
+  painter.fillRect(box, color_);
   // A hairline of the opposite tone inside the ink border keeps a swatch that
   // matches the palette background visible.
   painter.setPen(QPen(color_.lightness() < 128 ? QColor(255, 255, 255, 60) : QColor(0, 0, 0, 60), 1.0));
@@ -139,7 +137,11 @@ ToolPaletteFooter::ToolPaletteFooter(QAction* default_colors, QAction* swap_colo
   quick_mask_->setObjectName(QStringLiteral("quickMaskButton"));
   quick_mask_->setDefaultAction(quick_mask);
   quick_mask_->setAutoRaise(true);
-  quick_mask_->move(7, kWellHeight + 3);
+  // Text, not the action's tiny procedural icon: the whole footer width is free
+  // for a readable "QM" (the action's iconText; QSS widens the button to 36 px
+  // and sets the type).
+  quick_mask_->setToolButtonStyle(Qt::ToolButtonTextOnly);
+  quick_mask_->move(3, kWellHeight + 3);
 }
 
 }  // namespace patchy::ui

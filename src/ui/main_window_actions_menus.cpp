@@ -715,6 +715,8 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   quick_mask_action_->setCheckable(true);
   quick_mask_action_->setIcon(
       simple_icon(QStringLiteral("QM"), QColor(235, 95, 110)));
+  // The tool palette footer shows this as a text-only button (tool_palette_footer.cpp).
+  quick_mask_action_->setIconText(QStringLiteral("QM"));
   bind_action_text(quick_mask_action_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Edit in &Quick Mask Mode"));
   auto* grow_selection_action = new QAction(tr("&Grow"), this);
   auto* similar_selection_action = new QAction(tr("Simi&lar"), this);
