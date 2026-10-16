@@ -1262,6 +1262,19 @@ QRect CanvasWidget::marquee_selection_rect(QPoint anchor, QPoint current) const 
   if (rect.height() < 1) {
     rect.setHeight(1);
   }
+  // The marquee never leaves the image: Photoshop clips the live rectangle (and
+  // its W x H readout) at the canvas edge, and a drag that begins in the grey
+  // area starts at the edge it enters (GitHub issue 143).
+  if (document_ != nullptr) {
+    const QRect canvas(0, 0, document_->width(), document_->height());
+    const auto clipped = rect.intersected(canvas);
+    if (!clipped.isEmpty()) {
+      rect = clipped;
+    } else if (!canvas.isEmpty()) {
+      const auto edge = edge_clamped_document_point(*document_, rect.topLeft());
+      rect = QRect(std::min(edge.x(), canvas.width() - 1), std::min(edge.y(), canvas.height() - 1), 1, 1);
+    }
+  }
   return rect;
 }
 
@@ -1409,7 +1422,10 @@ void CanvasWidget::update_marquee_resize_drag(QPoint document_point, Qt::Keyboar
     apply_marquee_resize_rect(spacebar_reposition_start_marquee_rect_.translated(delta));
     return;
   }
-  const auto point = snapped_document_point(document_point);
+  // The handles stop at the image edge, as the drag-out does (GitHub issue 143).
+  const auto point = document_ != nullptr
+                         ? edge_clamped_document_point(*document_, snapped_document_point(document_point))
+                         : snapped_document_point(document_point);
   const auto start = marquee_resize_start_rect_;
   const auto handle = marquee_resize_handle_;
   const auto moves_left = handle == TransformHandle::TopLeft || handle == TransformHandle::Left ||
@@ -1465,6 +1481,13 @@ void CanvasWidget::update_marquee_resize_drag(QPoint document_point, Qt::Keyboar
     // Dragging through the opposite edge flips cleanly, never below 1 px.
     rect = QRect(std::min(left, right), std::min(top, bottom), std::max(1, std::abs(right - left)),
                  std::max(1, std::abs(bottom - top)));
+  }
+  if (document_ != nullptr) {
+    // Alt's mirrored side can still reach past the edge: clip it too (issue 143).
+    const auto clipped = rect.intersected(QRect(0, 0, document_->width(), document_->height()));
+    if (!clipped.isEmpty()) {
+      rect = clipped;
+    }
   }
   apply_marquee_resize_rect(rect);
 }

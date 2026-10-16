@@ -1358,6 +1358,58 @@ bool within_one(int value, int expected) {
 }
 }  // namespace
 
+// GitHub issue 143: neither a drag-out nor a handle drag takes the marquee past the
+// image edge; the live rectangle and its readout stop at the canvas.
+void ui_marquee_drag_and_handles_stop_at_the_canvas_edge() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* canvas = require_canvas(window);
+  canvas->set_tool(patchy::ui::CanvasTool::Marquee);
+  canvas->set_snap_enabled(false);
+  const auto& document = patchy::ui::MainWindowTestAccess::document(window);
+  const QRect canvas_rect(0, 0, document.width(), document.height());
+
+  // A drag-out past the bottom-right corner.
+  const auto from = canvas->widget_position_for_document_point(QPoint(document.width() - 100, document.height() - 80));
+  const auto beyond =
+      canvas->widget_position_for_document_point(QPoint(document.width() + 60, document.height() + 40));
+  drag(*canvas, from, beyond);
+  const auto dragged = canvas->selected_document_rect();
+  CHECK(dragged.has_value());
+  if (dragged.has_value()) {
+    CHECK(canvas_rect.contains(*dragged));
+    CHECK(dragged->right() == canvas_rect.right() && dragged->bottom() == canvas_rect.bottom());
+  }
+
+  // A corner handle dragged far outside stops at the edge while the drag is live.
+  drag(*canvas, canvas->widget_position_for_document_point(QPoint(100, 100)),
+       canvas->widget_position_for_document_point(QPoint(300, 260)));
+  const auto original = canvas->selected_document_rect();
+  CHECK(original.has_value());
+  if (!original.has_value()) {
+    return;
+  }
+  const auto corner = marquee_handle_position(*canvas, *original, 2, 2);
+  const auto far_outside =
+      canvas->widget_position_for_document_point(QPoint(document.width() + 200, document.height() + 150));
+  send_mouse(*canvas, QEvent::MouseButtonPress, corner, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*canvas, QEvent::MouseMove, far_outside, Qt::NoButton, Qt::LeftButton);
+  QApplication::processEvents();
+  const auto live = canvas->selected_document_rect();
+  CHECK(live.has_value());
+  if (live.has_value()) {
+    CHECK(live->right() <= canvas_rect.right() && live->bottom() <= canvas_rect.bottom());
+  }
+  send_mouse(*canvas, QEvent::MouseButtonRelease, far_outside, Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  const auto resized = canvas->selected_document_rect();
+  CHECK(resized.has_value());
+  if (resized.has_value()) {
+    CHECK(resized->x() == original->x() && resized->y() == original->y());
+    CHECK(resized->right() == canvas_rect.right() && resized->bottom() == canvas_rect.bottom());
+  }
+}
+
 void ui_marquee_edge_handle_drag_resizes_selection() {
   patchy::ui::MainWindow window;
   show_window(window);
@@ -2293,6 +2345,7 @@ std::vector<patchy::test::TestCase> selection_marquee_lasso_tests_part2() {
        ui_lasso_subtract_from_noncontiguous_wand_many_spans},
       {"ui_lasso_click_deselects", ui_lasso_click_deselects},
       {"ui_marquee_drag_moves_selection", ui_marquee_drag_moves_selection},
+      {"ui_marquee_drag_and_handles_stop_at_the_canvas_edge", ui_marquee_drag_and_handles_stop_at_the_canvas_edge},
       {"ui_marquee_edge_handle_drag_resizes_selection", ui_marquee_edge_handle_drag_resizes_selection},
       {"ui_marquee_handle_drag_space_repositions_then_resumes",
        ui_marquee_handle_drag_space_repositions_then_resumes},
