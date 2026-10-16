@@ -15,6 +15,7 @@
 #include "core/palette.hpp"
 #include "core/pixel_depth.hpp"
 #include "formats/document_flatten.hpp"
+#include "formats/avif_document_io.hpp"
 #include "formats/jxl_document_io.hpp"
 #include "formats/webp_animation_io.hpp"
 #include <QImageReader>
@@ -2767,6 +2768,54 @@ void ui_script_save_as_options_write_dds_and_jpeg() {
 
 // JPEG XL through the script API: still and animated exports, the effort key, 16-bit
 // saves and reopening (docs/jxl.md).
+void ui_script_save_as_options_write_avif() {
+  if (!patchy::avif::is_available()) {
+    std::cout << "[SKIP] this build has no AVIF codec\n";
+    return;
+  }
+  patchy::set_deep_editing_override(true);
+  patchy::ui::MainWindow window;
+  show_window(window);
+  QTemporaryDir directory;
+  CHECK(directory.isValid());
+  const auto base = directory.path() + QStringLiteral("/avif");
+  auto& host = window.script_engine_host();
+  patchy::ui::ScriptEngineHost::RunOptions options;
+  options.name = QStringLiteral("save-options-avif");
+  options.args = QStringList{QStringLiteral("base=") + base};
+  const auto source = QStringLiteral(R"JS(
+    var d = app.newDocument(24, 16);
+    d.activeLayer.fill('#ff3366');
+    var p = patchy.args.base;
+    if (!d.exportAs(p + '-q30.avif', {quality: 30, speed: 10})) throw Error('q30');
+    if (!d.saveAs(p + '-lossless.avif', {lossless: true, speed: 10, metadata: 'none'})) throw Error('lossless');
+    var a = app.open(p + '-lossless.avif');
+    if (a.width !== 24 || a.height !== 16) throw Error('size ' + a.width + 'x' + a.height);
+    var bad = false;
+    try { d.exportAs(p + '-bad.avif', {speed: 12}); } catch (e) { bad = true; }
+    if (!bad) throw Error('speed 12 was accepted');
+    bad = false;
+    try { d.exportAs(p + '-bad2.avif', {effort: 3}); } catch (e) { bad = true; }
+    if (!bad) throw Error('effort was accepted for avif');
+    d.convertBitDepth(16);
+    if (!d.saveAs(p + '-16.avif', {lossless: true, speed: 10})) throw Error('16');
+    var e = app.open(p + '-16.avif');
+    if (e.bitDepth !== 16) throw Error('reopened at ' + e.bitDepth + ' bits');
+    console.log('done');
+  )JS");
+  (void)host.run_source(source, std::move(options));
+  wait_for_run_end(host);
+  patchy::set_deep_editing_override(std::nullopt);
+  CHECK(!host.run_active());
+  if (host.last_run_had_error()) {
+    for (const auto& line : host.message_backlog()) std::cerr << line.toStdString() << '\n';
+  }
+  CHECK(!host.last_run_had_error());
+  CHECK(!QFileInfo::exists(base + QStringLiteral("-bad.avif")));
+  CHECK(!QFileInfo::exists(base + QStringLiteral("-bad2.avif")));
+  CHECK(QFileInfo::exists(base + QStringLiteral("-q30.avif")));
+}
+
 void ui_script_save_as_options_write_jxl() {
   patchy::set_deep_editing_override(true);
   patchy::ui::MainWindow window;
@@ -5517,6 +5566,7 @@ std::vector<patchy::test::TestCase> scripting_tests() {
       {"ui_script_canvas_window_renders_frames", ui_script_canvas_window_renders_frames},
       {"ui_script_save_as_options_write_dds_and_jpeg", ui_script_save_as_options_write_dds_and_jpeg},
       {"ui_script_save_as_options_write_jxl", ui_script_save_as_options_write_jxl},
+      {"ui_script_save_as_options_write_avif", ui_script_save_as_options_write_avif},
       {"ui_script_save_as_options_are_strict", ui_script_save_as_options_are_strict},
       {"ui_script_hotkey_runs_user_script", ui_script_hotkey_runs_user_script},
       {"ui_script_hotkey_ids_follow_relative_path", ui_script_hotkey_ids_follow_relative_path},

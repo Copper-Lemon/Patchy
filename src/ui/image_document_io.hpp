@@ -135,6 +135,12 @@ struct ImageSaveOptions {
   int jxl_quality{90};
   bool jxl_lossless{false};
   int jxl_effort{7};
+  // AVIF (docs/avif.md): 0-100 on libavif's quality scale, lossless (identity matrix), and
+  // encoder speed 0-10 (0 slowest and smallest, 6 avifenc's default). Persist as
+  // saveOptions/avifQuality, saveOptions/avifLossless and saveOptions/avifSpeed.
+  int avif_quality{80};
+  bool avif_lossless{false};
+  int avif_speed{6};
   // JPEG XL animation from the visible top-level layers, like webp_animate; the default
   // frame delay is the shared animation_frame_delay_ms.
   bool jxl_animate{false};

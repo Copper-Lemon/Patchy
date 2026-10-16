@@ -389,6 +389,7 @@ doc.exportAs("page.pdf", {imageQuality: "high", editableLayers: true});
 | `.webp` | `quality` (0 to 100), `lossless` |
 | `.jxr` | `quality` (1 to 100), `lossless` |
 | `.jxl` | `quality` (1 to 100), `lossless`, `effort` (1 to 9), `animate` (visible top-level layers become frames, top first), `frameDelayMs`, `loopCount` (0 loops forever) |
+| `.avif` | `quality` (0 to 100), `lossless`, `speed` (0 to 10, lower is smaller and slower) |
 | `.dds` | `compression` (`"auto"`, `"uncompressed"`, `"bc1"`, `"bc3"`, `"bc4"`, `"bc5"`, `"bc7"`), `mipmaps` (`"auto"`, `"on"`, `"off"`). Automatic keeps an opened .dds file's format and otherwise picks BC1 for opaque images and BC3 with transparency. |
 | `.ico`, `.cur` | `sizes` (an array from 16, 24, 32, 48, 64, 128, 256), `resample` (`"auto"`, `"nearest"`, `"smooth"`); `.cur` also `hotspot: {x, y}` |
 | `.bmp` | `encoding` (`"rgba32"`, `"rgb24"`, `"indexed8"`, `"indexed4"`, `"indexed2"`), `paletteMode` (`"exact"`, `"quantize"`, `"paletteFile"`), `palettePath` |
@@ -396,7 +397,7 @@ doc.exportAs("page.pdf", {imageQuality: "high", editableLayers: true});
 | `.pdf` | the `app.exportPdf` keys: `imageQuality`, `lossless`, `editableLayers`, `keepOriginalImageData`, `missingFontsAsImages` |
 | `.gif` | `animate` (visible top-level layers become frames, top first), `frameDelayMs` |
 
-`.jpg`, `.png`, `.tif`, `.webp`, `.gif` and `.jxl` also take `metadata` (`"all"`, the default; `"copyright"`; `"none"`): the File Info metadata written with the image. The color profile and resolution are always written.
+`.jpg`, `.png`, `.tif`, `.webp`, `.gif`, `.jxl` and `.avif` also take `metadata` (`"all"`, the default; `"copyright"`; `"none"`): the File Info metadata written with the image. The color profile and resolution are always written.
 
 `.jpg`, `.tif` and flattened `.pdf` also take `colorMode` (`"rgb"`, the default, or `"cmyk"`): CMYK for print, separated through the working CMYK profile from Preferences, which the file then embeds. Transparent areas become paper white. Add `blackInkOnly: true` to print black text and grays with black ink alone instead of four-ink rich black. Without `colorMode`, a document in CMYK Proof mode (`doc.cmykProof = true`, Image > Mode > CMYK Proof) saves those formats in CMYK and every other document saves RGB. Patchy opens a CMYK file as RGB again.
 

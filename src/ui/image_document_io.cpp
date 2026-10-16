@@ -2118,7 +2118,7 @@ std::vector<RenderedDocumentPatch> qimage_patch_from_document_rect_with_layer_pi
 bool image_format_preserves_alpha(std::string_view extension) noexcept {
   const auto lower = lower_extension(extension);
   return lower == "png" || lower == "tif" || lower == "tiff" || lower == "webp" || lower == "jxr" ||
-         lower == "wdp" || lower == "hdp" || lower == "jxl";
+         lower == "wdp" || lower == "hdp" || lower == "jxl" || lower == "avif";
 }
 
 namespace {
@@ -2563,7 +2563,7 @@ void write_bytes_with_save_file(const QString& path, std::span<const std::uint8_
 // (the encoder's bytes are then written untouched) or the format has no container for it.
 std::optional<metadata::SaveMetadata> save_metadata_for(const Document& document, const ImageSaveOptions& options,
                                                         std::string_view format, int width, int height) {
-  static const std::set<std::string_view> kCarriers{"jpg", "jpeg", "jpe", "jfif", "png", "tif", "tiff", "webp", "gif", "jxl"};
+  static const std::set<std::string_view> kCarriers{"jpg", "jpeg", "jpe", "jfif", "png", "tif", "tiff", "webp", "gif", "jxl", "avif"};
   if (!kCarriers.contains(format)) {
     return std::nullopt;
   }
@@ -2753,10 +2753,19 @@ void write_flat_image_file(const Document& document, const QString& path, const 
   if (heif::is_heif_extension(lower)) {
     throw std::runtime_error("HEIC/HEIF images are read-only in Patchy; save as PNG or PSD instead.");
   }
-  // AVIF is decode-only too (dav1d has no encoder); the KDE runtime's kimg_avif plug-in could
-  // otherwise AV1-encode a hand-typed .avif on the Flatpak alone (docs/avif.md).
   if (avif::is_avif_extension(lower)) {
-    throw std::runtime_error("AVIF images are read-only in Patchy; save as PNG or PSD instead.");
+    // Every platform, through the vendored libaom (docs/avif.md); the Exif and XMP items ride
+    // inside the container, so no injection step follows.
+    avif::WriteOptions avif_options;
+    avif_options.quality = std::clamp(options.avif_quality, 0, 100);
+    avif_options.lossless = options.avif_lossless;
+    avif_options.speed = std::clamp(options.avif_speed, 0, 10);
+    if (const auto metadata = save_metadata_for(document, options, "avif", document.width(), document.height())) {
+      avif_options.exif = metadata->exif;
+      avif_options.xmp.assign(metadata->xmp.begin(), metadata->xmp.end());
+    }
+    write_bytes_with_save_file(path, avif::write_avif(document, avif_options));
+    return;
   }
   if (lower == "tga") {
     tga::DocumentIo::write_file(document, to_filesystem_path(path));

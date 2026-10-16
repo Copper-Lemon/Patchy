@@ -55,6 +55,8 @@
 #include "formats/ico_document_io.hpp"
 #include "formats/tga_document_io.hpp"
 #include "ui/image_document_io.hpp"
+#include "formats/avif_document_io.hpp"
+#include "formats/format_file_io.hpp"
 #include "formats/jxl_document_io.hpp"
 #include "formats/jxr_document_io.hpp"
 #include "formats/dds_document_io.hpp"
@@ -3010,6 +3012,120 @@ void ui_jxl_opens_and_saves_as_a_read_write_format() {
   patchy::set_deep_editing_override(std::nullopt);
 }
 
+void ui_avif_opens_and_saves_as_a_read_write_format() {
+  if (!patchy::avif::is_available()) {
+    std::cout << "[SKIP] this build has no AVIF codec\n";
+    return;
+  }
+  ensure_artifact_dir();
+  CHECK(patchy::ui::image_format_preserves_alpha("avif"));
+  CHECK(patchy::ui::image_save_options_apply_to_extension(QStringLiteral("avif")));
+  const QString source_path = QStringLiteral("test-artifacts/avif_source.avif");
+  const auto source = jxl_test_gradient(12, 9);
+  {
+    patchy::Document document(12, 9, patchy::PixelFormat::rgba8());
+    document.add_pixel_layer("Background", source);
+    patchy::avif::WriteOptions options;
+    options.lossless = true;
+    options.speed = 10;
+    patchy::formats::write_file_bytes(patchy::ui::to_filesystem_path(source_path),
+                                      patchy::avif::write_avif(document, options), "AVIF");
+  }
+
+  patchy::ui::MainWindow window;
+  show_window(window);
+  patchy::ui::MainWindowTestAccess::open_document_path(window, source_path);
+  QApplication::processEvents();
+  auto& document = patchy::ui::MainWindowTestAccess::document(window);
+  CHECK(document.width() == 12);
+  CHECK(document.height() == 9);
+  CHECK(std::as_const(document).file_info().source_format == "AVIF");
+  const auto& layer = std::as_const(document).layers().front();
+  CHECK(layer.name() == "Background");
+  CHECK(layer.mask().has_value());
+  CHECK(patchy::layer_mask_is_document_alpha(layer));
+
+  // Save writes .avif in place through libaom; lossless gives the exact pixels back.
+  const QString saved = QStringLiteral("test-artifacts/avif_round_trip.avif");
+  QFile::remove(saved);
+  patchy::ui::ImageSaveOptions options;
+  options.avif_lossless = true;
+  options.avif_speed = 10;
+  CHECK(patchy::ui::MainWindowTestAccess::save_document_to_path(window, saved, options));
+  QFile saved_file(saved);
+  CHECK(saved_file.open(QIODevice::ReadOnly));
+  const auto saved_bytes = saved_file.readAll();
+  const auto reread = patchy::avif::read_avif(std::vector<std::uint8_t>(saved_bytes.begin(), saved_bytes.end()));
+  const auto& pixels = std::as_const(reread.document.layers().front()).pixels();
+  CHECK(pixels.format() == patchy::PixelFormat::rgba8());
+  for (std::int32_t y = 0; y < 9; ++y) {
+    for (std::int32_t x = 1; x < 12; ++x) {  // column 0 is fully transparent
+      CHECK(std::equal(pixels.pixel(x, y), pixels.pixel(x, y) + 4, source.pixel(x, y)));
+    }
+    CHECK(pixels.pixel(0, y)[3] == 0);
+  }
+}
+
+void ui_avif_save_options_persist_and_dialog() {
+  auto settings = patchy::ui::app_settings();
+  settings.remove(QStringLiteral("saveOptions"));
+  settings.sync();
+  auto defaults = patchy::ui::load_image_save_option_defaults();
+  CHECK(defaults.avif_quality == 80);
+  CHECK(!defaults.avif_lossless);
+  CHECK(defaults.avif_speed == 6);
+
+  defaults.avif_quality = 55;
+  defaults.avif_lossless = true;
+  defaults.avif_speed = 3;
+  patchy::ui::save_image_save_option_defaults(defaults);
+  auto reloaded = patchy::ui::load_image_save_option_defaults();
+  CHECK(reloaded.avif_quality == 55);
+  CHECK(reloaded.avif_lossless);
+  CHECK(reloaded.avif_speed == 3);
+  // Out-of-range stored values clamp instead of reaching the encoder.
+  settings.setValue(QStringLiteral("saveOptions/avifSpeed"), 40);
+  settings.setValue(QStringLiteral("saveOptions/avifQuality"), 300);
+  settings.sync();
+  reloaded = patchy::ui::load_image_save_option_defaults();
+  CHECK(reloaded.avif_speed == 10);
+  CHECK(reloaded.avif_quality == 100);
+
+  patchy::ui::MainWindow window;
+  show_window(window);
+  patchy::ui::ImageSaveOptions seed;
+  std::exception_ptr failure;
+  QTimer::singleShot(0, [&] {
+    auto* dialog = find_top_level_dialog(QStringLiteral("avifSaveOptionsDialog"));
+    try {
+      CHECK(dialog != nullptr);
+      auto* quality = dialog->findChild<QSpinBox*>(QStringLiteral("avifQualitySpin"));
+      auto* speed = dialog->findChild<QSpinBox*>(QStringLiteral("avifSpeedSpin"));
+      auto* lossless = dialog->findChild<QCheckBox*>(QStringLiteral("avifLosslessCheck"));
+      CHECK(quality && speed && lossless);
+      CHECK(dialog->findChild<QLabel*>(QStringLiteral("avifSaveNote")) != nullptr);
+      CHECK(quality->value() == 80);
+      CHECK(speed->value() == 6);
+      CHECK(no_clipped_labels(*dialog));
+      patchy::test::ui::save_widget_artifact("avif-save-options", *dialog);
+      speed->setValue(8);
+      lossless->setChecked(true);
+      CHECK(!quality->parentWidget()->isEnabled());
+      dialog->accept();
+    } catch (...) {
+      failure = std::current_exception();
+      if (dialog) dialog->reject();
+    }
+  });
+  const auto chosen = patchy::ui::prompt_image_save_options(&window, QStringLiteral("avif"), seed);
+  if (failure) std::rethrow_exception(failure);
+  CHECK(chosen.has_value());
+  CHECK(chosen->avif_speed == 8);
+  CHECK(chosen->avif_lossless);
+  settings.remove(QStringLiteral("saveOptions"));
+  settings.sync();
+}
+
 void ui_jxl_save_options_persist_and_dialog() {
   auto settings = patchy::ui::app_settings();
   settings.remove(QStringLiteral("saveOptions"));
@@ -3295,6 +3411,8 @@ std::vector<patchy::test::TestCase> flat_image_format_tests() {
        ui_jxr_save_options_persist_quality_and_lossless},
       {"ui_jxl_opens_and_saves_as_a_read_write_format", ui_jxl_opens_and_saves_as_a_read_write_format},
       {"ui_jxl_save_options_persist_and_dialog", ui_jxl_save_options_persist_and_dialog},
+      {"ui_avif_opens_and_saves_as_a_read_write_format", ui_avif_opens_and_saves_as_a_read_write_format},
+      {"ui_avif_save_options_persist_and_dialog", ui_avif_save_options_persist_and_dialog},
       {"ui_jxl_animated_save_round_trips", ui_jxl_animated_save_round_trips},
       {"ui_rttex_opens_and_saves_as_a_read_write_format", ui_rttex_opens_and_saves_as_a_read_write_format},
       {"ui_rttex_jpeg_save_round_trips_through_qt_encoder", ui_rttex_jpeg_save_round_trips_through_qt_encoder},

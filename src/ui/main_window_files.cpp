@@ -682,15 +682,18 @@ const QList<FileFormatEntry>& file_format_entries() {
                     {},
                     false,
                     false});
-    // AVIF decodes everywhere through the vendored libavif + dav1d (docs/avif.md); dav1d has
-    // no encoder, so the row is read-only. The browser build has no AV1 decoder and hides it.
+    // AVIF reads and writes everywhere through the vendored libavif (dav1d decodes, libaom
+    // encodes; docs/avif.md); saves use the primary extension. The browser build has neither
+    // codec and hides the row.
     QStringList avif_extensions;
     if (avif::is_available()) {
       for (const auto& extension : avif::avif_extensions()) {
         avif_extensions.push_back(QString::fromStdString(extension));
       }
     }
-    list.push_back({QT_TRANSLATE_NOOP("QObject", "AVIF Image"), avif_extensions, {}, false, false});
+    list.push_back({QT_TRANSLATE_NOOP("QObject", "AVIF Image"), avif_extensions,
+                    avif::is_available() ? QStringList{QStringLiteral("avif")} : QStringList{}, avif::is_available(),
+                    avif::is_available()});
     // JPEG XR reads and writes, but only where the in-box Windows codec exists: Qt has no
     // JPEG XR plugin, so on macOS/Linux/wasm the row would advertise an open and a save that
     // can only fail. Gate the whole row like the PDF row's conditional open half.

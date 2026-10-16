@@ -1951,7 +1951,7 @@ void avif_decodes_synthetic_still_and_rejects_damage() {
                                        0,   0,   0,   0,    'm', 'i', 'f', '1', 'h', 'e', 'i', 'c'};
   CHECK(!patchy::avif::sniff(heic));
   const auto* handler = patchy::builtin_format_registry().find_by_extension("avif");
-  CHECK(handler != nullptr && handler->identifier == "patchy.formats.avif" && !handler->can_write());
+  CHECK(handler != nullptr && handler->identifier == "patchy.formats.avif" && handler->can_write());
   if (!avif_decoder_present()) {
     return;
   }
@@ -2025,6 +2025,94 @@ void avif_imports_image_sequence_frames_as_layers() {
   CHECK(values.find(patchy::avif::kLoopCountMetadata) != values.end());
 }
 
+void avif_round_trips_losslessly_and_lossy_through_libaom() {
+  if (!avif_decoder_present()) {
+    return;
+  }
+  const auto* handler = patchy::builtin_format_registry().find_by_extension("avif");
+  CHECK(handler != nullptr && handler->can_write());
+  using patchy::BitDepth;
+  const auto make = [](BitDepth depth, bool translucent) {
+    const auto format = patchy::with_bit_depth(patchy::PixelFormat::rgba8(), depth);
+    patchy::Document document(21, 13, format);
+    document.color_state().bit_depth = depth;
+    patchy::PixelBuffer pixels(21, 13, format);
+    for (std::int32_t y = 0; y < 13; ++y) {
+      auto row = pixels.row(y);
+      for (std::int32_t x = 0; x < 21; ++x) {
+        const int values[4] = {x * 12 % 256, y * 19 % 256, (x * y) % 256, translucent && x >= 10 ? 96 + y : 255};
+        for (int c = 0; c < 4; ++c) {
+          if (depth == BitDepth::UInt8) {
+            row[x * 4 + c] = static_cast<std::uint8_t>(values[c]);
+          } else {
+            reinterpret_cast<std::uint16_t*>(row.data())[x * 4 + c] = static_cast<std::uint16_t>(values[c] * 257);
+          }
+        }
+      }
+    }
+    document.add_pixel_layer("Background", std::move(pixels));
+    return document;
+  };
+  // 8-bit lossless: the identity matrix and full range give the exact pixels back, alpha too.
+  {
+    const auto document = make(BitDepth::UInt8, true);
+    patchy::avif::WriteOptions options;
+    options.lossless = true;
+    options.speed = 10;
+    const auto bytes = patchy::avif::write_avif(document, options);
+    CHECK(patchy::avif::sniff(bytes));
+    const auto reopened = patchy::avif::read_avif(bytes);
+    CHECK(reopened.document.width() == 21 && reopened.document.height() == 13);
+    const auto& back = std::as_const(reopened.document).layers().front().pixels();
+    const auto& expected = std::as_const(document).layers().front().pixels();
+    CHECK(back.data().size() == expected.data().size());
+    if (back.data().size() == expected.data().size()) {
+      CHECK(std::equal(back.data().begin(), back.data().end(), expected.data().begin()));
+    }
+  }
+  // An opaque 8-bit lossy save: no alpha plane, colors within the codec's rounding.
+  {
+    const auto document = make(BitDepth::UInt8, false);
+    patchy::avif::WriteOptions options;
+    options.quality = 90;
+    options.speed = 10;
+    const auto bytes = patchy::avif::write_avif(document, options);
+    const auto reopened = patchy::avif::read_avif(bytes);
+    const auto& back = std::as_const(reopened.document).layers().front().pixels();
+    const auto& expected = std::as_const(document).layers().front().pixels();
+    int worst = 0;
+    for (std::int32_t y = 0; y < 13; ++y) {
+      for (std::int32_t x = 0; x < 21; ++x) {
+        CHECK(back.pixel(x, y)[3] == 255);
+        for (int c = 0; c < 3; ++c) {
+          worst = std::max(worst, std::abs(static_cast<int>(back.pixel(x, y)[c]) - static_cast<int>(expected.pixel(x, y)[c])));
+        }
+      }
+    }
+    CHECK(worst <= 24);
+  }
+  // 16-bit documents write 12-bit samples and reopen as 16-bit (deep editing on) within the
+  // 12-bit quantization step.
+  if (patchy::deep_editing_enabled()) {
+    const auto document = make(BitDepth::UInt16, true);
+    patchy::avif::WriteOptions options;
+    options.lossless = true;
+    options.speed = 10;
+    const auto bytes = patchy::avif::write_avif(document, options);
+    const auto reopened = patchy::avif::read_avif(bytes);
+    CHECK(std::as_const(reopened.document).color_state().bit_depth == BitDepth::UInt16);
+    const auto* back = reinterpret_cast<const std::uint16_t*>(std::as_const(reopened.document).layers().front().pixels().data().data());
+    const auto* expected = reinterpret_cast<const std::uint16_t*>(std::as_const(document).layers().front().pixels().data().data());
+    int worst = 0;
+    for (std::size_t i = 0; i < 21U * 13U * 4U; ++i) {
+      worst = std::max(worst, std::abs(static_cast<int>(back[i]) - static_cast<int>(expected[i])));
+    }
+    CHECK(worst <= 16);
+  }
+  // The registry writer uses the defaults and the result opens.
+  CHECK(handler->read(handler->write(make(BitDepth::UInt8, false))).document.width() == 21);
+}
+
 void avif_decodes_corpus_samples_if_available() {
   if (!avif_decoder_present()) {
     return;
@@ -2085,6 +2173,7 @@ std::vector<patchy::test::TestCase> flat_formats_misc_tests() {
       {"avif_decodes_synthetic_still_and_rejects_damage", avif_decodes_synthetic_still_and_rejects_damage},
       {"avif_imports_image_sequence_frames_as_layers", avif_imports_image_sequence_frames_as_layers},
       {"avif_decodes_corpus_samples_if_available", avif_decodes_corpus_samples_if_available},
+      {"avif_round_trips_losslessly_and_lossy_through_libaom", avif_round_trips_losslessly_and_lossy_through_libaom},
       {"aseprite_imports_layers_groups_and_palette", aseprite_imports_layers_groups_and_palette},
       {"aseprite_indexed_transparent_index", aseprite_indexed_transparent_index},
       {"aseprite_rejects_adobe_swatch_ase", aseprite_rejects_adobe_swatch_ase},

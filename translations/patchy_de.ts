@@ -10167,6 +10167,38 @@ RGB: %2, %3, %4</translation>
         <source>Animated AVIF: imported %1 frames as layers</source>
         <translation>AVIF-Animation: %1 Bilder als Ebenen importiert</translation>
     </message>
+    <message>
+        <source>Cannot write an empty image as AVIF</source>
+        <translation>Ein leeres Bild kann nicht als AVIF geschrieben werden</translation>
+    </message>
+    <message>
+        <source>The AVIF file could not be written</source>
+        <translation>Die AVIF-Datei konnte nicht geschrieben werden</translation>
+    </message>
+    <message>
+        <source>The AVIF encoder could not be created</source>
+        <translation>Der AVIF-Encoder konnte nicht erstellt werden</translation>
+    </message>
+    <message>
+        <source>AVIF images cannot be saved in the browser build of Patchy</source>
+        <translation>AVIF-Bilder können in der Browser-Version von Patchy nicht gespeichert werden</translation>
+    </message>
+    <message>
+        <source>AVIF Options</source>
+        <translation>AVIF-Optionen</translation>
+    </message>
+    <message>
+        <source>Lower speed makes smaller files and takes longer to save.</source>
+        <translation>Niedrigere Geschwindigkeit erzeugt kleinere Dateien und verlängert das Speichern.</translation>
+    </message>
+    <message>
+        <source>Speed:</source>
+        <translation>Geschwindigkeit:</translation>
+    </message>
+    <message>
+        <source>AVIF stores at most 12 bits per channel, so a 16-bit document is written with 12-bit samples. Saving a large image can take a while.</source>
+        <translation>AVIF speichert höchstens 12 Bit pro Kanal, daher wird ein 16-Bit-Dokument mit 12-Bit-Samples geschrieben. Das Speichern eines großen Bildes kann eine Weile dauern.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

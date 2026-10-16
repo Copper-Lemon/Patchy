@@ -10167,6 +10167,38 @@ RVB : %2, %3, %4</translation>
         <source>Animated AVIF: imported %1 frames as layers</source>
         <translation>AVIF animé : %1 images importées comme calques</translation>
     </message>
+    <message>
+        <source>Cannot write an empty image as AVIF</source>
+        <translation>Impossible d’écrire une image vide en AVIF</translation>
+    </message>
+    <message>
+        <source>The AVIF file could not be written</source>
+        <translation>Le fichier AVIF n’a pas pu être écrit</translation>
+    </message>
+    <message>
+        <source>The AVIF encoder could not be created</source>
+        <translation>L’encodeur AVIF n’a pas pu être créé</translation>
+    </message>
+    <message>
+        <source>AVIF images cannot be saved in the browser build of Patchy</source>
+        <translation>Les images AVIF ne peuvent pas être enregistrées dans la version navigateur de Patchy</translation>
+    </message>
+    <message>
+        <source>AVIF Options</source>
+        <translation>Options AVIF</translation>
+    </message>
+    <message>
+        <source>Lower speed makes smaller files and takes longer to save.</source>
+        <translation>Une vitesse plus basse produit des fichiers plus petits et allonge l’enregistrement.</translation>
+    </message>
+    <message>
+        <source>Speed:</source>
+        <translation>Vitesse :</translation>
+    </message>
+    <message>
+        <source>AVIF stores at most 12 bits per channel, so a 16-bit document is written with 12-bit samples. Saving a large image can take a while.</source>
+        <translation>AVIF stocke au plus 12 bits par couche, donc un document 16 bits est écrit avec des échantillons 12 bits. L’enregistrement d’une grande image peut prendre un moment.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

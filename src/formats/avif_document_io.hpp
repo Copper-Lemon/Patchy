@@ -21,8 +21,9 @@ namespace patchy::avif {
 // 12-bit samples and deep editing is on. The clean aperture, rotation and mirror properties
 // (clap, irot, imir) are applied in that order; an embedded ICC profile is kept on the
 // document's color state. An image sequence (animated AVIF) becomes one full-canvas layer
-// per frame, frame 1 on top, with the repetition count in kLoopCountMetadata. Patchy writes
-// no AVIF: dav1d has no encoder.
+// per frame, frame 1 on top, with the repetition count in kLoopCountMetadata. Writing goes
+// through the vendored libaom 3.15.2 encoder (src/formats/libaom, BSD-2 plus the AOM patent
+// grant): the flattened document as one 4:4:4 still, 8-bit or 12-bit samples.
 
 inline constexpr const char* kLoopCountMetadata = "avif.loop_count";
 
@@ -35,7 +36,7 @@ inline constexpr const char* kLoopCountMetadata = "avif.loop_count";
 // heif::sniff, never here.
 [[nodiscard]] bool sniff(std::span<const std::uint8_t> bytes) noexcept;
 
-// False in the browser build, where no AV1 decoder is compiled in.
+// False in the browser build, where neither AV1 codec is compiled in.
 [[nodiscard]] bool is_available() noexcept;
 
 struct ReadOptions {
@@ -60,5 +61,26 @@ struct ReadResult {
 [[nodiscard]] ReadResult read_avif_detailed(std::span<const std::uint8_t> bytes, const ReadOptions& options = {});
 // The registry's FormatReadFn.
 [[nodiscard]] FormatReadResult read_avif(std::span<const std::uint8_t> bytes);
+
+struct WriteOptions {
+  // 0-100 on libavif's quality scale; ignored when lossless.
+  int quality{80};
+  // The identity matrix at quality 100: 8-bit pixels come back exactly.
+  bool lossless{false};
+  // libavif's encoder speed, 0 (slowest, smallest) to 10 (fastest); 6 is avifenc's default.
+  int speed{6};
+  // Written as Exif and XMP items when non-empty. `exif` is a TIFF stream.
+  std::vector<std::uint8_t> exif;
+  std::vector<std::uint8_t> xmp;
+};
+
+// Encodes the flattened document as one 4:4:4 AVIF still: 8-bit documents as 8-bit samples,
+// 16-bit documents as 12-bit samples (the format's maximum), 32-bit documents through the
+// 8-bit flatten. Alpha is written only when some pixel is not opaque; an RGB ICC profile is
+// embedded, otherwise the sRGB nclx values. Throws std::runtime_error with a
+// PATCHY_TRANSLATE_NOOP message, libavif's reason after a colon.
+[[nodiscard]] std::vector<std::uint8_t> write_avif(const Document& document, const WriteOptions& options);
+// The registry's FormatWriteFn: default options.
+[[nodiscard]] std::vector<std::uint8_t> write_avif(const Document& document);
 
 }  // namespace patchy::avif

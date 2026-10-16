@@ -10137,6 +10137,38 @@ Mixed selection</source>
         <source>Animated AVIF: imported %1 frames as layers</source>
         <translation>アニメーション AVIF: %1 フレームをレイヤーとして読み込みました</translation>
     </message>
+    <message>
+        <source>Cannot write an empty image as AVIF</source>
+        <translation>空の画像は AVIF として書き出せません</translation>
+    </message>
+    <message>
+        <source>The AVIF file could not be written</source>
+        <translation>AVIF ファイルを書き出せませんでした</translation>
+    </message>
+    <message>
+        <source>The AVIF encoder could not be created</source>
+        <translation>AVIF エンコーダーを作成できませんでした</translation>
+    </message>
+    <message>
+        <source>AVIF images cannot be saved in the browser build of Patchy</source>
+        <translation>AVIF 画像はブラウザー版の Patchy では保存できません</translation>
+    </message>
+    <message>
+        <source>AVIF Options</source>
+        <translation>AVIF オプション</translation>
+    </message>
+    <message>
+        <source>Lower speed makes smaller files and takes longer to save.</source>
+        <translation>速度を下げるとファイルは小さくなりますが、保存に時間がかかります。</translation>
+    </message>
+    <message>
+        <source>Speed:</source>
+        <translation>速度:</translation>
+    </message>
+    <message>
+        <source>AVIF stores at most 12 bits per channel, so a 16-bit document is written with 12-bit samples. Saving a large image can take a while.</source>
+        <translation>AVIF はチャンネルあたり最大 12 ビットなので、16 ビットのドキュメントは 12 ビットのサンプルで書き出されます。大きな画像の保存には時間がかかることがあります。</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

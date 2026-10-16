@@ -62,6 +62,9 @@ Research record for Patchy's PSD format and copyright position, the HEIF codec b
     disputes this and no AV1 decoder distributor has been sued in the reviewed record.
     Precedent Seth relies on: GIMP, Krita, Firefox, Chrome, ImageMagick, GNOME and KDE image
     plug-ins all ship software AV1 decoders (dav1d or libaom) without a Sisvel licence.
-  - *Scope chosen*: decode only (dav1d has no encoder), which also keeps Patchy outside
-    every encoder-side claim; libavif's gain-map and sample-transform code compiles but
-    nothing calls it. No AV2 (avm) code. Not counsel's opinion.
+  - *Scope chosen*: dav1d decodes; libaom 3.15.2 (AOMedia's reference encoder, BSD-2 plus the
+    AOM Patent License 1.0, which grants royalty-free rights to its members' Necessary Claims
+    for any implementation of the specification and terminates for a licensee who sues over
+    AV1) encodes stills. Seth added writing the same day on the GIMP precedent (GIMP encodes
+    AVIF through libheif with libaom or rav1e). libavif's gain-map and sample-transform code
+    compiles but nothing calls it. No AV2 (avm) code. Not counsel's opinion.

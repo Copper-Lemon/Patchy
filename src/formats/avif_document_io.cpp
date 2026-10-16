@@ -3,6 +3,8 @@
 #include "core/pixel_depth.hpp"
 #include "core/worker_budget.hpp"
 #include "formats/animation_timing.hpp"
+#include "formats/document_flatten.hpp"
+#include "render/compositor.hpp"
 #include "support/string_utils.hpp"
 #include "support/translate_noop.hpp"
 
@@ -77,6 +79,10 @@ bool sniff(std::span<const std::uint8_t> bytes) noexcept {
 
 FormatReadResult read_avif(std::span<const std::uint8_t> bytes) {
   return std::move(read_avif_detailed(bytes).read);
+}
+
+std::vector<std::uint8_t> write_avif(const Document& document) {
+  return write_avif(document, WriteOptions{});
 }
 
 #if defined(PATCHY_AVIF_DECODER)
@@ -350,6 +356,135 @@ ReadResult read_avif_detailed(std::span<const std::uint8_t> bytes, const ReadOpt
   return result;
 }
 
+
+namespace {
+
+struct EncoderDeleter {
+  void operator()(avifEncoder* encoder) const noexcept {
+    avifEncoderDestroy(encoder);
+  }
+};
+struct ImageDeleter {
+  void operator()(avifImage* image) const noexcept {
+    avifImageDestroy(image);
+  }
+};
+
+[[nodiscard]] bool any_transparent(const PixelBuffer& rgba) {
+  if (rgba.format().channels < 4) {
+    return false;
+  }
+  for (std::int32_t y = 0; y < rgba.height(); ++y) {
+    for (std::int32_t x = 0; x < rgba.width(); ++x) {
+      if (pixel_alpha_at(rgba, x, y) < 1.0F) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+[[nodiscard]] std::runtime_error encode_failure(const char* noop_message, const avifEncoder* encoder,
+                                                avifResult result) {
+  std::string message = noop_message;
+  std::string detail;
+  if (encoder != nullptr && encoder->diag.error[0] != '\0') {
+    detail = encoder->diag.error;
+  } else if (result != AVIF_RESULT_OK) {
+    detail = avifResultToString(result);
+  }
+  if (!detail.empty()) {
+    message += ": ";
+    message += detail;
+  }
+  return std::runtime_error(message);
+}
+
+}  // namespace
+
+std::vector<std::uint8_t> write_avif(const Document& document, const WriteOptions& options) {
+  const bool deep = document.color_state().bit_depth == BitDepth::UInt16;
+  // 32-bit documents go through the 8-bit flatten (sRGB-encoded), like JPEG 2000.
+  const PixelBuffer flat = deep ? Compositor{}.flatten_rgba_deep(document) : flatten_document_rgba8(document);
+  const auto width = flat.width();
+  const auto height = flat.height();
+  if (width <= 0 || height <= 0) {
+    throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "Cannot write an empty image as AVIF"));
+  }
+  if (flat.format().channels != 4 || flat.format().bit_depth != (deep ? BitDepth::UInt16 : BitDepth::UInt8)) {
+    throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "The AVIF file could not be written"));
+  }
+  const bool alpha = any_transparent(flat);
+  // 12-bit is the deepest AVIF sample; libavif rescales the 16-bit input on the way.
+  std::unique_ptr<avifImage, ImageDeleter> image(avifImageCreate(
+      static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height), deep ? 12 : 8, AVIF_PIXEL_FORMAT_YUV444));
+  if (!image) {
+    throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "The AVIF file could not be written"));
+  }
+  image->yuvRange = AVIF_RANGE_FULL;
+  const auto& icc = document.color_state().embedded_icc_profile;
+  // An RGB profile header carries "RGB " at offset 16; anything else is not written.
+  const bool has_icc = icc.size() >= 20 && std::memcmp(icc.data() + 16, "RGB ", 4) == 0;
+  if (has_icc) {
+    if (avifImageSetProfileICC(image.get(), icc.data(), icc.size()) != AVIF_RESULT_OK) {
+      throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "The AVIF file could not be written"));
+    }
+    image->colorPrimaries = AVIF_COLOR_PRIMARIES_UNSPECIFIED;
+    image->transferCharacteristics = AVIF_TRANSFER_CHARACTERISTICS_UNSPECIFIED;
+  } else {
+    image->colorPrimaries = AVIF_COLOR_PRIMARIES_SRGB;
+    image->transferCharacteristics = AVIF_TRANSFER_CHARACTERISTICS_SRGB;
+  }
+  // Lossless needs the identity matrix (no YUV rounding); lossy uses the AVIF default.
+  image->matrixCoefficients = static_cast<avifMatrixCoefficients>(
+      options.lossless ? AVIF_MATRIX_COEFFICIENTS_IDENTITY : AVIF_MATRIX_COEFFICIENTS_BT601);
+  if (!options.exif.empty() &&
+      avifImageSetMetadataExif(image.get(), options.exif.data(), options.exif.size()) != AVIF_RESULT_OK) {
+    throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "The AVIF file could not be written"));
+  }
+  if (!options.xmp.empty() &&
+      avifImageSetMetadataXMP(image.get(), options.xmp.data(), options.xmp.size()) != AVIF_RESULT_OK) {
+    throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "The AVIF file could not be written"));
+  }
+
+  avifRGBImage rgb;
+  avifRGBImageSetDefaults(&rgb, image.get());
+  rgb.format = AVIF_RGB_FORMAT_RGBA;
+  rgb.depth = deep ? 16 : 8;
+  rgb.ignoreAlpha = alpha ? AVIF_FALSE : AVIF_TRUE;
+  rgb.alphaPremultiplied = AVIF_FALSE;
+  rgb.rowBytes = static_cast<std::uint32_t>(static_cast<std::size_t>(width) * bytes_per_pixel(flat.format()));
+  rgb.pixels = const_cast<std::uint8_t*>(flat.data().data());  // libavif only reads the source
+  rgb.maxThreads = std::clamp(max_blocking_fanout_workers(std::clamp(hardware_worker_threads(), 1, 16)), 1, 16);
+  if (const auto result = avifImageRGBToYUV(image.get(), &rgb); result != AVIF_RESULT_OK) {
+    throw encode_failure(PATCHY_TRANSLATE_NOOP("QObject", "The AVIF file could not be written"), nullptr, result);
+  }
+
+  std::unique_ptr<avifEncoder, EncoderDeleter> encoder(avifEncoderCreate());
+  if (!encoder) {
+    throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "The AVIF encoder could not be created"));
+  }
+  encoder->codecChoice = AVIF_CODEC_CHOICE_AOM;
+  encoder->maxThreads = rgb.maxThreads;
+  encoder->speed = std::clamp(options.speed, AVIF_SPEED_SLOWEST, AVIF_SPEED_FASTEST);
+  const int quality = std::clamp(options.quality, AVIF_QUALITY_WORST, AVIF_QUALITY_BEST);
+  encoder->quality = options.lossless ? AVIF_QUALITY_LOSSLESS : quality;
+  // Alpha edges show compression sooner than color does; keep the alpha plane at least at 90.
+  encoder->qualityAlpha = options.lossless ? AVIF_QUALITY_LOSSLESS : std::max(quality, 90);
+  encoder->autoTiling = AVIF_TRUE;
+  avifRWData output = AVIF_DATA_EMPTY;
+  const auto result = avifEncoderWrite(encoder.get(), image.get(), &output);
+  std::vector<std::uint8_t> bytes;
+  if (result == AVIF_RESULT_OK && output.data != nullptr) {
+    bytes.assign(output.data, output.data + output.size);
+  }
+  avifRWDataFree(&output);
+  if (result != AVIF_RESULT_OK) {
+    throw encode_failure(PATCHY_TRANSLATE_NOOP("QObject", "The AVIF file could not be written"), encoder.get(), result);
+  }
+  return bytes;
+}
+
 #else  // PATCHY_AVIF_DECODER
 
 bool is_available() noexcept {
@@ -358,6 +493,10 @@ bool is_available() noexcept {
 
 ReadResult read_avif_detailed(std::span<const std::uint8_t> /*bytes*/, const ReadOptions& /*options*/) {
   throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "AVIF images cannot be opened in the browser build of Patchy"));
+}
+
+std::vector<std::uint8_t> write_avif(const Document& /*document*/, const WriteOptions& /*options*/) {
+  throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "AVIF images cannot be saved in the browser build of Patchy"));
 }
 
 #endif  // PATCHY_AVIF_DECODER

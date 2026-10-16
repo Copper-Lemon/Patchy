@@ -10137,6 +10137,38 @@ RGB: %2, %3, %4</translation>
         <source>Animated AVIF: imported %1 frames as layers</source>
         <translation>애니메이션 AVIF: %1개 프레임을 레이어로 가져왔습니다</translation>
     </message>
+    <message>
+        <source>Cannot write an empty image as AVIF</source>
+        <translation>빈 이미지는 AVIF로 저장할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>The AVIF file could not be written</source>
+        <translation>AVIF 파일을 저장할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>The AVIF encoder could not be created</source>
+        <translation>AVIF 인코더를 만들 수 없습니다</translation>
+    </message>
+    <message>
+        <source>AVIF images cannot be saved in the browser build of Patchy</source>
+        <translation>AVIF 이미지는 Patchy의 브라우저 버전에서 저장할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>AVIF Options</source>
+        <translation>AVIF 옵션</translation>
+    </message>
+    <message>
+        <source>Lower speed makes smaller files and takes longer to save.</source>
+        <translation>속도를 낮추면 파일이 작아지지만 저장 시간이 길어집니다.</translation>
+    </message>
+    <message>
+        <source>Speed:</source>
+        <translation>속도:</translation>
+    </message>
+    <message>
+        <source>AVIF stores at most 12 bits per channel, so a 16-bit document is written with 12-bit samples. Saving a large image can take a while.</source>
+        <translation>AVIF는 채널당 최대 12비트를 저장하므로 16비트 문서는 12비트 샘플로 기록됩니다. 큰 이미지를 저장하는 데 시간이 걸릴 수 있습니다.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

@@ -195,7 +195,7 @@ and Affinity import has format-specific limitations. See [current compatibility]
 - G'MIC Filter Library: nearly 400 G'MIC filters built in (desktop), with a live preview on the canvas, draggable points for filters that take a position, filters that read or add several layers, and script access ([issue 87](https://github.com/SethRobinson/Patchy/issues/87))
 - CMYK for print: a CMYK working profile, CMYK color picker and Info readouts with a gamut warning, soft proofing with C, M, Y and K plates, CMYK export, and Image > Mode > CMYK Proof. CMYK JPEG and TIFF files open through their profile ([issue 90](https://github.com/SethRobinson/Patchy/issues/90))
 - JPEG XL: open and save .jxl files on every platform
-- AVIF: open .avif files on every platform, animated sequences as layers; no system codec needed ([issue 120](https://github.com/SethRobinson/Patchy/issues/120))
+- AVIF: open and save .avif files on every platform, animated sequences open as layers; no system codec needed ([issue 120](https://github.com/SethRobinson/Patchy/issues/120))
 - Linux: an official AppImage with one-click self-update ([issue 83](https://github.com/SethRobinson/Patchy/issues/83))
 - Filter > Last Filter (Ctrl+Alt+F by default) applies the last filter again with the same settings, G'MIC filters and plug-ins included, to the current layer and selection
 - Background layer: transparency is locked like Photoshop's, the Eraser paints the background color, and Image > Flatten Image was added ([issue 97](https://github.com/SethRobinson/Patchy/issues/97))

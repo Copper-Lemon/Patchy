@@ -614,12 +614,14 @@ interface PatchySelection {
  * Tokens are the persisted spellings and never change.
  */
 interface PatchySaveOptions {
-  /** .jpg/.jpeg (0..100), .webp (0..100), .jxr (1..100), .jxl (1..100), .rttex JPEG encoding (1..100). */
+  /** .jpg/.jpeg (0..100), .webp (0..100), .jxr (1..100), .jxl (1..100), .avif (0..100), .rttex JPEG encoding (1..100). */
   quality?: number;
-  /** .webp, .jxr, .jxl: lossless compression; .pdf: Flate image data (an imageQuality preset wins). */
+  /** .webp, .jxr, .jxl, .avif: lossless compression; .pdf: Flate image data (an imageQuality preset wins). */
   lossless?: boolean;
   /** .jxl: encoder effort, 1..9 (higher is smaller and slower). */
   effort?: number;
+  /** .avif: encoder speed, 0..10 (lower is smaller and slower; 6 is the default). */
+  speed?: number;
   /** .dds: "auto" keeps an opened .dds file's format, otherwise BC1 when opaque and BC3
    *  with transparency. Everything but "bc7" writes a legacy header. */
   compression?: "auto" | "uncompressed" | "bc1" | "bc3" | "bc4" | "bc5" | "bc7";
@@ -656,7 +658,7 @@ interface PatchySaveOptions {
   frameDelayMs?: number;
   /** .jxl animation: total plays, 0 (the default) loops forever, up to 65535. */
   loopCount?: number;
-  /** .jpg/.jpeg, .png, .tif/.tiff, .webp, .gif, .jxl: the File Info metadata to embed. "all"
+  /** .jpg/.jpeg, .png, .tif/.tiff, .webp, .gif, .jxl, .avif: the File Info metadata to embed. "all"
    *  (the default for saveAs and exportAs) writes everything; "copyright" keeps the author,
    *  copyright and creator contact fields; "none" writes no metadata. The color profile
    *  and resolution are always written. */

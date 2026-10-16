@@ -199,7 +199,7 @@ bool apply_key(KeyReader& reader, const QString& extension, const QString& key, 
   if (key == QStringLiteral("metadata") &&
       (is_jpeg_extension(extension) || is_webp_extension(extension) || extension == QStringLiteral("png") ||
        extension == QStringLiteral("tif") || extension == QStringLiteral("tiff") ||
-       extension == QStringLiteral("gif") || is_jxl_extension(extension))) {
+       extension == QStringLiteral("gif") || is_jxl_extension(extension) || is_avif_extension(extension))) {
     reader.read_token(key, value, {QStringLiteral("all"), QStringLiteral("copyright"), QStringLiteral("none")},
                       [&](const QString& token) {
                         options.metadata_policy =
@@ -249,6 +249,21 @@ bool apply_key(KeyReader& reader, const QString& extension, const QString& key, 
     }
     if (key == QStringLiteral("lossless")) {
       reader.read_bool(key, value, options.jxr_lossless);
+      return true;
+    }
+    return false;
+  }
+  if (is_avif_extension(extension)) {
+    if (key == QStringLiteral("quality")) {
+      reader.read_int(key, value, 0, 100, options.avif_quality);
+      return true;
+    }
+    if (key == QStringLiteral("lossless")) {
+      reader.read_bool(key, value, options.avif_lossless);
+      return true;
+    }
+    if (key == QStringLiteral("speed")) {
+      reader.read_int(key, value, 0, 10, options.avif_speed);
       return true;
     }
     return false;

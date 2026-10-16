@@ -22,7 +22,7 @@ Desktop file drops copy the accepted local paths and queue processing on the mai
 
 ## Per-format catalogue
 
-Everything reads and writes except camera raw, HEIF/HEIC, AVIF and .af (read-only); JPEG XR reads and writes on Windows only. Modules live in src/formats/, Qt-free, explicit-endian via `binary_le.hpp` (LE) or `psd_binary.hpp` (BE).
+Everything reads and writes except camera raw, HEIF/HEIC and .af (read-only); JPEG XR reads and writes on Windows only. Modules live in src/formats/, Qt-free, explicit-endian via `binary_le.hpp` (LE) or `psd_binary.hpp` (BE).
 
 - PSD/PSB: PSB section below plus [ps-compat.md](ps-compat.md); 16/32-bit files open at their depth while deep editing is on ([high-bit-depth.md](high-bit-depth.md)), else convert to 8-bit (section below). An unnamed layer record takes Photoshop's display name: "Layer N" (N counts ordinary layers from the bottom, 1-based), or "Background" for a bottom record with no transparency channel.
 - BMP: includes 32-bit `BI_RGB`/compression 0, whose 4th byte Patchy keeps (feeds document-alpha import below).

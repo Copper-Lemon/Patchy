@@ -558,7 +558,7 @@ ExportSectionWidgets add_export_options_section(QVBoxLayout* content, QDialog& d
   if (is_jpeg_extension(lower_extension) || is_webp_extension(lower_extension) ||
       lower_extension == QStringLiteral("png") || lower_extension == QStringLiteral("tif") ||
       lower_extension == QStringLiteral("tiff") || lower_extension == QStringLiteral("gif") ||
-      is_jxl_extension(lower_extension)) {
+      is_jxl_extension(lower_extension) || is_avif_extension(lower_extension)) {
     auto* metadata_row = new QWidget(&dialog);
     auto* metadata_layout = new QHBoxLayout(metadata_row);
     metadata_layout->setContentsMargins(0, 0, 0, 0);
@@ -761,8 +761,8 @@ std::optional<ExportSectionWidgets> finish_options_dialog(QVBoxLayout* content, 
 bool image_save_options_apply_to_extension(const QString& extension) {
   return is_jpeg_extension(extension) || is_webp_extension(extension) || is_bmp_extension(extension) ||
          is_ico_extension(extension) || is_cur_extension(extension) || is_pdf_extension(extension) ||
-         is_jxr_extension(extension) || is_jxl_extension(extension) || is_rttex_extension(extension) ||
-         is_dds_extension(extension);
+         is_jxr_extension(extension) || is_jxl_extension(extension) || is_avif_extension(extension) ||
+         is_rttex_extension(extension) || is_dds_extension(extension);
 }
 
 void populate_pdf_image_quality_combo(QComboBox& combo, const QString& current_id) {
@@ -854,6 +854,11 @@ ImageSaveOptions load_image_save_option_defaults() {
   options.jxl_lossless = settings.value(QStringLiteral("saveOptions/jxlLossless"), options.jxl_lossless).toBool();
   options.jxl_effort =
       std::clamp(settings.value(QStringLiteral("saveOptions/jxlEffort"), options.jxl_effort).toInt(), 1, 9);
+  options.avif_quality =
+      std::clamp(settings.value(QStringLiteral("saveOptions/avifQuality"), options.avif_quality).toInt(), 0, 100);
+  options.avif_lossless = settings.value(QStringLiteral("saveOptions/avifLossless"), options.avif_lossless).toBool();
+  options.avif_speed =
+      std::clamp(settings.value(QStringLiteral("saveOptions/avifSpeed"), options.avif_speed).toInt(), 0, 10);
   options.rttex_encoding = rttex_encoding_from_key(
       settings.value(QStringLiteral("saveOptions/rttexEncoding"), rttex_encoding_key(options.rttex_encoding))
           .toString(),
@@ -912,6 +917,9 @@ void save_image_save_option_defaults(const ImageSaveOptions& options) {
   settings.setValue(QStringLiteral("saveOptions/jxlQuality"), std::clamp(options.jxl_quality, 1, 100));
   settings.setValue(QStringLiteral("saveOptions/jxlLossless"), options.jxl_lossless);
   settings.setValue(QStringLiteral("saveOptions/jxlEffort"), std::clamp(options.jxl_effort, 1, 9));
+  settings.setValue(QStringLiteral("saveOptions/avifQuality"), std::clamp(options.avif_quality, 0, 100));
+  settings.setValue(QStringLiteral("saveOptions/avifLossless"), options.avif_lossless);
+  settings.setValue(QStringLiteral("saveOptions/avifSpeed"), std::clamp(options.avif_speed, 0, 10));
   settings.setValue(QStringLiteral("saveOptions/rttexEncoding"), rttex_encoding_key(options.rttex_encoding));
   settings.setValue(QStringLiteral("saveOptions/rttexJpegQuality"), std::clamp(options.rttex_jpeg_quality, 1, 100));
   settings.setValue(QStringLiteral("saveOptions/rttexPowerOfTwo"), rttex_power_of_two_key(options.rttex_power_of_two));
@@ -1198,6 +1206,61 @@ std::optional<ImageSaveOptions> prompt_image_save_options(QWidget* parent, const
     options.jxl_quality = quality->value();
     options.jxl_effort = effort->value();
     options.jxl_lossless = lossless->isChecked();
+    if (section.has_value()) {
+      apply_export_section(options, *section);
+    }
+    return options;
+  }
+
+  if (is_avif_extension(extension)) {
+    QDialog dialog(parent);
+    dialog.setObjectName(QStringLiteral("avifSaveOptionsDialog"));
+    auto* content = create_options_dialog_chrome(dialog, QObject::tr("AVIF Options"));
+    dialog.resize(400, 230);
+
+    auto* form = new QFormLayout();
+    form->setContentsMargins(0, 0, 0, 0);
+    form->setHorizontalSpacing(10);
+    form->setVerticalSpacing(8);
+    auto* quality = add_dialog_slider_spin_row(form, &dialog, QObject::tr("Quality:"),
+                                               QStringLiteral("avifQualitySlider"), QStringLiteral("avifQualitySpin"),
+                                               0, 100, std::clamp(options.avif_quality, 0, 100),
+                                               QStringLiteral("%"), 88, 8);
+    auto* speed = new QSpinBox(&dialog);
+    speed->setObjectName(QStringLiteral("avifSpeedSpin"));
+    speed->setRange(0, 10);
+    speed->setValue(std::clamp(options.avif_speed, 0, 10));
+    speed->setToolTip(QObject::tr("Lower speed makes smaller files and takes longer to save."));
+    configure_dialog_spinbox(speed, 72);
+    form->addRow(QObject::tr("Speed:"), speed);
+    content->addLayout(form);
+
+    auto* lossless = new QCheckBox(QObject::tr("Lossless (larger file)"), &dialog);
+    lossless->setObjectName(QStringLiteral("avifLosslessCheck"));
+    lossless->setChecked(options.avif_lossless);
+    content->addWidget(lossless);
+
+    auto* note = new QLabel(QObject::tr("AVIF stores at most 12 bits per channel, so a 16-bit document is written "
+                                        "with 12-bit samples. Saving a large image can take a while."),
+                            &dialog);
+    note->setObjectName(QStringLiteral("avifSaveNote"));
+    note->setWordWrap(true);
+    content->addWidget(note);
+    const auto section = finish_options_dialog(content, dialog, for_export, extension, document_size);
+
+    // Lossless ignores the quality value, so the row goes dead rather than showing a
+    // number the file will not use.
+    auto* quality_row = quality->parentWidget();
+    const auto sync_quality_enabled = [quality_row, lossless] { quality_row->setEnabled(!lossless->isChecked()); };
+    QObject::connect(lossless, &QCheckBox::toggled, &dialog, [sync_quality_enabled](bool) { sync_quality_enabled(); });
+    sync_quality_enabled();
+
+    if (exec_dialog(dialog) != QDialog::Accepted) {
+      return std::nullopt;
+    }
+    options.avif_quality = quality->value();
+    options.avif_speed = speed->value();
+    options.avif_lossless = lossless->isChecked();
     if (section.has_value()) {
       apply_export_section(options, *section);
     }

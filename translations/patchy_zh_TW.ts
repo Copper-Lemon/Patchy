@@ -10137,6 +10137,38 @@ RGB：%2, %3, %4</translation>
         <source>Animated AVIF: imported %1 frames as layers</source>
         <translation>動畫 AVIF: 已將 %1 個影格匯入為圖層</translation>
     </message>
+    <message>
+        <source>Cannot write an empty image as AVIF</source>
+        <translation>無法將空白影像寫成 AVIF</translation>
+    </message>
+    <message>
+        <source>The AVIF file could not be written</source>
+        <translation>無法寫入 AVIF 檔案</translation>
+    </message>
+    <message>
+        <source>The AVIF encoder could not be created</source>
+        <translation>無法建立 AVIF 編碼器</translation>
+    </message>
+    <message>
+        <source>AVIF images cannot be saved in the browser build of Patchy</source>
+        <translation>瀏覽器版 Patchy 無法儲存 AVIF 影像</translation>
+    </message>
+    <message>
+        <source>AVIF Options</source>
+        <translation>AVIF 選項</translation>
+    </message>
+    <message>
+        <source>Lower speed makes smaller files and takes longer to save.</source>
+        <translation>較低的速度可產生較小的檔案，但儲存時間較長。</translation>
+    </message>
+    <message>
+        <source>Speed:</source>
+        <translation>速度:</translation>
+    </message>
+    <message>
+        <source>AVIF stores at most 12 bits per channel, so a 16-bit document is written with 12-bit samples. Saving a large image can take a while.</source>
+        <translation>AVIF 每個色版最多儲存 12 位元，因此 16 位元文件會以 12 位元樣本寫入。儲存大型影像可能需要一些時間。</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

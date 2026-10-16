@@ -7,6 +7,11 @@ attachment, palettes, vector automation, brushes, Slow mode and Pause) are in
 [scripting-api-changes-through-2026-09-11.md](scripting-api-changes-through-2026-09-11.md).
 Every entry below is API 1.
 
+2026-10-16 (additive): AVIF. `app.open`, `doc.saveAs` and `doc.exportAs` handle `.avif`
+(docs/avif.md). `PatchySaveOptions` gains `speed` (0 to 10) for `.avif`, which also takes
+`quality` (0 to 100), `lossless` and `metadata`. Permanent identifiers: the `speed` key and
+the `saveOptions/avifQuality`, `avifLossless`, `avifSpeed` settings. Pinned by
+`ui_script_save_as_options_write_avif`.
 2026-10-15 (behavioral): `app.open` of a CMYK JPEG or TIFF converts through the file's CMYK
 profile (else the working one) instead of a profile-free conversion, and the document opens
 with `doc.cmykProof` true when the working space has a profile. Pinned by
