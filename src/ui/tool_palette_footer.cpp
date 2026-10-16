@@ -86,20 +86,23 @@ void ColorWellGlyphButton::paintEvent(QPaintEvent* /*event*/) {
     painter.drawRect(QRectF(1.5, 1.5, 7.0, 7.0));
     return;
   }
-  // Two short arrows bending between the two swatches' corners.
+  // A double-headed arrow bending around the free upper-right corner, as in
+  // Photoshop: one head points left at the foreground swatch beside it, the
+  // other down at the background swatch below it (GitHub issue 115 reported the
+  // earlier glyph, which bulged the other way, as rotated by 90 degrees).
   QPen pen(ink, 1.3);
   pen.setCapStyle(Qt::RoundCap);
   pen.setJoinStyle(Qt::RoundJoin);
   painter.setPen(pen);
   painter.setBrush(Qt::NoBrush);
   QPainterPath arc;
-  arc.moveTo(3.0, 10.5);
-  arc.quadTo(3.0, 3.5, 10.5, 3.5);
+  arc.moveTo(2.5, 3.5);
+  arc.quadTo(10.5, 3.5, 10.5, 11.5);
   painter.drawPath(arc);
-  painter.drawLine(QPointF(10.5, 3.5), QPointF(8.0, 1.5));
-  painter.drawLine(QPointF(10.5, 3.5), QPointF(8.0, 5.5));
-  painter.drawLine(QPointF(3.0, 10.5), QPointF(1.0, 8.0));
-  painter.drawLine(QPointF(3.0, 10.5), QPointF(5.0, 8.0));
+  painter.drawLine(QPointF(2.5, 3.5), QPointF(5.0, 1.5));
+  painter.drawLine(QPointF(2.5, 3.5), QPointF(5.0, 5.5));
+  painter.drawLine(QPointF(10.5, 11.5), QPointF(8.5, 9.5));
+  painter.drawLine(QPointF(10.5, 11.5), QPointF(12.5, 9.5));
 }
 
 ToolPaletteFooter::ToolPaletteFooter(QAction* default_colors, QAction* swap_colors, QAction* quick_mask,
