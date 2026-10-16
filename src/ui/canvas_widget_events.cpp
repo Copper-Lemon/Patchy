@@ -759,6 +759,10 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
       (tool_ == CanvasTool::Eyedropper ||
        ((event->modifiers() & Qt::AltModifier) != 0 && tool_uses_alt_left_for_color_pick(tool_)));
   if (color_pick_press) {
+    // Photoshop's convention (GitHub issue 150): with the Eyedropper tool itself,
+    // Alt+click sets the background color. The paint tools' Alt eyedropper is
+    // the other branch of color_pick_press and keeps setting the foreground.
+    color_pick_to_background_ = tool_ == CanvasTool::Eyedropper && (event->modifiers() & Qt::AltModifier) != 0;
     begin_color_pick(event->pos(), event->globalPosition().toPoint());
     event->accept();
     return;

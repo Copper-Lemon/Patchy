@@ -1428,6 +1428,7 @@ void CanvasWidget::end_color_pick() {
     return;
   }
   color_picking_ = false;
+  color_pick_to_background_ = false;
   if (QWidget::mouseGrabber() == this) {
     releaseMouse();
   }
@@ -1439,6 +1440,13 @@ void CanvasWidget::set_picked_color(QColor picked) {
     return;
   }
   picked.setAlpha(255);
+  if (color_pick_to_background_) {
+    secondary_color_ = picked;
+    if (background_color_picked_callback_) {
+      background_color_picked_callback_(picked);
+    }
+    return;
+  }
   primary_color_ = picked;
   if (color_picked_callback_) {
     color_picked_callback_(picked);

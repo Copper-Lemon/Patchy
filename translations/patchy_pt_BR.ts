@@ -21097,6 +21097,10 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
         <source>Flipped canvas vertically</source>
         <translation>Tela invertida verticalmente</translation>
     </message>
+    <message>
+        <source>Picked background color %1, %2, %3 (%4)</source>
+        <translation>Cor de fundo escolhida %1, %2, %3 (%4)</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

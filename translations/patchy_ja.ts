@@ -21034,6 +21034,10 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <source>Flipped canvas vertically</source>
         <translation>キャンバスを垂直方向に反転しました</translation>
     </message>
+    <message>
+        <source>Picked background color %1, %2, %3 (%4)</source>
+        <translation>背景色を取得しました %1, %2, %3 (%4)</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

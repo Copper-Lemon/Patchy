@@ -21055,11 +21055,11 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
     </message>
     <message>
         <source>Mirror the whole image left to right</source>
-        <translation>Inverser toute l'image de gauche à droite</translation>
+        <translation>Inverser toute l&apos;image de gauche à droite</translation>
     </message>
     <message>
         <source>Mirror the whole image top to bottom</source>
-        <translation>Inverser toute l'image de haut en bas</translation>
+        <translation>Inverser toute l&apos;image de haut en bas</translation>
     </message>
     <message>
         <source>Use Free Transform or rasterize Smart Objects before rotating</source>
@@ -21096,6 +21096,10 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
     <message>
         <source>Flipped canvas vertically</source>
         <translation>Zone de travail inversée verticalement</translation>
+    </message>
+    <message>
+        <source>Picked background color %1, %2, %3 (%4)</source>
+        <translation>Couleur d'arrière-plan prélevée %1, %2, %3 (%4)</translation>
     </message>
 </context>
 <context>

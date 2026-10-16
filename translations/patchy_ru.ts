@@ -21160,6 +21160,10 @@ Patchy может скачать обновление, заменить этот
         <source>Flipped canvas vertically</source>
         <translation>Холст отражён по вертикали</translation>
     </message>
+    <message>
+        <source>Picked background color %1, %2, %3 (%4)</source>
+        <translation>Выбранный цвет фона %1, %2, %3 (%4)</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

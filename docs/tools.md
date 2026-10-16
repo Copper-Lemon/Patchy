@@ -58,6 +58,10 @@ Corner handles scale proportionally on their own and Shift releases the lock, ma
 
 Image > Rotate Right / Left / 180 and Flip Horizontal / Vertical act on the whole document (`rotate_document_*`, `flip_document_*` in core/document_geometry.cpp: every layer's pixels, bounds and mask, the channels, text transforms, smart-object placements, vector data). Layer > Arrange > Rotate Layer Right / Left / 180 turn the selected pixel layers about their own centers (`rotate_layer_*(Document&, LayerId)`: a quarter turn about the canvas plus the translation that restores the center, rounded to whole pixels), with the flip handler's guards (no smart objects, pixel locks, channel targets). Hotkey ids `image.rotate_180`, `image.flip_horizontal`, `image.flip_vertical`, `layer.rotate_cw`, `layer.rotate_ccw`, `layer.rotate_180` (GitHub issue 139). Tests: `document_flips_and_half_turn_mirror_every_layer_and_channel`, `layer_quarter_turns_keep_the_layer_center`, `ui_image_flip_and_layer_rotate_menu_actions_apply`.
 
+## Eyedropper
+
+A click sets the foreground color; with the Eyedropper tool active, Alt+click sets the background color instead (Photoshop's convention, GitHub issue 150; `color_pick_to_background_`, reported through `set_background_color_picked_callback`). The paint tools' temporary Alt eyedropper (`tool_uses_alt_left_for_color_pick`) always sets the foreground. Test: `ui_eyedropper_alt_click_picks_the_background_color`.
+
 ## Arrow-key nudging
 
 Canvas arrow nudges ignore `Qt::KeypadModifier` before checking for plain or

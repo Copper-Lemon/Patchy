@@ -21160,6 +21160,10 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
         <source>Flipped canvas vertically</source>
         <translation>Odbito płótno w pionie</translation>
     </message>
+    <message>
+        <source>Picked background color %1, %2, %3 (%4)</source>
+        <translation>Wybrany kolor tła %1, %2, %3 (%4)</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

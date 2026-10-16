@@ -8649,6 +8649,19 @@ void MainWindow::configure_canvas(CanvasWidget* canvas) {
     }
     statusBar()->showMessage(message);
   });
+  // The Eyedropper's Alt+click (GitHub issue 150): the canvas already holds the
+  // new background color; mirror it into the color well and say so.
+  canvas->set_background_color_picked_callback([this, canvas](QColor color) {
+    if (canvas != canvas_) {
+      return;
+    }
+    refresh_color_buttons();
+    statusBar()->showMessage(tr("Picked background color %1, %2, %3 (%4)")
+                                 .arg(color.red())
+                                 .arg(color.green())
+                                 .arg(color.blue())
+                                 .arg(color.name(QColor::HexRgb).toUpper()));
+  });
   canvas->set_pen_button_action_callback(
       [this](PenButtonAction action) { handle_pen_button_action(action); });
   canvas->set_brush_settings_changed_callback([this, canvas] {

@@ -21024,6 +21024,10 @@ Patchy can download the update, replace this AppImage, and start again. You will
         <source>Flipped canvas vertically</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Picked background color %1, %2, %3 (%4)</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

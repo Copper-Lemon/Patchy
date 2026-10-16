@@ -21055,11 +21055,11 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
     </message>
     <message>
         <source>Mirror the whole image left to right</source>
-        <translation>Specchia l'intera immagine da sinistra a destra</translation>
+        <translation>Specchia l&apos;intera immagine da sinistra a destra</translation>
     </message>
     <message>
         <source>Mirror the whole image top to bottom</source>
-        <translation>Specchia l'intera immagine dall'alto in basso</translation>
+        <translation>Specchia l&apos;intera immagine dall&apos;alto in basso</translation>
     </message>
     <message>
         <source>Use Free Transform or rasterize Smart Objects before rotating</source>
@@ -21096,6 +21096,10 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
     <message>
         <source>Flipped canvas vertically</source>
         <translation>Quadro riflesso in verticale</translation>
+    </message>
+    <message>
+        <source>Picked background color %1, %2, %3 (%4)</source>
+        <translation>Colore di sfondo prelevato: %1, %2, %3 (%4)</translation>
     </message>
 </context>
 <context>
@@ -21525,7 +21529,7 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
     </message>
     <message>
         <source>Add the current color at the front of the custom colors, or replace the selected box (click a box to select it)</source>
-        <translation>Aggiunge il colore corrente all'inizio dei colori personalizzati o sostituisce la casella selezionata (fai clic su una casella per selezionarla)</translation>
+        <translation>Aggiunge il colore corrente all&apos;inizio dei colori personalizzati o sostituisce la casella selezionata (fai clic su una casella per selezionarla)</translation>
     </message>
 </context>
 <context>

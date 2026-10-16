@@ -21097,6 +21097,10 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
         <source>Flipped canvas vertically</source>
         <translation>Arbeitsfläche vertikal gespiegelt</translation>
     </message>
+    <message>
+        <source>Picked background color %1, %2, %3 (%4)</source>
+        <translation>Hintergrundfarbe %1, %2, %3 (%4) aufgenommen</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

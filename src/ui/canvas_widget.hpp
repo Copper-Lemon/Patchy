@@ -1311,6 +1311,11 @@ public:
   // or live Shift/Alt) so the Options-bar mode buttons can follow.
   void set_selection_mode_changed_callback(std::function<void(SelectionMode)> callback);
   void set_color_picked_callback(std::function<void(QColor)> callback);
+  // Reports a pick the Eyedropper tool made with Alt held, which lands in the
+  // background color (GitHub issue 150); the canvas has already stored it.
+  void set_background_color_picked_callback(std::function<void(QColor)> callback) {
+    background_color_picked_callback_ = std::move(callback);
+  }
   void set_transient_read_interaction(std::function<void(const CanvasReadGesture&)> callback,
                                       QCursor cursor = Qt::CrossCursor);
   void clear_transient_read_interaction();
@@ -3134,6 +3139,10 @@ private:
   std::function<bool(LayerId, QString, PixelBuffer, QRegion)> smart_filter_mask_committed_callback_;
   std::function<void(SelectionMode)> selection_mode_changed_callback_;
   std::function<void(QColor)> color_picked_callback_;
+  std::function<void(QColor)> background_color_picked_callback_;
+  // The Eyedropper tool's own Alt+click picks the background color; the paint
+  // tools' temporary Alt eyedropper always picks the foreground (issue 150).
+  bool color_pick_to_background_{false};
   std::function<void(const CanvasReadGesture&)> transient_read_callback_;
   QCursor transient_read_cursor_{Qt::CrossCursor};
   bool transient_read_dragging_{false};

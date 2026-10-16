@@ -2021,6 +2021,45 @@ void ui_eyedropper_picks_the_composite_of_a_16_bit_document() {
   CHECK(!color_close(canvas.primary_color(), QColor(1, 2, 3), 8));
 }
 
+// GitHub issue 150: with the Eyedropper tool, Alt+click picks into the BACKGROUND
+// color (Photoshop's convention); the paint tools' temporary Alt eyedropper keeps
+// picking the foreground.
+void ui_eyedropper_alt_click_picks_the_background_color() {
+  patchy::Document document(48, 16, patchy::PixelFormat::rgba8());
+  document.add_pixel_layer("Teal", solid_pixels(48, 16, patchy::PixelFormat::rgba8(), QColor(20, 140, 160)));
+  patchy::ui::CanvasWidget canvas;
+  canvas.resize(192, 64);
+  canvas.set_document(&document);
+  canvas.set_primary_color(QColor(1, 2, 3));
+  canvas.set_secondary_color(QColor(250, 250, 250));
+  canvas.show();
+  QApplication::processEvents();
+  const auto point = canvas.widget_position_for_document_point(QPoint(24, 8));
+
+  canvas.set_tool(patchy::ui::CanvasTool::Eyedropper);
+  send_mouse(canvas, QEvent::MouseButtonPress, point, Qt::LeftButton, Qt::LeftButton, Qt::AltModifier);
+  send_mouse(canvas, QEvent::MouseButtonRelease, point, Qt::LeftButton, Qt::NoButton, Qt::AltModifier);
+  QApplication::processEvents();
+  CHECK(color_close(canvas.secondary_color(), QColor(20, 140, 160), 1));
+  CHECK(canvas.primary_color() == QColor(1, 2, 3));
+
+  // A plain click still sets the foreground.
+  send_mouse(canvas, QEvent::MouseButtonPress, point, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(canvas, QEvent::MouseButtonRelease, point, Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(color_close(canvas.primary_color(), QColor(20, 140, 160), 1));
+
+  // The Brush tool's Alt eyedropper: foreground, never background.
+  canvas.set_primary_color(QColor(1, 2, 3));
+  canvas.set_secondary_color(QColor(250, 250, 250));
+  canvas.set_tool(patchy::ui::CanvasTool::Brush);
+  send_mouse(canvas, QEvent::MouseButtonPress, point, Qt::LeftButton, Qt::LeftButton, Qt::AltModifier);
+  send_mouse(canvas, QEvent::MouseButtonRelease, point, Qt::LeftButton, Qt::NoButton, Qt::AltModifier);
+  QApplication::processEvents();
+  CHECK(color_close(canvas.primary_color(), QColor(20, 140, 160), 1));
+  CHECK(canvas.secondary_color() == QColor(250, 250, 250));
+}
+
 // The 8-bit eyedropper reads the real composite, not a per-layer approximation: an
 // opaque red child inside a 50% group over white picks pink (the old sampler returned
 // pure red), a clipped layer shows only over its base, and every pick equals the
@@ -3348,6 +3387,7 @@ std::vector<patchy::test::TestCase> pickers_notices_hotkeys_tests() {
       {"ui_eyedropper_picks_the_composite_of_a_16_bit_document", ui_eyedropper_picks_the_composite_of_a_16_bit_document},
       {"ui_eyedropper_picks_group_opacity_and_clipping_composite",
        ui_eyedropper_picks_group_opacity_and_clipping_composite},
+      {"ui_eyedropper_alt_click_picks_the_background_color", ui_eyedropper_alt_click_picks_the_background_color},
       {"ui_eyedropper_starts_in_gray_area_and_drags_to_document_color",
        ui_eyedropper_starts_in_gray_area_and_drags_to_document_color},
       {"ui_photoshop_shortcuts_are_registered", ui_photoshop_shortcuts_are_registered},

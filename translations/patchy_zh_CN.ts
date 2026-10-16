@@ -21034,6 +21034,10 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
         <source>Flipped canvas vertically</source>
         <translation>已垂直翻转画布</translation>
     </message>
+    <message>
+        <source>Picked background color %1, %2, %3 (%4)</source>
+        <translation>已拾取背景色 %1、%2、%3 (%4)</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
