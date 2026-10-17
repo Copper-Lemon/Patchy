@@ -502,19 +502,26 @@ void ui_marquee_corner_radius_rounds_selection() {
   auto* radius = window.findChild<QSpinBox*>(QStringLiteral("selectionCornerRadiusSpin"));
   CHECK(radius != nullptr);
   CHECK(radius->isVisible());
-  // The Feather label and its field share one toolbar item, so the gap between
-  // them is set by hand to the toolbar's own item spacing, the gap every other
-  // label gets (GitHub issue 106).
+  // Feather is a plain label and field like Radius: the same gap after its
+  // label (GitHub issue 106) and the same full-height field, never clipped by
+  // a container (GitHub issue 160).
   auto* feather_field = window.findChild<QSpinBox*>(QStringLiteral("selectionFeatherSpin"));
-  auto* feather_group = window.findChild<QWidget*>(QStringLiteral("selectionFeatherGroup"));
-  CHECK(feather_field != nullptr && feather_group != nullptr);
-  if (feather_field != nullptr && feather_group != nullptr) {
-    auto* feather_label = feather_group->findChild<QLabel*>();
-    CHECK(feather_label != nullptr && feather_label->isVisible());
-    if (feather_label != nullptr) {
-      CHECK(feather_field->x() - (feather_label->x() + feather_label->width()) == 5);
+  auto* feather_label = window.findChild<QLabel*>(QStringLiteral("selectionFeatherLabel"));
+  QLabel* radius_label = nullptr;
+  for (auto* label : window.findChildren<QLabel*>()) {
+    if (label->isVisible() && label->property("optionLabel").toBool() && label->text() == QStringLiteral("Radius")) {
+      radius_label = label;
     }
   }
+  CHECK(feather_field != nullptr && feather_label != nullptr && radius_label != nullptr);
+  CHECK(feather_label->isVisible() && feather_field->isVisible());
+  CHECK(feather_label->text() == QStringLiteral("Feather"));
+  CHECK(feather_field->parentWidget() == radius->parentWidget());
+  CHECK(feather_field->x() - (feather_label->x() + feather_label->width()) ==
+        radius->x() - (radius_label->x() + radius_label->width()));
+  CHECK(feather_field->height() == radius->height());
+  CHECK(feather_field->y() == radius->y());
+  CHECK(feather_field->parentWidget()->rect().contains(feather_field->geometry()));
   radius->setValue(30);
   QApplication::processEvents();
   CHECK(canvas->marquee_corner_radius() == 30);

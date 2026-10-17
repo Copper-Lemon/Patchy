@@ -312,28 +312,6 @@ QString photoshop_style_template() {
       border: 1px solid @field_inset_border;
       border-top-color: @field_bevel_top;
     }
-    QWidget#selectionFeatherGroup {
-      background: transparent;
-      border: 0;
-      min-height: 24px;
-      max-height: 24px;
-    }
-    QWidget#selectionFeatherGroup QLabel {
-      background: transparent;
-      border: 0;
-      color: @text_bright;
-      min-height: 24px;
-      max-height: 24px;
-      padding: 0 0 0 5px;
-    }
-    QWidget#selectionFeatherGroup QSpinBox {
-      background: @field_bg;
-      border: 1px solid @field_inset_border;
-      border-top-color: @field_bevel_top;
-      min-height: 24px;
-      max-height: 24px;
-      padding-left: 4px;
-    }
     QToolBar#Options QCheckBox {
       color: @text_bright;
       min-height: 24px;

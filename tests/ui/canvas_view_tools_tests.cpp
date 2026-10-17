@@ -2395,7 +2395,7 @@ void ui_options_bar_tracks_active_tool() {
   auto* wand_contiguous = window.findChild<QCheckBox*>(QStringLiteral("wandContiguousCheck"));
   auto* wand_sample_all_layers = window.findChild<QCheckBox*>(QStringLiteral("wandSampleAllLayersCheck"));
   auto* zoom_scrubby = window.findChild<QCheckBox*>(QStringLiteral("zoomScrubbyCheck"));
-  auto* feather_group = window.findChild<QWidget*>(QStringLiteral("selectionFeatherGroup"));
+  auto* feather_group = window.findChild<QWidget*>(QStringLiteral("selectionFeatherSpin"));
   auto* anti_alias = window.findChild<QCheckBox*>(QStringLiteral("selectionAntiAliasCheck"));
   CHECK(move_auto_select != nullptr);
   CHECK(move_show_transform_controls != nullptr);
@@ -3104,15 +3104,12 @@ void ui_options_bar_labels_drop_the_trailing_colon() {
     }
     CHECK(visible_labels > 0);
   }
-  // The marquee's Feather label sits in its own group, bound the same way.
+  // The marquee's Feather label is an ordinary option label, bound the same way.
   require_action_by_text(window, QStringLiteral("Marquee"))->trigger();
   QApplication::processEvents();
-  auto* feather_group = window.findChild<QWidget*>(QStringLiteral("selectionFeatherGroup"));
-  if (feather_group != nullptr) {
-    if (auto* feather_label = feather_group->findChild<QLabel*>(); feather_label != nullptr) {
-      CHECK(feather_label->text() == QStringLiteral("Feather"));
-    }
-  }
+  auto* feather_label = window.findChild<QLabel*>(QStringLiteral("selectionFeatherLabel"));
+  CHECK(feather_label != nullptr);
+  CHECK(feather_label->text() == QStringLiteral("Feather"));
 }
 
 // Options-bar labels scrub their field (GitHub issue 46): a horizontal drag on

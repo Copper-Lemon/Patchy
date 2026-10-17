@@ -116,10 +116,6 @@ namespace patchy::ui {
 
 namespace {
 
-// The gap between options bar items (the toolbar's QSS `spacing`), for widgets that
-// group a label and its field into one item and must match it by hand.
-constexpr int kOptionsBarItemSpacing = 5;
-
 class CheckGlyphBox final : public QCheckBox {
 public:
   explicit CheckGlyphBox(const QString& text, QWidget* parent = nullptr) : QCheckBox(text, parent) {
@@ -875,30 +871,23 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
                         CanvasTool::MagneticLasso, CanvasTool::MagicWand, CanvasTool::QuickSelect,
                         CanvasTool::ObjectSelect});
 
-  auto* feather_group = new QWidget(toolbar);
-  feather_group->setObjectName(QStringLiteral("selectionFeatherGroup"));
-  auto* feather_layout = new QHBoxLayout(feather_group);
-  feather_layout->setContentsMargins(0, 0, 0, 0);
-  // The label and field share one toolbar item, so the toolbar's own item
-  // spacing does not separate them; use the same gap every other label gets
-  // (GitHub issue 106).
-  feather_layout->setSpacing(kOptionsBarItemSpacing);
-  auto* feather_label = new QLabel(tr("Feather:"), feather_group);
-  feather_label->setProperty(kTranslationStripsTrailingColonProperty, true);
-  bind_widget_text(feather_label, QT_TR_NOOP("Feather:"));
-  feather_label->setAlignment(Qt::AlignCenter);
-  feather_layout->addWidget(feather_label);
-  auto* feather = new UnitIntSpinBox(SpinUnit::Pixels, feather_group);
+  // A plain label and field like every other option. Feather used to share one
+  // nested group widget, whose height clipped the field's bottom edge on some
+  // desktops (GitHub issue 160).
+  add_option_label(QT_TR_NOOP("Feather:"), {CanvasTool::Marquee, CanvasTool::EllipticalMarquee, CanvasTool::Lasso,
+                                            CanvasTool::MagneticLasso, CanvasTool::MagicWand, CanvasTool::QuickSelect,
+                                            CanvasTool::ObjectSelect})
+      ->setObjectName(QStringLiteral("selectionFeatherLabel"));
+  auto* feather = new UnitIntSpinBox(SpinUnit::Pixels, options_content);
   feather->setObjectName(QStringLiteral("selectionFeatherSpin"));
   feather->set_context_provider(document_unit_context_provider(true));  // "2 mm" converts at the document PPI
   feather->setRange(0, kMaxSelectionFeatherRadius);
   feather->setValue(current_selection_feather_radius_);
   feather->setProperty(kToolbarSpinboxSliderCurvedProperty, true);
   configure_toolbar_spinbox(feather, 64);
-  feather_layout->addWidget(feather);
-  add_option_widget(feather_group, {CanvasTool::Marquee, CanvasTool::EllipticalMarquee, CanvasTool::Lasso,
-                                    CanvasTool::MagneticLasso, CanvasTool::MagicWand, CanvasTool::QuickSelect,
-                                    CanvasTool::ObjectSelect});
+  add_option_widget(feather, {CanvasTool::Marquee, CanvasTool::EllipticalMarquee, CanvasTool::Lasso,
+                              CanvasTool::MagneticLasso, CanvasTool::MagicWand, CanvasTool::QuickSelect,
+                              CanvasTool::ObjectSelect});
   auto* anti_alias = new CheckGlyphBox(tr("Anti-alias"), toolbar);
   bind_widget_text(anti_alias, QT_TR_NOOP("Anti-alias"));
   anti_alias->setObjectName(QStringLiteral("selectionAntiAliasCheck"));
