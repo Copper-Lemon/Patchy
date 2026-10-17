@@ -6691,6 +6691,13 @@ void ui_dialog_chrome_outline_reads_at_the_dialog_edge() {
     }
     CHECK(edge_vs_title >= 40);
     CHECK(edge_vs_chrome >= 40);
+    // Where no window-manager shadow exists the outline is 2 px, and the chrome
+    // content is inset by the same amount so the title bar never covers it.
+    const int edge_px = patchy::ui::frameless_window_edge_width();
+    CHECK(root->contentsMargins().left() == edge_px && root->contentsMargins().top() == edge_px);
+    if (edge_px >= 2) {
+      CHECK(channel_delta(shot.pixelColor(shot.width() / 2, 1), edge) < 8);
+    }
   }
 }
 

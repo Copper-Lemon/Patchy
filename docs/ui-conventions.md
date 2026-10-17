@@ -50,6 +50,8 @@ Modifier keys are named per platform two ways. The shortcut chip beside an actio
 
 ## Dialog lifecycle
 
+Frameless windows (the main window's custom chrome and every `install_dark_dialog_chrome` dialog) draw their only edge themselves: `frameless_window_edge_width()` is 1 px where the window server shadows the window (Windows DWM, macOS) and 2 px on X11, Wayland and wasm, which give a client-decorated window no shadow; `dialog_chrome_style` and `photoshop_style` read it, and the dialog chrome's root margins match it so the title bar never paints over the outline (`ui_dialog_chrome_outline_reads_at_the_dialog_edge`).
+
 Dialogs that react to closing must funnel every path through `done()`. `reject()` hides a dialog without a QCloseEvent, so closeEvent-only cleanup misses the chrome X and Esc. Do not override `reject()` to call `close()`: `QDialog::closeEvent` calls `reject()` and treats a still-visible dialog as vetoing the close.
 
 `patchy::ui::AppStyle` (`src/ui/app_style.cpp`, installed by main.cpp) wraps the platform style: slider and flyout hints, no icons on dialog buttons (Linux desktops add OK/Cancel glyphs drawn for their own scheme, GitHub issue 99), and Patchy's themed chevrons for toolbar overflow buttons. Never take chrome icons from the desktop icon theme.

@@ -681,12 +681,24 @@ void install_numeric_popup(SpinBox* spin) {
   new NumericPopupController<SpinBox>(spin);
 }
 
+}  // namespace
+
+int frameless_window_edge_width() {
+#if defined(Q_OS_WIN) || defined(Q_OS_MACOS)
+  return 1;
+#else
+  return 2;
+#endif
+}
+
+namespace {
+
 ThemedQss dialog_chrome_style() {
   return ThemedQss(QStringLiteral(R"(
     QDialog {
       background: @window_bg;
       color: @text_primary;
-      border: 1px solid @window_border;
+      border: @@EDGE@@px solid @window_border;
     }
     QWidget#dialogChromeTitleBar {
       background: @title_bar_bg;
@@ -730,7 +742,7 @@ ThemedQss dialog_chrome_style() {
       min-height: 22px;
       max-height: 22px;
     }
-  )"));
+  )").replace(QStringLiteral("@@EDGE@@"), QString::number(frameless_window_edge_width())));
 }
 
 class DialogChromeDragFilter final : public QObject {
@@ -1872,11 +1884,13 @@ QVBoxLayout* install_dark_dialog_chrome(QDialog& dialog, QVBoxLayout* root, cons
   dialog.setWindowFlag(Qt::FramelessWindowHint, true);
   apply_frameless_window_effects_on_show(dialog, WindowCornerRadius::Standard);
   append_themed_style(dialog, dialog_chrome_style());
-  // 1px inset, not zero: QSS draws the QDialog border under child widgets, so
-  // a full-bleed title bar would cover the outline. That outline is the only
-  // edge a floating dialog has where no window-manager shadow exists (wasm),
-  // and in Light the title bar shares @title_bar_bg with the chrome behind it.
-  root->setContentsMargins(1, 1, 1, 1);
+  // Inset by the outline width, not zero: QSS draws the QDialog border under
+  // child widgets, so a full-bleed title bar would cover the outline. That
+  // outline is the only edge a floating dialog has where no window-manager
+  // shadow exists (Linux, wasm; frameless_window_edge_width), and in Light the
+  // title bar shares @title_bar_bg with the chrome behind it.
+  const int edge = frameless_window_edge_width();
+  root->setContentsMargins(edge, edge, edge, edge);
   root->setSpacing(0);
 
   auto* title_bar = new QWidget(&dialog);

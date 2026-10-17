@@ -1233,7 +1233,15 @@ QString photoshop_style() {
   static QString cached;
   const auto generation = theme_generation();
   if (generation != cached_generation) {
-    cached = apply_theme_tokens(photoshop_style_template());
+    auto sheet = photoshop_style_template();
+    // Where the window server draws no shadow around the frameless main window
+    // (X11, Wayland), widen its outline so the window still has a visible edge
+    // against another window; see frameless_window_edge_width in dialog_utils.hpp.
+    if (MainWindow::use_custom_window_chrome() && frameless_window_edge_width() > 1) {
+      sheet += QStringLiteral("\nQMainWindow { border: %1px solid @window_border; }\n")
+                   .arg(frameless_window_edge_width());
+    }
+    cached = apply_theme_tokens(sheet);
     cached_generation = generation;
   }
   return cached;
