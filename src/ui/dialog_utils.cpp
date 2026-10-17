@@ -2516,6 +2516,31 @@ void offer_browser_download_for_saved_file(const QString& path) {
 #endif
 }
 
+void reserve_menu_icon_column(QMenu* menu) {
+  if (menu == nullptr) {
+    return;
+  }
+  QAction* first = nullptr;
+  for (auto* action : menu->actions()) {
+    if (action->isSeparator()) {
+      continue;
+    }
+    if (!action->icon().isNull() || action->isCheckable()) {
+      return;
+    }
+    if (first == nullptr) {
+      first = action;
+    }
+  }
+  if (first == nullptr) {
+    return;
+  }
+  QPixmap blank(16, 16);
+  blank.fill(Qt::transparent);
+  first->setIcon(QIcon(blank));
+  first->setIconVisibleInMenu(false);
+}
+
 void hide_menu_action_icons(QMenu* menu) {
   if (menu == nullptr) {
     return;

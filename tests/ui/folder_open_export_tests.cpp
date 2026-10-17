@@ -1,4 +1,8 @@
 #include <QStatusBar>
+#include <QImage>
+#include <QMenu>
+#include <QMenuBar>
+#include <QWidgetAction>
 #include "ui/canvas_widget.hpp"
 #include "formats/acv_curves_io.hpp"
 #include "formats/bmp_document_io.hpp"
@@ -10,6 +14,7 @@
 #include <atomic>
 #include <array>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <exception>
 #include <filesystem>
@@ -31,6 +36,7 @@
 #include "formats/pdf_document_io.hpp"
 #include "psd/psd_document_io.hpp"
 #include "ui/app_settings.hpp"
+#include "ui/dialog_utils.hpp"
 #include "ui/document_order_list.hpp"
 #include "ui/export_documents_folder_dialog.hpp"
 #include "ui/image_document_io.hpp"
@@ -769,6 +775,82 @@ void ui_file_export_menu_actions_registered() {
         QKeySequence(Qt::CTRL | Qt::ALT | Qt::SHIFT | Qt::Key_S));
 }
 
+// Distance from an action's row edge to the first drawn pixel of its text.
+int menu_text_start(QMenu& menu, QAction* action) {
+  menu.ensurePolished();
+  menu.adjustSize();
+  const QImage image = menu.grab().toImage();
+  const qreal dpr = image.devicePixelRatio();
+  const QRect row = menu.actionGeometry(action);
+  const int left = static_cast<int>(std::lround((row.left() + 1) * dpr));
+  const int right = static_cast<int>(std::lround(row.right() * dpr));
+  const int top = static_cast<int>(std::lround(row.top() * dpr));
+  const int bottom = static_cast<int>(std::lround(row.bottom() * dpr));
+  const QColor background = image.pixelColor(left, (top + bottom) / 2);
+  for (int x = left; x < right && x < image.width(); ++x) {
+    for (int y = top; y <= bottom && y < image.height(); ++y) {
+      const QColor color = image.pixelColor(x, y);
+      if (std::abs(color.red() - background.red()) + std::abs(color.green() - background.green()) +
+              std::abs(color.blue() - background.blue()) >
+          60) {
+        return static_cast<int>(std::lround(x / dpr)) - row.left();
+      }
+    }
+  }
+  return -1;
+}
+
+// Every menu-bar menu starts its text in the same column. Qt reserves the
+// check-and-icon column only in a menu holding an icon or a check mark, so the
+// Plugins menu off Windows (a note and a submenu) drew its text further left
+// than its neighbours until reserve_menu_icon_column (GitHub issue 131).
+void ui_menubar_menus_share_the_text_column() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+
+  const auto first_text_action = [](QMenu& menu) -> QAction* {
+    for (auto* action : menu.actions()) {
+      if (action->isVisible() && !action->isSeparator() && qobject_cast<QWidgetAction*>(action) == nullptr) {
+        return action;
+      }
+    }
+    return nullptr;
+  };
+  int expected = -1;
+  for (auto* top : window.menuBar()->actions()) {
+    auto* menu = top->menu();
+    if (menu == nullptr || !top->isVisible()) {
+      continue;
+    }
+    auto* action = first_text_action(*menu);
+    if (action == nullptr) {
+      continue;
+    }
+    const int start = menu_text_start(*menu, action);
+    std::printf("  %s: text starts %d px in\n", menu->objectName().toUtf8().constData(), start);
+    CHECK(start > 0);
+    if (expected < 0) {
+      expected = start;
+    }
+    // First letters differ in side bearing by a pixel or two; the missing
+    // column is over ten.
+    CHECK(std::abs(start - expected) <= 3);
+  }
+  CHECK(expected > 0);
+
+  QMenu bare(&window);
+  bare.addAction(QStringLiteral("Legacy entry"));
+  const int bare_start = menu_text_start(bare, bare.actions().front());
+  QMenu reserved(&window);
+  reserved.addAction(QStringLiteral("Legacy entry"));
+  reserved.addAction(QStringLiteral("Second entry"));
+  patchy::ui::reserve_menu_icon_column(&reserved);
+  patchy::ui::hide_menu_action_icons(&reserved);
+  const int reserved_start = menu_text_start(reserved, reserved.actions().front());
+  CHECK(bare_start > 0 && bare_start + 8 < expected);
+  CHECK(std::abs(reserved_start - expected) <= 3);
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> folder_open_export_tests() {
@@ -778,6 +860,7 @@ std::vector<patchy::test::TestCase> folder_open_export_tests() {
       {"ui_open_folder_drop_and_cli_expand_directories", ui_open_folder_drop_and_cli_expand_directories},
       {"ui_folder_actions_and_commands_registered", ui_folder_actions_and_commands_registered},
       {"ui_file_export_menu_actions_registered", ui_file_export_menu_actions_registered},
+      {"ui_menubar_menus_share_the_text_column", ui_menubar_menus_share_the_text_column},
       {"ui_export_documents_to_folder_writes_numbered_files", ui_export_documents_to_folder_writes_numbered_files},
       {"ui_export_documents_to_folder_writes_layered_psd_and_aseprite",
        ui_export_documents_to_folder_writes_layered_psd_and_aseprite},

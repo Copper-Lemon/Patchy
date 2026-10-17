@@ -289,5 +289,10 @@ enum class FilterNameDetails { Shown, Hidden };
 // download; desktop builds write real files and this is a no-op.
 void offer_browser_download_for_saved_file(const QString& path);
 void hide_menu_action_icons(QMenu* menu);
+// Qt reserves the check-and-icon column only in a menu where some action has an
+// icon or a check mark, so a menu with neither draws its text further left than
+// its neighbours (GitHub issue 131). This gives such a menu's first action a
+// blank, hidden icon so every menu keeps the column.
+void reserve_menu_icon_column(QMenu* menu);
 
 }  // namespace patchy::ui

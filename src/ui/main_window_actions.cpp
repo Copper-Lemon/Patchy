@@ -83,6 +83,7 @@ void MainWindow::create_actions() {
 
   retranslate_brush_preset_combo();
   for (auto* action : menuBar()->actions()) {
+    reserve_menu_icon_column(action->menu());
     hide_menu_action_icons(action->menu());
   }
   refresh_options_bar();
