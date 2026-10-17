@@ -83,6 +83,21 @@ chmod 755 /tmp/AppRun
   --plugin qt
 unset LD_LIBRARY_PATH
 
+# linuxdeploy wraps the custom AppRun (as AppRun.wrapped) in one that sources
+# linuxdeploy-plugin-qt's hook, which forces QT_QPA_PLATFORMTHEME=gtk2 on GNOME and XFCE,
+# over the user's own value too. Qt 6 has no gtk2 theme, so that only kept the bundled
+# portal theme from loading (GitHub issue 156). Our AppRun picks the theme itself, so it
+# goes back to being the entry point; fail if linuxdeploy ever adds another hook.
+[ "$(ls -A "$APPDIR/apprun-hooks" 2>/dev/null)" = "linuxdeploy-plugin-qt-hook.sh" ] \
+  || { echo "ERROR: unexpected linuxdeploy AppRun hooks: $(ls -A "$APPDIR/apprun-hooks" 2>/dev/null)" >&2; exit 1; }
+mv -f "$APPDIR/AppRun.wrapped" "$APPDIR/AppRun"
+rm -f "$APPDIR/apprun-hooks/linuxdeploy-plugin-qt-hook.sh"
+rmdir "$APPDIR/apprun-hooks"
+grep -q 'QT_QPA_PLATFORMTHEME=xdgdesktopportal' "$APPDIR/AppRun" \
+  || { echo "ERROR: the AppDir's AppRun is not packaging/linux/appimage/AppRun" >&2; exit 1; }
+[ -f "$APPDIR/usr/plugins/platformthemes/libqxdgdesktopportal.so" ] \
+  || { echo "ERROR: Qt's xdgdesktopportal platform theme was not bundled" >&2; exit 1; }
+
 # .DirIcon is the AppImage's thumbnail in file managers and the catalog, and the spec
 # wants a PNG; linuxdeploy points it at the scalable SVG. The SVG stays in usr/share/icons.
 rm -f "${APPDIR:?}/.DirIcon" "${APPDIR:?}/com.rtsoft.patchy.svg" "${APPDIR:?}/com.rtsoft.patchy.png"
