@@ -93,7 +93,10 @@ Without FUSE (some containers and minimal systems), run it with
 `./PatchyLinux.AppImage --appimage-extract-and-run`.
 
 To add Patchy to your application menu, open the AppImage with
-[Gear Lever](https://flathub.org/apps/it.mijorus.gearlever).
+[AppImage Launcher](https://github.com/TheAssassin/AppImageLauncher) (AppImage), 
+[AppImage Package Manager](https://github.com/ivan-hc/AM) (CLI), 
+[AppImage Manager](https://github.com/tunjayoff/appimagemanager) (Package), or
+[Gear Lever](https://flathub.org/apps/it.mijorus.gearlever) (Flatpak).
 
 When a new version is out, Patchy's update prompt can download it, replace the AppImage
 file and start again (if the file sits in a folder you can write to; otherwise it offers
