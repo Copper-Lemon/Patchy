@@ -57,7 +57,19 @@ version: neither raises a prompt.
    environment. It first checks the file again (the save prompts may have taken minutes): size
    and SHA-256 as pinned, and the signer rule below, holding the file open against writes
    until the process exists. If a check fails or it cannot start, the close is refused so
-   Patchy does not quit un-updated.
+   Patchy does not quit un-updated. Once the close has gone through,
+   `download_and_install_update` calls `request_application_exit`
+   (`QCoreApplication::exit(0)`) rather than relying on Qt's quit on the last window's close.
+   That quit is a posted event, and any window shown before it runs deletes it; more
+   important, it is inactive before `app.exec()`. Opening a file given on the command line
+   pumps events before the main loop starts (its "Opening ..." progress), the startup update
+   check answers in there, and an update accepted at that point closed the window and started
+   the installer before `exec()`: Qt posted nothing, `exit()` had no loop to stop, and `exec()`
+   then ran with no window while the installer waited two minutes and asked the user to close
+   a Patchy nobody could see (October 2026, Patchy 1.12 started by double-clicking a JPG; a
+   launch without a file was fine). `src/app/main.cpp` now skips `exec()` when the window is
+   already closed at that point, and 250 ms after `lastWindowClosed` a still-hidden main window
+   ends a running loop.
 5. `packaging/windows/InstallPatchyLauncher.cs` turns those variables into
    `InstallPatchy.ps1 -Update -InstallDir <dir> -WaitForProcessId <pid>` and removes them
    from the child's environment. Without the variable the wizard runs as before. The
@@ -69,6 +81,13 @@ version: neither raises a prompt.
    Responding"), keeps the desktop shortcut only
    if there is one, and starts the installed `patchy.exe`. A problem (Patchy still running,
    a file in use, a failed copy) shows the same Retry or error box the wizard would.
+   One exception to "still running": when the wait expires and the process named by
+   `-WaitForProcessId` is alive, runs from inside the install folder and owns no visible
+   top-level window (`Test-PatchyHeadlessUpdateRequester`), it is a Patchy 1.13 or older
+   that accepted the update before its event loop started (step 4). Its documents were settled before its window closed and
+   nobody can close it from the desktop, so `Stop-PatchyHeadlessUpdateRequester` ends that
+   exact process id and the install goes on. A Patchy with a window (a cancelled save
+   prompt) still gets the Retry box.
 7. If the script fails or never runs, the launcher starts the installed `patchy.exe` again
    when it is still there, or says where to download the installer.
 8. The updated copy deletes the downloaded installer 30 seconds after startup
@@ -100,8 +119,9 @@ The key name is permanent, like the other three.
   the checksum. Never accept an installer whose size or hash was not in the manifest, never
   run one from `download_url`, and never drop the signer check to make an update work.
 - Nothing from the manifest except the version reaches an AI assistant as text.
-- Nothing is ever killed. The installer waits for the Patchy that asked for the update;
-  AI apps are left alone (see below).
+- Nothing is ever killed, with one exception: the Patchy that asked for the update, once the
+  installer's wait has expired and it has no window left (flow step 6; only that process id,
+  only from inside the install folder). AI apps are left alone (see below).
 - The install is per-user and needs no elevation, so there is no UAC prompt in the flow.
 - Announcing a release now means adding the three keys to the `windows` entry as well as
   bumping `version`; `publish-github-release.ps1` prints them. Still announce last
@@ -191,10 +211,11 @@ had not loaded yet would be the new build.
 
 ## Tests
 
-- `tests/ui/app_shell_tests.cpp`, filter `update`: the manifest keys, the install-location
-  match, the prompt for an installed copy, and the whole path with a `file://` stand-in
-  installer and the launch captured through `MainWindowTestAccess` (wrong checksum, Cancel
-  at the save prompt, a launch that fails, a settled close).
+- `tests/ui/app_shell_tests_updates_preferences.cpp`, filter `update`: the manifest keys,
+  the install-location match, the prompt for an installed copy, and the whole path with a
+  `file://` stand-in installer and the launch captured through `MainWindowTestAccess` (wrong
+  checksum, Cancel at the save prompt, a launch that fails, a settled close, which must
+  request the application exit exactly once through `set_application_exit_hook`).
   `ui_update_connector_restart_notice_names_the_apps` and
   `connector_update_notice_reports_a_replaced_executable` cover the connector notices.
   `ui_update_check_interval_gates_the_startup_check`,
@@ -202,8 +223,10 @@ had not loaded yet would be the new build.
   `ui_update_prompt_skip_version_silences_until_a_newer_one` cover the interval and the
   skipped version.
 - `scripts\release\verify-windows-package.ps1` runs `InstallPatchy.ps1 -UpdateCheckRoot`:
-  the process wait, the locked-file check, and setting a file in use aside (renamed,
-  recorded in the manifest, removed by the next install) on stand-in files in a scratch folder.
+  the process wait, the locked-file check, setting a file in use aside (renamed,
+  recorded in the manifest, removed by the next install) on stand-in files in a scratch
+  folder, and the headless requester (a hidden copy of `powershell.exe` named `patchy.exe`
+  inside the scratch install is ended; the same outside it is left alone).
 - Not automated: the real install and relaunch. It writes the uninstall entry and
   shortcuts, so it cannot run on a machine whose installed Patchy must stay untouched.
   Before a release that changes any of this, install an older package into a scratch

@@ -55,6 +55,11 @@ public:
     window.update_installer_launcher_for_tests_ = std::move(launcher);
   }
   static bool update_install_pending(const MainWindow& window) { return window.pending_update_install_.has_value(); }
+  // Captures the application exit a settled update close requests instead of ending the
+  // suite's event loop.
+  static void set_application_exit_hook(MainWindow& window, std::function<void()> hook) {
+    window.application_exit_hook_for_tests_ = std::move(hook);
+  }
 
   // The historical startup document (startup now opens an empty workspace):
   // show_window creates one so pre-existing tests keep their canvas.

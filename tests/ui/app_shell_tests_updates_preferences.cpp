@@ -1212,6 +1212,8 @@ void ui_update_one_click_replaces_appimage_on_close() {
         launches.push_back(launch);
         return patchy::ui::UpdateLaunchResult{};
       });
+  int exit_requests = 0;
+  patchy::ui::MainWindowTestAccess::set_application_exit_hook(window, [&] { ++exit_requests; });
 
   bool prompt_answered = false;
   bool saw_update_now = false;
@@ -1256,12 +1258,15 @@ void ui_update_one_click_replaces_appimage_on_close() {
   CHECK(launches.empty());
   CHECK(window.isVisible());
   CHECK(QFileInfo(downloaded).size() == new_bytes.size());
+  CHECK(exit_requests == 0);
 
-  // Settled: the replacement is handed over for this file, and the window closes.
+  // Settled: the replacement is handed over for this file, the window closes, and the
+  // application exit is requested once.
   save_answer = QMessageBox::Discard;
   run_update();
   CHECK(launches.size() == 1);
   CHECK(!window.isVisible());
+  CHECK(exit_requests == 1);
   if (launches.size() == 1) {
     const auto& launch = launches.front();
     CHECK(launch.appimage_target == appimage);
@@ -1386,6 +1391,10 @@ void ui_update_one_click_downloads_installer_and_hands_over_on_close() {
                    : patchy::ui::UpdateLaunchResult{patchy::ui::UpdateLaunchFailure::NotSigned,
                                                     QStringLiteral("Seth A. Robinson"), {}};
       });
+  // A settled close ends the event loop itself (Qt's posted quit can be cancelled by a window
+  // shown in the meantime); here the request is counted instead of ending the suite.
+  int exit_requests = 0;
+  patchy::ui::MainWindowTestAccess::set_application_exit_hook(window, [&] { ++exit_requests; });
 
   // Answers each dialog of one run as it appears.
   bool prompt_answered = false;
@@ -1458,6 +1467,7 @@ void ui_update_one_click_downloads_installer_and_hands_over_on_close() {
   CHECK(launches.empty());
   CHECK(window.isVisible());
   CHECK(!patchy::ui::MainWindowTestAccess::update_install_pending(window));
+  CHECK(exit_requests == 0);
   {
     QFile downloaded(downloaded_path);
     CHECK(downloaded.open(QIODevice::ReadOnly) && downloaded.readAll() == installer_bytes);
@@ -1474,8 +1484,10 @@ void ui_update_one_click_downloads_installer_and_hands_over_on_close() {
   // And says why, not only that it failed.
   CHECK(install_failure_text.contains(QStringLiteral("The update was not installed.")));
   CHECK(install_failure_text.contains(QStringLiteral("is not signed by Seth A. Robinson")));
+  CHECK(exit_requests == 0);
 
-  // Settled: the installer gets this copy's folder and process id, and the window closes.
+  // Settled: the installer gets this copy's folder and process id, the window closes, and
+  // the application exit is requested exactly once.
   launcher_starts = true;
   run_update(update);
   CHECK(launches.size() == 2);
@@ -1487,6 +1499,7 @@ void ui_update_one_click_downloads_installer_and_hands_over_on_close() {
     CHECK(launches.back().expected_sha256 == update.installer_sha256);
   }
   CHECK(!window.isVisible());
+  CHECK(exit_requests == 1);
 #endif
 }
 

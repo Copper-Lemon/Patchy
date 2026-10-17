@@ -2776,10 +2776,18 @@ private:
   // Says why the installer was not run (checksum, signature, could not start) and offers
   // the browser download.
   void show_update_launch_failure(const UpdateLaunchResult& result, const QUrl& browser_download_url);
+  // Ends the event loop once the update close went through, instead of leaving the quit to
+  // Qt's quit on the last window's close (a posted event that a window shown in the meantime
+  // deletes). Before app.exec() this has no loop to end: main.cpp skips exec() when the
+  // window was closed during startup (the October 2026 update ghost, a file given on the
+  // command line still opening). Tests observe the request through
+  // application_exit_hook_for_tests_.
+  void request_application_exit();
   std::optional<UpdateInstallerLaunch> pending_update_install_;
   std::optional<bool> self_update_override_for_tests_;
   QString update_download_folder_for_tests_;
   std::function<UpdateLaunchResult(const UpdateInstallerLaunch&)> update_installer_launcher_for_tests_;
+  std::function<void()> application_exit_hook_for_tests_;
   // Cache behind history_retained_bytes(); see enforce_history_memory_budget.
   std::size_t last_history_retained_bytes_{0};
 };

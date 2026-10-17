@@ -4528,11 +4528,29 @@ void MainWindow::download_and_install_update(const UpdateInfo& update) {
                                                   file_sha256,
                                                   browser_url,
                                                   appimage};
-  if (!close() && pending_update_install_.has_value()) {
-    pending_update_install_.reset();
-    statusBar()->showMessage(tr("The update was not installed because Patchy stayed open"));
+  if (!close()) {
+    if (pending_update_install_.has_value()) {
+      pending_update_install_.reset();
+      statusBar()->showMessage(tr("The update was not installed because Patchy stayed open"));
+    }
+    return;
   }
+  // The installer is running (or the AppImage is replaced) and waits for this process. Do
+  // not leave the quit to Qt's posted Quit event, which a window shown in the meantime
+  // cancels. Before app.exec() (an update accepted while a command-line file was still
+  // opening) this cannot end anything; main.cpp then skips exec() for the hidden window.
+  request_application_exit();
 #endif
+}
+
+void MainWindow::request_application_exit() {
+  if (application_exit_hook_for_tests_) {
+    application_exit_hook_for_tests_();
+    return;
+  }
+  // Unconditional, unlike QCoreApplication::quit(): the Quit event handler refuses while any
+  // top-level window is visible, and a stray tooltip or float must not keep the process alive.
+  QCoreApplication::exit(0);
 }
 
 void MainWindow::show_update_launch_failure(const UpdateLaunchResult& result, const QUrl& browser_download_url) {

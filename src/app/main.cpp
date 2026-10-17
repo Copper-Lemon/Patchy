@@ -795,6 +795,30 @@ int main(int argc, char* argv[]) {
     }
   }
 #endif
+  // Everything above runs nested event processing before the main loop exists: opening a
+  // file from the command line shows its "Opening ..." progress and pumps events until the
+  // decode is done, and the startup update check answers in there. A one-click update
+  // accepted at that moment closed the window and started the installer before exec(), where
+  // Qt's quit on the last window's close is inactive (nothing is posted and lastWindowClosed
+  // is not emitted before exec) and QCoreApplication::exit has no loop to stop; exec() then
+  // ran with no window, the installer waited two minutes for a process that never ended, and
+  // the single-instance server swallowed every later launch (October 2026, a JPG opened from
+  // Explorer). The same holds for a user closing Patchy during that open. A window already
+  // closed here means the quit has happened: skip the loop.
+  if (!window.isVisible()) {
+    app.file_open_handler = nullptr;
+    return finish_after_event_loop(0);
+  }
+  // Inside exec(), Qt quits by posting a Quit event once the last window closes, and any
+  // window shown before that event runs deletes it (QWindowPrivate::setVisible). Should a
+  // tooltip or float ever do that, end the loop ourselves once the main window stays hidden.
+  QObject::connect(&app, &QGuiApplication::lastWindowClosed, &window, [&window] {
+    QTimer::singleShot(250, &window, [&window] {
+      if (!window.isVisible()) {
+        QCoreApplication::exit(0);
+      }
+    });
+  });
   const int exec_result = app.exec();
   // The window (declared after `app`) is destroyed before the application object; drop
   // the handler so a late event cannot reach a dead window.

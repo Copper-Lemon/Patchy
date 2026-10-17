@@ -329,6 +329,102 @@ function Wait-PatchyProcessExit {
     }
 }
 
+# Update mode: the Patchy that asked for the update is still there after the wait, but has
+# no window left. Patchy 1.13 and earlier accepted an update while a file from the command
+# line was still opening, before their event loop had started: the window closed, this
+# installer was started, and the process then sat in an event loop with no window (Qt's
+# quit on the last window closed is inactive before exec). Nobody could close it from the
+# desktop, and this installer asked the user to close a Patchy they could not see. Every
+# document was settled before that window closed, so ending it loses nothing. True when the
+# process id is alive, runs from inside the install folder and owns no visible top-level
+# window. A Patchy with a window (the user cancelled a save prompt) is never touched, nor is
+# any process outside the install folder (a connector, another install).
+function Test-PatchyHeadlessUpdateRequester {
+    param(
+        [Parameter(Mandatory = $true)]
+        [int]$ProcessId,
+
+        [Parameter(Mandatory = $true)]
+        [string]$InstallRoot
+    )
+
+    if ($ProcessId -le 0) {
+        return $false
+    }
+    try {
+        $process = Get-Process -Id $ProcessId -ErrorAction Stop
+    } catch {
+        return $false
+    }
+    $executable = $null
+    try {
+        $executable = $process.Path
+    } catch {
+    }
+    if (-not $executable) {
+        try {
+            $executable = (Get-CimInstance Win32_Process -Filter "ProcessId = $ProcessId" -OperationTimeoutSec 5 -ErrorAction Stop).ExecutablePath
+        } catch {
+        }
+    }
+    if (-not $executable -or -not (Test-PathAtOrInsideRoot -Path $executable -Root $InstallRoot)) {
+        return $false
+    }
+    if (-not ("PatchyProcessWindows" -as [type])) {
+        Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class PatchyProcessWindows {
+    private delegate bool EnumWindowsProc(IntPtr hwnd, IntPtr lParam);
+    [DllImport("user32.dll")] private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
+    [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hwnd);
+    // Visible top-level windows of the process, owned dialogs included (Process.MainWindowHandle
+    // skips owned windows, so a save prompt over a hidden main window would count as none).
+    public static int CountVisibleTopLevelWindows(int processId) {
+        int count = 0;
+        EnumWindows((hwnd, lParam) => {
+            uint owner;
+            GetWindowThreadProcessId(hwnd, out owner);
+            if (owner == (uint)processId && IsWindowVisible(hwnd)) { count++; }
+            return true;
+        }, IntPtr.Zero);
+        return count;
+    }
+}
+"@
+    }
+    return ([PatchyProcessWindows]::CountVisibleTopLevelWindows($ProcessId) -eq 0)
+}
+
+# Ends the headless requester (see above) by its exact process id and waits for it to go.
+# True once it is gone; false when the process is not a headless requester or would not end.
+function Stop-PatchyHeadlessUpdateRequester {
+    param(
+        [Parameter(Mandatory = $true)]
+        [int]$ProcessId,
+
+        [Parameter(Mandatory = $true)]
+        [string]$InstallRoot,
+
+        [int]$TimeoutSeconds = 15
+    )
+
+    if (-not (Test-PatchyHeadlessUpdateRequester -ProcessId $ProcessId -InstallRoot $InstallRoot)) {
+        return $false
+    }
+    try {
+        Stop-Process -Id $ProcessId -Force -ErrorAction Stop
+    } catch {
+        return (Wait-PatchyProcessExit -ProcessId $ProcessId -TimeoutSeconds 0)
+    }
+    $gone = Wait-PatchyProcessExit -ProcessId $ProcessId -TimeoutSeconds $TimeoutSeconds
+    if ($gone) {
+        Write-Host "Ended Patchy process $ProcessId, which had no window left after asking for the update."
+    }
+    return $gone
+}
+
 function Test-PatchyFileInUseException {
     param($Exception)
 
@@ -1852,6 +1948,48 @@ if ($UpdateCheckRoot) {
             $failures += "a process that is gone was reported as running"
         }
 
+        # A requester with no window left: a hidden process running from a copy of
+        # powershell.exe named patchy.exe inside the install folder is ended by its id; the
+        # same thing outside the folder is not the requester and is left alone.
+        $standInExe = Join-Path $installFolder "patchy.exe"
+        Copy-Item -LiteralPath (Join-Path $PSHOME "powershell.exe") -Destination $standInExe -Force
+        $sleepArguments = "-NoLogo -NoProfile -Command Start-Sleep -Seconds 60"
+        $headless = Start-Process -FilePath $standInExe -ArgumentList $sleepArguments -WindowStyle Hidden -PassThru
+        $outside = Start-Process -FilePath (Join-Path $PSHOME "powershell.exe") -ArgumentList $sleepArguments -WindowStyle Hidden -PassThru
+        try {
+            Start-Sleep -Milliseconds 500
+            if (-not (Test-PatchyHeadlessUpdateRequester -ProcessId $headless.Id -InstallRoot $installFolder)) {
+                $failures += "a hidden process from the install folder was not recognized as the requester"
+            }
+            if (Test-PatchyHeadlessUpdateRequester -ProcessId $outside.Id -InstallRoot $installFolder) {
+                $failures += "a process outside the install folder counted as the requester"
+            }
+            if (Stop-PatchyHeadlessUpdateRequester -ProcessId $outside.Id -InstallRoot $installFolder) {
+                $failures += "a process outside the install folder was ended"
+            }
+            if (-not (Stop-PatchyHeadlessUpdateRequester -ProcessId $headless.Id -InstallRoot $installFolder)) {
+                $failures += "the headless requester was not ended"
+            }
+            if (-not (Wait-PatchyProcessExit -ProcessId $headless.Id -TimeoutSeconds 0)) {
+                $failures += "the headless requester is still running"
+            }
+            if (Wait-PatchyProcessExit -ProcessId $outside.Id -TimeoutSeconds 0) {
+                $failures += "the process outside the install folder is gone"
+            }
+            if (Test-PatchyHeadlessUpdateRequester -ProcessId $headless.Id -InstallRoot $installFolder) {
+                $failures += "an ended process still counted as the requester"
+            }
+        } finally {
+            foreach ($started in @($headless, $outside)) {
+                if ($started -and -not $started.HasExited) {
+                    Stop-Process -Id $started.Id -Force -ErrorAction SilentlyContinue
+                    [void](Wait-PatchyProcessExit -ProcessId $started.Id -TimeoutSeconds 10)
+                }
+            }
+            Remove-Item -LiteralPath $standInExe -Force -ErrorAction SilentlyContinue
+            [IO.File]::WriteAllText($standInExe, "stand-in")
+        }
+
         foreach ($language in $PatchyInstallerText.Keys) {
             $text = $PatchyInstallerText[$language]["LockedFileRetryMessage"]
             if (-not $text -or -not $text.Contains("{0}")) {
@@ -1904,7 +2042,12 @@ try {
         # aside, not stopped); the updated Patchy tells the user to restart them.
         $connectorClients = @()
         if ($WaitForProcessId -gt 0 -and ($UpdateWorker -or -not $interactive)) {
-            [void](Wait-PatchyProcessExit -ProcessId $WaitForProcessId)
+            if (-not (Wait-PatchyProcessExit -ProcessId $WaitForProcessId)) {
+                # Still there with no window: a Patchy that accepted the update before its
+                # event loop started (see the function). One with a window keeps the Retry
+                # box below.
+                [void](Stop-PatchyHeadlessUpdateRequester -ProcessId $WaitForProcessId -InstallRoot $installRoot)
+            }
         }
         if ($interactive -and -not $UpdateWorker) {
             # The install blocks its thread for many seconds, so it runs in a second copy
