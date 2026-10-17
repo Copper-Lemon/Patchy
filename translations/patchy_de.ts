@@ -12222,10 +12222,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>Die Malwerkzeuge bearbeiten die Ebenenmaske. Klicken Sie, um wieder die Ebenenpixel zu bearbeiten.</translation>
     </message>
     <message>
-        <source>Zoom percentage. Type a new value and press Enter.</source>
-        <translation>Zoomfaktor in Prozent. Geben Sie einen neuen Wert ein und drücken Sie Enter.</translation>
-    </message>
-    <message>
         <source>Ready</source>
         <translation>Bereit</translation>
     </message>
@@ -21116,6 +21112,18 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
     <message>
         <source>Restart Patchy for the title bar change to take effect.</source>
         <translation>Starten Sie Patchy neu, damit die Änderung der Titelleiste wirksam wird.</translation>
+    </message>
+    <message>
+        <source>Zoom percentage. Type a new value and press Enter, scroll the wheel over it, or drag sideways to zoom.</source>
+        <translation>Zoomfaktor. Geben Sie einen neuen Wert ein und drücken Sie die Eingabetaste, drehen Sie das Mausrad darüber oder ziehen Sie seitwärts zum Zoomen.</translation>
+    </message>
+    <message>
+        <source>Fit</source>
+        <translation>Einpassen</translation>
+    </message>
+    <message>
+        <source>Fit on Screen</source>
+        <translation>Ganzes Bild</translation>
     </message>
 </context>
 <context>

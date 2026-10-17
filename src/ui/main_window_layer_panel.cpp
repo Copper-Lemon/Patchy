@@ -3785,12 +3785,15 @@ void MainWindow::refresh_document_info() {
   refresh_palette_panel();
   schedule_palette_compliance_check();
   if (zoom_status_edit_ != nullptr) {
-    if (!has_active_document() || canvas_ == nullptr) {
-      zoom_status_edit_->clear_display();
-      zoom_status_edit_->setEnabled(false);
-    } else {
-      zoom_status_edit_->setEnabled(true);
+    const bool has_view = has_active_document() && canvas_ != nullptr;
+    if (zoom_status_controls_ != nullptr) {
+      zoom_status_controls_->setEnabled(has_view);
+    }
+    zoom_status_edit_->setEnabled(has_view);
+    if (has_view) {
       zoom_status_edit_->set_display_zoom(canvas_->view_zoom());
+    } else {
+      zoom_status_edit_->clear_display();
     }
   }
   if (document_info_label_ == nullptr) {

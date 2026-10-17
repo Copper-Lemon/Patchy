@@ -18756,10 +18756,6 @@ Clipped to the layer below</source>
         <translation>レイヤーを複製しました</translation>
     </message>
     <message>
-        <source>Zoom percentage. Type a new value and press Enter.</source>
-        <translation>ズーム率です。新しい値を入力して Enter キーを押してください。</translation>
-    </message>
-    <message>
         <source>X:</source>
         <translation>X:</translation>
     </message>
@@ -21053,6 +21049,18 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
     <message>
         <source>Restart Patchy for the title bar change to take effect.</source>
         <translation>タイトルバーの変更を反映するには Patchy を再起動してください。</translation>
+    </message>
+    <message>
+        <source>Zoom percentage. Type a new value and press Enter, scroll the wheel over it, or drag sideways to zoom.</source>
+        <translation>ズーム率。新しい値を入力して Enter キーを押すか、上でホイールを回すか、左右にドラッグしてズームします。</translation>
+    </message>
+    <message>
+        <source>Fit</source>
+        <translation>全体表示</translation>
+    </message>
+    <message>
+        <source>Fit on Screen</source>
+        <translation>画面サイズに合わせる</translation>
     </message>
 </context>
 <context>

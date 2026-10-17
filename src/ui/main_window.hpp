@@ -2403,6 +2403,7 @@ private:
   QAction* filter_convert_smart_filters_action_{nullptr};
   ZoomStatusBar* zoom_status_bar_{nullptr};
   ZoomPercentEdit* zoom_status_edit_{nullptr};
+  QWidget* zoom_status_controls_{nullptr};  // the zoom box and its 100% / Fit buttons
   QAction* move_tool_action_{nullptr};
   QAction* type_tool_action_{nullptr};
   QActionGroup* tool_action_group_{nullptr};

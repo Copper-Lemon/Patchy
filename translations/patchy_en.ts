@@ -12206,10 +12206,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Zoom percentage. Type a new value and press Enter.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Ready</source>
         <translation type="unfinished"></translation>
     </message>
@@ -21042,6 +21038,18 @@ Patchy can download the update, replace this AppImage, and start again. You will
     </message>
     <message>
         <source>Restart Patchy for the title bar change to take effect.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Zoom percentage. Type a new value and press Enter, scroll the wheel over it, or drag sideways to zoom.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Fit</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Fit on Screen</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

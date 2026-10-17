@@ -1,13 +1,16 @@
 #include "ui/zoom_status_bar.hpp"
 #include "ui/theme_palette.hpp"
 
+#include <QApplication>
 #include <QKeyEvent>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
 #include <QRegularExpression>
 #include <QRegularExpressionValidator>
 #include <QStyle>
 #include <QStyleOption>
+#include <QWheelEvent>
 
 #include <algorithm>
 #include <cmath>
@@ -38,6 +41,71 @@ ZoomPercentEdit::ZoomPercentEdit(QWidget* parent) : QLineEdit(parent) {
   static const QRegularExpression zoom_pattern(QStringLiteral("^\\s*\\d{1,6}([.,]\\d{0,2})?\\s*%?\\s*$"));
   setValidator(new QRegularExpressionValidator(zoom_pattern, this));
   connect(this, &QLineEdit::editingFinished, this, [this] { commit_editor_text(); });
+  update_scrub_cursor();
+}
+
+void ZoomPercentEdit::update_scrub_cursor() {
+  // The unfocused box is a scrub handle, like an options-bar label; once
+  // focused it is an ordinary text field.
+  setCursor(hasFocus() ? Qt::IBeamCursor : Qt::SizeHorCursor);
+}
+
+void ZoomPercentEdit::wheelEvent(QWheelEvent* event) {
+  if (!isEnabled()) {
+    event->ignore();
+    return;
+  }
+  // Whole notches step one rung each; a trackpad's small deltas add up to one.
+  wheel_remainder_ += event->angleDelta().y() != 0 ? event->angleDelta().y() : event->angleDelta().x();
+  while (std::abs(wheel_remainder_) >= 120) {
+    const bool zoom_in = wheel_remainder_ > 0;
+    wheel_remainder_ += zoom_in ? -120 : 120;
+    emit zoom_step_requested(zoom_in);
+  }
+  event->accept();
+}
+
+void ZoomPercentEdit::mousePressEvent(QMouseEvent* event) {
+  if (event->button() == Qt::LeftButton && !hasFocus()) {
+    // Held back until release or a drag decides between a scrub and a click.
+    scrub_armed_ = true;
+    scrubbing_ = false;
+    scrub_press_x_ = scrub_last_x_ = qRound(event->position().x());
+    event->accept();
+    return;
+  }
+  QLineEdit::mousePressEvent(event);
+}
+
+void ZoomPercentEdit::mouseMoveEvent(QMouseEvent* event) {
+  if (scrub_armed_) {
+    const int x = qRound(event->position().x());
+    if (!scrubbing_ && std::abs(x - scrub_press_x_) >= QApplication::startDragDistance()) {
+      scrubbing_ = true;
+      scrub_last_x_ = scrub_press_x_;
+    }
+    if (scrubbing_ && x != scrub_last_x_) {
+      emit zoom_scrub_requested(std::pow(kScrubFactorPerPixel, x - scrub_last_x_));
+      scrub_last_x_ = x;
+    }
+    event->accept();
+    return;
+  }
+  QLineEdit::mouseMoveEvent(event);
+}
+
+void ZoomPercentEdit::mouseReleaseEvent(QMouseEvent* event) {
+  if (scrub_armed_ && event->button() == Qt::LeftButton) {
+    const bool scrubbed = scrubbing_;
+    scrub_armed_ = false;
+    scrubbing_ = false;
+    event->accept();
+    if (!scrubbed) {
+      setFocus(Qt::MouseFocusReason);  // a plain click edits, as before
+    }
+    return;
+  }
+  QLineEdit::mouseReleaseEvent(event);
 }
 
 void ZoomPercentEdit::set_display_zoom(double zoom) {
@@ -72,12 +140,14 @@ QString ZoomPercentEdit::format_zoom_text(double zoom) {
 
 void ZoomPercentEdit::focusInEvent(QFocusEvent* event) {
   QLineEdit::focusInEvent(event);
+  update_scrub_cursor();
   // Queued so the click that gave us focus does not immediately collapse the selection.
   QMetaObject::invokeMethod(this, [this] { selectAll(); }, Qt::QueuedConnection);
 }
 
 void ZoomPercentEdit::focusOutEvent(QFocusEvent* event) {
   QLineEdit::focusOutEvent(event);  // emits editingFinished (= commit) when input is acceptable
+  update_scrub_cursor();
   if (!hasAcceptableInput()) {
     setText(display_text_);
   }
@@ -85,6 +155,15 @@ void ZoomPercentEdit::focusOutEvent(QFocusEvent* event) {
 }
 
 void ZoomPercentEdit::keyPressEvent(QKeyEvent* event) {
+  if (event->key() == Qt::Key_Up || event->key() == Qt::Key_Down) {
+    // A spin box's arrows: one rung, shown at once, typing abandoned.
+    setModified(false);
+    emit zoom_step_requested(event->key() == Qt::Key_Up);
+    setText(display_text_);
+    selectAll();
+    event->accept();
+    return;
+  }
   if (event->key() == Qt::Key_Escape) {
     setText(display_text_);
     clearFocus();

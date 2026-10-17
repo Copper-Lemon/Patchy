@@ -14,6 +14,11 @@ namespace patchy::ui {
 // Enter to apply it. Escape (or invalid input on focus loss) reverts to the
 // last displayed value. The host applies the committed value and pushes the
 // resulting zoom back in through set_display_zoom().
+//
+// It also works like an options-bar field (GitHub issue 159): the wheel and the
+// Up/Down keys step along the zoom ladder, and a horizontal drag that starts on
+// the unfocused box scrubs the zoom (right = in); a click without a drag still
+// focuses it for typing.
 class ZoomPercentEdit final : public QLineEdit {
   Q_OBJECT
 
@@ -26,18 +31,35 @@ public:
   void clear_display();
   [[nodiscard]] static QString format_zoom_text(double zoom);
 
+  // The zoom factor one pixel of horizontal scrub travel applies.
+  static constexpr double kScrubFactorPerPixel = 1.01;
+
 signals:
   void zoom_percent_committed(double percent);
+  // One ladder rung in (true) or out (false).
+  void zoom_step_requested(bool zoom_in);
+  // Multiply the current zoom by `factor`, about the view center.
+  void zoom_scrub_requested(double factor);
 
 protected:
   void focusInEvent(QFocusEvent* event) override;
   void focusOutEvent(QFocusEvent* event) override;
   void keyPressEvent(QKeyEvent* event) override;
+  void wheelEvent(QWheelEvent* event) override;
+  void mousePressEvent(QMouseEvent* event) override;
+  void mouseMoveEvent(QMouseEvent* event) override;
+  void mouseReleaseEvent(QMouseEvent* event) override;
 
 private:
   void commit_editor_text();
+  void update_scrub_cursor();
 
   QString display_text_;
+  int wheel_remainder_{0};
+  bool scrub_armed_{false};
+  bool scrubbing_{false};
+  int scrub_last_x_{0};
+  int scrub_press_x_{0};
 };
 
 // QStatusBar hides every non-permanent widget while a message is showing, and

@@ -12222,10 +12222,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>Las herramientas de pintura están editando la máscara de capa. Haga clic para volver a editar los píxeles de la capa.</translation>
     </message>
     <message>
-        <source>Zoom percentage. Type a new value and press Enter.</source>
-        <translation>Porcentaje de zoom. Escriba un valor nuevo y pulse Enter.</translation>
-    </message>
-    <message>
         <source>Ready</source>
         <translation>Listo</translation>
     </message>
@@ -21116,6 +21112,18 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
     <message>
         <source>Restart Patchy for the title bar change to take effect.</source>
         <translation>Reinicie Patchy para que el cambio de la barra de título surta efecto.</translation>
+    </message>
+    <message>
+        <source>Zoom percentage. Type a new value and press Enter, scroll the wheel over it, or drag sideways to zoom.</source>
+        <translation>Porcentaje de zoom. Escriba un valor nuevo y pulse Intro, gire la rueda sobre él o arrastre de lado para hacer zoom.</translation>
+    </message>
+    <message>
+        <source>Fit</source>
+        <translation>Encajar</translation>
+    </message>
+    <message>
+        <source>Fit on Screen</source>
+        <translation>Encajar en pantalla</translation>
     </message>
 </context>
 <context>

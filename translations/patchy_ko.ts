@@ -12191,10 +12191,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>페인트 도구가 레이어 마스크를 편집하고 있습니다. 레이어 픽셀을 다시 편집하려면 클릭하세요.</translation>
     </message>
     <message>
-        <source>Zoom percentage. Type a new value and press Enter.</source>
-        <translation>확대/축소 비율입니다. 새 값을 입력하고 Enter를 누르십시오.</translation>
-    </message>
-    <message>
         <source>Ready</source>
         <translation>준비됨</translation>
     </message>
@@ -21053,6 +21049,18 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
     <message>
         <source>Restart Patchy for the title bar change to take effect.</source>
         <translation>제목 표시줄 변경을 적용하려면 Patchy를 다시 시작하세요.</translation>
+    </message>
+    <message>
+        <source>Zoom percentage. Type a new value and press Enter, scroll the wheel over it, or drag sideways to zoom.</source>
+        <translation>확대/축소 비율. 새 값을 입력하고 Enter 키를 누르거나, 위에서 휠을 돌리거나, 옆으로 드래그하여 확대/축소합니다.</translation>
+    </message>
+    <message>
+        <source>Fit</source>
+        <translation>맞추기</translation>
+    </message>
+    <message>
+        <source>Fit on Screen</source>
+        <translation>화면 크기에 맞추기</translation>
     </message>
 </context>
 <context>

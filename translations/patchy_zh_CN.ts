@@ -12191,10 +12191,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>绘画工具正在编辑图层蒙版。单击可重新编辑图层像素。</translation>
     </message>
     <message>
-        <source>Zoom percentage. Type a new value and press Enter.</source>
-        <translation>缩放百分比。输入新值并按 Enter。</translation>
-    </message>
-    <message>
         <source>Ready</source>
         <translation>就绪</translation>
     </message>
@@ -21053,6 +21049,18 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
     <message>
         <source>Restart Patchy for the title bar change to take effect.</source>
         <translation>请重新启动 Patchy，标题栏更改才会生效。</translation>
+    </message>
+    <message>
+        <source>Zoom percentage. Type a new value and press Enter, scroll the wheel over it, or drag sideways to zoom.</source>
+        <translation>缩放百分比。输入新值并按 Enter，在其上滚动滚轮，或横向拖动以缩放。</translation>
+    </message>
+    <message>
+        <source>Fit</source>
+        <translation>适合</translation>
+    </message>
+    <message>
+        <source>Fit on Screen</source>
+        <translation>按屏幕大小缩放</translation>
     </message>
 </context>
 <context>

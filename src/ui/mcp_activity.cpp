@@ -252,6 +252,8 @@ bool McpActivity::eventFilter(QObject* watched, QEvent* event) {
   // Navigation must never enter the active tool's mouse handlers: a native
   // automation stroke may already own their painting/selection gesture state.
   if (qobject_cast<ZoomPercentEdit*>(widget)) { return false; }
+  if (widget->parentWidget() != nullptr &&
+      widget->parentWidget()->objectName() == QStringLiteral("statusZoomControls")) { return false; }
   if (widget->objectName() == QStringLiteral("layerNameFilterEdit") ||
       widget->objectName() == QStringLiteral("layerFolderDisclosureButton") ||
       widget->property("dockCollapseButton").toBool() ||

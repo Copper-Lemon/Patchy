@@ -574,6 +574,28 @@ QString photoshop_style_template() {
       color: @status_text_disabled;
       border-color: @status_field_border_disabled;
     }
+    QWidget#statusZoomControls {
+      background: transparent;
+    }
+    QToolButton#statusZoomActualPixelsButton, QToolButton#statusZoomFitButton {
+      background: transparent;
+      color: @status_text;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      padding: 0 5px;
+      min-height: 16px;
+      max-height: 16px;
+      min-width: 0;
+      font-size: 11px;
+    }
+    QToolButton#statusZoomActualPixelsButton:hover, QToolButton#statusZoomFitButton:hover {
+      background: @button_hover_bg;
+      border-color: @status_field_border;
+      color: @text_bright;
+    }
+    QToolButton#statusZoomActualPixelsButton:disabled, QToolButton#statusZoomFitButton:disabled {
+      color: @status_text_disabled;
+    }
     QLabel#canvasInfoLabel, QLabel#documentInfoLabel {
       color: @info_text;
       line-height: 130%;

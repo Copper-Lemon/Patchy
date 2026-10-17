@@ -12253,10 +12253,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>Narzędzia malarskie edytują maskę warstwy. Kliknij, aby ponownie edytować piksele warstwy.</translation>
     </message>
     <message>
-        <source>Zoom percentage. Type a new value and press Enter.</source>
-        <translation>Procent powiększenia. Wpisz nową wartość i naciśnij klawisz Enter.</translation>
-    </message>
-    <message>
         <source>Ready</source>
         <translation>Gotowy</translation>
     </message>
@@ -21179,6 +21175,18 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
     <message>
         <source>Restart Patchy for the title bar change to take effect.</source>
         <translation>Uruchom Patchy ponownie, aby zmiana paska tytułu zaczęła obowiązywać.</translation>
+    </message>
+    <message>
+        <source>Zoom percentage. Type a new value and press Enter, scroll the wheel over it, or drag sideways to zoom.</source>
+        <translation>Powiększenie w procentach. Wpisz nową wartość i naciśnij Enter, obróć nad nim kółko lub przeciągnij w bok, aby powiększyć.</translation>
+    </message>
+    <message>
+        <source>Fit</source>
+        <translation>Dopasuj</translation>
+    </message>
+    <message>
+        <source>Fit on Screen</source>
+        <translation>Dopasuj do ekranu</translation>
     </message>
 </context>
 <context>

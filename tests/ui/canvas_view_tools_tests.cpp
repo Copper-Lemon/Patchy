@@ -14,6 +14,7 @@
 #include "ui/app_settings.hpp"
 #include "ui/zoomable_image_preview.hpp"
 #include "ui/zoom_status_bar.hpp"
+#include "ui/canvas_widget_shared.hpp"
 #include "synthetic_dng.hpp"
 #include "test_fonts.hpp"
 #include "test_harness.hpp"
@@ -746,6 +747,98 @@ void ui_status_bar_zoom_percent_box_edits_zoom() {
   CHECK(zoom_edit->text() == QStringLiteral("100%"));
 
   save_widget_artifact("ui_status_zoom_percent_box", *window.statusBar());
+}
+
+// The status zoom box works like an options-bar field (GitHub issue 159): the
+// wheel and Up/Down step the zoom ladder, a sideways drag from the unfocused box
+// scrubs the zoom while a plain click still focuses it for typing, and the 100%
+// and Fit buttons beside it set the view.
+void ui_status_bar_zoom_box_wheel_scrub_and_buttons() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* canvas = require_canvas(window);
+  auto* zoom_edit = window.statusBar()->findChild<patchy::ui::ZoomPercentEdit*>(QStringLiteral("statusZoomEdit"));
+  auto* controls = window.statusBar()->findChild<QWidget*>(QStringLiteral("statusZoomControls"));
+  auto* actual_pixels = window.statusBar()->findChild<QToolButton*>(QStringLiteral("statusZoomActualPixelsButton"));
+  auto* fit = window.statusBar()->findChild<QToolButton*>(QStringLiteral("statusZoomFitButton"));
+  CHECK(zoom_edit != nullptr && controls != nullptr && actual_pixels != nullptr && fit != nullptr);
+
+  // The buttons sit right of the box and stay visible under a status message.
+  window.statusBar()->showMessage(QStringLiteral("Something informative"));
+  QApplication::processEvents();
+  CHECK(actual_pixels->isVisible() && fit->isVisible());
+  CHECK(actual_pixels->text() == QStringLiteral("100%"));
+  CHECK(fit->text() == QStringLiteral("Fit"));
+  CHECK(actual_pixels->mapTo(controls, QPoint()).x() > zoom_edit->geometry().right());
+  CHECK(fit->mapTo(controls, QPoint()).x() > actual_pixels->mapTo(controls, QPoint()).x());
+  CHECK(controls->height() <= window.statusBar()->height());
+
+  // Wheel: one notch is one ladder rung each way.
+  canvas->set_view_zoom_centered(1.0);
+  QApplication::processEvents();
+  send_wheel(*zoom_edit, zoom_edit->rect().center(), 120);
+  QApplication::processEvents();
+  const double up_one = patchy::ui::next_zoom_ladder_step(1.0, true);
+  CHECK(std::abs(canvas->view_zoom() - up_one) < 1e-6);
+  CHECK(zoom_edit->text() == patchy::ui::ZoomPercentEdit::format_zoom_text(up_one));
+  send_wheel(*zoom_edit, zoom_edit->rect().center(), -120);
+  send_wheel(*zoom_edit, zoom_edit->rect().center(), -120);
+  QApplication::processEvents();
+  CHECK(std::abs(canvas->view_zoom() - patchy::ui::next_zoom_ladder_step(1.0, false)) < 1e-6);
+
+  // A sideways drag from the unfocused box scrubs, right = in, and leaves it unfocused.
+  canvas->set_view_zoom_centered(1.0);
+  QApplication::processEvents();
+  CHECK(!zoom_edit->hasFocus());
+  CHECK(zoom_edit->cursor().shape() == Qt::SizeHorCursor);
+  const QPoint press = zoom_edit->rect().center();
+  const int travel = QApplication::startDragDistance() + 30;
+  send_mouse(*zoom_edit, QEvent::MouseButtonPress, press, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*zoom_edit, QEvent::MouseMove, press + QPoint(travel, 0), Qt::NoButton, Qt::LeftButton);
+  send_mouse(*zoom_edit, QEvent::MouseButtonRelease, press + QPoint(travel, 0), Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  const double scrubbed = std::pow(patchy::ui::ZoomPercentEdit::kScrubFactorPerPixel, travel);
+  CHECK(std::abs(canvas->view_zoom() - scrubbed) < 1e-6);
+  CHECK(!zoom_edit->hasFocus());
+  send_mouse(*zoom_edit, QEvent::MouseButtonPress, press, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*zoom_edit, QEvent::MouseMove, press - QPoint(travel, 0), Qt::NoButton, Qt::LeftButton);
+  send_mouse(*zoom_edit, QEvent::MouseButtonRelease, press - QPoint(travel, 0), Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(std::abs(canvas->view_zoom() - 1.0) < 1e-6);
+
+  // A click without travel focuses the box for typing; Up/Down then step the ladder.
+  window.activateWindow();
+  send_mouse(*zoom_edit, QEvent::MouseButtonPress, press, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*zoom_edit, QEvent::MouseButtonRelease, press, Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(zoom_edit->hasFocus());
+  CHECK(zoom_edit->cursor().shape() == Qt::IBeamCursor);
+  CHECK(std::abs(canvas->view_zoom() - 1.0) < 1e-6);
+  send_key(*zoom_edit, Qt::Key_Up);
+  CHECK(std::abs(canvas->view_zoom() - up_one) < 1e-6);
+  CHECK(zoom_edit->text() == patchy::ui::ZoomPercentEdit::format_zoom_text(up_one));
+  send_key(*zoom_edit, Qt::Key_Down);
+  CHECK(std::abs(canvas->view_zoom() - 1.0) < 1e-6);
+  send_key(*zoom_edit, Qt::Key_Escape);
+  QApplication::processEvents();
+
+  // Fit matches View > Fit on Screen; 100% returns to actual pixels.
+  canvas->fit_to_view();
+  const double fit_zoom = canvas->view_zoom();
+  canvas->set_view_zoom_centered(3.0);
+  fit->click();
+  QApplication::processEvents();
+  CHECK(std::abs(canvas->view_zoom() - fit_zoom) < 1e-6);
+  actual_pixels->click();
+  QApplication::processEvents();
+  CHECK(std::abs(canvas->view_zoom() - 1.0) < 1e-6);
+  save_widget_artifact("ui_status_zoom_controls", *window.statusBar());
+
+  // With no document open the whole group is disabled.
+  patchy::ui::MainWindow empty;
+  show_window_empty(empty);
+  auto* empty_controls = empty.statusBar()->findChild<QWidget*>(QStringLiteral("statusZoomControls"));
+  CHECK(empty_controls != nullptr && !empty_controls->isEnabled());
 }
 
 void ui_zoom_tool_double_click_keeps_view_centered_at_actual_pixels() {
@@ -4523,6 +4616,7 @@ std::vector<patchy::test::TestCase> canvas_view_tools_tests() {
       {"ui_canvas_trackpad_scroll_ignored_during_pointer_gesture",
        ui_canvas_trackpad_scroll_ignored_during_pointer_gesture},
       {"ui_status_bar_zoom_percent_box_edits_zoom", ui_status_bar_zoom_percent_box_edits_zoom},
+      {"ui_status_bar_zoom_box_wheel_scrub_and_buttons", ui_status_bar_zoom_box_wheel_scrub_and_buttons},
       {"ui_zoom_tool_double_click_keeps_view_centered_at_actual_pixels",
        ui_zoom_tool_double_click_keeps_view_centered_at_actual_pixels},
       {"ui_image_resize_recenters_view_and_zoom_double_click_shows_document",

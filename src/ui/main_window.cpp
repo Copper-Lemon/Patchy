@@ -13,6 +13,7 @@
 #include "core/palette.hpp"
 #include "ui/canvas_types.hpp"
 #include "ui/canvas_widget.hpp"
+#include "ui/canvas_widget_shared.hpp"
 #include "ui/main_window_shared.hpp"
 #include "ui/background_workers.hpp"
 #include "ui/document_recovery_coordinator.hpp"
@@ -125,6 +126,7 @@
 #include <QTextFormat>
 #include <QTextOption>
 #include <QTimer>
+#include <QHBoxLayout>
 #include <QToolButton>
 #include <QToolTip>
 #include <QTransform>
@@ -4476,15 +4478,62 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
   palette_compliance_timer_->setSingleShot(true);
   palette_compliance_timer_->setInterval(400);
   connect(palette_compliance_timer_, &QTimer::timeout, this, [this] { run_palette_compliance_check(); });
-  zoom_status_edit_ = new ZoomPercentEdit(zoom_status_bar_);
-  bind_tooltip(zoom_status_edit_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Zoom percentage. Type a new value and press Enter."));
+  // The zoom box plus 100% and Fit buttons, one manually positioned group at the
+  // status bar's left end (GitHub issue 159; see ZoomStatusBar).
+  zoom_status_controls_ = new QWidget(zoom_status_bar_);
+  zoom_status_controls_->setObjectName(QStringLiteral("statusZoomControls"));
+  auto* zoom_controls_layout = new QHBoxLayout(zoom_status_controls_);
+  zoom_controls_layout->setContentsMargins(0, 0, 0, 0);
+  zoom_controls_layout->setSpacing(3);
+  zoom_controls_layout->setSizeConstraint(QLayout::SetFixedSize);
+  zoom_status_edit_ = new ZoomPercentEdit(zoom_status_controls_);
+  bind_tooltip(zoom_status_edit_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow",
+                                                    "Zoom percentage. Type a new value and press Enter, scroll the "
+                                                    "wheel over it, or drag sideways to zoom."));
+  zoom_controls_layout->addWidget(zoom_status_edit_);
+  const auto add_zoom_button = [this, zoom_controls_layout](const QString& object_name, const char* text,
+                                                            const char* tooltip) {
+    auto* button = new QToolButton(zoom_status_controls_);
+    button->setObjectName(object_name);
+    button->setAutoRaise(true);
+    button->setFocusPolicy(Qt::NoFocus);
+    bind_widget_text(button, text);
+    bind_tooltip(button, tooltip);
+    zoom_controls_layout->addWidget(button);
+    return button;
+  };
+  auto* zoom_actual_pixels = add_zoom_button(QStringLiteral("statusZoomActualPixelsButton"),
+                                             QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "100%"),
+                                             QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Actual Pixels"));
+  auto* zoom_fit = add_zoom_button(QStringLiteral("statusZoomFitButton"),
+                                   QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Fit"),
+                                   QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Fit on Screen"));
   connect(zoom_status_edit_, &ZoomPercentEdit::zoom_percent_committed, this, [this](double percent) {
-    if (canvas_ == nullptr || !has_active_document()) {
-      return;
+    if (canvas_ != nullptr && has_active_document()) {
+      canvas_->set_view_zoom_centered(percent / 100.0);
     }
-    canvas_->set_view_zoom_centered(percent / 100.0);
   });
-  zoom_status_bar_->set_left_widget(zoom_status_edit_);
+  connect(zoom_status_edit_, &ZoomPercentEdit::zoom_step_requested, this, [this](bool zoom_in) {
+    if (canvas_ != nullptr && has_active_document()) {
+      canvas_->set_view_zoom_centered(next_zoom_ladder_step(canvas_->view_zoom(), zoom_in));
+    }
+  });
+  connect(zoom_status_edit_, &ZoomPercentEdit::zoom_scrub_requested, this, [this](double factor) {
+    if (canvas_ != nullptr && has_active_document()) {
+      canvas_->set_view_zoom_centered(canvas_->view_zoom() * factor);
+    }
+  });
+  connect(zoom_actual_pixels, &QToolButton::clicked, this, [this] {
+    if (canvas_ != nullptr && has_active_document()) {
+      canvas_->set_view_zoom_centered(1.0);
+    }
+  });
+  connect(zoom_fit, &QToolButton::clicked, this, [this] {
+    if (canvas_ != nullptr && has_active_document()) {
+      canvas_->fit_to_view();
+    }
+  });
+  zoom_status_bar_->set_left_widget(zoom_status_controls_);
   refresh_document_info();
   statusBar()->showMessage(tr("Ready"));
 }
