@@ -21038,6 +21038,22 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <source>Picked background color %1, %2, %3 (%4)</source>
         <translation>背景色を取得しました %1, %2, %3 (%4)</translation>
     </message>
+    <message>
+        <source>Use the system title bar</source>
+        <translation>システムのタイトルバーを使用</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>メニューバー内の Patchy のウィンドウ操作ボタンの代わりに、デスクトップ自身のタイトルバーとウィンドウ枠を表示します。次回 Patchy を起動したときに有効になります。</translation>
+    </message>
+    <message>
+        <source>System Title Bar</source>
+        <translation>システムのタイトルバー</translation>
+    </message>
+    <message>
+        <source>Restart Patchy for the title bar change to take effect.</source>
+        <translation>タイトルバーの変更を反映するには Patchy を再起動してください。</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

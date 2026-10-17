@@ -165,8 +165,11 @@ public:
   void apply_text_family_to_format(QTextCharFormat& format, const QString& family) const;
   explicit MainWindow(QWidget* parent = nullptr);
   ~MainWindow() override;
-  // True only where Patchy draws its own window frame (Windows). macOS/Linux use the
-  // native frame: no frameless flag, no chrome buttons, no edge-resize machinery.
+  // True where Patchy draws its own window frame (Windows, and Linux unless the
+  // "Use the system title bar" preference is on): the frameless flag, the chrome buttons
+  // in the menu-bar row, and the edge-resize machinery. macOS uses the native frame and
+  // global menu bar (docs/platform.md). On Linux the preference is read once, on the
+  // first call, so a change applies on the next launch.
   [[nodiscard]] static bool use_custom_window_chrome();
   // A plain mouse wheel zooms by default on every platform (Seth, October 2026). macOS
   // used to default this off for trackpads, which no longer read the setting: a
@@ -439,6 +442,9 @@ private:
   void build_tool_palette(ActionBuildContext& ctx);
   void build_options_bar(ActionBuildContext& ctx);
   void bind_action_translations(ActionBuildContext& ctx);
+  // Forgets the cached Linux preference so the next use_custom_window_chrome() re-reads
+  // it (tests; the app decides once per process).
+  static void reset_window_chrome_gate_cache();
   void configure_window_chrome();
   void position_window_chrome_controls();
   void ensure_native_resizable_frame();
@@ -448,7 +454,8 @@ private:
   // True where a press on the menu bar acts as the window title bar: not over a menu
   // title and not over the minimize/maximize/close controls. Shared by the Win32
   // WM_NCHITTEST path (HTCAPTION, so the OS owns drag, double-click and snap) and the
-  // Qt-level fallback in eventFilter (offscreen platform).
+  // Qt-level path in eventFilter (Linux, where the drag becomes a startSystemMove; the
+  // offscreen platform).
   [[nodiscard]] bool title_bar_drag_area_contains(QPoint menu_bar_position) const;
   void clamp_window_to_available_screen();
   // The tallest client area that keeps the whole frame on the window's screen:
@@ -2742,9 +2749,10 @@ private:
   QRect chrome_resize_start_geometry_;
   bool chrome_dragging_{false};
   QPoint chrome_drag_position_;
-  // Qt-level title-bar press on a maximized window: the restore waits until the pointer
-  // travels past the drag threshold, so a plain click leaves the window maximized.
-  bool chrome_drag_awaiting_restore_{false};
+  // Qt-level title-bar press: nothing happens until the pointer travels past the drag
+  // threshold (then a system move, or Qt's own drag), so a plain click leaves the window
+  // where and as it is, and a double-click never fights a compositor grab.
+  bool chrome_title_press_pending_{false};
   QPoint chrome_drag_press_global_;
   // Set at the top of ~MainWindow, before members are destroyed. Teardown-time focus
   // changes (the window close delivers a focus-out while child widgets are still alive)

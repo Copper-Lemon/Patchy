@@ -21164,6 +21164,22 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
         <source>Picked background color %1, %2, %3 (%4)</source>
         <translation>Wybrany kolor tła %1, %2, %3 (%4)</translation>
     </message>
+    <message>
+        <source>Use the system title bar</source>
+        <translation>Używaj systemowego paska tytułu</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>Pokazuje pasek tytułu i ramkę okna pulpitu zamiast przycisków okna Patchy na pasku menu. Zacznie obowiązywać przy następnym uruchomieniu Patchy.</translation>
+    </message>
+    <message>
+        <source>System Title Bar</source>
+        <translation>Systemowy pasek tytułu</translation>
+    </message>
+    <message>
+        <source>Restart Patchy for the title bar change to take effect.</source>
+        <translation>Uruchom Patchy ponownie, aby zmiana paska tytułu zaczęła obowiązywać.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

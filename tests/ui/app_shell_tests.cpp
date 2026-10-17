@@ -268,7 +268,7 @@ void ui_main_window_renders_color_controls() {
   CHECK(actual_menus == expected_menus);
   CHECK(window.menuBar()->height() >= 30);
   // Frameless + custom chrome (badge, window buttons) exist only where Patchy draws its
-  // own frame (Windows); macOS/Linux use the native frame and must NOT have them.
+  // own frame (Windows and Linux); macOS uses the native frame and must NOT have them.
   CHECK(window.windowFlags().testFlag(Qt::FramelessWindowHint) ==
         patchy::ui::MainWindow::use_custom_window_chrome());
   auto* app_badge = window.menuBar()->findChild<QLabel*>(QStringLiteral("patchyBadge"));
@@ -5355,8 +5355,8 @@ void ui_about_dialog_shows_memory_row() {
 
 void ui_frameless_window_edges_resize() {
   if (!patchy::ui::MainWindow::use_custom_window_chrome()) {
-    // macOS/Linux use the native frame; the OS owns the resize borders and the Qt-level
-    // edge machinery under test here is deliberately inert.
+    // macOS uses the native frame; the OS owns the resize borders and the Qt-level edge
+    // machinery under test here is deliberately inert.
     std::cout << "[SKIP] native window frame owns resize borders on this platform\n";
     return;
   }
@@ -5406,10 +5406,11 @@ void ui_maximized_title_bar_click_keeps_window_maximized() {
     std::cout << "[SKIP] native window frame owns the title bar on this platform\n";
     return;
   }
-  // The Qt-level title-bar fallback (the real Windows window answers HTCAPTION instead, see
-  // MainWindow::nativeEvent) must follow the native contract: a click or a sub-threshold
-  // wiggle leaves a maximized window maximized, a real drag restores it, and a double-click
-  // toggles the state.
+  // The Qt-level title-bar path (Linux; the real Windows window answers HTCAPTION instead,
+  // see MainWindow::nativeEvent) must follow the native contract: a click or a
+  // sub-threshold wiggle leaves a maximized window maximized, a real drag restores it, and
+  // a double-click toggles the state. Offscreen has no startSystemMove, so the drag takes
+  // the Qt-level restore.
   patchy::ui::MainWindow window;
   show_window(window);
   window.showMaximized();
@@ -5473,6 +5474,263 @@ void ui_maximized_title_bar_click_keeps_window_maximized() {
   CHECK(!patchy::ui::MainWindowTestAccess::title_bar_drag_area_contains(
       window, bar->actionGeometry(bar->actions().constFirst()).center()));
   CHECK(patchy::ui::MainWindowTestAccess::title_bar_drag_area_contains(window, blank));
+}
+
+// The custom chrome is a compile-time platform contract: Windows and Linux draw their own
+// frame (Linux through Qt::FramelessWindowHint, so Qt's Wayland client-side decoration
+// never appears), macOS keeps the native one. Where it applies, the menu-bar row holds the
+// three window controls and they drive the window state.
+void ui_window_chrome_controls_drive_window_state() {
+#if defined(Q_OS_WIN) || (defined(Q_OS_LINUX) && !defined(Q_OS_WASM))
+  CHECK(patchy::ui::MainWindow::use_custom_window_chrome());
+#else
+  CHECK(!patchy::ui::MainWindow::use_custom_window_chrome());
+#endif
+  if (!patchy::ui::MainWindow::use_custom_window_chrome()) {
+    std::cout << "[SKIP] native window frame owns the window controls on this platform\n";
+    return;
+  }
+  patchy::ui::MainWindow window;
+  show_window_empty(window);
+  CHECK(window.windowFlags().testFlag(Qt::FramelessWindowHint));
+  auto* bar = window.menuBar();
+  CHECK(bar != nullptr);
+  // The menu bar is the title bar, so it must stay inside the window (never a global
+  // menu bar) and be tall enough to hold the controls.
+  CHECK(!bar->isNativeMenuBar());
+
+  auto* controls = window.findChild<QWidget*>(QStringLiteral("windowChromeControls"));
+  auto* minimize = window.findChild<QToolButton*>(QStringLiteral("windowMinimizeButton"));
+  auto* maximize = window.findChild<QToolButton*>(QStringLiteral("windowMaximizeButton"));
+  auto* close = window.findChild<QToolButton*>(QStringLiteral("windowCloseButton"));
+  CHECK(controls != nullptr);
+  CHECK(minimize != nullptr && maximize != nullptr && close != nullptr);
+  if (controls == nullptr || minimize == nullptr || maximize == nullptr || close == nullptr) {
+    return;
+  }
+  CHECK(controls->parentWidget() == bar);
+  CHECK(controls->isVisible());
+  CHECK(bar->height() >= controls->height());
+  // Flush right in the menu-bar row, close last.
+  CHECK(controls->x() + controls->width() == bar->width());
+  CHECK(minimize->x() < maximize->x());
+  CHECK(maximize->x() < close->x());
+  for (auto* button : {minimize, maximize, close}) {
+    CHECK(button->property("windowChromeButton").toBool());
+    CHECK(!button->icon().isNull());
+    CHECK(button->focusPolicy() == Qt::NoFocus);
+  }
+
+  CHECK(!window.isMaximized());
+  maximize->click();
+  QApplication::processEvents();
+  CHECK(window.isMaximized());
+  maximize->click();
+  QApplication::processEvents();
+  CHECK(!window.isMaximized());
+
+  minimize->click();
+  QApplication::processEvents();
+  CHECK(window.isMinimized());
+  window.showNormal();
+  QApplication::processEvents();
+  CHECK(!window.isMinimized());
+
+  CHECK(window.isVisible());
+  close->click();
+  QApplication::processEvents();
+  CHECK(!window.isVisible());
+}
+
+// The Qt-level title-bar drag of a restored window (Linux without a system move, the
+// offscreen platform): a click or a sub-threshold wiggle leaves the window where it is,
+// and a drag past the threshold moves it by the full pointer travel, the threshold
+// included.
+void ui_title_bar_drag_moves_window_only_past_threshold() {
+  if (!patchy::ui::MainWindow::use_custom_window_chrome()) {
+    std::cout << "[SKIP] native window frame owns the title bar on this platform\n";
+    return;
+  }
+  patchy::ui::MainWindow window;
+  show_window_empty(window);
+  window.move(120, 90);
+  QApplication::processEvents();
+  CHECK(!window.isMaximized());
+
+  auto* bar = window.menuBar();
+  auto* controls = window.findChild<QWidget*>(QStringLiteral("windowChromeControls"));
+  CHECK(bar != nullptr && controls != nullptr);
+  QPoint blank(-1, bar->height() / 2);
+  for (int x = controls->x() - 1; x >= 0; --x) {
+    if (bar->actionAt(QPoint(x, blank.y())) == nullptr) {
+      blank.setX(x);
+      break;
+    }
+  }
+  CHECK(blank.x() >= 0);
+  CHECK(patchy::ui::MainWindowTestAccess::title_bar_drag_area_contains(window, blank));
+
+  const QPoint start = window.pos();
+  send_mouse(*bar, QEvent::MouseButtonPress, blank, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*bar, QEvent::MouseButtonRelease, blank, Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(window.pos() == start);
+
+  const QPoint wiggle = blank + QPoint(2, 1);
+  send_mouse(*bar, QEvent::MouseButtonPress, blank, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*bar, QEvent::MouseMove, wiggle, Qt::NoButton, Qt::LeftButton);
+  send_mouse(*bar, QEvent::MouseButtonRelease, wiggle, Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(window.pos() == start);
+
+  // send_mouse derives the global position from the widget, so once the window has
+  // followed the pointer the same local point is the pointer's new global place: each
+  // step's local offset is the travel since the previous step.
+  const QPoint travel(QApplication::startDragDistance() * 3, 24);
+  send_mouse(*bar, QEvent::MouseButtonPress, blank, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*bar, QEvent::MouseMove, blank + travel, Qt::NoButton, Qt::LeftButton);
+  QApplication::processEvents();
+  CHECK(window.pos() == start + travel);
+  send_mouse(*bar, QEvent::MouseMove, blank + QPoint(15, -6), Qt::NoButton, Qt::LeftButton);
+  send_mouse(*bar, QEvent::MouseButtonRelease, blank + QPoint(15, -6), Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(window.pos() == start + travel + QPoint(15, -6));
+
+  // Released: further motion with no button moves nothing.
+  send_mouse(*bar, QEvent::MouseMove, blank, Qt::NoButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(window.pos() == start + travel + QPoint(15, -6));
+
+  // A press on a menu title or the window controls is not a title-bar press.
+  const QPoint before_controls = window.pos();
+  const QPoint on_controls = controls->pos() + QPoint(controls->width() / 2, controls->height() / 2);
+  CHECK(!patchy::ui::MainWindowTestAccess::title_bar_drag_area_contains(window, on_controls));
+  send_mouse(*bar, QEvent::MouseButtonPress, on_controls, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*bar, QEvent::MouseMove, on_controls + travel, Qt::NoButton, Qt::LeftButton);
+  send_mouse(*bar, QEvent::MouseButtonRelease, on_controls + travel, Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(window.pos() == before_controls);
+}
+
+namespace {
+
+// True where the "Use the system title bar" preference exists and takes part in the
+// chrome decision (Linux desktop builds).
+constexpr bool kSystemTitleBarPreferenceApplies =
+#if defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
+    true;
+#else
+    false;
+#endif
+
+// Builds a window after the gate cache was reset and reports whether it carries the
+// custom chrome (frameless flag, badge, window controls), checking the three agree.
+bool window_has_custom_chrome() {
+  patchy::ui::MainWindow window;
+  show_window_empty(window);
+  const bool frameless = window.windowFlags().testFlag(Qt::FramelessWindowHint);
+  const bool controls = window.findChild<QWidget*>(QStringLiteral("windowChromeControls")) != nullptr;
+  const bool badge = window.menuBar()->findChild<QLabel*>(QStringLiteral("patchyBadge")) != nullptr;
+  CHECK(frameless == controls);
+  CHECK(frameless == badge);
+  CHECK(frameless == patchy::ui::MainWindow::use_custom_window_chrome());
+  return frameless;
+}
+
+}  // namespace
+
+// GitHub issue 145: window/systemTitleBar (a compatibility contract) turns the Linux
+// frameless chrome off for the process, giving the desktop its own title bar and frame;
+// the key is stored but inert on Windows and macOS.
+void ui_system_title_bar_preference_disables_custom_chrome() {
+  {
+    SettingsValueRestorer restore_key(QStringLiteral("window/systemTitleBar"));
+    patchy::ui::set_stored_system_title_bar(true);
+    CHECK(patchy::ui::stored_system_title_bar());
+    patchy::ui::MainWindowTestAccess::reset_window_chrome_gate_cache();
+#if defined(Q_OS_WIN)
+    CHECK(patchy::ui::MainWindow::use_custom_window_chrome());
+    CHECK(window_has_custom_chrome());
+#else
+    CHECK(!patchy::ui::MainWindow::use_custom_window_chrome());
+    CHECK(!window_has_custom_chrome());
+#endif
+  }
+  patchy::ui::MainWindowTestAccess::reset_window_chrome_gate_cache();
+}
+
+// Without the key the chrome is the platform default: frameless on Windows and Linux,
+// the native frame on macOS.
+void ui_system_title_bar_preference_defaults_off() {
+  {
+    SettingsValueRestorer restore_key(QStringLiteral("window/systemTitleBar"));
+    {
+      auto settings = patchy::ui::app_settings();
+      settings.remove(QStringLiteral("window/systemTitleBar"));
+      settings.sync();
+    }
+    CHECK(!patchy::ui::stored_system_title_bar());
+    patchy::ui::MainWindowTestAccess::reset_window_chrome_gate_cache();
+#if defined(Q_OS_WIN) || (defined(Q_OS_LINUX) && !defined(Q_OS_WASM))
+    CHECK(patchy::ui::MainWindow::use_custom_window_chrome());
+    CHECK(window_has_custom_chrome());
+#else
+    CHECK(!patchy::ui::MainWindow::use_custom_window_chrome());
+    CHECK(!window_has_custom_chrome());
+#endif
+  }
+  patchy::ui::MainWindowTestAccess::reset_window_chrome_gate_cache();
+}
+
+// Preferences > Application offers the checkbox on Linux only. Accepting a change stores
+// the key and raises the restart notice, like the interface scale; the running window
+// keeps its chrome until the next launch.
+void ui_preferences_system_title_bar_checkbox_persists_key() {
+  SettingsValueRestorer restore_key(QStringLiteral("window/systemTitleBar"));
+  {
+    auto settings = patchy::ui::app_settings();
+    settings.remove(QStringLiteral("window/systemTitleBar"));
+    settings.sync();
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+  const bool chrome_before = window.windowFlags().testFlag(Qt::FramelessWindowHint);
+
+  bool dismissed_message = false;
+  run_preferences_dialog(window, /*accept=*/true, [&](QDialog& dialog) {
+    auto* check = dialog.findChild<QCheckBox*>(QStringLiteral("preferencesSystemTitleBarCheck"));
+    CHECK((check != nullptr) == kSystemTitleBarPreferenceApplies);
+    if (check == nullptr) {
+      return;
+    }
+    CHECK(!check->isChecked());
+    CHECK(check->parentWidget() == dialog.findChild<QWidget*>(QStringLiteral("preferencesApplicationGroup")));
+    check->setChecked(true);
+    QTimer::singleShot(0, [&] {
+      auto* message =
+          qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("preferencesSystemTitleBarMessageBox")));
+      CHECK(message != nullptr);
+      if (message != nullptr) {
+        message->accept();
+        dismissed_message = true;
+      }
+    });
+  });
+  CHECK(patchy::ui::stored_system_title_bar() == kSystemTitleBarPreferenceApplies);
+  CHECK(dismissed_message == kSystemTitleBarPreferenceApplies);
+  CHECK(find_top_level_dialog(QStringLiteral("preferencesSystemTitleBarMessageBox")) == nullptr);
+  // Applies on the next launch only.
+  CHECK(window.windowFlags().testFlag(Qt::FramelessWindowHint) == chrome_before);
+
+  if (kSystemTitleBarPreferenceApplies) {
+    // Reopening shows the stored state; accepting without a change raises no notice.
+    run_preferences_dialog(window, /*accept=*/true, [&](QDialog& dialog) {
+      auto* check = dialog.findChild<QCheckBox*>(QStringLiteral("preferencesSystemTitleBarCheck"));
+      CHECK(check != nullptr && check->isChecked());
+    });
+    CHECK(find_top_level_dialog(QStringLiteral("preferencesSystemTitleBarMessageBox")) == nullptr);
+    CHECK(patchy::ui::stored_system_title_bar());
+  }
 }
 
 void ui_right_edge_scrollbars_remain_draggable() {
@@ -6863,6 +7121,11 @@ std::vector<patchy::test::TestCase> app_shell_tests() {
       {"ui_app_data_migration_merges_legacy_folder", ui_app_data_migration_merges_legacy_folder},
       {"ui_frameless_window_edges_resize", ui_frameless_window_edges_resize},
       {"ui_maximized_title_bar_click_keeps_window_maximized", ui_maximized_title_bar_click_keeps_window_maximized},
+      {"ui_window_chrome_controls_drive_window_state", ui_window_chrome_controls_drive_window_state},
+      {"ui_title_bar_drag_moves_window_only_past_threshold", ui_title_bar_drag_moves_window_only_past_threshold},
+      {"ui_system_title_bar_preference_disables_custom_chrome", ui_system_title_bar_preference_disables_custom_chrome},
+      {"ui_system_title_bar_preference_defaults_off", ui_system_title_bar_preference_defaults_off},
+      {"ui_preferences_system_title_bar_checkbox_persists_key", ui_preferences_system_title_bar_checkbox_persists_key},
       {"ui_right_edge_scrollbars_remain_draggable", ui_right_edge_scrollbars_remain_draggable},
       {"ui_single_instance_socket_names_the_server_process", ui_single_instance_socket_names_the_server_process},
       {"ui_second_instance_brings_window_and_modal_dialog_forward",

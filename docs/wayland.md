@@ -1,10 +1,85 @@
 # Wayland
 
 Patchy behavior that differs on a Wayland session (Qt's `wayland` platform plug-in). X11
-(`xcb`), Windows, macOS and the offscreen test platform take none of these paths. The
-right-dock rule (panels stay in the column, GitHub issue 102) lives in
-[right-docks.md](right-docks.md); the KWin and GNOME test rigs for dock drags are in
-[testing.md](testing.md).
+(`xcb`), Windows, macOS and the offscreen test platform take none of these paths, except
+the frameless window chrome below, which is the Linux rule for X11 too. The right-dock
+rule (panels stay in the column, GitHub issue 102) lives in [right-docks.md](right-docks.md);
+the KWin and GNOME test rigs for dock drags are in [testing.md](testing.md).
+
+## The frameless window chrome (Linux, X11 and Wayland)
+
+Linux builds (the native `linux-release` binary, the AppImage and the Flatpak) draw the
+Windows chrome: `MainWindow::use_custom_window_chrome()` is true, the main window carries
+`Qt::FramelessWindowHint`, and the menu-bar row holds the badge, the blank title-bar area
+and the minimize/maximize/close controls (`configure_window_chrome`,
+`main_window_chrome.cpp`). The frameless flag is what removes Qt's own client-side
+decoration: mutter offers no server-side decorations, so a decorated Qt window on GNOME
+got the stock `bradient` title bar, light and ignoring Patchy's theme. The window has no
+compositor shadow; its silhouette is the 1px `window_border` edge
+([platform.md](platform.md)). macOS keeps the native frame and global menu bar.
+
+Everything the Win32 `WM_NCHITTEST` answers on Windows goes through Qt's platform-neutral
+calls here, in `MainWindow::eventFilter` and `handle_window_resize_event`:
+
+- **Drag.** A left press on the blank menu-bar area (`title_bar_drag_area_contains`: not a
+  menu title, not the controls, not a resize border) only records the press. Once the
+  pointer travels `QApplication::startDragDistance()` the window hands itself to the
+  window system with `QWindow::startSystemMove()`: `xdg_toplevel.move` on Wayland
+  (mutter and KWin accept the press serial while the button stays down, so starting from
+  the motion event is fine), `_NET_WM_MOVERESIZE` on X11 (Qt's xcb plug-in sends it at
+  the next motion anyway). The compositor then owns the gesture: a maximized window
+  restores under the cursor, drag-to-top maximizes, and GNOME's edge tiling works. Never
+  start the move from the press: a compositor grab would span every plain click, and the
+  second press of a double-click would maximize a window the compositor was still
+  dragging. Where `startSystemMove()` returns false (offscreen, a window manager without
+  `_NET_WM_MOVERESIZE`) Qt moves the window itself, anchored at the press.
+- **Double-click** on the blank area toggles maximize; a plain click changes nothing.
+- **Resize.** The 10 px inner border (`kWindowResizeBorder`) shows the resize cursor and
+  a press there calls `QWindow::startSystemResize(edges)` (`xdg_toplevel.resize`,
+  `_NET_WM_MOVERESIZE` with the edge); the compositor keeps the minimum size Qt publishes.
+  A maximized window has no resize border. The Qt-level geometry resize remains the
+  fallback where the call returns false. The resize cursor is an application override
+  cursor, cleared on `QEvent::Leave` so the compositor's own grab never leaves a resize
+  arrow over Patchy's other windows.
+- **Controls.** Minimize is `showMinimized()`, maximize/restore `showMaximized()` /
+  `showNormal()`, close `close()`. The restore is asynchronous (the compositor's configure
+  brings the saved size back), so `restore_window_from_maximize` sets no geometry on Linux;
+  the Windows branch keeps its WS_MAXIMIZE workaround.
+
+**Use the system title bar** (Preferences > Application, Linux builds only; GitHub issue
+145) stores `window/systemTitleBar` (default false; a compatibility contract, helpers in
+`app_settings.hpp`). `use_custom_window_chrome()` reads it once, on its first call, before
+the window is built, so a change applies on the next launch and the accept branch shows the
+usual restart notice (`preferencesSystemTitleBarMessageBox`). With it on, Linux behaves as
+it did before the frameless chrome: Qt's client-side decoration on GNOME Wayland, the
+server-side title bar on X11 and KDE, native move and resize, no badge or controls in the
+menu bar, the blank menu-bar drag still a `startSystemMove`. The key is stored but inert on
+Windows and macOS. `ui_system_title_bar_preference_disables_custom_chrome`,
+`ui_system_title_bar_preference_defaults_off` and
+`ui_preferences_system_title_bar_checkbox_persists_key` cover it (the gate cache resets
+through `MainWindowTestAccess::reset_window_chrome_gate_cache`).
+
+The maximize-after-first-show rule below (issue 132) is unchanged in both modes: a restored
+maximized state is still requested from `showEvent`'s first-show turn, and
+`available_window_height` still keeps `kWaylandShellPanelAllowance` free for the panel. Offscreen, every system call
+returns false, so `ui_window_chrome_controls_drive_window_state`,
+`ui_title_bar_drag_moves_window_only_past_threshold`,
+`ui_maximized_title_bar_click_keeps_window_maximized` and
+`ui_frameless_window_edges_resize` pin the Qt-level contract on Windows and Linux alike.
+
+Manual check on the Linux build host's live GNOME session: build the native binary
+(`remote-build.ps1 -Target linux -NativeQt -SkipTests`), launch it from the work tree
+into that session (`XDG_RUNTIME_DIR`, `WAYLAND_DISPLAY`, `DBUS_SESSION_BUS_ADDRESS` of the
+logged-in user, `QT_QPA_PLATFORM=wayland`) and confirm: no light title bar, the controls
+in the menu-bar row, a blank-area drag that moves and tiles, a double-click that
+maximizes and restores, edge resizing, and a maximize button restore that returns to the
+saved size. `patchy --screenshot` captures the window itself for the record; `QT_QPA_PLATFORM=xcb`
+covers the X11 path on the same session. The GNOME rig below drives the same native binary
+headlessly (launch it with the rig's env, `PATCHY_NO_SINGLE_INSTANCE=1` and its own
+`PATCHY_SETTINGS_DIR`; read mutter's `get_frame_rect()`/`get_maximized()` through
+`Shell.Eval`). Edge tiling there follows the user's `org.gnome.mutter edge-tiling` gsetting
+(off on the build host's user): switch it on for the run and restore it after. Mutter shakes
+a maximized window loose only with vertical motion, and a tiled one with either axis.
 
 ## Popup anchors at a non-100% interface scale (GitHub issue 100)
 
@@ -132,7 +207,8 @@ draws its own title bar there). `start-shell` (with `MON=1366x768` for that lapt
 `patchy <scale>` launches the Flatpak as the single instance, `script <file.js>` forwards a
 `--run-script` to it (the script file must live under `$HOME`: the sandbox hides `/tmp`),
 and `drive` reads pointer commands on stdin (`gnome-input.py`: `move X Y` in output pixels,
-`press`, `release`, `click`, `sleep MS`, `shot NAME` through `org.gnome.Shell.Screenshot`).
+`rel DX DY` for the motion of a drag, `press`, `release`, `click`, `sleep MS`, `shot NAME`
+through `org.gnome.Shell.Screenshot`).
 The pointer is `org.gnome.Mutter.RemoteDesktop` relative motion anchored at the bottom-left
 corner, because the top-left one is the Activities hot corner and opens the overview; if
 the overview is up anyway, `gdbus call ... org.gnome.Shell.Eval 'Main.overview.hide()'`.

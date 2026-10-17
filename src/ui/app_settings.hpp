@@ -79,6 +79,13 @@ void set_stored_update_last_check_secs(qint64 secs_since_epoch);
 [[nodiscard]] QString stored_update_skipped_version();
 void set_stored_update_skipped_version(const QString& version);
 
+// Linux only: whether the main window keeps the desktop's own title bar and frame
+// instead of Patchy's frameless chrome (key `window/systemTitleBar`, default false, a
+// compatibility contract). Read once at startup by MainWindow::use_custom_window_chrome;
+// a change applies on the next launch. Stored but inert on other platforms.
+[[nodiscard]] bool stored_system_title_bar();
+void set_stored_system_title_bar(bool enabled);
+
 // The size the user dragged the Preferences dialog to (key `preferences/dialogSize`, a
 // compatibility contract); invalid when never resized.
 [[nodiscard]] QSize stored_preferences_dialog_size();
