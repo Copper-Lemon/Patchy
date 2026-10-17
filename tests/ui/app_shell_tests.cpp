@@ -5590,6 +5590,127 @@ void ui_title_bar_drag_moves_window_only_past_threshold() {
   CHECK(window.pos() == before_controls);
 }
 
+namespace {
+
+// True where the "Use the system title bar" preference exists and takes part in the
+// chrome decision (Linux desktop builds).
+constexpr bool kSystemTitleBarPreferenceApplies =
+#if defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
+    true;
+#else
+    false;
+#endif
+
+// Builds a window after the gate cache was reset and reports whether it carries the
+// custom chrome (frameless flag, badge, window controls), checking the three agree.
+bool window_has_custom_chrome() {
+  patchy::ui::MainWindow window;
+  show_window_empty(window);
+  const bool frameless = window.windowFlags().testFlag(Qt::FramelessWindowHint);
+  const bool controls = window.findChild<QWidget*>(QStringLiteral("windowChromeControls")) != nullptr;
+  const bool badge = window.menuBar()->findChild<QLabel*>(QStringLiteral("patchyBadge")) != nullptr;
+  CHECK(frameless == controls);
+  CHECK(frameless == badge);
+  CHECK(frameless == patchy::ui::MainWindow::use_custom_window_chrome());
+  return frameless;
+}
+
+}  // namespace
+
+// GitHub issue 145: window/systemTitleBar (a compatibility contract) turns the Linux
+// frameless chrome off for the process, giving the desktop its own title bar and frame;
+// the key is stored but inert on Windows and macOS.
+void ui_system_title_bar_preference_disables_custom_chrome() {
+  {
+    SettingsValueRestorer restore_key(QStringLiteral("window/systemTitleBar"));
+    patchy::ui::set_stored_system_title_bar(true);
+    CHECK(patchy::ui::stored_system_title_bar());
+    patchy::ui::MainWindowTestAccess::reset_window_chrome_gate_cache();
+#if defined(Q_OS_WIN)
+    CHECK(patchy::ui::MainWindow::use_custom_window_chrome());
+    CHECK(window_has_custom_chrome());
+#else
+    CHECK(!patchy::ui::MainWindow::use_custom_window_chrome());
+    CHECK(!window_has_custom_chrome());
+#endif
+  }
+  patchy::ui::MainWindowTestAccess::reset_window_chrome_gate_cache();
+}
+
+// Without the key the chrome is the platform default: frameless on Windows and Linux,
+// the native frame on macOS.
+void ui_system_title_bar_preference_defaults_off() {
+  {
+    SettingsValueRestorer restore_key(QStringLiteral("window/systemTitleBar"));
+    {
+      auto settings = patchy::ui::app_settings();
+      settings.remove(QStringLiteral("window/systemTitleBar"));
+      settings.sync();
+    }
+    CHECK(!patchy::ui::stored_system_title_bar());
+    patchy::ui::MainWindowTestAccess::reset_window_chrome_gate_cache();
+#if defined(Q_OS_WIN) || (defined(Q_OS_LINUX) && !defined(Q_OS_WASM))
+    CHECK(patchy::ui::MainWindow::use_custom_window_chrome());
+    CHECK(window_has_custom_chrome());
+#else
+    CHECK(!patchy::ui::MainWindow::use_custom_window_chrome());
+    CHECK(!window_has_custom_chrome());
+#endif
+  }
+  patchy::ui::MainWindowTestAccess::reset_window_chrome_gate_cache();
+}
+
+// Preferences > Application offers the checkbox on Linux only. Accepting a change stores
+// the key and raises the restart notice, like the interface scale; the running window
+// keeps its chrome until the next launch.
+void ui_preferences_system_title_bar_checkbox_persists_key() {
+  SettingsValueRestorer restore_key(QStringLiteral("window/systemTitleBar"));
+  {
+    auto settings = patchy::ui::app_settings();
+    settings.remove(QStringLiteral("window/systemTitleBar"));
+    settings.sync();
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+  const bool chrome_before = window.windowFlags().testFlag(Qt::FramelessWindowHint);
+
+  bool dismissed_message = false;
+  run_preferences_dialog(window, /*accept=*/true, [&](QDialog& dialog) {
+    auto* check = dialog.findChild<QCheckBox*>(QStringLiteral("preferencesSystemTitleBarCheck"));
+    CHECK((check != nullptr) == kSystemTitleBarPreferenceApplies);
+    if (check == nullptr) {
+      return;
+    }
+    CHECK(!check->isChecked());
+    CHECK(check->parentWidget() == dialog.findChild<QWidget*>(QStringLiteral("preferencesApplicationGroup")));
+    check->setChecked(true);
+    QTimer::singleShot(0, [&] {
+      auto* message =
+          qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("preferencesSystemTitleBarMessageBox")));
+      CHECK(message != nullptr);
+      if (message != nullptr) {
+        message->accept();
+        dismissed_message = true;
+      }
+    });
+  });
+  CHECK(patchy::ui::stored_system_title_bar() == kSystemTitleBarPreferenceApplies);
+  CHECK(dismissed_message == kSystemTitleBarPreferenceApplies);
+  CHECK(find_top_level_dialog(QStringLiteral("preferencesSystemTitleBarMessageBox")) == nullptr);
+  // Applies on the next launch only.
+  CHECK(window.windowFlags().testFlag(Qt::FramelessWindowHint) == chrome_before);
+
+  if (kSystemTitleBarPreferenceApplies) {
+    // Reopening shows the stored state; accepting without a change raises no notice.
+    run_preferences_dialog(window, /*accept=*/true, [&](QDialog& dialog) {
+      auto* check = dialog.findChild<QCheckBox*>(QStringLiteral("preferencesSystemTitleBarCheck"));
+      CHECK(check != nullptr && check->isChecked());
+    });
+    CHECK(find_top_level_dialog(QStringLiteral("preferencesSystemTitleBarMessageBox")) == nullptr);
+    CHECK(patchy::ui::stored_system_title_bar());
+  }
+}
+
 void ui_right_edge_scrollbars_remain_draggable() {
   patchy::Document document(64, 64, patchy::PixelFormat::rgb8());
   for (int index = 0; index < 48; ++index) {
@@ -6975,6 +7096,9 @@ std::vector<patchy::test::TestCase> app_shell_tests() {
       {"ui_maximized_title_bar_click_keeps_window_maximized", ui_maximized_title_bar_click_keeps_window_maximized},
       {"ui_window_chrome_controls_drive_window_state", ui_window_chrome_controls_drive_window_state},
       {"ui_title_bar_drag_moves_window_only_past_threshold", ui_title_bar_drag_moves_window_only_past_threshold},
+      {"ui_system_title_bar_preference_disables_custom_chrome", ui_system_title_bar_preference_disables_custom_chrome},
+      {"ui_system_title_bar_preference_defaults_off", ui_system_title_bar_preference_defaults_off},
+      {"ui_preferences_system_title_bar_checkbox_persists_key", ui_preferences_system_title_bar_checkbox_persists_key},
       {"ui_right_edge_scrollbars_remain_draggable", ui_right_edge_scrollbars_remain_draggable},
       {"ui_single_instance_socket_names_the_server_process", ui_single_instance_socket_names_the_server_process},
       {"ui_second_instance_brings_window_and_modal_dialog_forward",

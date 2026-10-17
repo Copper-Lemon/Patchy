@@ -1,20 +1,20 @@
 # Platform notes (macOS/Linux ports)
 
-Deep reference for cross-platform work. Read this before hunting a platform-specific regression, adding a platform-guarded site, or changing packaging/build configuration.
+Deep reference for cross-platform work. Read it before hunting a platform-specific regression, adding a platform-guarded site, or changing packaging or build configuration.
 
 ## Cross-platform implementation rules
 
 Linux offscreen app and MCP startup disables the process's desktop D-Bus session
 before constructing QApplication: Qt's Flatpak portal theme queries appearance
 synchronously even offscreen, and a missing portal delays startup and client EOF.
-Interactive desktop runs keep the normal bus and portals.
+Interactive desktop runs keep the bus and portals.
 
-Windows is the lead platform and must not regress. Every code change still completes the Windows release handoff in `AGENTS.md`. Changes to platform guards, CMake files/presets, or packaging additionally run the affected macOS and/or Linux remote build best-effort and report its result.
+Windows is the lead platform and must not regress. Every code change completes the Windows release handoff in `AGENTS.md`. Changes to platform guards, CMake files/presets, or packaging additionally run the affected macOS and/or Linux remote build best-effort and report its result.
 
 - Prefer a small local `#ifdef Q_OS_WIN`, `Q_OS_MACOS`, or `Q_OS_LINUX` (`_WIN32` in Qt-free code) with a portable fallback. Split into `foo_win.cpp`, `foo_mac.mm`, and `foo_linux.cpp` behind `WIN32`, `APPLE`, and `UNIX AND NOT APPLE` only when the site needs Objective-C++/system frameworks or outgrows about one screenful. Per-OS files live beside their feature, not in a platform directory.
-- Window-frame code stays in `main_window_chrome.cpp`. `MainWindow::use_custom_window_chrome()` is the only gate: true on Windows and Linux (frameless window, the title-bar controls in the menu-bar row, edge resizing), false on macOS, which keeps the native frame and global menu bar, so never call `setNativeMenuBar(false)` outside gated `configure_window_chrome()` code. Linux rules: [wayland.md](wayland.md).
-- The Windows title bar is native behind a custom look. `MainWindow::nativeEvent` answers `WM_NCHITTEST` with `HTCAPTION` for the blank menu-bar area (`title_bar_drag_area_contains`: not a menu title, not the window controls, not a resize border), so the OS owns drag, snap, the system menu, double-click maximize/restore, and restore-on-drag; Qt never sees those presses. The menu-bar press/move/double-click handling in `MainWindow::eventFilter` is the path on Linux (a drag past the threshold becomes `startSystemMove`) and offscreen, with the same contract: a plain click never changes the window state, a drag waits for `QApplication::startDragDistance()`, a double-click toggles (tests in [wayland.md](wayland.md)). Never move or restore a window from the press itself.
-- Tests obtain fonts through `tests/test_fonts.hpp`. Its Windows candidates preserve historical baselines. Triage a macOS/Linux failure by fixing a real bug first, then a platform-specific skip with a reason, then a platform-specific baseline. Never loosen a tolerance globally to make one platform pass.
+- Window-frame code stays in `main_window_chrome.cpp`. `MainWindow::use_custom_window_chrome()` is the only gate: true on Windows and Linux (frameless window, the title-bar controls in the menu-bar row, edge resizing), false on macOS, which keeps the native frame and global menu bar, so never call `setNativeMenuBar(false)` outside gated `configure_window_chrome()` code. On Linux the preference key `window/systemTitleBar` (a compatibility contract, read once at startup) turns the gate off. Rules: [wayland.md](wayland.md).
+- The Windows title bar is native behind a custom look. `MainWindow::nativeEvent` answers `WM_NCHITTEST` with `HTCAPTION` for the blank menu-bar area (`title_bar_drag_area_contains`: not a menu title, not the window controls, not a resize border), so the OS owns drag, snap, the system menu, double-click maximize/restore, and restore-on-drag; Qt never sees those presses. The menu-bar press/move/double-click handling in `MainWindow::eventFilter` is the path on Linux (a drag past the threshold becomes `startSystemMove`) and offscreen, with the same contract: a plain click never changes the window state, a drag waits for `QApplication::startDragDistance()`, a double-click toggles. Never move or restore a window from the press itself.
+- Tests obtain fonts through `tests/test_fonts.hpp`. Its Windows candidates preserve historical baselines. Triage a macOS/Linux failure by fixing a real bug first, then a platform-specific skip with a reason, then a platform-specific baseline. Never loosen a tolerance globally for one platform.
 - File formats remain byte-identical across operating systems. Use explicit endian and fixed-width primitives; never serialize `size_t`, `long`, `wchar_t`, or raw structs.
 - Read environment variables through `core/environment.hpp`. The helper returns an owned string so callers never retain process-environment storage, and its Windows implementation avoids the deprecated `getenv` diagnostic.
 - Never derive a font size by arithmetic on `pointSizeF()`. A QFont carries points or pixels and the unused accessor returns -1; macOS resolves inherited widget fonts by pixel size, so `f.setPointSizeF(f.pointSizeF() * 0.85)` asks for -0.85, which Qt refuses (`Point size <= 0`), leaving full-size text on macOS only. Clamping only hides the warning. Use `scale_font_size` / `scaled_font` / `offset_font` from `dialog_utils.hpp`; they branch on the unit the font actually carries.
@@ -33,7 +33,7 @@ test binary compile.
 
 For warning verification, clean each build directory, configure and build the preset,
 and search the combined stdout/stderr log for `warning` and `error`. A clean Release
-build on each platform also runs the full core and offscreen UI suites. Run
+build on each platform also runs both full suites. Run
 `patchy_curves_clipping_preview_tests` and `patchy_perf_tests` when validating a
 cross-platform cleanup or changing their dependencies.
 
@@ -44,14 +44,13 @@ warning is fixed in source or isolated at the exact vendored source and diagnost
 
 GCC-only diagnostics MSVC never reports: `-Wmissing-field-initializers` fires when a
 positional aggregate initializer stops before a member with no default member initializer
-(a new trailing member breaks every older `T{a, b, c}` site; use designated initializers),
-and `-Wunused-function` fires for a dead helper in an anonymous namespace (delete it).
+(a new trailing member breaks every older `T{a, b, c}` site; use designated initializers);
+`-Wunused-function` fires for a dead helper in an anonymous namespace (delete it).
 
 ### The flatpak build is a second Linux compiler
 
 A warning reported by the flatpak release build usually cannot be reproduced or
-verified by the `linux-release` preset. The two use different compilers and
-different flags: `linux-release` on the linux build host is the system `/usr/bin/c++` (GCC 13.3.0 on
+verified by the `linux-release` preset. The two use different compilers and flags: `linux-release` on the linux build host is the system `/usr/bin/c++` (GCC 13.3.0 on
 Ubuntu 24.04) with only `-O3 -DNDEBUG -std=c++20 -Wall -Wextra -Wpedantic`, while
 `packaging/linux/make-flatpak.sh` builds inside `org.kde.Sdk//6.11` with GCC 15.2.0 and
 flatpak-builder's hardening flags (`-Wp,-D_FORTIFY_SOURCE=3 -Wp,-D_GLIBCXX_ASSERTIONS
@@ -89,7 +88,7 @@ macOS (arm64, preset `mac-release`, Qt at `.deps/Qt/6.8.3/macos`) and Linux (pre
 - **Provisioning.** First, on the host: `setup-windows-ssh.cmd` beside its `.ps1` and the dev box's `.pub` in a local folder (its header has the details). It forces 64-bit Windows PowerShell 5.1, self-elevates, installs sshd, sets the ssh default shell to Windows PowerShell 5.1 (Windows OpenSSH starts `cmd.exe` otherwise, breaking every remote command), authorizes the key, and logs PASS/FAIL. Then over ssh: `setup-windows.ps1 -Root <dir>` (idempotent; admin account) installs the toolchain, bare repo and work tree, and prints the Qt copy command.
 - **Remote half.** `build-and-test.ps1` configures, builds throttled at `-j 8` (or the entry's `jobs`), reports `patchy.exe`, and runs both suites (`-TestFilter` UI, `-CoreTestFilter` core; scoped-filter rule as on the dev box).
 - **Shell quirks.** Remote commands run in Windows PowerShell 5.1: no `&&`; send ad-hoc scripts as a file (local PowerShell expands `$_` and mangles embedded double quotes). `Get-Process a,b` exits 1 when any name is absent.
-- **Smart App Control must be off.** Otherwise Code Integrity randomly blocks the fresh unsigned executables (events 3033/3077). It has no exclusions and cannot be turned back on without reinstalling Windows: the owner's decision. Check `(Get-MpComputerStatus).SmartAppControlState`.
+- **Smart App Control must be off.** Otherwise Code Integrity randomly blocks the fresh unsigned executables (events 3033/3077). It has no exclusions, and turning it back on means reinstalling Windows: the owner's decision. Check `(Get-MpComputerStatus).SmartAppControlState`.
 
 ## AddressSanitizer runs (order-dependent heap bugs)
 
@@ -135,7 +134,7 @@ The large quarantine keeps long-ago frees poisoned for the whole run, so the hos
 
 `ThemeManager` mirrors the resolved scheme onto Qt with `QStyleHints::setColorScheme` (`unsetColorScheme` for "follow system"). On Windows that re-tints the chrome Patchy does not style (native dialog title bars, dock and list scroll bars, tooltips, `QMessageBox`, the color picker), so there is no `DWMWA_USE_IMMERSIVE_DARK_MODE` call and no registry read. Under `QT_QPA_PLATFORM=offscreen` the call is a no-op and `colorScheme()` reports `Unknown`, which keeps the UI suite deterministic regardless of the host's setting.
 
-The frameless main window has no native title bar to tint; it draws its own 1px edge from the `window_border` role, overridden by the Light palette so the window keeps a silhouette on a light desktop. `DWMWA_BORDER_COLOR` in `main_window_chrome.cpp` stays unconditionally `COLOR_NONE`.
+The frameless main window has no native title bar to tint; it draws its own 1px edge from the `window_border` role, overridden by the Light palette so it keeps a silhouette on a light desktop. `DWMWA_BORDER_COLOR` in `main_window_chrome.cpp` stays unconditionally `COLOR_NONE`.
 
 ## Styled QCheckBox and QMacStyle margins
 
@@ -143,7 +142,7 @@ A stylesheet-styled QCheckBox needs a NON-native border in some matching rule. T
 
 ## Per-platform test skips (keep this list current)
 
-On macOS/Linux: `ui_bundled_legacy_plugin_action_applies_filter`, `ui_transparency_checkerboard_and_copy_paste_preserve_alpha`, `ui_legacy_plugin_run_respects_selection_and_undoes`, `ui_legacy_plugin_mehdi_filters_run_if_available`, `ui_legacy_plugin_mehdi_dialog_capture_if_available`, `ui_legacy_plugin_menu_opens_folder_and_rescans` and `ui_about_dialog_has_plugins_folder_row` (the legacy 8BF host and its folder UI are Windows-only, docs/plugins.md; `ui_legacy_plugin_ui_absent_off_windows` runs instead) plus the core `legacy_host_self_test_filters_fixtures_in_both_bitnesses` (not registered off Windows), and the two `ui_imported_psd_box_text_line_clip_*` tests (pin Windows Arial line metrics; CoreText/fontconfig differ by a few px). On macOS only: the four chrome tests that skip without `use_custom_window_chrome()` (listed in [wayland.md](wayland.md)). `ui_main_window_renders_color_controls` asserts frameless/badge/window-buttons **presence on Windows and Linux and absence on macOS**. Local-fixture tests `[SKIP]` on a remote until the corpus is copied there ([testing.md](testing.md)).
+On macOS/Linux: `ui_bundled_legacy_plugin_action_applies_filter`, `ui_transparency_checkerboard_and_copy_paste_preserve_alpha`, `ui_legacy_plugin_run_respects_selection_and_undoes`, `ui_legacy_plugin_mehdi_filters_run_if_available`, `ui_legacy_plugin_mehdi_dialog_capture_if_available`, `ui_legacy_plugin_menu_opens_folder_and_rescans` and `ui_about_dialog_has_plugins_folder_row` (the legacy 8BF host and its folder UI are Windows-only, docs/plugins.md; `ui_legacy_plugin_ui_absent_off_windows` runs there) plus the core `legacy_host_self_test_filters_fixtures_in_both_bitnesses` (not registered off Windows), and the two `ui_imported_psd_box_text_line_clip_*` tests (pin Windows Arial line metrics; CoreText/fontconfig differ by a few px). On macOS only: the chrome tests that skip without `use_custom_window_chrome()` ([wayland.md](wayland.md)). `ui_main_window_renders_color_controls` asserts frameless/badge/window-buttons **presence on Windows and Linux and absence on macOS**. Local-fixture tests `[SKIP]` on a remote until the corpus is copied ([testing.md](testing.md)).
 
 Text tests additionally gate on the fixture's own face. All three guards live in `tests/ui/ui_test_support.cpp`, for two reasons: a substituted face turns a pinned geometry tolerance into a measurement of the substitute, and a text session without the face raises the Missing Font prompt, which nothing answers under offscreen (the suite HANGS in the nested dialog loop).
 

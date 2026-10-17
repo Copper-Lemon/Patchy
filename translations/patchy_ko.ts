@@ -21038,6 +21038,22 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
         <source>Picked background color %1, %2, %3 (%4)</source>
         <translation>선택한 배경색 %1, %2, %3(%4)</translation>
     </message>
+    <message>
+        <source>Use the system title bar</source>
+        <translation>시스템 제목 표시줄 사용</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>메뉴 모음의 Patchy 창 컨트롤 대신 데스크톱 자체의 제목 표시줄과 창 테두리를 표시합니다. 다음에 Patchy를 시작할 때 적용됩니다.</translation>
+    </message>
+    <message>
+        <source>System Title Bar</source>
+        <translation>시스템 제목 표시줄</translation>
+    </message>
+    <message>
+        <source>Restart Patchy for the title bar change to take effect.</source>
+        <translation>제목 표시줄 변경을 적용하려면 Patchy를 다시 시작하세요.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

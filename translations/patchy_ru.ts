@@ -21164,6 +21164,22 @@ Patchy может скачать обновление, заменить этот
         <source>Picked background color %1, %2, %3 (%4)</source>
         <translation>Выбранный цвет фона %1, %2, %3 (%4)</translation>
     </message>
+    <message>
+        <source>Use the system title bar</source>
+        <translation>Использовать системный заголовок окна</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>Показывает заголовок и рамку окна рабочего стола вместо кнопок окна Patchy в строке меню. Вступает в силу при следующем запуске Patchy.</translation>
+    </message>
+    <message>
+        <source>System Title Bar</source>
+        <translation>Системный заголовок окна</translation>
+    </message>
+    <message>
+        <source>Restart Patchy for the title bar change to take effect.</source>
+        <translation>Перезапустите Patchy, чтобы изменение заголовка окна вступило в силу.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

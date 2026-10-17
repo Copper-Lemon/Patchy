@@ -21099,7 +21099,23 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
     </message>
     <message>
         <source>Picked background color %1, %2, %3 (%4)</source>
-        <translation>Couleur d'arrière-plan prélevée %1, %2, %3 (%4)</translation>
+        <translation>Couleur d&apos;arrière-plan prélevée %1, %2, %3 (%4)</translation>
+    </message>
+    <message>
+        <source>Use the system title bar</source>
+        <translation>Utiliser la barre de titre du système</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>Affiche la barre de titre et le cadre de fenêtre du bureau à la place des boutons de fenêtre de Patchy dans la barre de menus. Prend effet au prochain démarrage de Patchy.</translation>
+    </message>
+    <message>
+        <source>System Title Bar</source>
+        <translation>Barre de titre du système</translation>
+    </message>
+    <message>
+        <source>Restart Patchy for the title bar change to take effect.</source>
+        <translation>Redémarrez Patchy pour que le changement de barre de titre prenne effet.</translation>
     </message>
 </context>
 <context>

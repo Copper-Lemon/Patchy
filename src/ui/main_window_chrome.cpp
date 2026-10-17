@@ -216,6 +216,10 @@ namespace patchy::ui {
 namespace {
 
 constexpr int kWindowResizeBorder = 10;
+#if defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
+// The Linux chrome decision, made once per process from the stored preference.
+std::optional<bool> g_linux_custom_window_chrome;
+#endif
 // Wayland reports no work area, so the window keeps this much of the screen height free for
 // a shell panel (GNOME's top bar is about 32 logical px, a KDE panel about 44). Logical pixels.
 constexpr int kWaylandShellPanelAllowance = 48;
@@ -366,15 +370,29 @@ void apply_windows_pen_feedback_suppression(WId window_id) {
 }  // namespace
 
 bool MainWindow::use_custom_window_chrome() {
-#if defined(Q_OS_WIN) || (defined(Q_OS_LINUX) && !defined(Q_OS_WASM))
-  // Windows: the native frame stays behind the custom look (WM_NCCALCSIZE/WM_NCHITTEST
-  // below). Linux: a plain Qt::FramelessWindowHint window on X11 and Wayland, so Qt's
-  // own client-side decoration (the light title bar GNOME gets, docs/wayland.md) never
-  // appears; drag, resize, snap and tiling go through startSystemMove/startSystemResize.
+#if defined(Q_OS_WIN)
+  // The native frame stays behind the custom look (WM_NCCALCSIZE/WM_NCHITTEST below).
   return true;
+#elif defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
+  // A plain Qt::FramelessWindowHint window on X11 and Wayland, so Qt's own client-side
+  // decoration (the light title bar GNOME gets, docs/wayland.md) never appears; drag,
+  // resize, snap and tiling go through startSystemMove/startSystemResize. The "Use the
+  // system title bar" preference turns this off for the whole process (the desktop's
+  // decorations, native move and resize, no controls in the menu bar); it is read once
+  // here, before the window is built, and a change applies on the next launch.
+  if (!g_linux_custom_window_chrome.has_value()) {
+    g_linux_custom_window_chrome = !stored_system_title_bar();
+  }
+  return *g_linux_custom_window_chrome;
 #else
   // macOS keeps the native frame and global menu bar by design.
   return false;
+#endif
+}
+
+void MainWindow::reset_window_chrome_gate_cache() {
+#if defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
+  g_linux_custom_window_chrome.reset();
 #endif
 }
 
@@ -968,9 +986,9 @@ bool MainWindow::restore_window_geometry() {
 
 void MainWindow::configure_window_chrome() {
   if (!use_custom_window_chrome()) {
-    // Native frame (macOS): the platform draws the title bar and window buttons. Leave the
-    // menu bar fully default too: QMenuBar's default (nativeMenuBar=true) moves the menus
-    // into the global menu bar.
+    // Native frame (macOS, or Linux with the system title bar preference): the platform
+    // draws the title bar and window buttons. Leave the menu bar fully default too:
+    // QMenuBar's default (nativeMenuBar=true) moves the menus into the global menu bar.
     return;
   }
   auto* bar = menuBar();

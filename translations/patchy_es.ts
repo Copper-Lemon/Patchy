@@ -21101,6 +21101,22 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
         <source>Picked background color %1, %2, %3 (%4)</source>
         <translation>Color de fondo seleccionado %1, %2, %3 (%4)</translation>
     </message>
+    <message>
+        <source>Use the system title bar</source>
+        <translation>Usar la barra de título del sistema</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>Muestra la barra de título y el marco de ventana del escritorio en lugar de los controles de ventana de Patchy en la barra de menús. Se aplica la próxima vez que se inicie Patchy.</translation>
+    </message>
+    <message>
+        <source>System Title Bar</source>
+        <translation>Barra de título del sistema</translation>
+    </message>
+    <message>
+        <source>Restart Patchy for the title bar change to take effect.</source>
+        <translation>Reinicie Patchy para que el cambio de la barra de título surta efecto.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

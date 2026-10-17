@@ -165,9 +165,11 @@ public:
   void apply_text_family_to_format(QTextCharFormat& format, const QString& family) const;
   explicit MainWindow(QWidget* parent = nullptr);
   ~MainWindow() override;
-  // True where Patchy draws its own window frame (Windows and Linux): the frameless
-  // flag, the chrome buttons in the menu-bar row, and the edge-resize machinery. macOS
-  // uses the native frame and global menu bar (docs/platform.md).
+  // True where Patchy draws its own window frame (Windows, and Linux unless the
+  // "Use the system title bar" preference is on): the frameless flag, the chrome buttons
+  // in the menu-bar row, and the edge-resize machinery. macOS uses the native frame and
+  // global menu bar (docs/platform.md). On Linux the preference is read once, on the
+  // first call, so a change applies on the next launch.
   [[nodiscard]] static bool use_custom_window_chrome();
   // A plain mouse wheel zooms by default on every platform (Seth, October 2026). macOS
   // used to default this off for trackpads, which no longer read the setting: a
@@ -440,6 +442,9 @@ private:
   void build_tool_palette(ActionBuildContext& ctx);
   void build_options_bar(ActionBuildContext& ctx);
   void bind_action_translations(ActionBuildContext& ctx);
+  // Forgets the cached Linux preference so the next use_custom_window_chrome() re-reads
+  // it (tests; the app decides once per process).
+  static void reset_window_chrome_gate_cache();
   void configure_window_chrome();
   void position_window_chrome_controls();
   void ensure_native_resizable_frame();

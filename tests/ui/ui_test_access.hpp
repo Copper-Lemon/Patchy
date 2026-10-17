@@ -367,6 +367,10 @@ public:
     return window.title_bar_drag_area_contains(menu_bar_position);
   }
 
+  // Makes the next use_custom_window_chrome() re-read the Linux "Use the system title
+  // bar" preference (the app reads it once per process).
+  static void reset_window_chrome_gate_cache() { MainWindow::reset_window_chrome_gate_cache(); }
+
   // Sessions in creation order (the multi-page PDF open adds one per page).
   static Document& session_document(MainWindow& window, std::size_t index) {
     return window.sessions_.at(index)->document;

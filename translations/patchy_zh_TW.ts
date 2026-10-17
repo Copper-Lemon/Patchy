@@ -21038,6 +21038,22 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
         <source>Picked background color %1, %2, %3 (%4)</source>
         <translation>已檢取背景色 %1, %2, %3 (%4)</translation>
     </message>
+    <message>
+        <source>Use the system title bar</source>
+        <translation>使用系統標題列</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>顯示桌面本身的標題列和視窗框架，而不是功能表列中 Patchy 的視窗控制按鈕。下次啟動 Patchy 時生效。</translation>
+    </message>
+    <message>
+        <source>System Title Bar</source>
+        <translation>系統標題列</translation>
+    </message>
+    <message>
+        <source>Restart Patchy for the title bar change to take effect.</source>
+        <translation>請重新啟動 Patchy，標題列變更才會生效。</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

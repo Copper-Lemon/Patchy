@@ -35,11 +35,19 @@ QString update_check_interval_key() { return QStringLiteral("updates/checkInterv
 QString update_last_check_key() { return QStringLiteral("updates/lastCheckSecsSinceEpoch"); }
 QString update_skipped_version_key() { return QStringLiteral("updates/skippedVersion"); }
 QString preferences_dialog_size_key() { return QStringLiteral("preferences/dialogSize"); }
+QString system_title_bar_key() { return QStringLiteral("window/systemTitleBar"); }
 QString cmyk_profile_key() { return QStringLiteral("color/cmykProfile"); }
 QString cmyk_intent_key() { return QStringLiteral("color/cmykIntent"); }
 QString cmyk_black_point_key() { return QStringLiteral("color/cmykBlackPointCompensation"); }
 
 }  // namespace
+
+bool stored_system_title_bar() { return app_settings().value(system_title_bar_key(), false).toBool(); }
+
+void set_stored_system_title_bar(bool enabled) {
+  auto settings = app_settings();
+  settings.setValue(system_title_bar_key(), enabled);
+}
 
 int normalize_update_check_interval_days(int stored) {
   const auto match = std::find(kUpdateCheckIntervalDays.begin(), kUpdateCheckIntervalDays.end(), stored);

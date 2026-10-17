@@ -46,9 +46,22 @@ calls here, in `MainWindow::eventFilter` and `handle_window_resize_event`:
   brings the saved size back), so `restore_window_from_maximize` sets no geometry on Linux;
   the Windows branch keeps its WS_MAXIMIZE workaround.
 
-The maximize-after-first-show rule below (issue 132) is unchanged: a restored maximized
-state is still requested from `showEvent`'s first-show turn, and `available_window_height`
-still keeps `kWaylandShellPanelAllowance` free for the panel. Offscreen, every system call
+**Use the system title bar** (Preferences > Application, Linux builds only; GitHub issue
+145) stores `window/systemTitleBar` (default false; a compatibility contract, helpers in
+`app_settings.hpp`). `use_custom_window_chrome()` reads it once, on its first call, before
+the window is built, so a change applies on the next launch and the accept branch shows the
+usual restart notice (`preferencesSystemTitleBarMessageBox`). With it on, Linux behaves as
+it did before the frameless chrome: Qt's client-side decoration on GNOME Wayland, the
+server-side title bar on X11 and KDE, native move and resize, no badge or controls in the
+menu bar, the blank menu-bar drag still a `startSystemMove`. The key is stored but inert on
+Windows and macOS. `ui_system_title_bar_preference_disables_custom_chrome`,
+`ui_system_title_bar_preference_defaults_off` and
+`ui_preferences_system_title_bar_checkbox_persists_key` cover it (the gate cache resets
+through `MainWindowTestAccess::reset_window_chrome_gate_cache`).
+
+The maximize-after-first-show rule below (issue 132) is unchanged in both modes: a restored
+maximized state is still requested from `showEvent`'s first-show turn, and
+`available_window_height` still keeps `kWaylandShellPanelAllowance` free for the panel. Offscreen, every system call
 returns false, so `ui_window_chrome_controls_drive_window_state`,
 `ui_title_bar_drag_moves_window_only_past_threshold`,
 `ui_maximized_title_bar_click_keeps_window_maximized` and

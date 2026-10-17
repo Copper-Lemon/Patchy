@@ -815,6 +815,20 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
   gui_scale_combo->setCurrentIndex(gui_scale_combo->findData(entry_gui_scale));
   application_form->addRow(tr("Interface scale:"), gui_scale_combo);
 
+#if defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
+  // Linux only: the desktop's own title bar and frame instead of the frameless chrome
+  // (GitHub issue 145; docs/wayland.md). Read at startup, so like the interface scale it
+  // applies on the next launch and the accept branch shows the restart notice.
+  auto* system_title_bar_check = new QCheckBox(tr("Use the system title bar"), application_group);
+  system_title_bar_check->setObjectName(QStringLiteral("preferencesSystemTitleBarCheck"));
+  system_title_bar_check->setToolTip(
+      tr("Shows the desktop's own title bar and window frame instead of Patchy's window "
+         "controls in the menu bar. Takes effect the next time Patchy starts."));
+  const bool entry_system_title_bar = stored_system_title_bar();
+  system_title_bar_check->setChecked(entry_system_title_bar);
+  application_form->addRow(system_title_bar_check);
+#endif
+
 #ifndef Q_OS_WASM
   // The web build has no update check to configure: the deployed site is
   // always the current version. A store build has none either (the store updates it).
@@ -1857,6 +1871,14 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
     settings.setValue(QStringLiteral("imports/adoptIndexedPalette"), indexed_open_combo->currentData().toString());
     settings.setValue(QStringLiteral("imports/afImageLayers"), af_image_layers_combo->currentData().toString());
     settings.setValue(QStringLiteral("saveOptions/pdfLayerPolicy"), pdf_layers_combo->currentData().toString());
+#if defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
+    if (system_title_bar_check->isChecked() != entry_system_title_bar) {
+      set_stored_system_title_bar(system_title_bar_check->isChecked());
+      show_information_message(this, tr("System Title Bar"),
+                               tr("Restart Patchy for the title bar change to take effect."),
+                               QStringLiteral("preferencesSystemTitleBarMessageBox"));
+    }
+#endif
     const int selected_gui_scale = gui_scale_combo->currentData().toInt();
     if (selected_gui_scale != entry_gui_scale) {
       set_stored_gui_scale_percent(selected_gui_scale);
