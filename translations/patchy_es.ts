@@ -21173,6 +21173,22 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
         <source>Zoom presets</source>
         <translation>Zoom predefinido</translation>
     </message>
+    <message>
+        <source>Sets:</source>
+        <translation>Define:</translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation>Frontal</translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation>Un clic define el color frontal; %ALT%+clic define el de fondo</translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation>Un clic define el color de fondo; %ALT%+clic define el frontal</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

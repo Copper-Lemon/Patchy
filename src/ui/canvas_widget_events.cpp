@@ -201,8 +201,9 @@ bool CanvasWidget::eventFilter(QObject* watched, QEvent* event) {
         // click would select (GitHub issue 73); refresh the outline from the
         // folded modifiers at the last pointer position, no motion needed.
         update_move_hover_outline(last_mouse_position_, modifiers);
-      } else if (key_event->key() == Qt::Key_Alt && tool_uses_alt_left_for_color_pick(tool_) &&
-                 !painting_ && !drawing_shape_) {
+      } else if (key_event->key() == Qt::Key_Alt &&
+                 (tool_uses_alt_left_for_color_pick(tool_) || tool_ == CanvasTool::Eyedropper) && !painting_ &&
+                 !drawing_shape_) {
         // Alt is the temporary-eyedropper modifier for paint/shape/fill tools;
         // swap to (or back from) the eyedropper cursor the instant it toggles.
         // Drive it from the folded modifier state (authoritative here, unlike the
@@ -747,10 +748,13 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
       (tool_ == CanvasTool::Eyedropper ||
        ((event->modifiers() & Qt::AltModifier) != 0 && tool_uses_alt_left_for_color_pick(tool_)));
   if (color_pick_press) {
-    // Photoshop's convention (GitHub issue 150): with the Eyedropper tool itself,
-    // Alt+click sets the background color. The paint tools' Alt eyedropper is
-    // the other branch of color_pick_press and keeps setting the foreground.
-    color_pick_to_background_ = tool_ == CanvasTool::Eyedropper && (event->modifiers() & Qt::AltModifier) != 0;
+    // With the Eyedropper tool itself a click sets the color its Sets option
+    // names, and Alt inverts that for the click: with Foreground (the default)
+    // Alt+click sets the background, Photoshop's convention (GitHub issues 150,
+    // 151). The paint tools' Alt eyedropper is the other branch of
+    // color_pick_press and always sets the foreground.
+    color_pick_to_background_ =
+        tool_ == CanvasTool::Eyedropper && eyedropper_target_is_background(event->modifiers());
     begin_color_pick(event->pos(), event->globalPosition().toPoint());
     event->accept();
     return;

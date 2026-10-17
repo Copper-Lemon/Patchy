@@ -21236,6 +21236,22 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
         <source>Zoom presets</source>
         <translation>Ustawienia powiększenia</translation>
     </message>
+    <message>
+        <source>Sets:</source>
+        <translation>Ustawia:</translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation>Pierwszy plan</translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation>Kliknięcie ustawia kolor pierwszego planu; %ALT%+kliknięcie ustawia tło</translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation>Kliknięcie ustawia kolor tła; %ALT%+kliknięcie ustawia pierwszy plan</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

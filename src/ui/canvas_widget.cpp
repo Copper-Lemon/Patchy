@@ -930,6 +930,21 @@ bool CanvasWidget::eyedropper_sample_all_layers() const noexcept {
   return eyedropper_sample_all_layers_;
 }
 
+void CanvasWidget::set_eyedropper_picks_background(bool background) {
+  eyedropper_picks_background_ = background;
+  if (tool_ == CanvasTool::Eyedropper) {
+    update_tool_cursor();  // the badge shows the new target
+  }
+}
+
+bool CanvasWidget::eyedropper_picks_background() const noexcept {
+  return eyedropper_picks_background_;
+}
+
+bool CanvasWidget::eyedropper_target_is_background(Qt::KeyboardModifiers modifiers) const noexcept {
+  return eyedropper_picks_background_ != ((modifiers & Qt::AltModifier) != 0);
+}
+
 void CanvasWidget::set_sponge_mode(SpongeMode mode) noexcept {
   sponge_mode_ = mode;
 }

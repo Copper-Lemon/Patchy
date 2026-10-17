@@ -21173,6 +21173,22 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
         <source>Zoom presets</source>
         <translation>Predefinições de zoom</translation>
     </message>
+    <message>
+        <source>Sets:</source>
+        <translation>Define:</translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation>Primeiro plano</translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation>Um clique define a cor de primeiro plano; %ALT%+clique define a de plano de fundo</translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation>Um clique define a cor de plano de fundo; %ALT%+clique define a de primeiro plano</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

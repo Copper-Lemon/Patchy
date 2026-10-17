@@ -1,4 +1,5 @@
 #include <QStatusBar>
+#include "ui/tool_cursors.hpp"
 #include "ui/canvas_widget.hpp"
 #include "ui/canvas_alt_space_filter.hpp"
 #include "ui/qt_geometry.hpp"
@@ -2146,12 +2147,19 @@ void ui_brush_alt_shows_eyedropper_cursor() {
   CHECK(canvas->cursor().hotSpot() == brush_hotspot);
   CHECK(canvas->cursor().pixmap().toImage() == brush_image);
 
-  // The standalone Eyedropper tool uses the same cursor with no modifier held.
+  // The standalone Eyedropper tool uses the same glyph and hotspot plus the
+  // foreground/background badge for the color a click sets (GitHub issue 151).
   canvas->set_tool(patchy::ui::CanvasTool::Eyedropper);
   send_mouse(*canvas, QEvent::MouseMove, canvas->widget_position_for_document_point(QPoint(41, 41)),
              Qt::NoButton, Qt::NoButton);
   CHECK(canvas->cursor().hotSpot() == QPoint(5, 27));
-  CHECK(canvas->cursor().pixmap().toImage() == eyedropper_image);
+  CHECK(eyedropper_image == patchy::ui::eyedropper_cursor().pixmap().toImage());
+  // Which badge depends on Alt, and offscreen leaves this test's synthetic Alt
+  // in the global modifier state (docs/testing.md); either badge, never plain.
+  const auto tool_image = canvas->cursor().pixmap().toImage();
+  CHECK(tool_image != eyedropper_image);
+  CHECK(tool_image == patchy::ui::eyedropper_target_cursor(false).pixmap().toImage() ||
+        tool_image == patchy::ui::eyedropper_target_cursor(true).pixmap().toImage());
 }
 
 }  // namespace

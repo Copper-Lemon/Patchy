@@ -21173,6 +21173,22 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
         <source>Zoom presets</source>
         <translation>Zoomvorgaben</translation>
     </message>
+    <message>
+        <source>Sets:</source>
+        <translation>Setzt:</translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation>Vordergrund</translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation>Ein Klick setzt die Vordergrundfarbe; %ALT%+Klick setzt die Hintergrundfarbe</translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation>Ein Klick setzt die Hintergrundfarbe; %ALT%+Klick setzt die Vordergrundfarbe</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

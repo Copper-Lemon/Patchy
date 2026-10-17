@@ -9,6 +9,9 @@ namespace patchy::ui {
 // is also the hotspot. Built once and cached. Shared by the canvas Alt/Eyedropper
 // cursor and the colour picker's "Pick Screen Color" overlay so they never drift.
 [[nodiscard]] QCursor eyedropper_cursor();
+// The Eyedropper tool's own cursor: the same glyph with a foreground/background
+// swatch badge in the lower-right, the swatch a click sets drawn solid on top.
+[[nodiscard]] QCursor eyedropper_target_cursor(bool background);
 
 // The rotate hint: off the pending crop box (the straighten gesture) and over the Move
 // and Free Transform rotate handle (GitHub issue 98). A curved double-headed arrow,

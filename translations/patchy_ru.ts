@@ -21236,6 +21236,22 @@ Patchy может скачать обновление, заменить этот
         <source>Zoom presets</source>
         <translation>Предустановки масштаба</translation>
     </message>
+    <message>
+        <source>Sets:</source>
+        <translation>Задаёт:</translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation>Основной</translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation>Щелчок задаёт основной цвет; %ALT%+щелчок задаёт фоновый</translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation>Щелчок задаёт фоновый цвет; %ALT%+щелчок задаёт основной</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

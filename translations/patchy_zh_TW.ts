@@ -21110,6 +21110,22 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
         <source>Zoom presets</source>
         <translation>縮放預設</translation>
     </message>
+    <message>
+        <source>Sets:</source>
+        <translation>設定:</translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation>前景色</translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation>按一下設定前景色；%ALT%+按一下設定背景色</translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation>按一下設定背景色；%ALT%+按一下設定前景色</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

@@ -387,6 +387,11 @@ public:
   [[nodiscard]] int eyedropper_sample_size() const noexcept;
   void set_eyedropper_sample_all_layers(bool enabled) noexcept;
   [[nodiscard]] bool eyedropper_sample_all_layers() const noexcept;
+  // The Eyedropper's Sets option: which color a click sets. Alt inverts it for
+  // that click, as Alt inverts the Zoom tool's direction (GitHub issue 151).
+  void set_eyedropper_picks_background(bool background);
+  [[nodiscard]] bool eyedropper_picks_background() const noexcept;
+  [[nodiscard]] bool eyedropper_target_is_background(Qt::KeyboardModifiers modifiers) const noexcept;
   void set_pen_input_settings(PenInputSettings settings) noexcept;
   [[nodiscard]] const PenInputSettings& pen_input_settings() const noexcept;
   [[nodiscard]] std::optional<PenInputSample> last_pen_input_sample() const;
@@ -2663,6 +2668,7 @@ private:
   bool sponge_vibrance_{true};
   int eyedropper_sample_size_{1};
   bool eyedropper_sample_all_layers_{true};
+  bool eyedropper_picks_background_{false};
   PenInputSettings pen_input_settings_{};
   std::optional<PenInputSample> active_pen_input_sample_{};
   std::optional<PenInputSample> last_pen_input_sample_{};

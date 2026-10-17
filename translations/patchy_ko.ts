@@ -21110,6 +21110,22 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
         <source>Zoom presets</source>
         <translation>확대/축소 사전 설정</translation>
     </message>
+    <message>
+        <source>Sets:</source>
+        <translation>설정 대상:</translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation>전경색</translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation>클릭하면 전경색을 설정하고 %ALT%+클릭하면 배경색을 설정합니다</translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation>클릭하면 배경색을 설정하고 %ALT%+클릭하면 전경색을 설정합니다</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

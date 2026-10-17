@@ -18,7 +18,35 @@ namespace {
 // round bulb in the upper-right, matching tool-eyedropper.svg. Drawn in two
 // passes (dark halo, then light ink) so it stays legible over any background,
 // with the hotspot on the lower-left tip (the pixel that gets sampled).
-QCursor build_eyedropper_cursor() {
+// The swatch badge for the Eyedropper tool's target (GitHub issue 151): the
+// foreground square upper-left, the background square lower-right, as in the
+// tool palette's color well. The target is solid and drawn on top; the other is
+// a hollow outline. Both carry the dark halo the glyph uses.
+void draw_eyedropper_target_badge(QPainter& painter, bool background) {
+  const QRectF foreground(19.5, 19.5, 7.0, 7.0);
+  const QRectF back(23.5, 23.5, 7.0, 7.0);
+  const auto hollow = [&painter](const QRectF& square) {
+    painter.setBrush(Qt::NoBrush);
+    painter.setPen(QPen(QColor(20, 23, 28), 3.0));
+    painter.drawRect(square);
+    painter.setPen(QPen(QColor(245, 248, 252), 1.2));
+    painter.drawRect(square);
+  };
+  const auto solid = [&painter](const QRectF& square) {
+    painter.setPen(QPen(QColor(20, 23, 28), 1.6));
+    painter.setBrush(QColor(245, 248, 252));
+    painter.drawRect(square);
+  };
+  if (background) {
+    hollow(foreground);
+    solid(back);
+  } else {
+    hollow(back);
+    solid(foreground);
+  }
+}
+
+QCursor build_eyedropper_cursor(int badge = -1) {
   constexpr int kSize = 32;
   QPixmap pixmap(kSize, kSize);
   pixmap.fill(Qt::transparent);
@@ -49,6 +77,9 @@ QCursor build_eyedropper_cursor() {
   painter.setPen(Qt::NoPen);
   painter.setBrush(QColor(116, 192, 255));
   painter.drawEllipse(tip, 1.9, 1.9);
+  if (badge >= 0) {
+    draw_eyedropper_target_badge(painter, badge == 1);
+  }
   painter.end();
 
   return QCursor(pixmap, static_cast<int>(std::round(tip.x())), static_cast<int>(std::round(tip.y())));
@@ -104,6 +135,12 @@ QCursor eyedropper_cursor() {
   // Built once and reused: update_tool_cursor() runs on every mouse move.
   static const QCursor cursor = build_eyedropper_cursor();
   return cursor;
+}
+
+QCursor eyedropper_target_cursor(bool background) {
+  static const QCursor foreground_cursor = build_eyedropper_cursor(0);
+  static const QCursor background_cursor = build_eyedropper_cursor(1);
+  return background ? background_cursor : foreground_cursor;
 }
 
 QCursor rotate_cursor() {

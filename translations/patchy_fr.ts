@@ -21173,6 +21173,22 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
         <source>Zoom presets</source>
         <translation>Zooms prédéfinis</translation>
     </message>
+    <message>
+        <source>Sets:</source>
+        <translation>Définit :</translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation>Premier plan</translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation>Un clic définit la couleur de premier plan ; %ALT%+clic définit l&apos;arrière-plan</translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation>Un clic définit la couleur d&apos;arrière-plan ; %ALT%+clic définit le premier plan</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

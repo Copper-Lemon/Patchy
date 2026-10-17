@@ -21110,6 +21110,22 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <source>Zoom presets</source>
         <translation>ズームのプリセット</translation>
     </message>
+    <message>
+        <source>Sets:</source>
+        <translation>設定先:</translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation>描画色</translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation>クリックで描画色を設定します。%ALT%+クリックで背景色を設定します</translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation>クリックで背景色を設定します。%ALT%+クリックで描画色を設定します</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
