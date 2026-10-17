@@ -65,6 +65,9 @@ namespace {
 constexpr double kPenCloseHitRadiusPx = 8.0;   // screen pixels
 constexpr double kPenSmoothDragThresholdPx = 2.0;  // document pixels
 constexpr double kPathHitRadiusPx = 7.0;       // half of the 14 px hit rect
+// Handle knobs grab from a little farther than anchors (GitHub issue 105: the
+// knobs were too small to hit); a press closer to the anchor stays the anchor's.
+constexpr double kHandleHitRadiusPx = 9.0;
 constexpr qint64 kPathNudgeCoalesceMs = 800;
 
 // De Casteljau split of the cubic (a.anchor, a.out, b.in, b.anchor) at t,
@@ -415,13 +418,18 @@ bool CanvasWidget::handle_pen_key(QKeyEvent* event) {
 // background (a light pasteboard, a pale photo, a saturated shape fill), which is
 // how Photoshop and Figma get away with small glyphs. So every glyph is three-tone:
 // a dark 1 px edge, a white band, and the accent (a saturated blue rather than the
-// old pale one); handle lines ride on a translucent dark halo.
+// old pale one); handle lines ride on a translucent dark halo. A second pass
+// (October 2026) found the curve itself, a bare 1.2 px line, still lost on a busy
+// photo at 100%: the outline now rides the same halo at 2 px, and the glyphs grew
+// to 10 px (anchors) and 12 px (handle knobs).
 namespace {
-constexpr double kAnchorHalf = 4.0;  // 8 px square
-constexpr double kKnobRadius = 4.0;  // 8 px round knob
+constexpr double kAnchorHalf = 5.0;  // 10 px square
+constexpr double kKnobRadius = 6.0;  // 12 px round knob, a size up from anchors
 // Widget pixels a glyph can reach past its point (half size, edge and antialiasing);
 // repaint regions around path points pad by this much.
-constexpr double kGlyphReach = 7.0;
+constexpr double kGlyphReach = 8.0;
+constexpr double kOutlineWidth = 2.0;
+constexpr double kOutlineHaloWidth = 4.0;
 
 [[nodiscard]] QColor path_overlay_accent() {
   return QColor(30, 136, 255);
@@ -450,17 +458,28 @@ void draw_knob_glyph(QPainter& painter, QPointF center, const QColor& accent) {
   painter.drawEllipse(center, kKnobRadius, kKnobRadius);
   painter.setPen(Qt::NoPen);
   painter.setBrush(accent);
-  painter.drawEllipse(center, kKnobRadius - 1.75, kKnobRadius - 1.75);
+  painter.drawEllipse(center, kKnobRadius - 2.25, kKnobRadius - 2.25);
 }
 
-// The direction line from an anchor to its handle knob: a 1.4 px accent line on a
-// 3 px translucent dark halo, visible over light and saturated pixels alike.
+// The direction line from an anchor to its handle knob: a 1.6 px accent line on a
+// 3.5 px translucent dark halo, visible over light and saturated pixels alike.
 void draw_handle_line(QPainter& painter, QPointF from, QPointF to, const QColor& accent) {
   painter.setBrush(Qt::NoBrush);
-  painter.setPen(QPen(QColor(0, 0, 0, 110), 3.0, Qt::SolidLine, Qt::RoundCap));
+  painter.setPen(QPen(QColor(0, 0, 0, 120), 3.5, Qt::SolidLine, Qt::RoundCap));
   painter.drawLine(from, to);
-  painter.setPen(QPen(accent, 1.4, Qt::SolidLine, Qt::RoundCap));
+  painter.setPen(QPen(accent, 1.6, Qt::SolidLine, Qt::RoundCap));
   painter.drawLine(from, to);
+}
+
+// A path outline: the accent at 2 px on a 4 px translucent dark halo, the handle
+// lines' recipe, so the curve reads over a pale, dark or busy image at 100%.
+void draw_path_outline(QPainter& painter, const QPainterPath& outline, const QColor& accent,
+                       Qt::PenStyle style = Qt::SolidLine) {
+  painter.setBrush(Qt::NoBrush);
+  painter.setPen(QPen(QColor(0, 0, 0, 120), kOutlineHaloWidth, style, Qt::RoundCap, Qt::RoundJoin));
+  painter.drawPath(outline);
+  painter.setPen(QPen(accent, kOutlineWidth, style, Qt::RoundCap, Qt::RoundJoin));
+  painter.drawPath(outline);
 }
 }  // namespace
 
@@ -498,13 +517,8 @@ void CanvasWidget::draw_pen_overlay(QPainter& painter) {
                   to_screen(preview_target.x(), preview_target.y()),
                   to_screen(preview_target.x(), preview_target.y()));
 
-  QPen outline_pen(accent, 1.4);
-  painter.setPen(outline_pen);
-  painter.setBrush(Qt::NoBrush);
-  painter.drawPath(outline);
-  QPen preview_pen(accent, 1.0, Qt::DashLine);
-  painter.setPen(preview_pen);
-  painter.drawPath(preview);
+  draw_path_outline(painter, outline, accent);
+  draw_path_outline(painter, preview, accent, Qt::DashLine);
 
   // Handles of the anchor under construction.
   if (pen_handle_dragging_ && last.smooth) {
@@ -831,7 +845,8 @@ void CanvasWidget::replace_path_edit_target(VectorPath path, const std::vector<i
   }
   const auto repaint_overlay = qScopeGuard([this, overlay] {
     if (!overlay.isEmpty()) {
-      update(widget_rect_for_document_rect(overlay).toAlignedRect().adjusted(-8, -8, 8, 8));
+      constexpr int kPad = static_cast<int>(kGlyphReach) + 2;  // glyphs plus antialiasing slack
+      update(widget_rect_for_document_rect(overlay).toAlignedRect().adjusted(-kPad, -kPad, kPad, kPad));
     }
   });
   if (layer_edit_target_ == LayerEditTarget::VectorMask) {
@@ -1079,10 +1094,11 @@ int CanvasWidget::path_handle_at(QPointF widget_point, std::pair<int, int>& anch
     // anchor square; it is not grabbable there - the anchor drag wins.
     const auto anchor_screen = path_point_to_screen(anchor_data.anchor_x, anchor_data.anchor_y);
     const auto grabbable = [&](QPointF handle_screen) {
+      const auto to_handle = std::hypot(handle_screen.x() - widget_point.x(), handle_screen.y() - widget_point.y());
+      const auto to_anchor = std::hypot(anchor_screen.x() - widget_point.x(), anchor_screen.y() - widget_point.y());
       return std::hypot(handle_screen.x() - anchor_screen.x(),
                         handle_screen.y() - anchor_screen.y()) > 0.5 &&
-             std::hypot(handle_screen.x() - widget_point.x(),
-                        handle_screen.y() - widget_point.y()) <= kPathHitRadiusPx;
+             to_handle <= kHandleHitRadiusPx && (to_handle < to_anchor || to_anchor > kPathHitRadiusPx);
     };
     if (grabbable(path_point_to_screen(anchor_data.in_x, anchor_data.in_y))) {
       anchor = key;
@@ -2161,9 +2177,7 @@ void CanvasWidget::draw_path_edit_overlay(QPainter& painter) {
     }
     return outline;
   };
-  painter.setPen(QPen(accent, 1.2));
-  painter.setBrush(Qt::NoBrush);
-  painter.drawPath(build_outline(*path, target_transform));
+  draw_path_outline(painter, build_outline(*path, target_transform), accent);
 
   if (!editing) {
     painter.restore();
@@ -2184,9 +2198,7 @@ void CanvasWidget::draw_path_edit_overlay(QPainter& painter) {
         continue;  // the editing target already drew
       }
       const auto extra_transform = layer_preview_transform(id);
-      painter.setPen(QPen(accent, 1.2));
-      painter.setBrush(Qt::NoBrush);
-      painter.drawPath(build_outline(extra, extra_transform));
+      draw_path_outline(painter, build_outline(extra, extra_transform), accent);
       const auto selected_it = extra_selected_anchors_.find(id);
       for (int s = 0; s < static_cast<int>(extra.subpaths.size()); ++s) {
         const auto& subpath = extra.subpaths[static_cast<std::size_t>(s)];
