@@ -155,6 +155,14 @@ class StyleLibrary;
 class ZoomPercentEdit;
 class ZoomStatusBar;
 
+// A QAction property marking a menu command that works with no document open
+// (recent-file rows, panel toggles); see command_works_without_document.
+inline constexpr char kWorksWithoutDocumentProperty[] = "patchy.worksWithoutDocument";
+// Whether a menu-bar command stays enabled on the empty workspace (GitHub issue
+// 162). Every other menu-bar command is a document action, disabled until a
+// document is open; `command_id` is its hotkey id or empty.
+[[nodiscard]] bool command_works_without_document(const QAction& action, const QString& command_id);
+
 struct GmicRenderResult;  // main_window_gmic.cpp
 struct GmicRunInput;
 

@@ -128,6 +128,7 @@
 #include <QTextOption>
 #include <QTimer>
 #include <QActionGroup>
+#include <QSet>
 #include <QHBoxLayout>
 #include <QToolButton>
 #include <QToolTip>
@@ -11102,6 +11103,51 @@ bool MainWindow::refuse_layer_dialog_during_transform() {
   }
   show_status_error(tr("Finish the transform first: press Enter to apply it or Esc to cancel it"));
   return true;
+}
+
+bool command_works_without_document(const QAction& action, const QString& command_id) {
+  if (action.property(kWorksWithoutDocumentProperty).toBool()) {
+    return true;
+  }
+  switch (action.menuRole()) {
+    case QAction::AboutRole:
+    case QAction::AboutQtRole:
+    case QAction::PreferencesRole:
+    case QAction::QuitRole:
+      return true;
+    default:
+      break;
+  }
+  // Commands that open, create or import a document, change app-wide settings, or
+  // run a script (scripts check for a document themselves).
+  static const QSet<QString> ids{
+      QStringLiteral("file.new"),
+      QStringLiteral("file.open"),
+      QStringLiteral("file.open_clipboard"),
+      QStringLiteral("file.open_folder"),
+      QStringLiteral("file.import_scanner"),
+      QStringLiteral("file.import_photocopy"),
+      QStringLiteral("file.import_divide_photos"),
+      QStringLiteral("file.import_sprite_sheet"),
+      QStringLiteral("file.import_image_sequence"),
+      QStringLiteral("file.preferences"),
+      QStringLiteral("file.quit"),
+      QStringLiteral("edit.define_custom_shape_svg"),
+      QStringLiteral("plugins.open_folder"),
+      QStringLiteral("plugins.rescan"),
+      QStringLiteral("view.vector_preview"),  // a preference, also in Preferences
+  };
+  if (ids.contains(command_id)) {
+    return true;
+  }
+  for (const auto* prefix : {"help.", "script.", "file.scripts."}) {
+    if (command_id.startsWith(QLatin1String(prefix))) {
+      return true;
+    }
+  }
+  const auto name = action.objectName();
+  return name == QStringLiteral("fileClearRecentAction") || name == QStringLiteral("fileClearRecentFoldersAction") ||
+         name.startsWith(QStringLiteral("windowSetScreenSize"));
 }
 
 void MainWindow::register_document_action(QAction* action) {

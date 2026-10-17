@@ -45,6 +45,7 @@
 #include <QTabWidget>
 #include <QTest>
 #include <QTimer>
+#include <QWidgetAction>
 #include <QAbstractButton>
 #include <QToolBar>
 #include <QToolButton>
@@ -59,6 +60,7 @@
 #include <exception>
 #include <filesystem>
 #include <fstream>
+#include <cstdio>
 #include <functional>
 #include <iostream>
 #include <limits>
@@ -622,6 +624,50 @@ void ui_start_panel_recent_row_remove_button_and_menu() {
   auto settings = patchy::ui::app_settings();
   settings.sync();
   CHECK(settings.value(QStringLiteral("recentFolders")).toStringList() == QStringList{folder_b});
+}
+
+// With no document open (the Home screen), every menu-bar command that needs a
+// document is disabled: Image > Crop to Selection (Advanced) and Layer > Edit
+// Adjustment crashed there, and Layer > Smart Objects stayed enabled (GitHub
+// issue 162). Only commands that work without a document stay live.
+void ui_empty_workspace_disables_document_commands() {
+  patchy::ui::MainWindow window;
+  show_window_empty(window);
+  const auto command_id = [&window](const QAction* action) {
+    for (const auto& command : window.hotkey_registry().commands()) {
+      if (command.action == action) {
+        return command.id;
+      }
+    }
+    return QString();
+  };
+  QStringList enabled;
+  std::function<void(QMenu*, const QString&)> walk = [&](QMenu* menu, const QString& path) {
+    QMetaObject::invokeMethod(menu, "aboutToShow");  // dynamic menus fill on show
+    QApplication::processEvents();
+    for (auto* action : menu->actions()) {
+      if (action->isSeparator() || qobject_cast<QWidgetAction*>(action) != nullptr || !action->isVisible()) {
+        continue;
+      }
+      const auto label = path + QStringLiteral(" > ") + action->text().remove(QLatin1Char('&'));
+      if (action->menu() != nullptr) {
+        walk(action->menu(), label);
+        continue;
+      }
+      if (action->isEnabled() && !patchy::ui::command_works_without_document(*action, command_id(action))) {
+        enabled << QStringLiteral("%1 [%2 / %3]").arg(label, command_id(action), action->objectName());
+      }
+    }
+  };
+  for (auto* top : window.menuBar()->actions()) {
+    if (top->menu() != nullptr) {
+      walk(top->menu(), top->text().remove(QLatin1Char('&')));
+    }
+  }
+  for (const auto& line : enabled) {
+    std::printf("  enabled without a document: %s\n", line.toUtf8().constData());
+  }
+  CHECK(enabled.isEmpty());
 }
 
 void ui_start_panel_recent_filter_narrows_rows_and_opens_match() {
@@ -2228,6 +2274,7 @@ std::vector<patchy::test::TestCase> app_shell_tests_part1() {
       {"ui_large_document_session_keeps_loading_responsive", ui_large_document_session_keeps_loading_responsive},
       {"ui_start_panel_recent_files_scroll_and_context_menu", ui_start_panel_recent_files_scroll_and_context_menu},
       {"ui_start_panel_recent_row_remove_button_and_menu", ui_start_panel_recent_row_remove_button_and_menu},
+      {"ui_empty_workspace_disables_document_commands", ui_empty_workspace_disables_document_commands},
       {"ui_start_panel_recent_filter_narrows_rows_and_opens_match", ui_start_panel_recent_filter_narrows_rows_and_opens_match},
       {"ui_start_panel_shows_about_info_and_update_status", ui_start_panel_shows_about_info_and_update_status},
       {"ui_main_window_renders_color_controls", ui_main_window_renders_color_controls},

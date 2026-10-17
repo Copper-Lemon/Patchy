@@ -528,6 +528,9 @@ void MainWindow::create_adjustment_layer(QString label, const AdjustmentSettings
 }
 
 void MainWindow::edit_active_adjustment_layer() {
+  if (canvas_ == nullptr || !has_active_document()) {
+    return;  // the menu item is disabled then; scripts and stale shortcuts land here (issue 162)
+  }
   // Adjustment dialogs are preview dialogs; opening one on top of another
   // preview dialog (e.g. by double-clicking a layer row while one is open)
   // stacks nested event loops and crashes.
