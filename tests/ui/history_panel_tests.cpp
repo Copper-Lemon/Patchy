@@ -1,11 +1,29 @@
+#include <QTabWidget>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 // History panel interaction tests: per-session rebuild, click-to-jump across
 // the undo/redo stacks, cap eviction, keyboard undo/redo highlight moves, and
 // the preview-lock disable.
-
 #include "ui/canvas_widget.hpp"
 #include "ui/main_window.hpp"
-#include "ui/theme_palette.hpp"
-
 #include <QApplication>
 #include <QColor>
 #include <QDialog>
@@ -13,7 +31,6 @@
 #include <QListWidget>
 #include <QTest>
 #include <QTimer>
-
 #include "test_harness.hpp"
 #include "ui_test_access.hpp"
 #include "ui_test_groups.hpp"

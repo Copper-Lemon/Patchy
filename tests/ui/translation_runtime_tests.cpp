@@ -1,8 +1,40 @@
+#include "ui/localization.hpp"
+#include "ui/main_window.hpp"
+#include <QAction>
+#include <QApplication>
+#include <QDockWidget>
+#include <QLabel>
+#include <QLineEdit>
+#include <QMenu>
+#include <QSpinBox>
+#include <QStringList>
+#include <QToolBar>
+#include <QWidget>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+#include "ui_test_access.hpp"
 // Compare actual UI properties, including controls without translation metadata.
 // Shared by the normal UI suite and the mandatory desktop build checker.
 #include "test_harness.hpp"
 #include "ui_test_support.hpp"
-
 #include <QAbstractButton>
 #include <QAbstractItemView>
 #include <QComboBox>
@@ -10,7 +42,6 @@
 #include <QFontComboBox>
 #include <QGroupBox>
 #include <QMap>
-#include <QScopeGuard>
 
 namespace {
 using namespace patchy::test::ui;

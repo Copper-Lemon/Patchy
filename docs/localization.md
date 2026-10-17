@@ -53,9 +53,10 @@ context name identifies the surface.
    `type="unfinished"` entries.
 3. Fill the unfinished entries in every language file. Only the translation text changes;
    the source, context and message order come from lupdate.
-4. Build. Every application build runs the read-only catalog gate before compiling
+4. Build. Changed translation inputs run the read-only catalog gate before compiling
    translations. Desktop builds also check the live UI before linking the app or
    connector. Missing translations and broken language switching fail the build.
+   An identical input set can reuse a previous successful check.
 
 Application builds require a host Python 3.8+ interpreter, including WebAssembly
 cross builds. `scripts/check-translations.py` uses only the standard library and the
@@ -78,6 +79,17 @@ English and switching directly between translated languages. User layer names, r
 paths, font-family names and other item-view content are excluded. Unchanged terms such as RGB are valid;
 this is not an English-word heuristic. WebAssembly runs the host catalog gate and uses
 the same corrected UI code, but does not execute the native runtime checker.
+
+Both build gates produce success stamps only after exit zero, removing an old stamp
+before rechecking. The catalog stamp depends on all extraction sources, the English
+template, every language catalog, the extraction manifest, validator and lupdate.
+The runtime stamp additionally depends on the checker executable, compiled Patchy
+and Qt catalogs, language list, Qt libraries/plugins, and staged fonts, scripts,
+AI runtime and agent-kit resources. The runtime input manifest tracks its file set;
+the catalog manifest tracks extraction sources and languages, so removals recheck
+both affected gates.
+The gates remain prerequisites with `PATCHY_BUILD_TESTS=OFF`; a failed check cannot
+publish a new stamp or allow the app/connector build to continue.
 
 Never hand-edit source strings or contexts in a `.ts` file, never add entries by hand, and
 never run lupdate without `-no-obsolete` to keep dead entries: lupdate owns the structure,

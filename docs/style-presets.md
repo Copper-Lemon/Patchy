@@ -12,6 +12,16 @@ matching, mixed values, preview transactions, native-data safeguards, and histor
 - **Style Manager** (`request_style_manager`, src/ui/style_manager_dialog.cpp): the Pattern Manager's style twin. Tree + large rendered preview + name/folder edits + Import .asl / Export / Duplicate / Delete / Restore Default Styles / Use Style. Library edits apply immediately (no undo, matching patterns).
 - **StyleBrowserWidget** (src/ui/style_browser.cpp) is the shared folder tree (48 px icons on the Styles page, 40 px in the manager). Its context menu's "Export to .asl…" exports the selection; a folder row exports its children and supplies the default filename. `export_selection_to(path)` is the prompt-free half tests drive.
 
+The dialog controller remains in `ui/layer_style_dialog.cpp`: it owns category order,
+batch edits, preset application, preview cancellation, and transient pattern restoration.
+`layer_style_effect_pages.{hpp,cpp}` builds each effect page and returns its control
+handles; the dialog retains those aggregates through `exec()`. The construction context
+must not be retained by callbacks. `layer_style_gradient_controls.{hpp,cpp}` owns the
+shared gradient editor, whose separate context lives through the whole dialog; callbacks
+capture that stable state or widget handles. `layer_style_dialog_controls.{hpp,cpp}` owns
+shared color and numeric rows. Page object names, stacked indices, and translation
+contexts remain compatibility contracts for the UI tests.
+
 ## StyleLibrary (src/ui/style_library.*)
 
 - Storage: `<settings dir>/styles/`: per entry a **single-style .asl file** named by storage UUID (self-contained: effects + optional blendOptions + the referenced pattern tiles), a JSON sidecar `{id, sourceId?, name, folder}`, and a cached thumbnail PNG (regenerated when missing or older than the .asl). `reload()` is .asl-driven; the sidecar overrides name/id/folder.

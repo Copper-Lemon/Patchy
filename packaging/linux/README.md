@@ -104,6 +104,12 @@ users. Check with `flatpak remote-info
 rerun the whole script and both full suites (`remote-build.ps1 -Target linux` builds
 and tests inside the same SDK; see [docs/linux-testing.md](../../docs/linux-testing.md)).
 
+`make-flatpak.sh` renders `build/flatpak-release-manifest.yml` from that source using
+`scripts/release/prepare-flatpak-manifest.py`. The generated manifest has an absolute
+source path and a fresh build-stamp token: packaging rebuilds the app module even
+when its sources are unchanged, while dependency modules can retain their caches.
+The committed manifest is never rewritten by packaging.
+
 - `--filesystem=home` is the deliberate v1 choice (recents, CLI file arguments, and
   brush/palette folders behave like a desktop editor; file dialogs still go through
   the portal).

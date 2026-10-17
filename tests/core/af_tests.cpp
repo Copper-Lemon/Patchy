@@ -12,7 +12,6 @@
 // cases are byte mutations of the fixtures.
 
 #include "formats/af_document_io.hpp"
-
 #include "core/adjustment_layer.hpp"
 #include "formats/document_flatten.hpp"
 #include "formats/format_registry.hpp"
@@ -23,7 +22,6 @@
 #include "core/vector_shape.hpp"
 #include "psd/psd_document_io.hpp"
 #include "test_harness.hpp"
-
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -37,7 +35,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-
 #include "test_groups.hpp"
 
 namespace {

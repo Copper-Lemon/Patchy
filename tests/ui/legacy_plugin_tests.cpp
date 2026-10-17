@@ -1,12 +1,33 @@
+#include <QStatusBar>
+
+
+#include "synthetic_dng.hpp"
+#include <QDialog>
+#include <QEventLoop>
+#include <QFileInfo>
+#include <QIODevice>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <fstream>
+#include <functional>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string_view>
+#include "ui_test_access.hpp"
 // Legacy Photoshop plug-ins in the application (docs/plugins.md): the folder
 // scan and category submenu, the scripting surface (patchy.plugins,
 // layer.applyPlugin), a selection-limited undoable run through the
 // out-of-process host, and the handling of files that are not filters. The
 // runs are Windows-only (the probe rejects every plug-in elsewhere); the scan
 // and listing work everywhere.
-
 #include "core/document.hpp"
-#include "core/layer_tree.hpp"
 #include "ui/app_settings.hpp"
 #include "ui/canvas_widget.hpp"
 #include "ui/legacy_plugin_folder.hpp"
@@ -15,14 +36,11 @@
 #include "ui/splash_dialog.hpp"
 #include "ui/qt_paths.hpp"
 #include "ui/script_engine.hpp"
-
 #include "local_psd_fixtures.hpp"
 #include "test_harness.hpp"
 #include "ui/ui_test_access.hpp"
 #include "ui_test_groups.hpp"
 #include "ui_test_support.hpp"
-
-#include <QAbstractButton>
 #include <QAction>
 #include <QApplication>
 #include <QComboBox>
@@ -39,21 +57,16 @@
 #include <QProcess>
 #include <QProgressBar>
 #include <QPushButton>
-#include <QStatusBar>
-#include <QTabBar>
 #include <QTabWidget>
 #include <QTimer>
 #include <QSize>
 #include <QString>
-#include <QStringList>
-
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
-
 #ifdef Q_OS_WIN
 #ifndef NOMINMAX
 #define NOMINMAX

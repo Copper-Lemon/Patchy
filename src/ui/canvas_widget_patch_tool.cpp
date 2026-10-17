@@ -15,28 +15,42 @@
 // docs/patent-research.md and docs/patent-research-inpainting.md.
 
 #include "ui/canvas_widget.hpp"
-#include "ui/canvas_widget_shared.hpp"
 
 #include "core/blend_math.hpp"
 #include "core/heal_membrane.hpp"
+#include "core/palette.hpp"
+#include "core/pixel_buffer.hpp"
 #include "core/pixel_tools.hpp"
 #include "core/worker_budget.hpp"
-#include "ui/edit_conversions.hpp"
+#include "ui/canvas_types.hpp"
+#include "ui/canvas_widget_shared.hpp"
 #include "ui/qt_geometry.hpp"
 #include "ui/selection_outline.hpp"
 
 #include <QApplication>
+#include <QColor>
+#include <QImage>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPen>
+#include <QPoint>
+#include <QPointF>
+#include <QRect>
+#include <QRectF>
+#include <QRegion>
 #include <QTransform>
+#include <Qt>
+#include <QtGlobal>
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <future>
+#include <optional>
 #include <span>
-#include <thread>
+#include <utility>
 #include <vector>
 
 namespace patchy::ui {

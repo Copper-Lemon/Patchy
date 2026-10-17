@@ -1,5 +1,24 @@
 #include <QCoreApplication>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QFontMetrics>
+#include <QHBoxLayout>
+#include <QInputDialog>
+#include <QJsonObject>
+#include <QLabel>
+#include <QLineEdit>
+#include <QListWidget>
+#include <QListWidgetItem>
+#include <QPushButton>
+#include <QSignalBlocker>
+#include <QString>
+#include <QTimer>
+#include <QVBoxLayout>
+#include <Qt>
+#include "ui/canvas_types.hpp"
 #include "ui/main_window.hpp"
+#include <QComboBox>
+#include "ui/canvas_widget.hpp"
 #include "ui/brush_automation.hpp"
 #include "ui/brush_tip_library.hpp"
 #include "ui/brush_tip_picker.hpp"
@@ -7,18 +26,10 @@
 #include "ui/script_engine.hpp"
 #include "ui/dialog_utils.hpp"
 #include "ui/localization.hpp"
-#include <QComboBox>
-#include <QAbstractItemView>
-#include <QDialogButtonBox>
-#include <QInputDialog>
-#include <QFontMetrics>
-#include <QLabel>
-#include <QListWidget>
-#include <QPushButton>
-#include <QSignalBlocker>
-#include <QTimer>
-#include <QVBoxLayout>
+#include "ui/script_stroke.hpp"
 #include <algorithm>
+#include <exception>
+#include <functional>
 
 namespace patchy::ui {
 BrushAutomationLibrary& MainWindow::brush_automation_library() {

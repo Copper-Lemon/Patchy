@@ -1,5 +1,8 @@
 #include "ui/appearance_properties.hpp"
 #include "ui/layer_style_dialog.hpp"
+#include "ui/layer_style_dialog_controls.hpp"
+#include "ui/layer_style_gradient_controls.hpp"
+#include "ui/layer_style_effect_pages.hpp"
 
 #include "core/contour_presets.hpp"
 #include "core/pattern_presets.hpp"
@@ -10,9 +13,6 @@
 #include "ui/coalesced_preview_emitter.hpp"
 #include "ui/color_panel.hpp"
 #include "ui/dialog_utils.hpp"
-#include "ui/gradient_library.hpp"
-#include "ui/gradient_manager_dialog.hpp"
-#include "ui/gradient_preset_popup.hpp"
 #include "ui/gradient_stops_editor.hpp"
 #include "ui/modifier_names.hpp"
 #include "ui/pattern_library.hpp"
@@ -20,7 +20,7 @@
 #include "ui/photo_pattern_presets.hpp"
 #include "ui/style_browser.hpp"
 #include "ui/style_library.hpp"
-#include "ui/main_window_shared.hpp"
+#include "ui/ui_profile.hpp"
 #include "ui/style_manager_dialog.hpp"
 #include "ui/theme_qss.hpp"
 #include "ui/localization.hpp"
@@ -52,9 +52,6 @@
 #include <QPointer>
 #include <QPolygonF>
 #include <QPushButton>
-#include <QScreen>
-#include <QScrollArea>
-#include <QScrollBar>
 #include <QSignalBlocker>
 #include <QSize>
 #include <QSizePolicy>
@@ -76,39 +73,15 @@
 #include <cstring>
 #include <functional>
 #include <memory>
-#include <numeric>
 #include <optional>
 #include <type_traits>
 #include <utility>
 
 namespace patchy::ui {
 
+using namespace layer_style_detail;
+
 namespace {
-
-// Forwards a left double-click on a passive color patch to its page's Choose
-// Color button, so the swatch itself opens the picker (Photoshop behavior).
-// Parented to the watched widget; the button is tracked by QPointer in case it
-// dies first.
-class DoubleClickClicksButton : public QObject {
- public:
-  DoubleClickClicksButton(QAbstractButton* button, QWidget* watched)
-      : QObject(watched), button_(button) {
-    watched->installEventFilter(this);
-  }
-
- protected:
-  bool eventFilter(QObject* watched, QEvent* event) override {
-    if (event->type() == QEvent::MouseButtonDblClick &&
-        static_cast<QMouseEvent*>(event)->button() == Qt::LeftButton && button_ != nullptr) {
-      button_->click();
-      return true;
-    }
-    return QObject::eventFilter(watched, event);
-  }
-
- private:
-  QPointer<QAbstractButton> button_;
-};
 
 class GradientCanvasRepositionFilter final : public QObject {
 public:
@@ -171,17 +144,6 @@ private:
   bool dragging_{false};
   QPointF last_position_{};
 };
-
-LayerStyleGradient default_layer_style_gradient() {
-  LayerStyleGradient gradient;
-  gradient.angle_degrees = 90.0F;
-  gradient.scale = 1.0F;
-  gradient.color_stops.push_back(GradientColorStop{0.0F, RgbColor{255, 255, 255}});
-  gradient.color_stops.push_back(GradientColorStop{1.0F, RgbColor{32, 32, 32}});
-  gradient.alpha_stops.push_back(GradientAlphaStop{0.0F, 1.0F});
-  gradient.alpha_stops.push_back(GradientAlphaStop{1.0F, 1.0F});
-  return gradient;
-}
 
 LayerDropShadow default_drop_shadow() {
   LayerDropShadow shadow;
@@ -353,19 +315,6 @@ constexpr int kPatternPersistNameRole = Qt::UserRole + 1;
 constexpr int kPatternPickerIndexRole = Qt::UserRole + 2;
 constexpr int kPatternPickerIsLeafRole = Qt::UserRole + 3;
 constexpr const char *kContourCustomId = "custom";
-
-GradientDefinition resolved_gradient_definition(GradientDefinition definition,
-                                                RgbColor foreground,
-    RgbColor background) {
-  for (auto &stop : definition.color_stops) {
-    if (stop.kind == GradientColorStop::Kind::Foreground)
-      stop.color = foreground;
-    if (stop.kind == GradientColorStop::Kind::Background)
-      stop.color = background;
-    stop.kind = GradientColorStop::Kind::User;
-  }
-  return definition;
-}
 
 // QComboBox does not present hierarchical models as an expandable tree on all
 // Qt styles. Keep its flat model for the selected-value display and existing
@@ -705,106 +654,6 @@ const LayerStyleEffectVectorOps* effect_vector_ops_for_kind(LayerStyleEffectKind
   return nullptr;
 }
 
-// Shared host state for the callback-driven gradient-stop editor used by both
-// Gradient Overlay and gradient Strokes. The editor widget intentionally never
-// owns or mutates its stop vectors; these working vectors remain stable during
-// a drag, and value() sorts only the copies written back to LayerStyle.
-struct LayerStyleGradientControls {
-  GradientStopsEditorWidget* editor{nullptr};
-  QSpinBox* stop_location{nullptr};
-  QLabel* stop_color_label{nullptr};
-  QLineEdit* stop_hex{nullptr};
-  QPushButton* stop_swatch{nullptr};
-  QLabel* stop_opacity_label{nullptr};
-  QSpinBox* stop_opacity{nullptr};
-  QLabel* stop_midpoint_label{nullptr};
-  QSpinBox* stop_midpoint{nullptr};
-  QPushButton* add_stop{nullptr};
-  QPushButton* remove_stop{nullptr};
-  QComboBox *form_combo{nullptr};
-  QSpinBox *smoothness{nullptr};
-  QWidget *solid_controls{nullptr};
-  QWidget *selected_stop_controls{nullptr};
-  QWidget *midpoint_controls{nullptr};
-  QWidget *stop_button_controls{nullptr};
-  QWidget *noise_controls{nullptr};
-  QSpinBox *noise_seed{nullptr};
-  QSpinBox *noise_roughness{nullptr};
-  QCheckBox*noise_transparency{nullptr};
-  QCheckBox *noise_restrict{nullptr};
-  QComboBox *noise_color_model{nullptr};
-  std::array<QSpinBox *, 4> noise_minimum{};
-  std::array<QSpinBox *, 4> noise_maximum{};
-  QCheckBox * reverse{nullptr};
-  QCheckBox *dither{nullptr};
-  QCheckBox *align{nullptr};
-  QComboBox*interpolation{nullptr};
-  QComboBox * style_combo{nullptr};
-  QSpinBox* angle{nullptr};
-  QSpinBox* scale{nullptr};
-  QSpinBox *offset_x{nullptr};
-  QSpinBox *offset_y{nullptr};
-  QPushButton *reset_alignment{nullptr};
-  LayerStyleGradient template_gradient;
-  std::vector<GradientColorStop> color_stops;
-  std::vector<GradientAlphaStop> alpha_stops;
-  int selected_color_stop{0};
-  int selected_alpha_stop{-1};
-  bool loading{false};
-  std::function<void()> update_previews;
-  std::function<void(bool)> changed;
-  std::function<void(const LayerStyleGradient&)> load;
-
-  [[nodiscard]] LayerStyleGradient value() const {
-    LayerStyleGradient result = template_gradient;
-    result.form =
-        static_cast<GradientDefinitionForm>(form_combo->currentData().toInt());
-    result.smoothness =
-        static_cast<std::uint16_t>(smoothness->value() * 4096 / 100);
-    result.noise.seed = static_cast<std::uint32_t>(noise_seed->value());
-    result.noise.roughness =
-        static_cast<std::uint16_t>(noise_roughness->value() * 4096 / 100);
-    result.noise.add_transparency = noise_transparency->isChecked();
-    result.noise.restrict_colors = noise_restrict->isChecked();
-    result.noise.color_model = static_cast<GradientNoiseColorModel>(
-        noise_color_model->currentData().toInt());
-    for (std::size_t channel = 0; channel < result.noise.minimum.size();
-         ++channel) {
-      result.noise.minimum[channel] =
-          static_cast<std::uint16_t>(noise_minimum[channel]->value());
-      result.noise.maximum[channel] =
-          static_cast<std::uint16_t>(noise_maximum[channel]->value());
-    }
-    result.type = static_cast<LayerStyleGradientType>(style_combo->currentData().toInt());
-    result.reverse = reverse->isChecked();
-    result.dither = dither->isChecked();
-    result.align_with_layer = align->isChecked();
-    result.interpolation = static_cast<GradientInterpolationMethod>(
-        interpolation->currentData().toInt());
-    result.angle_degrees = static_cast<float>(angle->value());
-    result.scale = static_cast<float>(scale->value()) / 100.0F;
-    result.offset_x_percent = static_cast<float>(offset_x->value());
-    result.offset_y_percent = static_cast<float>(offset_y->value());
-    result.color_stops = color_stops;
-    if (result.color_stops.empty()) {
-      result.color_stops = default_layer_style_gradient().color_stops;
-    }
-    std::stable_sort(result.color_stops.begin(), result.color_stops.end(),
-                     [](const GradientColorStop& lhs, const GradientColorStop& rhs) {
-                       return lhs.location < rhs.location;
-                     });
-    result.alpha_stops = alpha_stops;
-    if (result.alpha_stops.empty()) {
-      result.alpha_stops = default_layer_style_gradient().alpha_stops;
-    }
-    std::stable_sort(result.alpha_stops.begin(), result.alpha_stops.end(),
-                     [](const GradientAlphaStop& lhs, const GradientAlphaStop& rhs) {
-                       return lhs.location < rhs.location;
-                     });
-    return result;
-  }
-};
-
 QListWidgetItem* add_layer_style_category(QListWidget* list, const QString& text, bool checkable, bool checked,
                                            LayerStyleCategoryPage page,
                                            LayerStyleEffectKind kind = LayerStyleEffectKind::None,
@@ -821,39 +670,6 @@ QListWidgetItem* add_layer_style_category(QListWidget* list, const QString& text
   }
   return item;
 }
-
-void update_color_preview_label(QWidget* widget, int red, int green, int blue) {
-  set_themed_style(*widget, QStringLiteral("%1 { background: rgb(%2, %3, %4); border: 1px solid @swatch_border; }")
-                           .arg(widget->metaObject()->className())
-                           .arg(red)
-                           .arg(green)
-                           .arg(blue));
-}
-
-// One effect's R/G/B slider rows plus its color-preview swatch and the control
-// that opens the picker (the "Color RGB" block formerly duplicated per effect
-// page; picker == preview except Color Overlay's separate button + label).
-struct RgbColorRowWidgets {
-  QSpinBox* red{nullptr};
-  QSpinBox* green{nullptr};
-  QSpinBox* blue{nullptr};
-  QWidget* preview{nullptr};
-  QAbstractButton* picker{nullptr};
-  QWidget* row_container{nullptr};
-
-  [[nodiscard]] RgbColor value() const {
-    return RgbColor{static_cast<std::uint8_t>(red->value()), static_cast<std::uint8_t>(green->value()),
-                    static_cast<std::uint8_t>(blue->value())};
-  }
-  void set_value(RgbColor color) const {
-    red->setValue(color.red);
-    green->setValue(color.green);
-    blue->setValue(color.blue);
-  }
-  void update_preview() const {
-    update_color_preview_label(preview, red->value(), green->value(), blue->value());
-  }
-};
 
 }  // namespace
 
@@ -1118,856 +934,14 @@ std::optional<LayerStyleSettings> request_layer_style_settings(
     controls->addWidget(page);
     return layout;
   };
-  auto slider_object_name = [](QString spin_object_name) {
-    if (spin_object_name.endsWith(QStringLiteral("Spin"))) {
-      spin_object_name.chop(4);
-    }
-    return spin_object_name + QStringLiteral("Slider");
-  };
-  // Photoshop's Drop/Inner Shadow Distance maximum.
-  constexpr int kShadowDistanceMaximum = 30000;
-  auto add_slider_spin_row = [&slider_object_name](QFormLayout* form, QWidget* parent, const QString& label,
-                                                   const QString& spin_object_name, int minimum, int maximum,
-                                                   int value, const QString& suffix = {}, int spin_width = 72,
-                                                   int slider_maximum = std::numeric_limits<int>::max()) {
-    return add_dialog_slider_spin_row(form, parent, label, slider_object_name(spin_object_name),
-                                      spin_object_name, minimum, maximum, value, suffix, spin_width,
-                                      /*row_spacing=*/8, /*step_buttons=*/true, slider_maximum);
-  };
-  // Effect sizes and distances: most picks are small, so the slider gives the
-  // low end most of its track (SliderCurve::FineLowEnd).
-  auto add_size_slider_spin_row = [&slider_object_name](QFormLayout* form, QWidget* parent, const QString& label,
-                                                        const QString& spin_object_name, int minimum,
-                                                        int maximum, int value,
-                                                        int slider_maximum = std::numeric_limits<int>::max()) {
-    return add_dialog_slider_spin_row(form, parent, label, slider_object_name(spin_object_name),
-                                      spin_object_name, minimum, maximum, value, {}, 72,
-                                      /*row_spacing=*/8, /*step_buttons=*/true, slider_maximum,
-                                      SliderCurve::FineLowEnd);
-  };
-  auto add_color_slider_row = [&slider_object_name](QVBoxLayout* layout, QWidget* parent, const QString& label,
-                                                    const QString& spin_object_name, std::uint8_t value) {
-    auto* row = new QWidget(parent);
-    auto* row_layout = new QHBoxLayout(row);
-    row_layout->setContentsMargins(0, 0, 0, 0);
-    row_layout->setSpacing(8);
-    auto* channel_label = new QLabel(label, row);
-    channel_label->setFixedWidth(18);
-    auto* slider = new QSlider(Qt::Horizontal, row);
-    slider->setObjectName(slider_object_name(spin_object_name));
-    slider->setRange(0, 255);
-    slider->setValue(value);
-    auto* spin = new QSpinBox(row);
-    spin->setObjectName(spin_object_name);
-    spin->setRange(0, 255);
-    spin->setValue(value);
-    configure_dialog_spinbox(spin, 54);
-    row_layout->addWidget(channel_label);
-    row_layout->addWidget(slider, 1);
-    row_layout->addWidget(spin);
-    QObject::connect(slider, &QSlider::valueChanged, spin, &QSpinBox::setValue);
-    QObject::connect(spin, qOverload<int>(&QSpinBox::valueChanged), slider, &QSlider::setValue);
-    layout->addWidget(row);
-    return spin;
-  };
-  // The "Color RGB" form row: R/G/B slider rows plus a clickable preview swatch
-  // button below them. Widgets follow the shared naming scheme
-  // (<prefix>RedSpin/<prefix>GreenSpin/<prefix>BlueSpin/<prefix>ColorPreview).
-  auto make_color_rows = [&add_color_slider_row](QFormLayout* form, QWidget* group,
-                                                 const QString& object_prefix, RgbColor initial) {
-    RgbColorRowWidgets rows;
-    auto* color_row = new QWidget(group);
-    auto* color_layout = new QVBoxLayout(color_row);
-    color_layout->setContentsMargins(0, 0, 0, 0);
-    color_layout->setSpacing(4);
-    rows.row_container = color_row;
-    rows.red = add_color_slider_row(color_layout, color_row, QObject::tr("R"),
-                                    object_prefix + QStringLiteral("RedSpin"), initial.red);
-    rows.green = add_color_slider_row(color_layout, color_row, QObject::tr("G"),
-                                      object_prefix + QStringLiteral("GreenSpin"), initial.green);
-    rows.blue = add_color_slider_row(color_layout, color_row, QObject::tr("B"),
-                                     object_prefix + QStringLiteral("BlueSpin"), initial.blue);
-    auto* preview_row = new QWidget(color_row);
-    auto* preview_layout = new QHBoxLayout(preview_row);
-    preview_layout->setContentsMargins(26, 0, 0, 0);
-    preview_layout->setSpacing(8);
-    auto* preview = new QPushButton(group);
-    preview->setObjectName(object_prefix + QStringLiteral("ColorPreview"));
-    preview->setFixedSize(28, 22);
-    preview->setToolTip(QObject::tr("Choose Color..."));
-    preview_layout->addWidget(preview);
-    preview_layout->addStretch(1);
-    color_layout->addWidget(preview_row);
-    rows.preview = preview;
-    rows.picker = preview;
-    rows.update_preview();
-    form->addRow(QObject::tr("Color RGB"), color_row);
-    return rows;
-  };
-  auto make_gradient_controls = [&](QFormLayout* form, QWidget* parent_widget, const QString& object_prefix,
-                                    const LayerStyleGradient& initial_gradient,
-                                    const QString& color_picker_title, bool offer_shape_burst = false) {
-    auto controls_state = std::make_unique<LayerStyleGradientControls>();
-    auto* state = controls_state.get();
-    const auto mark_ramp_edit = [&, object_prefix] {
-      if (!batch) return;
-      const auto* current = categories->currentItem();
-      const auto index = current ? current->data(kLayerStyleEffectIndexRole).toInt() : 0;
-      explicit_fields = {effect_property_prefix(object_prefix.contains(QStringLiteral("Stroke"))
-          ? LayerStyleEffectKind::Stroke : LayerStyleEffectKind::GradientOverlay, index) + ".gradient.definition"};
-    };
-
-    auto *preset_button = new QPushButton(QObject::tr("Preset..."),parent_widget);
-    preset_button->setObjectName(object_prefix + QStringLiteral("PresetButton"));
-    preset_button->setEnabled(gradient_library != nullptr);
-    form->addRow(QObject::tr("Preset"), preset_button);
-    if (gradient_library != nullptr) {
-      const auto apply_preset = [state, foreground, background, mark_ramp_edit](
-                                    const GradientLibraryEntry &entry) {
-        auto value = state->value();
-        static_cast<GradientDefinition &>(value) = resolved_gradient_definition(
-            entry.definition, foreground, background);
-        state->load(value);
-        mark_ramp_edit();
-        if (state->changed)
-          state->changed(true);
-      };QObject::connect(preset_button, &QPushButton::clicked, &dialog,
-                       [&, state, preset_button, apply_preset] {
-                         show_gradient_preset_popup(
-                             preset_button, *gradient_library, apply_preset,
-                             [&, state, apply_preset] {
-                               const auto selected = request_gradient_manager(
-                                   &dialog, *gradient_library, {},
-                                   state->value());
-                               if (const auto *entry =
-                                       gradient_library->find_entry(selected);
-                                   entry != nullptr) {
-                                 apply_preset(*entry);
-                               }
-                             });
-                       });
-    }
-
-    state->form_combo = new QComboBox(parent_widget);
-    state->form_combo->setObjectName(object_prefix + QStringLiteral("FormCombo"));
-    state->form_combo->addItem(QObject::tr("Solid"),
-                               static_cast<int>(GradientDefinitionForm::Solid));
-    state->form_combo->addItem(QObject::tr("Noise"),
-                               static_cast<int>(GradientDefinitionForm::Noise));
-    form->addRow(QObject::tr("Gradient Type"), state->form_combo);
-
-    state->solid_controls = new QWidget(parent_widget);
-    auto *solid_layout = new QVBoxLayout(state->solid_controls);
-    solid_layout->setContentsMargins(0, 0, 0, 0);
-    solid_layout->setSpacing(6);
-    state->editor = new GradientStopsEditorWidget(state->solid_controls);
-    state->editor->setObjectName(object_prefix + QStringLiteral("StopsEditor"));
-    state->editor->set_opacity_track_enabled(true);
-    solid_layout->addWidget(state->editor);
-    form->addRow(QObject::tr("Gradient"), state->solid_controls);
-
-    auto *selected_row = new QWidget(parent_widget);
-    state->selected_stop_controls = selected_row;selected_row->setObjectName(object_prefix + QStringLiteral("SelectedStopRow"));
-    auto *selected_layout = new QHBoxLayout(selected_row);
-    selected_layout->setContentsMargins(0, 0, 0, 0);
-    selected_layout->setSpacing(8);
-    auto *location_label = new QLabel(QObject::tr("Location"), selected_row);
-    state->stop_location = new QSpinBox(selected_row);
-    state->stop_location->setObjectName(object_prefix + QStringLiteral("StopLocationSpin"));
-    state->stop_location->setRange(0, 100);
-    state->stop_location->setSuffix(percent_suffix());
-    configure_dialog_spinbox(state->stop_location, 64);
-    state->stop_color_label = new QLabel(QObject::tr("Color"), selected_row);
-    state->stop_hex = new QLineEdit(selected_row);
-    state->stop_hex->setObjectName(object_prefix + QStringLiteral("StopHexEdit"));state->stop_hex->setFixedWidth(72);
-    state->stop_hex->setMaxLength(7);state->stop_swatch = new QPushButton( selected_row);
-    state->stop_swatch->setObjectName(object_prefix + QStringLiteral("StopSwatchButton"));
-    state->stop_swatch->setFixedSize(34, 24);
-    state->stop_swatch->setToolTip(QObject::tr("Choose Color..."));
-    state->stop_opacity_label = new QLabel(QObject::tr("Opacity"), selected_row);
-    state->stop_opacity = new QSpinBox(selected_row);
-    state->stop_opacity->setObjectName(object_prefix + QStringLiteral("StopOpacitySpin"));
-    state->stop_opacity->setRange(0, 100);
-    state->stop_opacity->setSuffix(percent_suffix());
-    configure_dialog_spinbox(state->stop_opacity, 64);
-    selected_layout->addWidget(location_label);
-    selected_layout->addWidget(state->stop_location);
-    selected_layout->addWidget(state->stop_color_label);
-    selected_layout->addWidget(state->stop_hex);
-    selected_layout->addWidget(state->stop_swatch);
-    selected_layout->addWidget(state->stop_opacity_label);
-    selected_layout->addWidget(state->stop_opacity);
-    selected_layout->addStretch(1);
-    form->addRow(QString(), selected_row);
-
-    auto *midpoint_row = new QWidget(parent_widget);
-    state->midpoint_controls = midpoint_row;
-    auto *midpoint_layout = new QHBoxLayout(midpoint_row);
-    midpoint_layout->setContentsMargins(0, 0, 0, 0);
-    midpoint_layout->setSpacing(8);
-    state->stop_midpoint_label =
-        new QLabel(QObject::tr("Midpoint"), midpoint_row);
-    state->stop_midpoint = new QSpinBox(midpoint_row);
-    state->stop_midpoint->setObjectName(object_prefix + QStringLiteral("StopMidpointSpin"));
-    state->stop_midpoint->setRange(5, 95);
-    state->stop_midpoint->setSuffix(percent_suffix());
-    configure_dialog_spinbox(state->stop_midpoint, 64);
-    midpoint_layout->addWidget(state->stop_midpoint_label);
-    midpoint_layout->addWidget(state->stop_midpoint);
-
-    // The stop buttons share the midpoint row to keep the gradient block short;
-    // they stay a separate container because Solid/Noise switching toggles it.
-    auto *stop_buttons = new QWidget(midpoint_row);
-    state->stop_button_controls = stop_buttons;
-    auto *stop_button_layout = new QHBoxLayout(stop_buttons);
-    stop_button_layout->setContentsMargins(0, 0, 0, 0);
-    stop_button_layout->setSpacing(6);
-    state->add_stop = new QPushButton(QObject::tr("Add Stop"), stop_buttons);
-    state->add_stop->setObjectName(object_prefix + QStringLiteral("AddStopButton"));
-    state->remove_stop = new QPushButton(QObject::tr("Remove Stop"), stop_buttons);
-    state->remove_stop->setObjectName(object_prefix + QStringLiteral("RemoveStopButton"));
-    stop_button_layout->addWidget(state->add_stop);
-    stop_button_layout->addWidget(state->remove_stop);
-    midpoint_layout->addWidget(stop_buttons);
-    midpoint_layout->addStretch(1);
-    form->addRow(QString(), midpoint_row);
-
-    state->smoothness = add_slider_spin_row(
-        form, parent_widget,QObject::tr("Smoothness"),
-                                       object_prefix + QStringLiteral("SmoothnessSpin"), 0, 100,
-                                       static_cast<int>(std::lround(initial_gradient.smoothness * 100.0 / 4096.0)),
-        QStringLiteral("%"));
-
-    state->noise_controls = new QWidget( parent_widget);
-    auto *noise_form = new QFormLayout(state->noise_controls);
-    noise_form->setContentsMargins(0, 0, 0, 0);
-    state->noise_seed = new QSpinBox(state->noise_controls);
-    state->noise_seed->setObjectName(
-                                       object_prefix + QStringLiteral("NoiseSeedSpin"));
-    state->noise_seed->setRange(0, std::numeric_limits<int>::max());
-    configure_dialog_spinbox(state->noise_seed);
-    noise_form->addRow(QObject::tr("Seed"), state->noise_seed);
-    state->noise_roughness = new QSpinBox(state->noise_controls);
-    state->noise_roughness->setObjectName(object_prefix +
-                                          QStringLiteral("NoiseRoughnessSpin"));
-    state->noise_roughness->setRange(0, 100);
-    state->noise_roughness->setSuffix(percent_suffix());
-    configure_dialog_spinbox(state->noise_roughness);
-    noise_form->addRow(QObject::tr("Roughness"), state->noise_roughness);
-    state->noise_color_model = new QComboBox(state->noise_controls);
-    state->noise_color_model->setObjectName(
-        object_prefix + QStringLiteral("NoiseColorModelCombo"));
-    state->noise_color_model->addItem(
-        QStringLiteral("RGB"), static_cast<int>(GradientNoiseColorModel::RGB));
-    state->noise_color_model->addItem(
-        QStringLiteral("HSB"), static_cast<int>(GradientNoiseColorModel::HSB));
-    state->noise_color_model->addItem(
-        QStringLiteral("Lab"), static_cast<int>(GradientNoiseColorModel::Lab));
-    noise_form->addRow(QObject::tr("Color Model"), state->noise_color_model);
-    state->noise_transparency =
-        new QCheckBox(QObject::tr("Add Transparency"), state->noise_controls);
-    state->noise_transparency->setObjectName(
-        object_prefix + QStringLiteral("NoiseTransparencyCheck"));
-    noise_form->addRow(QString(), state->noise_transparency);
-    state->noise_restrict =
-        new QCheckBox(QObject::tr("Restrict Colors"), state->noise_controls);
-    state->noise_restrict->setObjectName(
-        object_prefix + QStringLiteral("NoiseRestrictColorsCheck"));
-    noise_form->addRow(QString(), state->noise_restrict);
-    for (std::size_t channel = 0; channel < state->noise_minimum.size();
-         ++channel) {
-      auto *range_row = new QWidget(state->noise_controls);
-      auto *range_layout = new QHBoxLayout(range_row);
-      range_layout->setContentsMargins(0, 0, 0, 0);
-      range_layout->setSpacing(6);
-      state->noise_minimum[channel] = new QSpinBox(range_row);
-      state->noise_minimum[channel]->setObjectName(
-          object_prefix +
-          QStringLiteral("NoiseChannel%1MinimumSpin").arg(channel + 1U));
-      state->noise_minimum[channel]->setRange(0, 100);
-      state->noise_minimum[channel]->setSuffix(percent_suffix());
-      configure_dialog_spinbox(state->noise_minimum[channel], 64);
-      state->noise_maximum[channel] = new QSpinBox(range_row);
-      state->noise_maximum[channel]->setObjectName(
-          object_prefix +
-          QStringLiteral("NoiseChannel%1MaximumSpin").arg(channel + 1U));
-      state->noise_maximum[channel]->setRange(0, 100);
-      state->noise_maximum[channel]->setSuffix(percent_suffix());
-      configure_dialog_spinbox(state->noise_maximum[channel], 64);
-      range_layout->addWidget(state->noise_minimum[channel]);
-      auto *range_to = new QLabel(QObject::tr("to"), range_row);
-      // Not a field name: it must not become the maximum field's scrub handle.
-      range_to->setProperty(kScrubLabelExemptProperty, true);
-      range_layout->addWidget(range_to);
-      range_layout->addWidget(state->noise_maximum[channel]);
-      range_layout->addStretch(1);
-      noise_form->addRow(QObject::tr("Channel %1 Range").arg(channel + 1U),
-                         range_row);
-    }
-    form->addRow(QString(), state->noise_controls);
-
-    // One shared row keeps the gradient block short enough that the Gradient
-    // Overlay page, the tallest in the stack, does not stretch the dialog.
-    auto *toggles_row = new QWidget(parent_widget);
-    auto *toggles_layout = new QHBoxLayout(toggles_row);
-    toggles_layout->setContentsMargins(0, 0, 0, 0);
-    toggles_layout->setSpacing(12);
-    state->reverse = new QCheckBox(QObject::tr("Reverse"), toggles_row);
-    state->reverse->setObjectName(object_prefix +
-                                  QStringLiteral("ReverseCheck"));
-    toggles_layout->addWidget(state->reverse);
-    state->dither = new QCheckBox(QObject::tr("Dither"), toggles_row);
-    state->dither->setObjectName(object_prefix + QStringLiteral("DitherCheck"));
-    toggles_layout->addWidget(state->dither);
-    state->align =
-        new QCheckBox(QObject::tr("Align with Layer"), toggles_row);
-    state->align->setObjectName(object_prefix + QStringLiteral("AlignCheck"));
-    toggles_layout->addWidget(state->align);
-    toggles_layout->addStretch(1);
-    form->addRow(QString(), toggles_row);
-    state->interpolation = new QComboBox(parent_widget);
-    state->interpolation->setObjectName(object_prefix +
-                                        QStringLiteral("InterpolationCombo"));
-    state->interpolation->addItem(
-        QObject::tr("Classic"),
-        static_cast<int>(GradientInterpolationMethod::Classic));
-    state->interpolation->addItem(
-        QObject::tr("Perceptual"),
-        static_cast<int>(GradientInterpolationMethod::Perceptual));
-    state->interpolation->addItem(
-        QObject::tr("Linear", "gradient interpolation"),
-        static_cast<int>(GradientInterpolationMethod::Linear));
-    form->addRow(QObject::tr("Method"), state->interpolation);
-    state->style_combo = new QComboBox(parent_widget);
-    state->style_combo->setObjectName(object_prefix +
-                                      QStringLiteral("StyleCombo"));
-    state->style_combo->addItem(
-        QObject::tr("Linear"),
-        static_cast<int>(LayerStyleGradientType::Linear));
-    state->style_combo->addItem(
-        QObject::tr("Radial"),
-        static_cast<int>(LayerStyleGradientType::Radial));
-    state->style_combo->addItem(
-        QObject::tr("Angle", "gradient style"),
-        static_cast<int>(LayerStyleGradientType::Angle));
-    state->style_combo->addItem(
-        QObject::tr("Reflected"),
-        static_cast<int>(LayerStyleGradientType::Reflected));
-    state->style_combo->addItem(
-        QObject::tr("Diamond"),
-        static_cast<int>(LayerStyleGradientType::Diamond));
-    if (offer_shape_burst) {
-      // Photoshop offers Shape Burst for the Stroke effect only.
-      state->style_combo->addItem(
-          QObject::tr("Shape Burst"),
-          static_cast<int>(LayerStyleGradientType::ShapeBurst));
-    }
-    form->addRow(QObject::tr("Style"), state->style_combo);
-    state->angle = add_slider_spin_row(
-        form, parent_widget, QObject::tr("Angle"),
-        object_prefix + QStringLiteral("AngleSpin"), -180, 180,
-        static_cast<int>(std::round(initial_gradient.angle_degrees)));
-    state->scale = add_slider_spin_row(
-        form, parent_widget, QObject::tr("Scale"),
-        object_prefix + QStringLiteral("ScaleSpin"), 1, 1000,
-                                       static_cast<int>(std::round(initial_gradient.scale * 100.0F)),
-                                       QStringLiteral("%"));
-    state->offset_x = add_slider_spin_row(
-        form, parent_widget, QObject::tr("Horizontal Offset"),
-        object_prefix + QStringLiteral("OffsetXSpin"), -100, 100,
-        static_cast<int>(std::round(initial_gradient.offset_x_percent)),
-        QStringLiteral("%"));
-    state->offset_y = add_slider_spin_row(
-        form, parent_widget, QObject::tr("Vertical Offset"),
-        object_prefix + QStringLiteral("OffsetYSpin"), -100, 100,
-        static_cast<int>(std::round(initial_gradient.offset_y_percent)),
-        QStringLiteral("%"));
-    state->reset_alignment =
-        new QPushButton(QObject::tr("Reset Alignment"), parent_widget);
-    state->reset_alignment->setObjectName(
-        object_prefix + QStringLiteral("ResetAlignmentButton"));
-    form->addRow(QString(), state->reset_alignment);
-
-    state->update_previews = [state] {
-      if (state->color_stops.empty()) {
-        state->color_stops = default_layer_style_gradient().color_stops;
-      }
-      if (state->alpha_stops.empty()) {
-        state->alpha_stops = default_layer_style_gradient().alpha_stops;
-      }
-      if (state->selected_alpha_stop >= 0) {
-        state->selected_alpha_stop =
-            std::clamp(state->selected_alpha_stop, 0, static_cast<int>(state->alpha_stops.size()) - 1);
-        state->selected_color_stop = -1;
-      } else {
-        state->selected_color_stop =
-            std::clamp(state->selected_color_stop, 0, static_cast<int>(state->color_stops.size()) - 1);
-      }
-
-      std::vector<GradientStop> editor_stops;
-      editor_stops.reserve(state->color_stops.size());
-      for (const auto& stop : state->color_stops) {
-        editor_stops.push_back(
-            GradientStop{stop.location, EditColor{stop.color.red, stop.color.green, stop.color.blue, 255}});
-      }
-      state->editor->set_stops(std::move(editor_stops));
-      std::vector<float> color_midpoints;
-      color_midpoints.reserve(state->color_stops.size());
-      for (const auto& stop : state->color_stops) {
-        color_midpoints.push_back(stop.midpoint);
-      }
-      state->editor->set_color_midpoints(std::move(color_midpoints));
-      state->editor->set_opacity_stops(state->alpha_stops);
-      state->editor->set_current_row(state->selected_color_stop);
-      state->editor->set_current_opacity_row(state->selected_alpha_stop);
-
-      const bool color_selected = state->selected_color_stop >= 0;
-      state->stop_color_label->setVisible(color_selected);
-      state->stop_hex->setVisible(color_selected);
-      state->stop_swatch->setVisible(color_selected);
-      state->stop_opacity_label->setVisible(!color_selected);
-      state->stop_opacity->setVisible(!color_selected);
-
-      const QSignalBlocker location_blocker(state->stop_location);
-      const QSignalBlocker hex_blocker(state->stop_hex);
-      const QSignalBlocker opacity_blocker(state->stop_opacity);
-      const QSignalBlocker midpoint_blocker(state->stop_midpoint);
-      auto has_previous_stop = [](const auto& stops, int row) {
-        std::vector<int> rows(stops.size());
-        std::iota(rows.begin(), rows.end(), 0);
-        std::stable_sort(rows.begin(), rows.end(), [&](int lhs, int rhs) {
-          return stops[static_cast<std::size_t>(lhs)].location <
-                 stops[static_cast<std::size_t>(rhs)].location;
-        });
-        const auto found = std::find(rows.begin(), rows.end(), row);
-        if (found == rows.end() || found == rows.begin()) {
-          return false;
-        }
-        const auto previous = *(found - 1);
-        return stops[static_cast<std::size_t>(previous)].location <
-               stops[static_cast<std::size_t>(row)].location;
-      };
-      bool midpoint_available = false;
-      if (color_selected) {
-        const auto& stop = state->color_stops[static_cast<std::size_t>(state->selected_color_stop)];
-        state->stop_location->setValue(
-            static_cast<int>(std::lround(std::clamp(stop.location, 0.0F, 1.0F) * 100.0F)));
-        state->stop_hex->setText(
-            QColor(stop.color.red, stop.color.green, stop.color.blue).name(QColor::HexRgb).toUpper());
-        update_color_preview_label(state->stop_swatch, stop.color.red, stop.color.green, stop.color.blue);
-        state->remove_stop->setEnabled(state->color_stops.size() > 2U);
-        midpoint_available = has_previous_stop(state->color_stops, state->selected_color_stop);
-        state->stop_midpoint->setValue(
-            static_cast<int>(std::lround(std::clamp(stop.midpoint, 0.05F, 0.95F) * 100.0F)));
-      } else {
-        const auto& stop = state->alpha_stops[static_cast<std::size_t>(state->selected_alpha_stop)];
-        state->stop_location->setValue(
-            static_cast<int>(std::lround(std::clamp(stop.location, 0.0F, 1.0F) * 100.0F)));
-        state->stop_opacity->setValue(
-            static_cast<int>(std::lround(std::clamp(stop.opacity, 0.0F, 1.0F) * 100.0F)));
-        state->remove_stop->setEnabled(state->alpha_stops.size() > 2U);
-        midpoint_available = has_previous_stop(state->alpha_stops, state->selected_alpha_stop);
-        state->stop_midpoint->setValue(
-            static_cast<int>(std::lround(std::clamp(stop.midpoint, 0.05F, 0.95F) * 100.0F)));
-      }
-      state->stop_midpoint_label->setEnabled(midpoint_available);
-      state->stop_midpoint->setEnabled(midpoint_available);
-    };
-    state->load = [state](const LayerStyleGradient& value) {
-      state->loading = true;
-      state->template_gradient = value;
-      state->color_stops = value.color_stops;
-      state->alpha_stops = value.alpha_stops;
-      state->selected_color_stop = 0;
-      state->selected_alpha_stop = -1;
-      state->reverse->setChecked(value.reverse);
-      state->dither->setChecked(value.dither);
-      state->align->setChecked(value.align_with_layer);
-      state->form_combo->setCurrentIndex(std::max(
-          0, state->form_combo->findData(static_cast<int>(value.form))));
-      state->smoothness->setValue(
-          static_cast<int>(std::lround(value.smoothness * 100.0 / 4096.0)));
-      state->noise_seed->setValue(static_cast<int>(std::min<std::uint32_t>(
-          value.noise.seed, std::numeric_limits<int>::max())));
-      state->noise_roughness->setValue(static_cast<int>(
-          std::lround(value.noise.roughness * 100.0 / 4096.0)));
-      state->noise_transparency->setChecked(value.noise.add_transparency);
-      state->noise_restrict->setChecked(value.noise.restrict_colors);
-      state->noise_color_model->setCurrentIndex(
-          std::max(0, state->noise_color_model->findData(
-                          static_cast<int>(value.noise.color_model))));
-      for (std::size_t channel = 0; channel < state->noise_minimum.size();
-           ++channel) {
-        state->noise_minimum[channel]->setValue(value.noise.minimum[channel]);
-        state->noise_maximum[channel]->setValue(value.noise.maximum[channel]);
-      }
-      state->interpolation->setCurrentIndex(
-          std::max(0, state->interpolation->findData(
-                          static_cast<int>(value.interpolation))));
-      state->style_combo->setCurrentIndex(
-          std::max(0, state->style_combo->findData(static_cast<int>(value.type))));
-      state->angle->setValue(static_cast<int>(std::round(value.angle_degrees)));
-      state->scale->setValue(static_cast<int>(std::round(value.scale * 100.0F)));
-      state->offset_x->setValue(
-          static_cast<int>(std::round(value.offset_x_percent)));
-      state->offset_y->setValue(
-          static_cast<int>(std::round(value.offset_y_percent)));
-      state->solid_controls->setVisible(value.form ==
-                                        GradientDefinitionForm::Solid);
-      state->selected_stop_controls->setVisible(value.form ==
-                                                GradientDefinitionForm::Solid);
-      state->midpoint_controls->setVisible(value.form ==
-                                           GradientDefinitionForm::Solid);
-      state->stop_button_controls->setVisible(value.form ==
-                                              GradientDefinitionForm::Solid);
-      state->smoothness->parentWidget()->setVisible(
-          value.form == GradientDefinitionForm::Solid);
-      state->noise_controls->setVisible(value.form ==
-                                        GradientDefinitionForm::Noise);
-      state->update_previews();
-      state->loading = false;
-    };
-
-    auto notify_changed = [state](bool immediate) {
-      if (!state->loading && state->changed) {
-        state->changed(immediate);
-      }
-    };
-    state->editor->stop_selected = [state](int row) {
-      state->selected_color_stop = row;
-      state->selected_alpha_stop = -1;
-      state->update_previews();
-    };
-    state->editor->opacity_stop_selected = [state](int row) {
-      state->selected_alpha_stop = row;
-      state->selected_color_stop = -1;
-      state->update_previews();
-    };
-    state->editor->stop_location_changed = [state, notify_changed](int row, int location) {
-      if (row < 0 || row >= static_cast<int>(state->color_stops.size())) {
-        return;
-      }
-      state->color_stops[static_cast<std::size_t>(row)].location =
-          static_cast<float>(std::clamp(location, 0, 100)) / 100.0F;
-      state->update_previews();
-      notify_changed(false);
-    };
-    state->editor->opacity_stop_location_changed = [state, notify_changed](int row, int location) {
-      if (row < 0 || row >= static_cast<int>(state->alpha_stops.size())) {
-        return;
-      }
-      state->alpha_stops[static_cast<std::size_t>(row)].location =
-          static_cast<float>(std::clamp(location, 0, 100)) / 100.0F;
-      state->update_previews();
-      notify_changed(false);
-    };
-    state->editor->color_midpoint_changed = [state, notify_changed](int row, int midpoint) {
-      if (row < 0 || row >= static_cast<int>(state->color_stops.size())) {
-        return;
-      }
-      state->color_stops[static_cast<std::size_t>(row)].midpoint =
-          static_cast<float>(std::clamp(midpoint, 5, 95)) / 100.0F;
-      state->selected_color_stop = row;
-      state->selected_alpha_stop = -1;
-      state->update_previews();
-      notify_changed(false);
-    };
-    state->editor->opacity_midpoint_changed = [state, notify_changed](int row, int midpoint) {
-      if (row < 0 || row >= static_cast<int>(state->alpha_stops.size())) {
-        return;
-      }
-      state->alpha_stops[static_cast<std::size_t>(row)].midpoint =
-          static_cast<float>(std::clamp(midpoint, 5, 95)) / 100.0F;
-      state->selected_alpha_stop = row;
-      state->selected_color_stop = -1;
-      state->update_previews();
-      notify_changed(false);
-    };
-    state->editor->stop_color_picked = [state, notify_changed](int row, QColor color) {
-      if (row < 0 || row >= static_cast<int>(state->color_stops.size()) || !color.isValid()) {
-        return;
-      }
-      state->color_stops[static_cast<std::size_t>(row)].color =
-          RgbColor{static_cast<std::uint8_t>(color.red()), static_cast<std::uint8_t>(color.green()),
-                   static_cast<std::uint8_t>(color.blue())};
-      state->update_previews();
-      notify_changed(true);
-    };
-    state->editor->stop_add_requested = [state, notify_changed](GradientStop stop) {
-      state->color_stops.push_back(GradientColorStop{std::clamp(stop.location, 0.0F, 1.0F),
-                                                     RgbColor{stop.color.r, stop.color.g, stop.color.b}});
-      state->selected_color_stop = static_cast<int>(state->color_stops.size()) - 1;
-      state->selected_alpha_stop = -1;
-      state->update_previews();
-      notify_changed(true);
-      return state->selected_color_stop;
-    };
-    state->editor->opacity_stop_add_requested = [state, notify_changed](GradientAlphaStop stop) {
-      state->alpha_stops.push_back(
-          GradientAlphaStop{std::clamp(stop.location, 0.0F, 1.0F), std::clamp(stop.opacity, 0.0F, 1.0F)});
-      state->selected_alpha_stop = static_cast<int>(state->alpha_stops.size()) - 1;
-      state->selected_color_stop = -1;
-      state->update_previews();
-      notify_changed(true);
-      return state->selected_alpha_stop;
-    };
-    state->editor->stop_delete_requested = [state, notify_changed](int row) {
-      if (state->color_stops.size() <= 2U || row < 0 || row >= static_cast<int>(state->color_stops.size())) {
-        return;
-      }
-      state->color_stops.erase(state->color_stops.begin() + row);
-      state->selected_color_stop = std::min(row, static_cast<int>(state->color_stops.size()) - 1);
-      state->selected_alpha_stop = -1;
-      state->update_previews();
-      notify_changed(true);
-    };
-    state->editor->opacity_stop_delete_requested = [state, notify_changed](int row) {
-      if (state->alpha_stops.size() <= 2U || row < 0 || row >= static_cast<int>(state->alpha_stops.size())) {
-        return;
-      }
-      state->alpha_stops.erase(state->alpha_stops.begin() + row);
-      state->selected_alpha_stop = std::min(row, static_cast<int>(state->alpha_stops.size()) - 1);
-      state->selected_color_stop = -1;
-      state->update_previews();
-      notify_changed(true);
-    };
-    QObject::connect(state->stop_location, qOverload<int>(&QSpinBox::valueChanged), &dialog,
-                     [state, notify_changed](int value) {
-                       if (state->loading) {
-                         return;
-                       }
-                       const auto location = static_cast<float>(std::clamp(value, 0, 100)) / 100.0F;
-                       if (state->selected_color_stop >= 0 &&
-                           state->selected_color_stop < static_cast<int>(state->color_stops.size())) {
-                         state->color_stops[static_cast<std::size_t>(state->selected_color_stop)].location = location;
-                       } else if (state->selected_alpha_stop >= 0 &&
-                                  state->selected_alpha_stop < static_cast<int>(state->alpha_stops.size())) {
-                         state->alpha_stops[static_cast<std::size_t>(state->selected_alpha_stop)].location = location;
-                       } else {
-                         return;
-                       }
-                       state->update_previews();
-                       notify_changed(false);
-                     });
-    QObject::connect(state->stop_midpoint, qOverload<int>(&QSpinBox::valueChanged), &dialog,
-                     [state, notify_changed](int value) {
-                       if (state->loading || !state->stop_midpoint->isEnabled()) {
-                         return;
-                       }
-                       const auto midpoint = static_cast<float>(std::clamp(value, 5, 95)) / 100.0F;
-                       if (state->selected_color_stop >= 0 &&
-                           state->selected_color_stop < static_cast<int>(state->color_stops.size())) {
-                         state->color_stops[static_cast<std::size_t>(state->selected_color_stop)].midpoint = midpoint;
-                       } else if (state->selected_alpha_stop >= 0 &&
-                                  state->selected_alpha_stop < static_cast<int>(state->alpha_stops.size())) {
-                         state->alpha_stops[static_cast<std::size_t>(state->selected_alpha_stop)].midpoint = midpoint;
-                       } else {
-                         return;
-                       }
-                       state->update_previews();
-                       notify_changed(false);
-                     });
-    QObject::connect(state->stop_opacity, qOverload<int>(&QSpinBox::valueChanged), &dialog,
-                     [state, notify_changed](int value) {
-                       if (state->loading || state->selected_alpha_stop < 0 ||
-                           state->selected_alpha_stop >= static_cast<int>(state->alpha_stops.size())) {
-                         return;
-                       }
-                       state->alpha_stops[static_cast<std::size_t>(state->selected_alpha_stop)].opacity =
-                           static_cast<float>(std::clamp(value, 0, 100)) / 100.0F;
-                       state->update_previews();
-                       notify_changed(false);
-                     });
-    QObject::connect(state->stop_hex, &QLineEdit::textEdited, &dialog, [state] {
-      state->stop_hex->setProperty("appearanceUserTyped", true);
-    });
-    QObject::connect(state->stop_hex, &QLineEdit::editingFinished, &dialog, [state, notify_changed, mark_ramp_edit] {
-      const bool user_typed = state->stop_hex->property("appearanceUserTyped").toBool();
-      state->stop_hex->setProperty("appearanceUserTyped", false);
-      if (state->loading || state->selected_color_stop < 0 ||
-          state->selected_color_stop >= static_cast<int>(state->color_stops.size())) {
-        return;
-      }
-      auto text = state->stop_hex->text().trimmed();
-      if (!text.startsWith(QLatin1Char('#')) && text.size() == 6) {
-        text.prepend(QLatin1Char('#'));
-      }
-      const QColor color(text);
-      if (!color.isValid()) {
-        state->update_previews();
-        return;
-      }
-      state->color_stops[static_cast<std::size_t>(state->selected_color_stop)].color =
-          RgbColor{static_cast<std::uint8_t>(color.red()), static_cast<std::uint8_t>(color.green()),
-                   static_cast<std::uint8_t>(color.blue())};
-      state->update_previews();
-      if (user_typed) mark_ramp_edit();
-      notify_changed(true);
-    });
-    auto choose_stop_color = [&, state, notify_changed, color_picker_title, object_prefix] {
-      if (state->selected_color_stop < 0 ||
-          state->selected_color_stop >= static_cast<int>(state->color_stops.size())) {
-        return;
-      }
-      const auto row = state->selected_color_stop;
-      const auto original = state->color_stops[static_cast<std::size_t>(row)].color;
-      const auto saved_edits = *batch_edits;
-      const auto ramp_key = [&] {
+  LayerStyleGradientContext gradient_context{
+      dialog, gradient_library, foreground, background, batch != nullptr, batch_edits,
+      explicit_fields, reset_batch_capture, [&](bool stroke_gradient) {
         const auto* current = categories->currentItem();
         const auto index = current ? current->data(kLayerStyleEffectIndexRole).toInt() : 0;
-        return effect_property_prefix(object_prefix.contains(QStringLiteral("Stroke"))
-            ? LayerStyleEffectKind::Stroke : LayerStyleEffectKind::GradientOverlay, index) + ".gradient.definition";
-      };
-      bool selected = false;
-      auto apply_color = [state, row](QColor color) {
-        if (!color.isValid() || row >= static_cast<int>(state->color_stops.size())) {
-          return;
-        }
-        state->color_stops[static_cast<std::size_t>(row)].color =
-            RgbColor{static_cast<std::uint8_t>(color.red()), static_cast<std::uint8_t>(color.green()),
-                     static_cast<std::uint8_t>(color.blue())};
-        state->update_previews();
-      };
-      const auto chosen = request_patchy_color(&dialog, QColor(original.red, original.green, original.blue),
-                                               color_picker_title, [&](QColor color) {
-                                                 apply_color(color);
-                                                 if (batch) explicit_fields = {ramp_key()};
-                                                 notify_changed(false);
-                                               }, &selected);
-      if (!chosen.has_value()) {
-        apply_color(QColor(original.red, original.green, original.blue));
-        *batch_edits = saved_edits;
-        if (reset_batch_capture) reset_batch_capture();
-        notify_changed(true);
-        return;
-      }
-      if (selected || !batch) {
-        apply_color(*chosen);
-        if (batch) explicit_fields = {ramp_key()};
-        notify_changed(true);
-      }
-    };
-    QObject::connect(state->stop_swatch, &QPushButton::clicked, &dialog, choose_stop_color);
-    state->editor->choose_stop_color_requested = [state, choose_stop_color](int row) {
-      if (row < 0 || row >= static_cast<int>(state->color_stops.size())) {
-        return;
-      }
-      state->selected_color_stop = row;
-      state->selected_alpha_stop = -1;
-      state->update_previews();
-      choose_stop_color();
-    };
-    QObject::connect(state->add_stop, &QPushButton::clicked, &dialog, [state, notify_changed] {
-      if (state->selected_alpha_stop >= 0) {
-        auto stop = GradientAlphaStop{0.5F, 1.0F};
-        if (!state->alpha_stops.empty()) {
-          const auto source_index = static_cast<std::size_t>(
-              std::clamp(state->selected_alpha_stop, 0, static_cast<int>(state->alpha_stops.size()) - 1));
-          stop = state->alpha_stops[source_index];
-          stop.location = std::clamp(stop.location + 0.1F, 0.0F, 1.0F);
-        }
-        state->alpha_stops.push_back(stop);
-        state->selected_alpha_stop = static_cast<int>(state->alpha_stops.size()) - 1;
-        state->selected_color_stop = -1;
-      } else {
-        auto stop = GradientColorStop{0.5F, RgbColor{255, 255, 255}};
-        if (!state->color_stops.empty()) {
-          const auto source_index = static_cast<std::size_t>(
-              std::clamp(state->selected_color_stop, 0, static_cast<int>(state->color_stops.size()) - 1));
-          stop = state->color_stops[source_index];
-          stop.location = std::clamp(stop.location + 0.1F, 0.0F, 1.0F);
-        }
-        state->color_stops.push_back(stop);
-        state->selected_color_stop = static_cast<int>(state->color_stops.size()) - 1;
-        state->selected_alpha_stop = -1;
-      }
-      state->update_previews();
-      notify_changed(true);
-    });
-    QObject::connect(state->remove_stop, &QPushButton::clicked, &dialog, [state, notify_changed] {
-      if (state->selected_alpha_stop >= 0) {
-        if (state->alpha_stops.size() <= 2U) {
-          return;
-        }
-        const auto row =
-            std::clamp(state->selected_alpha_stop, 0, static_cast<int>(state->alpha_stops.size()) - 1);
-        state->alpha_stops.erase(state->alpha_stops.begin() + row);
-        state->selected_alpha_stop = std::min(row, static_cast<int>(state->alpha_stops.size()) - 1);
-      } else {
-        if (state->color_stops.size() <= 2U) {
-          return;
-        }
-        const auto row =
-            std::clamp(state->selected_color_stop, 0, static_cast<int>(state->color_stops.size()) - 1);
-        state->color_stops.erase(state->color_stops.begin() + row);
-        state->selected_color_stop = std::min(row, static_cast<int>(state->color_stops.size()) - 1);
-      }
-      state->update_previews();
-      notify_changed(true);
-    });
-    QObject::connect(state->reverse, &QCheckBox::toggled, &dialog,
-                     [notify_changed](bool) { notify_changed(true); });
-    QObject::connect(state->dither, &QCheckBox::toggled, &dialog,
-                     [notify_changed](bool) { notify_changed(true); });
-    QObject::connect(state->align, &QCheckBox::toggled, &dialog,
-                     [notify_changed](bool) { notify_changed(true); });
-    QObject::connect(state->form_combo, &QComboBox::currentIndexChanged,
-                     &dialog, [state, notify_changed](int) {
-                       const auto solid =
-                           state->form_combo->currentData().toInt() ==
-                           static_cast<int>(GradientDefinitionForm::Solid);
-                       state->solid_controls->setVisible(solid);
-                       state->selected_stop_controls->setVisible(solid);
-                       state->midpoint_controls->setVisible(solid);
-                       state->stop_button_controls->setVisible(solid);
-                       state->smoothness->parentWidget()->setVisible(solid);
-                       state->noise_controls->setVisible(!solid); notify_changed(true); });
-    QObject::connect(state->interpolation, &QComboBox::currentIndexChanged, &dialog,
-                     [notify_changed](int) { notify_changed(true); });
-    QObject::connect(state->style_combo, &QComboBox::currentIndexChanged,
-                     &dialog, [notify_changed](int) { notify_changed(true); });
-    QObject::connect(state->angle, qOverload<int>(&QSpinBox::valueChanged),
-                     &dialog, [notify_changed](int) { notify_changed(false); });
-    QObject::connect(state->scale, qOverload<int>(&QSpinBox::valueChanged),
-                     &dialog, [notify_changed](int) { notify_changed(false); });
-    for (auto *spin :
-         {state->smoothness, state->noise_seed, state->noise_roughness,
-          state->offset_x, state->offset_y}) {
-      QObject::connect(spin, qOverload<int>(&QSpinBox::valueChanged), &dialog,
-                       [notify_changed](int) { notify_changed(false); });
-    }
-    QObject::connect(state->noise_transparency, &QCheckBox::toggled, &dialog,
-                     [notify_changed](bool) { notify_changed(true); });
-    QObject::connect(state->noise_restrict, &QCheckBox::toggled, &dialog,
-                     [notify_changed](bool) { notify_changed(true); });
-    QObject::connect(state->noise_color_model, &QComboBox::currentIndexChanged,
-                     &dialog, [notify_changed](int) { notify_changed(true); });
-    for (std::size_t channel = 0; channel < state->noise_minimum.size();
-         ++channel) {
-      QObject::connect(state->noise_minimum[channel],
-                       qOverload<int>(&QSpinBox::valueChanged), &dialog,
-                       [state, notify_changed, channel](int value) {
-                         if (value > state->noise_maximum[channel]->value())
-                           state->noise_maximum[channel]->setValue(value);
-                         notify_changed(false);
-                       });
-      QObject::connect(state->noise_maximum[channel],
-                       qOverload<int>(&QSpinBox::valueChanged), &dialog,
-                       [state, notify_changed, channel](int value) {
-                         if (value < state->noise_minimum[channel]->value())
-                           state->noise_minimum[channel]->setValue(value);
-                         notify_changed(false);
-                       });
-    }
-    QObject::connect(state->reset_alignment, &QPushButton::clicked, &dialog,
-                     [state, notify_changed] {
-                       state->offset_x->setValue(0);
-                       state->offset_y->setValue(0);
-                       notify_changed(true); });
-
-    state->load(initial_gradient);
-    return controls_state;
-  };
+        return effect_property_prefix(stroke_gradient ? LayerStyleEffectKind::Stroke
+            : LayerStyleEffectKind::GradientOverlay, index) + ".gradient.definition";
+      }};
 
   auto* blending_layout = make_page(QStringLiteral("layerStyleBlendingPage"));
   auto* bevel_layout = make_page(QStringLiteral("layerStyleBevelEmbossPage"));
@@ -2024,8 +998,9 @@ std::optional<LayerStyleSettings> request_layer_style_settings(
     }
     return entry.name;
   };
-  const auto populate_pattern_combo = [&](PatternPickerCombo* combo, const std::string& current_id,
+  const auto populate_pattern_combo = [&](QComboBox* picker, const std::string& current_id,
                                           const std::string& current_name) {
+    auto* combo = static_cast<PatternPickerCombo*>(picker);
     const QSignalBlocker blocker(combo);
     combo->clear_patterns();
     if (document_patterns != nullptr) {
@@ -2404,99 +1379,30 @@ std::optional<LayerStyleSettings> request_layer_style_settings(
   preview_check->setChecked(true);
   blending_layout->addStretch(1);
 
-  auto* bevel_group = new QGroupBox(QObject::tr("Bevel & Emboss"), controls);
-  auto* bevel_form = new QFormLayout(bevel_group);
-  auto* bevel_style = new QComboBox(bevel_group);
-  bevel_style->setObjectName(QStringLiteral("layerStyleBevelStyleCombo"));
-  bevel_style->addItem(QObject::tr("Inner Bevel"), static_cast<int>(BevelEmbossStyleKind::InnerBevel));
-  bevel_style->addItem(QObject::tr("Outer Bevel"), static_cast<int>(BevelEmbossStyleKind::OuterBevel));
-  bevel_style->addItem(QObject::tr("Emboss"), static_cast<int>(BevelEmbossStyleKind::Emboss));
-  bevel_style->addItem(QObject::tr("Pillow Emboss"), static_cast<int>(BevelEmbossStyleKind::PillowEmboss));
-  bevel_style->addItem(QObject::tr("Stroke Emboss"), static_cast<int>(BevelEmbossStyleKind::StrokeEmboss));
-  bevel_style->setCurrentIndex(std::max(0, bevel_style->findData(static_cast<int>(bevel.style))));
-  bevel_form->addRow(QObject::tr("Style"), bevel_style);
-  auto* bevel_technique = new QComboBox(bevel_group);
-  bevel_technique->setObjectName(QStringLiteral("layerStyleBevelTechniqueCombo"));
-  bevel_technique->addItem(QObject::tr("Smooth"), static_cast<int>(BevelTechnique::Smooth));
-  bevel_technique->addItem(QObject::tr("Chisel Hard"), static_cast<int>(BevelTechnique::ChiselHard));
-  bevel_technique->addItem(QObject::tr("Chisel Soft"), static_cast<int>(BevelTechnique::ChiselSoft));
-  bevel_technique->setCurrentIndex(
-      std::max(0, bevel_technique->findData(static_cast<int>(bevel.technique))));
-  bevel_form->addRow(QObject::tr("Technique"), bevel_technique);
-  auto* bevel_size = add_slider_spin_row(bevel_form, bevel_group, QObject::tr("Size"),
-                                         QStringLiteral("layerStyleBevelSizeSpin"), 1, 250,
-                                         static_cast<int>(std::round(bevel.size)));
-  auto* bevel_soften = add_slider_spin_row(bevel_form, bevel_group, QObject::tr("Soften"),
-                                           QStringLiteral("layerStyleBevelSoftenSpin"), 0, 16,
-                                           static_cast<int>(std::round(bevel.soften)));
-  auto* bevel_depth = add_slider_spin_row(bevel_form, bevel_group, QObject::tr("Depth"),
-                                          QStringLiteral("layerStyleBevelDepthSpin"), 1, 1000,
-                                          static_cast<int>(std::round(bevel.depth * 100.0F)), QStringLiteral("%"));
-  auto* bevel_angle = add_slider_spin_row(bevel_form, bevel_group, QObject::tr("Angle"),
-                                          QStringLiteral("layerStyleBevelAngleSpin"), -180, 180,
-                                          static_cast<int>(std::round(bevel.angle_degrees)));
-  auto* bevel_altitude = add_slider_spin_row(bevel_form, bevel_group, QObject::tr("Altitude"),
-                                             QStringLiteral("layerStyleBevelAltitudeSpin"), 0, 90,
-                                             static_cast<int>(std::round(bevel.altitude_degrees)));
-  auto* bevel_direction = new QComboBox(bevel_group);
-  bevel_direction->setObjectName(QStringLiteral("layerStyleBevelDirectionCombo"));
-  bevel_direction->addItem(QObject::tr("Up"), true);
-  bevel_direction->addItem(QObject::tr("Down"), false);
-  bevel_direction->setCurrentIndex(bevel.direction_up ? 0 : 1);
-  bevel_form->addRow(QObject::tr("Direction"), bevel_direction);
-  auto* bevel_gloss_row = new QWidget(bevel_group);
-  auto* bevel_gloss_layout = new QHBoxLayout(bevel_gloss_row);
-  bevel_gloss_layout->setContentsMargins(0, 0, 0, 0);
-  bevel_gloss_layout->setSpacing(8);
-  auto* bevel_gloss_contour = make_contour_combo(bevel_gloss_row,
-                                                 QStringLiteral("layerStyleBevelGlossContourCombo"),
-                                                 bevel.gloss_contour, custom_gloss_contour);
-  bevel_gloss_layout->addWidget(bevel_gloss_contour, 1);
-  auto* bevel_gloss_anti_aliased = new QCheckBox(QObject::tr("Anti-aliased"), bevel_gloss_row);
-  bevel_gloss_anti_aliased->setObjectName(QStringLiteral("layerStyleBevelGlossAntiAliasedCheck"));
-  bevel_gloss_anti_aliased->setChecked(bevel.gloss_anti_aliased);
-  bevel_gloss_layout->addWidget(bevel_gloss_anti_aliased);
-  bevel_form->addRow(QObject::tr("Gloss Contour"), bevel_gloss_row);
+  // Builders return handles; these aggregates and gradient_context remain
+  // alive until the modal dialog has finished delivering all callbacks.
+  LayerStylePageContext page_context{dialog, controls, gradient_context,
+      make_contour_combo, make_pattern_combo, patchy_only_banner, continuous_shadow_explanation};
 
-  auto bevel_highlight_color = bevel.highlight_color;
-  auto* bevel_highlight_group = new QGroupBox(QObject::tr("Highlight"), bevel_group);
-  auto* bevel_highlight_form = new QFormLayout(bevel_highlight_group);
-  auto* bevel_highlight_blend = new QComboBox(bevel_highlight_group);
-  bevel_highlight_blend->setObjectName(QStringLiteral("layerStyleBevelHighlightBlendModeCombo"));
-  add_blend_mode_items(bevel_highlight_blend);
-  bevel_highlight_blend->setCurrentIndex(
-      std::max(0, bevel_highlight_blend->findData(static_cast<int>(bevel.highlight_blend_mode))));
-  bevel_highlight_form->addRow(QObject::tr("Blend Mode"), bevel_highlight_blend);
-  auto* bevel_highlight_opacity =
-      add_slider_spin_row(bevel_highlight_form, bevel_highlight_group, QObject::tr("Opacity"),
-                          QStringLiteral("layerStyleBevelHighlightOpacitySpin"), 0, 100,
-                          static_cast<int>(std::round(bevel.highlight_opacity * 100.0F)), QStringLiteral("%"));
-  auto* bevel_highlight_color_button = new QPushButton(bevel_highlight_group);
-  bevel_highlight_color_button->setObjectName(QStringLiteral("layerStyleBevelHighlightColorButton"));
-  bevel_highlight_color_button->setFixedSize(34, 24);
-  bevel_highlight_color_button->setToolTip(QObject::tr("Choose Color..."));
-  bevel_highlight_form->addRow(QObject::tr("Color"), bevel_highlight_color_button);
-  bevel_form->addRow(bevel_highlight_group);
-
-  auto bevel_shadow_color = bevel.shadow_color;
-  auto* bevel_shadow_group = new QGroupBox(QObject::tr("Shadow"), bevel_group);
-  auto* bevel_shadow_form = new QFormLayout(bevel_shadow_group);
-  auto* bevel_shadow_blend = new QComboBox(bevel_shadow_group);
-  bevel_shadow_blend->setObjectName(QStringLiteral("layerStyleBevelShadowBlendModeCombo"));
-  add_blend_mode_items(bevel_shadow_blend);
-  bevel_shadow_blend->setCurrentIndex(
-      std::max(0, bevel_shadow_blend->findData(static_cast<int>(bevel.shadow_blend_mode))));
-  bevel_shadow_form->addRow(QObject::tr("Blend Mode"), bevel_shadow_blend);
-  auto* bevel_shadow_opacity =
-      add_slider_spin_row(bevel_shadow_form, bevel_shadow_group, QObject::tr("Opacity"),
-                          QStringLiteral("layerStyleBevelShadowOpacitySpin"), 0, 100,
-                          static_cast<int>(std::round(bevel.shadow_opacity * 100.0F)), QStringLiteral("%"));
-  auto* bevel_shadow_color_button = new QPushButton(bevel_shadow_group);
-  bevel_shadow_color_button->setObjectName(QStringLiteral("layerStyleBevelShadowColorButton"));
-  bevel_shadow_color_button->setFixedSize(34, 24);
-  bevel_shadow_color_button->setToolTip(QObject::tr("Choose Color..."));
-  bevel_shadow_form->addRow(QObject::tr("Color"), bevel_shadow_color_button);
-  bevel_form->addRow(bevel_shadow_group);
+  auto bevel_page = build_bevel_page(page_context, bevel_layout, bevel, custom_gloss_contour);
+  auto& bevel_style = bevel_page.bevel_style;
+  auto& bevel_technique = bevel_page.bevel_technique;
+  auto& bevel_size = bevel_page.bevel_size;
+  auto& bevel_soften = bevel_page.bevel_soften;
+  auto& bevel_depth = bevel_page.bevel_depth;
+  auto& bevel_angle = bevel_page.bevel_angle;
+  auto& bevel_altitude = bevel_page.bevel_altitude;
+  auto& bevel_direction = bevel_page.bevel_direction;
+  auto& bevel_gloss_contour = bevel_page.bevel_gloss_contour;
+  auto& bevel_gloss_anti_aliased = bevel_page.bevel_gloss_anti_aliased;
+  auto& bevel_highlight_color = bevel_page.bevel_highlight_color;
+  auto& bevel_highlight_blend = bevel_page.bevel_highlight_blend;
+  auto& bevel_highlight_opacity = bevel_page.bevel_highlight_opacity;
+  auto& bevel_highlight_color_button = bevel_page.bevel_highlight_color_button;
+  auto& bevel_shadow_color = bevel_page.bevel_shadow_color;
+  auto& bevel_shadow_blend = bevel_page.bevel_shadow_blend;
+  auto& bevel_shadow_opacity = bevel_page.bevel_shadow_opacity;
+  auto& bevel_shadow_color_button = bevel_page.bevel_shadow_color_button;
   auto update_bevel_color_previews = [&] {
     update_color_preview_label(bevel_highlight_color_button, bevel_highlight_color.red,
                                bevel_highlight_color.green, bevel_highlight_color.blue);
@@ -2504,513 +1410,126 @@ std::optional<LayerStyleSettings> request_layer_style_settings(
                                bevel_shadow_color.green, bevel_shadow_color.blue);
   };
   update_bevel_color_previews();
-  bevel_layout->addWidget(bevel_group);
-  bevel_layout->addStretch(1);
 
-  auto* bevel_contour_group = new QGroupBox(QObject::tr("Contour"), controls);
-  auto* bevel_contour_form = new QFormLayout(bevel_contour_group);
-  auto* bevel_contour_row = new QWidget(bevel_contour_group);
-  auto* bevel_contour_row_layout = new QHBoxLayout(bevel_contour_row);
-  bevel_contour_row_layout->setContentsMargins(0, 0, 0, 0);
-  bevel_contour_row_layout->setSpacing(8);
-  auto* bevel_contour_combo = make_contour_combo(bevel_contour_row,
-                                                 QStringLiteral("layerStyleBevelContourCombo"),
-                                                 bevel.contour.contour, custom_bevel_sub_contour);
-  bevel_contour_row_layout->addWidget(bevel_contour_combo, 1);
-  auto* bevel_contour_anti_aliased = new QCheckBox(QObject::tr("Anti-aliased"), bevel_contour_row);
-  bevel_contour_anti_aliased->setObjectName(QStringLiteral("layerStyleBevelContourAntiAliasedCheck"));
-  bevel_contour_anti_aliased->setChecked(bevel.contour.anti_aliased);
-  bevel_contour_row_layout->addWidget(bevel_contour_anti_aliased);
-  bevel_contour_form->addRow(QObject::tr("Contour"), bevel_contour_row);
-  auto* bevel_contour_range = add_slider_spin_row(
-      bevel_contour_form, bevel_contour_group, QObject::tr("Range"),
-      QStringLiteral("layerStyleBevelContourRangeSpin"), 1, 100,
-      static_cast<int>(std::round(bevel.contour.range * 100.0F)), QStringLiteral("%"));
-  bevel_contour_layout->addWidget(bevel_contour_group);
-  bevel_contour_layout->addStretch(1);
+  auto bevel_contour_page = build_bevel_contour_page(page_context, bevel_contour_layout, bevel, custom_bevel_sub_contour);
+  auto& bevel_contour_combo = bevel_contour_page.bevel_contour_combo;
+  auto& bevel_contour_anti_aliased = bevel_contour_page.bevel_contour_anti_aliased;
+  auto& bevel_contour_range = bevel_contour_page.bevel_contour_range;
 
-  auto* bevel_texture_group = new QGroupBox(QObject::tr("Texture"), controls);
-  auto* bevel_texture_form = new QFormLayout(bevel_texture_group);
-  auto* bevel_texture_pattern_row = new QWidget(bevel_texture_group);
-  auto* bevel_texture_pattern_layout = new QHBoxLayout(bevel_texture_pattern_row);
-  bevel_texture_pattern_layout->setContentsMargins(0, 0, 0, 0);
-  bevel_texture_pattern_layout->setSpacing(8);
-  auto* bevel_texture_pattern = make_pattern_combo(bevel_texture_pattern_row,
-                                                   QStringLiteral("layerStyleBevelTexturePatternCombo"),
-                                                   bevel.texture.pattern_id, bevel.texture.pattern_name);
-  bevel_texture_pattern_layout->addWidget(bevel_texture_pattern, 1);
-  auto* bevel_texture_manage = new QPushButton(QObject::tr("Manage…"), bevel_texture_pattern_row);
-  bevel_texture_manage->setObjectName(QStringLiteral("layerStyleBevelTextureManageButton"));
-  bevel_texture_manage->setToolTip(QObject::tr("Open Pattern Manager"));
-  bevel_texture_pattern_layout->addWidget(bevel_texture_manage);
-  bevel_texture_form->addRow(QObject::tr("Pattern"), bevel_texture_pattern_row);
-  auto* bevel_texture_scale = add_slider_spin_row(
-      bevel_texture_form, bevel_texture_group, QObject::tr("Scale"),
-      QStringLiteral("layerStyleBevelTextureScaleSpin"), 1, 1000,
-      static_cast<int>(std::round(bevel.texture.scale * 100.0F)), QStringLiteral("%"));
-  auto* bevel_texture_depth = add_slider_spin_row(
-      bevel_texture_form, bevel_texture_group, QObject::tr("Depth"),
-      QStringLiteral("layerStyleBevelTextureDepthSpin"), -1000, 1000,
-      static_cast<int>(std::round(bevel.texture.depth * 100.0F)), QStringLiteral("%"));
-  auto* bevel_texture_invert = new QCheckBox(QObject::tr("Invert"), bevel_texture_group);
-  bevel_texture_invert->setObjectName(QStringLiteral("layerStyleBevelTextureInvertCheck"));
-  bevel_texture_invert->setChecked(bevel.texture.invert);
-  bevel_texture_form->addRow(QString(), bevel_texture_invert);
-  auto* bevel_texture_link = new QCheckBox(QObject::tr("Link with Layer"), bevel_texture_group);
-  bevel_texture_link->setObjectName(QStringLiteral("layerStyleBevelTextureLinkCheck"));
-  bevel_texture_link->setChecked(bevel.texture.link_with_layer);
-  bevel_texture_link->setToolTip(
-      QObject::tr("Anchor the pattern to the layer so it follows when the layer moves"));
-  bevel_texture_form->addRow(QString(), bevel_texture_link);
-  auto* bevel_texture_snap = new QPushButton(QObject::tr("Snap to Origin"), bevel_texture_group);
-  bevel_texture_snap->setObjectName(QStringLiteral("layerStyleBevelTextureSnapOriginButton"));
-  bevel_texture_form->addRow(QString(), bevel_texture_snap);
-  bevel_texture_layout->addWidget(bevel_texture_group);
-  bevel_texture_layout->addStretch(1);
+  auto bevel_texture_page = build_bevel_texture_page(page_context, bevel_texture_layout, bevel);
+  auto& bevel_texture_pattern = bevel_texture_page.bevel_texture_pattern;
+  auto& bevel_texture_manage = bevel_texture_page.bevel_texture_manage;
+  auto& bevel_texture_scale = bevel_texture_page.bevel_texture_scale;
+  auto& bevel_texture_depth = bevel_texture_page.bevel_texture_depth;
+  auto& bevel_texture_invert = bevel_texture_page.bevel_texture_invert;
+  auto& bevel_texture_link = bevel_texture_page.bevel_texture_link;
+  auto& bevel_texture_snap = bevel_texture_page.bevel_texture_snap;
 
-  auto* pattern_overlay_group = new QGroupBox(QObject::tr("Pattern Overlay"), controls);
-  auto* pattern_overlay_form = new QFormLayout(pattern_overlay_group);
-  auto* pattern_overlay_blend = new QComboBox(pattern_overlay_group);
-  pattern_overlay_blend->setObjectName(QStringLiteral("layerStylePatternOverlayBlendModeCombo"));
-  add_blend_mode_items(pattern_overlay_blend);
-  pattern_overlay_blend->setCurrentIndex(
-      std::max(0, pattern_overlay_blend->findData(static_cast<int>(pattern_overlay.blend_mode))));
-  pattern_overlay_form->addRow(QObject::tr("Blend Mode"), pattern_overlay_blend);
-  auto* pattern_overlay_opacity = add_slider_spin_row(
-      pattern_overlay_form, pattern_overlay_group, QObject::tr("Opacity"),
-      QStringLiteral("layerStylePatternOverlayOpacitySpin"), 0, 100,
-      static_cast<int>(std::round(pattern_overlay.opacity * 100.0F)), QStringLiteral("%"));
-  auto* pattern_overlay_pattern_row = new QWidget(pattern_overlay_group);
-  auto* pattern_overlay_pattern_layout = new QHBoxLayout(pattern_overlay_pattern_row);
-  pattern_overlay_pattern_layout->setContentsMargins(0, 0, 0, 0);
-  pattern_overlay_pattern_layout->setSpacing(8);
-  auto* pattern_overlay_pattern = make_pattern_combo(
-      pattern_overlay_pattern_row, QStringLiteral("layerStylePatternOverlayPatternCombo"),
-      pattern_overlay.pattern_id, pattern_overlay.pattern_name);
-  pattern_overlay_pattern_layout->addWidget(pattern_overlay_pattern, 1);
-  auto* pattern_overlay_manage = new QPushButton(QObject::tr("Manage…"), pattern_overlay_pattern_row);
-  pattern_overlay_manage->setObjectName(QStringLiteral("layerStylePatternOverlayManageButton"));
-  pattern_overlay_manage->setToolTip(QObject::tr("Open Pattern Manager"));
-  pattern_overlay_pattern_layout->addWidget(pattern_overlay_manage);
-  pattern_overlay_form->addRow(QObject::tr("Pattern"), pattern_overlay_pattern_row);
-  auto* pattern_overlay_angle = add_slider_spin_row(
-      pattern_overlay_form, pattern_overlay_group, QObject::tr("Angle"),
-      QStringLiteral("layerStylePatternOverlayAngleSpin"), -180, 180,
-      static_cast<int>(std::round(pattern_overlay.angle_degrees)));
-  auto* pattern_overlay_scale = add_slider_spin_row(
-      pattern_overlay_form, pattern_overlay_group, QObject::tr("Scale"),
-      QStringLiteral("layerStylePatternOverlayScaleSpin"), 1, 1000,
-      static_cast<int>(std::round(pattern_overlay.scale * 100.0F)), QStringLiteral("%"));
-  auto* pattern_overlay_link = new QCheckBox(QObject::tr("Link with Layer"), pattern_overlay_group);
-  pattern_overlay_link->setObjectName(QStringLiteral("layerStylePatternOverlayLinkCheck"));
-  pattern_overlay_link->setChecked(pattern_overlay.link_with_layer);
-  pattern_overlay_link->setToolTip(
-      QObject::tr("Anchor the pattern to the layer so it follows when the layer moves"));
-  pattern_overlay_form->addRow(QString(), pattern_overlay_link);
-  auto* pattern_overlay_snap = new QPushButton(QObject::tr("Snap to Origin"), pattern_overlay_group);
-  pattern_overlay_snap->setObjectName(QStringLiteral("layerStylePatternOverlaySnapOriginButton"));
-  pattern_overlay_form->addRow(QString(), pattern_overlay_snap);
-  pattern_overlay_layout->addWidget(pattern_overlay_group);
-  pattern_overlay_layout->addStretch(1);
+  auto pattern_overlay_page = build_pattern_overlay_page(page_context, pattern_overlay_layout, pattern_overlay);
+  auto& pattern_overlay_blend = pattern_overlay_page.pattern_overlay_blend;
+  auto& pattern_overlay_opacity = pattern_overlay_page.pattern_overlay_opacity;
+  auto& pattern_overlay_pattern = pattern_overlay_page.pattern_overlay_pattern;
+  auto& pattern_overlay_manage = pattern_overlay_page.pattern_overlay_manage;
+  auto& pattern_overlay_angle = pattern_overlay_page.pattern_overlay_angle;
+  auto& pattern_overlay_scale = pattern_overlay_page.pattern_overlay_scale;
+  auto& pattern_overlay_link = pattern_overlay_page.pattern_overlay_link;
+  auto& pattern_overlay_snap = pattern_overlay_page.pattern_overlay_snap;
 
-  auto* stroke_group = new QGroupBox(QObject::tr("Stroke"), controls);
-  auto* stroke_form = new QFormLayout(stroke_group);
-  auto* stroke_size = add_slider_spin_row(stroke_form, stroke_group, QObject::tr("Size"),
-                                          QStringLiteral("layerStyleStrokeSizeSpin"), 1, 250,
-                                          static_cast<int>(std::round(stroke.size)));
-  auto* stroke_position = new QComboBox(stroke_group);
-  stroke_position->setObjectName(QStringLiteral("layerStyleStrokePositionCombo"));
-  stroke_position->addItem(QObject::tr("Outside"), static_cast<int>(LayerStrokePosition::Outside));
-  stroke_position->addItem(QObject::tr("Inside"), static_cast<int>(LayerStrokePosition::Inside));
-  stroke_position->addItem(QObject::tr("Center"), static_cast<int>(LayerStrokePosition::Center));
-  stroke_position->setCurrentIndex(std::max(0, stroke_position->findData(static_cast<int>(stroke.position))));
-  stroke_form->addRow(QObject::tr("Position"), stroke_position);
-  auto* stroke_blend = new QComboBox(stroke_group);
-  stroke_blend->setObjectName(QStringLiteral("layerStyleStrokeBlendModeCombo"));
-  add_blend_mode_items(stroke_blend);
-  stroke_blend->setCurrentIndex(std::max(0, stroke_blend->findData(static_cast<int>(stroke.blend_mode))));
-  stroke_form->addRow(QObject::tr("Blend Mode"), stroke_blend);
-  auto* stroke_opacity = add_slider_spin_row(stroke_form, stroke_group, QObject::tr("Opacity"),
-                                             QStringLiteral("layerStyleStrokeOpacitySpin"), 0, 100,
-                                             static_cast<int>(std::round(stroke.opacity * 100.0F)),
-                                             QStringLiteral("%"));
-  auto* stroke_overprint = new QCheckBox(QObject::tr("Overprint"), stroke_group);
-  stroke_overprint->setObjectName(QStringLiteral("layerStyleStrokeOverprintCheck"));
-  stroke_overprint->setChecked(stroke.overprint);
-  stroke_overprint->setToolTip(QObject::tr(
-      "Blend the stroke against the layer's own content. When off, the stroke knocks the content out of "
-      "its band and blends with the layers below, like Photoshop"));
-  stroke_form->addRow(QString(), stroke_overprint);
-  auto* stroke_fill = new QComboBox(stroke_group);
-  stroke_fill->setObjectName(QStringLiteral("layerStyleStrokeFillCombo"));
-  stroke_fill->addItem(QObject::tr("Color"), false);
-  stroke_fill->addItem(QObject::tr("Gradient"), true);
-  stroke_fill->setCurrentIndex(stroke.uses_gradient ? 1 : 0);
-  stroke_form->addRow(QObject::tr("Fill"), stroke_fill);
-  const auto stroke_rows =
-      make_color_rows(stroke_form, stroke_group, QStringLiteral("layerStyleStroke"), stroke.color);
-  auto* stroke_red = stroke_rows.red;
-  auto* stroke_green = stroke_rows.green;
-  auto* stroke_blue = stroke_rows.blue;
-  auto* stroke_gradient_group = new QGroupBox(QObject::tr("Gradient"), stroke_group);
-  stroke_gradient_group->setObjectName(QStringLiteral("layerStyleStrokeGradientGroup"));
-  auto* stroke_gradient_form = new QFormLayout(stroke_gradient_group);
-  auto stroke_gradient_controls =
-      make_gradient_controls(stroke_gradient_form, stroke_gradient_group,
-                             QStringLiteral("layerStyleStrokeGradient"), stroke.gradient,
-                             QObject::tr("Choose Gradient Stop Color"), /*offer_shape_burst=*/true);
-  stroke_form->addRow(stroke_gradient_group);
-  auto update_stroke_fill_visibility = [&] {
-    const bool uses_gradient = stroke_fill->currentData().toBool();
-    stroke_form->setRowVisible(stroke_rows.row_container, !uses_gradient);
-    stroke_form->setRowVisible(stroke_gradient_group, uses_gradient);
-  };
-  // The stroke page scrolls instead of sizing the dialog: a stacked layout's
-  // minimum is the max over all pages, and this page's nested gradient block
-  // (Fill = Gradient) would otherwise floor the whole dialog ~180px above the
-  // tallest overlay page.
-  auto* stroke_scroll = new QScrollArea(&dialog);
-  stroke_scroll->setObjectName(QStringLiteral("layerStyleStrokeScroll"));
-  stroke_scroll->setWidgetResizable(true);
-  stroke_scroll->setFrameShape(QFrame::NoFrame);
-  stroke_scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-  set_themed_style(*stroke_scroll,
-                   QStringLiteral("QScrollArea#layerStyleStrokeScroll { background: transparent; }"
-                                  "QScrollArea#layerStyleStrokeScroll > QWidget > QWidget { "
-                                  "background: transparent; }"));
-  auto* stroke_scroll_page = new QWidget(stroke_scroll);
-  stroke_scroll_page->setObjectName(QStringLiteral("layerStyleStrokeScrollPage"));
-  auto* stroke_scroll_column = new QVBoxLayout(stroke_scroll_page);
-  stroke_scroll_column->setContentsMargins(0, 0, 6, 0);
-  stroke_scroll_column->addWidget(stroke_group);
-  stroke_scroll_column->addStretch(1);
-  stroke_scroll->setWidget(stroke_scroll_page);
-  // Measured while the gradient group is still visible so the sliders keep
-  // their full width when the vertical scrollbar appears.
-  stroke_scroll->setMinimumWidth(stroke_scroll_page->minimumSizeHint().width() +
-                                 stroke_scroll->verticalScrollBar()->sizeHint().width());
-  update_stroke_fill_visibility();
-  stroke_layout->addWidget(stroke_scroll, 1);
+  auto stroke_page = build_stroke_page(page_context, stroke_layout, stroke);
+  auto& stroke_size = stroke_page.stroke_size;
+  auto& stroke_position = stroke_page.stroke_position;
+  auto& stroke_blend = stroke_page.stroke_blend;
+  auto& stroke_opacity = stroke_page.stroke_opacity;
+  auto& stroke_overprint = stroke_page.stroke_overprint;
+  auto& stroke_fill = stroke_page.stroke_fill;
+  auto& stroke_rows = stroke_page.stroke_rows;
+  auto& stroke_red = stroke_page.stroke_red;
+  auto& stroke_green = stroke_page.stroke_green;
+  auto& stroke_blue = stroke_page.stroke_blue;
+  auto& stroke_gradient_controls = stroke_page.stroke_gradient_controls;
+  auto& update_stroke_fill_visibility = stroke_page.update_stroke_fill_visibility;
 
-  auto* inner_shadow_group = new QGroupBox(QObject::tr("Inner Shadow"), controls);
-  auto* inner_shadow_form = new QFormLayout(inner_shadow_group);
-  auto* inner_shadow_blend = new QComboBox(inner_shadow_group);
-  inner_shadow_blend->setObjectName(QStringLiteral("layerStyleInnerShadowBlendModeCombo"));
-  add_blend_mode_items(inner_shadow_blend);
-  inner_shadow_blend->setCurrentIndex(
-      std::max(0, inner_shadow_blend->findData(static_cast<int>(inner_shadow.blend_mode))));
-  inner_shadow_form->addRow(QObject::tr("Blend Mode"), inner_shadow_blend);
-  auto* inner_shadow_opacity =
-      add_slider_spin_row(inner_shadow_form, inner_shadow_group, QObject::tr("Opacity"),
-                          QStringLiteral("layerStyleInnerShadowOpacitySpin"), 0, 100,
-                          static_cast<int>(std::round(inner_shadow.opacity * 100.0F)), QStringLiteral("%"));
-  auto* inner_shadow_angle =
-      add_slider_spin_row(inner_shadow_form, inner_shadow_group, QObject::tr("Angle"),
-                          QStringLiteral("layerStyleInnerShadowAngleSpin"), -180, 180,
-                          static_cast<int>(std::round(inner_shadow.angle_degrees)));
-  // Photoshop's 0..30000 px typed range; the slider keeps its 0..1000 reach.
-  auto* inner_shadow_distance =
-      add_size_slider_spin_row(inner_shadow_form, inner_shadow_group, QObject::tr("Distance"),
-                               QStringLiteral("layerStyleInnerShadowDistanceSpin"), 0, kShadowDistanceMaximum,
-                               static_cast<int>(std::round(inner_shadow.distance)), 1000);
-  auto* inner_shadow_size = add_size_slider_spin_row(inner_shadow_form, inner_shadow_group, QObject::tr("Size"),
-                                                     QStringLiteral("layerStyleInnerShadowSizeSpin"), 0, 1000,
-                                                     static_cast<int>(std::round(inner_shadow.size)));
-  auto* inner_shadow_choke =
-      add_slider_spin_row(inner_shadow_form, inner_shadow_group, QObject::tr("Choke"),
-                          QStringLiteral("layerStyleInnerShadowChokeSpin"), 0, 100,
-                          static_cast<int>(std::round(inner_shadow.choke)), QStringLiteral("%"));
-  const auto inner_shadow_rows = make_color_rows(
-      inner_shadow_form, inner_shadow_group, QStringLiteral("layerStyleInnerShadow"), inner_shadow.color);
-  auto* inner_shadow_red = inner_shadow_rows.red;
-  auto* inner_shadow_green = inner_shadow_rows.green;
-  auto* inner_shadow_blue = inner_shadow_rows.blue;
-  auto* inner_shadow_instance_row = new QWidget(inner_shadow_group);
-  auto* inner_shadow_instance_layout = new QHBoxLayout(inner_shadow_instance_row);
-  inner_shadow_instance_layout->setContentsMargins(0, 0, 0, 0);
-  auto* add_inner_shadow = new QPushButton(QStringLiteral("+"), inner_shadow_instance_row);
-  add_inner_shadow->setObjectName(QStringLiteral("layerStyleAddInnerShadowButton"));
-  add_inner_shadow->setToolTip(QObject::tr("Add Inner Shadow"));
-  configure_compact_symbol_button(add_inner_shadow);
-  auto* remove_inner_shadow = new QPushButton(QStringLiteral("-"), inner_shadow_instance_row);
-  remove_inner_shadow->setObjectName(QStringLiteral("layerStyleRemoveInnerShadowButton"));
-  remove_inner_shadow->setToolTip(QObject::tr("Remove Inner Shadow"));
-  configure_compact_symbol_button(remove_inner_shadow);
-  inner_shadow_instance_layout->addWidget(add_inner_shadow);
-  inner_shadow_instance_layout->addWidget(remove_inner_shadow);
-  inner_shadow_instance_layout->addStretch(1);
-  inner_shadow_form->addRow(QObject::tr("Instances"), inner_shadow_instance_row);
-  inner_shadow_layout->addWidget(inner_shadow_group);
-  inner_shadow_layout->addStretch(1);
+  auto inner_shadow_page = build_inner_shadow_page(page_context, inner_shadow_layout, inner_shadow);
+  auto& inner_shadow_blend = inner_shadow_page.inner_shadow_blend;
+  auto& inner_shadow_opacity = inner_shadow_page.inner_shadow_opacity;
+  auto& inner_shadow_angle = inner_shadow_page.inner_shadow_angle;
+  auto& inner_shadow_distance = inner_shadow_page.inner_shadow_distance;
+  auto& inner_shadow_size = inner_shadow_page.inner_shadow_size;
+  auto& inner_shadow_choke = inner_shadow_page.inner_shadow_choke;
+  auto& inner_shadow_rows = inner_shadow_page.inner_shadow_rows;
+  auto& inner_shadow_red = inner_shadow_page.inner_shadow_red;
+  auto& inner_shadow_green = inner_shadow_page.inner_shadow_green;
+  auto& inner_shadow_blue = inner_shadow_page.inner_shadow_blue;
+  auto& add_inner_shadow = inner_shadow_page.add_inner_shadow;
+  auto& remove_inner_shadow = inner_shadow_page.remove_inner_shadow;
 
-  auto* inner_glow_group = new QGroupBox(QObject::tr("Inner Glow"), controls);
-  auto* inner_glow_form = new QFormLayout(inner_glow_group);
-  auto* inner_glow_blend = new QComboBox(inner_glow_group);
-  inner_glow_blend->setObjectName(QStringLiteral("layerStyleInnerGlowBlendModeCombo"));
-  add_blend_mode_items(inner_glow_blend);
-  inner_glow_blend->setCurrentIndex(std::max(0, inner_glow_blend->findData(static_cast<int>(inner_glow.blend_mode))));
-  inner_glow_form->addRow(QObject::tr("Blend Mode"), inner_glow_blend);
-  auto* inner_glow_technique = new QComboBox(inner_glow_group);
-  inner_glow_technique->setObjectName(QStringLiteral("layerStyleInnerGlowTechniqueCombo"));
-  inner_glow_technique->addItem(QObject::tr("Softer"), static_cast<int>(LayerGlowTechnique::Softer));
-  inner_glow_technique->addItem(QObject::tr("Precise"), static_cast<int>(LayerGlowTechnique::Precise));
-  inner_glow_technique->setCurrentIndex(
-      std::max(0, inner_glow_technique->findData(static_cast<int>(inner_glow.technique))));
-  inner_glow_form->addRow(QObject::tr("Technique"), inner_glow_technique);
-  auto* inner_glow_opacity =
-      add_slider_spin_row(inner_glow_form, inner_glow_group, QObject::tr("Opacity"),
-                          QStringLiteral("layerStyleInnerGlowOpacitySpin"), 0, 100,
-                          static_cast<int>(std::round(inner_glow.opacity * 100.0F)), QStringLiteral("%"));
-  auto* inner_glow_size = add_size_slider_spin_row(inner_glow_form, inner_glow_group, QObject::tr("Size"),
-                                                   QStringLiteral("layerStyleInnerGlowSizeSpin"), 0, 1000,
-                                                   static_cast<int>(std::round(inner_glow.size)));
-  auto* inner_glow_choke =
-      add_slider_spin_row(inner_glow_form, inner_glow_group, QObject::tr("Choke"),
-                          QStringLiteral("layerStyleInnerGlowChokeSpin"), 0, 100,
-                          static_cast<int>(std::round(inner_glow.choke)), QStringLiteral("%"));
-  auto* inner_glow_range =
-      add_slider_spin_row(inner_glow_form, inner_glow_group, QObject::tr("Range"),
-                          QStringLiteral("layerStyleInnerGlowRangeSpin"), 1, 100,
-                          static_cast<int>(std::round(inner_glow.range)), QStringLiteral("%"));
-  auto* inner_glow_source = new QComboBox(inner_glow_group);
-  inner_glow_source->setObjectName(QStringLiteral("layerStyleInnerGlowSourceCombo"));
-  inner_glow_source->addItem(QObject::tr("Edge"), static_cast<int>(LayerInnerGlowSource::Edge));
-  inner_glow_source->addItem(QObject::tr("Center"), static_cast<int>(LayerInnerGlowSource::Center));
-  inner_glow_source->setCurrentIndex(std::max(0, inner_glow_source->findData(static_cast<int>(inner_glow.source))));
-  inner_glow_form->addRow(QObject::tr("Source"), inner_glow_source);
-  const auto inner_glow_rows = make_color_rows(inner_glow_form, inner_glow_group,
-                                               QStringLiteral("layerStyleInnerGlow"), inner_glow.color);
-  auto* inner_glow_red = inner_glow_rows.red;
-  auto* inner_glow_green = inner_glow_rows.green;
-  auto* inner_glow_blue = inner_glow_rows.blue;
-  auto* inner_glow_instance_row = new QWidget(inner_glow_group);
-  auto* inner_glow_instance_layout = new QHBoxLayout(inner_glow_instance_row);
-  inner_glow_instance_layout->setContentsMargins(0, 0, 0, 0);
-  auto* add_inner_glow = new QPushButton(QStringLiteral("+"), inner_glow_instance_row);
-  add_inner_glow->setObjectName(QStringLiteral("layerStyleAddInnerGlowButton"));
-  add_inner_glow->setToolTip(QObject::tr("Add Inner Glow"));
-  configure_compact_symbol_button(add_inner_glow);
-  auto* remove_inner_glow = new QPushButton(QStringLiteral("-"), inner_glow_instance_row);
-  remove_inner_glow->setObjectName(QStringLiteral("layerStyleRemoveInnerGlowButton"));
-  remove_inner_glow->setToolTip(QObject::tr("Remove Inner Glow"));
-  configure_compact_symbol_button(remove_inner_glow);
-  inner_glow_instance_layout->addWidget(add_inner_glow);
-  inner_glow_instance_layout->addWidget(remove_inner_glow);
-  inner_glow_instance_layout->addStretch(1);
-  inner_glow_form->addRow(QObject::tr("Instances"), inner_glow_instance_row);
-  inner_glow_layout->addWidget(inner_glow_group);
-  inner_glow_layout->addStretch(1);
+  auto inner_glow_page = build_inner_glow_page(page_context, inner_glow_layout, inner_glow);
+  auto& inner_glow_blend = inner_glow_page.inner_glow_blend;
+  auto& inner_glow_technique = inner_glow_page.inner_glow_technique;
+  auto& inner_glow_opacity = inner_glow_page.inner_glow_opacity;
+  auto& inner_glow_size = inner_glow_page.inner_glow_size;
+  auto& inner_glow_choke = inner_glow_page.inner_glow_choke;
+  auto& inner_glow_range = inner_glow_page.inner_glow_range;
+  auto& inner_glow_source = inner_glow_page.inner_glow_source;
+  auto& inner_glow_rows = inner_glow_page.inner_glow_rows;
+  auto& inner_glow_red = inner_glow_page.inner_glow_red;
+  auto& inner_glow_green = inner_glow_page.inner_glow_green;
+  auto& inner_glow_blue = inner_glow_page.inner_glow_blue;
+  auto& add_inner_glow = inner_glow_page.add_inner_glow;
+  auto& remove_inner_glow = inner_glow_page.remove_inner_glow;
 
-  auto* satin_group = new QGroupBox(QObject::tr("Satin"), controls);
-  auto* satin_form = new QFormLayout(satin_group);
-  auto* satin_blend = new QComboBox(satin_group);
-  satin_blend->setObjectName(QStringLiteral("layerStyleSatinBlendModeCombo"));
-  add_blend_mode_items(satin_blend);
-  satin_blend->setCurrentIndex(std::max(0, satin_blend->findData(static_cast<int>(satin.blend_mode))));
-  satin_form->addRow(QObject::tr("Blend Mode"), satin_blend);
-  auto* satin_opacity =
-      add_slider_spin_row(satin_form, satin_group, QObject::tr("Opacity"),
-                          QStringLiteral("layerStyleSatinOpacitySpin"), 0, 100,
-                          static_cast<int>(std::round(satin.opacity * 100.0F)), QStringLiteral("%"));
-  auto* satin_angle =
-      add_slider_spin_row(satin_form, satin_group, QObject::tr("Angle"),
-                          QStringLiteral("layerStyleSatinAngleSpin"), -180, 180,
-                          static_cast<int>(std::round(satin.angle_degrees)));
-  auto* satin_distance =
-      add_size_slider_spin_row(satin_form, satin_group, QObject::tr("Distance"),
-                               QStringLiteral("layerStyleSatinDistanceSpin"), 0, 1000,
-                               static_cast<int>(std::round(satin.distance)));
-  auto* satin_size = add_size_slider_spin_row(satin_form, satin_group, QObject::tr("Size"),
-                                              QStringLiteral("layerStyleSatinSizeSpin"), 0, 1000,
-                                              static_cast<int>(std::round(satin.size)));
-  auto* satin_invert = new QCheckBox(QObject::tr("Invert"), satin_group);
-  satin_invert->setObjectName(QStringLiteral("layerStyleSatinInvertCheck"));
-  satin_invert->setChecked(satin.invert);
-  satin_form->addRow(QString(), satin_invert);
-  const auto satin_rows =
-      make_color_rows(satin_form, satin_group, QStringLiteral("layerStyleSatin"), satin.color);
-  auto* satin_red = satin_rows.red;
-  auto* satin_green = satin_rows.green;
-  auto* satin_blue = satin_rows.blue;
-  satin_layout->addWidget(satin_group);
-  satin_layout->addStretch(1);
+  auto satin_page = build_satin_page(page_context, satin_layout, satin);
+  auto& satin_blend = satin_page.satin_blend;
+  auto& satin_opacity = satin_page.satin_opacity;
+  auto& satin_angle = satin_page.satin_angle;
+  auto& satin_distance = satin_page.satin_distance;
+  auto& satin_size = satin_page.satin_size;
+  auto& satin_invert = satin_page.satin_invert;
+  auto& satin_rows = satin_page.satin_rows;
+  auto& satin_red = satin_page.satin_red;
+  auto& satin_green = satin_page.satin_green;
+  auto& satin_blue = satin_page.satin_blue;
 
-  auto* color_overlay_group = new QGroupBox(QObject::tr("Color Overlay"), controls);
-  auto* color_overlay_form = new QFormLayout(color_overlay_group);
-  auto* color_overlay_blend = new QComboBox(color_overlay_group);
-  color_overlay_blend->setObjectName(QStringLiteral("layerStyleColorOverlayBlendModeCombo"));
-  add_blend_mode_items(color_overlay_blend);
-  color_overlay_blend->setCurrentIndex(
-      std::max(0, color_overlay_blend->findData(static_cast<int>(color_overlay.blend_mode))));
-  color_overlay_form->addRow(QObject::tr("Blend Mode"), color_overlay_blend);
-  auto* color_overlay_opacity =
-      add_slider_spin_row(color_overlay_form, color_overlay_group, QObject::tr("Opacity"),
-                          QStringLiteral("layerStyleColorOverlayOpacitySpin"), 0, 100,
-                          static_cast<int>(std::round(color_overlay.opacity * 100.0F)), QStringLiteral("%"));
-  auto* color_overlay_color_row = new QWidget(color_overlay_group);
-  auto* color_overlay_color_layout = new QVBoxLayout(color_overlay_color_row);
-  color_overlay_color_layout->setContentsMargins(0, 0, 0, 0);
-  color_overlay_color_layout->setSpacing(4);
-  auto* color_overlay_red =
-      add_color_slider_row(color_overlay_color_layout, color_overlay_color_row, QObject::tr("R"),
-                           QStringLiteral("layerStyleColorOverlayRedSpin"), color_overlay.color.red);
-  auto* color_overlay_green =
-      add_color_slider_row(color_overlay_color_layout, color_overlay_color_row, QObject::tr("G"),
-                           QStringLiteral("layerStyleColorOverlayGreenSpin"), color_overlay.color.green);
-  auto* color_overlay_blue =
-      add_color_slider_row(color_overlay_color_layout, color_overlay_color_row, QObject::tr("B"),
-                           QStringLiteral("layerStyleColorOverlayBlueSpin"), color_overlay.color.blue);
-  auto* color_overlay_preview_row = new QWidget(color_overlay_color_row);
-  auto* color_overlay_preview_layout = new QHBoxLayout(color_overlay_preview_row);
-  color_overlay_preview_layout->setContentsMargins(26, 0, 0, 0);
-  color_overlay_preview_layout->setSpacing(8);
-  auto* color_overlay_color_preview = new QLabel(color_overlay_group);
-  color_overlay_color_preview->setObjectName(QStringLiteral("layerStyleColorOverlayColorPreview"));
-  color_overlay_color_preview->setFixedSize(34, 24);
-  color_overlay_color_preview->setToolTip(QObject::tr("Choose Color..."));
-  auto* color_overlay_pick_color = new QPushButton(QObject::tr("Choose Color..."), color_overlay_group);
-  color_overlay_pick_color->setObjectName(QStringLiteral("layerStyleColorOverlayPickColorButton"));
-  // Double-clicking the patch opens the same picker as the button.
-  new DoubleClickClicksButton(color_overlay_pick_color, color_overlay_color_preview);
-  color_overlay_preview_layout->addWidget(color_overlay_color_preview);
-  color_overlay_preview_layout->addWidget(color_overlay_pick_color);
-  color_overlay_preview_layout->addStretch(1);
-  color_overlay_color_layout->addWidget(color_overlay_preview_row);
-  RgbColorRowWidgets color_overlay_rows;
-  color_overlay_rows.red = color_overlay_red;
-  color_overlay_rows.green = color_overlay_green;
-  color_overlay_rows.blue = color_overlay_blue;
-  color_overlay_rows.preview = color_overlay_color_preview;
-  color_overlay_rows.picker = color_overlay_pick_color;
-  color_overlay_rows.row_container = color_overlay_color_row;
-  color_overlay_rows.update_preview();
-  color_overlay_form->addRow(QObject::tr("Color RGB"), color_overlay_color_row);
-  color_overlay_layout->addWidget(color_overlay_group);
-  color_overlay_layout->addStretch(1);
+  auto color_overlay_page = build_color_overlay_page(page_context, color_overlay_layout, color_overlay);
+  auto& color_overlay_blend = color_overlay_page.color_overlay_blend;
+  auto& color_overlay_opacity = color_overlay_page.color_overlay_opacity;
+  auto& color_overlay_red = color_overlay_page.color_overlay_red;
+  auto& color_overlay_green = color_overlay_page.color_overlay_green;
+  auto& color_overlay_blue = color_overlay_page.color_overlay_blue;
+  auto& color_overlay_rows = color_overlay_page.color_overlay_rows;
 
-  auto* gradient_group = new QGroupBox(QObject::tr("Gradient Overlay"), controls);
-  auto* gradient_form = new QFormLayout(gradient_group);
-  auto* gradient_blend = new QComboBox(gradient_group);
-  gradient_blend->setObjectName(QStringLiteral("layerStyleGradientBlendModeCombo"));
-  add_blend_mode_items(gradient_blend);
-  gradient_blend->setCurrentIndex(std::max(0, gradient_blend->findData(static_cast<int>(gradient.blend_mode))));
-  gradient_form->addRow(QObject::tr("Blend Mode"), gradient_blend);
-  auto* gradient_opacity =
-      add_slider_spin_row(gradient_form, gradient_group, QObject::tr("Opacity"),
-                          QStringLiteral("layerStyleGradientOpacitySpin"), 0, 100,
-                          static_cast<int>(std::round(gradient.opacity * 100.0F)), QStringLiteral("%"));
-  auto gradient_controls =
-      make_gradient_controls(gradient_form, gradient_group, QStringLiteral("layerStyleGradient"),
-                             gradient.gradient, QObject::tr("Choose Gradient Stop Color"));
-  gradient_layout->addWidget(gradient_group);
-  gradient_layout->addStretch(1);
+  auto gradient_page = build_gradient_page(page_context, gradient_layout, gradient);
+  auto& gradient_blend = gradient_page.gradient_blend;
+  auto& gradient_opacity = gradient_page.gradient_opacity;
+  auto& gradient_controls = gradient_page.gradient_controls;
 
-  auto* outer_glow_group = new QGroupBox(QObject::tr("Outer Glow"), controls);
-  auto* outer_glow_form = new QFormLayout(outer_glow_group);
-  auto* outer_glow_blend = new QComboBox(outer_glow_group);
-  outer_glow_blend->setObjectName(QStringLiteral("layerStyleOuterGlowBlendModeCombo"));
-  add_blend_mode_items(outer_glow_blend);
-  outer_glow_blend->setCurrentIndex(std::max(0, outer_glow_blend->findData(static_cast<int>(outer_glow.blend_mode))));
-  outer_glow_form->addRow(QObject::tr("Blend Mode"), outer_glow_blend);
-  auto* outer_glow_technique = new QComboBox(outer_glow_group);
-  outer_glow_technique->setObjectName(QStringLiteral("layerStyleOuterGlowTechniqueCombo"));
-  outer_glow_technique->addItem(QObject::tr("Softer"), static_cast<int>(LayerGlowTechnique::Softer));
-  outer_glow_technique->addItem(QObject::tr("Precise"), static_cast<int>(LayerGlowTechnique::Precise));
-  outer_glow_technique->setCurrentIndex(
-      std::max(0, outer_glow_technique->findData(static_cast<int>(outer_glow.technique))));
-  outer_glow_form->addRow(QObject::tr("Technique"), outer_glow_technique);
-  auto* outer_glow_opacity =
-      add_slider_spin_row(outer_glow_form, outer_glow_group, QObject::tr("Opacity"),
-                          QStringLiteral("layerStyleOuterGlowOpacitySpin"), 0, 100,
-                          static_cast<int>(std::round(outer_glow.opacity * 100.0F)), QStringLiteral("%"));
-  auto* outer_glow_size = add_size_slider_spin_row(outer_glow_form, outer_glow_group, QObject::tr("Size"),
-                                                   QStringLiteral("layerStyleOuterGlowSizeSpin"), 0, 1000,
-                                                   static_cast<int>(std::round(outer_glow.size)));
-  auto* outer_glow_spread = add_slider_spin_row(outer_glow_form, outer_glow_group, QObject::tr("Spread"),
-                                                QStringLiteral("layerStyleOuterGlowSpreadSpin"), 0, 100,
-                                                static_cast<int>(std::round(outer_glow.spread)),
-                                                QStringLiteral("%"));
-  auto* outer_glow_range = add_slider_spin_row(outer_glow_form, outer_glow_group, QObject::tr("Range"),
-                                               QStringLiteral("layerStyleOuterGlowRangeSpin"), 1, 100,
-                                               static_cast<int>(std::round(outer_glow.range)),
-                                               QStringLiteral("%"));
-  const auto outer_glow_rows = make_color_rows(outer_glow_form, outer_glow_group,
-                                               QStringLiteral("layerStyleOuterGlow"), outer_glow.color);
-  auto* outer_glow_red = outer_glow_rows.red;
-  auto* outer_glow_green = outer_glow_rows.green;
-  auto* outer_glow_blue = outer_glow_rows.blue;
-  outer_glow_layout->addWidget(outer_glow_group);
-  outer_glow_layout->addStretch(1);
+  auto outer_glow_page = build_outer_glow_page(page_context, outer_glow_layout, outer_glow);
+  auto& outer_glow_blend = outer_glow_page.outer_glow_blend;
+  auto& outer_glow_technique = outer_glow_page.outer_glow_technique;
+  auto& outer_glow_opacity = outer_glow_page.outer_glow_opacity;
+  auto& outer_glow_size = outer_glow_page.outer_glow_size;
+  auto& outer_glow_spread = outer_glow_page.outer_glow_spread;
+  auto& outer_glow_range = outer_glow_page.outer_glow_range;
+  auto& outer_glow_rows = outer_glow_page.outer_glow_rows;
+  auto& outer_glow_red = outer_glow_page.outer_glow_red;
+  auto& outer_glow_green = outer_glow_page.outer_glow_green;
+  auto& outer_glow_blue = outer_glow_page.outer_glow_blue;
 
-  auto* shadow_group = new QGroupBox(QObject::tr("Drop Shadow"), controls);
-  auto* shadow_form = new QFormLayout(shadow_group);
-  auto* shadow_blend = new QComboBox(shadow_group);
-  shadow_blend->setObjectName(QStringLiteral("layerStyleDropShadowBlendModeCombo"));
-  add_blend_mode_items(shadow_blend);
-  shadow_blend->setCurrentIndex(std::max(0, shadow_blend->findData(static_cast<int>(shadow.blend_mode))));
-  shadow_form->addRow(QObject::tr("Blend Mode"), shadow_blend);
-  auto* shadow_opacity = add_slider_spin_row(shadow_form, shadow_group, QObject::tr("Opacity"),
-                                             QStringLiteral("layerStyleDropShadowOpacitySpin"), 0, 100,
-                                             static_cast<int>(std::round(shadow.opacity * 100.0F)),
-                                             QStringLiteral("%"));
-  auto* shadow_angle = add_slider_spin_row(shadow_form, shadow_group, QObject::tr("Angle"),
-                                           QStringLiteral("layerStyleDropShadowAngleSpin"), -180, 180,
-                                           static_cast<int>(std::round(shadow.angle_degrees)));
-  // Photoshop's 0..30000 px typed range (it round-trips through DrSh); the
-  // slider keeps the 0..2000 reach of Photopea's long-shadow range.
-  auto* shadow_distance = add_size_slider_spin_row(shadow_form, shadow_group, QObject::tr("Distance"),
-                                                   QStringLiteral("layerStyleDropShadowDistanceSpin"), 0,
-                                                   kShadowDistanceMaximum,
-                                                   static_cast<int>(std::round(shadow.distance)), 2000);
-  auto* shadow_size = add_size_slider_spin_row(shadow_form, shadow_group, QObject::tr("Size"),
-                                               QStringLiteral("layerStyleDropShadowSizeSpin"), 0, 1000,
-                                               static_cast<int>(std::round(shadow.size)));
-  auto* shadow_spread = add_slider_spin_row(shadow_form, shadow_group, QObject::tr("Spread"),
-                                            QStringLiteral("layerStyleDropShadowSpreadSpin"), 0, 100,
-                                            static_cast<int>(std::round(shadow.spread)), QStringLiteral("%"));
-  auto* shadow_continuous_row = new QWidget(shadow_group);
-  auto* shadow_continuous_layout = new QHBoxLayout(shadow_continuous_row);
-  shadow_continuous_layout->setContentsMargins(0, 0, 0, 0);
-  shadow_continuous_layout->setSpacing(8);
-  auto* shadow_continuous = new QCheckBox(QObject::tr("Continuous (long shadow)"), shadow_continuous_row);
-  shadow_continuous->setObjectName(QStringLiteral("layerStyleDropShadowContinuousCheck"));
-  shadow_continuous->setChecked(shadow.continuous);
-  shadow_continuous->setToolTip(
-      QObject::tr("Extend the shadow from the layer all the way out to Distance, the flat long-shadow look") +
-      QStringLiteral("\n\n") + continuous_shadow_explanation);
-  shadow_continuous_layout->addWidget(shadow_continuous);
-  shadow_continuous_layout->addWidget(make_patchy_only_badge(shadow_continuous_row, continuous_shadow_explanation));
-  shadow_continuous_layout->addStretch(1);
-  shadow_form->addRow(QString(), shadow_continuous_row);
-  auto* shadow_fade = add_slider_spin_row(shadow_form, shadow_group, QObject::tr("Fade"),
-                                          QStringLiteral("layerStyleDropShadowFadeSpin"), 0, 100,
-                                          static_cast<int>(std::round(shadow.fade)), QStringLiteral("%"));
-  shadow_fade->setToolTip(QObject::tr("How much the long shadow fades out by its far end"));
-  // The slider, field, and step buttons share one row widget; Fade only means
-  // something while the sweep is on, and the banner follows the same state.
-  auto* shadow_fade_row = shadow_fade->parentWidget();
-  const auto sync_continuous_controls = [shadow_continuous, shadow_fade_row, patchy_only_banner] {
-    const bool on = shadow_continuous->isChecked();
-    if (shadow_fade_row != nullptr) {
-      shadow_fade_row->setEnabled(on);
-    }
-    patchy_only_banner->setVisible(on);
-  };
-  sync_continuous_controls();
-  auto* shadow_conceals = new QCheckBox(QObject::tr("Layer Knocks Out Drop Shadow"), shadow_group);
-  shadow_conceals->setObjectName(QStringLiteral("layerStyleDropShadowConcealsCheck"));
-  shadow_conceals->setChecked(shadow.layer_conceals);
-  shadow_conceals->setToolTip(QObject::tr(
-      "Hide the shadow under the layer's own shape so it never shows through knocked-out or "
-      "semi-transparent content, like Photoshop"));
-  shadow_form->addRow(QString(), shadow_conceals);
-  const auto shadow_rows =
-      make_color_rows(shadow_form, shadow_group, QStringLiteral("layerStyleDropShadow"), shadow.color);
-  auto* shadow_red = shadow_rows.red;
-  auto* shadow_green = shadow_rows.green;
-  auto* shadow_blue = shadow_rows.blue;
-  shadow_layout->addWidget(shadow_group);
-  shadow_layout->addStretch(1);
+  auto shadow_page = build_shadow_page(page_context, shadow_layout, shadow);
+  auto& shadow_blend = shadow_page.shadow_blend;
+  auto& shadow_opacity = shadow_page.shadow_opacity;
+  auto& shadow_angle = shadow_page.shadow_angle;
+  auto& shadow_distance = shadow_page.shadow_distance;
+  auto& shadow_size = shadow_page.shadow_size;
+  auto& shadow_spread = shadow_page.shadow_spread;
+  auto& shadow_continuous = shadow_page.shadow_continuous;
+  auto& shadow_fade = shadow_page.shadow_fade;
+  auto& sync_continuous_controls = shadow_page.sync_continuous_controls;
+  auto& shadow_conceals = shadow_page.shadow_conceals;
+  auto& shadow_rows = shadow_page.shadow_rows;
+  auto& shadow_red = shadow_page.shadow_red;
+  auto& shadow_green = shadow_page.shadow_green;
+  auto& shadow_blue = shadow_page.shadow_blue;
 
   auto item_page = [](const QListWidgetItem* item) {
     return item == nullptr ? LayerStyleCategoryPage::Blending

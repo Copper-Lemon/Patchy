@@ -13,7 +13,7 @@
 // families must not be baked into imported metadata; aliases apply at render
 // and edit time instead, see docs/fonts.md).
 //
-// Defined in main_window.cpp beside the rest of the font resolution.
+// Defined in text_font_service.cpp beside the rest of the font resolution.
 
 namespace patchy::ui {
 

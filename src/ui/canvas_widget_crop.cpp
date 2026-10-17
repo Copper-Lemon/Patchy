@@ -8,22 +8,33 @@
 // the new document).
 
 #include "ui/canvas_widget.hpp"
+
+#include "ui/canvas_types.hpp"
 #include "ui/canvas_widget_shared.hpp"
 #include "ui/tool_cursors.hpp"
 
 #include <QApplication>
+#include <QColor>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPen>
+#include <QPoint>
+#include <QPointF>
 #include <QPolygonF>
+#include <QRect>
+#include <QRectF>
+#include <QSize>
 #include <QTransform>
+#include <Qt>
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <functional>
 #include <numbers>
 #include <optional>
+#include <utility>
 
 namespace patchy::ui {
 

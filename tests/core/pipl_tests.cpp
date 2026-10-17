@@ -1,16 +1,33 @@
+#include "synthetic_dng.hpp"
+#include <algorithm>
+#include <array>
+#include <bit>
+#include <cctype>
+#include <chrono>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <functional>
+#include <iomanip>
+#include <limits>
+#include <numeric>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string_view>
+#include <tuple>
+#include <unordered_set>
+#include <utility>
 // Legacy Photoshop plug-in support (docs/plugins.md): the PiPL property-list
 // reader (a pure file read, no plug-in is loaded), the probe's names and
 // bitness, and, on Windows, the out-of-process host executables driven through
 // their --self-test mode over the committed Filter Foundry fixtures.
-
 #include "plugins/legacy_photoshop_adapter.hpp"
 #include "plugins/pipl.hpp"
-
 #include "core_test_support.hpp"
 #include "local_psd_fixtures.hpp"
 #include "test_groups.hpp"
 #include "test_harness.hpp"
-
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -20,7 +37,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-
 #ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX

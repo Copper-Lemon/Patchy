@@ -50,8 +50,6 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
-#include <dwrite.h>
-#include <wrl/client.h>
 #endif
 
 namespace patchy::psd {

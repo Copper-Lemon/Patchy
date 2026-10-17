@@ -12,7 +12,6 @@
 #include "psd/psd_document_io.hpp"
 #include "render/compositor.hpp"
 #include "test_harness.hpp"
-
 #include <algorithm>
 #include <array>
 #include <cmath>

@@ -1,5 +1,5 @@
+#include <QImage>
 #include "brush_pattern_palette_test_support.hpp"
-
 #include <cstring>
 
 namespace patchy::test::ui {

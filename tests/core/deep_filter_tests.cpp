@@ -7,7 +7,6 @@
 #include "filters/filter_engine.hpp"
 #include "filters/filter_registry.hpp"
 #include "test_harness.hpp"
-
 #include <algorithm>
 #include <array>
 #include <cmath>

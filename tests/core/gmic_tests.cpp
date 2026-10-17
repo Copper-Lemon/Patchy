@@ -1,18 +1,35 @@
+#include "synthetic_dng.hpp"
+#include <algorithm>
+#include <array>
+#include <bit>
+#include <cctype>
+#include <cstring>
+#include <exception>
+#include <cstdint>
+#include <functional>
+#include <iomanip>
+#include <iterator>
+#include <limits>
+#include <numeric>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string_view>
+#include <tuple>
+#include <unordered_set>
+#include <utility>
 // G'MIC filter engine (docs/gmic.md): the '#@gui' catalog parser over the
 // vendored standard library and over hand-written declarations, the allowlist,
 // and the engine wrapper, including what the Patchy build leaves out (external
 // programs, the patch-based algorithms). The catalog and allowlist tests run in
 // every build; the engine tests only where the engine is built (PATCHY_ENABLE_GMIC).
-
 #include "core/environment.hpp"
 #include "core_test_support.hpp"
 #include "local_psd_fixtures.hpp"
 #include "test_groups.hpp"
 #include "test_harness.hpp"
-
 #include "filters/gmic/gmic_catalog.hpp"
 #include "filters/gmic/gmic_engine.hpp"
-
 #include <atomic>
 #include <chrono>
 #include <cmath>

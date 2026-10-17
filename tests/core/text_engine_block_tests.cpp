@@ -1,3 +1,32 @@
+#include "formats/acv_curves_io.hpp"
+#include "formats/bmp_document_io.hpp"
+#include "formats/aseprite_document_io.hpp"
+#include "formats/ico_document_io.hpp"
+#include "formats/ilbm_document_io.hpp"
+#include "formats/pcx_document_io.hpp"
+#include "formats/tga_document_io.hpp"
+#include "test_harness.hpp"
+#include "local_psd_fixtures.hpp"
+#include "synthetic_dng.hpp"
+#include <array>
+#include <bit>
+#include <cctype>
+#include <chrono>
+#include <cmath>
+#include <exception>
+#include <cstdint>
+#include <functional>
+#include <iomanip>
+#include <iterator>
+#include <limits>
+#include <numeric>
+#include <optional>
+#include <span>
+#include <sstream>
+#include <stdexcept>
+#include <tuple>
+#include <unordered_set>
+#include <utility>
 // Photoshop's document-level text engine block ('Txt2'): the EngineData syntax module and the
 // block writer (docs/txt2.md). Photoshop acceptance of the authored blocks was verified over COM
 // (scripts/dev/txt2/ps-probe.ps1); these tests pin the byte-exact round trip of Photoshop's own
@@ -8,10 +37,8 @@
 #include "psd/engine_data.hpp"
 #include "psd/psd_document_io.hpp"
 #include "psd/psd_text_engine_block.hpp"
-
 #include "core_test_support.hpp"
 #include "psd_test_support.hpp"
-
 #include <algorithm>
 #include <cstring>
 #include <filesystem>

@@ -1,18 +1,43 @@
+#include <QStatusBar>
+#include "ui/canvas_widget.hpp"
+#include "ui/main_window.hpp"
+#include "ui/app_settings.hpp"
+#include "test_harness.hpp"
+#include <QApplication>
+#include <QComboBox>
+#include <QLabel>
+#include <QPushButton>
+#include <QSpinBox>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+#include "ui_test_access.hpp"
 // Crop tool: the canvas frame on activation, drag-out geometry, handle
 // adjustment, ratio re-fits, Enter/Esc commit-reset, canvas expansion on
 // commit, and the options-bar ratio/apply/reset row.
-
 #include "ui_test_support.hpp"
-
 #include "ui_test_groups.hpp"
-
 #include <QCheckBox>
-#include <QDialog>
 #include <QDoubleSpinBox>
 #include <QLineEdit>
-#include <QStatusBar>
 #include <QTimer>
-
 #include <cstdlib>
 
 namespace {

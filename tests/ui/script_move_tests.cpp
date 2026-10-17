@@ -1,20 +1,31 @@
+#include <algorithm>
+#include <atomic>
+#include <cstdint>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include "ui_test_access.hpp"
 // Script layer moves (layer.moveTo and the x / y setters) carry the placement
 // data the Move tool carries: the shape model, smart-object quads, the text
 // transform, and a linked mask (docs/scripting.md). Before September 30, 2026
 // they shifted the pixels alone, so a shape or smart object snapped back at its
 // next re-render and Photoshop re-laid text out at the creation anchor.
-
 #include "core/document.hpp"
 #include "core/layer.hpp"
 #include "core/layer_metadata.hpp"
-#include "core/smart_object.hpp"
 #include "ui/main_window.hpp"
 #include "ui/script_engine.hpp"
-
 #include "test_harness.hpp"
 #include "ui/ui_test_access.hpp"
 #include "ui_test_support.hpp"
-
 #include <QApplication>
 #include <QColor>
 #include <QDir>
@@ -25,9 +36,7 @@
 #include <QImage>
 #include <QJsonArray>
 #include <QJsonDocument>
-#include <QJsonObject>
 #include <QJsonValue>
-
 #include <array>
 #include <cmath>
 #include <cstdio>

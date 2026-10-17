@@ -1,10 +1,20 @@
-#include "core/vector_compound.hpp"
+#include "core/layer.hpp"
+#include "core/image_trace.hpp"
 // Vector shape tool flows: a released Shape/Path-mode drag from the canvas
 // becomes a new shape layer, an addition to the active shape layer, or work
 // path subpaths. The options-bar swatches and per-mode widget visibility for
 // the Line/Rectangle/Ellipse tools live here too (built in
 // main_window_actions.cpp, refined by refresh_vector_tool_options_visibility).
+#include "ui/canvas_types.hpp"
+#include "ui/appearance_edits.hpp"
 #include "ui/main_window.hpp"
+#include <QComboBox>
+#include <QPushButton>
+#include <QStatusBar>
+#include "ui/canvas_widget.hpp"
+#include "ui/preset_library.hpp"
+#include "ui/unit_spin_box.hpp"
+#include "ui/theme_qss.hpp"
 #include "ui/vector_operations.hpp"
 
 #include "core/path_simplify.hpp"
@@ -12,7 +22,6 @@
 #include "core/blend_math.hpp"
 #include "core/document_path.hpp"
 #include "core/layer_render_utils.hpp"
-#include "core/layer_tree.hpp"
 #include "core/pattern_resource.hpp"
 #include "core/pixel_tools.hpp"
 #include "core/vector_live_shapes.hpp"
@@ -38,46 +47,74 @@
 #include "ui/shape_create_dialog.hpp"
 #include "ui/theme_palette.hpp"
 #include "ui/localization.hpp"
-#include "ui/measurement_units.hpp"
 
+#include <QAction>
 #include <QBrush>
 #include <QCheckBox>
-#include <QComboBox>
+#include <QColor>
+#include <QConicalGradient>
 #include <QCoreApplication>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
-#include <QPushButton>
 #include <QElapsedTimer>
 #include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
 #include <QFormLayout>
+#include <QGradient>
+#include <QGradientStop>
+#include <QGradientStops>
+#include <QIODevice>
 #include <QIcon>
-#include <QLineEdit>
 #include <QLabel>
+#include <QLatin1String>
+#include <QLineEdit>
+#include <QLinearGradient>
 #include <QMenu>
+#include <QMetaObject>
 #include <QPainter>
+#include <QPen>
 #include <QPixmap>
+#include <QPoint>
+#include <QPointF>
 #include <QPointer>
-#include <QSignalBlocker>
+#include <QRadialGradient>
+#include <QRect>
+#include <QRectF>
 #include <QScopeGuard>
-#include <atomic>
+#include <QSignalBlocker>
+#include <QSize>
+#include <QSizeF>
 #include <QSpinBox>
 #include <QStandardItemModel>
-#include <QStatusBar>
+#include <QString>
+#include <QStringLiteral>
 #include <QTimer>
 #include <QToolButton>
 #include <QTransform>
 #include <QVBoxLayout>
+#include <QWidget>
+#include <Qt>
+#include <QtGlobal>
+#include <array>
+#include <atomic>
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
+#include <functional>
+#include <cstdint>
+#include <cstddef>
+#include <exception>
 #include <memory>
 #include <optional>
+#include <qlatin1stringview.h>
 #include <set>
+#include <span>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace patchy::ui {
 

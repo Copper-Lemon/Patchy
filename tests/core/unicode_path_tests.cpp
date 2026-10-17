@@ -1,3 +1,26 @@
+#include "core/adjustment_layer.hpp"
+#include "synthetic_dng.hpp"
+#include <algorithm>
+#include <bit>
+#include <cctype>
+#include <chrono>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <functional>
+#include <iomanip>
+#include <iostream>
+#include <iterator>
+#include <limits>
+#include <numeric>
+#include <optional>
+#include <span>
+#include <sstream>
+#include <stdexcept>
+#include <string_view>
+#include <tuple>
+#include <unordered_set>
+#include <utility>
 // Unicode and special-character file paths through every Qt-free reader and writer
 // that takes a std::filesystem::path. These pin the file-name half of the August
 // 2026 Save As bug (a UTF-8 std::string handed to a path parameter was decoded with
@@ -5,7 +28,6 @@
 // mojibake). Names come from tests/unicode_path_names.hpp; every check lists the
 // directory afterwards so a mojibake sibling fails the test even when the reader
 // happens to find its own mangled name again.
-
 #include "core/document.hpp"
 #include "formats/acv_curves_io.hpp"
 #include "formats/af_document_io.hpp"
@@ -20,13 +42,11 @@
 #include "formats/tga_document_io.hpp"
 #include "plugins/legacy_photoshop_adapter.hpp"
 #include "psd/psd_document_io.hpp"
-
 #include "core_test_support.hpp"
 #include "local_psd_fixtures.hpp"
 #include "test_groups.hpp"
 #include "test_harness.hpp"
 #include "unicode_path_names.hpp"
-
 #include <array>
 #include <cstdint>
 #include <filesystem>

@@ -6,7 +6,6 @@
 
 #include "test_harness.hpp"
 #include "test_groups.hpp"
-
 #include <algorithm>
 #include <cstdio>
 #include <filesystem>

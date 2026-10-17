@@ -13,12 +13,16 @@
 // filter made for several layers gets them lined up on the document. Outputs beyond
 // the ones that replace layers become new layers.
 
+#include "core/layer.hpp"
+#include "core/pixel_buffer.hpp"
+#include "ui/filter_selection.hpp"
+#include "core/smart_object.hpp"
 #include "ui/main_window.hpp"
+#include <QStatusBar>
 #include "ui/main_window_shared.hpp"
 
 #include "core/environment.hpp"
 #include "core/layer_metadata.hpp"
-#include "core/layer_tree.hpp"
 #include "core/pixel_depth.hpp"
 #include "core/vector_shape.hpp"
 #include "filters/gmic/gmic_catalog.hpp"
@@ -34,31 +38,42 @@
 
 #include <QApplication>
 #include <QCoreApplication>
+#include <QDialog>
+#include <QEventLoop>
 #include <QMetaObject>
-#include <QPointer>
 #include <QPointF>
+#include <QPointer>
 #include <QProgressDialog>
+#include <QRect>
 #include <QRectF>
 #include <QRegion>
 #include <QScopeGuard>
-#include <QStatusBar>
+#include <QString>
 #include <QStringList>
+#include <QStringLiteral>
 #include <QTimer>
+#include <QWidget>
+#include <Qt>
+#include <QtGlobal>
 
 #include <algorithm>
 #include <cctype>
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <exception>
+#include <functional>
 #include <future>
 #include <limits>
 #include <map>
 #include <memory>
 #include <optional>
+#include <ratio>
 #include <set>
+#include <string>
 #include <thread>
 #include <utility>
 #include <vector>

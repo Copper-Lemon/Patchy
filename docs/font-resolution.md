@@ -116,7 +116,7 @@ The text engine's font lookup and the PSD reader's naming rules. The session mac
   whatever weight it declares (Bookman Old Style ships its whole family at weight 500, so
   "BookmanOldStyle-Italic" must resolve to the plain family plus the italic flag).
   "Plain" and "Roman" (older fonts' upright regular face) are flag-expressible too; the reader's
-  `face_name_is_flag_expressible` and main_window.cpp's `text_style_is_flag_expressible` must
+  `face_name_is_flag_expressible` and text_font_service.cpp's `text_style_is_flag_expressible` must
   change together. Three further rules make the kept faces work:
   - The kept name is `family + " " + faceName`, what Qt calls such a face when it splits it into
     its own family ("ITC Lubalin Graph Demi"). The DirectWrite FULL_NAME can be a PostScript-style
@@ -138,6 +138,8 @@ The text engine's font lookup and the PSD reader's naming rules. The session mac
     `family + face` path and WIN32 normalization as every other face (Black/Heavy subfamily
     words set the flag); returning DirectWrite's FULL_NAME early stored "Futura Extra Black BT",
     a family no database lists, so an unchanged edit re-rendered in a substitute.
+
+Font lookup, style matching, fallback coverage and system-font registration live in `ui/text_font_service.{hpp,cpp}`. Its API has no MainWindow dependency; the PSD resolver, font picker and text document builder share it.
 
 ## Photoshop 5.x `tySh` faces
 

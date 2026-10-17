@@ -4,13 +4,19 @@
 // through the out-of-process host on the active layer, limited to the selection
 // and undoable. See docs/plugins.md.
 
+#include "plugins/plugin_host.hpp"
+#include "plugins/plugin_api.h"
+#include "ui/hotkey_registry.hpp"
+#include "core/layer.hpp"
+#include "core/vector_shape.hpp"
+#include "core/pixel_buffer.hpp"
+#include "plugins/pipl.hpp"
 #include "ui/main_window.hpp"
+#include <QStatusBar>
 #include "ui/main_window_shared.hpp"
 #include "ui/qt_paths.hpp"
 
-#include "core/layer_metadata.hpp"
 #include "core/pixel_depth.hpp"
-#include "core/layer_tree.hpp"
 #include "plugins/legacy_photoshop_adapter.hpp"
 #include "ui/action_icons.hpp"
 #include "ui/app_settings.hpp"
@@ -19,44 +25,57 @@
 #include "ui/dialog_utils.hpp"
 #include "ui/legacy_plugin_folder.hpp"
 #include "ui/localization.hpp"
-#include "ui/qt_geometry.hpp"
+#include <string>
+#include <QAction>
+#include <QApplication>
+#include <QChar>
+#include <QColor>
+#include <QCoreApplication>
+#include <QDesktopServices>
+#include <QDir>
+#include <QDirIterator>
+#include <QElapsedTimer>
+#include <QFileInfo>
+#include <QGuiApplication>
+#include <QKeySequence>
+#include <QLatin1Char>
+#include <QLatin1String>
+#include <QMenu>
+#include <QMessageBox>
+#include <QMetaObject>
+#include <QPointer>
+#include <QRect>
+#include <QRegion>
+#include <QStandardPaths>
+#include <QString>
+#include <QStringList>
+#include <QStringLiteral>
+#include <QTimer>
+#include <QUrl>
+#include <QWidget>
+#include <Qt>
+#include <QtGlobal>
+#include <exception>
+#include <string_view>
+#include <functional>
+#include <cstdint>
+#include <qlatin1stringview.h>
 #ifdef Q_OS_WIN
 #include "ui/legacy_plugin_run_dialog.hpp"
 #include "ui/legacy_plugin_runner.hpp"
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+#include <windows.h>
+
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
-#include <windows.h>
 #endif
 
-#include <QAction>
-#include <QApplication>
-#include <QCoreApplication>
-#include <QDir>
-#include <QDesktopServices>
-#include <QDirIterator>
-#include <QElapsedTimer>
-#include <QFileInfo>
-#include <QGuiApplication>
-#include <QKeySequence>
-#include <QMenu>
-#include <QMessageBox>
-#include <QMetaObject>
-#include <QPointer>
-#include <QRegion>
-#include <QScopeGuard>
-#include <QScreen>
-#include <QStandardPaths>
-#include <QStatusBar>
-#include <QTimer>
-#include <QUrl>
 
 #include <algorithm>
 #include <cstring>
-#include <limits>
 #include <map>
 #include <memory>
 #include <set>

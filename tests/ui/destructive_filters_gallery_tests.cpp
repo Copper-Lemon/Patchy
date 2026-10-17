@@ -14,7 +14,6 @@
 
 #include "test_harness.hpp"
 #include "ui_test_groups.hpp"
-
 #include <vector>
 
 std::vector<patchy::test::TestCase> destructive_filters_gallery_tests_part1();

@@ -1,14 +1,32 @@
+#include "formats/bmp_document_io.hpp"
+#include "formats/ico_document_io.hpp"
+#include "psd/psd_document_io.hpp"
+#include <bit>
+#include <cctype>
+#include <chrono>
+#include <cstring>
+#include <exception>
+#include <fstream>
+#include <functional>
+#include <iomanip>
+#include <iterator>
+#include <limits>
+#include <numeric>
+#include <optional>
+#include <span>
+#include <sstream>
+#include <stdexcept>
+#include <string_view>
+#include <tuple>
+#include <unordered_set>
 #include "core/document.hpp"
-#include "core/layer_tree.hpp"
 #include "formats/format_registry.hpp"
 #include "formats/jxr_document_io.hpp"
 #include "support/srgb_transfer.hpp"
-
 #include "core_test_support.hpp"
 #include "local_psd_fixtures.hpp"
 #include "test_harness.hpp"
 #include "unicode_path_names.hpp"
-
 #include <algorithm>
 #include <array>
 #include <cmath>

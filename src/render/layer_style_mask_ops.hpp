@@ -6,6 +6,7 @@
 #include "core/pattern_resource.hpp"
 #include "core/pattern_sampler.hpp"
 #include "core/style_contour.hpp"
+#include "render/layer_render_types.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -19,8 +20,27 @@
 // by the compositor canaries; keep bodies verbatim when reorganizing.
 namespace patchy::render_detail {
 
-struct StyleMaskEntry;
-class StyleMaskProvider;
+inline float layer_mask_alpha_for_render(const Layer& layer, std::int32_t x, std::int32_t y,
+                                         std::optional<Rect> mask_bounds) {
+  return mask_bounds.has_value() ? layer_mask_alpha_at(layer, x, y, *mask_bounds) : layer_mask_alpha_at(layer, x, y);
+}
+
+// The extra planes stroke_alpha_mask produces beside its over-draw mask when asked.
+struct StrokeMaskPlanes {
+  std::vector<float>* shape_burst_positions{nullptr};
+  std::vector<float>* underlay{nullptr};
+  std::vector<float>* inside{nullptr};
+  std::vector<float>* knockout{nullptr};
+  bool overprint{false};
+  bool partial_content{false};
+};
+
+std::vector<float> stroke_alpha_mask(const PixelBuffer& source, const Layer& layer, Rect bounds,
+                                            Rect mask_bounds, float size, LayerStrokePosition position,
+                                            std::optional<Rect> layer_mask_bounds, bool mask_shapes_source,
+                                            std::vector<float>* shape_burst_positions = nullptr,
+                                            StrokeMaskPlanes* planes = nullptr);
+
 
 void max_filter_row(const std::vector<float>& input, std::vector<float>& output,
                     std::vector<int>& candidates, int width, int source_y, int radius);

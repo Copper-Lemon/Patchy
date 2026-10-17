@@ -1,11 +1,24 @@
 #include "ui/canvas_widget.hpp"
+
 #include "ui/background_workers.hpp"
+#include "ui/vector_preview_renderer.hpp"
 
 #include <QApplication>
+#include <QMetaObject>
 #include <QPainter>
 #include <QPointer>
+#include <QRectF>
+#include <QSize>
+#include <QSizeF>
+#include <QString>
+#include <Qt>
 
+#include <atomic>
 #include <cmath>
+#include <cstdint>
+#include <functional>
+#include <memory>
+#include <new>
 #include <utility>
 
 namespace patchy::ui {

@@ -1,23 +1,39 @@
+#include "core/adjustment_layer.hpp"
+#include "formats/bmp_document_io.hpp"
+#include "formats/ico_document_io.hpp"
+#include "psd/psd_document_io.hpp"
+#include "synthetic_dng.hpp"
+#include <array>
+#include <bit>
+#include <cctype>
+#include <chrono>
+#include <exception>
+#include <functional>
+#include <iomanip>
+#include <limits>
+#include <numeric>
+#include <span>
+#include <sstream>
+#include <string_view>
+#include <tuple>
+#include <unordered_set>
+#include <utility>
 #include "core/document.hpp"
 #include "core/pixel_depth.hpp"
 #include "formats/format_registry.hpp"
 #include "formats/jxl_document_io.hpp"
 #include "formats/metadata/metadata_containers.hpp"
-
 // Tests build a few source files straight through libjxl (gray, premultiplied, oriented and
 // PQ sources the writer never produces); the private symbol names come first, as in the
 // codec module.
 #include "formats/jxl_symbols.hpp"
-
 #include "core_test_support.hpp"
 #include "formats/stb/stb_image.h"
 #include "local_psd_fixtures.hpp"
 #include "test_harness.hpp"
 #include "unicode_path_names.hpp"
-
 #include <jxl/cms.h>
 #include <jxl/encode.h>
-
 #include <algorithm>
 #include <cmath>
 #include <cstdint>

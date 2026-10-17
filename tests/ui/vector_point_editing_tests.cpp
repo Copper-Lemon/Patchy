@@ -1,14 +1,37 @@
+#include <QStatusBar>
+#include "ui/canvas_widget.hpp"
+#include "ui/main_window.hpp"
+#include "test_harness.hpp"
+#include <QApplication>
+#include <QWidget>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+#include "ui_test_access.hpp"
 // Point-editing discoverability and targeting: tool activation and hover
 // hints, the status-bar point-count chip, the Pen's Auto Add/Delete
 // option, Delete with a Ctrl-selected anchor under the Pen, the right-click
 // path menu, the dedicated anchor tools in the Pen flyout, and the Paths
 // panel retargeting when a layer with its own path becomes active.
 #include "ui_test_support.hpp"
-
 #include "core/vector_shape.hpp"
 #include "ui/app_settings.hpp"
 #include "ui/modifier_names.hpp"
-
 #include <QAction>
 #include <QCheckBox>
 #include <QComboBox>
@@ -20,10 +43,8 @@
 #include <QListWidget>
 #include <QMenu>
 #include <QSpinBox>
-#include <QStatusBar>
 #include <QTimer>
 #include <QToolButton>
-
 #include <cmath>
 #include <iostream>
 #include <cstddef>

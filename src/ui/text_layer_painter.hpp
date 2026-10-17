@@ -25,7 +25,7 @@ namespace patchy::ui {
 // face, a note naming the missing font; it is cleared otherwise. The painter's state is left
 // as it was.
 //
-// Implemented in main_window.cpp next to the text render pipeline it shares.
+// MainWindow adapts layer metadata to the shared text_render.hpp pipeline.
 [[nodiscard]] bool draw_text_layer_to_painter(const Layer& layer, QPainter& painter, bool missing_fonts_as_images,
                                               std::string* note);
 

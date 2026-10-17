@@ -4,31 +4,36 @@
 // printing, the update notice, and the recent files/folders menus. Pure
 // function moves from main_window.cpp; behavior must stay identical.
 
+#include <QClipboard>
+#include "core/layer.hpp"
+#include "color/color_management.hpp"
+#include "core/document_file_info.hpp"
+#include "core/pixel_buffer.hpp"
+#include "formats/format_registry.hpp"
+#include "filters/filter_registry.hpp"
+#include "ui/document_order_list.hpp"
 #include "ui/main_window.hpp"
+#include "core/pixel_tools.hpp"
+#include "ui/brush_tip_library.hpp"
+#include "ui/gradient_stops_editor.hpp"
+#include <QMenuBar>
+#include <QStatusBar>
+#include "ui/canvas_widget.hpp"
+#include "ui/document_save_coordinator.hpp"
 #include "ui/appimage_environment.hpp"
 #include "ui/main_window_shared.hpp"
+#include "ui/theme_qss.hpp"
 #include "ui/tiff_jpeg_reader.hpp"
 #include "ui/recent_file_list.hpp"
 #include "ui/network_mounts.hpp"
 #include "ui/object_selection_model_download.hpp"
 #include "ui/qt_paths.hpp"
 
-#include "core/blend_math.hpp"
 #include "core/document_depth.hpp"
-#include "core/layer_metadata.hpp"
 #include "core/pixel_depth.hpp"
 #include "core/smart_object.hpp"
-#include "core/text_warp.hpp"
-#include "core/warp_mesh.hpp"
-#include "core/layer_render_utils.hpp"
 #include "core/layer_tree.hpp"
-#include "core/palette_presets.hpp"
-#include "core/pattern_presets.hpp"
-#include "core/pixel_tools.hpp"
-#include "formats/palette_io.hpp"
-#include "filters/builtin_filters.hpp"
 #include "formats/aseprite_document_io.hpp"
-#include "formats/bmp_document_io.hpp"
 #include "formats/exr_document_io.hpp"
 #include "formats/hdr_document_io.hpp"
 #include "formats/jp2_document_io.hpp"
@@ -43,23 +48,13 @@
 #include "formats/dds_document_io.hpp"
 #include "formats/rttex_document_io.hpp"
 #include "formats/svg_document_io.hpp"
-#include "plugins/legacy_photoshop_adapter.hpp"
 #include "psd/psd_document_io.hpp"
-#include "psd/psd_filter_effects.hpp"
-#include "psd/psd_smart_objects.hpp"
-#include "ui/action_icons.hpp"
 #include "ui/app_settings.hpp"
 #include "ui/image_save_option_keys.hpp"
-#include "render/compositor.hpp"
 #include "ui/background_workers.hpp"
-#include "ui/blend_mode_ui.hpp"
 #include "ui/brush_dynamics_popup.hpp"
-#include "ui/brush_presets.hpp"
-#include "ui/brush_tip_library.hpp"
 #include "ui/brush_tip_manager_dialog.hpp"
-#include "ui/brush_tip_picker.hpp"
 #include "ui/cli_exit.hpp"
-#include "ui/default_brush_tips.hpp"
 #include "ui/compatibility_report.hpp"
 #include "ui/image_document_io.hpp"
 #include "ui/image_save_options_dialog.hpp"
@@ -67,31 +62,79 @@
 #include "ui/raw_develop_settings.hpp"
 #include "ui/script_engine.hpp"
 #include "ui/filter_workflows.hpp"
-#include "ui/gradient_stops_editor.hpp"
-#include "ui/gradient_library.hpp"
-#include "ui/gradient_manager_dialog.hpp"
 #include "ui/dialog_utils.hpp"
+#include <QAbstractButton>
+#include <QAbstractItemView>
+#include <QAction>
+#include <QApplication>
+#include <QCheckBox>
+#include <QColorSpace>
+#include <QCoreApplication>
+#include <QDateTime>
+#include <QDesktopServices>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QDir>
+#include <QDropEvent>
+#include <QElapsedTimer>
+#include <QEventLoop>
+#include <QFile>
+#include <QFileDialog>
+#include <QFileInfo>
+#include <QFontMetrics>
+#include <QHBoxLayout>
+#include <QIODevice>
+#include <QImage>
+#include <QImageIOHandler>
+#include <QImageReader>
+#include <QKeyEvent>
+#include <QLabel>
+#include <QLatin1Char>
+#include <QLineEdit>
+#include <QList>
+#include <QListWidget>
+#include <QListWidgetItem>
+#include <QLockFile>
+#include <QMenu>
+#include <QMessageBox>
+#include <QMetaObject>
+#include <QMimeData>
+#include <QObject>
+#include <QPoint>
+#include <QPointer>
+#include <QProcess>
+#include <QProgressDialog>
+#include <QPushButton>
+#include <QRect>
+#include <QScopeGuard>
+#include <QSet>
+#include <QSettings>
+#include <QSize>
+#include <QString>
+#include <QStringList>
+#include <QStringLiteral>
+#include <QTimer>
+#include <QUrl>
+#include <QVBoxLayout>
+#include <QWidget>
+#include <QWidgetAction>
+#include <Qt>
+#include <QtGlobal>
+#include <vector>
+#include <span>
+#include "ui/ui_profile.hpp"
 #ifdef Q_OS_WASM
 #include "ui/dialog_utils_wasm.hpp"
 #endif
 #include "ui/document_float_window.hpp"
-#include "ui/font_picker.hpp"
-#include "ui/hotkey_editor.hpp"
-#include "ui/edit_conversions.hpp"
 #include "ui/color_panel.hpp"
 #include "ui/layer_style_dialog.hpp"
 #include "ui/layer_list_widget.hpp"
 #include "ui/localization.hpp"
-#include "ui/measurement_units.hpp"
-#include "ui/palette_convert_dialog.hpp"
-#include "ui/palette_panel.hpp"
-#include "ui/pattern_library.hpp"
 #include "ui/multipage_pdf_export_dialog.hpp"
 #include "ui/export_documents_folder_dialog.hpp"
 #include "ui/pdf_export.hpp"
 #include "ui/pdf_import.hpp"
-#include "ui/photo_pattern_presets.hpp"
-#include "ui/style_library.hpp"
 #include "ui/print_dialog.hpp"
 #include "ui/smart_object_render.hpp"
 #include "ui/scanner_import.hpp"
@@ -107,151 +150,13 @@
 #include "ui/tile_preview_window.hpp"
 #include "ui/user_fonts.hpp"
 #include "ui/warp_text_dialog.hpp"
-#include "ui/qt_geometry.hpp"
 #include "ui/start_panel.hpp"
-#include "ui/splash_dialog.hpp"
 #include "ui/update_checker.hpp"
 #include "ui/update_installer.hpp"
-#include "ui/zoom_status_bar.hpp"
-#include "support/string_utils.hpp"
 
-#include <QAbstractItemView>
-#include <QAbstractItemModel>
-#include <QAbstractButton>
-#include <QAbstractSpinBox>
-#include <QAbstractTextDocumentLayout>
-#include <QAction>
-#include <QActionGroup>
-#include <QApplication>
-#include <QBrush>
-#include <QBuffer>
-#include <QButtonGroup>
-#include <QByteArray>
-#include <QDateTime>
-#include <QCheckBox>
-#include <QClipboard>
-#include <QCloseEvent>
-#include <QColorDialog>
-#include <QComboBox>
-#include <QContextMenuEvent>
-#include <QCoreApplication>
-#include <QCursor>
-#include <QColorSpace>
-#include <QDesktopServices>
-#include <QDir>
-#include <QDockWidget>
-#include <QDrag>
-#include <QDragEnterEvent>
-#include <QDragMoveEvent>
-#include <QDialog>
-#include <QDialogButtonBox>
-#include <QDragLeaveEvent>
-#include <QDropEvent>
-#include <QDoubleSpinBox>
-#include <QElapsedTimer>
-#include <QEvent>
-#include <QEventLoop>
-#include <QFileDialog>
-#include <QFile>
-#include <QFileInfo>
-#include <QFont>
-#include <QFontComboBox>
-#include <QFontDatabase>
-#include <QFocusEvent>
-#include <QFontMetrics>
-#include <QFormLayout>
-#include <QFrame>
-#include <QGridLayout>
-#include <QGroupBox>
-#include <QHeaderView>
-#include <QHBoxLayout>
-#include <QLayout>
-#include <QResizeEvent>
-#include <QIcon>
-#include <QImageReader>
-#include <QInputDialog>
-#include <QItemSelection>
-#include <QItemSelectionModel>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonParseError>
-#include <QJsonValue>
-#include <QLabel>
-#include <QKeyEvent>
-#include <QKeySequence>
-#include <QListWidget>
-#include <QLinearGradient>
-#include <QLineEdit>
-#include <QLockFile>
-#include <QMenu>
-#include <QMenuBar>
-#include <QMimeData>
-#include <QMessageBox>
-#include <QMetaObject>
-#include <QMouseEvent>
-#include <QPaintEvent>
-#include <QPushButton>
-#include <QPainter>
-#include <QPainterPath>
-#include <QPixmap>
-#include <QPlainTextEdit>
-#include <QPolygon>
-#include <QPointer>
-#include <QProcess>
-#include <QProgressDialog>
-#include <QRegion>
-#include <QScreen>
-#include <QScrollArea>
-#include <QScrollBar>
-#include <QShortcut>
-#include <QScopeGuard>
-#include <QSettings>
-#include <QShowEvent>
-#include <QStandardPaths>
-#include <QStandardItem>
-#include <QStyledItemDelegate>
-#include <QMutex>
-#include <QRawFont>
-#include <QTextCharFormat>
-#include <QTextBlock>
-#include <QTextBlockFormat>
-#include <QTextCursor>
-#include <QTextEdit>
-#include <QTextDocument>
-#include <QTextFragment>
-#include <QTextLayout>
-#include <QTextOption>
-#include <QSignalBlocker>
-#include <QSize>
-#include <QSizePolicy>
-#include <QSlider>
-#include <QSpinBox>
-#include <QStatusBar>
-#include <QStringList>
-#include <QStackedWidget>
-#include <QStyle>
-#include <QStyleOption>
-#include <QTabBar>
-#include <QTabWidget>
-#include <QTableWidget>
-#include <QTableWidgetItem>
-#include <QTimer>
-#include <QToolBar>
-#include <QToolButton>
-#include <QToolTip>
-#include <QTransform>
-#include <QUrl>
-#include <QVariant>
-#include <QVBoxLayout>
-#include <QWidgetAction>
-#include <QWindow>
 
 #include <algorithm>
-#include <array>
-#include <atomic>
 #include <chrono>
-#include <cctype>
 #include <cstddef>
 #include <cstdint>
 #include <cmath>
@@ -260,17 +165,13 @@
 #include <exception>
 #include <functional>
 #include <future>
-#include <iostream>
 #include <iterator>
-#include <limits>
 #include <memory>
 #include <optional>
 #include <set>
-#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <utility>
 
 #ifdef Q_OS_WIN
@@ -278,10 +179,7 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
-#include <windowsx.h>
-#include <dwmapi.h>
-#include <tchar.h>
-#include <tpcshrd.h>
+
 #endif
 
 #include "patchy_version.hpp"
@@ -363,9 +261,7 @@ QStringList update_recent_history(const QString& key, int limit,
   return paths;
 }
 
-bool is_photoshop_document_extension(const QString& extension) {
-  return extension == QStringLiteral("psd") || extension == QStringLiteral("psb");
-}
+
 
 bool is_affinity_document_extension(const QString& extension) {
   return extension == QStringLiteral("af") || extension == QStringLiteral("afphoto") ||
@@ -401,74 +297,13 @@ void strip_smart_object_layers(Document& document, std::vector<Layer>& layers,
   }
 }
 
-// Formats whose writers keep the document's layer structure: PSD/PSB and Aseprite save
-// the layer tree, and ICO/CUR are exempt because multi-size icons deliberately live as
-// one hidden "WxH" layer per size that their writers round-trip.
-bool save_extension_preserves_layers(const QString& extension) {
-  return is_photoshop_document_extension(extension) || extension == QStringLiteral("aseprite") ||
-         extension == QStringLiteral("ase") || extension == QStringLiteral("ico") ||
-         extension == QStringLiteral("cur");
-}
 
-// True when the session's file came from a format Patchy can only read (camera raw):
-// Save can never write back to such a path, so it must become Save As.
-//
-// PDF is listed explicitly rather than falling out of the registry, for two reasons. The
-// registry has no PDF row at all (the writer is Qt-side, in write_flat_image_file), and
-// more importantly a PDF import is a RASTERIZATION at a chosen resolution: saving over the
-// source would replace a multi-page vector document with one flat re-render. Save As and
-// Export to .pdf still work; only Save-in-place is redirected.
-bool is_read_only_source_extension(const QString& extension) {
-  if (extension.isEmpty()) {
-    return false;
-  }
-  if (is_pdf_extension(extension)) {
-    return true;
-  }
-  const auto* handler = builtin_format_registry().find_by_extension(extension.toStdString());
-  return handler != nullptr && !handler->can_write();
-}
 
-// Photoshop's "this format cannot store the document's features" test, reduced to what a
-// flat save discards in Patchy: a second layer or group, a non-pixel layer (group,
-// adjustment, text, smart object), a hand-authored mask, or layer styles. A single pixel
-// layer whose only mask is the document-alpha marker round-trips through flat formats
-// (the mask is written back as the file's alpha plane), so it does not count.
-bool flat_save_discards_layers(const Document& document) {
-  const auto& layers = document.layers();
-  if (layers.size() != 1) {
-    return !layers.empty();
-  }
-  const Layer& layer = layers.front();
-  if (layer.kind() != LayerKind::Pixel || !layer.children().empty() ||
-      layer_pixels_are_procedural(layer)) {
-    return true;
-  }
-  if (layer.mask().has_value() && !layer_mask_is_document_alpha(layer)) {
-    return true;
-  }
-  const auto blend_if_status = layer.blend_if_payload_status();
-  const bool has_blend_if = blend_if_status == BlendIfPayloadStatus::Unsupported
-                                ? !layer.raw_psd_blending_ranges().empty()
-                                : !blend_if_is_identity(layer.blend_if());
-  return !layer.layer_style().empty() || has_blend_if;
-}
 
-// Whether saving `document` into `extension` loses layer content. Flat formats
-// lose everything past one plain pixel layer. SVG keeps shape layers, folders,
-// vector masks and paint servers as real vectors, so it asks the writer for a
-// dry run and warns only when something bakes (text, pixels, smart objects,
-// adjustments, styles, raster masks, inexpressible blend modes): a shape-only
-// document saves in place with no warning.
-bool save_discards_layers(const Document& document, const QString& extension) {
-  if (save_extension_preserves_layers(extension) || !flat_save_discards_layers(document)) {
-    return false;
-  }
-  if (extension == QStringLiteral("svg")) {
-    return !svg::DocumentIo::baked_content(document).empty();
-  }
-  return true;
-}
+
+
+
+
 
 // The SVG flatten warning names what bakes: one translated phrase per item, the
 // first few joined, the rest counted.
@@ -3829,44 +3664,36 @@ bool MainWindow::open_recovered_document(const QString& psb_path, const QString&
 }
 #endif
 
+// UI effects exposed to the save coordinator. The coordinator retains only session ids.
+class MainWindowSaveHost final : public SaveHost {
+public:
+  explicit MainWindowSaveHost(MainWindow& window) : window_(window) {}
+  DocumentSession* find_session(std::int64_t id) override { return window_.session_with_id(id); }
+  bool save_as() override { return window_.save_document_as(); }
+  bool save_to_path(const QString& path) override { return window_.save_document_to_path(path); }
+  bool commit_embedded(std::int64_t id) override {
+    auto* target = find_session(id);
+    return target != nullptr && window_.commit_smart_object_child_session(*target);
+  }
+  void offer_download(const QString& path) override { offer_browser_download_for_saved_file(path); }
+  void remember_directory(const QString& path) override { remember_save_directory_for_path(path); }
+  void persist_defaults(const ImageSaveOptions& options) override { window_.persist_image_save_defaults(options); }
+  void add_recent(const QString& path) override { window_.add_recent_file(path); }
+  void mark_saved(std::int64_t id) override {
+    if (auto* target = find_session(id)) window_.set_session_saved(*target);
+  }
+private:
+  MainWindow& window_;
+};
+
 bool MainWindow::save_document() {
   if (!has_active_document()) {
     show_status_error(tr("No document"));
     return false;
   }
   finish_active_text_editor();
-  if (session().smart_object_link.has_value()) {
-    if (session().smart_object_link->external) {
-      // A linked-file child: the file on disk is the source of truth, so write it
-      // first and only then refresh the parent's previews and link metadata.
-      if (session().path.isEmpty()) {
-        return save_document_as();
-      }
-      if (!save_document_to_path(session().path)) {
-        return false;
-      }
-      return true;
-    }
-    // An embedded Edit Smart Object Contents tab: Save applies the contents back to
-    // the parent document instead of writing a file (Photoshop semantics).
-    return commit_smart_object_child_session(session());
-  }
-  if (session().path.isEmpty()) {
-    return save_document_as();
-  }
-  if (is_read_only_source_extension(extension_for_path(session().path))) {
-    // The document was developed from a read-only source (camera raw); writing the raw
-    // back is impossible, so Save is really Save As (defaulting to <basename>.psd).
-    return save_document_as();
-  }
-  if (save_discards_layers(std::as_const(document()), extension_for_path(session().path))) {
-    // Photoshop behavior: Save on a document whose file format cannot hold its layers
-    // (a JPEG that grew layers) turns into Save As, defaulting to PSD, instead of
-    // silently flattening back over the original file. A shape-only SVG holds its
-    // layers as vectors, so it saves in place.
-    return save_document_as();
-  }
-  return save_document_to_path(session().path);
+  MainWindowSaveHost host(*this);
+  return DocumentSaveCoordinator(host).save(session().session_id);
 }
 
 bool MainWindow::save_document_as() {
@@ -4172,14 +3999,8 @@ bool MainWindow::save_document_to_path(QString path, std::optional<ImageSaveOpti
   if (!has_active_document() || session().session_id != saving_session_id) {
     return false;
   }
-  auto effective_image_options = image_options.value_or(image_save_defaults_for_document());
-  if (!image_options.has_value() && image_save_options_apply_to_extension(extension)) {
-    const auto& active_session = session();
-    if (active_session.image_save_options.has_value() && active_session.image_save_options_path == path &&
-        active_session.image_save_options_extension == extension) {
-      effective_image_options = *active_session.image_save_options;
-    }
-  }
+  auto effective_image_options = DocumentSaveCoordinator::effective_options(
+      session(), path, extension, image_options, image_save_defaults_for_document());
   if (pdf_editable_layers.has_value()) {
     effective_image_options.pdf_editable_layers = *pdf_editable_layers;
   }
@@ -4216,51 +4037,15 @@ bool MainWindow::save_document_to_path(QString path, std::optional<ImageSaveOpti
     return false;
   }
   try {
-    QString export_notes_suffix;
-    if (is_photoshop_document_extension(extension)) {
-      // Linked smart objects store their path relative to the document's folder, which
-      // is only known here (a never-saved document has none, and Save As can move it).
-      // Writer bookkeeping like Photoshop's own: no undo step.
-      refresh_smart_object_link_relative_paths(
-          document().metadata().smart_objects,
-          session().path.isEmpty() ? QString() : QFileInfo(session().path).absolutePath(),
-          QFileInfo(path).absolutePath());
-      psd::DocumentIo::write_layered_rgb8_file(document(), to_filesystem_path(path),
-                                               psd::WriteOptions{extension == QStringLiteral("psb")});
-    } else if (extension == QStringLiteral("aseprite") || extension == QStringLiteral("ase")) {
-      // Layered save: the Aseprite writer keeps the layer tree instead of flattening.
-      std::optional<Document> narrowed;
-      aseprite::DocumentIo::write_file(document_for_8bit_writer(document(), narrowed), to_filesystem_path(path));
-    } else if (extension == QStringLiteral("svg")) {
-      // Structure-preserving vector write (never write_flat_image_file):
-      // shape layers stay SVG vectors, the writer reports what it baked.
-      std::vector<std::string> svg_notices;
-      std::optional<Document> narrowed;
-      svg::DocumentIo::write_file(document_for_8bit_writer(document(), narrowed), to_filesystem_path(path),
-                                  &svg_notices);
-      export_notes_suffix = export_notes_suffix_for(svg_notices);
-    } else {
-      // Editable PDF keeps layers and reports what it baked, like the SVG writer.
-      std::vector<std::string> writer_notices;
-      write_flat_image_file(document(), path, extension, effective_image_options, &writer_notices);
-      export_notes_suffix = export_notes_suffix_for(writer_notices);
+    MainWindowSaveHost host(*this);
+    const auto saved = DocumentSaveCoordinator(host).write_prepared(
+        saving_session_id, path, extension, effective_image_options, quiet, policy.export_copy, discards_layers);
+    if (!saved.has_value()) {
+      return false;
     }
-    offer_browser_download_for_saved_file(path);
-    const bool saved_flattened_copy =
-        discards_layers &&
-        !(session().smart_object_link.has_value() && session().smart_object_link->external);
+    const auto export_notes_suffix = export_notes_suffix_for(saved->notices);
+    const bool saved_flattened_copy = saved->flattened_copy;
     if (saved_flattened_copy || policy.export_copy) {
-      // Photoshop's save-a-copy semantics: only the flat copy lands on disk; the layered
-      // document stays open, modified, and pointed at its original file, so a later Save
-      // still offers PSD instead of quietly flattening again. doc.exportAs asks for the
-      // same for every format.
-      if (!quiet) {
-        remember_save_directory_for_path(path);
-        if (image_save_options_apply_to_extension(extension)) {
-          persist_image_save_defaults(effective_image_options);
-        }
-      }
-      add_recent_file(path);
       statusBar()->showMessage((!saved_flattened_copy ? tr("Saved copy %1")
                                 : extension == QStringLiteral("svg") ? tr("Saved SVG copy %1.")
                                 : is_pdf_extension(extension) && effective_image_options.pdf_editable_layers
@@ -4276,30 +4061,12 @@ bool MainWindow::save_document_to_path(QString path, std::optional<ImageSaveOpti
                                export_notes_suffix);
       return true;
     }
-    auto& active_session = session();
-    active_session.path = path;
-    active_session.title = QFileInfo(path).fileName();
-    if (!quiet) {
-      remember_save_directory_for_path(path);
-    }
-    if (!is_photoshop_document_extension(extension) && image_save_options_apply_to_extension(extension)) {
-      active_session.image_save_options = effective_image_options;
-      active_session.image_save_options_path = path;
-      active_session.image_save_options_extension = extension;
-      if (!quiet) {
-        persist_image_save_defaults(effective_image_options);
-      }
-    } else {
-      active_session.image_save_options.reset();
-      active_session.image_save_options_path.clear();
-      active_session.image_save_options_extension.clear();
-    }
-    set_session_saved(active_session);
-    add_recent_file(path);
     statusBar()->showMessage((effective_image_options.export_cmyk ? tr("Saved %1 in CMYK") : tr("Saved %1")).arg(path) +
                              export_notes_suffix);
     if (linked_external_child) {
-      refresh_external_smart_object_after_save(active_session);
+      if (auto* saved_session = session_with_id(saving_session_id)) {
+        refresh_external_smart_object_after_save(*saved_session);
+      }
     }
     return true;
   } catch (const std::exception& error) {

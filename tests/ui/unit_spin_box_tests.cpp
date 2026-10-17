@@ -1,25 +1,43 @@
+#include "synthetic_dng.hpp"
+#include <QAbstractSpinBox>
+#include <QDoubleSpinBox>
+#include <QSpinBox>
+#include <QStringList>
+#include <QWidget>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include "ui_test_access.hpp"
 // Unit-entry spin boxes: "200 px", "50%", "2 in" typed into a numeric field convert
 // into the field's native unit (Photoshop's numeric-field behavior). The parser and
 // converter are exercised directly; the widget tests drive the line edit + Enter.
-
 #include "ui/measurement_units.hpp"
 #include "ui/localization.hpp"
 #include "ui/unit_spin_box.hpp"
-
 #include "test_harness.hpp"
 #include "ui_test_groups.hpp"
 #include "ui_test_support.hpp"
-
-#include <QAction>
 #include <QApplication>
 #include <QContextMenuEvent>
 #include <QLineEdit>
 #include <QLocale>
 #include <QMenu>
-#include <QScopeGuard>
 #include <QString>
 #include <QTimer>
-
 #include <cmath>
 #include <optional>
 #include <vector>

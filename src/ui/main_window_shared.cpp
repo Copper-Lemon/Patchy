@@ -1,22 +1,34 @@
+#include "psd/psd_filter_effects.hpp"
 #include "ui/main_window_shared.hpp"
 
+#include "core/adjustment_layer.hpp"
 #include "core/document.hpp"
+#include "core/layer.hpp"
 #include "core/layer_metadata.hpp"
+#include "core/pixel_buffer.hpp"
 #include "core/pixel_depth.hpp"
+#include "core/smart_filter.hpp"
+#include "core/smart_filter_effects.hpp"
 #include "core/smart_object.hpp"
 #include "core/vector_shape.hpp"
-#include "psd/psd_filter_effects.hpp"
+#include "filters/filter_registry.hpp"
 #include "support/string_utils.hpp"
 #include "ui/app_settings.hpp"
 #include "ui/background_workers.hpp"
+#include "ui/canvas_types.hpp"
 #include "ui/canvas_widget.hpp"
 #include "ui/brush_presets.hpp"
+#include "ui/curves_clipping_preview.hpp"
 #include "ui/dialog_utils.hpp"
+#include "ui/filter_workflows.hpp"
 #include "ui/layer_list_widget.hpp"
+#include "ui/ui_profile.hpp"
 
 #include <QAbstractButton>
 #include <QAction>
 #include <QApplication>
+#include <QByteArray>
+#include <QChar>
 #include <QColor>
 #include <QComboBox>
 #include <QCoreApplication>
@@ -24,12 +36,14 @@
 #include <QDialogButtonBox>
 #include <QDir>
 #include <QDockWidget>
+#include <QEventLoop>
 #include <QFileInfo>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QImage>
 #include <QInputDialog>
 #include <QLabel>
+#include <QLatin1Char>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMenu>
@@ -37,28 +51,40 @@
 #include <QObject>
 #include <QPoint>
 #include <QProgressDialog>
+#include <QRect>
 #include <QRegion>
 #include <QSignalBlocker>
 #include <QSpinBox>
 #include <QStandardPaths>
-#include <QStyle>
+#include <QString>
+#include <QStringList>
+#include <QStringLiteral>
+#include <QStringView>
 #include <QTimer>
 #include <QToolBar>
 #include <QUrl>
 #include <QVBoxLayout>
+#include <QWidget>
+#include <Qt>
+#include <QtGlobal>
 
 #include <algorithm>
-#include <atomic>
 #include <cctype>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <exception>
+#include <functional>
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <set>
+#include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace patchy::ui {
 

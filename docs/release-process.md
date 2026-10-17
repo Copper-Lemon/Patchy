@@ -2,6 +2,13 @@
 
 How to cut and publish a Patchy release. Read this in full before bumping a version or running any release batch file. The per-change build/test handoff (every code change must refresh `build\release\patchy.exe`) is separate and lives in AGENTS.md.
 
+Unchanged development builds keep their binaries and build date. Packaging must
+request a new date before its build: the Windows/web builders, macOS packager and
+AppImage container run `patchy_refresh_build_stamp`; the Flatpak packager generates
+a manifest with a fresh `PATCHY_BUILD_STAMP_REFRESH_TOKEN`, invalidating the cached
+app module. Hand-run packaging follows the same rule. Do not enable the refresh
+target in the default build, which would force every unchanged build to relink.
+
 ## Version bump checklist
 
 Desktop packages also carry automatic selection: ONNX Runtime plus the 19 MB MobileSAM pair in `ai-models/` (12 MB compressed); Object Selection's High Quality model (234 MB, release `ai-models-2`) is a user download, never packaged ([ai-selection.md](ai-selection.md)). Every build host runs `scripts\setup-ai-deps.ps1` (Windows) or `bash scripts/setup-ai-deps.sh` (mac/Linux) once per pinned version, and the mac host also `scripts/setup-openmp-mac.sh` (G'MIC's OpenMP, [gmic.md](gmic.md)) and `scripts/setup-qt-cocoa-patch-mac.sh` (patched Qt cocoa plugin, [building.md](building.md)); `build-release.bat` configures with `-DPATCHY_REQUIRE_AI_SELECTION=ON` and refuses to package without them, the Flatpak fetches the same pinned files itself, and `packaging/package-selftest.js` runs both models in the unpacked package.

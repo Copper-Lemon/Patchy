@@ -1,3 +1,24 @@
+#include "synthetic_dng.hpp"
+#include <QIODevice>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
 // Translation catalog checks (docs/localization.md).
 //
 // - translation_template_is_current reruns lupdate with the manifest CMake wrote
@@ -10,11 +31,9 @@
 // - translation_template_covers_runtime_sources walks the strings that reach the UI
 //   outside lupdate's view (bound properties, tooltip details, preset tables) and
 //   fails when one is missing from the template.
-
 #include "test_harness.hpp"
 #include "ui_test_groups.hpp"
 #include "ui_test_support.hpp"
-
 #include "core/contour_presets.hpp"
 #include "core/gradient_presets.hpp"
 #include "core/palette_presets.hpp"
@@ -25,22 +44,17 @@
 #include "ui/localization.hpp"
 #include "ui/main_window.hpp"
 #include "ui/main_window_shared.hpp"
-
 #include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QHash>
 #include <QProcess>
-#include <QRegularExpression>
 #include <QSet>
 #include <QString>
 #include <QStringList>
-#include <QTemporaryDir>
 #include <QTextStream>
 #include <QTranslator>
 #include <QXmlStreamReader>
-
 #include <cstdio>
 #include <vector>
 

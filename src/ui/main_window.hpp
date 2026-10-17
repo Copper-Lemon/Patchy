@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/adjustment_layer.hpp"
+#include "core/brush_dynamics.hpp"
 #include "core/document.hpp"
 #include "core/document_recovery_store.hpp"
 #include "ui/document_session_store.hpp"
@@ -13,10 +14,11 @@
 #include "formats/format_registry.hpp"
 #include "plugins/legacy_photoshop_adapter.hpp"
 #include "plugins/plugin_host.hpp"
-#include "ui/canvas_widget.hpp"
+#include "ui/canvas_types.hpp"
 #include "ui/channel_panel.hpp"
 #include "ui/hotkey_registry.hpp"
-#include "ui/image_document_io.hpp"
+#include "ui/image_save_options.hpp"
+#include "ui/script_stroke.hpp"
 #include "ui/stress_test.hpp"
 #include "ui/text_paragraph_metrics.hpp"
 #include "ui/unit_spin_box.hpp"
@@ -87,6 +89,9 @@ class QToolButton;
 class QTimer;
 
 namespace patchy {
+struct BrushTip;
+class CmykProofTransform;
+class CmykWorkingSpace;
 struct ImageTraceResult;
 struct LiveShapeParams;
 struct PathSubpath;
@@ -154,6 +159,7 @@ struct GmicRenderResult;  // main_window_gmic.cpp
 struct GmicRunInput;
 
 class MainWindow final : public QMainWindow {
+  friend class MainWindowSaveHost;
   Q_OBJECT
 
 public:
@@ -1156,9 +1162,9 @@ private:
   void refresh_add_layer_mask_button_state();
   void delete_active_layer_mask();
   void set_active_layer_mask_linked(bool linked);
-  void set_layer_edit_target_ui(CanvasWidget::LayerEditTarget target, bool announce);
+  void set_layer_edit_target_ui(LayerEditTarget target, bool announce);
   [[nodiscard]] bool set_smart_filter_mask_edit_target_ui(
-      LayerId layer_id, CanvasWidget::MaskDisplayMode mode, bool announce);
+      LayerId layer_id, MaskDisplayMode mode, bool announce);
   void set_channel_edit_target(ChannelPanel::RowKind kind, ChannelId id, bool overlay, bool announce = true);
   void set_mask_overlay_shown(bool shown);
   void set_active_layer_mask_disabled(bool disabled);
@@ -1518,10 +1524,10 @@ private:
   // matte combines with the selection by `mode`, inverted for the background, or becomes the
   // active layer's mask (one undo step). The run_ forms report failures through `error`
   // instead of the status bar; all return false on failure or cancel.
-  void select_subject(CanvasWidget::SelectionMode mode);
-  bool run_select_subject(CanvasWidget::SelectionMode mode, QString* error);
-  void select_background(CanvasWidget::SelectionMode mode);
-  bool run_select_background(CanvasWidget::SelectionMode mode, QString* error);
+  void select_subject(SelectionMode mode);
+  bool run_select_subject(SelectionMode mode, QString* error);
+  void select_background(SelectionMode mode);
+  bool run_select_background(SelectionMode mode, QString* error);
   void remove_background();
   bool run_remove_background(QString* error);
   std::optional<patchy::ai::AiMask> compute_subject_matte(const QString& command, QString* error);
@@ -1623,10 +1629,10 @@ private:
   // one caller is the canvas selection-history callback, which must never default
   // to the active session.
   void push_selection_history(DocumentSession& target_session, QString label,
-                              CanvasWidget::SelectionSnapshot before, bool coalesce = false);
+                              SelectionSnapshot before, bool coalesce = false);
   // Mirror the given effective combine mode onto the Options-bar mode buttons
   // (used for both committed modes and the live Shift/Alt override).
-  void update_selection_mode_buttons(CanvasWidget::SelectionMode mode);
+  void update_selection_mode_buttons(SelectionMode mode);
   // Apply the stored per-tool combine modes to a (new) canvas.
   void apply_selection_modes_to_canvas(CanvasWidget* canvas);
   // Make the given selection tool's stored Feather and Anti-alias the current ones: canvas
@@ -1701,9 +1707,9 @@ private:
   [[nodiscard]] DocumentChannel* selected_panel_channel() noexcept;
   [[nodiscard]] const DocumentChannel* selected_panel_channel() const noexcept;
   void refresh_edit_target_chip();
-  void restore_channel_target_after_document_reset(CanvasWidget::LayerEditTarget target,
+  void restore_channel_target_after_document_reset(LayerEditTarget target,
                                                    std::optional<ChannelId> channel_id,
-                                                   CanvasWidget::MaskDisplayMode display_mode);
+                                                   MaskDisplayMode display_mode);
   void refresh_document_info();
   // Blocking refusals (the requested action did NOT happen) go through here so
   // the status bar flashes red and keeps a warning icon; plain
@@ -1932,27 +1938,24 @@ private:
   // What the canvas must recomposite after one or more history rotations:
   // `full` once any step could not be region-diffed, else the union of the
   // steps' changed document areas (empty: pixels identical).
-  struct HistoryRefreshRegion {
-    bool full{false};
-    QRegion region;
-  };
+  using HistoryRefreshRegion = patchy::ui::HistoryRefreshRegion;
   // One data-only history rotation (no canvas or UI work, so jumps can loop it).
   // live_selection enters holding the live document's selection and exits
   // holding the restored state's selection. A whole-document state swaps
   // documents; a stroke-patch state writes its pixels into the live document
   // in place. Either way `changed` accumulates the repaint need.
   void rotate_history_state(DocumentSession& target_session, bool backward,
-                            CanvasWidget::SelectionSnapshot& live_selection, HistoryRefreshRegion& changed);
+                            SelectionSnapshot& live_selection, HistoryRefreshRegion& changed);
   // Shared canvas/panel refresh after undo/redo/jump rotations on the active
   // session, repainting only `changed`.
   void apply_history_restore_tail(DocumentSession& active_session, const HistoryRefreshRegion& changed,
-                                  CanvasWidget::SelectionSnapshot restored_selection,
+                                  SelectionSnapshot restored_selection,
                                   const QString& status_message);
   // Per-stroke history (docs/performance.md, "History"). Begin remembers the
   // snapshot a paint stroke just pushed; Finish shrinks that snapshot to a
   // StrokePatch covering the stroke's bounds when the stroke changed nothing
   // else, so a stroke retains its footprint instead of the painted layer.
-  void handle_paint_stroke_history_event(CanvasWidget* canvas, const CanvasWidget::PaintStrokeHistoryEvent& event);
+  void handle_paint_stroke_history_event(CanvasWidget* canvas, const PaintStrokeHistoryEvent& event);
   // The whole document at a stored state: the snapshot itself, or the nearest
   // newer snapshot (or the live document) with the intervening stroke patches
   // written back (New Document From This State on a patch row).
@@ -2545,20 +2548,20 @@ private:
   bool current_brush_smoothing_zoom_adjust_{true};
   // Combine mode per selection tool (indexed by CanvasWidget::selection_tool_index),
   // persisted across documents; each selection tool keeps its own mode.
-  std::array<CanvasWidget::SelectionMode, CanvasWidget::kSelectionToolCount> selection_modes_{
-      CanvasWidget::SelectionMode::Replace, CanvasWidget::SelectionMode::Replace,
-      CanvasWidget::SelectionMode::Replace, CanvasWidget::SelectionMode::Replace,
-      CanvasWidget::SelectionMode::Replace, CanvasWidget::SelectionMode::Replace,
-      CanvasWidget::SelectionMode::Replace, CanvasWidget::SelectionMode::Replace};
-  CanvasWidget::MarqueeStyle current_marquee_style_{CanvasWidget::MarqueeStyle::Normal};
+  std::array<SelectionMode, kSelectionToolCount> selection_modes_{
+      SelectionMode::Replace, SelectionMode::Replace,
+      SelectionMode::Replace, SelectionMode::Replace,
+      SelectionMode::Replace, SelectionMode::Replace,
+      SelectionMode::Replace, SelectionMode::Replace};
+  MarqueeStyle current_marquee_style_{MarqueeStyle::Normal};
   int current_marquee_width_{1024};
   int current_marquee_height_{768};
   int current_marquee_corner_radius_{0};
   // Feather and Anti-alias per selection tool (indexed by CanvasWidget::selection_tool_index),
   // persisted as tools/<tool>Feather and tools/<tool>AntiAlias. current_selection_* mirror
   // the active selection tool's slot, which is what the canvas and the options bar hold.
-  std::array<int, CanvasWidget::kSelectionToolCount> selection_feather_by_tool_{};
-  std::array<bool, CanvasWidget::kSelectionToolCount> selection_antialias_by_tool_{true, true, true, true,
+  std::array<int, kSelectionToolCount> selection_feather_by_tool_{};
+  std::array<bool, kSelectionToolCount> selection_antialias_by_tool_{true, true, true, true,
                                                                                     true, true, true, true};
   int current_selection_feather_radius_{0};
   bool current_selection_antialias_{true};
@@ -2574,7 +2577,7 @@ private:
   bool current_crop_delete_layers_{false};
   bool current_fill_shapes_{false};
   int current_shape_corner_radius_{0};
-  CanvasWidget::MarqueeStyle current_shape_style_{CanvasWidget::MarqueeStyle::Normal};
+  MarqueeStyle current_shape_style_{MarqueeStyle::Normal};
   int current_shape_width_{1024};
   int current_shape_height_{768};
   VectorToolMode current_vector_tool_mode_{VectorToolMode::Shape};
@@ -2589,8 +2592,8 @@ private:
   bool current_quick_select_sample_all_layers_{false};
   bool current_quick_select_enhance_edge_{false};
   bool current_object_select_sample_all_layers_{true};
-  CanvasWidget::TransformInterpolation current_transform_interpolation_{
-      CanvasWidget::TransformInterpolation::Bicubic};
+  TransformInterpolation current_transform_interpolation_{
+      TransformInterpolation::Bicubic};
   int current_polygon_sides_{5};
   int current_polygon_star_inset_{0};
   // Full paint mirrors (None/Solid/Gradient/Pattern) for the options-bar
@@ -2646,9 +2649,9 @@ private:
   QString current_pattern_stamp_pattern_id_;
   bool current_pattern_stamp_aligned_{true};
   int current_local_adjustment_strength_{50};
-  CanvasWidget::LocalToneRange current_local_tone_range_{CanvasWidget::LocalToneRange::Midtones};
+  LocalToneRange current_local_tone_range_{LocalToneRange::Midtones};
   bool current_local_protect_tones_{true};
-  CanvasWidget::SpongeMode current_sponge_mode_{CanvasWidget::SpongeMode::Desaturate};
+  SpongeMode current_sponge_mode_{SpongeMode::Desaturate};
   bool current_sponge_vibrance_{true};
   bool view_rulers_visible_{false};
   MeasurementUnit ruler_unit_{MeasurementUnit::Pixels};
@@ -2673,7 +2676,7 @@ private:
   QColor view_grid_color_{78, 154, 255, 105};
   std::optional<QColor> view_canvas_backdrop_color_;
   QColor view_guide_color_{255, 70, 180, 230};
-  CanvasWidget::PenInputSettings pen_input_settings_{};
+  PenInputSettings pen_input_settings_{};
   bool wheel_zooms_{kWheelZoomsDefault};
   bool shift_keeps_transform_aspect_{false};
   // view/showTransformValues: the on-canvas readout beside the pointer during

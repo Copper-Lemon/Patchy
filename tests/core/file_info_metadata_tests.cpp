@@ -1,3 +1,4 @@
+#include "formats/pdf_crypt.hpp"
 // File Info metadata (docs/file-info.md): the Qt-free parsers, container scanners and
 // views in src/formats/metadata. Every byte stream here is built by the test itself.
 
@@ -12,14 +13,11 @@
 #include "formats/metadata/tiff_ifd.hpp"
 #include "formats/metadata/xmp.hpp"
 #include "formats/miniz/miniz.h"
-#include "formats/pdf_crypt.hpp"
 #include "formats/stb/stb_image.h"
 #include "psd/psd_document_io.hpp"
-
 #include "test_groups.hpp"
 #include "test_harness.hpp"
 #include "unicode_path_names.hpp"
-
 #include <algorithm>
 #include <array>
 #include <cmath>

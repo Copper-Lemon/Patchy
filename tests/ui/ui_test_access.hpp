@@ -400,11 +400,11 @@ public:
 
   static std::ptrdiff_t undo_depth_for_canvas(MainWindow& window, CanvasWidget* canvas) {
     auto* session = window.session_for_canvas(canvas);
-    return session == nullptr ? -1 : static_cast<std::ptrdiff_t>(session->undo_stack.size());
+    return session == nullptr ? -1 : static_cast<std::ptrdiff_t>(session->history.undo_stack().size());
   }
 
   static std::size_t active_session_undo_depth(MainWindow& window) {
-    return window.session().undo_stack.size();
+    return window.session().history.undo_stack().size();
   }
 
   static void undo(MainWindow& window) {
@@ -439,18 +439,18 @@ public:
   }
 
   static std::size_t active_session_redo_depth(MainWindow& window) {
-    return window.session().redo_stack.size();
+    return window.session().history.redo_stack().size();
   }
 
   // Per-stroke history (core/stroke_patch.hpp): whether the newest undo entry is a
   // stroke patch rather than a whole-document snapshot, its bytes, and the switch that
   // keeps strokes on the snapshot path so the two can be compared.
   static bool top_undo_entry_is_stroke_patch(MainWindow& window) {
-    const auto& stack = window.session().undo_stack;
+    const auto& stack = window.session().history.undo_stack();
     return !stack.empty() && stack.back().is_stroke_patch();
   }
   static std::size_t top_undo_entry_patch_bytes(MainWindow& window) {
-    const auto& stack = window.session().undo_stack;
+    const auto& stack = window.session().history.undo_stack();
     return !stack.empty() && stack.back().is_stroke_patch() ? stack.back().patch->byte_size() : 0;
   }
   static void set_stroke_patch_history_enabled(MainWindow& window, bool enabled) {

@@ -46,14 +46,6 @@
 #include <utility>
 #include <vector>
 
-#ifdef _WIN32
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#include <dwrite.h>
-#include <wrl/client.h>
-#endif
 
 namespace patchy::psd {
 

@@ -1,9 +1,36 @@
+#include <QStatusBar>
+
+
+#include "ui/filter_look_library.hpp"
+#include "formats/acv_curves_io.hpp"
+#include "formats/bmp_document_io.hpp"
+#include "formats/aseprite_document_io.hpp"
+#include "formats/ico_document_io.hpp"
+#include "formats/tga_document_io.hpp"
+#include <QByteArray>
+#include <QEventLoop>
+#include <QIODevice>
+#include <QStringList>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <fstream>
+#include <functional>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string_view>
+#include <utility>
 // Automatic document recovery (docs/document-recovery.md): the on-demand and timed
 // recovery writes, the (revision, state id) dirty rule, the save/close discards,
 // the busy skip, orphan detection through the QLockFile liveness check, the
 // reopen of a crashed instance's copies, Unicode paths, the Preferences row, and
 // the atomic flat-image save.
-
 #include "core/document.hpp"
 #include "core/document_recovery_store.hpp"
 #include "psd/psd_document_io.hpp"
@@ -13,13 +40,11 @@
 #include "ui/main_window.hpp"
 #include "ui/qt_paths.hpp"
 #include "ui/script_engine.hpp"
-
 #include "test_harness.hpp"
 #include "ui_test_access.hpp"
 #include "ui_test_groups.hpp"
 #include "ui_test_support.hpp"
 #include "unicode_path_names.hpp"
-
 #include <QApplication>
 #include <QCheckBox>
 #include <QColor>
@@ -33,17 +58,14 @@
 #include <QImage>
 #include <QLockFile>
 #include <QMessageBox>
-#include <QPushButton>
 #include <QTabWidget>
 #include <QTimer>
-
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
 #include <string>
 #include <system_error>
 #include <vector>
-
 #ifdef Q_OS_WIN
 #include <stdlib.h>
 #include <winerror.h>

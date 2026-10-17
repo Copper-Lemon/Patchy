@@ -529,7 +529,7 @@ void ScriptEngineHost::finish_run() {
   emit run_state_changed();
   for (const auto& [session_id, steps] : undo_sessions) {
     if (const auto* session = window_.session_with_id(session_id)) {
-      const auto available = std::min(steps, session->undo_stack.size());
+      const auto available = std::min(steps, session->history.undo_stack().size());
       activate_session(session_id);
       for (std::size_t i = 0; i < available; ++i) { window_.undo(); }
     }
@@ -1505,7 +1505,7 @@ QJsonArray ScriptEngineHost::pause_history_state() const {
   for (const auto& session : window_.sessions_) {
     state.append(QJsonObject{{"id", QString::number(session->session_id)},
       {"revision", QString::number(session->revision)},
-      {"history", QString::number(session->current_state_id)}});
+      {"history", QString::number(session->history.current_state_id())}});
   }
   return state;
 }

@@ -6,6 +6,7 @@
 #include "psd/psd_document_io.hpp"
 #include "ui/qt_paths.hpp"
 #include "ui/background_workers.hpp"
+#include "ui/canvas_widget.hpp"
 #include "test_harness.hpp"
 #include "local_psd_fixtures.hpp"
 #include "ui/image_document_io.hpp"

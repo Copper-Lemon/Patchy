@@ -1,17 +1,41 @@
+#include <QStatusBar>
+#include "ui/canvas_widget.hpp"
+#include "psd/psd_binary.hpp"
+#include "formats/bmp_document_io.hpp"
+#include "formats/aseprite_document_io.hpp"
+#include "formats/ico_document_io.hpp"
+#include "formats/tga_document_io.hpp"
+#include "synthetic_dng.hpp"
+#include <QByteArray>
+#include <QList>
+#include <QIODevice>
+#include <QWidget>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string_view>
 // Files as Layers (issue 25): OS files dropped on the Layers panel and File >
 // Import > Files as Layers, a part file of the layer_panel_organization group
 // (the aggregator in layer_panel_organization_tests.cpp appends this part's
 // vector). Paste and the script API have their own tests beside their peers.
-
-#include "core/layer_tree.hpp"
 #include "psd/psd_document_io.hpp"
 #include "ui/main_window.hpp"
 #include "ui/qt_paths.hpp"
-
 #include "test_harness.hpp"
 #include "ui_test_access.hpp"
 #include "ui_test_support.hpp"
-
 #include <QAction>
 #include <QApplication>
 #include <QColor>
@@ -26,11 +50,9 @@
 #include <QMimeData>
 #include <QPoint>
 #include <QProgressDialog>
-#include <QStatusBar>
 #include <QStringList>
 #include <QTimer>
 #include <QUrl>
-
 #include <functional>
 #include <string>
 #include <utility>

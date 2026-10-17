@@ -5,12 +5,10 @@
 
 #include "ai/ai_selection_math.hpp"
 #include "ai/segmentation_engine.hpp"
-
 #include "formats/stb/stb_image.h"
 #include "local_psd_fixtures.hpp"
 #include "test_harness.hpp"
 #include "unicode_path_names.hpp"
-
 #include <algorithm>
 #include <chrono>
 #include <cmath>

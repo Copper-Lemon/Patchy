@@ -11,7 +11,6 @@
 #include "local_psd_fixtures.hpp"
 #include "test_harness.hpp"
 #include "ui_test_groups.hpp"
-
 #include "core/document.hpp"
 #include "core/document_depth.hpp"
 #include "core/adjustment_layer.hpp"
@@ -23,9 +22,7 @@
 #include "ui/image_document_io.hpp"
 #include "ui/qt_paths.hpp"
 #include "ui/smart_object_render.hpp"
-
 #include <QImage>
-
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>

@@ -2,9 +2,7 @@
 #include "core/mask_outline.hpp"
 #include "core/path_fit.hpp"
 #include "core/vector_shape.hpp"
-
 #include "test_harness.hpp"
-
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>

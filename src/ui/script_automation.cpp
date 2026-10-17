@@ -89,7 +89,7 @@ bool ScriptEngineHost::session_modified(std::int64_t id) const {
 
 bool ScriptEngineHost::session_can_undo(std::int64_t id, bool redo) const {
   const auto* session = window_.session_with_id(id);
-  return session && !(redo ? session->redo_stack : session->undo_stack).empty();
+  return session && !(redo ? session->history.redo_stack() : session->history.undo_stack()).empty();
 }
 
 bool ScriptEngineHost::restore_session_history(std::int64_t id, bool redo) {
@@ -125,7 +125,7 @@ QJsonObject ScriptEngineHost::automation_state() const {
     if (has_selection(id)) { selection["bounds"] = rect_json(selection_region(id).boundingRect()); }
     documents.append(QJsonObject{{"id", QString::number(id)}, {"name", session_title(id)},
         {"revision", QString::number(window_.session_with_id(id)->revision)},
-        {"historyStateId", QString::number(window_.session_with_id(id)->current_state_id)},
+        {"historyStateId", QString::number(window_.session_with_id(id)->history.current_state_id())},
         {"path", session_file_path(id)}, {"width", doc->width()}, {"height", doc->height()},
         {"modified", session_modified(id)}, {"canUndo", session_can_undo(id)},
         {"canRedo", session_can_undo(id, true)}, {"layers", layer_state(doc->layers(), doc->layers())},

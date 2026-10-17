@@ -4,28 +4,41 @@
 
 #include "ui/canvas_widget_shared.hpp"
 
-#include "core/pixel_depth.hpp"
-
 #include "core/blend_math.hpp"
+#include "core/layer.hpp"
 #include "core/layer_metadata.hpp"
 #include "core/layer_render_utils.hpp"
+#include "core/pixel_buffer.hpp"
+#include "core/pixel_depth.hpp"
+#include "core/pixel_tools.hpp"
 #include "core/smart_filter.hpp"
 #include "core/smart_object.hpp"
+#include "ui/canvas_types.hpp"
 #include "ui/canvas_widget.hpp"
 #include "ui/edit_conversions.hpp"
 #include "ui/qt_geometry.hpp"
 
+#include <QColor>
 #include <QImage>
 #include <QPainter>
 #include <QPen>
+#include <QPoint>
+#include <QPointF>
+#include <QRect>
 #include <QRegion>
+#include <QSize>
+#include <Qt>
+#include <QtGlobal>
 
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <cstring>
 #include <cstdint>
+#include <cstring>
+#include <functional>
 #include <limits>
+#include <optional>
+#include <utility>
 #include <vector>
 
 namespace patchy::ui {

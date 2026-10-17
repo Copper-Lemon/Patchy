@@ -7,9 +7,8 @@ namespace patchy::ui {
 QString build_timestamp_text() {
   // PATCHY_BUILD_STAMP is "yyyy-MM-dd HH:mm" in the build machine's local
   // wall clock, written into a generated header that the patchy_build_stamp
-  // custom target rewrites on every build. Never use __DATE__/__TIME__ here:
-  // they freeze when this translation unit last compiled, so an incremental
-  // build ships a stale date. All release builds happen on machines that run
+  // rule refreshes after source/build inputs change or packaging requests it.
+  // Unchanged builds reuse the binary and its date. All release builds run in
   // JST, so the label is hardcoded rather than guessed at runtime: a user's
   // machine cannot recover the build zone from a naive timestamp.
   return QStringLiteral(PATCHY_BUILD_STAMP " JST");

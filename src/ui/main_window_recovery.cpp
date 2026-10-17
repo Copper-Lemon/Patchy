@@ -4,13 +4,13 @@
 // list, owns the user-facing text, and forwards the public recovery members.
 
 #include "ui/main_window.hpp"
+#include "ui/background_workers.hpp"
+#include <QStatusBar>
 #include "ui/main_window_shared.hpp"
 
 #include "core/document_recovery_store.hpp"
-#include "psd/psd_document_io.hpp"
 #include "support/path_utils.hpp"
 #include "ui/app_settings.hpp"
-#include "ui/background_workers.hpp"
 #include "ui/canvas_widget.hpp"
 #include "ui/document_recovery.hpp"
 #include "ui/document_recovery_coordinator.hpp"
@@ -18,8 +18,11 @@
 
 #include <QApplication>
 #include <QDir>
-#include <QStatusBar>
+#include <QString>
+#include <QStringList>
+#include <QStringLiteral>
 #include <QTextEdit>
+#include <QtGlobal>
 
 #include <cstdint>
 #include <memory>
@@ -64,11 +67,11 @@ public:
       }
       const auto mark = marks.find(target_session->session_id);
       if (mark != marks.end() && mark->second.revision == target_session->revision &&
-          mark->second.state_id == target_session->current_state_id) {
+          mark->second.state_id == target_session->history.current_state_id()) {
         continue;
       }
       RecoveryJob job;
-      job.mark = RecoveryMark{target_session->session_id, target_session->revision, target_session->current_state_id};
+      job.mark = RecoveryMark{target_session->session_id, target_session->revision, target_session->history.current_state_id()};
       // A copy shares pixel storage with the live document until the user's next edit
       // detaches the live side; the worker only reads it (const Document&).
       job.snapshot = std::as_const(*target_session).document;
@@ -85,7 +88,7 @@ public:
     if (target_session == nullptr || !window_.session_is_modified(*target_session)) {
       return std::nullopt;
     }
-    return RecoveryMark{session_id, target_session->revision, target_session->current_state_id};
+    return RecoveryMark{session_id, target_session->revision, target_session->history.current_state_id()};
   }
 
   bool open_recovered_document(const QString& psb_path, const QString& title, const QString& original_path,

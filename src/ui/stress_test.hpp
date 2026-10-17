@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ui/canvas_widget.hpp"
+#include "ui/canvas_types.hpp"
 
 #include <QDateTime>
 #include <QSize>
@@ -56,7 +56,7 @@ struct StressStepResult {
   int frames{0};
   int inputs{0};
   bool timed_out{false};
-  CanvasWidget::RenderCacheDiagnostics diag_delta{};
+  CanvasRenderCacheDiagnostics diag_delta{};
   // Reference duration from kStepBaselines; < 0 = unrated step.
   double baseline_ms{-1.0};
 };

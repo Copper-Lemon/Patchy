@@ -8,9 +8,9 @@
 
 #include "core/document.hpp"
 #include "core/layer.hpp"
-#include "core/stroke_patch.hpp"
-#include "ui/canvas_widget.hpp"
-#include "ui/image_document_io.hpp"
+#include "ui/session_history.hpp"
+#include "ui/canvas_types.hpp"
+#include "ui/image_save_options.hpp"
 
 #include <QString>
 
@@ -24,33 +24,12 @@
 
 namespace patchy::ui {
 
+class CanvasWidget;
 class DocumentFloatWindow;
 
 struct DocumentSession {
-  struct HistoryState {
-    // The whole document at this point in history, or an empty Document when
-    // `patch` holds the state instead.
-    Document document;
-    // A paint stroke's record (core/stroke_patch.hpp): this state equals the
-    // next newer state (or the live document) with the patch's `before`
-    // pixels written back. Undo/redo write the patch into the live document
-    // in place instead of swapping documents; the memory budget counts its
-    // bytes. Eviction from the stack front is always safe because a patch
-    // depends only on newer states.
-    std::optional<StrokePatch> patch;
-    [[nodiscard]] bool is_stroke_patch() const noexcept { return patch.has_value(); }
-    std::int64_t revision{0};
-    // Selection state at this point in history, so undo/redo restores the
-    // selection alongside the pixels (and selection-only edits are undoable).
-    CanvasWidget::SelectionSnapshot selection;
-    // Action that produced this state (History panel row text). The label a
-    // push receives names the upcoming edit, so it becomes the label of the
-    // NEXT state, not of the snapshot being stored.
-    QString label;
-    // Monotonic per-session row identity; panel rows reference states by id
-    // because cap eviction from the stack front shifts vector indices.
-    std::int64_t state_id{0};
-  };
+  using HistoryState = SessionHistory::State;
+
 
   Document document;
   QString title;
@@ -91,8 +70,7 @@ struct DocumentSession {
   DocumentFloatWindow* float_window{nullptr};
   // Tab position to restore on Dock to Tabs (clamped; -1 when never floated).
   int floated_from_tab_index{-1};
-  std::vector<HistoryState> undo_stack;
-  std::vector<HistoryState> redo_stack;
+  SessionHistory history;
   std::set<LayerId> collapsed_layer_groups;
   // Alt-click eye isolation. `saved` is the pre-isolation visibility snapshot
   // (pre-order); `applied` is the state right after isolating, so any outside
@@ -106,19 +84,7 @@ struct DocumentSession {
   std::optional<VisibilityIsolation> visibility_isolation;
   std::int64_t revision{0};
   std::int64_t saved_revision{0};
-  // True when the top undo entry is a coalescable selection move, so the next
-  // move in the run merges into it instead of pushing a new entry.
-  bool selection_move_coalescing{false};
-  // Label and id of the live document's state (the action that produced it);
-  // pushes hand these to the stored snapshot and take fresh ones.
-  QString current_state_label;
-  std::int64_t current_state_id{0};
-  std::int64_t next_history_state_id{1};
-  static constexpr std::size_t kMaxUndoStates = 40;
-  // The history byte budget never evicts a session below this many undo
-  // states, even when a single snapshot exceeds the whole budget: a floor of
-  // recent undo beats strict memory bounds for giant documents.
-  static constexpr std::size_t kMinUndoStatesUnderPressure = 3;
+
 };
 
 }  // namespace patchy::ui

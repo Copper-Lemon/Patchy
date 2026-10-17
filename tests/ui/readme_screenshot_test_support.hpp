@@ -5,12 +5,10 @@
 // readme_screenshot_tests part TU). Moved, never copied.
 
 #include <string>
-
 #include <QImage>
 #include <QListWidget>
 #include <QPoint>
 #include <QString>
-
 #include "ui/main_window.hpp"
 
 namespace patchy::test::ui {

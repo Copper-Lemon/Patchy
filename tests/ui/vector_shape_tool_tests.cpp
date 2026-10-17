@@ -1,11 +1,43 @@
+#include <QJsonObject>
+#include <QLayout>
+#include <QScrollBar>
+#include <QStatusBar>
+#include "ui/canvas_widget.hpp"
+#include "core/pattern_presets.hpp"
+#include "ui/theme_manager.hpp"
+#include "ui/main_window.hpp"
+#include "ui/app_settings.hpp"
+#include "synthetic_dng.hpp"
+#include "test_harness.hpp"
+#include <QApplication>
+#include <QEventLoop>
+#include <QFile>
+#include <QJsonDocument>
+#include <QTemporaryDir>
+#include <QMetaObject>
+#include <QIODevice>
+#include <QStringList>
+#include <QWidget>
+#include <atomic>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+#include "ui_test_access.hpp"
 // Shape-tool vector mode tests: Shape-mode drags create shape layers (with
 // combine ops extending them), Path mode populates the work path, Pixels mode
 // keeps the legacy raster commit, and the mode rides new sessions.
 #include "ui_test_support.hpp"
 #include "ui/color_panel.hpp"
-
 #include "core/document_path.hpp"
-#include "core/palette.hpp"
 #include "core/palette_presets.hpp"
 #include "core/pixel_buffer.hpp"
 #include "core/vector_shape.hpp"
@@ -15,9 +47,7 @@
 #include "ui/measurement_units.hpp"
 #include "ui/pattern_library.hpp"
 #include "ui/shape_appearance_dialog.hpp"
-#include "ui/theme_palette.hpp"
 #include "ui/unit_spin_box.hpp"
-
 #include <QAction>
 #include <QCheckBox>
 #include <QComboBox>
@@ -25,26 +55,20 @@
 #include <QDockWidget>
 #include <QDoubleSpinBox>
 #include <QLabel>
-#include <QLayout>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMenu>
 #include <QSpinBox>
-#include <QGroupBox>
 #include <QImage>
 #include <QDialogButtonBox>
-#include <QScreen>
-#include <QScrollBar>
 #include <QScrollArea>
 #include <QStandardItemModel>
-#include <QStatusBar>
 #include <QTimer>
 #include <QMouseEvent>
 #include <QToolBar>
 #include <QToolButton>
 #include <QPushButton>
 #include <QEvent>
-
 #include <algorithm>
 #include <array>
 #include <cmath>

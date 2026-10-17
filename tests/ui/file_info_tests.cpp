@@ -1,7 +1,35 @@
+#include <QAbstractButton>
+#include "ui/canvas_widget.hpp"
+#include "core/adjustment_layer.hpp"
+#include "formats/acv_curves_io.hpp"
+#include "formats/bmp_document_io.hpp"
+#include "formats/aseprite_document_io.hpp"
+#include "formats/ico_document_io.hpp"
+#include "formats/tga_document_io.hpp"
+#include <QIODevice>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 // File > File Info end to end (docs/file-info.md): metadata captured when a file opens,
 // the dialog viewing and editing it, undo, Strip All Metadata, and what each save and
 // export policy writes back.
-
 #include "formats/metadata/exif_tags.hpp"
 #include "formats/metadata/metadata_containers.hpp"
 #include "formats/metadata/metadata_edit.hpp"
@@ -11,15 +39,11 @@
 #include "formats/metadata/xmp.hpp"
 #include "psd/psd_document_io.hpp"
 #include "ui/file_info_dialog.hpp"
-#include "ui/image_document_io.hpp"
 #include "ui/main_window.hpp"
 #include "ui/qt_paths.hpp"
-
-#include <QAbstractButton>
 #include <QApplication>
 #include <QBuffer>
 #include <QColorSpace>
-#include <QDialog>
 #include <QDir>
 #include <QFile>
 #include <QImage>
@@ -30,7 +54,6 @@
 #include <QMessageBox>
 #include <QTimer>
 #include <QTreeWidget>
-
 #include "test_harness.hpp"
 #include "ui_test_access.hpp"
 #include "ui_test_groups.hpp"

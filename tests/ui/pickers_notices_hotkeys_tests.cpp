@@ -1,183 +1,57 @@
+#include <QClipboard>
+#include <QStatusBar>
+
 #include "ui/canvas_widget.hpp"
 #include "ui/qt_paths.hpp"
 #include "core/adjustment_layer.hpp"
 #include "core/document_depth.hpp"
 #include "core/pixel_depth.hpp"
-#include "core/contour_presets.hpp"
-#include "core/gradient_presets.hpp"
 #include "core/layer_metadata.hpp"
-#include "core/pattern_presets.hpp"
-#include "core/smart_filter.hpp"
-#include "core/smart_filter_effects.hpp"
 #include "core/smart_object.hpp"
-#include "core/text_warp.hpp"
-#include "ui/smart_object_render.hpp"
-#include "core/layer_tree.hpp"
-#include "core/palette.hpp"
-#include "core/palette_presets.hpp"
-#include "ui/palette_panel.hpp"
-#include "ui/pattern_library.hpp"
-#include "ui/pattern_manager_dialog.hpp"
-#include "ui/photo_pattern_presets.hpp"
-#include "ui/style_browser.hpp"
-#include "ui/style_library.hpp"
-#include "ui/style_manager_dialog.hpp"
-#include "psd/asl_io.hpp"
-#include "psd/psd_binary.hpp"
-#include "psd/psd_layer_effects.hpp"
-#include "core/style_presets.hpp"
-#include "ui/brush_tip_library.hpp"
-#include "ui/brush_tip_manager_dialog.hpp"
-#include "ui/brush_tip_picker.hpp"
-#include "ui/blend_if_range_editor.hpp"
 #include "ui/color_panel.hpp"
-#include "ui/default_brush_tips.hpp"
 #include "ui/dialog_utils.hpp"
-#include "ui/document_float_window.hpp"
 #include "ui/theme_qss.hpp"
 #include "ui/compatibility_report.hpp"
-#include "ui/curves_editor.hpp"
-#include "ui/curves_presets.hpp"
-#include "ui/filter_workflows.hpp"
-#include "ui/filter_look_library.hpp"
-#include "ui/font_picker.hpp"
-#include "ui/gradient_stops_editor.hpp"
-#include "ui/gradient_library.hpp"
-#include "ui/gradient_manager_dialog.hpp"
-#include "formats/acv_curves_io.hpp"
 #include "formats/bmp_document_io.hpp"
 #include "formats/aseprite_document_io.hpp"
 #include "formats/ico_document_io.hpp"
 #include "formats/tga_document_io.hpp"
 #include "ui/image_document_io.hpp"
 #include "ui/measurement_units.hpp"
-#include "ui/image_save_options_dialog.hpp"
-#include "ui/layer_list_widget.hpp"
-#include "ui/layer_style_dialog.hpp"
-#include "ui/localization.hpp"
 #include "ui/main_window.hpp"
 #include "ui/script_folders.hpp"
-#include "ui/print_dialog.hpp"
-#include "ui/selection_outline.hpp"
-#include "ui/sprite_sheet_dialog.hpp"
-#include "ui/splash_dialog.hpp"
 #include "ui/app_settings.hpp"
-#include "ui/update_checker.hpp"
-#include "ui/visual_filter_gallery_dialog.hpp"
-#include "ui/zoomable_image_preview.hpp"
-#include "ui/zoom_status_bar.hpp"
-#include "filters/builtin_filters.hpp"
 #include "psd/psd_document_io.hpp"
-#include "psd/psd_filter_effects.hpp"
-#include "render/compositor.hpp"
 #include "synthetic_dng.hpp"
-#include "test_fonts.hpp"
 #include "test_harness.hpp"
-#include "local_psd_fixtures.hpp"
-
-#include <QAbstractItemModel>
 #include <QAbstractSpinBox>
-#include <QAbstractItemView>
-#include <QAbstractTextDocumentLayout>
 #include <QAction>
 #include <QApplication>
-#include <QBuffer>
-#include <QByteArray>
 #include <QCheckBox>
-#include <QClipboard>
 #include <QComboBox>
-#include <QContextMenuEvent>
 #include <QDialog>
-#include <QDialogButtonBox>
-#include <QDataStream>
-#include <QDockWidget>
-#include <QDir>
 #include <QDoubleSpinBox>
-#include <QDragEnterEvent>
-#include <QDragMoveEvent>
-#include <QDropEvent>
-#include <QElapsedTimer>
-#include <QEventLoop>
-#include <QFile>
-#include <QFileDialog>
 #include <QFileInfo>
-#include <QFont>
-#include <QFontComboBox>
-#include <QFontDatabase>
 #include <QFrame>
-#include <QGroupBox>
-#include <QImage>
-#include <QImageReader>
-#include <QImageWriter>
-#include <QInputDevice>
-#include <QInputDialog>
 #include <QKeyEvent>
-#include <QItemSelectionModel>
 #include <QLabel>
 #include <QLineEdit>
 #include <QList>
-#include <QListView>
-#include <QLayout>
-#include <QListWidget>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QTemporaryDir>
-#include <QLocale>
-#include <QSizeGrip>
 #include <QMetaObject>
-#include <QMouseEvent>
-#include <QMenu>
-#include <QMenuBar>
-#include <QMimeData>
 #include <QMessageBox>
-#include <QIODevice>
-#include <QLinearGradient>
-#include <QPainter>
-#include <QPainterPath>
-#include <QPointer>
-#include <QPolygonF>
-#include <QThread>
-#include <QPaintEvent>
-#include <QPixmap>
-#include <QPointingDevice>
 #include <QProgressDialog>
 #include <QPushButton>
-#include <QStackedWidget>
-#include <QRadioButton>
 #include <QSpinBox>
-#include <QScopeGuard>
 #include <QStringList>
-#include <QScrollBar>
-#include <QScreen>
-#include <QSettings>
 #include <QSlider>
-#include <QStandardItemModel>
-#include <QStatusBar>
-#include <QStyle>
-#include <QStyleOptionSlider>
-#include <QStyleOptionSpinBox>
-#include <QTabBar>
 #include <QTabWidget>
-#include <QTableWidget>
-#include <QTabletEvent>
 #include <QTest>
-#include <QTextBlock>
-#include <QTextCursor>
-#include <QTextEdit>
-#include <QTextDocument>
-#include <QTextFragment>
-#include <QTextLayout>
 #include <QTimer>
-#include <QToolBar>
 #include <QToolButton>
-#include <QTreeWidget>
-#include <QUrl>
 #include <QVariant>
 #include <QWheelEvent>
-#include <QWindow>
 #include <QWidget>
-
 #include <algorithm>
 #include <atomic>
 #include <array>
@@ -198,15 +72,11 @@
 #include <string_view>
 #include <utility>
 #include <vector>
-
 #include "ui_test_access.hpp"
 #include "ui_test_groups.hpp"
 #include "ui_test_support.hpp"
-
 namespace {
-
 using namespace patchy::test::ui;
-
 void ui_color_picker_changes_foreground_color() {
   ensure_artifact_dir();
   patchy::ui::MainWindow window;
@@ -214,7 +84,6 @@ void ui_color_picker_changes_foreground_color() {
   auto* canvas = require_canvas(window);
   auto* foreground = window.findChild<QPushButton*>(QStringLiteral("foregroundColorButton"));
   CHECK(foreground != nullptr);
-
   foreground->click();
   QApplication::processEvents();
   QDialog* dialog = nullptr;
@@ -231,7 +100,6 @@ void ui_color_picker_changes_foreground_color() {
   CHECK(dialog->windowFlags().testFlag(Qt::FramelessWindowHint));
   CHECK(dialog->findChild<QWidget*>(QStringLiteral("dialogChromeTitleBar")) != nullptr);
   CHECK(dialog->findChild<QToolButton*>(QStringLiteral("dialogChromeCloseButton")) != nullptr);
-
   auto* picker = dialog->findChild<patchy::ui::PatchyColorPicker*>(QStringLiteral("patchyAdvancedColorPicker"));
   CHECK(picker != nullptr);
   auto* color_plane = picker->findChild<QWidget*>(QStringLiteral("patchyColorPlane"));
@@ -297,7 +165,6 @@ void ui_color_picker_changes_foreground_color() {
   dialog->close();
   QApplication::processEvents();
 }
-
 void ui_color_picker_ignores_reentrant_requests() {
   ensure_artifact_dir();
   const auto count_visible_pickers = [] {
@@ -309,7 +176,6 @@ void ui_color_picker_ignores_reentrant_requests() {
     }
     return count;
   };
-
   bool nested_request_returned = false;
   std::optional<QColor> nested_result;
   int pickers_while_first_open = 0;
@@ -339,7 +205,6 @@ void ui_color_picker_ignores_reentrant_requests() {
   QApplication::processEvents();
   CHECK(count_visible_pickers() == 0);
 }
-
 void ui_color_picker_closes_with_parent_dialog() {
   // Pickers launched from a dialog (layer style swatches, gradient stops) are
   // non-modal, so the user can close the parent dialog while the picker is still
@@ -350,7 +215,6 @@ void ui_color_picker_closes_with_parent_dialog() {
   parent.setObjectName(QStringLiteral("testPickerParentDialog"));
   parent.show();
   QApplication::processEvents();
-
   bool closed_parent_while_picker_open = false;
   QTimer::singleShot(0, &parent, [&] {
     closed_parent_while_picker_open = true;
@@ -363,7 +227,6 @@ void ui_color_picker_closes_with_parent_dialog() {
   for (auto* widget : QApplication::topLevelWidgets()) {
     CHECK(!(widget->objectName() == QStringLiteral("patchyColorDialog") && widget->isVisible()));
   }
-
   // The single-picker guard must have been released with it: a later request
   // opens a fresh picker instead of silently doing nothing.
   bool second_picker_opened = false;
@@ -381,7 +244,6 @@ void ui_color_picker_closes_with_parent_dialog() {
   CHECK(second_picker_opened);
   CHECK(second.has_value());
 }
-
 // A picker opened from a dialog styled with dialog_spinbox_button_style() (the G'MIC
 // Filter Library's color swatches) keeps room for its digits: that style reserves 54 px
 // on the right for -/+ buttons, and the picker's 44 px fields have none.
@@ -416,7 +278,6 @@ void ui_color_picker_fields_keep_their_digits_in_a_styled_dialog() {
   (void)patchy::ui::request_patchy_color(&parent, QColor(0x5a, 0x2d, 0x25), QStringLiteral("Styled parent"));
   CHECK(checked);
 }
-
 void ui_color_picker_wheel_and_sliders_modes() {
   ensure_artifact_dir();
   patchy::ui::MainWindow window;
@@ -424,14 +285,12 @@ void ui_color_picker_wheel_and_sliders_modes() {
   auto* canvas = require_canvas(window);
   auto* foreground = window.findChild<QPushButton*>(QStringLiteral("foregroundColorButton"));
   CHECK(foreground != nullptr);
-
   // Clear any persisted tab so the picker opens on Square (the unset default).
   {
     auto settings = patchy::ui::app_settings();
     settings.remove(QStringLiteral("colorPanel/lastTab"));
     settings.sync();
   }
-
   foreground->click();
   QApplication::processEvents();
   QDialog* dialog = nullptr;
@@ -442,18 +301,15 @@ void ui_color_picker_wheel_and_sliders_modes() {
     }
   }
   CHECK(dialog != nullptr);
-
   auto* picker = dialog->findChild<patchy::ui::PatchyColorPicker*>(QStringLiteral("patchyAdvancedColorPicker"));
   CHECK(picker != nullptr);
   auto* tabs = picker->findChild<QTabWidget*>(QStringLiteral("patchyColorPickerTabs"));
   CHECK(tabs != nullptr);
   CHECK(tabs->count() == 3);
   CHECK(tabs->currentIndex() == 0);  // Square mode is the unset default.
-
   // Start from a fully saturated colour so hue edits on the wheel are visible.
   picker->setCurrentColor(QColor(0, 128, 255));
   QApplication::processEvents();
-
   // --- Wheel mode: hue ring + inner saturation/value square. ---
   tabs->setCurrentIndex(1);
   QApplication::processEvents();
@@ -461,7 +317,6 @@ void ui_color_picker_wheel_and_sliders_modes() {
   CHECK(wheel != nullptr);
   CHECK(wheel->width() >= 150);
   CHECK(wheel->height() >= 150);
-
   // Mirror the widget's own geometry so the clicks land on the ring / inner square
   // regardless of how large the wheel expanded to.
   const int cx = wheel->width() / 2;
@@ -470,11 +325,9 @@ void ui_color_picker_wheel_and_sliders_modes() {
   const double outer = side / 2.0 - 2.0;
   const double inner = outer - 20.0;  // kColorWheelRing
   const int ring_radius = static_cast<int>(std::lround((outer + inner) / 2.0));
-
   // The ring is a static hue wheel; its 3 o'clock band is red (hue 0).
   const auto wheel_image = wheel->grab().toImage();
   CHECK(color_close(wheel_image.pixelColor(cx + ring_radius, cy), QColor(255, 0, 0), 80));
-
   // Click the top of the ring (12 o'clock) -> hue ~90.
   auto* hue_spin = picker->findChild<QSpinBox*>(QStringLiteral("patchyColorHueSpin"));
   CHECK(hue_spin != nullptr);
@@ -483,7 +336,6 @@ void ui_color_picker_wheel_and_sliders_modes() {
   QApplication::processEvents();
   CHECK(std::abs(hue_spin->value() - 90) <= 6);
   dialog->grab().save(QStringLiteral("test-artifacts/ui_color_picker_wheel.png"));
-
   // Click the centre of the inner square -> mid saturation/value (well inside the
   // ring), confirming the square drives sat/val while the hue stays put.
   auto* sat_spin = picker->findChild<QSpinBox*>(QStringLiteral("patchyColorSaturationSpin"));
@@ -503,23 +355,19 @@ void ui_color_picker_wheel_and_sliders_modes() {
   QApplication::processEvents();
   CHECK(picker->currentColor().saturation() == 255 && picker->currentColor().value() == 255);
   CHECK(std::abs(hue_spin->value() - 90) <= 6);  // hue unchanged by the square
-
   // --- Sliders mode: one gradient track per channel. ---
   picker->setCurrentColor(QColor(40, 60, 80));
   tabs->setCurrentIndex(2);
   QApplication::processEvents();
-
   // Switching tabs is remembered for next time.
   {
     auto settings = patchy::ui::app_settings();
     CHECK(settings.value(QStringLiteral("colorPanel/lastTab"), -1).toInt() == 2);
   }
-
   auto* red_slider = picker->findChild<QWidget*>(QStringLiteral("patchyChannelSliderRed"));
   CHECK(red_slider != nullptr);
   CHECK(red_slider->width() > 40);
   const int slider_y = red_slider->height() / 2;
-
   // Drag the red track to the far right -> red 255, other channels untouched.
   send_mouse(*red_slider, QEvent::MouseButtonPress, QPoint(red_slider->width() - 1, slider_y), Qt::LeftButton,
              Qt::LeftButton);
@@ -528,17 +376,14 @@ void ui_color_picker_wheel_and_sliders_modes() {
   QApplication::processEvents();
   CHECK(canvas->primary_color() == QColor(255, 60, 80));
   dialog->grab().save(QStringLiteral("test-artifacts/ui_color_picker_sliders.png"));
-
   // Far left -> red 0.
   send_mouse(*red_slider, QEvent::MouseButtonPress, QPoint(0, slider_y), Qt::LeftButton, Qt::LeftButton);
   send_mouse(*red_slider, QEvent::MouseButtonRelease, QPoint(0, slider_y), Qt::LeftButton, Qt::NoButton);
   QApplication::processEvents();
   CHECK(canvas->primary_color().red() == 0);
-
   dialog->close();
   QApplication::processEvents();
 }
-
 void ui_dialog_position_memory_restores_last_position() {
   const auto settings_group = QStringLiteral("dialogPositions/patchyDialogPositionMemoryTest");
   {
@@ -546,13 +391,11 @@ void ui_dialog_position_memory_restores_last_position() {
     settings.remove(settings_group);
     settings.sync();
   }
-
   const auto screen_rect = QApplication::primaryScreen() != nullptr
                                ? QApplication::primaryScreen()->availableGeometry()
                                : QRect(0, 0, 640, 480);
   const auto target_position = screen_rect.topLeft() + QPoint(37, 43);
   QPoint saved_position;
-
   {
     QDialog dialog;
     dialog.setObjectName(QStringLiteral("patchyDialogPositionMemoryTest"));
@@ -573,7 +416,6 @@ void ui_dialog_position_memory_restores_last_position() {
     dialog.close();
     QApplication::processEvents();
   }
-
   {
     QDialog dialog;
     dialog.setObjectName(QStringLiteral("patchyDialogPositionMemoryTest"));
@@ -585,12 +427,10 @@ void ui_dialog_position_memory_restores_last_position() {
     dialog.close();
     QApplication::processEvents();
   }
-
   auto settings = patchy::ui::app_settings();
   settings.remove(settings_group);
   settings.sync();
 }
-
 void ui_dialog_position_memory_centers_unmoved_dialogs_on_parent() {
   const auto settings_group = QStringLiteral("dialogPositions/patchyDialogCenterTest");
   const auto screen_rect = QApplication::primaryScreen() != nullptr
@@ -602,32 +442,27 @@ void ui_dialog_position_memory_centers_unmoved_dialogs_on_parent() {
     settings.setValue(settings_group + QStringLiteral("/pos"), screen_rect.topLeft() + QPoint(4, 5));
     settings.sync();
   }
-
   QWidget parent;
   parent.resize(420, 260);
   parent.move(screen_rect.topLeft() + QPoint(80, 70));
   parent.show();
   QApplication::processEvents();
-
   QDialog dialog(&parent);
   dialog.setObjectName(QStringLiteral("patchyDialogCenterTest"));
   dialog.resize(140, 90);
   patchy::ui::remember_dialog_position(dialog);
   dialog.show();
   QApplication::processEvents();
-
   const auto expected_position =
       parent.frameGeometry().center() - QPoint(dialog.size().width() / 2, dialog.size().height() / 2);
   CHECK((dialog.pos() - expected_position).manhattanLength() <= 10);
   dialog.close();
   QApplication::processEvents();
-
   auto settings = patchy::ui::app_settings();
   CHECK(!settings.value(settings_group + QStringLiteral("/pos")).isValid());
   settings.remove(settings_group);
   settings.sync();
 }
-
 // Progress dialogs are transient status windows: a remembered position (here a
 // seeded one from an earlier layout) is ignored, the dialog is centered on its
 // owner, and moving it records nothing.
@@ -644,13 +479,11 @@ void ui_progress_dialogs_ignore_position_memory_and_center_on_parent() {
     settings.setValue(settings_group + QStringLiteral("/moved"), true);
     settings.sync();
   }
-
   QWidget parent;
   parent.resize(420, 260);
   parent.move(screen_rect.topLeft() + QPoint(160, 120));
   parent.show();
   QApplication::processEvents();
-
   {
     QProgressDialog dialog(QStringLiteral("Opening..."), QString(), 0, 0, &parent);
     dialog.setObjectName(QStringLiteral("patchyProgressPositionTest"));
@@ -659,25 +492,21 @@ void ui_progress_dialogs_ignore_position_memory_and_center_on_parent() {
     patchy::ui::remember_dialog_position(dialog);
     dialog.show();
     QApplication::processEvents();
-
     const auto expected_position =
         parent.frameGeometry().center() - QPoint(dialog.size().width() / 2, dialog.size().height() / 2);
     CHECK((dialog.pos() - expected_position).manhattanLength() <= 10);
     CHECK((dialog.pos() - far_position).manhattanLength() > 10);
-
     dialog.move(far_position);
     QApplication::processEvents();
     dialog.close();
     QApplication::processEvents();
   }
-
   auto settings = patchy::ui::app_settings();
   CHECK(!settings.value(settings_group + QStringLiteral("/pos")).isValid());
   CHECK(!settings.value(settings_group + QStringLiteral("/moved"), false).toBool());
   settings.remove(settings_group);
   settings.sync();
 }
-
 // Message boxes (the save prompt, every question) and dialogs marked with
 // mark_dialog_always_centered (About) ignore a remembered position: they center
 // on their owner every time and drop any saved spot (Seth, October 2026).
@@ -691,7 +520,6 @@ void ui_message_boxes_and_marked_dialogs_ignore_position_memory() {
   parent.move(screen_rect.topLeft() + QPoint(160, 120));
   parent.show();
   QApplication::processEvents();
-
   const auto seed = [far_position](const QString& group) {
     auto settings = patchy::ui::app_settings();
     settings.remove(group);
@@ -717,7 +545,6 @@ void ui_message_boxes_and_marked_dialogs_ignore_position_memory() {
     settings.remove(group);
     settings.sync();
   };
-
   {
     const auto group = QStringLiteral("dialogPositions/patchyMessageBoxPositionTest");
     seed(group);
@@ -753,7 +580,6 @@ void ui_message_boxes_and_marked_dialogs_ignore_position_memory() {
     settings.sync();
   }
 }
-
 void ui_message_boxes_stay_inside_screen_with_offscreen_parent() {
   const auto* screen = QApplication::primaryScreen();
   CHECK(screen != nullptr);
@@ -762,7 +588,6 @@ void ui_message_boxes_stay_inside_screen_with_offscreen_parent() {
   parent.resize(420, 260);
   parent.show();
   QApplication::processEvents();
-
   // Every edge, a corner, and an owner wholly outside the screen. The final
   // message-box size and native title bar must fit, not just its size hint.
   const std::vector<QPoint> positions{
@@ -789,7 +614,6 @@ void ui_message_boxes_stay_inside_screen_with_offscreen_parent() {
     }
   }
 }
-
 void ui_dialog_position_memory_clamps_native_frame_without_remembering_placement() {
   const auto* screen = QApplication::primaryScreen();
   CHECK(screen != nullptr);
@@ -797,7 +621,6 @@ void ui_dialog_position_memory_clamps_native_frame_without_remembering_placement
   const auto group = QStringLiteral("dialogPositions/patchyDialogFrameClampTest");
   auto settings = patchy::ui::app_settings();
   settings.remove(group);
-
   QWidget parent;
   parent.resize(420, 260);
   parent.move(available.bottomRight() - QPoint(20, 20));
@@ -824,7 +647,6 @@ void ui_dialog_position_memory_clamps_native_frame_without_remembering_placement
   }
   settings.remove(group);
 }
-
 void ui_message_box_expanded_details_stay_inside_screen() {
   QMessageBox box(QMessageBox::Warning, QStringLiteral("Warning"), QStringLiteral("Details are available."),
                   QMessageBox::Ok);
@@ -851,23 +673,19 @@ void ui_message_box_expanded_details_stay_inside_screen() {
   CHECK(expanded_frame.height() > collapsed_height);
   CHECK(available.contains(expanded_frame));
 }
-
 void ui_dirty_state_marks_tabs_and_undo_restores_saved_revision() {
   patchy::ui::MainWindow window;
   show_window(window);
   auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   CHECK(!tabs->tabText(tabs->currentIndex()).endsWith(QStringLiteral("*")));
-
   require_action(window, "layerFillForegroundAction")->trigger();
   QApplication::processEvents();
   CHECK(tabs->tabText(tabs->currentIndex()).endsWith(QStringLiteral("*")));
-
   require_action_by_text(window, QStringLiteral("Undo"))->trigger();
   QApplication::processEvents();
   CHECK(!tabs->tabText(tabs->currentIndex()).endsWith(QStringLiteral("*")));
 }
-
 void ui_compatibility_report_flags_psd_text_placeholders() {
   patchy::Document document(120, 90, patchy::PixelFormat::rgba8());
   auto& layer = document.add_pixel_layer("PSD Text", solid_pixels(120, 90, patchy::PixelFormat::rgba8(),
@@ -883,7 +701,6 @@ void ui_compatibility_report_flags_psd_text_placeholders() {
   CHECK(warnings.join(QLatin1Char('\n')).contains(QStringLiteral("TySh")));
   CHECK(warnings.join(QLatin1Char('\n')).contains(QStringLiteral("unknown PSD layer block")));
 }
-
 void ui_compatibility_report_ignores_patchy_written_psd_blocks() {
   patchy::Document document(120, 90, patchy::PixelFormat::rgb8());
   document.add_pixel_layer("Background", solid_pixels(120, 90, patchy::PixelFormat::rgb8(), QColor(Qt::white)));
@@ -894,12 +711,10 @@ void ui_compatibility_report_ignores_patchy_written_psd_blocks() {
   shadow.distance = 4.0F;
   shadow.size = 6.0F;
   text_layer.layer_style().drop_shadows.push_back(shadow);
-
   const auto round_tripped = patchy::psd::DocumentIo::read(patchy::psd::DocumentIo::write_layered_rgb8(document));
   const auto warnings = patchy::ui::compatibility_warnings_for_document(round_tripped);
   CHECK(warnings.isEmpty());
 }
-
 void ui_compatibility_report_treats_levels_as_native_psd_adjustment() {
   patchy::Document document(120, 90, patchy::PixelFormat::rgb8());
   document.add_pixel_layer("Background", solid_pixels(120, 90, patchy::PixelFormat::rgb8(), QColor(Qt::white)));
@@ -910,11 +725,9 @@ void ui_compatibility_report_treats_levels_as_native_psd_adjustment() {
   levels.set_bounds(patchy::Rect::from_size(document.width(), document.height()));
   patchy::configure_adjustment_layer(levels, settings);
   document.add_layer(std::move(levels));
-
   const auto warnings = patchy::ui::compatibility_warnings_for_document(document);
   CHECK(warnings.isEmpty());
 }
-
 // An adjustment layer read from a CMYK document runs on the inks; saving writes RGB, where
 // the same numbers mean something else, and the report says so.
 void ui_compatibility_report_warns_about_cmyk_ink_adjustments() {
@@ -925,7 +738,6 @@ void ui_compatibility_report_warns_about_cmyk_ink_adjustments() {
   space->rgb_to_ink.assign(2U * 2U * 2U * 4U, std::uint16_t{32768});
   space->ink_to_rgb.assign(2U * 2U * 2U * 2U * 3U, std::uint16_t{32768});
   patchy::register_ink_space(space);
-
   const auto warnings_for = [&](patchy::AdjustmentKind kind, bool in_ink_space, bool native_color = false) {
     patchy::Document document(60, 40, patchy::PixelFormat::rgb8());
     if (native_color) {
@@ -944,7 +756,6 @@ void ui_compatibility_report_warns_about_cmyk_ink_adjustments() {
     document.add_layer(std::move(adjustment));
     return patchy::ui::compatibility_warnings_for_document(document);
   };
-
   const auto ink = warnings_for(patchy::AdjustmentKind::Levels, true);
   CHECK(ink.size() == 1);
   CHECK(!ink.isEmpty() && ink.front().contains(QStringLiteral("Ink Levels")));
@@ -957,7 +768,6 @@ void ui_compatibility_report_warns_about_cmyk_ink_adjustments() {
   CHECK(native.front().contains(QStringLiteral("original color mode")));
   CHECK(native.front().contains(QStringLiteral("Content edits or unsupported layers require RGB saving")));
   CHECK(!native.front().contains(QStringLiteral("Patchy saves RGB files")));
-
   // A grayscale document's space is the one-channel form, and the wording follows it.
   auto gray = std::make_shared<patchy::InkSpace>();
   gray->id = "test-gray-space";
@@ -970,7 +780,6 @@ void ui_compatibility_report_warns_about_cmyk_ink_adjustments() {
   CHECK(!gray_warning.isEmpty() && gray_warning.front().contains(QStringLiteral("grayscale")));
   CHECK(!gray_warning.isEmpty() && !gray_warning.front().contains(QStringLiteral("CMYK")));
 }
-
 void ui_compatibility_report_pins_native_vs_private_adjustment_kinds() {
   const auto adjustment_warnings = [](patchy::AdjustmentKind kind) {
     patchy::Document document(120, 90, patchy::PixelFormat::rgb8());
@@ -984,7 +793,6 @@ void ui_compatibility_report_pins_native_vs_private_adjustment_kinds() {
     document.add_layer(std::move(adjustment));
     return patchy::ui::compatibility_warnings_for_document(document);
   };
-
   // Every modeled kind writes a native Photoshop block and stays warning-free
   // (Color Balance included since the July 2026 blnc migration).
   for (const auto kind :
@@ -993,7 +801,6 @@ void ui_compatibility_report_pins_native_vs_private_adjustment_kinds() {
         patchy::AdjustmentKind::Threshold, patchy::AdjustmentKind::BrightnessContrast}) {
     CHECK(adjustment_warnings(kind).isEmpty());
   }
-
   // An adjustment layer whose settings cannot be parsed still warns.
   patchy::Document document(120, 90, patchy::PixelFormat::rgb8());
   document.add_pixel_layer("Background",
@@ -1004,12 +811,10 @@ void ui_compatibility_report_pins_native_vs_private_adjustment_kinds() {
   const auto opaque_text = patchy::ui::compatibility_warnings_for_document(document).join(QLatin1Char('\n'));
   CHECK(opaque_text.contains(QStringLiteral("Patchy-native adjustment layer")));
 }
-
 void ui_compatibility_report_flags_cmyk_rgb_conversion() {
   patchy::Document document(120, 90, patchy::PixelFormat::rgb8());
   document.metadata().values["psd.color_mode"] = "CMYK";
   document.add_pixel_layer("Background", solid_pixels(120, 90, patchy::PixelFormat::rgb8(), QColor(Qt::white)));
-
   const auto warnings = patchy::ui::compatibility_warnings_for_document(document);
   CHECK(!warnings.isEmpty());
   const auto text = warnings.join(QLatin1Char('\n'));
@@ -1017,12 +822,10 @@ void ui_compatibility_report_flags_cmyk_rgb_conversion() {
   CHECK(text.contains(QStringLiteral("converted")));
   CHECK(text.contains(QStringLiteral("RGB/RGBA")));
 }
-
 void ui_compatibility_report_flags_grayscale_rgb_conversion() {
   patchy::Document document(120, 90, patchy::PixelFormat::rgb8());
   document.metadata().values["psd.color_mode"] = "Grayscale";
   document.add_pixel_layer("Background", solid_pixels(120, 90, patchy::PixelFormat::rgb8(), QColor(Qt::white)));
-
   const auto warnings = patchy::ui::compatibility_warnings_for_document(document);
   CHECK(!warnings.isEmpty());
   const auto text = warnings.join(QLatin1Char('\n'));
@@ -1030,7 +833,6 @@ void ui_compatibility_report_flags_grayscale_rgb_conversion() {
   CHECK(text.contains(QStringLiteral("converted")));
   CHECK(text.contains(QStringLiteral("RGB/RGBA")));
 }
-
 void ui_compatibility_report_flags_unrendered_styles_on_groups() {
   // Group layer effects RENDER since July 2026, so a styled group must NOT
   // raise a compatibility warning anymore (the Satin-contour warning below
@@ -1046,14 +848,12 @@ void ui_compatibility_report_flags_unrendered_styles_on_groups() {
   group.add_child(patchy::Layer(document.allocate_layer_id(), "Child",
                                solid_pixels(20, 20, patchy::PixelFormat::rgba8(), QColor(Qt::white))));
   document.add_layer(std::move(group));
-
   const auto warnings = patchy::ui::compatibility_warnings_for_document(document);
   const auto text = warnings.join(QLatin1Char('\n'));
   CHECK(!text.contains(QStringLiteral("group with layer effects")));
   CHECK(!text.contains(QStringLiteral("does not render group layer effects")));
   // Pattern Overlay is a supported effect now; the report must not warn about it.
   CHECK(!text.contains(QStringLiteral("Pattern Overlay")));
-
   auto& imported_satin = document.layers().front().layer_style().satins.front();
   imported_satin.enabled = false;
   imported_satin.unsupported_contour_options = true;
@@ -1063,7 +863,6 @@ void ui_compatibility_report_flags_unrendered_styles_on_groups() {
   CHECK(contour_text.contains(QStringLiteral("custom curve or anti-aliasing")));
   CHECK(contour_text.contains(QStringLiteral("non-anti-aliased Linear contour")));
 }
-
 void ui_compatibility_report_handles_supported_unsupported_and_boundary_blend_if() {
   constexpr std::array<std::uint8_t, 8> identity_range{0, 0, 255, 255, 0, 0, 255, 255};
   std::vector<std::uint8_t> identity_payload;
@@ -1073,7 +872,6 @@ void ui_compatibility_report_handles_supported_unsupported_and_boundary_blend_if
       identity_payload.push_back(byte);
     }
   }
-
   patchy::Document document(120, 90, patchy::PixelFormat::rgba8());
   patchy::Layer group(document.allocate_layer_id(), "Blend If Group", patchy::LayerKind::Group);
   group.raw_psd_blending_ranges() = identity_payload;
@@ -1083,14 +881,11 @@ void ui_compatibility_report_handles_supported_unsupported_and_boundary_blend_if
   child.raw_psd_blending_ranges() = identity_payload;
   group.add_child(std::move(child));
   document.add_layer(std::move(group));
-
   CHECK(patchy::ui::compatibility_warnings_for_document(document).isEmpty());
-
   const auto supported_nondefault = patchy::encode_layer_blend_if(blend_if_ui_test_settings());
   auto& child_layer = document.layers().front().children().front();
   child_layer.set_blend_if_payload(supported_nondefault, true);
   CHECK(patchy::ui::compatibility_warnings_for_document(document).isEmpty());
-
   child_layer.set_blend_if_payload(std::vector<std::uint8_t>(identity_range.begin(), identity_range.end()), true);
   const auto unsupported_text =
       patchy::ui::compatibility_warnings_for_document(document).join(QLatin1Char('\n'));
@@ -1098,7 +893,6 @@ void ui_compatibility_report_handles_supported_unsupported_and_boundary_blend_if
   CHECK(unsupported_text.contains(QStringLiteral("unsupported color mode or payload shape")));
   CHECK(unsupported_text.contains(QStringLiteral("preserves it for PSD round-trip")));
   CHECK(unsupported_text.contains(QStringLiteral("does not render or edit")));
-
   child_layer.set_blend_if_payload(supported_nondefault, true);
   document.layers().front().raw_psd_group_boundary_blending_ranges() = supported_nondefault;
   const auto boundary_text =
@@ -1108,7 +902,6 @@ void ui_compatibility_report_handles_supported_unsupported_and_boundary_blend_if
   CHECK(boundary_text.contains(QStringLiteral("preserves that boundary data")));
   CHECK(boundary_text.contains(QStringLiteral("does not render or edit")));
 }
-
 void ui_psd_import_notice_reports_only_unsupported_blend_if() {
   SettingsValueRestorer restore_psd_warning_check(QStringLiteral("imports/showPsdWarningsAndInfo"));
   {
@@ -1116,7 +909,6 @@ void ui_psd_import_notice_reports_only_unsupported_blend_if() {
     settings.remove(QStringLiteral("imports/showPsdWarningsAndInfo"));
     settings.sync();
   }
-
   QTemporaryDir temp;
   CHECK(temp.isValid());
   const auto write_blend_if_fixture = [&](const QString& name, const std::vector<std::uint8_t>& payload) {
@@ -1129,7 +921,6 @@ void ui_psd_import_notice_reports_only_unsupported_blend_if() {
     patchy::psd::DocumentIo::write_layered_rgb8_file(document, patchy::ui::to_filesystem_path(path));
     return path;
   };
-
   const auto supported_path =
       write_blend_if_fixture(QStringLiteral("supported-blend-if"),
                              patchy::encode_layer_blend_if(blend_if_ui_test_settings()));
@@ -1137,13 +928,11 @@ void ui_psd_import_notice_reports_only_unsupported_blend_if() {
   const auto unsupported_path = write_blend_if_fixture(
       QStringLiteral("unsupported-blend-if"),
       std::vector<std::uint8_t>(unsupported_payload.begin(), unsupported_payload.end()));
-
   patchy::ui::MainWindow window;
   show_window(window);
   patchy::ui::MainWindowTestAccess::open_document_path(window, supported_path);
   QApplication::processEvents();
   CHECK(!window.statusBar()->currentMessage().contains(QStringLiteral("Blend If")));
-
   patchy::ui::MainWindowTestAccess::open_document_path(window, unsupported_path);
   QApplication::processEvents();
   const auto notice = window.statusBar()->currentMessage();
@@ -1151,20 +940,17 @@ void ui_psd_import_notice_reports_only_unsupported_blend_if() {
   CHECK(notice.contains(QStringLiteral("does not render or edit")));
   CHECK(notice.contains(QStringLiteral("1 layer(s)")));
 }
-
 void ui_compatibility_report_describes_linked_smart_object_updates() {
   patchy::Document document(120, 90, patchy::PixelFormat::rgba8());
   auto& layer = document.add_pixel_layer(
       "Linked Object", solid_pixels(120, 90, patchy::PixelFormat::rgba8(), QColor(Qt::white)));
   layer.metadata()[patchy::kLayerMetadataSmartObject] = "linked-source-uuid";
   layer.metadata()[patchy::kLayerMetadataSmartObjectLock] = "external";
-
   const auto text = patchy::ui::compatibility_warnings_for_document(document).join(QLatin1Char('\n'));
   CHECK(text.contains(QStringLiteral("linked to an external file")));
   CHECK(text.contains(QStringLiteral("can update it from disk when the source file is available")));
   CHECK(!text.contains(QStringLiteral("cannot update it from disk")));
 }
-
 void ui_psd_import_notice_reports_unrendered_layer_effects() {
   SettingsValueRestorer restore_psd_warning_check(QStringLiteral("imports/showPsdWarningsAndInfo"));
   {
@@ -1172,7 +958,6 @@ void ui_psd_import_notice_reports_unrendered_layer_effects() {
     settings.remove(QStringLiteral("imports/showPsdWarningsAndInfo"));
     settings.sync();
   }
-
   patchy::Document document(32, 24, patchy::PixelFormat::rgba8());
   patchy::Layer root(document.allocate_layer_id(), "Root Satin",
                      solid_pixels(16, 12, patchy::PixelFormat::rgba8(), QColor(Qt::white)));
@@ -1180,7 +965,6 @@ void ui_psd_import_notice_reports_unrendered_layer_effects() {
   root_satin.enabled = true;
   root.layer_style().satins.push_back(root_satin);
   document.add_layer(std::move(root));
-
   patchy::Layer group(document.allocate_layer_id(), "Effects Group", patchy::LayerKind::Group);
   patchy::LayerSatin group_satin;
   group_satin.enabled = true;
@@ -1199,12 +983,10 @@ void ui_psd_import_notice_reports_unrendered_layer_effects() {
   child.layer_style().pattern_overlays.push_back(pattern);
   group.add_child(std::move(child));
   document.add_layer(std::move(group));
-
   QTemporaryDir temp;
   CHECK(temp.isValid());
   const auto path = temp.filePath(QStringLiteral("unrendered-effects.psd"));
   patchy::psd::DocumentIo::write_layered_rgb8_file(document, patchy::ui::to_filesystem_path(path));
-
   patchy::ui::MainWindow window;
   show_window(window);
   patchy::ui::MainWindowTestAccess::open_document_path(window, path);
@@ -1214,7 +996,6 @@ void ui_psd_import_notice_reports_unrendered_layer_effects() {
   CHECK(!notice.contains(QStringLiteral("does not render them yet")));
   CHECK(!notice.contains(QStringLiteral("Pattern Overlay")));
 }
-
 void ui_psd_import_warning_dialog_is_hidden_by_default() {
   SettingsValueRestorer restore_psd_warning_check(QStringLiteral("imports/showPsdWarningsAndInfo"));
   {
@@ -1223,25 +1004,21 @@ void ui_psd_import_warning_dialog_is_hidden_by_default() {
     settings.sync();
   }
   const auto psd_path = write_psd_import_warning_fixture(QStringLiteral("psd-import-warning-default.psd"));
-
   patchy::ui::MainWindow window;
   show_window(window);
   auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
   CHECK(tabs != nullptr);
   const auto original_tab_count = tabs->count();
-
   const auto compatibility_report_done = std::make_shared<bool>(false);
   accept_compatibility_report_when_present(compatibility_report_done);
   patchy::ui::MainWindowTestAccess::open_document_path(window, psd_path);
   const bool saw_compatibility_report = *compatibility_report_done;
   *compatibility_report_done = true;
   QApplication::processEvents();
-
   CHECK(!saw_compatibility_report);
   CHECK(tabs->count() == original_tab_count + 1);
   CHECK(tabs->tabText(tabs->currentIndex()) == QFileInfo(psd_path).fileName());
 }
-
 void ui_psd_import_warning_dialog_shows_when_enabled() {
   SettingsValueRestorer restore_psd_warning_check(QStringLiteral("imports/showPsdWarningsAndInfo"));
   {
@@ -1250,40 +1027,33 @@ void ui_psd_import_warning_dialog_shows_when_enabled() {
     settings.sync();
   }
   const auto psd_path = write_psd_import_warning_fixture(QStringLiteral("psd-import-warning-enabled.psd"));
-
   patchy::ui::MainWindow window;
   show_window(window);
   auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
   CHECK(tabs != nullptr);
   const auto original_tab_count = tabs->count();
-
   const auto compatibility_report_done = std::make_shared<bool>(false);
   accept_compatibility_report_when_present(compatibility_report_done);
   patchy::ui::MainWindowTestAccess::open_document_path(window, psd_path);
   const bool saw_compatibility_report = *compatibility_report_done;
   *compatibility_report_done = true;
   QApplication::processEvents();
-
   CHECK(saw_compatibility_report);
   CHECK(tabs->count() == original_tab_count + 1);
   CHECK(tabs->tabText(tabs->currentIndex()) == QFileInfo(psd_path).fileName());
 }
-
 void ui_alt_left_click_samples_foreground_color() {
   patchy::ui::MainWindow window;
   show_window(window);
   auto* canvas = require_canvas(window);
-
   require_action_by_text(window, QStringLiteral("Brush"))->trigger();
   canvas->set_primary_color(QColor(12, 180, 240));
   use_solid_fill_settings(canvas);
   require_action(window, "layerFillForegroundAction")->trigger();
   QApplication::processEvents();
-
   const QPoint sample_document_point(80, 80);
   const auto sampled_before_click = canvas_pixel(*canvas, sample_document_point);
   CHECK(color_close(sampled_before_click, QColor(12, 180, 240), 4));
-
   canvas->set_primary_color(QColor(230, 20, 20));
   const auto sample_widget_point = canvas->widget_position_for_document_point(sample_document_point);
   send_mouse(*canvas, QEvent::MouseButtonPress, sample_widget_point, Qt::LeftButton, Qt::LeftButton,
@@ -1291,28 +1061,23 @@ void ui_alt_left_click_samples_foreground_color() {
   send_mouse(*canvas, QEvent::MouseButtonRelease, sample_widget_point, Qt::LeftButton, Qt::NoButton,
              Qt::AltModifier);
   QApplication::processEvents();
-
   CHECK(color_close(canvas->primary_color(), QColor(12, 180, 240), 4));
   CHECK(color_close(canvas_pixel(*canvas, sample_document_point), sampled_before_click, 0));
 }
-
 void ui_alt_color_pick_shows_rgb_status_and_updates_open_color_panel() {
   patchy::ui::MainWindow window;
   show_window(window);
   auto* canvas = require_canvas(window);
-
   require_action_by_text(window, QStringLiteral("Brush"))->trigger();
   canvas->set_primary_color(QColor(40, 160, 220));
   use_solid_fill_settings(canvas);
   require_action(window, "layerFillForegroundAction")->trigger();
   QApplication::processEvents();
-
   canvas->set_primary_color(QColor(Qt::black));
   auto* foreground_button = window.findChild<QPushButton*>(QStringLiteral("foregroundColorButton"));
   CHECK(foreground_button != nullptr);
   foreground_button->click();
   QApplication::processEvents();
-
   auto* color_dialog = find_top_level_dialog(QStringLiteral("patchyColorDialog"));
   CHECK(color_dialog != nullptr);
   CHECK(color_dialog->isVisible());
@@ -1320,7 +1085,6 @@ void ui_alt_color_pick_shows_rgb_status_and_updates_open_color_panel() {
       color_dialog->findChild<patchy::ui::PatchyColorPicker*>(QStringLiteral("patchyAdvancedColorPicker"));
   CHECK(picker != nullptr);
   CHECK(picker->currentColor() == QColor(Qt::black));
-
   const QPoint sample_document_point(80, 80);
   const auto sample_widget_point = canvas->widget_position_for_document_point(sample_document_point);
   send_mouse(*canvas, QEvent::MouseButtonPress, sample_widget_point, Qt::LeftButton, Qt::LeftButton,
@@ -1328,7 +1092,6 @@ void ui_alt_color_pick_shows_rgb_status_and_updates_open_color_panel() {
   send_mouse(*canvas, QEvent::MouseButtonRelease, sample_widget_point, Qt::LeftButton, Qt::NoButton,
              Qt::AltModifier);
   QApplication::processEvents();
-
   const auto picked = canvas->primary_color();
   CHECK(color_close(picked, QColor(40, 160, 220), 4));
   const auto message = window.statusBar()->currentMessage();
@@ -1337,11 +1100,9 @@ void ui_alt_color_pick_shows_rgb_status_and_updates_open_color_panel() {
   CHECK(message.contains(picked.name(QColor::HexRgb).toUpper()));
   CHECK(!message.contains(QStringLiteral("Foreground color changed")));
   CHECK(picker->currentColor() == picked);
-
   color_dialog->close();
   QApplication::processEvents();
 }
-
 void ui_image_mode_converts_bit_depth_with_undo() {
   // Image > Mode > 8/16/32 Bits/Channel: shown while deep editing is on, converts every
   // buffer, keeps Indexed (8-bit only) out of reach, and undoes.
@@ -1382,7 +1143,6 @@ void ui_image_mode_converts_bit_depth_with_undo() {
   }
   patchy::set_deep_editing_override(std::nullopt);
 }
-
 // File > New offers Bit Depth while deep editing is on (the default in the app): the
 // chosen depth makes the document, every new dialog starts at 8 bits again (as in
 // Photoshop), and the row is hidden when deep editing is off.
@@ -1449,7 +1209,6 @@ void ui_new_document_dialog_creates_the_chosen_bit_depth() {
     CHECK(sixteen.width() == 64 && sixteen.height() == 48);
     CHECK(patchy::document_depth_problems(sixteen).empty());
     CHECK(require_action(window, "imageMode16BitAction")->isChecked());
-
     int remembered = 0;
     answer_new_document(32, true, &remembered);
     require_action(window, "fileNewAction")->trigger();
@@ -1458,7 +1217,6 @@ void ui_new_document_dialog_creates_the_chosen_bit_depth() {
     CHECK(patchy::ui::MainWindowTestAccess::document(window).color_state().bit_depth == patchy::BitDepth::Float32);
     CHECK(require_action(window, "imageMode32BitAction")->isChecked());
     CHECK(window.findChild<QDoubleSpinBox*>(QStringLiteral("hdrPreviewExposureSpin"))->isVisible());
-
   }
   patchy::set_deep_editing_override(false);
   {
@@ -1471,7 +1229,6 @@ void ui_new_document_dialog_creates_the_chosen_bit_depth() {
   }
   patchy::set_deep_editing_override(std::nullopt);
 }
-
 // Leaving 32 bits asks for HDR Toning (Exposure and Gamma): Cancel keeps the document
 // at 32 bits, OK tones every pixel layer and converts.
 void ui_image_mode_from_32_bits_asks_for_hdr_toning() {
@@ -1487,7 +1244,6 @@ void ui_image_mode_from_32_bits_asks_for_hdr_toning() {
     CHECK(!document.layers().empty());
     const auto& base = document.layers().front();
     const auto before = patchy::load_pixel(base.pixels().format(), base.pixels().pixel(0, 0));
-
     // The 32-bit preview exposure darkens the display, not the pixels, and survives undo.
     auto* exposure = window.findChild<QDoubleSpinBox*>(QStringLiteral("hdrPreviewExposureSpin"));
     CHECK(exposure != nullptr && exposure->isVisible());
@@ -1511,7 +1267,6 @@ void ui_image_mode_from_32_bits_asks_for_hdr_toning() {
     if (exposure != nullptr) {
       exposure->setValue(0.0);
     }
-
     const auto answer_toning = [](bool accept, double exposure) {
       QTimer::singleShot(0, [accept, exposure] {
         auto* dialog = find_top_level_dialog(QStringLiteral("hdrToningDialog"));
@@ -1537,7 +1292,6 @@ void ui_image_mode_from_32_bits_asks_for_hdr_toning() {
     CHECK(patchy::ui::MainWindowTestAccess::document(window).color_state().bit_depth ==
           patchy::BitDepth::Float32);
     CHECK(!to16->isChecked());
-
     answer_toning(true, -1.0);
     to16->trigger();
     QApplication::processEvents();
@@ -1555,7 +1309,6 @@ void ui_image_mode_from_32_bits_asks_for_hdr_toning() {
   }
   patchy::set_deep_editing_override(std::nullopt);
 }
-
 void ui_deep_document_render_strips_match_the_sequential_render() {
   // The display render of a large 16-bit document splits into strips; the assembled
   // image must be the sequential render.
@@ -1585,7 +1338,6 @@ void ui_deep_document_render_strips_match_the_sequential_render() {
   CHECK(!parallel.isNull());
   CHECK(parallel == sequential);
 }
-
 // Runs New Layer, Merge Down, Copy Merged + Paste and Clear in a document at `depth` and
 // returns the resulting layers narrowed to 8 bits, checking the depth invariant on the way.
 std::vector<patchy::PixelBuffer> run_layer_operations_at_depth(patchy::BitDepth depth) {
@@ -1622,7 +1374,6 @@ std::vector<patchy::PixelBuffer> run_layer_operations_at_depth(patchy::BitDepth 
   MainWindowTestAccess::refresh_layer_ui(window);
   canvas->document_changed();
   QApplication::processEvents();
-
   // New Layer takes the document's depth.
   require_action(window, "layerNewAction")->trigger();
   QApplication::processEvents();
@@ -1632,12 +1383,10 @@ std::vector<patchy::PixelBuffer> run_layer_operations_at_depth(patchy::BitDepth 
   QApplication::processEvents();
   doc.set_active_layer(top_id);
   MainWindowTestAccess::refresh_layer_ui(window);
-
   // Merge Down composites at depth into the layer below.
   require_action(window, "layerMergeDownAction")->trigger();
   CHECK(process_events_until([&] { return std::as_const(doc).find_layer(top_id) == nullptr; }, 15000));
   CHECK(patchy::document_depth_problems(doc).empty());
-
   // Copy Merged of a selection, pasted back as a layer at the document's depth.
   patchy::PixelBuffer selection(width, height, patchy::PixelFormat::gray8());
   selection.clear(0);
@@ -1654,7 +1403,6 @@ std::vector<patchy::PixelBuffer> run_layer_operations_at_depth(patchy::BitDepth 
   CHECK(pasted != nullptr && pasted->pixels().format().bit_depth == depth);
   CHECK(pasted->pixels().width() == 60 && pasted->pixels().height() == 30);
   CHECK(patchy::document_depth_problems(doc).empty());
-
   // Clear a selected band of the merged layer.
   const auto merged_id = std::as_const(doc).layers()[std::as_const(doc).layers().size() - 2].id();
   doc.set_active_layer(merged_id);
@@ -1667,7 +1415,6 @@ std::vector<patchy::PixelBuffer> run_layer_operations_at_depth(patchy::BitDepth 
   CHECK(patchy::pixel_alpha_at(cleared->pixels(), 40 - cleared->bounds().x, 30 - cleared->bounds().y) == 0.0F);
   CHECK(patchy::pixel_alpha_at(cleared->pixels(), 10 - cleared->bounds().x, 10 - cleared->bounds().y) > 0.0F);
   CHECK(patchy::document_depth_problems(doc).empty());
-
   std::vector<patchy::PixelBuffer> layers;
   for (const auto& layer : std::as_const(doc).layers()) {
     layers.push_back(patchy::convert_pixel_buffer_depth(layer.pixels(), patchy::BitDepth::UInt8,
@@ -1675,7 +1422,6 @@ std::vector<patchy::PixelBuffer> run_layer_operations_at_depth(patchy::BitDepth 
   }
   return layers;
 }
-
 void ui_layer_operations_keep_deep_documents_at_depth() {
   // The same operations on an 8-bit document and on its 16-bit conversion end in the
   // same layers, within a level (the deep composite rounds once, at the end).
@@ -1698,7 +1444,6 @@ void ui_layer_operations_keep_deep_documents_at_depth() {
   const auto thirty_two = run_layer_operations_at_depth(patchy::BitDepth::Float32);
   CHECK(thirty_two.size() == eight.size());
 }
-
 // Free Transform (scale and rotate, committed) of a masked layer in a document at
 // `depth`; returns the layer and its mask narrowed to 8 bits.
 std::pair<patchy::PixelBuffer, patchy::PixelBuffer> free_transform_at_depth(patchy::BitDepth depth) {
@@ -1728,7 +1473,6 @@ std::pair<patchy::PixelBuffer, patchy::PixelBuffer> free_transform_at_depth(patc
   const auto id = layer.id();
   patchy::convert_document_depth(document, depth);
   document.set_active_layer(id);
-
   patchy::ui::CanvasWidget canvas;
   canvas.resize(320, 240);
   canvas.set_document(&document);
@@ -1751,7 +1495,6 @@ std::pair<patchy::PixelBuffer, patchy::PixelBuffer> free_transform_at_depth(patc
           patchy::convert_pixel_buffer_depth(transformed.mask()->pixels, patchy::BitDepth::UInt8,
                                              patchy::SampleKind::Coverage)};
 }
-
 void ui_free_transform_keeps_deep_layers_at_depth() {
   // The 16-bit transform resamples in float and the 8-bit one in bytes: they agree
   // within a level (alpha-weighted colors of nearly transparent edge pixels aside).
@@ -1783,7 +1526,6 @@ void ui_free_transform_keeps_deep_layers_at_depth() {
   CHECK(mask_worst <= 1);
   (void)free_transform_at_depth(patchy::BitDepth::Float32);
 }
-
 void ui_warp_transform_keeps_deep_layers_at_depth() {
   // A committed warp of a 16/32-bit layer writes the layer back at the document's
   // depth instead of narrowing it to 8 bits.
@@ -1804,7 +1546,6 @@ void ui_warp_transform_keeps_deep_layers_at_depth() {
     const auto id = document.add_pixel_layer("Layer", content).id();
     patchy::convert_document_depth(document, depth);
     document.set_active_layer(id);
-
     patchy::ui::CanvasWidget canvas;
     canvas.resize(320, 240);
     canvas.set_document(&document);
@@ -1824,7 +1565,6 @@ void ui_warp_transform_keeps_deep_layers_at_depth() {
     CHECK(patchy::document_depth_problems(document).empty());
   }
 }
-
 // A soft brush stroke on a layer, then one on its mask, in a document at `depth`;
 // returns the layer and mask narrowed to 8 bits.
 std::pair<patchy::PixelBuffer, patchy::PixelBuffer> brush_strokes_at_depth(patchy::BitDepth depth) {
@@ -1849,7 +1589,6 @@ std::pair<patchy::PixelBuffer, patchy::PixelBuffer> brush_strokes_at_depth(patch
   const auto id = layer.id();
   patchy::convert_document_depth(document, depth);
   document.set_active_layer(id);
-
   patchy::ui::CanvasWidget canvas;
   canvas.resize(320, 200);
   canvas.set_document(&document);
@@ -1882,7 +1621,6 @@ std::pair<patchy::PixelBuffer, patchy::PixelBuffer> brush_strokes_at_depth(patch
           patchy::convert_pixel_buffer_depth(painted.mask()->pixels, patchy::BitDepth::UInt8,
                                              patchy::SampleKind::Coverage)};
 }
-
 void ui_brush_paints_deep_layers_and_masks_at_depth() {
   const auto eight = brush_strokes_at_depth(patchy::BitDepth::UInt8);
   const auto sixteen = brush_strokes_at_depth(patchy::BitDepth::UInt16);
@@ -1922,7 +1660,6 @@ void ui_brush_paints_deep_layers_and_masks_at_depth() {
   CHECK(landed(sixteen));
   (void)brush_strokes_at_depth(patchy::BitDepth::Float32);
 }
-
 // One stroke of `tool` on a textured layer in a document at `depth`; returns the layer
 // narrowed to 8 bits. Clone and Healing take an Alt-click source first.
 patchy::PixelBuffer retouch_stroke_at_depth(patchy::ui::CanvasTool tool, patchy::BitDepth depth) {
@@ -1968,7 +1705,6 @@ patchy::PixelBuffer retouch_stroke_at_depth(patchy::ui::CanvasTool tool, patchy:
   CHECK(patchy::document_depth_problems(document).empty());
   return patchy::convert_pixel_buffer_depth(edited.pixels(), patchy::BitDepth::UInt8, patchy::SampleKind::Color);
 }
-
 void ui_retouch_tools_edit_deep_layers_at_depth() {
   // Each retouch tool at 16 bits matches its 8-bit stroke within a few levels (the deep
   // path rounds once; the smear and blur tools carry values between dabs) and changes
@@ -2000,7 +1736,6 @@ void ui_retouch_tools_edit_deep_layers_at_depth() {
     (void)retouch_stroke_at_depth(tool, patchy::BitDepth::Float32);
   }
 }
-
 void ui_eyedropper_picks_the_composite_of_a_16_bit_document() {
   // A 16-bit document's layers are not 8-bit, so the eyedropper picks from the deep
   // render; it must see the same composite as the 8-bit document it came from.
@@ -2013,7 +1748,6 @@ void ui_eyedropper_picks_the_composite_of_a_16_bit_document() {
   const auto expected = patchy::ui::qimage_from_document_rect(document, QRect(sample, QSize(1, 1)), true).pixelColor(0, 0);
   patchy::convert_document_depth(document, patchy::BitDepth::UInt16);
   CHECK(document.color_state().bit_depth == patchy::BitDepth::UInt16);
-
   patchy::ui::CanvasWidget canvas;
   canvas.resize(192, 64);
   canvas.set_document(&document);
@@ -2027,7 +1761,6 @@ void ui_eyedropper_picks_the_composite_of_a_16_bit_document() {
   CHECK(color_close(canvas.primary_color(), expected, 1));
   CHECK(!color_close(canvas.primary_color(), QColor(1, 2, 3), 8));
 }
-
 // GitHub issue 150: with the Eyedropper tool, Alt+click picks into the BACKGROUND
 // color (Photoshop's convention); the paint tools' temporary Alt eyedropper keeps
 // picking the foreground.
@@ -2042,20 +1775,17 @@ void ui_eyedropper_alt_click_picks_the_background_color() {
   canvas.show();
   QApplication::processEvents();
   const auto point = canvas.widget_position_for_document_point(QPoint(24, 8));
-
   canvas.set_tool(patchy::ui::CanvasTool::Eyedropper);
   send_mouse(canvas, QEvent::MouseButtonPress, point, Qt::LeftButton, Qt::LeftButton, Qt::AltModifier);
   send_mouse(canvas, QEvent::MouseButtonRelease, point, Qt::LeftButton, Qt::NoButton, Qt::AltModifier);
   QApplication::processEvents();
   CHECK(color_close(canvas.secondary_color(), QColor(20, 140, 160), 1));
   CHECK(canvas.primary_color() == QColor(1, 2, 3));
-
   // A plain click still sets the foreground.
   send_mouse(canvas, QEvent::MouseButtonPress, point, Qt::LeftButton, Qt::LeftButton);
   send_mouse(canvas, QEvent::MouseButtonRelease, point, Qt::LeftButton, Qt::NoButton);
   QApplication::processEvents();
   CHECK(color_close(canvas.primary_color(), QColor(20, 140, 160), 1));
-
   // The Brush tool's Alt eyedropper: foreground, never background.
   canvas.set_primary_color(QColor(1, 2, 3));
   canvas.set_secondary_color(QColor(250, 250, 250));
@@ -2066,7 +1796,6 @@ void ui_eyedropper_alt_click_picks_the_background_color() {
   CHECK(color_close(canvas.primary_color(), QColor(20, 140, 160), 1));
   CHECK(canvas.secondary_color() == QColor(250, 250, 250));
 }
-
 // The 8-bit eyedropper reads the real composite, not a per-layer approximation: an
 // opaque red child inside a 50% group over white picks pink (the old sampler returned
 // pure red), a clipped layer shows only over its base, and every pick equals the
@@ -2085,7 +1814,6 @@ void ui_eyedropper_picks_group_opacity_and_clipping_composite() {
   auto& blue = document.add_pixel_layer("Blue clipped",
                                         solid_pixels(48, 16, patchy::PixelFormat::rgba8(), QColor(0, 0, 255)));
   blue.set_clipped(true);
-
   const QPoint pink_point(8, 8);
   const QPoint blue_point(40, 8);
   const auto expected_pink =
@@ -2094,7 +1822,6 @@ void ui_eyedropper_picks_group_opacity_and_clipping_composite() {
       patchy::ui::qimage_from_document_rect(document, QRect(blue_point, QSize(1, 1)), true).pixelColor(0, 0);
   CHECK(color_close(expected_pink, QColor(255, 128, 128), 2));
   CHECK(color_close(expected_blue, QColor(0, 0, 255), 1));
-
   patchy::ui::CanvasWidget canvas;
   canvas.resize(192, 64);
   canvas.set_document(&document);
@@ -2116,37 +1843,30 @@ void ui_eyedropper_picks_group_opacity_and_clipping_composite() {
   CHECK(color_close(pick(pink_point), expected_pink, 1));
   CHECK(color_close(pick(blue_point), expected_blue, 1));
 }
-
 void ui_eyedropper_starts_in_gray_area_and_drags_to_document_color() {
   patchy::ui::MainWindow window;
   show_window(window);
   auto* canvas = require_canvas(window);
-
   require_action_by_text(window, QStringLiteral("Brush"))->trigger();
   canvas->set_primary_color(QColor(34, 201, 145));
   use_solid_fill_settings(canvas);
   require_action(window, "layerFillForegroundAction")->trigger();
   QApplication::processEvents();
-
   const auto grey_start = canvas->widget_position_for_document_point(QPoint(-24, -24));
   const QPoint sample_document_point(80, 80);
   const auto sample_widget_point = canvas->widget_position_for_document_point(sample_document_point);
   CHECK(canvas->rect().contains(grey_start));
   CHECK(color_close(canvas_pixel(*canvas, sample_document_point), QColor(34, 201, 145), 4));
-
   canvas->set_primary_color(QColor(230, 20, 20));
   require_action_by_text(window, QStringLiteral("Pick"))->trigger();
   send_mouse(*canvas, QEvent::MouseButtonPress, grey_start, Qt::LeftButton, Qt::LeftButton);
   send_mouse(*canvas, QEvent::MouseMove, sample_widget_point, Qt::NoButton, Qt::LeftButton);
   send_mouse(*canvas, QEvent::MouseButtonRelease, sample_widget_point, Qt::LeftButton, Qt::NoButton);
-
   CHECK(color_close(canvas->primary_color(), QColor(34, 201, 145), 4));
 }
-
 void ui_photoshop_shortcuts_are_registered() {
   patchy::ui::MainWindow window;
   show_window(window);
-
   CHECK(require_action_by_text(window, QStringLiteral("New"))->shortcut() == QKeySequence(Qt::CTRL | Qt::Key_N));
   CHECK(require_action_by_text(window, QStringLiteral("Open..."))->shortcut() == QKeySequence(Qt::CTRL | Qt::Key_O));
   CHECK(require_action_by_text(window, QStringLiteral("Save"))->shortcut() == QKeySequence(Qt::CTRL | Qt::Key_S));
@@ -2297,7 +2017,6 @@ void ui_photoshop_shortcuts_are_registered() {
   tooltip_matches_shortcut(require_action_by_text(window, QStringLiteral("Default Colors")));
   tooltip_matches_shortcut(require_action_by_text(window, QStringLiteral("Swap Colors")));
   tooltip_matches_shortcut(require_action(window, "brushLargerAction"));
-
   auto* canvas = require_canvas(window);
   auto* blend_combo = window.findChild<QComboBox*>(QStringLiteral("layerBlendModeCombo"));
   CHECK(blend_combo != nullptr);
@@ -2412,7 +2131,6 @@ void ui_photoshop_shortcuts_are_registered() {
   settings.remove(QStringLiteral("tools"));
   settings.sync();
 }
-
 void ui_brush_flow_popup_slider_updates_canvas() {
   patchy::ui::MainWindow window;
   show_window(window);
@@ -2423,7 +2141,6 @@ void ui_brush_flow_popup_slider_updates_canvas() {
   CHECK(flow != nullptr);
   CHECK(popup_action != nullptr);
   CHECK(popup_action->icon().isNull());
-
   flow->setValue(100);
   QApplication::processEvents();
   auto* flow_editor = flow->findChild<QLineEdit*>();
@@ -2434,7 +2151,6 @@ void ui_brush_flow_popup_slider_updates_canvas() {
             text_margins.right() >=
         text_width);
   save_widget_artifact("ui_brush_flow_control", *flow);
-
   flow->setValue(37);
   QTest::mouseClick(flow_editor, Qt::LeftButton, Qt::NoModifier,
                     QPoint(flow_editor->width() - 2, flow_editor->height() / 2));
@@ -2445,7 +2161,6 @@ void ui_brush_flow_popup_slider_updates_canvas() {
   CHECK(popup->isVisible());
   CHECK(slider != nullptr);
   CHECK(slider->value() == 37);
-
   slider->setValue(22);
   CHECK(flow->value() == 22);
   CHECK(canvas->brush_flow() == 22);
@@ -2459,7 +2174,6 @@ void ui_brush_flow_popup_slider_updates_canvas() {
   popup->close();
   QApplication::processEvents();
 }
-
 // Size-like sliders use SliderCurve::FineLowEnd: the value grows with the
 // square of the handle position, so small sizes get most of the track.
 void ui_size_sliders_give_the_low_end_most_of_the_track() {
@@ -2470,7 +2184,6 @@ void ui_size_sliders_give_the_low_end_most_of_the_track() {
   CHECK(patchy::ui::curved_slider_position(250.0, 0.0, 1000.0) == kCurvedSliderPositions / 2);
   CHECK(patchy::ui::curved_slider_position(-5.0, 0.0, 1000.0) == 0);
   CHECK(patchy::ui::curved_slider_position(5000.0, 0.0, 1000.0) == kCurvedSliderPositions);
-
   patchy::ui::MainWindow window;
   show_window(window);
   require_action_by_text(window, QStringLiteral("Brush"))->trigger();
@@ -2479,7 +2192,6 @@ void ui_size_sliders_give_the_low_end_most_of_the_track() {
   auto* slider = window.findChild<QSlider*>(QStringLiteral("brushSizeSlider"));
   CHECK(brush_size != nullptr && slider != nullptr);
   CHECK(slider->minimum() == 0 && slider->maximum() == kCurvedSliderPositions);
-
   // Half the track is a quarter of 1..1024, and the first quarter of the track
   // covers 1..65.
   slider->setValue(kCurvedSliderPositions / 2);
@@ -2492,7 +2204,6 @@ void ui_size_sliders_give_the_low_end_most_of_the_track() {
   CHECK(patchy::ui::slider_value(*slider) == 20);
   brush_size->setValue(patchy::ui::kMaxBrushSize);
   CHECK(slider->value() == kCurvedSliderPositions);
-
   // A drag keeps the handle under the mouse instead of snapping it to the
   // value's canonical position (301 and 302 both show 94).
   slider->setSliderDown(true);
@@ -2500,7 +2211,6 @@ void ui_size_sliders_give_the_low_end_most_of_the_track() {
   CHECK(brush_size->value() == 94);
   CHECK(slider->value() == 301);
   slider->setSliderDown(false);
-
   // Keyboard and wheel steps change the value by one unit even where one
   // position is far less than one pixel of brush.
   brush_size->setValue(1);
@@ -2516,7 +2226,6 @@ void ui_size_sliders_give_the_low_end_most_of_the_track() {
                     Qt::NoModifier, Qt::NoScrollPhase, false);
   QApplication::sendEvent(slider, &wheel);
   CHECK(std::abs(brush_size->value() - 2) == 1);
-
   const auto open_popup_slider = [&window](const QString& base_name) -> QSlider* {
     auto* action = window.findChild<QAction*>(base_name + QStringLiteral("PopupAction"));
     CHECK(action != nullptr);
@@ -2532,7 +2241,6 @@ void ui_size_sliders_give_the_low_end_most_of_the_track() {
     popup->close();
     QApplication::processEvents();
   };
-
   // The brush size popup shares the curve and keeps the options-bar slider in step.
   auto* size_popup_slider = open_popup_slider(QStringLiteral("brushSize"));
   CHECK(size_popup_slider->maximum() == kCurvedSliderPositions);
@@ -2540,7 +2248,6 @@ void ui_size_sliders_give_the_low_end_most_of_the_track() {
   CHECK(brush_size->value() == 257);
   CHECK(slider->value() == kCurvedSliderPositions / 2);
   close_popup(QStringLiteral("brushSize"));
-
   auto* feather = window.findChild<QSpinBox*>(QStringLiteral("selectionFeatherSpin"));
   CHECK(feather != nullptr);
   auto* feather_slider = open_popup_slider(QStringLiteral("selectionFeather"));
@@ -2550,7 +2257,6 @@ void ui_size_sliders_give_the_low_end_most_of_the_track() {
   patchy::ui::set_slider_to_value(*feather_slider, 12);
   CHECK(feather->value() == 12);
   close_popup(QStringLiteral("selectionFeather"));
-
   auto* line_weight = window.findChild<QDoubleSpinBox*>(QStringLiteral("vectorLineWeightSpin"));
   CHECK(line_weight != nullptr);
   auto* line_weight_slider = open_popup_slider(QStringLiteral("vectorLineWeight"));
@@ -2558,12 +2264,10 @@ void ui_size_sliders_give_the_low_end_most_of_the_track() {
   line_weight_slider->setValue(kCurvedSliderPositions / 2);
   CHECK(line_weight->value() == 251);
   close_popup(QStringLiteral("vectorLineWeight"));
-
   // Percent popups stay linear.
   auto* opacity_slider = open_popup_slider(QStringLiteral("brushOpacity"));
   CHECK(opacity_slider->maximum() == 100);
   close_popup(QStringLiteral("brushOpacity"));
-
   auto* quick_select_size = window.findChild<QSpinBox*>(QStringLiteral("quickSelectSizeSpin"));
   auto* quick_select_slider = window.findChild<QSlider*>(QStringLiteral("quickSelectSizeSlider"));
   CHECK(quick_select_size != nullptr && quick_select_slider != nullptr);
@@ -2571,7 +2275,6 @@ void ui_size_sliders_give_the_low_end_most_of_the_track() {
   quick_select_slider->setValue(kCurvedSliderPositions / 2);
   CHECK(quick_select_size->value() == 129);
 }
-
 // Snapshots and restores the whole "hotkeys" settings group so hotkey tests
 // cannot leak overrides into each other or into a developer's settings.
 class HotkeySettingsGroupRestorer {
@@ -2585,7 +2288,6 @@ public:
     }
     settings.endGroup();
   }
-
   ~HotkeySettingsGroupRestorer() {
     auto settings = patchy::ui::app_settings();
     settings.remove(QStringLiteral("hotkeys"));
@@ -2596,27 +2298,22 @@ public:
     settings.endGroup();
     settings.sync();
   }
-
 private:
   QHash<QString, QVariant> saved_;
 };
-
 void clear_hotkey_overrides() {
   auto settings = patchy::ui::app_settings();
   settings.remove(QStringLiteral("hotkeys"));
   settings.sync();
 }
-
 void ui_hotkey_resolution_rules() {
   using patchy::ui::HotkeyCommand;
   using patchy::ui::HotkeyOverrideMap;
   using patchy::ui::resolve_hotkey_assignments;
-
   std::vector<HotkeyCommand> commands;
   commands.push_back({QStringLiteral("first"), QString(), nullptr, {QKeySequence(QStringLiteral("Ctrl+K"))}});
   commands.push_back({QStringLiteral("second"), QString(), nullptr, {QKeySequence(QStringLiteral("Ctrl+L"))}});
   commands.push_back({QStringLiteral("late_duplicate"), QString(), nullptr, {QKeySequence(QStringLiteral("Ctrl+K"))}});
-
   {
     const auto resolved = resolve_hotkey_assignments(commands, {});
     CHECK(resolved.effective.value(QStringLiteral("first")) ==
@@ -2666,7 +2363,6 @@ void ui_hotkey_resolution_rules() {
     CHECK(patchy::ui::hotkey_shortcuts_to_storage({}).isEmpty());
   }
 }
-
 void ui_hotkey_defaults_have_no_conflicts() {
   HotkeySettingsGroupRestorer restore_hotkeys;
   clear_hotkey_overrides();
@@ -2689,7 +2385,6 @@ void ui_hotkey_defaults_have_no_conflicts() {
   }
   CHECK(resolved.suppressions.empty());
 }
-
 // A saved override that puts Shift+<letter> back on a flyout member keeps the
 // old direct binding: overrides win the sequence and the cycle default is
 // suppressed rather than left ambiguous.
@@ -2712,7 +2407,6 @@ void ui_tool_cycle_yields_to_member_override() {
   }
   CHECK(suppressed);
 }
-
 void ui_hotkey_override_applies_at_startup() {
   HotkeySettingsGroupRestorer restore_hotkeys;
   clear_hotkey_overrides();
@@ -2739,7 +2433,6 @@ void ui_hotkey_override_applies_at_startup() {
     CHECK(undo_command->action->shortcuts().size() == 2);
   }
 }
-
 // The Hotkeys page is not the last Preferences tab everywhere (Windows appends
 // Plug-ins after it), and its editor panel is built on the first visit, so
 // select the tab by its title and let the panel appear.
@@ -2754,7 +2447,6 @@ void select_hotkeys_tab(QTabWidget& tabs, QDialog& dialog) {
   }
   CHECK(false);
 }
-
 // Opening Preferences must not build the hotkey rows (the most expensive part
 // of the dialog, and most opens never visit that tab); the first visit builds
 // them once, and accepting the dialog without a visit still succeeds.
@@ -2763,7 +2455,6 @@ void ui_preferences_builds_hotkey_editor_on_first_visit() {
   clear_hotkey_overrides();
   patchy::ui::MainWindow window;
   show_window(window);
-
   bool saw_dialog = false;
   QTimer::singleShot(0, [&] {
     auto* dialog = find_top_level_dialog(QStringLiteral("patchyPreferencesDialog"));
@@ -2789,7 +2480,6 @@ void ui_preferences_builds_hotkey_editor_on_first_visit() {
   require_action(window, "filePreferencesAction")->trigger();
   QApplication::processEvents();
   CHECK(saw_dialog);
-
   // A second open that never visits the tab accepts cleanly with no panel.
   saw_dialog = false;
   QTimer::singleShot(0, [&] {
@@ -2806,13 +2496,11 @@ void ui_preferences_builds_hotkey_editor_on_first_visit() {
   QApplication::processEvents();
   CHECK(saw_dialog);
 }
-
 void ui_hotkey_editor_assigns_and_persists_custom_shortcut() {
   HotkeySettingsGroupRestorer restore_hotkeys;
   clear_hotkey_overrides();
   patchy::ui::MainWindow window;
   show_window(window);
-
   bool saw_dialog = false;
   QTimer::singleShot(0, [&] {
     auto* dialog = find_top_level_dialog(QStringLiteral("patchyPreferencesDialog"));
@@ -2823,7 +2511,6 @@ void ui_hotkey_editor_assigns_and_persists_custom_shortcut() {
     QApplication::processEvents();
     CHECK(dialog->findChild<QWidget*>(QStringLiteral("hotkeyEditorPanel")) != nullptr);
     save_widget_artifact("hotkey_editor_tab", *dialog);
-
     auto* chip = dialog->findChild<QPushButton*>(QStringLiteral("hotkeyChip.file.new.0"));
     CHECK(chip != nullptr);
     CHECK(chip->text() == QKeySequence(Qt::CTRL | Qt::Key_N).toString(QKeySequence::NativeText));
@@ -2835,7 +2522,6 @@ void ui_hotkey_editor_assigns_and_persists_custom_shortcut() {
     QApplication::sendEvent(capture, &press);
     QApplication::processEvents();
     QApplication::processEvents();
-
     // The row is rebuilt with the staged shortcut, a modified marker, and a
     // visible per-row reset button.
     auto* updated_chip = dialog->findChild<QPushButton*>(QStringLiteral("hotkeyChip.file.new.0"));
@@ -2844,7 +2530,6 @@ void ui_hotkey_editor_assigns_and_persists_custom_shortcut() {
     auto* reset_button = dialog->findChild<QToolButton*>(QStringLiteral("hotkeyRowReset.file.new"));
     CHECK(reset_button != nullptr);
     CHECK(reset_button->isVisible());
-
     // Filtering by shortcut text keeps the matching row visible.
     auto* search = dialog->findChild<QLineEdit*>(QStringLiteral("hotkeySearchEdit"));
     CHECK(search != nullptr);
@@ -2858,14 +2543,12 @@ void ui_hotkey_editor_assigns_and_persists_custom_shortcut() {
     CHECK(!other_row->isVisible());
     search->clear();
     QApplication::processEvents();
-
     saw_dialog = true;
     dialog->accept();
   });
   require_action(window, "filePreferencesAction")->trigger();
   QApplication::processEvents();
   CHECK(saw_dialog);
-
   auto settings = patchy::ui::app_settings();
   settings.beginGroup(QStringLiteral("hotkeys"));
   const auto keys = settings.childKeys();
@@ -2875,7 +2558,6 @@ void ui_hotkey_editor_assigns_and_persists_custom_shortcut() {
   CHECK(stored == QKeySequence(Qt::CTRL | Qt::Key_F9).toString(QKeySequence::PortableText));
   CHECK(require_action(window, "fileNewAction")->shortcut() == QKeySequence(Qt::CTRL | Qt::Key_F9));
 }
-
 // Scripts get their own category in the editor whether or not File > Scripts was ever
 // opened, and the Script Manager's "Assign Hotkey..." entry point lands on the row.
 void ui_hotkey_editor_lists_scripts_category() {
@@ -2885,7 +2567,6 @@ void ui_hotkey_editor_lists_scripts_category() {
   show_window(window);
   const auto pong_id = patchy::ui::script_hotkey_command_id(QStringLiteral("Games/pong.js"));
   CHECK(window.hotkey_registry().find_command(pong_id) != nullptr);
-
   bool saw_dialog = false;
   QTimer::singleShot(0, [&] {
     auto* dialog = find_top_level_dialog(QStringLiteral("patchyPreferencesDialog"));
@@ -2919,13 +2600,11 @@ void ui_hotkey_editor_lists_scripts_category() {
   QApplication::processEvents();
   CHECK(saw_dialog);
 }
-
 void ui_hotkey_editor_steals_conflicting_shortcut() {
   HotkeySettingsGroupRestorer restore_hotkeys;
   clear_hotkey_overrides();
   patchy::ui::MainWindow window;
   show_window(window);
-
   bool saw_dialog = false;
   QTimer::singleShot(0, [&] {
     auto* dialog = find_top_level_dialog(QStringLiteral("patchyPreferencesDialog"));
@@ -2934,7 +2613,6 @@ void ui_hotkey_editor_steals_conflicting_shortcut() {
     CHECK(tabs != nullptr);
     select_hotkeys_tab(*tabs, *dialog);
     QApplication::processEvents();
-
     // The Line tool ships unbound, so it renders an assign chip.
     auto* assign_chip = dialog->findChild<QPushButton*>(QStringLiteral("hotkeyAssignChip.tools.line"));
     CHECK(assign_chip != nullptr);
@@ -2946,7 +2624,6 @@ void ui_hotkey_editor_steals_conflicting_shortcut() {
     QApplication::sendEvent(capture, &press);
     QApplication::processEvents();
     QApplication::processEvents();
-
     // Ctrl+L belongs to Levels, so a confirmation banner appears instead of a
     // silent reassignment.
     auto* banner = dialog->findChild<QFrame*>(QStringLiteral("hotkeyConflictBanner"));
@@ -2957,7 +2634,6 @@ void ui_hotkey_editor_steals_conflicting_shortcut() {
     take_button->click();
     QApplication::processEvents();
     QApplication::processEvents();
-
     auto* line_chip = dialog->findChild<QPushButton*>(QStringLiteral("hotkeyChip.tools.line.0"));
     CHECK(line_chip != nullptr);
     CHECK(line_chip->text() == QKeySequence(Qt::CTRL | Qt::Key_L).toString(QKeySequence::NativeText));
@@ -2967,14 +2643,12 @@ void ui_hotkey_editor_steals_conflicting_shortcut() {
     auto* note = dialog->findChild<QLabel*>(QStringLiteral("hotkeyRowNote.image.levels"));
     CHECK(note != nullptr);
     CHECK(note->isVisible());
-
     saw_dialog = true;
     dialog->accept();
   });
   require_action(window, "filePreferencesAction")->trigger();
   QApplication::processEvents();
   CHECK(saw_dialog);
-
   auto settings = patchy::ui::app_settings();
   settings.beginGroup(QStringLiteral("hotkeys"));
   const auto keys = settings.childKeys();
@@ -2983,7 +2657,6 @@ void ui_hotkey_editor_steals_conflicting_shortcut() {
   CHECK(require_action(window, "toolLineAction")->shortcut() == QKeySequence(Qt::CTRL | Qt::Key_L));
   CHECK(require_action(window, "imageAdjustLevelsAction")->shortcut().isEmpty());
 }
-
 void ui_hotkey_editor_reset_all_clears_overrides() {
   HotkeySettingsGroupRestorer restore_hotkeys;
   clear_hotkey_overrides();
@@ -2999,7 +2672,6 @@ void ui_hotkey_editor_reset_all_clears_overrides() {
   const auto* undo_command = window.hotkey_registry().find_command(QStringLiteral("edit.undo"));
   CHECK(undo_command != nullptr && undo_command->action != nullptr);
   CHECK(undo_command->action->shortcuts().isEmpty());
-
   bool saw_dialog = false;
   QTimer::singleShot(0, [&] {
     auto* dialog = find_top_level_dialog(QStringLiteral("patchyPreferencesDialog"));
@@ -3019,7 +2691,6 @@ void ui_hotkey_editor_reset_all_clears_overrides() {
   require_action(window, "filePreferencesAction")->trigger();
   QApplication::processEvents();
   CHECK(saw_dialog);
-
   auto settings = patchy::ui::app_settings();
   settings.beginGroup(QStringLiteral("hotkeys"));
   CHECK(settings.childKeys().isEmpty());
@@ -3027,10 +2698,7 @@ void ui_hotkey_editor_reset_all_clears_overrides() {
   CHECK(require_action(window, "fileNewAction")->shortcut() == QKeySequence(Qt::CTRL | Qt::Key_N));
   CHECK(undo_command->action->shortcuts().size() == 2);
 }
-
 }  // namespace
-
-
 // Stores a working CMYK choice for one test, so every MainWindow it builds starts from it,
 // and puts the default (Automatic) back afterwards for the tests that follow.
 class ScopedCmykWorkingSettings {
@@ -3039,7 +2707,6 @@ public:
   ~ScopedCmykWorkingSettings() { apply(patchy::ui::CmykWorkingSettings{}); }
   ScopedCmykWorkingSettings(const ScopedCmykWorkingSettings&) = delete;
   ScopedCmykWorkingSettings& operator=(const ScopedCmykWorkingSettings&) = delete;
-
 private:
   static void apply(const patchy::ui::CmykWorkingSettings& settings) {
     patchy::ui::set_stored_cmyk_working_settings(settings);
@@ -3047,7 +2714,6 @@ private:
     patchy::ui::refresh_color_picker_cmyk_fields();
   }
 };
-
 // Issue 90: the picker shows and accepts ink percentages in the working CMYK space, and
 // the Info panel reads the pixel under the pointer the same way.
 void ui_color_picker_cmyk_fields_follow_working_space() {
@@ -3057,7 +2723,6 @@ void ui_color_picker_cmyk_fields_follow_working_space() {
   show_window(window);
   auto* canvas = require_canvas(window);
   CHECK(!patchy::working_cmyk_space()->has_profile());
-
   window.findChild<QPushButton*>(QStringLiteral("foregroundColorButton"))->click();
   QApplication::processEvents();
   auto* dialog = find_top_level_dialog(QStringLiteral("patchyColorDialog"));
@@ -3077,12 +2742,10 @@ void ui_color_picker_cmyk_fields_follow_working_space() {
   const auto values = [&ink] {
     return std::array<int, 4>{ink[0]->value(), ink[1]->value(), ink[2]->value(), ink[3]->value()};
   };
-
   // Any color change fills the fields from the working space.
   picker->setCurrentColor(QColor(255, 0, 0));
   QApplication::processEvents();
   CHECK((values() == std::array<int, 4>{0, 100, 100, 0}));
-
   // A typed ink value sets the color and stays as typed, even though the same RGB reads
   // back as a different mix (0, 100, 100, 50 here).
   ink[0]->setValue(50);
@@ -3093,13 +2756,11 @@ void ui_color_picker_cmyk_fields_follow_working_space() {
   QApplication::processEvents();
   CHECK(canvas->primary_color() == QColor(102, 0, 0));
   CHECK((values() == std::array<int, 4>{50, 100, 100, 20}));
-
   // Editing another model recomputes them.
   picker->findChild<QSpinBox*>(QStringLiteral("patchyColorRedSpin"))->setValue(200);
   QApplication::processEvents();
   CHECK(canvas->primary_color() == QColor(200, 0, 0));
   CHECK((values() == std::array<int, 4>{0, 100, 100, 22}));
-
   dialog->grab().save(QStringLiteral("test-artifacts/ui_color_picker_cmyk.png"));
   // The four fields sit inside the picker, clear of the RGB column.
   const auto* blue = picker->findChild<QSpinBox*>(QStringLiteral("patchyColorBlueSpin"));
@@ -3109,7 +2770,6 @@ void ui_color_picker_cmyk_fields_follow_working_space() {
     CHECK(top_left.x() > blue->mapTo(picker, QPoint(0, 0)).x() + blue->width());
     CHECK(top_left.x() + spin->width() <= picker->width());
   }
-
   // Automatic always has a profile (the bundled one when Adobe's is not installed): the
   // same color reads differently and the tooltip names the profile.
   {
@@ -3123,7 +2783,6 @@ void ui_color_picker_cmyk_fields_follow_working_space() {
     patchy::ui::refresh_color_picker_cmyk_fields();
   }
   CHECK((values() == std::array<int, 4>{0, 100, 100, 22}));
-
   auto* info = window.findChild<QLabel*>(QStringLiteral("canvasInfoLabel"));
   CHECK(info != nullptr);
   send_mouse(*canvas, QEvent::MouseMove, canvas->widget_position_for_document_point(QPoint(64, 48)), Qt::NoButton,
@@ -3133,7 +2792,6 @@ void ui_color_picker_cmyk_fields_follow_working_space() {
   dialog->close();
   QApplication::processEvents();
 }
-
 // The picker warns when a color cannot print in the working CMYK space and offers the
 // color it would print as (issue 90).
 void ui_color_picker_warns_when_a_color_cannot_print() {
@@ -3152,7 +2810,6 @@ void ui_color_picker_warns_when_a_color_cannot_print() {
   auto* warning = picker.findChild<QPushButton*>(QStringLiteral("patchyColorGamutWarningButton"));
   CHECK(warning != nullptr);
   CHECK(!warning->isVisible());
-
   // Pure green is far outside an offset press.
   picker.setCurrentColor(QColor(0, 255, 0));
   QApplication::processEvents();
@@ -3167,7 +2824,6 @@ void ui_color_picker_warns_when_a_color_cannot_print() {
   warning->click();
   QApplication::processEvents();
   CHECK(picker.currentColor() == QColor(printed.red, printed.green, printed.blue));
-
   // An in-gamut color has no warning, and neither does anything under the formula.
   picker.setCurrentColor(QColor(150, 110, 90));
   QApplication::processEvents();
@@ -3179,14 +2835,12 @@ void ui_color_picker_warns_when_a_color_cannot_print() {
   CHECK(!warning->isVisible());
   CHECK(patchy::ui::cmyk_gamut_check() == nullptr);
 }
-
 // Preferences > Application > CMYK stores the profile, intent and black point choice and
 // applies them on OK.
 void ui_preferences_cmyk_settings_persist_and_apply() {
   const ScopedCmykWorkingSettings defaults(patchy::ui::CmykWorkingSettings{});
   patchy::ui::MainWindow window;
   show_window(window);
-
   bool saw_dialog = false;
   QTimer::singleShot(0, [&] {
     auto* dialog = find_top_level_dialog(QStringLiteral("patchyPreferencesDialog"));
@@ -3218,7 +2872,6 @@ void ui_preferences_cmyk_settings_persist_and_apply() {
   require_action(window, "filePreferencesAction")->trigger();
   QApplication::processEvents();
   CHECK(saw_dialog);
-
   const auto stored = patchy::ui::stored_cmyk_working_settings();
   CHECK(stored.profile == QLatin1String(patchy::ui::kCmykProfileFormula));
   CHECK(stored.intent == patchy::RenderingIntent::Perceptual);
@@ -3229,7 +2882,6 @@ void ui_preferences_cmyk_settings_persist_and_apply() {
   CHECK(settings.value(QStringLiteral("color/cmykProfile")).toString() == QStringLiteral("formula"));
   CHECK(settings.value(QStringLiteral("color/cmykIntent")).toString() == QStringLiteral("perceptual"));
   CHECK(!settings.value(QStringLiteral("color/cmykBlackPointCompensation")).toBool());
-
   // A stored file that no longer exists falls back instead of failing.
   const patchy::ui::CmykWorkingSettings missing{QStringLiteral("test-artifacts/no-such-profile.icc")};
   CHECK(patchy::ui::cmyk_working_space_for(missing) != nullptr);
@@ -3241,7 +2893,6 @@ void ui_preferences_cmyk_settings_persist_and_apply() {
   CHECK(bundled != nullptr);
   CHECK(bundled->profile_description() == "ISO Coated v2 (basICColor)");
 }
-
 void ui_color_picker_accepts_css_rgba_and_names() {
   patchy::ui::PatchyColorPicker picker(Qt::black);
   auto* edit = picker.findChild<QLineEdit*>(QStringLiteral("patchyColorHtmlEdit"));
@@ -3256,7 +2907,6 @@ void ui_color_picker_accepts_css_rgba_and_names() {
   CHECK(QMetaObject::invokeMethod(edit, "editingFinished", Qt::DirectConnection));
   CHECK(picker.currentColor() == QColor(0, 0, 128));
 }
-
 // GitHub issue 68: the picker opens with keyboard focus in the HTML (hex) field
 // and its value selected, so Ctrl+V then Return applies a copied hex and closes
 // the dialog, and Ctrl+C copies the current hex. The field also selects all
@@ -3297,7 +2947,6 @@ void ui_color_picker_opens_with_hex_field_selected_for_paste() {
   CHECK(result.has_value());
   CHECK(result.has_value() && *result == QColor(0x33, 0x66, 0x99));
   QApplication::processEvents();
-
   // Re-focusing the field selects its value again (a click, Tab, or setFocus).
   patchy::ui::PatchyColorPicker picker(QColor(1, 2, 3));
   picker.show();
@@ -3315,7 +2964,6 @@ void ui_color_picker_opens_with_hex_field_selected_for_paste() {
   CHECK(edit->hasFocus());
   CHECK(edit->selectedText() == QStringLiteral("#010203"));
 }
-
 void ui_hotkey_duplicate_ids_fail_without_replacing_the_command() {
   patchy::ui::HotkeyRegistry registry;
   QAction first(nullptr), second(nullptr);
@@ -3327,7 +2975,6 @@ void ui_hotkey_duplicate_ids_fail_without_replacing_the_command() {
   CHECK(registry.commands().size() == 1);
   CHECK(registry.find_command(QStringLiteral("test.duplicate"))->action == &first);
 }
-
 std::vector<patchy::test::TestCase> pickers_notices_hotkeys_tests() {
   return {
       {"ui_color_picker_changes_foreground_color", ui_color_picker_changes_foreground_color},

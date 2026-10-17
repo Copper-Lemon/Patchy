@@ -1,8 +1,25 @@
+#include "formats/acv_curves_io.hpp"
+#include "formats/bmp_document_io.hpp"
+#include "formats/aseprite_document_io.hpp"
+#include "formats/ico_document_io.hpp"
+#include "formats/tga_document_io.hpp"
+#include <QMouseEvent>
+#include <atomic>
+#include <array>
+#include <cstring>
+#include <exception>
+#include <fstream>
+#include <functional>
+#include <limits>
+#include <memory>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
 // Multi-target Free Transform: Ctrl-T on a selected folder (or a multi-layer
 // selection) transforms the flattened target set with one shared delta, linked
 // raster masks ride along, and the whole commit is one undo entry. The
 // single-layer path stays byte-pinned by the text_transform_commit suites.
-
 #include "core/adjustment_layer.hpp"
 #include "core/layer.hpp"
 #include "core/layer_metadata.hpp"
@@ -13,25 +30,20 @@
 #include "ui/canvas_widget.hpp"
 #include "ui/image_document_io.hpp"
 #include "ui/main_window.hpp"
-
 #include "local_psd_fixtures.hpp"
 #include "test_harness.hpp"
 #include "ui_test_access.hpp"
 #include "ui_test_groups.hpp"
 #include "ui_test_support.hpp"
-
 #include <QApplication>
 #include <QColor>
 #include <QEnterEvent>
 #include <QImage>
 #include <QListWidget>
 #include <QPushButton>
-#include <QRectF>
 #include <QString>
 #include <QTransform>
-
 #include <QByteArray>
-
 #include <algorithm>
 #include <chrono>
 #include <cmath>

@@ -1,17 +1,41 @@
+#include "core/adjustment_layer.hpp"
+#include "formats/bmp_document_io.hpp"
+#include "formats/aseprite_document_io.hpp"
+#include "formats/gif_document_io.hpp"
+#include "formats/ico_document_io.hpp"
+#include "formats/ilbm_document_io.hpp"
+#include "formats/pcx_document_io.hpp"
+#include "formats/tga_document_io.hpp"
+#include "psd/psd_document_io.hpp"
+#include "synthetic_dng.hpp"
+#include <bit>
+#include <cctype>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <functional>
+#include <iomanip>
+#include <iterator>
+#include <limits>
+#include <numeric>
+#include <optional>
+#include <span>
+#include <sstream>
+#include <string_view>
+#include <tuple>
+#include <unordered_set>
+#include <utility>
 // The atomic byte writer every document format goes through, and the Qt-free half
 // of the automatic document recovery store (docs/document-recovery.md).
-
 #include "core/document_recovery_store.hpp"
 #include "formats/acv_curves_io.hpp"
 #include "formats/palette_io.hpp"
 #include "support/atomic_file_write.hpp"
 #include "support/path_utils.hpp"
-
 #include "core_test_support.hpp"
 #include "test_groups.hpp"
 #include "test_harness.hpp"
 #include "unicode_path_names.hpp"
-
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -22,7 +46,6 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-
 #if defined(_WIN32)
 #include <process.h>
 #include <winerror.h>

@@ -1,18 +1,36 @@
+#include "formats/bmp_document_io.hpp"
+#include "formats/ico_document_io.hpp"
+#include "psd/psd_document_io.hpp"
+#include "synthetic_dng.hpp"
+#include <bit>
+#include <cctype>
+#include <chrono>
+#include <cmath>
+#include <exception>
+#include <fstream>
+#include <functional>
+#include <iomanip>
+#include <iterator>
+#include <limits>
+#include <numeric>
+#include <optional>
+#include <span>
+#include <sstream>
+#include <stdexcept>
+#include <string_view>
+#include <tuple>
+#include <unordered_set>
 // miniz's zlib-compatibility aliases turn the identifier `compress` into a macro, which
 // would rewrite WriteOptions::compress; keep only the mz_* names in this TU.
 #define MINIZ_NO_ZLIB_COMPATIBLE_NAMES
-
 #include "core/document.hpp"
-#include "core/layer_tree.hpp"
 #include "formats/format_registry.hpp"
 #include "formats/miniz/miniz.h"
 #include "formats/rttex_document_io.hpp"
-
 #include "core_test_support.hpp"
 #include "local_psd_fixtures.hpp"
 #include "test_harness.hpp"
 #include "unicode_path_names.hpp"
-
 #include <algorithm>
 #include <array>
 #include <cstdint>

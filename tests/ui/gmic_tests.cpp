@@ -1,10 +1,30 @@
+#include <QStatusBar>
+#include "ui/theme_manager.hpp"
+#include "synthetic_dng.hpp"
+#include <QDialog>
+#include <QEventLoop>
+#include <QWidget>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <functional>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string_view>
+#include <utility>
+#include "ui_test_access.hpp"
 // The G'MIC Filter Library (docs/gmic.md): the generated parameter panel over
 // every filter the vendored library declares, the browser dialog (tree, search,
 // selection, reset), and, in builds with the engine, applying a filter to the
 // active layer with a selection and undo.
-
 #include "core/document.hpp"
-#include "core/layer_tree.hpp"
 #include "filters/gmic/gmic_catalog.hpp"
 #include "filters/gmic/gmic_engine.hpp"
 #include "ui/canvas_widget.hpp"
@@ -15,14 +35,11 @@
 #include "ui/layer_list_widget.hpp"
 #include "ui/main_window.hpp"
 #include "ui/script_engine.hpp"
-#include "ui/theme_palette.hpp"
-
 #include "local_psd_fixtures.hpp"
 #include "test_harness.hpp"
 #include "ui/ui_test_access.hpp"
 #include "ui_test_groups.hpp"
 #include "ui_test_support.hpp"
-
 #include <QAction>
 #include <QPalette>
 #include <QApplication>
@@ -30,8 +47,6 @@
 #include <QComboBox>
 #include <QColor>
 #include <QDir>
-#include <QImage>
-#include <QPixmap>
 #include <QDoubleSpinBox>
 #include <QElapsedTimer>
 #include <QLabel>
@@ -39,7 +54,6 @@
 #include <QListWidget>
 #include <QPushButton>
 #include <QSlider>
-#include <QStatusBar>
 #include <QPoint>
 #include <QPointF>
 #include <QString>
@@ -47,7 +61,6 @@
 #include <QTimer>
 #include <QToolButton>
 #include <QTreeWidget>
-
 #include <cmath>
 #include <fstream>
 #include <iostream>

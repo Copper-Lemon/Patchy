@@ -1,5 +1,36 @@
+#include "core/adjustment_layer.hpp"
+#include "ui/layer_list_widget.hpp"
+#include "ui/main_window.hpp"
+#include "test_harness.hpp"
+#include "local_psd_fixtures.hpp"
+#include <QApplication>
+#include <QFileInfo>
+#include <QItemSelectionModel>
+#include <QListWidget>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+#include <cstddef>
+#include <QString>
+#include "core/document.hpp"
 #include "smart_filter_test_support.hpp"
-
 #include "ui_test_access.hpp"
 #include "ui_test_support.hpp"
 

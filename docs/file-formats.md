@@ -4,6 +4,8 @@ Read before changing format I/O, open/save filters, notices, or alpha/mask impor
 
 ## Registry and dispatch
 
+Normal Save/Save As writes and per-session saved-state bookkeeping live in `ui/document_save_coordinator.cpp`. Dialog preflight and status text stay in `main_window_files.cpp`; flat and batch export entry points remain there. The coordinator shares its layer-loss classification with those dialogs.
+
 - `builtin_format_registry()` (format_registry.cpp, function-local static) is the single instance. `load_document_from_path` (main_window_files.cpp) consults it BEFORE the QImageReader fallback; a throwing registry read still falls back to Qt where a plugin exists; if Qt also fails the REGISTRY error is reported. Handlers may be read-only (`write == nullptr`) and may carry a `sniff` check, used by the smart-object classifier (`.ase` Aseprite vs Adobe `ASEF` swatches); the open path matches by extension.
 - One filter table: `file_format_entries()` (main_window_files.cpp) generates open/save/export filters, `is_supported_image_extension`, `save_file_filter_for_path`, and `path_with_default_extension`. Display names sit in `QT_TRANSLATE_NOOP("QObject", ...)` and are shown through `translate_data_text` ([localization.md](localization.md)).
 - A new format needs one table row, one registry row, one writer branch. A new openable extension also goes in `$PatchyOpenWithExtensions` (packaging/windows/InstallPatchy.ps1), the Windows "Open with" list; PDF is left out of it on purpose.

@@ -1,14 +1,39 @@
+#include "core/psd_source_colors.hpp"
+#include "formats/acv_curves_io.hpp"
+#include "formats/bmp_document_io.hpp"
+#include "formats/aseprite_document_io.hpp"
+#include "formats/ico_document_io.hpp"
+#include "formats/ilbm_document_io.hpp"
+#include "formats/pcx_document_io.hpp"
+#include "formats/tga_document_io.hpp"
+#include "psd/psd_binary.hpp"
+#include "synthetic_dng.hpp"
+#include <array>
+#include <bit>
+#include <cctype>
+#include <chrono>
+#include <exception>
+#include <fstream>
+#include <iomanip>
+#include <iterator>
+#include <limits>
+#include <numeric>
+#include <optional>
+#include <span>
+#include <sstream>
+#include <stdexcept>
+#include <string_view>
+#include <tuple>
+#include <unordered_set>
+#include <utility>
 // 16/32-bit PSD/PSB reading and writing at the file's depth (docs/high-bit-depth.md,
 // Phase 2): the reader keeps the samples, the writer emits them back, and the 8-bit
 // reading of the same file is exactly the deep reading narrowed.
-
 #include "color/color_management.hpp"
 #include "core/document.hpp"
 #include "core/adjustment_layer.hpp"
 #include "core/document_depth.hpp"
-#include "core/layer_tree.hpp"
 #include "core/pixel_depth.hpp"
-#include "core/psd_source_colors.hpp"
 #include "core/smart_object.hpp"
 #include "core/vector_raster.hpp"
 #include "local_psd_fixtures.hpp"
@@ -18,7 +43,6 @@
 #include "psd_test_support.hpp"
 #include "render/compositor.hpp"
 #include "test_harness.hpp"
-
 #include <algorithm>
 #include <cmath>
 #include <cstdint>

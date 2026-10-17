@@ -11,14 +11,11 @@
 #include "formats/pdf_image_writer.hpp"
 #include "formats/pdf_syntax.hpp"
 #include "formats/pdf_text_merge.hpp"
-
 #include "local_psd_fixtures.hpp"
 #include "pdf_encrypted_fixture.hpp"
 #include "test_harness.hpp"
 #include "unicode_path_names.hpp"
-
 #include "formats/miniz/miniz.h"
-
 #include <array>
 #include <cstdint>
 #include <cstdio>

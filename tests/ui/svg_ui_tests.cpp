@@ -1,7 +1,36 @@
+#include <QMimeData>
+#include <QAbstractButton>
+#include <QClipboard>
+#include <QPushButton>
+#include <QStatusBar>
+
+
+#include "formats/bmp_document_io.hpp"
+#include "formats/aseprite_document_io.hpp"
+#include "formats/ico_document_io.hpp"
+#include "formats/tga_document_io.hpp"
+#include "ui/app_settings.hpp"
+#include "psd/psd_document_io.hpp"
+#include <QByteArray>
+#include <QIODevice>
+#include <algorithm>
+#include <atomic>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string_view>
+#include <utility>
+#include "ui_test_access.hpp"
 // SVG import/export UI coverage: editable-layer opens, the main-thread text
 // render pass, data-URI images, save-a-copy semantics, and export/reimport
 // visual parity (QSvgRenderer doubles as an independent reference renderer).
-
 #include "core/layer_metadata.hpp"
 #include "core/smart_object.hpp"
 #include "core/vector_shape.hpp"
@@ -10,28 +39,22 @@
 #include "ui/canvas_widget.hpp"
 #include "ui/main_window.hpp"
 #include "ui/smart_object_render.hpp"
-
 #include "local_psd_fixtures.hpp"
 #include "test_fonts.hpp"
 #include "test_harness.hpp"
 #include "ui/ui_test_access.hpp"
 #include "ui_test_support.hpp"
-
 #include <QApplication>
 #include <QBuffer>
-#include <QClipboard>
 #include <QColor>
 #include <QFile>
 #include <QFileInfo>
 #include <QImage>
 #include <QMessageBox>
-#include <QMimeData>
 #include <QPainter>
-#include <QPushButton>
 #include <QSvgRenderer>
 #include <QTemporaryDir>
 #include <QTimer>
-
 #include <array>
 #include <cmath>
 #include <cstdint>

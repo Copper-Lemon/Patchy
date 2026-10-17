@@ -3,10 +3,8 @@
 // scripting API all apply. See docs/alignment.md.
 
 #include "core/layer_alignment.hpp"
-
 #include "test_groups.hpp"
 #include "test_harness.hpp"
-
 #include <vector>
 
 namespace {

@@ -8,7 +8,6 @@
 // part2's run. Never static self-registration.
 
 #include "test_groups.hpp"
-
 #include <iterator>
 #include <vector>
 

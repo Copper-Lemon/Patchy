@@ -1,22 +1,33 @@
+#include <QImage>
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <limits>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
 // Part 2 of the brush-engine stroke UI test group (see
 // brush_engine_stroke_tests.cpp): Spot Healing, Remove Object, the Patch tool,
 // and the retouch Sample All Layers option. The heal commits are pinned
 // byte-exact on synthetic documents whose uniform surroundings make the
 // frequency-separation math collapse to known values.
-
 #include "core/document.hpp"
 #include "ui/app_settings.hpp"
 #include "ui/canvas_widget.hpp"
 #include "ui/main_window.hpp"
-
 #include "test_harness.hpp"
 #include "ui_test_access.hpp"
 #include "ui_test_groups.hpp"
 #include "ui_test_support.hpp"
 #include "remove_object_fixture.hpp"
-
 #include <QApplication>
-
 #include <functional>
 #include <memory>
 #include <QTimer>
@@ -29,7 +40,6 @@
 #include <QComboBox>
 #include <QPoint>
 #include <QPushButton>
-
 #include <algorithm>
 #include <cmath>
 #include <utility>

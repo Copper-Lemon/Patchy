@@ -242,6 +242,9 @@ if(PATCHY_AI_SELECTION_BUILT)
   endif()
   set(PATCHY_AI_LICENSE_FILE "${PROJECT_SOURCE_DIR}/third_party/ai-models/MODEL-LICENSES.txt")
   set(PATCHY_AI_RUNTIME_STAMP "${CMAKE_BINARY_DIR}/CMakeFiles/patchy_ai_runtime.stamp")
+  set(PATCHY_AI_RUNTIME_INPUT_MANIFEST "${CMAKE_BINARY_DIR}/CMakeFiles/patchy_ai_runtime_inputs.txt")
+  patchy_write_input_manifest("${PATCHY_AI_RUNTIME_INPUT_MANIFEST}"
+    ${PATCHY_AI_MODEL_SOURCES} ${PATCHY_AI_DOWNLOAD_MODEL_SOURCES} ${PATCHY_ONNXRUNTIME_RUNTIME_FILES})
   add_custom_command(
     OUTPUT "${PATCHY_AI_RUNTIME_STAMP}"
     COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/ai-models"
@@ -258,7 +261,8 @@ if(PATCHY_AI_SELECTION_BUILT)
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PATCHY_ONNXRUNTIME_RUNTIME_FILES} "${CMAKE_BINARY_DIR}/"
     COMMAND ${CMAKE_COMMAND} -E touch "${PATCHY_AI_RUNTIME_STAMP}"
     DEPENDS ${PATCHY_AI_MODEL_SOURCES} ${PATCHY_AI_DOWNLOAD_MODEL_SOURCES} ${PATCHY_ONNXRUNTIME_RUNTIME_FILES}
-            "${PATCHY_AI_LICENSE_FILE}"
+            "${PATCHY_AI_LICENSE_FILE}" "${PATCHY_ONNXRUNTIME_DIR}/LICENSE"
+            "${PATCHY_ONNXRUNTIME_DIR}/ThirdPartyNotices.txt" "${PATCHY_AI_RUNTIME_INPUT_MANIFEST}"
     COMMENT "Copying ONNX Runtime and the automatic selection models into the build directory"
   )
   add_custom_target(patchy_ai_runtime DEPENDS "${PATCHY_AI_RUNTIME_STAMP}")
@@ -276,6 +280,9 @@ if(PATCHY_AI_WEB_BUILT)
   endforeach()
   set(PATCHY_AI_LICENSE_FILE "${PROJECT_SOURCE_DIR}/third_party/ai-models/MODEL-LICENSES.txt")
   set(PATCHY_AI_RUNTIME_STAMP "${CMAKE_BINARY_DIR}/CMakeFiles/patchy_ai_runtime.stamp")
+  set(PATCHY_AI_RUNTIME_INPUT_MANIFEST "${CMAKE_BINARY_DIR}/CMakeFiles/patchy_ai_runtime_inputs.txt")
+  patchy_write_input_manifest("${PATCHY_AI_RUNTIME_INPUT_MANIFEST}"
+    ${PATCHY_AI_WEB_MODEL_SOURCES} ${PATCHY_AI_WEB_RUNTIME_SOURCES})
   add_custom_command(
     OUTPUT "${PATCHY_AI_RUNTIME_STAMP}"
     COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/ai-models"
@@ -288,6 +295,7 @@ if(PATCHY_AI_WEB_BUILT)
             "${CMAKE_BINARY_DIR}/${PATCHY_ONNXRUNTIME_WEB_FOLDER}/"
     COMMAND ${CMAKE_COMMAND} -E touch "${PATCHY_AI_RUNTIME_STAMP}"
     DEPENDS ${PATCHY_AI_WEB_MODEL_SOURCES} ${PATCHY_AI_WEB_RUNTIME_SOURCES} "${PATCHY_AI_LICENSE_FILE}"
+            "${PATCHY_AI_RUNTIME_INPUT_MANIFEST}"
     COMMENT "Copying onnxruntime-web and the Object Selection models into the build directory"
   )
   add_custom_target(patchy_ai_runtime DEPENDS "${PATCHY_AI_RUNTIME_STAMP}")

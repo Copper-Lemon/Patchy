@@ -77,18 +77,13 @@ canaries.
 
 ## Structural extractions
 
-- Define a supported render facade for code that calls `render_detail` directly.
+- Extend the narrow render facade when more callers need compositor internals.
   Consider a `CompositeOptions` value instead of the trailing defaulted parameters on
   `composite_layers`. Keep per-pixel templates out of virtual or type-erased paths.
-- Split `af_document_io.cpp` along container parsing, object decoding, and document
-  assembly when the importer next needs substantial work.
 - Split `main_window_stress_test.cpp` only if the scenario table, execution, or
   reporting needs independent work. Stress-test step ids are persisted.
-- Replace `request_layer_style_settings` with a file-local context and per-effect page
-  builders. Page construction order matches `LayerStyleCategoryPage` values and is
-  load-bearing. Preserve preview cancellation and pattern-store restoration.
-- Decompose `request_visual_filter_gallery` after the layer-style dialog establishes
-  the pattern. Recipe ids, parameter keys, captured colors, and the tilt-shift overlay
+- Decompose `request_visual_filter_gallery` using the layer-style dialog module pattern.
+  Recipe ids, parameter keys, captured colors, and the tilt-shift overlay
   are compatibility-sensitive.
 
 ## Bugs and performance risks
@@ -118,15 +113,9 @@ canaries.
 ## Longer-term design
 
 - A nested text-import record could replace the text-only optionals on `LayerRecord`.
-- Extracting document session and undo ownership from `MainWindow` remains the
-  highest-leverage class boundary. Done so far: `DocumentSession` is a standalone type
-  (`ui/document_session.hpp`) and the recovery lifecycle lives behind `RecoveryHost` in
-  `ui/document_recovery_coordinator`, and `DocumentSessionStore` owns the session list
-  with its lookups and id snapshots. Next: save coordination (`set_session_saved`, the
-  image-save options, the Smart Object commit-back in `main_window_files.cpp`) behind an
-  explicit interface the way recovery is; then the undo stacks (`push_history_state` and
-  friends in `main_window_history.cpp`) as a per-session history object.
-- Canvas tool enums could move to a small `ui/tool_types.hpp` header.
+- Continue separating text editor interaction and window coordination after the font,
+  document, render, save, and per-session history modules. Preserve the distinct editor
+  settings conversions and canvas/session destruction order.
 - The options bar's `current_*` mirrors indicate a missing tool-options model.
 - Canvas callback fields could become a clearer single-listener interface or Qt
   signals.

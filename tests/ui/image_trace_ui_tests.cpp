@@ -1,8 +1,28 @@
+#include <QPushButton>
+
+
+#include <QByteArray>
+#include <QMetaObject>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string_view>
+#include "ui_test_access.hpp"
 // Trace Image to Shapes coverage (docs/image-trace.md): the Layer-menu
 // command drives the dialog into a group of shape layers above a hidden
 // source (one undo entry), the dialog renders its preview, and the
 // layer.traceToShapes scripting call builds the same group.
-
 #include "core/document.hpp"
 #include "core/vector_shape.hpp"
 #include "ui/app_settings.hpp"
@@ -11,11 +31,9 @@
 #include "ui/main_window.hpp"
 #include "ui/main_window_shared.hpp"
 #include "ui/script_engine.hpp"
-
 #include "test_harness.hpp"
 #include "ui/ui_test_access.hpp"
 #include "ui_test_support.hpp"
-
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
@@ -30,14 +48,12 @@
 #include <QListWidget>
 #include <QMenu>
 #include <QMessageBox>
-#include <QPushButton>
 #include <QSlider>
 #include <QSpinBox>
 #include <QStringList>
 #include <QTimer>
 #include <QToolButton>
 #include <QWidget>
-
 #include <cstdint>
 #include <cstdio>
 #include <functional>

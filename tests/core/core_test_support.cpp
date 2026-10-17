@@ -1,3 +1,24 @@
+#include "core/smart_filter.hpp"
+#include "core/document.hpp"
+#include "core/pixel_tools.hpp"
+#include "render/compositor.hpp"
+#include "test_harness.hpp"
+#include "synthetic_dng.hpp"
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <filesystem>
+#include <cstdint>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 #include "core_test_support.hpp"
 
 namespace patchy::test {

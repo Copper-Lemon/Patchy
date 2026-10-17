@@ -1,3 +1,29 @@
+#include <QStatusBar>
+#include <QLineEdit>
+#include "formats/acv_curves_io.hpp"
+#include "formats/aseprite_document_io.hpp"
+#include "formats/ico_document_io.hpp"
+#include "formats/tga_document_io.hpp"
+#include "synthetic_dng.hpp"
+#include <QDialog>
+#include <QMetaObject>
+#include <QIODevice>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string_view>
 // Unicode and special-character file paths through the Qt-facing entry points:
 // write_flat_image_file, MainWindow save/open, the Save As / Open / Export Flat
 // dialogs (the offscreen QFileDialog, which is the same post-processing the native
@@ -7,28 +33,24 @@
 // and could not be reopened). Names come from tests/unicode_path_names.hpp; every
 // test lists the directory so a mojibake sibling fails even when the reader happens
 // to find its own mangled name again.
-
 #include "ui/export_documents_folder_dialog.hpp"
 #include "ui/image_document_io.hpp"
 #include "ui/image_sequence_dialog.hpp"
 #include "ui/main_window.hpp"
 #include "ui/qt_paths.hpp"
 #include "ui/script_engine.hpp"
-
 #include "core/document.hpp"
 #include "core/smart_object.hpp"
 #include "formats/bmp_document_io.hpp"
 #include "psd/psd_document_io.hpp"
 #include "ui/app_settings.hpp"
 #include "ui/smart_object_render.hpp"
-
 #include "local_psd_fixtures.hpp"
 #include "test_harness.hpp"
 #include "ui_test_access.hpp"
 #include "ui_test_groups.hpp"
 #include "ui_test_support.hpp"
 #include "unicode_path_names.hpp"
-
 #include <QAction>
 #include <QApplication>
 #include <QColor>
@@ -43,12 +65,10 @@
 #include <QImageReader>
 #include <QJsonArray>
 #include <QJsonDocument>
-#include <QLineEdit>
 #include <QListWidget>
 #include <QMenu>
 #include <QStringList>
 #include <QTimer>
-
 #include <filesystem>
 #include <string>
 #include <utility>

@@ -1,5 +1,38 @@
-#include "readme_screenshot_test_support.hpp"
+#include <QStatusBar>
 
+
+#include "ui/main_window.hpp"
+#include "test_harness.hpp"
+#include <QApplication>
+#include <QImage>
+#include <QListWidget>
+#include <QMetaObject>
+#include <QPainter>
+#include <QTabWidget>
+#include <QToolButton>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+#include <QPoint>
+#include <QString>
+#include "readme_screenshot_test_support.hpp"
 #include "ui_test_support.hpp"
 
 namespace patchy::test::ui {

@@ -3,6 +3,8 @@
 Read this before touching the recovery timer, the recovery store, the startup reopen, the
 Preferences row, `patchy.recovery`, or any file writer.
 
+Normal saves run through `DocumentSaveCoordinator` (`ui/document_save_coordinator.{hpp,cpp}`). It owns save routing, writer dispatch, same-path option reuse and saved path/title/options bookkeeping through a narrow `SaveHost`; dialogs and translated status/error text stay in MainWindow. The host resolves session ids after callbacks and marks saved only after the writer succeeds. The saved notification still discards recovery before refreshing tabs, undo actions and document info. `SessionHistory` owns the monotonic state id used by recovery marks.
+
 ## What the user sees
 
 Patchy writes a copy of every modified document to a recovery folder on a timer, the way

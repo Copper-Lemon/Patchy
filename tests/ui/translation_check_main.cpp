@@ -2,12 +2,10 @@
 #include "test_harness.hpp"
 #include "test_fonts.hpp"
 #include "ui/localization.hpp"
-
 #include <QApplication>
 #include <QDir>
 #include <QSettings>
 #include <QTemporaryDir>
-
 #include <cstdio>
 #include <vector>
 

@@ -7,70 +7,24 @@
 // behavior must stay identical.
 
 #include "ui/canvas_widget.hpp"
+
+#include "ui/canvas_types.hpp"
 #include "ui/canvas_widget_shared.hpp"
 
-#include "core/adjustment_layer.hpp"
-#include "core/blend_math.hpp"
-#include "core/layer_metadata.hpp"
-#include "core/smart_object.hpp"
-#include "core/smart_filter.hpp"
-#include "core/layer_render_utils.hpp"
-#include "core/layer_tree.hpp"
-#include "core/pixel_tools.hpp"
-#include "core/quick_select.hpp"
-#include "ui/edit_conversions.hpp"
-#include "ui/image_document_io.hpp"
-#include "ui/qt_geometry.hpp"
-#include "ui/smart_object_render.hpp"
-#include "ui/tool_cursors.hpp"
-
-#include <QApplication>
-#include <QCursor>
-#include <QEnterEvent>
-#include <QEventLoop>
-#include <QFocusEvent>
-#include <QFontMetrics>
-#include <QGuiApplication>
+#include <QEvent>
 #include <QInputDevice>
-#include <QKeyEvent>
-#include <QLinearGradient>
-#include <QMenu>
-#include <QMetaObject>
 #include <QMouseEvent>
-#include <QNativeGestureEvent>
-#include <QPainter>
-#include <QPainterPath>
-#include <QPixmap>
+#include <QPointF>
 #include <QPointingDevice>
-#include <QPolygon>
-#include <QPolygonF>
-#include <QPointer>
-#include <QRadialGradient>
-#include <QResizeEvent>
-#include <QScreen>
-#include <QSet>
 #include <QTabletEvent>
-#include <QTimerEvent>
-#include <QTransform>
-#include <QWheelEvent>
-#include <QRandomGenerator>
+#include <QWidget>
+#include <Qt>
 #include <QtGlobal>
 
 #include <algorithm>
-#include <array>
-#include <chrono>
-#include <cstdint>
 #include <cmath>
-#include <cstdio>
-#include <cstring>
-#include <future>
 #include <functional>
-#include <iostream>
-#include <limits>
-#include <queue>
-#include <thread>
-#include <utility>
-#include <vector>
+#include <optional>
 
 namespace patchy::ui {
 

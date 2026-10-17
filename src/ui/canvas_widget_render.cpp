@@ -8,80 +8,73 @@
 // must stay identical.
 
 #include "ui/canvas_widget.hpp"
-#include "ui/background_workers.hpp"
-#include "ui/canvas_widget_shared.hpp"
-#ifdef Q_OS_WASM
-#include "ui/dialog_utils_wasm.hpp"
-#endif
 
-#include "core/adjustment_layer.hpp"
-#include "core/blend_math.hpp"
-#include "core/layer_metadata.hpp"
-#include "core/smart_object.hpp"
-#include "core/smart_filter.hpp"
+#include "color/color_management.hpp"
+#include "core/document.hpp"
+#include "core/document_channel.hpp"
+#include "core/layer.hpp"
 #include "core/layer_render_utils.hpp"
-#include "core/layer_tree.hpp"
-#include "core/pixel_tools.hpp"
-#include "core/quick_select.hpp"
+#include "core/pixel_buffer.hpp"
+#include "core/smart_object.hpp"
 #include "core/worker_budget.hpp"
-#include "ui/edit_conversions.hpp"
+#include "ui/background_workers.hpp"
+#include "ui/canvas_types.hpp"
+#include "ui/canvas_widget_shared.hpp"
+#include "ui/curves_clipping_preview.hpp"
 #include "ui/image_document_io.hpp"
 #include "ui/measurement_units.hpp"
-#include "ui/qt_geometry.hpp"
-#include "ui/smart_object_render.hpp"
-#include "ui/tool_cursors.hpp"
 #include "ui/theme_palette.hpp"
 
 #include <QApplication>
-#include <QCursor>
-#include <QEnterEvent>
+#include <QBrush>
+#include <QColor>
+#include <QEvent>
 #include <QEventLoop>
-#include <QFocusEvent>
+#include <QFont>
 #include <QFontMetrics>
-#include <QGuiApplication>
-#include <QInputDevice>
-#include <QKeyEvent>
-#include <QLinearGradient>
-#include <QMenu>
+#include <QImage>
+#include <QLatin1Char>
 #include <QMetaObject>
 #include <QMouseEvent>
-#include <QNativeGestureEvent>
+#include <QObject>
+#include <QPaintEvent>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPen>
 #include <QPixmap>
-#include <QPointingDevice>
-#include <QPolygon>
-#include <QPolygonF>
+#include <QPoint>
+#include <QPointF>
 #include <QPointer>
-#include <QRadialGradient>
-#include <QResizeEvent>
-#include <QScreen>
+#include <QRect>
+#include <QRectF>
+#include <QRegion>
+#include <QRgb>
 #include <QScrollBar>
-#include <QSet>
-#include <QTabletEvent>
+#include <QSize>
+#include <QString>
 #include <QTimer>
-#include <QTimerEvent>
-#include <QTransform>
-#include <QWheelEvent>
-#include <QRandomGenerator>
+#include <Qt>
 #include <QtGlobal>
 
 #include <algorithm>
-#include <array>
+#include <atomic>
 #include <chrono>
-#include <cstdint>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
-#include <mutex>
 #include <cstring>
-#include <future>
 #include <functional>
-#include <iostream>
-#include <limits>
-#include <queue>
+#include <future>
+#include <memory>
+#include <mutex>
+#include <optional>
 #include <thread>
 #include <utility>
 #include <vector>
+
+#ifdef Q_OS_WASM
+#include "ui/dialog_utils_wasm.hpp"
+#endif
 
 namespace patchy::ui {
 

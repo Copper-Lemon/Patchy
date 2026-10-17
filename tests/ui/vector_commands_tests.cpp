@@ -1,15 +1,37 @@
+#include <QStatusBar>
+#include "ui/canvas_widget.hpp"
+#include "ui/main_window.hpp"
+#include "synthetic_dng.hpp"
+#include "test_harness.hpp"
+#include <QApplication>
+#include <QEventLoop>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <vector>
+#include "ui_test_access.hpp"
 // Vector commands on existing shapes (docs/vector-commands.md): Simplify Path
 // (live-preview dialog, commit, cancel, undo, scripting) and Combine Shapes
 // (Layers-panel multi-selection into the bottom shape layer, undo, scripting).
 #include "ui_test_support.hpp"
-
 #include "core/path_simplify.hpp"
 #include "core/vector_raster.hpp"
 #include "core/vector_shape.hpp"
 #include "ui/dialog_utils.hpp"
 #include "ui/script_engine.hpp"
-
-#include <QAction>
 #include <QCheckBox>
 #include <QDialog>
 #include <QDoubleSpinBox>
@@ -19,7 +41,6 @@
 #include <QSpinBox>
 #include <QStringList>
 #include <QTimer>
-
 #include <cmath>
 #include <cstdio>
 #include <exception>

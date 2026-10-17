@@ -42,6 +42,12 @@ PACKAGE_DIR="$ROOT/build/package"
 
 [ -d "$APP" ] || { echo "ERROR: $APP not found; build the mac-release preset first."; exit 1; }
 [ -x "$QT_BIN/macdeployqt" ] || { echo "ERROR: $QT_BIN/macdeployqt not found."; exit 1; }
+# Packaging always records its own build date, even when the source is unchanged.
+export PATH="$HOME/.patchy-tools/bin:$HOME/.local/bin:$PATH"
+JOBS=$(( $(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 5) - 4 ))
+[ "$JOBS" -ge 1 ] || JOBS=1
+nice -n 10 cmake --build "$BUILD_DIR" --target patchy_refresh_build_stamp -j "$JOBS"
+nice -n 10 cmake --build "$BUILD_DIR" --target patchy_bundle_resources -j "$JOBS"
 # The G'MIC engine must be multithreaded in a release (docs/gmic.md, "Threads").
 grep -q '^PATCHY_GMIC_OPENMP_ENABLED:INTERNAL=TRUE$' "$BUILD_DIR/CMakeCache.txt" || {
   echo "ERROR: $BUILD_DIR has a single-threaded G'MIC engine; run bash scripts/setup-openmp-mac.sh, then rebuild."

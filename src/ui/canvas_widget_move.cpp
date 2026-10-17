@@ -5,78 +5,64 @@
 // canvas_widget.cpp; behavior must stay identical.
 
 #include "ui/canvas_widget.hpp"
-#include "ui/background_workers.hpp"
-#include "ui/canvas_widget_shared.hpp"
 
-#include "core/adjustment_layer.hpp"
-#include "core/blend_math.hpp"
+#include "core/layer.hpp"
+#include "core/layer_alignment.hpp"
 #include "core/layer_metadata.hpp"
-#include "core/smart_object.hpp"
-#include "core/smart_filter.hpp"
 #include "core/layer_render_utils.hpp"
-#include "core/vector_shape.hpp"
 #include "core/layer_tree.hpp"
-#include "core/pixel_tools.hpp"
-#include "core/quick_select.hpp"
-#include "ui/edit_conversions.hpp"
+#include "core/rect_utils.hpp"
+#include "core/smart_object.hpp"
+#include "core/vector_shape.hpp"
+#include "ui/background_workers.hpp"
+#include "ui/canvas_types.hpp"
+#include "ui/canvas_widget_shared.hpp"
 #include "ui/image_document_io.hpp"
 #include "ui/qt_geometry.hpp"
-#include "ui/smart_object_render.hpp"
-#include "ui/tool_cursors.hpp"
 #include "ui/theme_palette.hpp"
 
+#include <QAction>
 #include <QApplication>
-#include <QCursor>
-#include <QEnterEvent>
-#include <QEventLoop>
-#include <QFocusEvent>
-#include <QFontMetrics>
-#include <QGuiApplication>
-#include <QInputDevice>
-#include <QKeyEvent>
-#include <QLinearGradient>
+#include <QColor>
+#include <QImage>
+#include <QList>
 #include <QMenu>
-#include <QThread>
 #include <QMetaObject>
 #include <QMouseEvent>
-#include <QNativeGestureEvent>
 #include <QPainter>
-#include <QPainterPath>
-#include <QPixmap>
-#include <QPointingDevice>
-#include <QPolygon>
-#include <QPolygonF>
+#include <QPen>
+#include <QPoint>
+#include <QPointF>
 #include <QPointer>
-#include <QRadialGradient>
-#include <QResizeEvent>
-#include <QScreen>
+#include <QRect>
+#include <QRectF>
+#include <QRegion>
 #include <QSet>
-#include <QTabletEvent>
-#include <QTimerEvent>
-#include <QTransform>
-#include <QWheelEvent>
-#include <QRandomGenerator>
+#include <QSize>
+#include <QString>
+#include <QThread>
+#include <QVariant>
+#include <Qt>
 #include <QtGlobal>
+
+#include <algorithm>
+#include <array>
+#include <atomic>
+#include <chrono>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <thread>
+#include <utility>
+#include <vector>
 
 #if defined(Q_OS_WASM) && !defined(__EMSCRIPTEN_PTHREADS__)
 #include <QtCore/private/qthread_p.h>
 #endif
-
-#include <algorithm>
-#include <array>
-#include <chrono>
-#include <cstdint>
-#include <cmath>
-#include <cstdio>
-#include <cstring>
-#include <future>
-#include <functional>
-#include <iostream>
-#include <limits>
-#include <queue>
-#include <thread>
-#include <utility>
-#include <vector>
 
 namespace patchy::ui {
 

@@ -60,6 +60,8 @@ rem (docs/ai-selection.md); a missing onnxruntime-web or model is a configure er
 if not "%ERRORLEVEL%"=="0" goto fail
 
 echo Building wasm-release preset...
+"%CMAKE_EXE%" --build --preset wasm-release --target patchy_refresh_build_stamp
+if not "%ERRORLEVEL%"=="0" goto fail
 "%CMAKE_EXE%" --build --preset wasm-release
 if not "%ERRORLEVEL%"=="0" goto fail
 

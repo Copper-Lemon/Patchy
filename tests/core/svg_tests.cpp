@@ -7,10 +7,8 @@
 #include "formats/svg_document_io.hpp"
 #include "formats/svg_xml.hpp"
 #include "formats/vector_export_plan.hpp"
-
 #include "local_psd_fixtures.hpp"
 #include "test_harness.hpp"
-
 #include <algorithm>
 #include <array>
 #include <cmath>

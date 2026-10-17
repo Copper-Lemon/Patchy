@@ -7,21 +7,39 @@
 // hover preview (US 8050498 and Adobe's allowed hover-preview application).
 
 #include "ui/canvas_widget.hpp"
-#include "ui/canvas_widget_shared.hpp"
 
+#include "ai/ai_selection_math.hpp"
 #include "ai/segmentation_engine.hpp"
+#include "core/document.hpp"
+#include "core/layer.hpp"
 #include "core/layer_tree.hpp"
 #include "ui/background_workers.hpp"
+#include "ui/canvas_widget_shared.hpp"
 #include "ui/image_document_io.hpp"
 
 #include <QCoreApplication>
+#include <QElapsedTimer>
+#include <QImage>
 #include <QPainter>
 #include <QPen>
+#include <QPoint>
+#include <QPointF>
+#include <QRect>
+#include <QRectF>
+#include <QString>
+#include <Qt>
+#include <QtGlobal>
 
 #include <algorithm>
+#include <chrono>
+#include <cstdint>
 #include <cstring>
 #include <exception>
+#include <future>
+#include <memory>
+#include <optional>
 #include <utility>
+#include <vector>
 
 namespace patchy::ui {
 namespace {

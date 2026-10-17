@@ -5,9 +5,7 @@
 // smart_filter_tests part TU). Moved, never copied.
 
 #include <cstddef>
-
 #include <QString>
-
 #include "core/document.hpp"
 #include "ui/main_window.hpp"
 

@@ -15,7 +15,6 @@
 
 #include "test_harness.hpp"
 #include "ui_test_groups.hpp"
-
 #include <vector>
 
 std::vector<patchy::test::TestCase> selection_marquee_lasso_tests_part1();

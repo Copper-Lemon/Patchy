@@ -2,7 +2,7 @@
 
 Text sessions, commit/cancel and the Character panel. See [text-render-calibration.md](text-render-calibration.md) for typography, [area-text.md](area-text.md) for shape boundaries, [warp.md](warp.md) for Warp Text and [testing.md](testing.md) for font registration.
 
-Do NOT split the remaining text code out of main_window.cpp as a pure file move: the render pipeline is shared between too many members; design a module with its own header instead.
+`text_font_service` owns font resolution; `text_document` constructs the owning `QTextDocument`; `text_render` builds and draws the shared plan. MainWindow owns editor sessions, commit/cancel and layer metadata adaptation. Extend these interfaces instead of adding member-file splits.
 
 ## One layout authority (src/ui/text_layout.hpp)
 
@@ -33,7 +33,7 @@ render: click and caret share a layout and agree even when it is wrong).
 
 **A face's natural width is `QFont::AnyStretch`, never stretch 100.** Qt synthesizes
 request / face width class, so asking a Condensed face (width class 75, Futura Bold Condensed BT)
-for stretch 100 stretches it 133 percent. Every advance-ratio reference in main_window.cpp
+for stretch 100 stretches it 133 percent. Every advance-ratio reference in text_document.cpp and text_render.cpp
 (`set_stretch_for_advance_ratio`, `scale_font_width`, `dominant_run_width_residual`, the
 pixel-aligned glyph drawer) measures against AnyStretch; measuring against 100 stretches an
 unstretched condensed line a third wider than the caret layout
@@ -71,9 +71,7 @@ metrics (first baseline, box baseline inset, auto-leading fraction); every calle
 pixels on a layer hands them to `store_text_layout_metrics` for the PSD writer
 ([text-render-calibration.md](text-render-calibration.md), "re-renders where Patchy drew it").
 
-Every type in that header holds handles into the document's `QTextLayout`, valid only while
-that document is alive and not laid out again; `build_text_render_document` does its final
-`setTextWidth` before any plan is built. Keep that order.
+`TextRenderPlan` declares its owning `TextRenderDocument` before its line handles, so the handles die first. Handles are valid only while that document lives without relayout. `build_text_render_document` must finish `setTextWidth` before building any plan.
 
 ## The text on screen is never missing
 

@@ -36,6 +36,9 @@ option(PATCHY_BUILD_APP "Build the Qt desktop application when Qt 6 is available
 option(PATCHY_BUILD_TESTS "Build unit tests" ON)
 option(PATCHY_ENABLE_STRICT_WARNINGS "Enable strict compiler warnings" ON)
 option(PATCHY_STORE_BUILD "Build for a store that delivers updates itself: no in-app update check" OFF)
+option(PATCHY_USE_PCH "Precompile stable Qt and standard library headers for native UI targets" ON)
+set(PATCHY_BUILD_STAMP_REFRESH_TOKEN "" CACHE STRING "Packaging token forcing a fresh build timestamp")
+include(cmake/patchy_incremental.cmake)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -194,6 +197,10 @@ include(cmake/patchy_ai.cmake)
 
 add_library(patchy_render
   src/render/compositor.cpp
+  src/render/layer_render_facade.cpp
+  src/render/layer_render_facade.hpp
+  src/render/layer_render_types.hpp
+  src/render/style_mask_cache.hpp
   src/render/native_cmyk.cpp
   src/render/native_duotone.cpp
   src/render/layer_style_mask_ops.cpp
@@ -528,6 +535,13 @@ add_library(patchy_formats
   src/formats/animation_timing.cpp
   src/formats/webp_animation_io.cpp
   src/formats/af_document_io.cpp
+  src/formats/af_container.cpp
+  src/formats/af_raster.cpp
+  src/formats/af_text.cpp
+  src/formats/af_vector.cpp
+  src/formats/af_container_internal.hpp
+  src/formats/af_raster_internal.hpp
+  src/formats/af_import_internal.hpp
   src/formats/af_tree.cpp
   src/formats/aseprite_document_io.cpp
   src/formats/bmp_document_io.cpp
@@ -743,15 +757,19 @@ template=${PATCHY_TRANSLATION_TEMPLATE}
 languages=${PATCHY_TRANSLATED_LANGUAGES}
 ${PATCHY_LUPDATE_MANIFEST_SOURCES}
 ")
-    file(WRITE "${PATCHY_TRANSLATION_OUTPUT_DIR}/languages.txt" "${PATCHY_LANGUAGE_LINES}\n")
-    add_custom_target(patchy_check_translation_catalogs
+    file(GENERATE OUTPUT "${PATCHY_TRANSLATION_OUTPUT_DIR}/languages.txt" CONTENT "${PATCHY_LANGUAGE_LINES}\n")
+    set(PATCHY_TRANSLATION_CATALOG_STAMP "${PATCHY_TRANSLATION_OUTPUT_DIR}/catalog-check.stamp")
+    patchy_add_success_check(patchy_check_translation_catalogs
+      STAMP "${PATCHY_TRANSLATION_CATALOG_STAMP}"
       COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/scripts/check-translations.py"
               --manifest "${PATCHY_LUPDATE_MANIFEST}"
+      DEPENDS ${PATCHY_LUPDATE_SOURCES} "${PATCHY_TRANSLATION_TEMPLATE}" ${PATCHY_TS_FILES}
+              "${PATCHY_LUPDATE_MANIFEST}" "${PROJECT_SOURCE_DIR}/scripts/check-translations.py"
+              $<TARGET_FILE:Qt6::lupdate> "${Python3_EXECUTABLE}"
       COMMENT "Checking translation source freshness and every language catalog"
-      VERBATIM
     )
-    # Validate even on an incremental build. Target ordering also prevents lrelease
-    # from publishing new .qm files from a catalog the validator rejected.
+    # Revalidate every changed input before lrelease publishes .qm files; only an
+    # identical successful input set can reuse the previous check.
     add_dependencies(patchy_lrelease patchy_check_translation_catalogs)
     add_dependencies(patchy_translations patchy_check_translation_catalogs)
     # Qt's own install variables handle every layout (aqt/official: <prefix>/plugins;
@@ -777,6 +795,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
     # every language whose catalog the kit provides; a missing one leaves Qt's
     # dialogs in English for that language, matching the per-string fallback.
     set(PATCHY_QT_BASE_QM_FILES)
+    set(PATCHY_QT_BASE_QM_SOURCES)
     foreach(language IN LISTS PATCHY_TRANSLATED_LANGUAGES)
       set(qt_base_source "${PATCHY_QT_TRANSLATION_DIR}/qtbase_${language}.qm")
       if(PATCHY_QT_TRANSLATION_DIR AND EXISTS "${qt_base_source}")
@@ -791,6 +810,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
           COMMENT "Copying Qt base translation (${language})"
         )
         list(APPEND PATCHY_QT_BASE_QM_FILES "${qt_base_destination}")
+        list(APPEND PATCHY_QT_BASE_QM_SOURCES "${qt_base_source}")
       else()
         message(STATUS "Qt base translation for ${language} not found in ${PATCHY_QT_TRANSLATION_DIR}; Qt dialogs stay English for it")
       endif()
@@ -849,6 +869,22 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
             "${PATCHY_QT_PLUGIN_DIR}/tls/${PATCHY_QT_PLUGIN_PREFIX}${plugin}${PATCHY_QT_PLUGIN_SUFFIX}.")
         endif()
       endforeach()
+    endif()
+    # Source-side Qt runtime inputs serve both the build identity and runtime
+    # validation. Never use our staged DLLs or generated .qm files as stamp inputs.
+    set(PATCHY_QT_SOURCE_RUNTIME_INPUTS ${PATCHY_QT_BASE_QM_SOURCES})
+    foreach(qt_module Core Gui Widgets Svg PrintSupport Network Qml Test Pdf)
+      if(TARGET Qt6::${qt_module})
+        list(APPEND PATCHY_QT_SOURCE_RUNTIME_INPUTS $<TARGET_FILE:Qt6::${qt_module}>)
+      endif()
+    endforeach()
+    if(NOT EMSCRIPTEN)
+      file(GLOB PATCHY_QT_PLUGIN_RUNTIME_INPUTS CONFIGURE_DEPENDS LIST_DIRECTORIES FALSE
+        "${PATCHY_QT_PLUGIN_DIR}/platforms/*${PATCHY_QT_PLUGIN_SUFFIX}"
+        "${PATCHY_QT_PLUGIN_DIR}/iconengines/*${PATCHY_QT_PLUGIN_SUFFIX}"
+        "${PATCHY_QT_PLUGIN_DIR}/imageformats/*${PATCHY_QT_PLUGIN_SUFFIX}"
+        "${PATCHY_QT_PLUGIN_DIR}/tls/*${PATCHY_QT_PLUGIN_SUFFIX}")
+      list(APPEND PATCHY_QT_SOURCE_RUNTIME_INPUTS ${PATCHY_QT_PLUGIN_RUNTIME_INPUTS})
     endif()
     if(WIN32)
       set(PATCHY_QT_IMAGE_FORMAT_PLUGIN_FILES)
@@ -948,11 +984,13 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
                   "${CMAKE_BINARY_DIR}/fonts")
       endif()
       set(PATCHY_FONTS_STAMP "${CMAKE_BINARY_DIR}/CMakeFiles/patchy_bundled_fonts.stamp")
+      set(PATCHY_FONTS_INPUT_MANIFEST "${CMAKE_BINARY_DIR}/CMakeFiles/patchy_fonts_inputs.txt")
+      patchy_write_input_manifest("${PATCHY_FONTS_INPUT_MANIFEST}" ${PATCHY_BUNDLED_FONT_FILES})
       add_custom_command(
         OUTPUT "${PATCHY_FONTS_STAMP}"
         ${PATCHY_FONTS_COPY_COMMANDS}
         COMMAND ${CMAKE_COMMAND} -E touch "${PATCHY_FONTS_STAMP}"
-        DEPENDS ${PATCHY_BUNDLED_FONT_FILES}
+        DEPENDS ${PATCHY_BUNDLED_FONT_FILES} "${PATCHY_FONTS_INPUT_MANIFEST}"
         COMMENT "Copying bundled fonts into the build directory"
       )
       add_custom_target(patchy_bundled_fonts DEPENDS "${PATCHY_FONTS_STAMP}")
@@ -975,6 +1013,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       file(GLOB_RECURSE PATCHY_BUNDLED_SCRIPT_FILES CONFIGURE_DEPENDS
         "${PATCHY_BUNDLED_SCRIPTS_DIR}/*")
       set(PATCHY_SCRIPTS_STAMP "${CMAKE_BINARY_DIR}/CMakeFiles/patchy_bundled_scripts.stamp")
+      set(PATCHY_SCRIPTS_INPUT_MANIFEST "${CMAKE_BINARY_DIR}/CMakeFiles/patchy_scripts_inputs.txt")
+      patchy_write_input_manifest("${PATCHY_SCRIPTS_INPUT_MANIFEST}" ${PATCHY_BUNDLED_SCRIPT_FILES})
       add_custom_command(
         OUTPUT "${PATCHY_SCRIPTS_STAMP}"
         # Clean first: copy_directory never deletes, so renamed/removed bundled
@@ -984,7 +1024,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
                 "${PATCHY_BUNDLED_SCRIPTS_DIR}"
                 "${CMAKE_BINARY_DIR}/scripts"
         COMMAND ${CMAKE_COMMAND} -E touch "${PATCHY_SCRIPTS_STAMP}"
-        DEPENDS ${PATCHY_BUNDLED_SCRIPT_FILES}
+        DEPENDS ${PATCHY_BUNDLED_SCRIPT_FILES} "${PATCHY_SCRIPTS_INPUT_MANIFEST}"
         COMMENT "Copying bundled scripts into the build directory"
       )
       add_custom_target(patchy_bundled_scripts DEPENDS "${PATCHY_SCRIPTS_STAMP}")
@@ -999,6 +1039,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       set(PATCHY_AGENT_KIT_DIR "${PROJECT_SOURCE_DIR}/agent-kit")
       file(GLOB_RECURSE PATCHY_AGENT_KIT_FILES CONFIGURE_DEPENDS "${PATCHY_AGENT_KIT_DIR}/*")
       set(PATCHY_AGENT_KIT_STAMP "${CMAKE_BINARY_DIR}/CMakeFiles/patchy_agent_kit.stamp")
+      set(PATCHY_AGENT_KIT_INPUT_MANIFEST "${CMAKE_BINARY_DIR}/CMakeFiles/patchy_agent_kit_inputs.txt")
+      patchy_write_input_manifest("${PATCHY_AGENT_KIT_INPUT_MANIFEST}" ${PATCHY_AGENT_KIT_FILES})
       add_custom_command(OUTPUT "${PATCHY_AGENT_KIT_STAMP}"
         # The output is always the dedicated ai child of the build directory.
         COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}/ai"
@@ -1008,7 +1050,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
                 "${PATCHY_BUNDLED_SCRIPTS_DIR}/scripting-guide.md"
                 "${CMAKE_BINARY_DIR}/ai/patchy-control/references/"
         COMMAND ${CMAKE_COMMAND} -E touch "${PATCHY_AGENT_KIT_STAMP}"
-        DEPENDS ${PATCHY_AGENT_KIT_FILES} "${PATCHY_BUNDLED_SCRIPTS_DIR}/patchy.d.ts"
+        DEPENDS ${PATCHY_AGENT_KIT_FILES} "${PATCHY_AGENT_KIT_INPUT_MANIFEST}" "${PATCHY_BUNDLED_SCRIPTS_DIR}/patchy.d.ts"
                 "${PATCHY_BUNDLED_SCRIPTS_DIR}/scripting-guide.md"
         COMMENT "Assembling the Patchy control skill")
       add_custom_target(patchy_agent_kit ALL DEPENDS "${PATCHY_AGENT_KIT_STAMP}")
@@ -1043,6 +1085,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/brush_tip_picker.hpp
       src/ui/brush_tip_picker.cpp
       src/ui/canvas_widget.hpp
+      src/ui/canvas_types.hpp
+      src/ui/image_save_options.hpp
       src/ui/canvas_widget.cpp
       src/ui/canvas_widget_shared.hpp
       src/ui/canvas_widget_shared.cpp
@@ -1126,6 +1170,12 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/image_save_option_keys.cpp
       src/ui/image_save_options_dialog.cpp
       src/ui/layer_style_dialog.cpp
+      src/ui/layer_style_dialog_controls.cpp
+      src/ui/layer_style_dialog_controls.hpp
+      src/ui/layer_style_gradient_controls.cpp
+      src/ui/layer_style_gradient_controls.hpp
+      src/ui/layer_style_effect_pages.cpp
+      src/ui/layer_style_effect_pages.hpp
       src/ui/layer_list_widget.cpp
       src/ui/liquify_dialog.hpp
       src/ui/liquify_dialog.cpp
@@ -1182,6 +1232,10 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/document_recovery.cpp
       src/ui/document_recovery_coordinator.cpp
       src/ui/document_session_store.cpp
+      src/ui/session_history.cpp
+      src/ui/document_save_coordinator.cpp
+      src/ui/document_save_coordinator.hpp
+      src/ui/session_history.hpp
       src/ui/main_window_shared.hpp
       src/ui/main_window_shared.cpp
       src/ui/font_face_name_index.hpp
@@ -1319,6 +1373,12 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/theme_qss.cpp
       src/ui/text_layout.hpp
       src/ui/text_layout.cpp
+      src/ui/text_font_service.cpp
+      src/ui/text_font_service.hpp
+      src/ui/text_document.cpp
+      src/ui/text_document.hpp
+      src/ui/text_render.cpp
+      src/ui/text_render.hpp
       src/ui/text_area_layout.cpp
       src/ui/text_area_layout.hpp
       src/ui/tile_preview_window.hpp
@@ -1436,22 +1496,9 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
     configure_file("${PROJECT_SOURCE_DIR}/cmake/patchy_version.hpp.in"
                    "${PATCHY_VERSION_HEADER_DIR}/patchy_version.hpp" @ONLY)
     target_include_directories(patchy_ui PUBLIC "${PATCHY_VERSION_HEADER_DIR}")
-    # The build stamp shown beside the version must be fresh in every binary.
-    # A custom target is always out of date, so each build rewrites the
-    # generated header before patchy_ui compiles; the include directory is
-    # scoped to build_info.cpp alone, so each build recompiles exactly one TU
-    # and relinks. Never switch build_info.cpp back to __DATE__/__TIME__:
-    # those freeze when that TU last compiled, and incremental builds reuse
-    # the object file, shipping a stale date.
-    set(PATCHY_BUILD_STAMP_HEADER "${CMAKE_BINARY_DIR}/generated/patchy_build_stamp.hpp")
-    add_custom_target(patchy_build_stamp
-      COMMAND ${CMAKE_COMMAND}
-              "-DPATCHY_BUILD_STAMP_HEADER=${PATCHY_BUILD_STAMP_HEADER}"
-              -P "${PROJECT_SOURCE_DIR}/cmake/write_build_stamp.cmake"
-      BYPRODUCTS "${PATCHY_BUILD_STAMP_HEADER}"
-      COMMENT "Stamping the build date and time"
-      VERBATIM
-    )
+    # Source/build input changes refresh the date; a no-op build keeps the binary.
+    # Packagers explicitly request a refresh before building their artifacts.
+    patchy_setup_build_stamp()
     add_dependencies(patchy_ui patchy_build_stamp)
     set_source_files_properties(src/ui/build_info.cpp PROPERTIES
       INCLUDE_DIRECTORIES "${CMAKE_BINARY_DIR}/generated"
@@ -1699,12 +1746,30 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       patchy_copy_qt_runtime(patchy_translation_checks)
       patchy_copy_bundled_fonts(patchy_translation_checks)
       patchy_copy_bundled_scripts(patchy_translation_checks)
-      add_custom_target(patchy_check_translation_runtime
+      patchy_copy_ai_runtime(patchy_translation_checks)
+      add_dependencies(patchy_translation_checks patchy_agent_kit)
+      set(PATCHY_TRANSLATION_RUNTIME_INPUTS
+        patchy_translation_checks "${PATCHY_TRANSLATION_CATALOG_STAMP}"
+        ${PATCHY_QM_FILES} ${PATCHY_QT_BASE_QM_FILES}
+        "${PATCHY_TRANSLATION_TEMPLATE}" ${PATCHY_TS_FILES}
+        "${PATCHY_LUPDATE_MANIFEST}" "${PATCHY_TRANSLATION_OUTPUT_DIR}/languages.txt"
+        ${PATCHY_QT_SOURCE_RUNTIME_INPUTS}
+      )
+      foreach(runtime_stamp PATCHY_QT_RUNTIME_STAMP PATCHY_FONTS_STAMP PATCHY_SCRIPTS_STAMP
+                            PATCHY_AI_RUNTIME_STAMP PATCHY_AGENT_KIT_STAMP)
+        if(DEFINED ${runtime_stamp})
+          list(APPEND PATCHY_TRANSLATION_RUNTIME_INPUTS "${${runtime_stamp}}")
+        endif()
+      endforeach()
+      set(PATCHY_TRANSLATION_RUNTIME_MANIFEST "${PATCHY_TRANSLATION_OUTPUT_DIR}/runtime-inputs.txt")
+      patchy_write_input_manifest("${PATCHY_TRANSLATION_RUNTIME_MANIFEST}" ${PATCHY_TRANSLATION_RUNTIME_INPUTS})
+      list(APPEND PATCHY_TRANSLATION_RUNTIME_INPUTS "${PATCHY_TRANSLATION_RUNTIME_MANIFEST}")
+      patchy_add_success_check(patchy_check_translation_runtime
+        STAMP "${PATCHY_TRANSLATION_OUTPUT_DIR}/runtime-check.stamp"
         COMMAND $<TARGET_FILE:patchy_translation_checks>
-        DEPENDS patchy_translation_checks
+        DEPENDS ${PATCHY_TRANSLATION_RUNTIME_INPUTS}
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
         COMMENT "Checking UI translations at startup and after language switches"
-        VERBATIM
       )
       add_dependencies(patchy patchy_check_translation_runtime)
       add_dependencies(patchy-mcp patchy_check_translation_runtime)
@@ -2001,6 +2066,9 @@ if(PATCHY_BUILD_TESTS)
     add_test(NAME patchy_translation_validator_tests
       COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/translation_validator_tests.py"
               --lupdate $<TARGET_FILE:Qt6::lupdate> --cmake "${CMAKE_COMMAND}")
+    add_test(NAME patchy_build_graph_tests
+      COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/tests/build_graph_tests.py"
+              --cmake "${CMAKE_COMMAND}" --ninja "${CMAKE_MAKE_PROGRAM}")
     # One binary; per-group TUs live in tests/ui/ (tests/ui/ui_test_groups.hpp lists
     # the groups; main() concatenates the group vectors in a fixed order — never
     # static self-registration).
@@ -2012,6 +2080,10 @@ if(PATCHY_BUILD_TESTS)
       tests/ui/smart_filter_test_support.cpp
       tests/ui/readme_screenshot_test_support.cpp
       tests/ui/app_shell_tests.cpp
+      tests/ui/app_shell_tests_workspace.cpp
+      tests/ui/app_shell_tests_updates_preferences.cpp
+      tests/ui/app_shell_tests_language_chrome.cpp
+      tests/ui/app_shell_tests_theme_status.cpp
       tests/ui/localization_tests.cpp
       tests/ui/translation_runtime_tests.cpp
       tests/ui/font_coverage_tests.cpp
@@ -2064,6 +2136,10 @@ if(PATCHY_BUILD_TESTS)
       tests/ui/smart_object_tests.cpp
       tests/ui/warp_tests.cpp
       tests/ui/import_print_resolution_tests.cpp
+      tests/ui/import_print_resolution_test_support.cpp
+      tests/ui/import_print_resolution_tests_import_export.cpp
+      tests/ui/import_print_resolution_tests_pdf.cpp
+      tests/ui/import_print_resolution_tests_geometry_rendering.cpp
       tests/ui/divide_photos_tests.cpp
       tests/ui/folder_open_export_tests.cpp
       tests/ui/image_adjustments_curves_tests.cpp
@@ -2081,6 +2157,10 @@ if(PATCHY_BUILD_TESTS)
       tests/ui/svg_ui_tests.cpp
       tests/ui/image_trace_ui_tests.cpp
       tests/ui/scripting_tests.cpp
+      tests/ui/scripting_test_support.cpp
+      tests/ui/scripting_tests_mutations_text.cpp
+      tests/ui/scripting_tests_color_formats.cpp
+      tests/ui/scripting_tests_manager_automation.cpp
       tests/ui/script_move_tests.cpp
       tests/ui/document_recovery_tests.cpp
       tests/ui/mcp_tests.cpp
@@ -2157,3 +2237,11 @@ if(PATCHY_BUILD_TESTS)
     endif()
   endif()
 endif()
+
+# Configure PCHs only after source-specific options have been attached. Keep the
+# no-PCH preset as an include-hygiene check and for comparative measurements.
+foreach(pch_target patchy_ui patchy_translation_checks patchy_ui_visual_tests)
+  if(TARGET ${pch_target})
+    patchy_enable_ui_pch(${pch_target})
+  endif()
+endforeach()

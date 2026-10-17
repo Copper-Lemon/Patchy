@@ -8,31 +8,53 @@
 // NOTE: canvas_widget_pen.cpp is TABLET INPUT (pressure, tilt, pen buttons),
 // not this vector Pen tool.
 #include "ui/canvas_widget.hpp"
-#include "core/text_area.hpp"
-#include "ui/main_window_shared.hpp"
 
 #include "core/document_path.hpp"
-#include "core/vector_live_shapes.hpp"
+#include "core/layer.hpp"
 #include "core/layer_metadata.hpp"
 #include "core/layer_render_utils.hpp"
+#include "core/text_area.hpp"
+#include "core/vector_live_shapes.hpp"
 #include "core/vector_raster.hpp"
 #include "core/vector_shape.hpp"
+#include "ui/canvas_types.hpp"
+#include "ui/main_window_shared.hpp"
 #include "ui/modifier_names.hpp"
 #include "ui/qt_geometry.hpp"
 
+#include <QAction>
+#include <QBrush>
+#include <QColor>
 #include <QDateTime>
 #include <QKeyEvent>
+#include <QLatin1String>
 #include <QMenu>
 #include <QMouseEvent>
-#include <QScopeGuard>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPen>
+#include <QPoint>
+#include <QPointF>
+#include <QPolygonF>
+#include <QRectF>
+#include <QScopeGuard>
+#include <QString>
+#include <QTransform>
+#include <Qt>
+#include <QtGlobal>
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
+#include <functional>
 #include <limits>
+#include <memory>
 #include <numbers>
+#include <optional>
+#include <qlatin1stringview.h>
+#include <set>
+#include <string>
 #include <utility>
 #include <vector>
 

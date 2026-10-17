@@ -1,3 +1,27 @@
+#include "core/blend_math.hpp"
+#include "synthetic_dng.hpp"
+#include <bit>
+#include <cctype>
+#include <chrono>
+#include <cstring>
+#include <filesystem>
+#include <exception>
+#include <fstream>
+#include <functional>
+#include <iomanip>
+#include <iostream>
+#include <iterator>
+#include <limits>
+#include <numeric>
+#include <optional>
+#include <span>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <tuple>
+#include <unordered_set>
+#include <utility>
 #include "core/document.hpp"
 #include "core/layer.hpp"
 #include "core/layer_render_utils.hpp"
@@ -9,10 +33,8 @@
 #include "core/vector_raster.hpp"
 #include "core/vector_shape.hpp"
 #include "render/compositor.hpp"
-
 #include "core_test_support.hpp"
 #include "test_harness.hpp"
-
 #include <algorithm>
 #include <array>
 #include <cmath>

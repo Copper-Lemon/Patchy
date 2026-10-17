@@ -29,6 +29,7 @@ VERSION="${2:?package needs the version}"
 
 echo "== configure and build (linux-appimage: gcc-12, Qt 6.8.3, glibc 2.35) =="
 cmake --preset linux-appimage
+nice -n 10 cmake --build --preset linux-appimage --target patchy_refresh_build_stamp -j "$JOBS"
 nice -n 10 cmake --build --preset linux-appimage -j "$JOBS"
 
 echo "== stage the AppDir =="

@@ -1,25 +1,34 @@
+#include "formats/bmp_document_io.hpp"
+#include "formats/aseprite_document_io.hpp"
+#include "formats/ico_document_io.hpp"
+#include "formats/tga_document_io.hpp"
+#include <atomic>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <limits>
+#include <memory>
+#include <span>
+#include <stdexcept>
+#include <string_view>
+#include <utility>
 // Part 3 of the text_transform_commit UI test group: flipped (negative-scale)
 // free transforms and the transform/raster consistency chain across re-edits,
 // nudges, and PSD export. Repro for the August 2026 report: flipping a text
 // layer looked unflipped until the next edit, and an edited layer's saved TySh
 // transform pointed somewhere entirely different from its raster.
-
 #include "core/layer_metadata.hpp"
 #include "core/pixel_tools.hpp"
 #include "psd/psd_document_io.hpp"
 #include "ui/canvas_widget.hpp"
 #include "ui/main_window.hpp"
-
-#include <QAction>
 #include <QApplication>
 #include <QDoubleSpinBox>
 #include <QImage>
 #include <QPoint>
-#include <QPointF>
 #include <QString>
-#include <QTextCursor>
 #include <QTextEdit>
-
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -30,7 +39,6 @@
 #include <optional>
 #include <string>
 #include <vector>
-
 #include "test_harness.hpp"
 #include "ui_test_access.hpp"
 #include "ui_test_groups.hpp"

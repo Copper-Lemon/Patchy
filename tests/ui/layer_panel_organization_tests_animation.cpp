@@ -1,14 +1,29 @@
+#include "synthetic_dng.hpp"
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string_view>
 // Animation-preview tests, a part file of the layer_panel_organization group (the
 // aggregator in layer_panel_organization_tests.cpp appends this part's vector).
-
 #include "ui/animation_preview_window.hpp"
 #include "ui/app_settings.hpp"
 #include "ui/main_window.hpp"
-
 #include "test_harness.hpp"
 #include "ui_test_access.hpp"
 #include "ui_test_support.hpp"
-
 #include <QApplication>
 #include <QDoubleSpinBox>
 #include <QFileInfo>
@@ -18,8 +33,6 @@
 #include <QPointer>
 #include <QPushButton>
 #include <QToolButton>
-#include <QVBoxLayout>
-
 #include <cstdio>
 #include <string>
 #include <utility>

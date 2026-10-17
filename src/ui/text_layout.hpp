@@ -18,8 +18,9 @@
 // blocks. Every type here is valid only while the document that produced it is
 // alive and has not been laid out again. Build, use, discard.
 //
-// The document construction itself (build_text_render_document) and the raster
-// pass still live in main_window.cpp; see docs/text-tool.md.
+// Document construction lives in text_document.cpp; text_render.cpp owns the
+// render plan and raster pass. The owning plan keeps its document alive for every
+// line handle. See docs/text-tool.md.
 
 #include <QFont>
 #include <QPointF>

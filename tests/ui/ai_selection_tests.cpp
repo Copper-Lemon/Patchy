@@ -1,23 +1,39 @@
+#include "local_psd_fixtures.hpp"
+#include <QByteArray>
+#include <QIODevice>
+#include <QUrl>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cstring>
+#include <exception>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <vector>
 // Automatic selection in the app (docs/ai-selection.md): the Object Selection tool, Select >
 // Subject and the script calls. Model results are CPU-dependent float math, so checks look
 // at where the selection lands, never at exact pixels. Builds without the models skip.
-
 #include "ui/canvas_widget.hpp"
 #include "ui/main_window.hpp"
 #include "ui/main_window_shared.hpp"
 #include "ui/script_engine.hpp"
-
 #include "ui/app_settings.hpp"
 #include "ui/object_selection_model_download.hpp"
 #include "ui/qt_paths.hpp"
-
 #include "ai/segmentation_engine.hpp"
 #include "core/pixel_depth.hpp"
 #include "test_harness.hpp"
 #include "ui_test_access.hpp"
 #include "ui_test_support.hpp"
 #include "unicode_path_names.hpp"
-
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
@@ -33,7 +49,6 @@
 #include <QStringList>
 #include <QPushButton>
 #include <QTimer>
-
 #include <cmath>
 #include <cstdint>
 #include <cstdio>

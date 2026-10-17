@@ -1,9 +1,31 @@
+#include <QStatusBar>
+#include "ui/canvas_widget.hpp"
+#include "formats/acv_curves_io.hpp"
+#include "formats/bmp_document_io.hpp"
+#include "formats/ico_document_io.hpp"
+#include "formats/tga_document_io.hpp"
+#include <QByteArray>
+#include <QIODevice>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <optional>
+#include <stdexcept>
+#include <string>
+#include <string_view>
 // File > Open Folder (every image in a folder as its own tab, also a dropped or
 // command-line directory), File > Export > Documents to Folder (the checked open
 // documents as numbered image files), the shared document-order list's Auto
 // Sort / Reverse buttons, and the shape of the File > Export submenu itself
 // (docs/import.md, docs/pdf.md, docs/ui-conventions.md).
-
 #include "core/document.hpp"
 #include "formats/aseprite_document_io.hpp"
 #include "formats/pdf_document_io.hpp"
@@ -15,17 +37,14 @@
 #include "ui/image_sequence_dialog.hpp"
 #include "ui/main_window.hpp"
 #include "ui/qt_paths.hpp"
-
 #include "test_harness.hpp"
 #include "ui_test_access.hpp"
 #include "ui_test_groups.hpp"
 #include "ui_test_support.hpp"
-
 #include <QAction>
 #include <QApplication>
 #include <QColor>
 #include <QComboBox>
-#include <QDialog>
 #include <QDir>
 #include <QDragEnterEvent>
 #include <QDropEvent>
@@ -42,14 +61,11 @@
 #include <QMimeData>
 #include <QProgressDialog>
 #include <QPushButton>
-#include <QRadioButton>
 #include <QSpinBox>
-#include <QStatusBar>
 #include <QStringList>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QUrl>
-
 #include <cstdint>
 #include <memory>
 #include <span>

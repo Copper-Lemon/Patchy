@@ -86,6 +86,8 @@ echo Configuring release build...
 if not "!ERRORLEVEL!"=="0" goto fail
 
 echo Building release preset...
+"%CMAKE_EXE%" --build --preset release --target patchy_refresh_build_stamp
+if not "!ERRORLEVEL!"=="0" goto fail
 "%CMAKE_EXE%" --build --preset release
 if not "!ERRORLEVEL!"=="0" goto fail
 

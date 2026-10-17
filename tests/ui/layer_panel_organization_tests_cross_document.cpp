@@ -1,29 +1,39 @@
+#include "ui/canvas_widget.hpp"
+#include "synthetic_dng.hpp"
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <span>
+#include <stdexcept>
+#include <string_view>
 // Cross-document layer copies (a Layers-panel drag dropped on another document's
 // canvas or tab), a part file of the layer_panel_organization group (the
 // aggregator in layer_panel_organization_tests.cpp appends this part's vector).
-
-#include "core/layer_metadata.hpp"
-#include "core/layer_tree.hpp"
 #include "core/smart_object.hpp"
 #include "core/vector_live_shapes.hpp"
 #include "core/vector_raster.hpp"
 #include "core/vector_shape.hpp"
 #include "ui/main_window.hpp"
-
 #include "test_harness.hpp"
 #include "ui_test_access.hpp"
 #include "ui_test_support.hpp"
-
 #include <QApplication>
 #include <QColor>
 #include <QComboBox>
 #include <QDialog>
 #include <QLineEdit>
 #include <QListWidget>
-#include <QTabBar>
 #include <QTabWidget>
 #include <QTimer>
-
 #include <cstdint>
 #include <cstdlib>
 #include <optional>

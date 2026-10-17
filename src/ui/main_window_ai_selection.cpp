@@ -5,7 +5,12 @@
 // pass over the whole image only: no network-located crop and no second pass (patent
 // boundary in src/ai/segmentation_engine.hpp).
 
+#include "core/pixel_buffer.hpp"
+#include "core/layer.hpp"
 #include "ui/main_window.hpp"
+#include <QComboBox>
+#include <QPushButton>
+#include <QStatusBar>
 
 #include "ai/segmentation_engine.hpp"
 #include "core/layer_render_utils.hpp"
@@ -22,27 +27,33 @@
 #include "ui/qt_geometry.hpp"
 #include "ui/qt_paths.hpp"
 
-#include <QComboBox>
 #include <QCoreApplication>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QEventLoop>
 #include <QFileInfo>
 #include <QGuiApplication>
-#include <QLatin1String>
 #include <QImage>
+#include <QLatin1String>
 #include <QMessageBox>
 #include <QPointer>
 #include <QProgressDialog>
-#include <QPushButton>
+#include <QRect>
 #include <QSignalBlocker>
-#include <QStatusBar>
+#include <QString>
+#include <QStringLiteral>
 #include <QTimer>
+#include <QWidget>
+#include <Qt>
+#include <QtGlobal>
 
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
+#include <cmath>
 #include <cstring>
 #include <exception>
+#include <functional>
 #include <future>
 #include <optional>
 #include <utility>

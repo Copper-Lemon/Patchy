@@ -1,25 +1,37 @@
+#include "synthetic_dng.hpp"
+#include <QIODevice>
+#include <QWidget>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cstring>
+#include <exception>
+#include <fstream>
+#include <iostream>
+#include <limits>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
 // Divide Scanned Photos: the scan-and-divide import, the Image-menu command on
 // the current document, the editable region preview, the Straighten / Fix
 // Perspective checkbox semantics, and the numbered folder save. All scanner
 // paths run offscreen through PATCHY_FAKE_SCANNER_FILE (docs/import.md).
-
 #include "core/document.hpp"
 #include "core/pixel_buffer.hpp"
 #include "ui/app_settings.hpp"
 #include "ui/main_window.hpp"
-
 #include "test_harness.hpp"
 #include "ui_test_access.hpp"
 #include "ui_test_groups.hpp"
 #include "ui_test_support.hpp"
-
 #include <QAction>
 #include <QApplication>
 #include <QByteArray>
 #include <QCheckBox>
 #include <QColor>
 #include <QComboBox>
-#include <QDialog>
 #include <QDialogButtonBox>
 #include <QFile>
 #include <QFileInfo>
@@ -33,14 +45,11 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QRect>
-#include <QScopeGuard>
 #include <QSpinBox>
 #include <QTabWidget>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QToolButton>
-#include <QVariant>
-
 #include <cmath>
 #include <cstdint>
 #include <filesystem>

@@ -6,13 +6,20 @@
 
 #include "ui/canvas_widget.hpp"
 
+#include "ui/canvas_types.hpp"
+
 #include <QColor>
 #include <QLineF>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPen>
+#include <QPointF>
+#include <Qt>
 
+#include <cstddef>
+#include <functional>
 #include <utility>
+#include <vector>
 
 namespace patchy::ui {
 

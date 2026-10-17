@@ -6,7 +6,7 @@
 #include "core/smart_object.hpp"
 #include "core/vector_raster.hpp"
 #include "render/raster_view_context.hpp"
-#include "render/layer_compositor.hpp"
+#include "render/layer_render_facade.hpp"
 #include "ui/image_document_io.hpp"
 
 #include <QCoreApplication>
@@ -423,7 +423,7 @@ void raster_nodes(const std::vector<VectorPreviewNode>& nodes, std::vector<Layer
         // Keep the entire padded area, including silhouettes outside the viewport
         // whose effects reach into it. A document render clips that area to its
         // canvas, leaving a smaller pixel buffer paired with the original bounds.
-        combined = render_detail::group_silhouette_for_render(parts, area, nullptr, false, nullptr, &patterns);
+        combined = render_detail::group_silhouette_rgb8(parts, area, &patterns);
       }
       budget.retained = retained;
       budget.keep(combined);

@@ -1,3 +1,34 @@
+#include "core/adjustment_layer.hpp"
+#include "psd/psd_binary.hpp"
+#include "test_harness.hpp"
+#include "local_psd_fixtures.hpp"
+#include "synthetic_dng.hpp"
+#include <algorithm>
+#include <array>
+#include <bit>
+#include <cctype>
+#include <chrono>
+#include <cmath>
+#include <cstring>
+#include <filesystem>
+#include <exception>
+#include <cstdint>
+#include <fstream>
+#include <functional>
+#include <iomanip>
+#include <iostream>
+#include <iterator>
+#include <limits>
+#include <numeric>
+#include <optional>
+#include <span>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <tuple>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 #include "psd_test_support.hpp"
 
 namespace patchy::test {

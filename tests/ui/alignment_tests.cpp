@@ -1,15 +1,38 @@
+#include <QStatusBar>
+#include "ui/canvas_widget.hpp"
+#include "ui/main_window.hpp"
+#include "ui/app_settings.hpp"
+#include "test_harness.hpp"
+#include <QApplication>
+#include <QCheckBox>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+#include "ui_test_access.hpp"
 // Move-tool alignment guides (snap targets, the magenta overlay, the Snap
 // checkbox) and the Layer > Arrange > Align / Distribute commands with their
 // options-bar buttons. See docs/alignment.md.
-
 #include "ui_test_support.hpp"
-
 #include "ui_test_groups.hpp"
-
 #include "core/layer_alignment.hpp"
-#include "ui/theme_palette.hpp"
 #include "ui/ui_test_access.hpp"
-
 #include <QListWidget>
 #include <QMenu>
 #include <QToolBar>

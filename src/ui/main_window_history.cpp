@@ -5,245 +5,59 @@
 // history_restore_changed_region, apply_history_render_refresh) that decide how
 // much of the canvas an undo/redo restore must recomposite.
 
+#include "ui/canvas_types.hpp"
+#include "core/smart_filter.hpp"
 #include "ui/main_window.hpp"
+#include "core/worker_budget.hpp"
+#include <QStatusBar>
+#include "ui/canvas_widget.hpp"
 #include "ui/main_window_shared.hpp"
 
-#include "core/blend_math.hpp"
 #include "core/document_memory.hpp"
-#include "core/layer_metadata.hpp"
 #include "core/smart_object.hpp"
-#include "core/text_warp.hpp"
-#include "core/warp_mesh.hpp"
-#include "core/layer_render_utils.hpp"
-#include "core/layer_tree.hpp"
-#include "core/palette_presets.hpp"
-#include "core/pattern_presets.hpp"
-#include "core/pixel_tools.hpp"
 #include "core/stroke_patch.hpp"
-#include "core/worker_budget.hpp"
-#include "formats/palette_io.hpp"
-#include "filters/builtin_filters.hpp"
-#include "formats/aseprite_document_io.hpp"
-#include "formats/bmp_document_io.hpp"
-#include "formats/heif_document_io.hpp"
-#include "formats/raw_document_io.hpp"
-#include "plugins/legacy_photoshop_adapter.hpp"
-#include "psd/psd_document_io.hpp"
-#include "psd/psd_filter_effects.hpp"
-#include "psd/psd_smart_objects.hpp"
-#include "ui/action_icons.hpp"
-#include "ui/app_settings.hpp"
 #include "ui/background_workers.hpp"
-#include "render/compositor.hpp"
-#include "ui/blend_mode_ui.hpp"
-#include "ui/brush_dynamics_popup.hpp"
-#include "ui/brush_presets.hpp"
-#include "ui/brush_tip_library.hpp"
 #include "ui/brush_tip_manager_dialog.hpp"
-#include "ui/brush_tip_picker.hpp"
-#include "ui/default_brush_tips.hpp"
-#include "ui/compatibility_report.hpp"
-#include "ui/image_document_io.hpp"
-#include "ui/image_save_options_dialog.hpp"
-#include "ui/raw_develop_dialog.hpp"
 #include "ui/filter_workflows.hpp"
-#include "ui/gradient_stops_editor.hpp"
-#include "ui/gradient_library.hpp"
-#include "ui/gradient_manager_dialog.hpp"
 #include "ui/dialog_utils.hpp"
 #include "ui/document_float_window.hpp"
-#include "ui/font_picker.hpp"
-#include "ui/hotkey_editor.hpp"
-#include "ui/edit_conversions.hpp"
 #include "ui/color_panel.hpp"
 #include "ui/layer_style_dialog.hpp"
 #include "ui/layer_list_widget.hpp"
-#include "ui/localization.hpp"
-#include "ui/measurement_units.hpp"
 #include "ui/memory_info.hpp"
-#include "ui/palette_convert_dialog.hpp"
-#include "ui/palette_panel.hpp"
-#include "ui/pattern_library.hpp"
-#include "ui/photo_pattern_presets.hpp"
-#include "ui/style_library.hpp"
-#include "ui/print_dialog.hpp"
-#include "ui/smart_object_render.hpp"
+#include "ui/session_history.hpp"
 #include "ui/scanner_import.hpp"
-#include "ui/image_sequence_dialog.hpp"
-#include "ui/sprite_sheet_dialog.hpp"
 #include "ui/tile_preview_window.hpp"
+#include "ui/ui_profile.hpp"
 #include "ui/warp_text_dialog.hpp"
-#include "ui/qt_geometry.hpp"
-#include "ui/splash_dialog.hpp"
 #include "ui/theme_palette.hpp"
-#include "ui/update_checker.hpp"
-#include "ui/zoom_status_bar.hpp"
-#include "support/string_utils.hpp"
 
-#include <QAbstractItemView>
-#include <QAbstractItemModel>
-#include <QAbstractButton>
-#include <QAbstractSpinBox>
-#include <QAbstractTextDocumentLayout>
-#include <QAction>
-#include <QActionGroup>
-#include <QApplication>
-#include <QBrush>
-#include <QBuffer>
-#include <QButtonGroup>
-#include <QByteArray>
-#include <QDateTime>
-#include <QCheckBox>
-#include <QClipboard>
-#include <QCloseEvent>
-#include <QColorDialog>
-#include <QComboBox>
-#include <QContextMenuEvent>
-#include <QCoreApplication>
-#include <QCursor>
-#include <QColorSpace>
-#include <QDesktopServices>
-#include <QDir>
-#include <QDockWidget>
-#include <QDrag>
-#include <QDragEnterEvent>
-#include <QDragMoveEvent>
-#include <QDialog>
-#include <QDialogButtonBox>
-#include <QDragLeaveEvent>
-#include <QDropEvent>
-#include <QDoubleSpinBox>
-#include <QElapsedTimer>
-#include <QEvent>
-#include <QEventLoop>
-#include <QFileDialog>
-#include <QFile>
-#include <QFileInfo>
-#include <QFont>
-#include <QFontComboBox>
-#include <QFontDatabase>
-#include <QFocusEvent>
-#include <QFontMetrics>
-#include <QFormLayout>
-#include <QFrame>
-#include <QGridLayout>
-#include <QGroupBox>
-#include <QHeaderView>
-#include <QHBoxLayout>
-#include <QLayout>
-#include <QResizeEvent>
-#include <QIcon>
-#include <QImageReader>
-#include <QInputDialog>
-#include <QItemSelection>
-#include <QItemSelectionModel>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonParseError>
-#include <QJsonValue>
-#include <QLabel>
-#include <QKeySequence>
-#include <QListWidget>
-#include <QLinearGradient>
-#include <QLineEdit>
+#include <QListWidgetItem>
 #include <QMenu>
-#include <QMenuBar>
-#include <QMimeData>
-#include <QMessageBox>
-#include <QMetaObject>
-#include <QMouseEvent>
-#include <QPaintEvent>
-#include <QPushButton>
-#include <QPainter>
-#include <QPainterPath>
-#include <QPixmap>
-#include <QPlainTextEdit>
-#include <QPolygon>
-#include <QPointer>
-#include <QProcess>
-#include <QProgressDialog>
+#include <QPoint>
 #include <QRegion>
-#include <QScreen>
-#include <QScrollArea>
-#include <QScrollBar>
-#include <QShortcut>
-#include <QScopeGuard>
-#include <QSettings>
-#include <QShowEvent>
-#include <QStandardPaths>
-#include <QStandardItem>
-#include <QStyledItemDelegate>
-#include <QMutex>
-#include <QRawFont>
-#include <QTextCharFormat>
-#include <QTextBlock>
-#include <QTextBlockFormat>
-#include <QTextCursor>
-#include <QTextEdit>
-#include <QTextDocument>
-#include <QTextFragment>
-#include <QTextLayout>
-#include <QTextOption>
-#include <QSignalBlocker>
-#include <QSize>
-#include <QSizePolicy>
-#include <QSlider>
-#include <QSpinBox>
-#include <QStatusBar>
-#include <QStringList>
-#include <QStackedWidget>
-#include <QStyle>
-#include <QStyleOption>
-#include <QTabBar>
-#include <QTabWidget>
-#include <QTableWidget>
-#include <QTableWidgetItem>
-#include <QTimer>
-#include <QToolBar>
-#include <QToolButton>
-#include <QToolTip>
-#include <QTransform>
-#include <QUrl>
+#include <QString>
 #include <QVariant>
-#include <QVBoxLayout>
-#include <QWindow>
+#include <Qt>
+#include <QtGlobal>
 
 #include <algorithm>
-#include <array>
-#include <atomic>
 #include <chrono>
-#include <cctype>
 #include <cstddef>
 #include <cstdint>
-#include <cmath>
 #include <cstdlib>
-#include <exception>
 #include <functional>
 #include <future>
-#include <iostream>
 #include <iterator>
-#include <limits>
 #include <memory>
 #include <optional>
-#include <set>
-#include <sstream>
-#include <stdexcept>
+#include <ratio>
 #include <string>
 #include <string_view>
 #include <thread>
 #include <utility>
+#include <vector>
 
-#ifdef Q_OS_WIN
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#include <windowsx.h>
-#include <dwmapi.h>
-#include <tchar.h>
-#include <tpcshrd.h>
-#endif
 
 // Icon resources live in the static patchy_ui library; force registration before first use.
 int qInitResources_icons();
@@ -256,79 +70,6 @@ int undo_snapshot_test_delay_ms() noexcept {
   bool ok = false;
   const auto value = qEnvironmentVariableIntValue("PATCHY_UNDO_SNAPSHOT_TEST_DELAY_MS", &ok);
   return ok ? std::max(0, value) : 0;
-}
-
-// One paint-order entry per layer for the undo/redo render diff. The id
-// sequence doubles as a structure detector: any add/remove/reorder/regroup
-// makes the sequences diverge and the caller falls back to a full refresh.
-struct LayerRenderSignature {
-  LayerId id{};
-  std::uint64_t render_revision{0};
-  bool visible{false};  // set_visible deliberately does not bump revisions
-  Rect effect_bounds{};
-};
-
-void collect_layer_render_signatures(const std::vector<Layer>& layers, std::vector<LayerRenderSignature>& out) {
-  for (const auto& layer : layers) {
-    out.push_back(LayerRenderSignature{layer.id(), layer.render_revision(), layer.visible(),
-                                       layer_render_bounds(layer)});
-    collect_layer_render_signatures(layer.children(), out);
-  }
-}
-
-// The document region that can render differently between two history states,
-// or nullopt when only a full refresh is safe (structure changed, canvas
-// resized, or a document-wide rendering input like the editing palette, grid,
-// or guides differs). Layer revisions are app-globally unique, so equal
-// revision + equal visibility means identical rendering for that layer.
-std::optional<QRegion> history_restore_changed_region(const Document& before, const Document& after) {
-  if (before.width() != after.width() || before.height() != after.height()) {
-    return std::nullopt;
-  }
-  const auto palette_revision = [](const Document& document) {
-    return document.palette_editing().has_value() ? document.palette_editing()->palette_revision : 0ULL;
-  };
-  if (palette_revision(before) != palette_revision(after)) {
-    return std::nullopt;
-  }
-  if (before.grid_settings().horizontal_cycle_32 != after.grid_settings().horizontal_cycle_32 ||
-      before.grid_settings().vertical_cycle_32 != after.grid_settings().vertical_cycle_32) {
-    return std::nullopt;
-  }
-  if (before.guides().size() != after.guides().size() ||
-      !std::equal(before.guides().begin(), before.guides().end(), after.guides().begin(),
-                  [](const DocumentGuide& a, const DocumentGuide& b) {
-                    return a.orientation == b.orientation && a.position_32 == b.position_32;
-                  })) {
-    return std::nullopt;
-  }
-
-  std::vector<LayerRenderSignature> signatures_before;
-  std::vector<LayerRenderSignature> signatures_after;
-  collect_layer_render_signatures(before.layers(), signatures_before);
-  collect_layer_render_signatures(after.layers(), signatures_after);
-  if (signatures_before.size() != signatures_after.size()) {
-    return std::nullopt;
-  }
-  QRegion changed;
-  for (std::size_t i = 0; i < signatures_before.size(); ++i) {
-    const auto& a = signatures_before[i];
-    const auto& b = signatures_after[i];
-    if (a.id != b.id) {
-      return std::nullopt;
-    }
-    if (a.render_revision == b.render_revision && a.visible == b.visible) {
-      continue;
-    }
-    if (a.effect_bounds.empty() || b.effect_bounds.empty()) {
-      // A changed layer without usable bounds (e.g. an adjustment layer, whose
-      // reach is everything below it) can't be region-diffed - full refresh.
-      return std::nullopt;
-    }
-    changed += to_qrect(a.effect_bounds);
-    changed += to_qrect(b.effect_bounds);
-  }
-  return changed;
 }
 
 // Above this, a partial refresh loses to the full-invalidation path (which
@@ -366,171 +107,24 @@ void MainWindow::record_history_push(DocumentSession& target_session,
   // Any push ends the stroke whose snapshot was waiting to shrink: the Begin
   // event that follows a stroke's own push re-arms it right after this.
   pending_stroke_patch_.reset();
-  // The stored snapshot is the PRE-edit document, so it takes over the label
-  // and id of the state it captures; the live document becomes a fresh state
-  // named after the action that is about to (or just did) mutate it.
-  state.label = std::move(target_session.current_state_label);
-  state.state_id = target_session.current_state_id;
-  target_session.undo_stack.push_back(std::move(state));
-  if (target_session.undo_stack.size() > DocumentSession::kMaxUndoStates) {
-    target_session.undo_stack.erase(target_session.undo_stack.begin());
-  }
-  target_session.redo_stack.clear();
-  target_session.selection_move_coalescing = false;
-  target_session.current_state_label = std::move(action_label);
-  target_session.current_state_id = target_session.next_history_state_id++;
+  target_session.history.record_push(std::move(state), std::move(action_label));
   enforce_history_memory_budget(target_session);
 }
 
 void MainWindow::enforce_history_memory_budget(const DocumentSession& push_target) {
-  const std::size_t budget = history_memory_budget_bytes();
-  // A session's marginal history bytes: buffers still shared with its live
-  // document are free (evicting the state would release nothing), buffers
-  // shared between several history states count once, and a stroke patch
-  // counts its own (unshared) before/after bytes.
-  const auto session_history_bytes = [](const DocumentSession& target) {
-    PixelStorageSet live;
-    collect_pixel_storage(target.document, live);
-    PixelStorageSet seen;
-    std::size_t bytes = 0;
-    const auto state_bytes = [&](const DocumentSession::HistoryState& state) {
-      if (state.is_stroke_patch()) {
-        return state.patch->byte_size();
-      }
-      return accumulate_unique_pixel_bytes(state.document, live, seen);
-    };
-    for (const auto& state : target.undo_stack) {
-      bytes += state_bytes(state);
-    }
-    for (const auto& state : target.redo_stack) {
-      bytes += state_bytes(state);
-    }
-    return bytes;
-  };
-  std::vector<std::pair<DocumentSession*, std::size_t>> totals;
-  totals.reserve(sessions_.size());
-  std::size_t total = 0;
-  for (const auto& session_ptr : sessions_) {
-    const auto bytes = session_history_bytes(*session_ptr);
-    totals.emplace_back(session_ptr.get(), bytes);
-    total += bytes;
-  }
-  if (total <= budget) {
-    last_history_retained_bytes_ = total;
-    return;
-  }
-  bool active_session_evicted = false;
-  while (total > budget) {
-    // Oldest state of the session retaining the most bytes goes first; > (not
-    // >=) keeps the earlier tab on ties. An eviction can free zero marginal
-    // bytes (storage still shared with newer states), but the loop terminates
-    // because the total state count strictly decreases.
-    auto largest = totals.end();
-    for (auto it = totals.begin(); it != totals.end(); ++it) {
-      if (it->first->undo_stack.size() <= DocumentSession::kMinUndoStatesUnderPressure) {
-        continue;
-      }
-      if (largest == totals.end() || it->second > largest->second) {
-        largest = it;
-      }
-    }
-    if (largest == totals.end()) {
-      break;
-    }
-    largest->first->undo_stack.erase(largest->first->undo_stack.begin());
-    if (largest->first == active_session()) {
-      active_session_evicted = true;
-    }
-    const auto recomputed = session_history_bytes(*largest->first);
-    total = total - largest->second + recomputed;
-    largest->second = recomputed;
-  }
-  last_history_retained_bytes_ = total;
+  const auto result = enforce_session_history_budget(sessions_, history_memory_budget_bytes(), active_session());
+  last_history_retained_bytes_ = result.retained_bytes;
   // Push sites refresh the panel themselves when the push targets the ACTIVE
   // session; eviction that reaches the active session from a background push
   // must refresh it here, or the panel keeps rows whose states are gone.
-  if (active_session_evicted && &push_target != active_session()) {
+  if (result.active_session_evicted && &push_target != active_session()) {
     refresh_history_panel();
   }
 }
 
 void MainWindow::rotate_history_state(DocumentSession& target_session, bool backward,
-                                      CanvasWidget::SelectionSnapshot& live_selection,
-                                      HistoryRefreshRegion& changed) {
-  auto& from = backward ? target_session.undo_stack : target_session.redo_stack;
-  auto& to = backward ? target_session.redo_stack : target_session.undo_stack;
-  auto& restored = from.back();
-  if (restored.is_stroke_patch()) {
-    // The live document stays in place: the stroke's pixels are written back
-    // (undo) or forward (redo). The entry crosses stacks carrying the patch,
-    // which now describes the hop in the other direction.
-    const auto& document = std::as_const(target_session.document);
-    const auto effect_rect_of = [&document](const StrokePatch& patch) -> std::optional<QRect> {
-      if (patch.target == StrokePatch::Target::DocumentChannel) {
-        return QRect();  // saved channels never composite
-      }
-      const auto* layer = document.find_layer(patch.layer_id);
-      if (layer == nullptr) {
-        return std::nullopt;
-      }
-      return to_qrect(layer_render_bounds(*layer));
-    };
-    const auto bounds_before = effect_rect_of(*restored.patch);
-    const bool applied = apply_stroke_patch(target_session.document, *restored.patch, backward);
-    const auto bounds_after = effect_rect_of(*restored.patch);
-    if (!applied || !bounds_before.has_value() || !bounds_after.has_value()) {
-      changed.full = true;
-    } else if (restored.patch->target != StrokePatch::Target::DocumentChannel) {
-      // document_changed(QRegion) outsets by the document's effect padding, so
-      // the patch rect alone covers styles; alpha-dependent effect bounds that
-      // moved with the pixels are covered by their before/after union.
-      changed.region += to_qrect(restored.patch->document_rect);
-      if (*bounds_before != *bounds_after) {
-        changed.region += *bounds_before;
-        changed.region += *bounds_after;
-      }
-    }
-    DocumentSession::HistoryState moved;
-    moved.patch = std::move(restored.patch);
-    moved.revision = target_session.revision;
-    moved.selection = std::move(live_selection);
-    moved.label = std::move(target_session.current_state_label);
-    moved.state_id = target_session.current_state_id;
-    target_session.revision = restored.revision;
-    live_selection = std::move(restored.selection);
-    target_session.current_state_label = std::move(restored.label);
-    target_session.current_state_id = restored.state_id;
-    from.pop_back();
-    to.push_back(std::move(moved));
-    target_session.selection_move_coalescing = false;
-    return;
-  }
-  // The 32-bit preview exposure is a view setting: history keeps the current one.
-  const auto view_exposure = target_session.document.color_state().view_exposure_stops;
-  // Braced-init evaluation is left to right, so the document moves out before
-  // revision/label are read; both history hops are moves (a copy here is a
-  // full multi-hundred-MB Document duplication on large canvases).
-  to.push_back(DocumentSession::HistoryState{
-      std::move(target_session.document), std::nullopt, target_session.revision, std::move(live_selection),
-      std::move(target_session.current_state_label), target_session.current_state_id});
-  target_session.document = std::move(restored.document);
-  target_session.document.color_state().view_exposure_stops = view_exposure;
-  target_session.revision = restored.revision;
-  live_selection = std::move(restored.selection);
-  target_session.current_state_label = std::move(restored.label);
-  target_session.current_state_id = restored.state_id;
-  from.pop_back();
-  target_session.selection_move_coalescing = false;
-  // The parked pre-rotation document sits intact at to.back(); diff it against
-  // the restored one for the partial repaint.
-  if (!changed.full) {
-    const auto region = history_restore_changed_region(to.back().document, target_session.document);
-    if (!region.has_value()) {
-      changed.full = true;
-    } else {
-      changed.region += *region;
-    }
-  }
+                                      SelectionSnapshot& live_selection, HistoryRefreshRegion& changed) {
+  target_session.history.rotate(target_session.document, target_session.revision, backward, live_selection, changed);
 }
 
 void MainWindow::apply_history_restore_tail(DocumentSession& active_session,
@@ -606,7 +200,7 @@ void MainWindow::undo() {
   finish_pending_layer_fill_opacity_edit();
   finish_pending_layer_blend_edit();
   auto& active_session = session();
-  if (active_session.undo_stack.empty()) {
+  if (active_session.history.undo_stack().empty()) {
     return;
   }
   auto live_selection = canvas_->capture_selection_snapshot();
@@ -624,7 +218,7 @@ void MainWindow::redo() {
   finish_pending_layer_fill_opacity_edit();
   finish_pending_layer_blend_edit();
   auto& active_session = session();
-  if (active_session.redo_stack.empty()) {
+  if (active_session.history.redo_stack().empty()) {
     return;
   }
   auto live_selection = canvas_->capture_selection_snapshot();
@@ -715,7 +309,7 @@ void MainWindow::push_selection_history(DocumentSession& target_session, QString
   // selection updated but add no new entry, so undo returns to where the run
   // began and redo lands on the final position. Any non-coalescing edit (below,
   // or push_undo_snapshot) clears the flag and ends the run.
-  if (coalesce && active_session.selection_move_coalescing && !active_session.undo_stack.empty()) {
+  if (coalesce && active_session.history.selection_move_coalescing() && !active_session.history.undo_stack().empty()) {
     if (target_is_active) {
       statusBar()->showMessage(label);
     }
@@ -730,7 +324,7 @@ void MainWindow::push_selection_history(DocumentSession& target_session, QString
       DocumentSession::HistoryState{active_session.document, std::nullopt, active_session.revision,
                                     std::move(before), {}, 0},
       label);
-  active_session.selection_move_coalescing = coalesce;
+  active_session.history.set_selection_move_coalescing(coalesce);
   // Panel/status mirror the active session only (see push_undo_snapshot).
   if (target_is_active) {
     refresh_history_panel();
@@ -750,14 +344,14 @@ void MainWindow::refresh_history_panel() {
           item->setForeground(theme().history_future_text);
         }
       };
-      for (const auto& state : active->undo_stack) {
+      for (const auto& state : active->history.undo_stack()) {
         add_row(state.label, state.state_id, false);
       }
-      add_row(active->current_state_label, active->current_state_id, false);
-      history_list_->setCurrentRow(static_cast<int>(active->undo_stack.size()));
+      add_row(active->history.current_state_label(), active->history.current_state_id(), false);
+      history_list_->setCurrentRow(static_cast<int>(active->history.undo_stack().size()));
       // redo_stack.back() is the nearest future state, so the reverse walk
       // lists the future in chronological order below the current row.
-      for (auto it = active->redo_stack.rbegin(); it != active->redo_stack.rend(); ++it) {
+      for (auto it = active->history.redo_stack().rbegin(); it != active->history.redo_stack().rend(); ++it) {
         add_row(it->label, it->state_id, true);
       }
       history_list_->scrollToItem(history_list_->currentItem());
@@ -794,7 +388,7 @@ void MainWindow::jump_to_history_state(std::int64_t state_id) {
   finish_pending_layer_opacity_edit();
   finish_pending_layer_fill_opacity_edit();
   finish_pending_layer_blend_edit();
-  if (state_id == active->current_state_id) {
+  if (state_id == active->history.current_state_id()) {
     refresh_history_panel();
     return;
   }
@@ -809,9 +403,9 @@ void MainWindow::jump_to_history_state(std::int64_t state_id) {
   };
   bool backward = true;
   std::size_t steps = 0;
-  if (const auto backward_steps = steps_to_reach(active->undo_stack); backward_steps.has_value()) {
+  if (const auto backward_steps = steps_to_reach(active->history.undo_stack()); backward_steps.has_value()) {
     steps = *backward_steps;
-  } else if (const auto forward_steps = steps_to_reach(active->redo_stack); forward_steps.has_value()) {
+  } else if (const auto forward_steps = steps_to_reach(active->history.redo_stack()); forward_steps.has_value()) {
     backward = false;
     steps = *forward_steps;
   } else {
@@ -826,7 +420,7 @@ void MainWindow::jump_to_history_state(std::int64_t state_id) {
   for (std::size_t step = 0; step < steps; ++step) {
     rotate_history_state(*active, backward, live_selection, changed);
   }
-  apply_history_restore_tail(*active, changed, std::move(live_selection), active->current_state_label);
+  apply_history_restore_tail(*active, changed, std::move(live_selection), active->history.current_state_label());
 }
 
 void MainWindow::show_history_context_menu(const QPoint& position) {
@@ -859,14 +453,14 @@ void MainWindow::open_history_state_as_new_document(std::int64_t state_id) {
   }
   Document copy;
   QString state_label;
-  if (state_id == active->current_state_id) {
+  if (state_id == active->history.current_state_id()) {
     // The live document may carry an uncommitted transform; settle it so the
     // spawned document matches what the canvas shows (copy_merged precedent).
     if (canvas_ != nullptr) {
       canvas_->finish_free_transform();
     }
     copy = active->document;
-    state_label = active->current_state_label;
+    state_label = active->history.current_state_label();
   } else {
     const auto find_state = [state_id](const std::vector<DocumentSession::HistoryState>& stack)
         -> std::optional<std::size_t> {
@@ -878,17 +472,17 @@ void MainWindow::open_history_state_as_new_document(std::int64_t state_id) {
       return std::nullopt;
     };
     bool in_undo_stack = true;
-    auto index = find_state(active->undo_stack);
+    auto index = find_state(active->history.undo_stack());
     if (!index.has_value()) {
       in_undo_stack = false;
-      index = find_state(active->redo_stack);
+      index = find_state(active->history.redo_stack());
     }
     if (!index.has_value()) {
       refresh_history_panel();
       return;
     }
     copy = materialize_history_state(*active, in_undo_stack, *index);
-    state_label = (in_undo_stack ? active->undo_stack : active->redo_stack)[*index].label;
+    state_label = (in_undo_stack ? active->history.undo_stack() : active->history.redo_stack())[*index].label;
   }
   auto title = state_label.isEmpty() ? tr("Untitled-%1").arg(sessions_.size() + 1) : state_label;
   add_document_session(std::move(copy), title, QString(), tr("New document"));
@@ -906,13 +500,13 @@ void MainWindow::handle_paint_stroke_history_event(CanvasWidget* canvas,
     // Stroke Path owns one snapshot for its whole run of synthetic strokes;
     // its strokes keep the full entry.
     if (!stroke_patch_history_enabled_ || scripted_stroke_undo_suppressed_ || target_session == nullptr ||
-        target_session->undo_stack.empty() || target_session->undo_stack.back().is_stroke_patch()) {
+        target_session->history.undo_stack().empty() || target_session->history.undo_stack().back().is_stroke_patch()) {
       return;
     }
     PendingStrokePatch pending;
     pending.session_id = target_session->session_id;
-    pending.snapshot_state_id = target_session->undo_stack.back().state_id;
-    pending.live_state_id = target_session->current_state_id;
+    pending.snapshot_state_id = target_session->history.undo_stack().back().state_id;
+    pending.live_state_id = target_session->history.current_state_id();
     switch (event.target) {
       case CanvasWidget::LayerEditTarget::Content:
         pending.target = StrokePatch::Target::LayerContent;
@@ -940,58 +534,26 @@ void MainWindow::handle_paint_stroke_history_event(CanvasWidget* canvas,
   // must still be the stroke's: anything pushed, undone or jumped since leaves
   // the full snapshot alone.
   if (target_session == nullptr || target_session->session_id != pending.session_id ||
-      target_session->undo_stack.empty() || !target_session->redo_stack.empty() ||
-      target_session->undo_stack.back().state_id != pending.snapshot_state_id ||
-      target_session->current_state_id != pending.live_state_id) {
+      target_session->history.undo_stack().empty() || !target_session->history.redo_stack().empty() ||
+      target_session->history.undo_stack().back().state_id != pending.snapshot_state_id ||
+      target_session->history.current_state_id() != pending.live_state_id) {
     return;
   }
-  auto& entry = target_session->undo_stack.back();
-  if (entry.is_stroke_patch() || event.document_dirty.isEmpty()) {
+  if (!target_session->history.shrink_top_to_stroke_patch(std::as_const(target_session->document),
+      pending.target, pending.layer_id, pending.channel_id, event.document_dirty)) {
     return;
   }
-  const Rect dirty{event.document_dirty.x(), event.document_dirty.y(), event.document_dirty.width(),
-                   event.document_dirty.height()};
-  auto patch = capture_stroke_patch(entry.document, std::as_const(target_session->document), pending.target,
-                                    pending.layer_id, pending.channel_id, dirty);
-  if (!patch.has_value()) {
-    return;
-  }
-  entry.patch = std::move(patch);
-  entry.document = Document{};
   // The retained-bytes cache (and any eviction decision) reflects the shrink.
   enforce_history_memory_budget(*target_session);
 }
 
 Document MainWindow::materialize_history_state(const DocumentSession& target_session, bool in_undo_stack,
                                                std::size_t index) const {
-  const auto& stack = in_undo_stack ? target_session.undo_stack : target_session.redo_stack;
-  if (!stack[index].is_stroke_patch()) {
-    return stack[index].document;
-  }
-  // In both stacks a higher index is nearer the present (redo_stack.back() is
-  // the nearest future), and a patch is relative to the entry right above it,
-  // or to the live document at the top. Start from the nearest whole-document
-  // base above `index` and write the patches back down to it: an undo entry
-  // holds the older pixels in `before`, a redo entry the newer ones in `after`
-  // (filled by the undo that moved it there).
-  std::size_t base = index + 1;
-  while (base < stack.size() && stack[base].is_stroke_patch()) {
-    ++base;
-  }
-  Document result = base < stack.size() ? stack[base].document : target_session.document;
-  for (std::size_t k = base; k-- > index;) {
-    auto patch = *stack[k].patch;  // a copy: the pixel buffers are copy-on-write
-    static_cast<void>(apply_stroke_patch(result, patch, /*restore_before=*/in_undo_stack));
-  }
-  return result;
+  return target_session.history.materialize(target_session.document, in_undo_stack, index);
 }
 
 void MainWindow::initialize_session_history(DocumentSession& target_session, QString initial_label) {
-  target_session.undo_stack.clear();
-  target_session.redo_stack.clear();
-  target_session.selection_move_coalescing = false;
-  target_session.current_state_label = std::move(initial_label);
-  target_session.current_state_id = target_session.next_history_state_id++;
+  target_session.history.initialize(std::move(initial_label));
   if (&target_session == active_session()) {
     refresh_history_panel();
   }
@@ -1018,10 +580,10 @@ void MainWindow::update_undo_redo_actions() {
     return;
   }
   if (undo_action_ != nullptr) {
-    undo_action_->setEnabled(!current_session->undo_stack.empty());
+    undo_action_->setEnabled(!current_session->history.undo_stack().empty());
   }
   if (redo_action_ != nullptr) {
-    redo_action_->setEnabled(!current_session->redo_stack.empty());
+    redo_action_->setEnabled(!current_session->history.redo_stack().empty());
   }
 }
 

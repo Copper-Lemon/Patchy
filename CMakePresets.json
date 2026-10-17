@@ -46,6 +46,25 @@
       }
     },
     {
+      "name": "opt-dev",
+      "displayName": "Optimized developer build without link-time code generation",
+      "inherits": "release",
+      "binaryDir": "${sourceDir}/build/opt-dev",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "PATCHY_USE_PCH": "ON"
+      }
+    },
+    {
+      "name": "opt-dev-no-pch",
+      "displayName": "Optimized developer build without precompiled headers",
+      "inherits": "opt-dev",
+      "binaryDir": "${sourceDir}/build/opt-dev-no-pch",
+      "cacheVariables": {
+        "PATCHY_USE_PCH": "OFF"
+      }
+    },
+    {
       "name": "mac-release",
       "displayName": "macOS release build",
       "generator": "Ninja",
@@ -251,6 +270,14 @@
     {
       "name": "wasm-release-st",
       "configurePreset": "wasm-release-st"
+    },
+    {
+      "name": "opt-dev",
+      "configurePreset": "opt-dev"
+    },
+    {
+      "name": "opt-dev-no-pch",
+      "configurePreset": "opt-dev-no-pch"
     }
   ],
   "testPresets": [

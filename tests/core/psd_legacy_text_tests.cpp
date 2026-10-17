@@ -1,3 +1,25 @@
+#include "formats/acv_curves_io.hpp"
+#include "formats/bmp_document_io.hpp"
+#include "formats/aseprite_document_io.hpp"
+#include "formats/ico_document_io.hpp"
+#include "formats/ilbm_document_io.hpp"
+#include "formats/pcx_document_io.hpp"
+#include "formats/tga_document_io.hpp"
+#include "test_harness.hpp"
+#include "synthetic_dng.hpp"
+#include <bit>
+#include <cctype>
+#include <chrono>
+#include <cstring>
+#include <exception>
+#include <fstream>
+#include <iomanip>
+#include <iterator>
+#include <limits>
+#include <numeric>
+#include <stdexcept>
+#include <tuple>
+#include <unordered_set>
 // Photoshop 5.0/5.5 'tySh' type records (docs/psd-legacy-text.md): the synthetic record
 // builder mirrors the layout decoded from Title02.psd byte for byte, and the local fixture
 // test pins that file's six type layers against what Photoshop 2026 reads from them over COM.
@@ -6,12 +28,10 @@
 #include "psd/psd_binary.hpp"
 #include "psd/psd_descriptor.hpp"
 #include "psd/psd_document_io.hpp"
-
 #include "core_test_support.hpp"
 #include "local_psd_fixtures.hpp"
 #include "psd_test_support.hpp"
 #include "test_groups.hpp"
-
 #include <algorithm>
 #include <array>
 #include <cmath>

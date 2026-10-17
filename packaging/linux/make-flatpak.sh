@@ -48,7 +48,11 @@ JOBS=$(( $(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 5) - 4 ))
 # Delete ALL previous bundles up front (not just this version's): if the build fails,
 # nothing stale remains for the newest-file upload script to pick up by accident.
 rm -f "${ROOT:?}/build/package"/Patchy-*.flatpak "${ROOT:?}/build/package"/Patchy-*-flatpak-repo.tar
-nice -n 10 flatpak-builder --jobs="$JOBS" --force-clean --repo="$REPO_DIR" "$BUILD_DIR" "flatpak/$APP_ID.yml"
+# A new token invalidates only the app module's cached build and refreshes the
+# timestamp. The generated manifest resolves its source path from its new folder.
+RELEASE_MANIFEST="$ROOT/build/flatpak-release-manifest.yml"
+python3 "$ROOT/scripts/release/prepare-flatpak-manifest.py" --root "$ROOT" --output "$RELEASE_MANIFEST"
+nice -n 10 flatpak-builder --jobs="$JOBS" --force-clean --repo="$REPO_DIR" "$BUILD_DIR" "$RELEASE_MANIFEST"
 
 # Proves the sandboxed app runs with no display before any bundle exists. The Qt
 # offscreen platform comes from the org.kde.Platform runtime, not from this repo, so
@@ -64,7 +68,7 @@ trap 'case "$SMOKE" in */.patchy-flatpak-smoke.?*) rm -rf "$SMOKE" ;; esac' EXIT
 mkdir -p "$SMOKE/settings"
 echo 'console.log("headless smoke")' > "$SMOKE/smoke.js"
 smoke_status=0
-timeout 180 flatpak-builder --run "$BUILD_DIR" "flatpak/$APP_ID.yml" \
+timeout 180 flatpak-builder --run "$BUILD_DIR" "$RELEASE_MANIFEST" \
   env PATCHY_SETTINGS_DIR="$SMOKE/settings" PATCHY_NO_SOUND=1 \
   patchy --headless --run-script "$SMOKE/smoke.js" --script-output "$SMOKE/smoke-output.txt" \
   > "$SMOKE/smoke-console.txt" 2>&1 || smoke_status=$?
@@ -79,7 +83,7 @@ if [ "$(tail -n 1 "$SMOKE/smoke-output.txt" 2>/dev/null)" != "[done]" ]; then
   exit 1
 fi
 echo "Headless smoke check passed."
-timeout 180 flatpak-builder --run "$BUILD_DIR" "flatpak/$APP_ID.yml" patchy-mcp --check
+timeout 180 flatpak-builder --run "$BUILD_DIR" "$RELEASE_MANIFEST" patchy-mcp --check
 
 # --runtime-repo records where org.kde.Platform lives in the bundle metadata. A
 # single-file bundle has no origin remote, so without it `flatpak install` on a machine

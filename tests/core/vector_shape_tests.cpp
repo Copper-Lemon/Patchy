@@ -7,9 +7,7 @@
 #include "core/vector_live_shapes.hpp"
 #include "core/vector_raster.hpp"
 #include "core/vector_shape.hpp"
-
 #include "test_harness.hpp"
-
 #include <algorithm>
 #include <cmath>
 #include <cstdint>

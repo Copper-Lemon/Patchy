@@ -109,6 +109,41 @@ run offscreen on all three platforms (`QT_QPA_PLATFORM=offscreen`).
 
 CMakeLists.txt owns the MSVC Release codegen flags (`/Zi /GL` on compiles, `/DEBUG:FULL /INCREMENTAL:NO /LTCG` on links), so every configure emits `patchy.pdb` (for symbolizing WER dumps from `%LOCALAPPDATA%\CrashDumps`) and link-time optimized binaries. Never hand-edit `build\release\CMakeCache.txt`. To symbolize a dump from an older build, rebuild that commit in a temporary worktree; full links reproduce the binary layout.
 
+## Incremental development builds
+
+`opt-dev` uses `RelWithDebInfo` in `build/opt-dev`: optimized MSVC code and debug
+symbols without Release's `/GL` and `/LTCG`. It is for the edit/build cycle; the
+`release` preset remains the required handoff and packaging build. Use the same
+Visual Studio environment and throttling wrapper as the release build in AGENTS.md.
+`opt-dev-no-pch` uses its own directory and sets `PATCHY_USE_PCH=OFF` for include
+hygiene checks and timing comparisons.
+
+`PATCHY_USE_PCH` defaults on for native `patchy_ui`, the translation checker and UI
+tests. Their private precompiled headers contain stable Qt/STL headers only, never
+Patchy headers. Sources with their own flags, defines or include directories skip
+the PCH. WebAssembly and Objective-C++ do not use it. When changing includes, verify
+the affected translation units without PCH as well so cached includes cannot hide
+missing direct dependencies.
+
+The build date changes when runtime sources, headers, resources, catalogs, build
+definitions or compilation options change. An input-list manifest catches added
+and removed files, including a removed last input. It covers external QRC assets,
+platform packaging resources, bundled scripts/fonts/agent-kit, and configured AI
+runtime/model sources. Toolchain/Qt paths and platform architecture/deployment settings
+are part of the stable configuration identity. Test-only code stays outside the app
+date inputs. Resource-copy targets also depend on their source-list manifests, so
+removed bundled files are restaged. Ordinary unchanged builds keep
+the existing binary and date. The rule does not inspect Git status or hash files
+on every invocation. Packaging runs `patchy_refresh_build_stamp` before its normal
+build; Flatpak supplies a new `PATCHY_BUILD_STAMP_REFRESH_TOKEN` in its generated
+release manifest so its app-module cache cannot reuse an old stamp.
+
+Translation gates cache only successful unchanged inputs; see [localization.md](localization.md).
+`patchy_build_graph_tests` exercises these rules in compiler-free Ninja fixtures:
+no-op/reconfigure, source/header changes, added/removed inputs, failed/retried
+checks, missing outputs and explicit packaging refresh. Fixtures remain under
+`build/test-output/build-graph` for diagnosis.
+
 ## Windows Release Package
 
 Create local Windows release artifacts:

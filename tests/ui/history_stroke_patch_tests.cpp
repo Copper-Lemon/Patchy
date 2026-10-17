@@ -1,28 +1,42 @@
+#include "synthetic_dng.hpp"
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
 // Per-stroke history entries (core/stroke_patch.hpp, docs/performance.md
 // "History"): a paint stroke retains only the pixels inside its bounds, undo
 // and redo restore exactly what the whole-document snapshot path restores, a
 // mask stroke patches the mask alone, patch entries mix with snapshot entries
 // through undo/redo/jumps and New Document From This State, and the memory
 // budget counts patch bytes.
-
 #include "core/document.hpp"
 #include "core/pixel_buffer.hpp"
 #include "ui/canvas_widget.hpp"
 #include "ui/main_window.hpp"
-
 #include <QApplication>
 #include <QColor>
 #include <QListWidget>
 #include <QPoint>
 #include <QRect>
 #include <QTest>
-
 #include <algorithm>
 #include <cstdio>
 #include <cstddef>
 #include <utility>
 #include <vector>
-
 #include "test_harness.hpp"
 #include "ui_test_access.hpp"
 #include "ui_test_groups.hpp"

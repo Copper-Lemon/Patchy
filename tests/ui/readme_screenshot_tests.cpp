@@ -16,7 +16,6 @@
 
 #include "test_harness.hpp"
 #include "ui_test_groups.hpp"
-
 #include <vector>
 
 std::vector<patchy::test::TestCase> readme_screenshot_tests_part1();

@@ -1,9 +1,6 @@
 #include "test_groups.hpp"
-
 #include "test_harness.hpp"
-
 #include "core/pixel_depth.hpp"
-
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
@@ -11,7 +8,6 @@
 #include <iterator>
 #include <string_view>
 #include <vector>
-
 #ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX

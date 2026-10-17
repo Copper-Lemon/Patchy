@@ -1,3 +1,27 @@
+#include "core/layer_tree.hpp"
+#include "formats/acv_curves_io.hpp"
+#include "formats/aseprite_document_io.hpp"
+#include "formats/ico_document_io.hpp"
+#include "formats/ilbm_document_io.hpp"
+#include "formats/pcx_document_io.hpp"
+#include "formats/tga_document_io.hpp"
+#include "psd/psd_binary.hpp"
+#include "psd/psd_descriptor.hpp"
+#include "synthetic_dng.hpp"
+#include <bit>
+#include <cctype>
+#include <chrono>
+#include <exception>
+#include <functional>
+#include <iomanip>
+#include <iostream>
+#include <limits>
+#include <numeric>
+#include <sstream>
+#include <stdexcept>
+#include <string_view>
+#include <tuple>
+#include <unordered_set>
 #include "core/document.hpp"
 #include "core/adjustment_layer.hpp"
 #include "core/environment.hpp"
@@ -10,12 +34,10 @@
 #include "psd/psd_document_io.hpp"
 #include "psd/psd_patterns.hpp"
 #include "render/compositor.hpp"
-
 #include "core/layer_metadata.hpp"
 #include "core/vector_live_shapes.hpp"
 #include "core/vector_raster.hpp"
 #include "psd_test_support.hpp"
-
 #include <algorithm>
 #include <array>
 #include <cstdlib>
@@ -30,7 +52,6 @@
 #include "core_test_support.hpp"
 #include "local_psd_fixtures.hpp"
 #include "test_harness.hpp"
-
 #include <cmath>
 #include <cstdint>
 #include <string>

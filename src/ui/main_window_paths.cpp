@@ -2,15 +2,16 @@
 // (which path the pen/path tools edit), and the footer commands - New Path,
 // Fill Path (foreground), Stroke Path (brush-sized band), Make Selection,
 // Delete Path. The panel widget itself is presentation-only (paths_panel.cpp).
+#include "core/layer.hpp"
 #include "ui/main_window.hpp"
+#include <QStatusBar>
+#include "ui/canvas_widget.hpp"
+#include "ui/unit_spin_box.hpp"
 #include "ui/vector_operations.hpp"
 
-#include "core/blend_math.hpp"
 #include "core/document_path.hpp"
 #include "core/layer_metadata.hpp"
-#include "core/layer_render_utils.hpp"
 #include "core/palette.hpp"
-#include "core/path_fit.hpp"
 #include "core/pattern_resource.hpp"
 #include "core/pattern_sampler.hpp"
 #include "core/vector_raster.hpp"
@@ -21,36 +22,51 @@
 #include "ui/paths_panel.hpp"
 #include "ui/pattern_library.hpp"
 #include "ui/qt_geometry.hpp"
-#include "ui/selection_outline.hpp"
 #include "ui/theme_qss.hpp"
 #include "ui/measurement_units.hpp"
 
 #include <QApplication>
 #include <QCheckBox>
+#include <QColor>
 #include <QComboBox>
 #include <QDialog>
 #include <QDialogButtonBox>
-#include <QDoubleSpinBox>
+#include <QEvent>
 #include <QFormLayout>
+#include <QIcon>
 #include <QImage>
+#include <QInputDevice>
 #include <QLabel>
 #include <QLineF>
 #include <QMouseEvent>
-#include <QIcon>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPen>
+#include <QPixmap>
+#include <QPoint>
+#include <QPointF>
 #include <QPointingDevice>
+#include <QRect>
+#include <QRgb>
+#include <QSize>
 #include <QSpinBox>
-#include <QStatusBar>
+#include <QString>
+#include <QStringLiteral>
 #include <QTabletEvent>
 #include <QVBoxLayout>
+#include <QWidget>
+#include <Qt>
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <initializer_list>
+#include <cstdint>
 #include <optional>
 #include <set>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace patchy::ui {
 

@@ -1,8 +1,6 @@
 #include "formats/font_zip.hpp"
-
 #include "formats/miniz/miniz.h"
 #include "test_harness.hpp"
-
 #include <cstdint>
 #include <string>
 #include <utility>

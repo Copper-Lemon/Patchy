@@ -10,7 +10,6 @@
 #include "core/smart_filter.hpp"
 #include "support/srgb_transfer.hpp"
 #include "test_harness.hpp"
-
 #include <algorithm>
 #include <functional>
 #include <iostream>

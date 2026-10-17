@@ -1,20 +1,34 @@
+
+#include "core/adjustment_layer.hpp"
+#include "synthetic_dng.hpp"
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cmath>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string_view>
+#include <utility>
 // Crash handlers, bootstrap, and the runner loop moved verbatim from
 // tests/ui_visual_tests.cpp. main() concatenates the group registration
 // functions in the exact original registration-vector order.
-
 #include "ui_test_groups.hpp"
 #include "ui_test_support.hpp"
-
 #include "test_fonts.hpp"
 #include "test_harness.hpp"
-
 #include "core/pixel_depth.hpp"
 #include "ui/app_settings.hpp"
 #include "ui/background_workers.hpp"
 #include "ui/localization.hpp"
 #include "ui/psd_font_resolver.hpp"
 #include "ui/theme_manager.hpp"
-
 #include <QApplication>
 #include <QByteArray>
 #include <QDir>
@@ -22,7 +36,6 @@
 #include <QLockFile>
 #include <QSettings>
 #include <QString>
-
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -31,7 +44,6 @@
 #include <iterator>
 #include <string>
 #include <vector>
-
 #ifdef Q_OS_WIN
 #ifndef NOMINMAX
 #define NOMINMAX

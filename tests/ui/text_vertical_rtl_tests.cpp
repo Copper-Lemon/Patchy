@@ -1,23 +1,42 @@
+#include "ui/filter_workflows.hpp"
+#include "formats/acv_curves_io.hpp"
+#include "formats/bmp_document_io.hpp"
+#include "formats/aseprite_document_io.hpp"
+#include "formats/ico_document_io.hpp"
+#include "formats/tga_document_io.hpp"
+#include "synthetic_dng.hpp"
+#include <QAbstractSpinBox>
+#include <QByteArray>
+#include <QFont>
+#include <QList>
+#include <QVariant>
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cstring>
+#include <exception>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <span>
+#include <stdexcept>
+#include <string_view>
 // Vertical (tategaki) type layers and right-to-left paragraphs: the cell layout model in
 // ui/text_layout.hpp, its caret/selection/hit-test geometry, the orientation toggle, PSD
 // round trips, and the committed Photoshop 2026 captures (photoshop-text-vertical-*.psd).
 // See docs/text-tool.md ("Vertical text and paragraph direction").
-
 #include "core/layer_metadata.hpp"
 #include "core/layer_render_utils.hpp"
 #include "psd/psd_document_io.hpp"
 #include "ui/canvas_widget.hpp"
 #include "ui/main_window.hpp"
-#include "ui/qt_paths.hpp"
 #include "ui/dialog_utils.hpp"
 #include "ui/script_engine.hpp"
-
 #include "local_psd_fixtures.hpp"
 #include "test_fonts.hpp"
 #include "test_harness.hpp"
 #include "ui_test_access.hpp"
 #include "ui_test_support.hpp"
-
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
@@ -29,17 +48,11 @@
 #include <QEventLoop>
 #include <QInputMethodEvent>
 #include <QFontComboBox>
-#include <QScopeGuard>
 #include <QFontDatabase>
 #include <QListWidget>
 #include <QPushButton>
-#include <QTextBlock>
-#include <QTextCursor>
-#include <QTextDocument>
-#include <QTextLayout>
 #include <QTimer>
 #include <QTextEdit>
-
 #include <algorithm>
 #include <cmath>
 #include <cstdio>

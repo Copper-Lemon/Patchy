@@ -7,6 +7,7 @@
 // header. Internal to the MainWindow implementation - do not include this from
 // outside the main_window_*.cpp family.
 
+#include "ui/text_font_service.hpp"
 #include "core/adjustment_layer.hpp"
 #include "core/layer.hpp"
 #include "core/pixel_buffer.hpp"
@@ -232,30 +233,6 @@ void set_text_smoothing_combo_value(QComboBox* combo, int value);
 // or cancelled; shared by the text-tool plumbing in main_window.cpp and
 // refresh_options_bar in main_window_tool_options.cpp.
 constexpr auto kTextEditorFinishedProperty = "patchy.textEditorFinished";
-
-// Font families a text layer names that cannot draw its own glyphs: absent from the font
-// database, or present with no coverage for the characters they are asked for (Patchy's bundled
-// Noto Naskh Arabic resolves but holds no Latin letters, so a Latin layer set in it used to come
-// up "font available" and then render entirely in the Latin fallback). Empty for a non-text or
-// empty layer. Defined in main_window.cpp beside the rest of the font resolution; the layer
-// panel uses it for the missing-font badge and the Type tool for its substitution warning.
-[[nodiscard]] QStringList missing_text_families_for_layer(const Layer& layer);
-
-// The same families split by cause, for messages that have to say which it is: "not installed"
-// sends the user looking for a font file, which is the wrong errand when the font is right there
-// and simply has no glyphs for the text.
-struct TextFontProblems {
-  QStringList not_installed;  // absent from the font database
-  QStringList no_glyphs;      // installed, with no glyph for any character asked of it
-  [[nodiscard]] bool empty() const { return not_installed.isEmpty() && no_glyphs.isEmpty(); }
-};
-[[nodiscard]] TextFontProblems text_font_problems_for_layer(const Layer& layer);
-
-// Windows --headless runs see no system fonts until this loads them from the registry (once per
-// process; false when nothing new was loaded, including on every other platform). The text
-// engine calls it on the first unresolved family; app.listFonts() calls it up front.
-bool ensure_headless_system_fonts_loaded();
-
 
 // Layer-list row styling and edit-target highlighting, shared by the
 // layer-panel TU and the document/session code that stayed in main_window.cpp.

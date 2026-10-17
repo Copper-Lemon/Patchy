@@ -16,7 +16,16 @@
 //   scattered-dirty-rect probe. The runner also trims the undo stack between
 //   steps to keep peak memory flat.
 
+#include "core/pixel_buffer.hpp"
+#include "core/layer.hpp"
+#include "ui/canvas_types.hpp"
+#include "core/layer_tree.hpp"
+#include "filters/filter_registry.hpp"
 #include "ui/main_window.hpp"
+#include <QComboBox>
+#include <QFontComboBox>
+#include <QStatusBar>
+#include "ui/canvas_widget.hpp"
 #include "ui/main_window_shared.hpp"
 #include "ui/stress_test.hpp"
 
@@ -26,7 +35,6 @@
 #include "core/document_depth.hpp"
 #include "filters/filter_engine.hpp"
 #include "core/document_path.hpp"
-#include "core/layer_metadata.hpp"
 #include "core/layer_render_utils.hpp"
 #include "core/path_fit.hpp"
 #include "core/pixel_depth.hpp"
@@ -37,7 +45,6 @@
 #include "core/vector_shape.hpp"
 #include "core/rect_utils.hpp"
 #include "ui/app_settings.hpp"
-#include "ui/blend_mode_ui.hpp"
 #include "ui/brush_tip_library.hpp"
 #include "ui/cli_exit.hpp"
 #include "ui/custom_shape_library.hpp"
@@ -52,49 +59,63 @@
 #include "ui/selection_outline.hpp"
 
 #include <QApplication>
-#include <QComboBox>
+#include <QColor>
 #include <QDateTime>
 #include <QDesktopServices>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDir>
-#include <QDoubleSpinBox>
 #include <QElapsedTimer>
+#include <QEvent>
 #include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
 #include <QFont>
-#include <QFontComboBox>
 #include <QFontDatabase>
 #include <QGuiApplication>
+#include <QIODevice>
 #include <QImage>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QKeyEvent>
 #include <QLabel>
+#include <QLatin1Char>
+#include <QLatin1String>
+#include <QMessageBox>
 #include <QMouseEvent>
+#include <QObject>
 #include <QPlainTextEdit>
+#include <QPoint>
+#include <QPointF>
 #include <QProgressDialog>
 #include <QPushButton>
-#include <QScreen>
+#include <QRect>
 #include <QSettings>
-#include <QStatusBar>
-#include <QTabWidget>
+#include <QSignalBlocker>
+#include <QSize>
+#include <QString>
+#include <QStringLiteral>
+#include <QStringView>
+#include <QSysInfo>
 #include <QTextEdit>
 #include <QTextStream>
 #include <QThread>
 #include <QTimer>
 #include <QUrl>
 #include <QVBoxLayout>
+#include <Qt>
+#include <QtGlobal>
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <exception>
 #include <memory>
 #include <optional>
+#include <qlatin1stringview.h>
 #include <utility>
 #include <vector>
 
@@ -741,11 +762,7 @@ private:
     if (!w.has_active_document()) {
       return;
     }
-    auto& stack = w.session().undo_stack;
-    if (stack.size() > keep) {
-      stack.erase(stack.begin(), stack.end() - static_cast<std::ptrdiff_t>(keep));
-    }
-    w.session().redo_stack.clear();
+    w.session().history.trim_undo(keep);
   }
 
   template <typename Body>

@@ -1,17 +1,57 @@
+#include "core/layer_metadata.hpp"
+#include "ui/image_document_io.hpp"
+#include "ui/app_settings.hpp"
+#include "synthetic_dng.hpp"
+#include "test_harness.hpp"
+#include "local_psd_fixtures.hpp"
+#include <QAbstractItemView>
+#include <QApplication>
+#include <QDialog>
+#include <QDir>
+#include <QElapsedTimer>
+#include <QEventLoop>
+#include <QFile>
+#include <QImage>
+#include <QLabel>
+#include <QListWidget>
+#include <QMetaObject>
+#include <QIODevice>
+#include <QPushButton>
+#include <QTimer>
+#include <algorithm>
+#include <atomic>
+#include <array>
+#include <cstdint>
+#include <cmath>
+#include <cstring>
+#include <exception>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+#include "ui_test_access.hpp"
+#include <QPoint>
+#include <QString>
 // README screenshots (shot_readme_*), part 2: the scripting-era scenes
 // (Script Manager + Breakout, script options dialogs, Affinity import).
 // The group-wide story lives in the aggregator (readme_screenshot_tests.cpp);
 // helpers shared with the other part live in readme_screenshot_test_support.
-
 #include "ui/main_window.hpp"
 #include "ui/script_editor_dialog.hpp"
 #include "ui/script_engine.hpp"
-
 #include <QPlainTextEdit>
 #include <QStandardPaths>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
-
 #include "ui_test_groups.hpp"
 #include "ui_test_support.hpp"
 #include "readme_screenshot_test_support.hpp"

@@ -1,7 +1,6 @@
+#include "core/smart_filter.hpp"
 #include "smart_filter_descriptors_test_support.hpp"
-
 #include "test_harness.hpp"
-
 #include <variant>
 
 namespace patchy::test {

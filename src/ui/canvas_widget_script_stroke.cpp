@@ -1,7 +1,20 @@
 #include "ui/canvas_widget.hpp"
+
+#include "core/pixel_tools.hpp"
+#include "core/stroke_stabilizer.hpp"
 #include "ui/brush_tip_library.hpp"
+#include "ui/canvas_types.hpp"
+#include "ui/script_stroke.hpp"
+
+#include <QPoint>
+#include <QPointF>
+#include <QRect>
 #include <QScopeGuard>
+
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <functional>
 #include <limits>
 
 namespace patchy::ui {

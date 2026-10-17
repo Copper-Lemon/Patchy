@@ -1,8 +1,6 @@
 #include "core/photo_divide.hpp"
 #include "core/warp_mesh.hpp"
-
 #include "test_harness.hpp"
-
 #include <algorithm>
 #include <array>
 #include <cmath>

@@ -13,10 +13,8 @@
 
 #include "test_harness.hpp"
 #include "ui_test_groups.hpp"
-
 #include "ui/localization.hpp"
 #include "ui/ui_font.hpp"
-
 #include <QDir>
 #include <QFile>
 #include <QFont>
@@ -25,7 +23,6 @@
 #include <QString>
 #include <QStringList>
 #include <QXmlStreamReader>
-
 #include <algorithm>
 #include <cstdio>
 #include <vector>
