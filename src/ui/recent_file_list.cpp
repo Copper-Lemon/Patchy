@@ -200,7 +200,10 @@ void RecentFileDelegate::paint(QPainter* painter, const QStyleOptionViewItem& op
   // The remove button of a list that offers one, drawn on the hovered row only;
   // the text gives up the button's width while it shows.
   const auto* list = dynamic_cast<const RecentFileList*>(option.widget);
-  const bool show_remove = hovered && list != nullptr && list->has_remove_button();
+  // The Open Recent menus highlight the row under the mouse as their current row,
+  // so a selected row counts as hovered there.
+  const bool show_remove = list != nullptr && list->has_remove_button() &&
+                           (hovered || selected || list->remove_button_hovered(index.row()));
   int text_right_inset = 12;  // from option.rect: the row's 2 px inset plus the usual 10
   if (show_remove) {
     const QRect button = RecentFileList::remove_button_rect(option.rect);

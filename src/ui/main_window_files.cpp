@@ -4816,6 +4816,12 @@ bool MainWindow::reload_recent_history() {
 }
 
 void MainWindow::refresh_recent_history() {
+  if (recent_menus_stale_) {
+    // An entry was removed from an open Open Recent list; the menus waited.
+    recent_menus_stale_ = false;
+    rebuild_recent_files_menu();
+    rebuild_recent_folders_menu();
+  }
   schedule_recent_history_check(reload_recent_history());
 }
 
@@ -5042,6 +5048,14 @@ bool MainWindow::build_recent_list_menu(RecentListMenu& ui, QMenu* menu) {
       open_recent_list_path(*state, item->data(kRecentPathRole).toString());
     }
   });
+  // The hovered row's x removes that entry (GitHub issue 157) and keeps the menu
+  // open: the list refills in place, and the menu rebuilds on the next File open.
+  list->set_remove_handler(
+      [this, state](const QString& path) {
+        remove_recent_path(path, state->folders, /*rebuild_menus=*/false);
+        apply_recent_list_filter(*state, state->filter_edit != nullptr ? state->filter_edit->text() : QString());
+      },
+      state->folders ? tr("Remove from Recent Folders") : tr("Remove from Recent Files"));
   connect(list, &QListWidget::customContextMenuRequested, this, [this, state, list](const QPoint& position) {
     auto* item = list->itemAt(position);
     if (item == nullptr || item->data(kRecentPathRole).toString().isEmpty()) {
@@ -5314,7 +5328,7 @@ void MainWindow::show_recent_path_context_menu(QWidget* parent, QMenu* source_me
   context_menu.exec(global_position);
 }
 
-void MainWindow::remove_recent_path(const QString& path, bool is_folder) {
+void MainWindow::remove_recent_path(const QString& path, bool is_folder, bool rebuild_menus) {
   if (path.isEmpty()) {
     return;
   }
@@ -5324,9 +5338,19 @@ void MainWindow::remove_recent_path(const QString& path, bool is_folder) {
   };
   if (is_folder) {
     set_recent_folders_from_stored(update_recent_history(QStringLiteral("recentFolders"), kMaxRecentFolders, drop));
-    rebuild_recent_folders_menu();
   } else {
     set_recent_files_from_stored(update_recent_history(QStringLiteral("recentFiles"), kMaxRecentFiles, drop));
+  }
+  if (!rebuild_menus) {
+    recent_menus_stale_ = true;
+    if (!is_folder && start_panel_ != nullptr && start_panel_->isVisible()) {
+      start_panel_->set_recent_files(recent_files_);
+    }
+    return;
+  }
+  if (is_folder) {
+    rebuild_recent_folders_menu();
+  } else {
     rebuild_recent_files_menu();
   }
 }

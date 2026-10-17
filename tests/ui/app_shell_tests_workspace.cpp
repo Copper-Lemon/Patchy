@@ -559,6 +559,69 @@ void ui_start_panel_recent_row_remove_button_and_menu() {
   CHECK(stored_recent_files() == QStringList{recent_files[2]});
   CHECK(recent_list->count() == 1);
   CHECK(recent_list->item(0)->data(patchy::ui::kRecentPathRole).toString() == recent_files[2]);
+
+  // File > Open Recent File rows carry the same x. The menu stays as it is
+  // (the list refills in place) and rebuilds on the next File menu open.
+  {
+    auto settings = patchy::ui::app_settings();
+    settings.setValue(QStringLiteral("recentFiles"), recent_files);
+    settings.sync();
+  }
+  auto* recent_menu = window.findChild<QMenu*>(QStringLiteral("fileOpenRecentMenu"));
+  CHECK(recent_menu != nullptr);
+  auto* file_menu = qobject_cast<QMenu*>(recent_menu->parentWidget());
+  CHECK(file_menu != nullptr);
+  QMetaObject::invokeMethod(file_menu, "aboutToShow");
+  QApplication::processEvents();
+  CHECK(recent_menu_paths(*recent_menu) == recent_files);
+  auto* menu_list = dynamic_cast<patchy::ui::RecentFileList*>(
+      recent_menu->findChild<QListWidget*>(QStringLiteral("fileOpenRecentList")));
+  CHECK(menu_list != nullptr && menu_list->has_remove_button());
+  menu_list->resize(menu_list->sizeHint());
+  const auto menu_button = patchy::ui::RecentFileList::remove_button_rect(
+                               menu_list->visualItemRect(menu_list->item(0)))
+                               .center();
+  send_mouse(*menu_list->viewport(), QEvent::MouseMove, menu_button, Qt::NoButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(menu_list->remove_button_hovered(0));
+  save_widget_artifact("ui_open_recent_menu_remove_hover", *menu_list);
+  send_mouse(*menu_list->viewport(), QEvent::MouseButtonPress, menu_button, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*menu_list->viewport(), QEvent::MouseButtonRelease, menu_button, Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  QApplication::processEvents();
+  CHECK(tabs->count() == 0);
+  CHECK(!stored_recent_files().contains(recent_files[0]));
+  CHECK(menu_list->count() == 2);  // the same list widget, refilled
+  CHECK(recent_menu->findChild<QListWidget*>(QStringLiteral("fileOpenRecentList")) == menu_list);
+  QMetaObject::invokeMethod(file_menu, "aboutToShow");
+  QApplication::processEvents();
+  CHECK(recent_menu_paths(*recent_menu) == (QStringList{recent_files[1], recent_files[2]}));
+
+  // Open Recent Folder shares the list and its x.
+  const auto folder_a = QFileInfo(QStringLiteral("test-artifacts")).absoluteFilePath();
+  const auto folder_b = QFileInfo(QStringLiteral(".")).absoluteFilePath();
+  {
+    auto settings = patchy::ui::app_settings();
+    settings.setValue(QStringLiteral("recentFolders"), QStringList{folder_a, folder_b});
+    settings.sync();
+  }
+  QMetaObject::invokeMethod(file_menu, "aboutToShow");
+  QApplication::processEvents();
+  auto* folder_list = dynamic_cast<patchy::ui::RecentFileList*>(
+      window.findChild<QListWidget*>(QStringLiteral("fileOpenRecentFolderList")));
+  CHECK(folder_list != nullptr && folder_list->has_remove_button() && folder_list->count() == 2);
+  folder_list->resize(folder_list->sizeHint());
+  const auto folder_button = patchy::ui::RecentFileList::remove_button_rect(
+                                 folder_list->visualItemRect(folder_list->item(0)))
+                                 .center();
+  send_mouse(*folder_list->viewport(), QEvent::MouseButtonPress, folder_button, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*folder_list->viewport(), QEvent::MouseButtonRelease, folder_button, Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  QApplication::processEvents();
+  CHECK(folder_list->count() == 1);
+  auto settings = patchy::ui::app_settings();
+  settings.sync();
+  CHECK(settings.value(QStringLiteral("recentFolders")).toStringList() == QStringList{folder_b});
 }
 
 void ui_start_panel_recent_filter_narrows_rows_and_opens_match() {

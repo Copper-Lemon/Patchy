@@ -1906,8 +1906,11 @@ private:
                                      bool is_folder, const QPoint& global_position);
   void reveal_path_in_file_explorer(const QString& path, bool is_file);
   // Drops one entry from the stored recent files or folders and refreshes the
-  // menus and the start panel (GitHub issue 157).
-  void remove_recent_path(const QString& path, bool is_folder);
+  // menus and the start panel (GitHub issue 157). An open Open Recent menu passes
+  // rebuild_menus = false: its list refills in place and the menus rebuild on the
+  // next File menu open (recent_menus_stale_).
+  void remove_recent_path(const QString& path, bool is_folder, bool rebuild_menus = true);
+  bool recent_menus_stale_{false};
   void open_recent_document(QString path);
   QAction* add_tool_action(QToolBar* palette, QActionGroup* group, QString label, CanvasTool tool,
                            QKeySequence shortcut);
