@@ -63,6 +63,10 @@ struct PdfExportOptions {
   std::shared_ptr<const CmykWorkingSpace> cmyk_space{};
   // With cmyk_space: black and grays separate to black ink alone (SeparationOptions).
   bool cmyk_black_ink_only{false};
+  // A document with artboards becomes one page per artboard (documents_for_artboards),
+  // sized to it, instead of one page of the whole canvas. Persists as
+  // saveOptions/pdfArtboardPages.
+  bool artboard_pages{true};
 };
 
 // The "did this page change since import" fingerprint: the size and RGBA bytes of
@@ -125,6 +129,23 @@ bool write_multipage_pdf_file(std::span<const Document* const> pages, const QStr
 // reading order. Empty when the document has no visible top-level group.
 [[nodiscard]] std::vector<Document> documents_for_top_level_groups(const Document& document,
                                                                    bool include_ungrouped_layers);
+
+// One page per visible artboard (docs/artboards.md), top of the layer stack first: a copy
+// of the document holding just that artboard (and, with `include_loose_layers`, the layers
+// on no artboard), cropped to the artboard's rect. The artboard becomes the plain layers
+// every writer understands (convert_artboards_to_plain_groups); a background that nothing
+// shows through is left out, and an artboard that then is a plain Normal group is
+// unwrapped, so a scanned page stays one image. The artboard's imported page image
+// (pdf_artboard_source_pages) rides along as the page's pdf_source_page. Empty when the
+// document has no visible artboard.
+[[nodiscard]] std::vector<Document> documents_for_artboards(const Document& document,
+                                                            bool include_loose_layers = false);
+[[nodiscard]] Document document_for_artboard(const Document& document, LayerId artboard_id,
+                                             bool include_loose_layers = false);
+// attach_pdf_source_page for one artboard of a merged import: stamps `source` against the
+// page document_for_artboard derives and files it under the artboard's id.
+void attach_pdf_artboard_source_page(Document& document, LayerId artboard_id,
+                                     const std::shared_ptr<const PdfSourcePage>& source);
 
 namespace pdf_detail {
 // The Qt engine's side of the atomic-write rule: QPdfWriter draws onto device(), a

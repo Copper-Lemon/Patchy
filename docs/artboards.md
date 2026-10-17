@@ -1,0 +1,55 @@
+# Artboards
+
+Photoshop-style artboards: canvases inside one document, each with its own rect and background. The legal boundary (no artboard inferred from edit history, no angular snapping, no cross-artboard propagation or reflow) is binding: [legal-constraints.md](legal-constraints.md) "Artboards", with the claim record in [patent-research-artboards.md](patent-research-artboards.md).
+
+## Model (`core/layer.hpp`, `core/artboard.{hpp,cpp}`, Qt-free)
+
+- An artboard is a **top-level group** carrying `std::optional<LayerArtboard>` (`Layer::artboard()`): `rect` (document pixels), `background` (`ArtboardBackground`: White 1, Black 2, Transparent 3, Custom 4, Photoshop's `artboardBackgroundType` values; never renumber), `color` (Custom only, white otherwise), `preset_name`, `guide_indices`. `set_artboard` throws `logic_error` on a non-group and bumps render and content revisions; `translate_artboard` bumps render only (like `set_bounds`). `clone_with_id`, `copy_layer_state` and document copies carry it.
+- `DocumentMetadata::artboard_settings` (`DocumentArtboardSettings`) is the document `artd` block: origin, auto-expand offset and flags, default background. `DocumentMetadata::pdf_artboard_source_pages` keys a merged PDF import's page images by artboard id (pass-through, below). Neither is in `values`, so no other writer serializes them.
+- Rules: artboards never nest and never go inside a plain group. `move_layers_for_drop` (`core/layer_tree.cpp`), `create_layer_folder_from_layers` ("An artboard cannot go inside a folder"), `doc.groupLayers` and `doc.moveLayers` all refuse. A new artboard is **Normal** (isolated), not Pass Through, and goes on top of the stack (`new_artboard_insert_index`). Names come from `next_artboard_name` ("Artboard N", one past the highest N).
+- Helpers: `document_artboards` (top of the stack first: the Layers panel order and every per-artboard page order), `artboard_at`, `artboard_owning_layer`, `artboard_union_bounds`, `artboard_rect_beside`/`artboard_rect_next_to` (`kArtboardSpacing` 100 px), `put_layers_on_new_artboard` (Artboard from Layers for menu and scripts), `convert_artboards_to_plain_groups`.
+
+## Ground truth (Photoshop 2026 over COM, `test-fixtures/psd/photoshop-artboard-*.psd`)
+
+- Children clip to the rect; the background paints under them inside the group, so the artboard's opacity and blend mode apply to both.
+- Layers outside every artboard ("loose") render normally; the composite outside every artboard and loose layer is transparent.
+- The canvas grows live as artboards move past it, and Photoshop shrinkwraps the canvas on save to the artboards plus loose content. Patchy grows after each edit (`grow_canvas_to_artboards`, never shrinks mid-drag) and offers the shrinkwrap as Image > Fit Canvas to Artboards (`fit_canvas_to_artboards`, `artboard_document_extent`). Both return the coordinate shift when the canvas grows up or left; callers pan the view by it (`CanvasWidget::shift_view_for_document_offset`) so the artwork stays put on screen.
+- Folder records of artboards have a zero rect and four channels, `lsct` Normal, `lyvr` 160.
+
+## Compositor (`render/layer_compositor.hpp`, `core/layer_render_utils.cpp`)
+
+The CPU group branch intersects `clip` with the rect and paints `artboard_background_rgba` (`paint_artboard_paper`) before the children: into the isolated buffer, or for a Pass Through artboard into the destination at the layer's opacity. `layer_render_bounds` of an artboard is its rect plus style padding, so an empty artboard still paints, and per-layer render overrides are ignored for artboards. Documents without artboards take the unchanged path, so the byte and digest canaries are untouched. The vector preview renderer, native CMYK and native duotone paths fall back to the CPU compositor when `document_has_artboards`. `transform_document_vector_data` maps artboard rects through the canvas transform (Canvas Size, Crop, flips, rotations, Image Size; an arbitrary rotation keeps the bounding box).
+
+## PSD (`psd/psd_artboard.{hpp,cpp}`)
+
+- Per folder: `artb` (older files: `abdd`, `artd`), version 16 + descriptor class `artboard`: `artboardRect` (`classFloatRect`, `Top `/`Left`/`Btom`/`Rght` doubles), `guideIndeces`, `artboardPresetName`, `Clr ` (`RGBC` doubles), `artboardBackgroundType`. Global: `artd`, version 16 + `null` descriptor with `Cnt `, the auto-expand offset and origin points (`Pnt `, `Hrzn`/`Vrtc`), the flags and the default color (`RGBC` integers). `artboard_block_payload` reproduces Photoshop's key order and id forms, so a Photoshop block regenerates byte for byte (`psd_artboard_blocks_regenerate_photoshop_bytes`).
+- Read: `build_group_hierarchy` parses the block on top-level folders only; `artd` fills `artboard_settings`.
+- Write: a folder whose preserved block still parses to its model keeps the bytes; otherwise the regenerated `artb` goes after `lsct` and stale artboard keys are skipped. The global `artd` is kept verbatim when count and settings match, regenerated otherwise, dropped when no artboards remain, and authored when artboards exist without one. Every written file must open in Photoshop cleanly ([ps-compat.md](ps-compat.md)).
+
+## Other formats
+
+- **Affinity**: top-level artboards import as native artboards (the mask rect; a plain solid "<name> Background" shape becomes the White, Black or Custom background and is removed), [af-format.md](af-format.md).
+- **SVG, Aseprite, editable PDF**: `convert_artboards_to_plain_groups` on a copy (Normal group, rectangular vector mask, a bottom "<name> Background" solid shape), which composites the same.
+- **PDF export**: `PdfExportOptions::artboard_pages` (default on) makes Save As, Export and `write_multipage_pdf_file` write one page per visible artboard via `documents_for_artboards` / `document_for_artboard` (`ui/pdf_export.cpp`): a copy holding that artboard only (loose layers dropped unless asked), cropped to the rect over transparency, a background nothing can show through dropped, and a then-plain Transparent artboard unwrapped so a scanned page stays one image and passes through. Multi-Page PDF has an Artboards source ([pdf.md](pdf.md)).
+- **PDF import** to "Artboards in one document": one artboard per page, page 1 on top, grid layout; see [pdf.md](pdf.md). `attach_pdf_artboard_source_page` stamps each page's source image against the page `document_for_artboard` derives, so an untouched artboard re-exports its original bytes.
+
+## UI
+
+- **Canvas** (`ui/canvas_widget_artboard.cpp`): with artboards the checkerboard paints only inside Transparent artboards (`draw_canvas_backdrop`); `draw_artboard_overlay` draws outlines, name labels, the selected artboard's eight handles and its "+" add buttons, in the `canvas_artboard_{outline,label,selected,handle}` theme roles. A label click selects the artboard with the Move and Artboard tools (and starts a move); a double-click renames it with every tool.
+- **Artboard tool** (`CanvasTool::Artboard`, `tools.artboard`, icon `tool-artboard.svg`; a flyout with Move, cycled by `tools.cycle.move`, Shift+V; [tool-palette.md](tool-palette.md)): drag on empty space creates (a plain click only selects), drag inside or on a label moves the artboard with its content (Alt duplicates), handles resize (Shift keeps the aspect), "+" adds one beside on that side, arrows nudge (a run of nudges is one undo step, `ArtboardNudgeRun`), Esc cancels a drag. Every edit is one undo step and grows the canvas (`MainWindow::finish_artboard_edit`). The tool emits `ArtboardEditRequest`s; `MainWindow::handle_artboard_edit` applies them.
+- **Options bar**: size presets (shared with New Document's artboard presets, `artboard_size_presets`), W and H, a swap button, background (`white`, `black`, `transparent`, `other`: permanent `tools/artboardBackground` tokens; Other asks for a color), Add Artboard, Auto-Nest Layers. Settings: `tools/artboard{Width,Height,Background,BackgroundColor,AutoNest}`.
+- **Move tool**: with exactly one artboard selected in the Layers panel the Move tool moves the artboard itself (rect and content). With Auto-Nest on (also shown on the Move tool), a moved leaf whose center lands on an artboard joins it and one moved off every artboard leaves for the root (`nest_moved_layers_in_artboards`). The user's explicit drag decides; nothing is inferred from history.
+- **Layers panel**: an artboard glyph, "Artboard" kind and tooltip, row property `layerRowArtboard` ([layer-panel.md](layer-panel.md)). Duplicating an artboard places the copy right of the rightmost one (`place_duplicated_artboards`).
+- **Properties panel**: X, Y, W, H and background for the selected artboard (`build_properties_artboard_panel`).
+- **Commands**: Layer > New > Artboard... (`layer.new_artboard`), Artboard from Group (`layer.artboard_from_group`), Artboard from Layers (`layer.artboard_from_layers`), Convert Artboard to Group (`layer.artboard_to_group`, keeps the layers, drops the background); Image > Fit Canvas to Artboards (`image.fit_canvas_to_artboards`); File > Export > Artboards to Files (`file.export_artboards`). Every one is a permanent hotkey id.
+- **New Document**: the Artboards check (`newDocument/artboards`) starts the document as "Artboard 1" the canvas size, holding "Layer 1".
+- **Artboards to Files**: the Documents to Folder dialog in Artboards mode (`ExportDocumentsFolderSource::Artboards`, `exportArtboardsDialog`): the rows are artboards, files are prefix (default "<document> - ") plus the artboard name, Add gives a taken name " 2", " 3". It shares `export_page_documents_to_folder` with Documents to Folder.
+- **Print**: "Each Artboard as a Page" (`PrintAreaMode::Artboards`) prints `print_artboard_pages`; "Match each artboard" (`printMatchArtboardCheck`) makes every sheet the artboard's print size with no margins at actual size. Only a PDF can change sheet mid-job (Qt refuses a new layout for an active native print job), so Save PDF honors it per page and a printer keeps the chosen paper.
+
+## Scripting
+
+`doc.artboards`, `doc.addArtboard`, `doc.artboardFromLayers`, `doc.fitCanvasToArtboards`, `doc.exportArtboards`, `layer.isArtboard`, `layer.artboard`, `layer.setArtboard`, the `artboardPages` PDF option, and `isArtboard`/`artboard` in the MCP state (`ui/script_artboards.cpp`; [scripting.md](scripting.md), the guide and patchy.d.ts). An artboard's `bounds`, `x`, `y` and `moveTo` use its rect, and script edits grow the canvas like the tool. Background tokens are `white`, `black`, `transparent`, `color`.
+
+## Tests
+
+Core: `artboard_*` (model, tree rules, geometry, fit and grow, compositor clip and paper, plain-group conversion, the Photoshop fixtures against Photoshop's composites), `psd_artboard_*` (byte regeneration, round trips and edits, local captures in `local-test-fixtures/artboards/` when present), `af_imports_multi_artboard_document`. UI: `ui_artboard_*` (tool, options, panels, commands, exports, print) and `ui_script_artboards_*`; PDF merges in `ui_pdf_import_*artboard*` and `ui_pdf_import_editable_pages_*`.

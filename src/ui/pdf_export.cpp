@@ -1,7 +1,10 @@
 #include "ui/pdf_export.hpp"
 
 #include "formats/metadata/metadata_edit.hpp"
+#include "core/artboard.hpp"
 #include "core/layer.hpp"
+#include "core/layer_tree.hpp"
+#include "core/pixel_tools.hpp"
 #include "core/layer_metadata.hpp"
 #include "core/vector_shape.hpp"
 #include "core/worker_budget.hpp"
@@ -502,6 +505,12 @@ void write_pdf_document_file(const Document& document, const QString& path, cons
   if (document.width() <= 0 || document.height() <= 0) {
     throw std::runtime_error("The document could not be rendered for PDF export.");
   }
+  if (options.artboard_pages && document_has_artboards(document)) {
+    // Photoshop's Artboards to PDF: a page per artboard, each its own size.
+    const Document* single = &document;
+    static_cast<void>(write_multipage_pdf_file(std::span<const Document* const>(&single, 1), path, options, notices));
+    return;
+  }
   if (options.editable_layers && !pdf_detail::document_is_single_raster_layer(document)) {
     pdf_detail::write_editable_pdf_document_file(document, path, options, notices);
     return;
@@ -510,17 +519,51 @@ void write_pdf_document_file(const Document& document, const QString& path, cons
   write_image_pages(std::span<const Document* const>(&page, 1), path, options, {});
 }
 
-bool write_multipage_pdf_file(std::span<const Document* const> pages, const QString& path,
+bool write_multipage_pdf_file(std::span<const Document* const> requested_pages, const QString& path,
                               const PdfExportOptions& options, std::vector<std::string>* notices,
                               const PdfPageProgress& progress) {
-  if (pages.empty()) {
+  if (requested_pages.empty()) {
     throw std::runtime_error("There are no pages to export.");
   }
-  for (const auto* page : pages) {
+  for (const auto* page : requested_pages) {
     if (page == nullptr || page->width() <= 0 || page->height() <= 0) {
       throw std::runtime_error("The document could not be rendered for PDF export.");
     }
   }
+  // A document with artboards stands for its artboards, one page each.
+  std::vector<Document> artboard_pages;
+  std::vector<const Document*> expanded;
+  if (options.artboard_pages &&
+      std::any_of(requested_pages.begin(), requested_pages.end(),
+                  [](const Document* page) { return document_has_artboards(*page); })) {
+    std::vector<std::pair<std::size_t, std::size_t>> spans;  // [first, end) in artboard_pages, or SIZE_MAX
+    for (const auto* page : requested_pages) {
+      if (!document_has_artboards(*page)) {
+        spans.emplace_back(SIZE_MAX, 0);
+        continue;
+      }
+      const auto first = artboard_pages.size();
+      for (auto& derived : documents_for_artboards(*page)) {
+        artboard_pages.push_back(std::move(derived));
+      }
+      // Every artboard hidden: the document is one page of its canvas, like Save As.
+      spans.emplace_back(artboard_pages.size() == first ? SIZE_MAX : first, artboard_pages.size());
+    }
+    for (std::size_t index = 0; index < requested_pages.size(); ++index) {
+      if (spans[index].first == SIZE_MAX) {
+        expanded.push_back(requested_pages[index]);
+        continue;
+      }
+      for (auto page = spans[index].first; page < spans[index].second; ++page) {
+        expanded.push_back(&artboard_pages[page]);
+      }
+    }
+    if (expanded.empty()) {
+      throw std::runtime_error("There are no pages to export.");
+    }
+  }
+  const std::span<const Document* const> pages =
+      expanded.empty() ? requested_pages : std::span<const Document* const>(expanded);
   // Qt's engine is needed only when some page holds a real vector or text object (or
   // several layers that should stay separate images). One writer makes one file, so a
   // single such page sends every page that way.
@@ -573,6 +616,121 @@ bool write_multipage_pdf_file(std::span<const Document* const> pages, const QStr
   }
   output.commit(text_drawn);
   return true;
+}
+
+namespace {
+
+// True when the artboard's children cover the whole page with opaque pixels, so its
+// background could never show: one visible, fully opaque pixel layer over the page.
+bool artboard_paper_is_hidden(const Layer& artboard, std::int32_t width, std::int32_t height) {
+  for (const auto& child : artboard.children()) {
+    if (!child.visible() || child.kind() != LayerKind::Pixel || child.opacity() < 1.0F || child.fill_opacity() < 1.0F ||
+        child.blend_mode() != BlendMode::Normal || child.mask().has_value() || child.vector_mask() != nullptr ||
+        !child.layer_style().empty()) {
+      continue;
+    }
+    const auto bounds = child.bounds();
+    if (bounds.x > 0 || bounds.y > 0 || bounds.x + bounds.width < width || bounds.y + bounds.height < height) {
+      continue;
+    }
+    const auto& pixels = child.pixels();
+    if (pixels.format().channels < 4) {
+      return true;
+    }
+    if (pixels.format().bit_depth != BitDepth::UInt8) {
+      continue;
+    }
+    bool opaque = true;
+    for (std::int32_t y = std::max(0, -bounds.y); opaque && y < std::min(pixels.height(), height - bounds.y); ++y) {
+      const auto row = pixels.row(y);
+      for (std::int32_t x = std::max(0, -bounds.x); x < std::min(pixels.width(), width - bounds.x); ++x) {
+        if (row[static_cast<std::size_t>(x) * 4U + 3U] != 255U) {
+          opaque = false;
+          break;
+        }
+      }
+    }
+    if (opaque) {
+      return true;
+    }
+  }
+  return false;
+}
+
+}  // namespace
+
+Document document_for_artboard(const Document& document, LayerId artboard_id, bool include_loose_layers) {
+  Document page = document;
+  auto& layers = page.layers();
+  std::optional<Rect> rect;
+  // Keep only what the page shows: copying and cropping every other artboard per page
+  // would make a long document's export quadratic.
+  std::erase_if(layers, [&](const Layer& layer) {
+    if (layer_is_artboard(layer)) {
+      if (layer.id() == artboard_id) {
+        rect = layer.artboard()->rect;
+        return false;
+      }
+      return true;
+    }
+    return !include_loose_layers || !layer.visible();
+  });
+  if (!rect.has_value()) {
+    return page;
+  }
+  page.metadata().pdf_source_page.reset();
+  if (const auto found = document.metadata().pdf_artboard_source_pages.find(artboard_id);
+      found != document.metadata().pdf_artboard_source_pages.end()) {
+    page.metadata().pdf_source_page = found->second;
+  }
+  page.metadata().pdf_artboard_source_pages.clear();
+  static_cast<void>(crop_document(page, *rect, EditColor{0, 0, 0, 0}));
+  for (auto& layer : layers) {
+    if (!layer_is_artboard(std::as_const(layer))) {
+      continue;
+    }
+    auto artboard = *std::as_const(layer).artboard();
+    if (artboard.background != ArtboardBackground::Transparent &&
+        artboard_paper_is_hidden(std::as_const(layer), page.width(), page.height())) {
+      artboard.background = ArtboardBackground::Transparent;
+      layer.set_artboard(artboard);
+    }
+    // A Transparent, plain artboard is just its children on this page: unwrap it so a
+    // page that is one image stays one image (the image writer and its pass-through).
+    if (artboard.background == ArtboardBackground::Transparent && layers.size() == 1U && layer.opacity() >= 1.0F &&
+        layer.fill_opacity() >= 1.0F &&
+        (layer.blend_mode() == BlendMode::Normal || layer.blend_mode() == BlendMode::PassThrough) &&
+        !std::as_const(layer).mask().has_value() && std::as_const(layer).vector_mask() == nullptr &&
+        std::as_const(layer).layer_style().empty() && layer.visible()) {
+      auto children = std::move(layer.children());
+      layers = std::move(children);
+      break;
+    }
+  }
+  convert_artboards_to_plain_groups(page);
+  if (const auto default_layer = default_non_group_layer_id(std::as_const(page).layers()); default_layer.has_value()) {
+    page.set_active_layer(*default_layer);
+  }
+  return page;
+}
+
+std::vector<Document> documents_for_artboards(const Document& document, bool include_loose_layers) {
+  std::vector<Document> pages;
+  for (const auto* artboard : document_artboards(document)) {
+    if (artboard->visible()) {
+      pages.push_back(document_for_artboard(document, artboard->id(), include_loose_layers));
+    }
+  }
+  return pages;
+}
+
+void attach_pdf_artboard_source_page(Document& document, LayerId artboard_id,
+                                     const std::shared_ptr<const PdfSourcePage>& source) {
+  auto page = document_for_artboard(document, artboard_id);
+  attach_pdf_source_page(page, source);
+  if (const auto stamped = std::as_const(page).metadata().pdf_source_page; stamped != nullptr) {
+    document.metadata().pdf_artboard_source_pages[artboard_id] = stamped;
+  }
 }
 
 std::vector<Document> documents_for_top_level_groups(const Document& document, bool include_ungrouped_layers) {

@@ -278,6 +278,21 @@ bool move_layers_for_drop(std::vector<Layer>& layers, const LayerDropRequest& re
       target_is_inside_moved_layers(layers, moving_ids, *request.target_layer_id)) {
     return false;
   }
+  // Artboards never nest (docs/artboards.md): one can only move among the top-level layers.
+  const bool moving_artboard = std::any_of(moving_ids.begin(), moving_ids.end(), [&layers](LayerId id) {
+    const auto* layer = find_layer_in_tree(std::as_const(layers), id);
+    return layer != nullptr && layer->kind() == LayerKind::Group && layer->artboard().has_value();
+  });
+  if (moving_artboard && request.target_layer_id.has_value()) {
+    const auto* target = find_layer_in_tree(std::as_const(layers), *request.target_layer_id);
+    if (target == nullptr || (request.position == LayerDropPosition::OnItem && target->kind() == LayerKind::Group)) {
+      return false;
+    }
+    const auto location = find_layer_location(std::as_const(layers), *request.target_layer_id);
+    if (!location.has_value() || location->siblings != &std::as_const(layers)) {
+      return false;
+    }
+  }
 
   std::vector<Layer> moved_top_to_bottom;
   moved_top_to_bottom.reserve(moving_ids.size());

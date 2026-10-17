@@ -5877,10 +5877,6 @@ Mixed selection</source>
         <translation>すべてのページを選択</translation>
     </message>
     <message>
-        <source> ppi</source>
-        <translation> ppi</translation>
-    </message>
-    <message>
         <source>Include annotations</source>
         <translation>注釈を含める</translation>
     </message>
@@ -5911,10 +5907,6 @@ Mixed selection</source>
     <message>
         <source>Flattened image per page</source>
         <translation>ページごとに統合された画像</translation>
-    </message>
-    <message>
-        <source>Editable import brings in one page; page %1 was imported.</source>
-        <translation>編集可能な読み込みは 1 ページのみ対応です。ページ %1 を読み込みました。</translation>
     </message>
     <message>
         <source>Some artwork could not be kept editable; reimport with &quot;Flattened image per page&quot; for an exact copy.</source>
@@ -10204,6 +10196,122 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>Animated PNG: imported the default image only (%1)</source>
         <translation>アニメーションPNG: デフォルト画像のみ読み込みました (%1)</translation>
+    </message>
+    <message>
+        <source>Only a layer group can be an artboard</source>
+        <translation>アートボードにできるのはレイヤーグループだけです</translation>
+    </message>
+    <message>
+        <source>ppi</source>
+        <translation>ppi</translation>
+    </message>
+    <message>
+        <source>RGB Color</source>
+        <translation>RGB カラー</translation>
+    </message>
+    <message>
+        <source>CMYK Color</source>
+        <translation>CMYK カラー</translation>
+    </message>
+    <message>
+        <source>Indexed Color (Palette)</source>
+        <translation>インデックスカラー (パレット)</translation>
+    </message>
+    <message>
+        <source>White page background</source>
+        <translation>ページの背景を白にする</translation>
+    </message>
+    <message>
+        <source>Open in reverse order</source>
+        <translation>逆の順序で開く</translation>
+    </message>
+    <message>
+        <source>Enter a resolution from %1 to %2 ppi.</source>
+        <translation>%1～%2 ppi の解像度を入力してください。</translation>
+    </message>
+    <message>
+        <source>Indexed color needs &quot;Flattened image per page&quot;: shapes, text and images cannot be converted to a palette.</source>
+        <translation>インデックスカラーには「ページごとに統合された画像」が必要です。シェイプ、テキスト、画像はパレットに変換できません。</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>アートボードをファイルに書き出し</translation>
+    </message>
+    <message>
+        <source>Artboards</source>
+        <translation>アートボード</translation>
+    </message>
+    <message>
+        <source>Add puts a number after a name that is already taken; Overwrite asks before replacing anything.</source>
+        <translation>「追加」は既に使われている名前の後に番号を付け、「上書き」は置き換える前に確認します。</translation>
+    </message>
+    <message>
+        <source>Select at least one artboard.</source>
+        <translation>少なくとも 1 つのアートボードを選択してください。</translation>
+    </message>
+    <message>
+        <source>Each artboard as its own page</source>
+        <translation>アートボードごとに 1 ページ</translation>
+    </message>
+    <message>
+        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
+        <translation>アートボードごとにそのサイズのページを作ります。オフにするとキャンバス全体が 1 ページになります。</translation>
+    </message>
+    <message>
+        <source>%1 (%2 x %3)</source>
+        <translation>%1 (%2 x %3)</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>アートボード</translation>
+    </message>
+    <message numerus="yes">
+        <source>One page per artboard of the current document (%n artboard(s))</source>
+        <translation>
+            <numerusform>現在のドキュメントのアートボードごとに 1 ページ (%n 個のアートボード)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>One page per artboard (the current document has none)</source>
+        <translation>アートボードごとに 1 ページ (現在のドキュメントにはありません)</translation>
+    </message>
+    <message>
+        <source>Start the document as an artboard the size of the canvas</source>
+        <translation>キャンバスと同じサイズのアートボードでドキュメントを開始します</translation>
+    </message>
+    <message>
+        <source>%1 pages became artboards.</source>
+        <translation>%1 ページがアートボードになりました。</translation>
+    </message>
+    <message>
+        <source>Artboards in one document</source>
+        <translation>1 つのドキュメントにアートボードとして</translation>
+    </message>
+    <message>
+        <source>%1 artboard(s), first page %2 x %3 px</source>
+        <translation>アートボード %1 個、最初のページ %2 x %3 px</translation>
+    </message>
+    <message>
+        <source>%1 pages imported as folders; only the first starts visible.</source>
+        <translation>%1 ページをフォルダーとして読み込みました。最初は 1 つ目だけが表示されます。</translation>
+    </message>
+    <message>
+        <source>Match each artboard</source>
+        <translation>各アートボードに合わせる</translation>
+    </message>
+    <message>
+        <source>Each page is the size of its artboard, printed at actual size. Save PDF changes the sheet per page; a printer keeps the paper chosen above.</source>
+        <translation>各ページはアートボードのサイズになり、実寸で印刷されます。PDF 保存ではページごとに用紙が変わり、プリンターでは上で選んだ用紙のままです。</translation>
+    </message>
+    <message numerus="yes">
+        <source>Each Artboard as a Page (%n page(s))</source>
+        <translation>
+            <numerusform>アートボードごとに 1 ページ (%n ページ)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>A PDF image could not be made gray and kept its colors.</source>
+        <translation>PDF の画像をグレーにできなかったため、元の色のままです。</translation>
     </message>
 </context>
 <context>
@@ -21106,6 +21214,274 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <source>Remove from Recent Files</source>
         <translation>最近使ったファイルから削除</translation>
     </message>
+    <message>
+        <source>The pages stayed RGB: Indexed color needs flattened 8-bit pages.</source>
+        <translation>ページは RGB のままです。インデックスカラーには統合された 8 bit のページが必要です。</translation>
+    </message>
+    <message>
+        <source>&amp;Artboards to Files...</source>
+        <translation>アートボードをファイルへ(&amp;A)...</translation>
+    </message>
+    <message>
+        <source>&amp;Artboard...</source>
+        <translation>アートボード(&amp;A)...</translation>
+    </message>
+    <message>
+        <source>Add an artboard beside the others</source>
+        <translation>他のアートボードの隣にアートボードを追加</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Group</source>
+        <translation>グループからアートボード(&amp;G)</translation>
+    </message>
+    <message>
+        <source>Make the selected top-level group an artboard around its content</source>
+        <translation>選択した最上位のグループを、内容を囲むアートボードにします</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Layers</source>
+        <translation>レイヤーからアートボード(&amp;L)</translation>
+    </message>
+    <message>
+        <source>Put the selected layers on a new artboard around them</source>
+        <translation>選択したレイヤーを、それらを囲む新しいアートボードに入れます</translation>
+    </message>
+    <message>
+        <source>Convert Artboard to Gr&amp;oup</source>
+        <translation>アートボードをグループに変換(&amp;O)</translation>
+    </message>
+    <message>
+        <source>Turn the selected artboard into a plain group, keeping its layers</source>
+        <translation>選択したアートボードを、レイヤーを残したまま通常のグループにします</translation>
+    </message>
+    <message>
+        <source>Fit Canvas to A&amp;rtboards</source>
+        <translation>キャンバスをアートボードに合わせる(&amp;R)</translation>
+    </message>
+    <message>
+        <source>Shrink or grow the canvas to just hold the artboards and the layers beside them</source>
+        <translation>アートボードとその横のレイヤーがちょうど収まるようにキャンバスを縮小または拡大します</translation>
+    </message>
+    <message>
+        <source>Size preset for the selected artboard, or for new artboards</source>
+        <translation>選択したアートボードまたは新しいアートボードのサイズプリセット</translation>
+    </message>
+    <message>
+        <source>Width of the selected artboard, or of new artboards</source>
+        <translation>選択したアートボードまたは新しいアートボードの幅</translation>
+    </message>
+    <message>
+        <source>Swap width and height (portrait or landscape)</source>
+        <translation>幅と高さを入れ替え (縦向きまたは横向き)</translation>
+    </message>
+    <message>
+        <source>Height of the selected artboard, or of new artboards</source>
+        <translation>選択したアートボードまたは新しいアートボードの高さ</translation>
+    </message>
+    <message>
+        <source>Background:</source>
+        <translation>背景:</translation>
+    </message>
+    <message>
+        <source>Background of the selected artboard, or of new artboards</source>
+        <translation>選択したアートボードまたは新しいアートボードの背景</translation>
+    </message>
+    <message>
+        <source>Add Artboard</source>
+        <translation>アートボードを追加</translation>
+    </message>
+    <message>
+        <source>Add an artboard of this size beside the others</source>
+        <translation>このサイズのアートボードを他の隣に追加</translation>
+    </message>
+    <message>
+        <source>Auto-Nest Layers</source>
+        <translation>レイヤーを自動でネスト</translation>
+    </message>
+    <message>
+        <source>A layer moved onto an artboard joins it, and one moved off every artboard leaves it</source>
+        <translation>アートボード上に移動したレイヤーはそのアートボードに入り、どのアートボードからも外れたレイヤーは出ます</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>アートボード</translation>
+    </message>
+    <message>
+        <source>Drag on empty space to add an artboard, drag an artboard to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it.</source>
+        <translation>空いた場所をドラッグしてアートボードを追加、アートボードをドラッグして内容ごと移動 (%ALT% でコピー)、ハンドルをドラッグしてサイズ変更、+ をクリックして隣に追加します。</translation>
+    </message>
+    <message>
+        <source>Artboard: drag on empty space to add an artboard, drag one or its name to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it, double-click a name to rename it. Arrows nudge.</source>
+        <translation>アートボード: 空いた場所をドラッグして追加、アートボードまたはその名前をドラッグして内容ごと移動 (%ALT% でコピー)、ハンドルをドラッグしてサイズ変更、+ をクリックして隣に追加、名前をダブルクリックして名前を変更します。矢印キーで少しずつ移動します。</translation>
+    </message>
+    <message>
+        <source>Move Tools</source>
+        <translation>移動ツール</translation>
+    </message>
+    <message>
+        <source>Cycle Move Tools</source>
+        <translation>移動ツールを切り替え</translation>
+    </message>
+    <message>
+        <source>New artboard</source>
+        <translation>新規アートボード</translation>
+    </message>
+    <message>
+        <source>Added artboard %1</source>
+        <translation>アートボード %1 を追加しました</translation>
+    </message>
+    <message>
+        <source>Duplicate artboard</source>
+        <translation>アートボードを複製</translation>
+    </message>
+    <message>
+        <source>Nudge artboard</source>
+        <translation>アートボードを少しずつ移動</translation>
+    </message>
+    <message>
+        <source>Move artboard</source>
+        <translation>アートボードを移動</translation>
+    </message>
+    <message>
+        <source>Duplicated artboard</source>
+        <translation>アートボードを複製しました</translation>
+    </message>
+    <message>
+        <source>Moved artboard</source>
+        <translation>アートボードを移動しました</translation>
+    </message>
+    <message>
+        <source>Resize artboard</source>
+        <translation>アートボードのサイズを変更</translation>
+    </message>
+    <message>
+        <source>Artboard is %1 x %2 px</source>
+        <translation>アートボードは %1 x %2 px です</translation>
+    </message>
+    <message>
+        <source>Artboard background</source>
+        <translation>アートボードの背景</translation>
+    </message>
+    <message>
+        <source>Changed the artboard background</source>
+        <translation>アートボードの背景を変更しました</translation>
+    </message>
+    <message>
+        <source>Rename Artboard</source>
+        <translation>アートボード名の変更</translation>
+    </message>
+    <message>
+        <source>Rename artboard</source>
+        <translation>アートボード名を変更</translation>
+    </message>
+    <message>
+        <source>Renamed the artboard %1</source>
+        <translation>アートボードの名前を %1 に変更しました</translation>
+    </message>
+    <message>
+        <source>New Artboard</source>
+        <translation>新規アートボード</translation>
+    </message>
+    <message>
+        <source>Artboard Background</source>
+        <translation>アートボードの背景</translation>
+    </message>
+    <message>
+        <source>Select a top-level group to turn into an artboard</source>
+        <translation>アートボードにする最上位のグループを選択してください</translation>
+    </message>
+    <message>
+        <source>Artboard from group</source>
+        <translation>グループからアートボード</translation>
+    </message>
+    <message>
+        <source>Made %1 an artboard</source>
+        <translation>%1 をアートボードにしました</translation>
+    </message>
+    <message>
+        <source>Select the layers to put on the new artboard</source>
+        <translation>新しいアートボードに入れるレイヤーを選択してください</translation>
+    </message>
+    <message>
+        <source>Artboard from Layers takes layers that are not on an artboard</source>
+        <translation>レイヤーからアートボードは、アートボード上にないレイヤーにしか使えません</translation>
+    </message>
+    <message>
+        <source>Artboard from layers</source>
+        <translation>レイヤーからアートボード</translation>
+    </message>
+    <message>
+        <source>Put the layers on a new artboard</source>
+        <translation>レイヤーを新しいアートボードに入れました</translation>
+    </message>
+    <message>
+        <source>Select an artboard to turn into a group</source>
+        <translation>グループにするアートボードを選択してください</translation>
+    </message>
+    <message>
+        <source>Convert artboard to group</source>
+        <translation>アートボードをグループに変換</translation>
+    </message>
+    <message>
+        <source>Converted the artboard to a group</source>
+        <translation>アートボードをグループに変換しました</translation>
+    </message>
+    <message>
+        <source>The document has no artboards</source>
+        <translation>ドキュメントにアートボードがありません</translation>
+    </message>
+    <message>
+        <source>The canvas already fits the artboards</source>
+        <translation>キャンバスは既にアートボードに合っています</translation>
+    </message>
+    <message>
+        <source>Fit canvas to artboards</source>
+        <translation>キャンバスをアートボードに合わせる</translation>
+    </message>
+    <message>
+        <source>Canvas is %1 x %2 px</source>
+        <translation>キャンバスは %1 x %2 px です</translation>
+    </message>
+    <message>
+        <source>Left edge of the artboard</source>
+        <translation>アートボードの左端</translation>
+    </message>
+    <message>
+        <source>Top edge of the artboard</source>
+        <translation>アートボードの上端</translation>
+    </message>
+    <message>
+        <source>Width of the artboard</source>
+        <translation>アートボードの幅</translation>
+    </message>
+    <message>
+        <source>Height of the artboard</source>
+        <translation>アートボードの高さ</translation>
+    </message>
+    <message>
+        <source>Layer 1</source>
+        <translation>レイヤー 1</translation>
+    </message>
+    <message>
+        <source>Page %1</source>
+        <translation>ページ %1</translation>
+    </message>
+    <message>
+        <source>This document has no artboards</source>
+        <translation>このドキュメントにはアートボードがありません</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>アートボードをファイルに書き出し</translation>
+    </message>
+    <message>
+        <source>An artboard cannot go inside a folder</source>
+        <translation>アートボードはフォルダーに入れられません</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
+        <translation>アートボードでキャンバスを %1 x %1 px より大きくすることはできません</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22810,6 +23186,22 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
     <message>
         <source>CMYK values are percentages from 0 to 100</source>
         <translation>CMYK 値は 0 から 100 までのパーセントです</translation>
+    </message>
+    <message>
+        <source>Invalid artboard option or target: %1.</source>
+        <translation>アートボードのオプションまたは対象が無効です: %1。</translation>
+    </message>
+    <message>
+        <source>The artboards could not be exported.</source>
+        <translation>アートボードを書き出せませんでした。</translation>
+    </message>
+    <message>
+        <source>exportArtboards cannot write .%1 files.</source>
+        <translation>exportArtboards は .%1 ファイルを書き出せません。</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
+        <translation>アートボードでキャンバスを %1 x %1 px より大きくすることはできません。</translation>
     </message>
 </context>
 <context>

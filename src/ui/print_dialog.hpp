@@ -19,7 +19,9 @@ namespace patchy::ui {
 
 enum class PrintAreaMode {
   Document,
-  Selection
+  Selection,
+  // One page per visible artboard (documents_for_artboards), docs/artboards.md.
+  Artboards
 };
 
 enum class PrintScaleMode {
@@ -41,6 +43,10 @@ struct PrintSettings {
   double offset_x_inches{0.0};
   double offset_y_inches{0.0};
   bool crop_marks{false};
+  // Artboards only: each sheet is its artboard's print size with no margins
+  // (artboard_page_layout), printed at actual size. A PDF changes sheet per page; a
+  // printer driver cannot, so real print jobs keep the chosen paper.
+  bool match_artboard_paper{false};
 };
 
 struct PrintPlacement {
@@ -63,6 +69,14 @@ struct PrintPlacement {
 // the new sheet cannot hold collapse to zero so the result is always valid.
 [[nodiscard]] QPageLayout page_layout_with_size(const QPageLayout& layout, const QPageSize& size,
                                                 QPageLayout::Orientation orientation);
+// A margin-free sheet exactly the page's print size (pixels / document PPI), portrait.
+[[nodiscard]] QPageLayout artboard_page_layout(const Document& page);
+// The pages PrintAreaMode::Artboards prints, top artboard first; empty for a document
+// without visible artboards.
+[[nodiscard]] std::vector<Document> print_artboard_pages(const Document& document);
+// `settings` for one artboard page: the whole page, and with match_artboard_paper,
+// actual size, centered, no crop marks.
+[[nodiscard]] PrintSettings artboard_page_print_settings(const PrintSettings& settings);
 // The user's last accepted page layout (settings group "print"); the Letter default
 // when nothing is stored or the stored sheet is unusable.
 [[nodiscard]] QPageLayout load_stored_print_page_layout();

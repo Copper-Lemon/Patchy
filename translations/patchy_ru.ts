@@ -7397,10 +7397,6 @@ RGB: %2, %3, %4</translation>
         <translation>Страницы становятся:</translation>
     </message>
     <message>
-        <source> ppi</source>
-        <translation> ppi</translation>
-    </message>
-    <message>
         <source>Include annotations</source>
         <translation>Включить аннотации</translation>
     </message>
@@ -7443,10 +7439,6 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Editable import was not possible for page %1 (%2); it was flattened instead.</source>
         <translation>Не удалось импортировать страницу %1 в редактируемом виде (%2); она импортирована как сведённое изображение.</translation>
-    </message>
-    <message>
-        <source>Editable import brings in one page; page %1 was imported.</source>
-        <translation>Редактируемый импорт позволяет разместить одну страницу; страница %1 была импортирована.</translation>
     </message>
     <message>
         <source>Some artwork could not be kept editable; reimport with &quot;Flattened image per page&quot; for an exact copy.</source>
@@ -10264,6 +10256,126 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>Animated PNG: imported the default image only (%1)</source>
         <translation>Анимированный PNG: импортировано только изображение по умолчанию (%1)</translation>
+    </message>
+    <message>
+        <source>Only a layer group can be an artboard</source>
+        <translation>Монтажной областью может быть только группа слоёв</translation>
+    </message>
+    <message>
+        <source>ppi</source>
+        <translation>пикс/дюйм</translation>
+    </message>
+    <message>
+        <source>RGB Color</source>
+        <translation>Цвета RGB</translation>
+    </message>
+    <message>
+        <source>CMYK Color</source>
+        <translation>Цвета CMYK</translation>
+    </message>
+    <message>
+        <source>Indexed Color (Palette)</source>
+        <translation>Индексированные цвета (палитра)</translation>
+    </message>
+    <message>
+        <source>White page background</source>
+        <translation>Белый фон страницы</translation>
+    </message>
+    <message>
+        <source>Open in reverse order</source>
+        <translation>Открыть в обратном порядке</translation>
+    </message>
+    <message>
+        <source>Enter a resolution from %1 to %2 ppi.</source>
+        <translation>Введите разрешение от %1 до %2 пикс/дюйм.</translation>
+    </message>
+    <message>
+        <source>Indexed color needs &quot;Flattened image per page&quot;: shapes, text and images cannot be converted to a palette.</source>
+        <translation>Для индексированных цветов нужен режим «Сведенное изображение на странице»: фигуры, текст и изображения нельзя преобразовать в палитру.</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>Экспорт монтажных областей в файлы</translation>
+    </message>
+    <message>
+        <source>Artboards</source>
+        <translation>Монтажные области</translation>
+    </message>
+    <message>
+        <source>Add puts a number after a name that is already taken; Overwrite asks before replacing anything.</source>
+        <translation>Режим «Добавить» дописывает номер к уже занятому имени; «Перезаписать» запрашивает подтверждение замены.</translation>
+    </message>
+    <message>
+        <source>Select at least one artboard.</source>
+        <translation>Выберите хотя бы одну монтажную область.</translation>
+    </message>
+    <message>
+        <source>Each artboard as its own page</source>
+        <translation>Каждая монтажная область на отдельной странице</translation>
+    </message>
+    <message>
+        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
+        <translation>По странице на монтажную область, по её размеру. Если снять флажок, весь холст станет одной страницей.</translation>
+    </message>
+    <message>
+        <source>%1 (%2 x %3)</source>
+        <translation>%1 (%2 x %3)</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>Монтажная область</translation>
+    </message>
+    <message numerus="yes">
+        <source>One page per artboard of the current document (%n artboard(s))</source>
+        <translation>
+            <numerusform>По странице на монтажную область текущего документа (%n область)</numerusform>
+            <numerusform>По странице на монтажную область текущего документа (%n области)</numerusform>
+            <numerusform>По странице на монтажную область текущего документа (%n областей)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>One page per artboard (the current document has none)</source>
+        <translation>По странице на монтажную область (в текущем документе их нет)</translation>
+    </message>
+    <message>
+        <source>Start the document as an artboard the size of the canvas</source>
+        <translation>Начать документ с монтажной области размером с холст</translation>
+    </message>
+    <message>
+        <source>%1 pages became artboards.</source>
+        <translation>Страниц, ставших монтажными областями: %1.</translation>
+    </message>
+    <message>
+        <source>Artboards in one document</source>
+        <translation>Монтажные области в одном документе</translation>
+    </message>
+    <message>
+        <source>%1 artboard(s), first page %2 x %3 px</source>
+        <translation>Монтажных областей: %1, первая страница %2 x %3 px</translation>
+    </message>
+    <message>
+        <source>%1 pages imported as folders; only the first starts visible.</source>
+        <translation>Страниц, импортированных папками: %1; сначала видна только первая.</translation>
+    </message>
+    <message>
+        <source>Match each artboard</source>
+        <translation>По размеру каждой монтажной области</translation>
+    </message>
+    <message>
+        <source>Each page is the size of its artboard, printed at actual size. Save PDF changes the sheet per page; a printer keeps the paper chosen above.</source>
+        <translation>Каждая страница размером со свою монтажную область и печатается в натуральную величину. «Сохранить PDF» меняет лист на каждой странице; принтер сохраняет выбранную выше бумагу.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Each Artboard as a Page (%n page(s))</source>
+        <translation>
+            <numerusform>Каждая монтажная область как страница (%n страница)</numerusform>
+            <numerusform>Каждая монтажная область как страница (%n страницы)</numerusform>
+            <numerusform>Каждая монтажная область как страница (%n страниц)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>A PDF image could not be made gray and kept its colors.</source>
+        <translation>Изображение из PDF не удалось перевести в серый, и оно сохранило свои цвета.</translation>
     </message>
 </context>
 <context>
@@ -21232,6 +21344,274 @@ Patchy может скачать обновление, заменить этот
         <source>Remove from Recent Files</source>
         <translation>Удалить из последних файлов</translation>
     </message>
+    <message>
+        <source>The pages stayed RGB: Indexed color needs flattened 8-bit pages.</source>
+        <translation>Страницы остались в RGB: для индексированных цветов нужны сведённые 8-битные страницы.</translation>
+    </message>
+    <message>
+        <source>&amp;Artboards to Files...</source>
+        <translation>&amp;Монтажные области в файлы...</translation>
+    </message>
+    <message>
+        <source>&amp;Artboard...</source>
+        <translation>&amp;Монтажная область...</translation>
+    </message>
+    <message>
+        <source>Add an artboard beside the others</source>
+        <translation>Добавить монтажную область рядом с остальными</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Group</source>
+        <translation>Монтажная область из &amp;группы</translation>
+    </message>
+    <message>
+        <source>Make the selected top-level group an artboard around its content</source>
+        <translation>Сделать выбранную группу верхнего уровня монтажной областью вокруг её содержимого</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Layers</source>
+        <translation>Монтажная область из &amp;слоёв</translation>
+    </message>
+    <message>
+        <source>Put the selected layers on a new artboard around them</source>
+        <translation>Поместить выбранные слои на новую монтажную область вокруг них</translation>
+    </message>
+    <message>
+        <source>Convert Artboard to Gr&amp;oup</source>
+        <translation>Преобразовать монтажную область в гр&amp;уппу</translation>
+    </message>
+    <message>
+        <source>Turn the selected artboard into a plain group, keeping its layers</source>
+        <translation>Превратить выбранную монтажную область в обычную группу, сохранив её слои</translation>
+    </message>
+    <message>
+        <source>Fit Canvas to A&amp;rtboards</source>
+        <translation>Подогнать холст под монт&amp;ажные области</translation>
+    </message>
+    <message>
+        <source>Shrink or grow the canvas to just hold the artboards and the layers beside them</source>
+        <translation>Уменьшить или увеличить холст так, чтобы он вмещал только монтажные области и слои рядом с ними</translation>
+    </message>
+    <message>
+        <source>Size preset for the selected artboard, or for new artboards</source>
+        <translation>Стандартный размер выбранной или новых монтажных областей</translation>
+    </message>
+    <message>
+        <source>Width of the selected artboard, or of new artboards</source>
+        <translation>Ширина выбранной или новых монтажных областей</translation>
+    </message>
+    <message>
+        <source>Swap width and height (portrait or landscape)</source>
+        <translation>Поменять ширину и высоту (книжная или альбомная)</translation>
+    </message>
+    <message>
+        <source>Height of the selected artboard, or of new artboards</source>
+        <translation>Высота выбранной или новых монтажных областей</translation>
+    </message>
+    <message>
+        <source>Background:</source>
+        <translation>Фон:</translation>
+    </message>
+    <message>
+        <source>Background of the selected artboard, or of new artboards</source>
+        <translation>Фон выбранной или новых монтажных областей</translation>
+    </message>
+    <message>
+        <source>Add Artboard</source>
+        <translation>Добавить монтажную область</translation>
+    </message>
+    <message>
+        <source>Add an artboard of this size beside the others</source>
+        <translation>Добавить монтажную область этого размера рядом с остальными</translation>
+    </message>
+    <message>
+        <source>Auto-Nest Layers</source>
+        <translation>Автовложение слоёв</translation>
+    </message>
+    <message>
+        <source>A layer moved onto an artboard joins it, and one moved off every artboard leaves it</source>
+        <translation>Слой, перемещённый на монтажную область, входит в неё, а перемещённый за пределы всех областей выходит из неё</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>Монтажная область</translation>
+    </message>
+    <message>
+        <source>Drag on empty space to add an artboard, drag an artboard to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it.</source>
+        <translation>Перетащите по пустому месту, чтобы добавить монтажную область; перетащите область, чтобы переместить её с содержимым (%ALT% копирует); перетащите маркер, чтобы изменить размер; нажмите +, чтобы добавить область рядом.</translation>
+    </message>
+    <message>
+        <source>Artboard: drag on empty space to add an artboard, drag one or its name to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it, double-click a name to rename it. Arrows nudge.</source>
+        <translation>Монтажная область: перетащите по пустому месту, чтобы добавить область; перетащите область или её имя, чтобы переместить её с содержимым (%ALT% копирует); перетащите маркер, чтобы изменить размер; нажмите +, чтобы добавить область рядом; дважды щёлкните имя, чтобы переименовать. Стрелки сдвигают.</translation>
+    </message>
+    <message>
+        <source>Move Tools</source>
+        <translation>Инструменты перемещения</translation>
+    </message>
+    <message>
+        <source>Cycle Move Tools</source>
+        <translation>Сменить инструмент перемещения</translation>
+    </message>
+    <message>
+        <source>New artboard</source>
+        <translation>Новая монтажная область</translation>
+    </message>
+    <message>
+        <source>Added artboard %1</source>
+        <translation>Добавлена монтажная область %1</translation>
+    </message>
+    <message>
+        <source>Duplicate artboard</source>
+        <translation>Дублировать монтажную область</translation>
+    </message>
+    <message>
+        <source>Nudge artboard</source>
+        <translation>Сдвинуть монтажную область</translation>
+    </message>
+    <message>
+        <source>Move artboard</source>
+        <translation>Переместить монтажную область</translation>
+    </message>
+    <message>
+        <source>Duplicated artboard</source>
+        <translation>Монтажная область дублирована</translation>
+    </message>
+    <message>
+        <source>Moved artboard</source>
+        <translation>Монтажная область перемещена</translation>
+    </message>
+    <message>
+        <source>Resize artboard</source>
+        <translation>Изменить размер монтажной области</translation>
+    </message>
+    <message>
+        <source>Artboard is %1 x %2 px</source>
+        <translation>Размер монтажной области: %1 x %2 px</translation>
+    </message>
+    <message>
+        <source>Artboard background</source>
+        <translation>Фон монтажной области</translation>
+    </message>
+    <message>
+        <source>Changed the artboard background</source>
+        <translation>Фон монтажной области изменён</translation>
+    </message>
+    <message>
+        <source>Rename Artboard</source>
+        <translation>Переименовать монтажную область</translation>
+    </message>
+    <message>
+        <source>Rename artboard</source>
+        <translation>Переименовать монтажную область</translation>
+    </message>
+    <message>
+        <source>Renamed the artboard %1</source>
+        <translation>Монтажная область переименована в %1</translation>
+    </message>
+    <message>
+        <source>New Artboard</source>
+        <translation>Новая монтажная область</translation>
+    </message>
+    <message>
+        <source>Artboard Background</source>
+        <translation>Фон монтажной области</translation>
+    </message>
+    <message>
+        <source>Select a top-level group to turn into an artboard</source>
+        <translation>Выберите группу верхнего уровня, чтобы сделать её монтажной областью</translation>
+    </message>
+    <message>
+        <source>Artboard from group</source>
+        <translation>Монтажная область из группы</translation>
+    </message>
+    <message>
+        <source>Made %1 an artboard</source>
+        <translation>%1 стала монтажной областью</translation>
+    </message>
+    <message>
+        <source>Select the layers to put on the new artboard</source>
+        <translation>Выберите слои для новой монтажной области</translation>
+    </message>
+    <message>
+        <source>Artboard from Layers takes layers that are not on an artboard</source>
+        <translation>«Монтажная область из слоёв» принимает только слои вне монтажных областей</translation>
+    </message>
+    <message>
+        <source>Artboard from layers</source>
+        <translation>Монтажная область из слоёв</translation>
+    </message>
+    <message>
+        <source>Put the layers on a new artboard</source>
+        <translation>Слои помещены на новую монтажную область</translation>
+    </message>
+    <message>
+        <source>Select an artboard to turn into a group</source>
+        <translation>Выберите монтажную область, чтобы сделать её группой</translation>
+    </message>
+    <message>
+        <source>Convert artboard to group</source>
+        <translation>Преобразовать монтажную область в группу</translation>
+    </message>
+    <message>
+        <source>Converted the artboard to a group</source>
+        <translation>Монтажная область преобразована в группу</translation>
+    </message>
+    <message>
+        <source>The document has no artboards</source>
+        <translation>В документе нет монтажных областей</translation>
+    </message>
+    <message>
+        <source>The canvas already fits the artboards</source>
+        <translation>Холст уже подогнан под монтажные области</translation>
+    </message>
+    <message>
+        <source>Fit canvas to artboards</source>
+        <translation>Подогнать холст под монтажные области</translation>
+    </message>
+    <message>
+        <source>Canvas is %1 x %2 px</source>
+        <translation>Размер холста: %1 x %2 px</translation>
+    </message>
+    <message>
+        <source>Left edge of the artboard</source>
+        <translation>Левый край монтажной области</translation>
+    </message>
+    <message>
+        <source>Top edge of the artboard</source>
+        <translation>Верхний край монтажной области</translation>
+    </message>
+    <message>
+        <source>Width of the artboard</source>
+        <translation>Ширина монтажной области</translation>
+    </message>
+    <message>
+        <source>Height of the artboard</source>
+        <translation>Высота монтажной области</translation>
+    </message>
+    <message>
+        <source>Layer 1</source>
+        <translation>Слой 1</translation>
+    </message>
+    <message>
+        <source>Page %1</source>
+        <translation>Страница %1</translation>
+    </message>
+    <message>
+        <source>This document has no artboards</source>
+        <translation>В этом документе нет монтажных областей</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>Экспорт монтажных областей в файлы</translation>
+    </message>
+    <message>
+        <source>An artboard cannot go inside a folder</source>
+        <translation>Монтажную область нельзя поместить в папку</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
+        <translation>Монтажные области не могут сделать холст больше %1 x %1 px</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22938,6 +23318,22 @@ Patchy может скачать обновление, заменить этот
     <message>
         <source>CMYK values are percentages from 0 to 100</source>
         <translation>Значения CMYK задаются в процентах от 0 до 100</translation>
+    </message>
+    <message>
+        <source>Invalid artboard option or target: %1.</source>
+        <translation>Недопустимый параметр или объект монтажной области: %1.</translation>
+    </message>
+    <message>
+        <source>The artboards could not be exported.</source>
+        <translation>Не удалось экспортировать монтажные области.</translation>
+    </message>
+    <message>
+        <source>exportArtboards cannot write .%1 files.</source>
+        <translation>exportArtboards не может записывать файлы .%1.</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
+        <translation>Монтажные области не могут сделать холст больше %1 x %1 px.</translation>
     </message>
 </context>
 <context>

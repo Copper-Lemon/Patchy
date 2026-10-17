@@ -5,7 +5,10 @@
 // function moves from main_window.cpp; behavior must stay identical.
 
 #include <QClipboard>
+#include "core/artboard.hpp"
 #include "core/layer.hpp"
+#include "core/layer_metadata.hpp"
+#include "core/vector_shape.hpp"
 #include "color/color_management.hpp"
 #include "core/document_file_info.hpp"
 #include "core/pixel_buffer.hpp"
@@ -938,6 +941,13 @@ struct OpenDocumentResult {
   // The file held CMYK pixels (a CMYK JPEG or TIFF): the session opens in Image > Mode >
   // CMYK Proof so a save writes CMYK again (docs/cmyk.md).
   bool cmyk_source{false};
+  // A PDF import's Mode and Bit Depth, applied once the pages are finished documents.
+  // Unset for every other open: nothing else is converted on the way in.
+  PdfImportColorMode pdf_color_mode{PdfImportColorMode::Rgb};
+  std::optional<BitDepth> pdf_bit_depth{};
+  // A PDF import whose pages merge into one document (folders or artboards).
+  PdfPagesMerge pdf_merge{PdfPagesMerge::None};
+  bool pdf_white_background{true};
 };
 
 std::vector<std::uint8_t> read_all_file_bytes(const QString& path) {
@@ -1223,6 +1233,8 @@ OpenDocumentResult load_document_from_path(QString path) {
     PdfImportOptions pdf_options;
     pdf_options.resolution_ppi =
         app_settings().value(QStringLiteral("imports/pdfResolution"), pdf_options.resolution_ppi).toInt();
+    pdf_options.white_background =
+        app_settings().value(QStringLiteral("imports/pdfWhiteBackground"), pdf_options.white_background).toBool();
     QString pdf_error;
     auto pdf_result = load_pdf_document(path, pdf_options, QString(), &pdf_error);
     if (!pdf_result.has_value()) {
@@ -1589,6 +1601,12 @@ std::optional<OpenDocumentResult> load_document_interactive(QWidget* parent, con
                               false,
                               std::move(outcome->document_title),
                               std::move(outcome->extra_documents)};
+    loaded.pdf_color_mode = outcome->color_mode;
+    loaded.pdf_bit_depth = outcome->bit_depth;
+    loaded.pdf_merge = outcome->merge;
+    loaded.pdf_white_background = outcome->white_background;
+    // CMYK is the session's CMYK Proof, the same state a CMYK JPEG opens in.
+    loaded.cmyk_source = outcome->color_mode == PdfImportColorMode::Cmyk;
     if (const auto default_layer_id = default_non_group_layer_id(loaded.document.layers());
         default_layer_id.has_value()) {
       loaded.document.set_active_layer(*default_layer_id);
@@ -2446,6 +2464,14 @@ void MainWindow::open_document_path(QString path) {
     render_pending_af_text_layers(loaded->document);
     render_pending_pdf_text_layers(loaded->document);
     render_pending_pdf_image_layers(loaded->document);
+    if (loaded->pdf_merge != PdfPagesMerge::None) {
+      merge_imported_pdf_pages(loaded->document, loaded->document_title, loaded->extra_documents, loaded->pdf_merge,
+                               loaded->pdf_white_background);
+    }
+    if (loaded->pdf_bit_depth.has_value()) {
+      finish_imported_pdf_document(loaded->document, loaded->pdf_color_mode, *loaded->pdf_bit_depth,
+                                   loaded->import_notices);
+    }
     record_text_layout_metrics_for_reopened_text(loaded->document);
     if (!unattended_automation() && is_affinity_document_extension(loaded->extension)) {
       maybe_convert_af_image_layers(loaded->document);
@@ -2467,7 +2493,12 @@ void MainWindow::open_document_path(QString path) {
       const UiProfileScope profile_scope("open.add_session");
       add_document_session(std::move(loaded->document), first_title, session_path, tr("Open"));
     }
-    if (loaded->cmyk_source && open_cmyk_source_in_proof_mode(session())) {
+    if (loaded->pdf_color_mode == PdfImportColorMode::Cmyk) {
+      // The Import PDF dialog's CMYK Color: say so when there is no CMYK profile to proof with.
+      if (const auto refusal = set_session_cmyk_proof(session(), true); !refusal.isEmpty()) {
+        loaded->import_notices.push_back(refusal);
+      }
+    } else if (loaded->cmyk_source && open_cmyk_source_in_proof_mode(session())) {
       loaded->import_notices.push_back(
           tr("Opened in Image > Mode > CMYK Proof, so saving as JPEG, TIFF or PDF writes CMYK again"));
     }
@@ -2479,7 +2510,8 @@ void MainWindow::open_document_path(QString path) {
       const UiProfileScope profile_scope("open.fit_to_view");
       canvas_->fit_to_view();
     }
-    open_extra_imported_page_sessions(loaded_file_name, std::move(loaded->extra_documents));
+    open_extra_imported_page_sessions(loaded_file_name, std::move(loaded->extra_documents), loaded->pdf_color_mode,
+                                      loaded->pdf_bit_depth.value_or(BitDepth::UInt8), loaded->import_notices);
     if (!unattended_automation()) {
       // Unattended runs must not block on the adoption offer.
       maybe_offer_indexed_palette_adoption();
@@ -2523,8 +2555,134 @@ void MainWindow::open_document_path(QString path) {
 // The pages after the first of a PDF opened as separate documents. Each becomes a
 // pathless session (the PDF is a read-only source, so page 1 saves through Save As
 // too), added in the background so page 1 stays the active document throughout.
+void MainWindow::finish_imported_pdf_document(Document& document, PdfImportColorMode mode, BitDepth depth,
+                                              QStringList& notices) {
+  const auto note = [&notices](const QString& text) {
+    if (!notices.contains(text)) {
+      notices.push_back(text);
+    }
+  };
+  if (mode == PdfImportColorMode::Palette) {
+    // Indexed editing is 8-bit, so the depth choice does not apply.
+    if (!convert_imported_document_to_palette(document)) {
+      note(tr("The pages stayed RGB: Indexed color needs flattened 8-bit pages."));
+    }
+    return;
+  }
+  if (depth != std::as_const(document).color_state().bit_depth && depth_supported_on_platform(depth)) {
+    convert_document_depth(document, depth);
+  }
+}
+
+void MainWindow::merge_imported_pdf_pages(Document& first, const QString& first_title,
+                                          std::vector<PdfImportedDocument>& extras, PdfPagesMerge merge,
+                                          bool white_background) {
+  struct Page {
+    Document* document;
+    QString title;
+  };
+  std::vector<Page> pages{{&first, first_title.isEmpty() ? tr("Page %1").arg(1) : first_title}};
+  for (auto& extra : extras) {
+    render_pending_pdf_text_layers(extra.document);
+    render_pending_pdf_image_layers(extra.document);
+    pages.push_back({&extra.document, extra.title});
+  }
+  // Layers: one canvas the size of the largest page, every page at its top-left. Artboards:
+  // a grid about as wide as tall (a long PDF stays a reasonable canvas), page order left
+  // to right, top to bottom, kArtboardSpacing apart, each cell the size of the largest page.
+  std::int32_t cell_width = 1;
+  std::int32_t cell_height = 1;
+  for (const auto& page : pages) {
+    cell_width = std::max(cell_width, page.document->width());
+    cell_height = std::max(cell_height, page.document->height());
+  }
+  const auto count = static_cast<int>(pages.size());
+  const int columns = merge == PdfPagesMerge::Artboards
+                          ? std::max(1, static_cast<int>(std::ceil(std::sqrt(static_cast<double>(count)))))
+                          : 1;
+  const int rows = merge == PdfPagesMerge::Artboards ? (count + columns - 1) / columns : 1;
+  const auto origin_of = [&](int index) {
+    if (merge != PdfPagesMerge::Artboards) {
+      return QPoint(0, 0);
+    }
+    return QPoint((index % columns) * (cell_width + kArtboardSpacing), (index / columns) * (cell_height + kArtboardSpacing));
+  };
+  const auto canvas_width = merge == PdfPagesMerge::Artboards
+                                ? columns * cell_width + (columns - 1) * kArtboardSpacing
+                                : cell_width;
+  const auto canvas_height =
+      merge == PdfPagesMerge::Artboards ? rows * cell_height + (rows - 1) * kArtboardSpacing : cell_height;
+  Document merged(canvas_width, canvas_height, std::as_const(first).format());
+  merged.print_settings() = std::as_const(first).print_settings();
+  merged.color_state() = std::as_const(first).color_state();
+  merged.file_info() = std::as_const(first).file_info();
+  if (merge == PdfPagesMerge::Artboards) {
+    merged.metadata().artboard_settings.emplace();
+  }
+
+  std::vector<std::pair<LayerId, std::shared_ptr<const PdfSourcePage>>> artboard_sources;
+  // Copied in stacking order: Layers bottom-up (page 1 at the bottom, like one layer per
+  // page), Artboards top-down (page 1 the topmost artboard, so the per-artboard exports run
+  // in page order).
+  for (int step = 0; step < count; ++step) {
+    const int index = merge == PdfPagesMerge::Artboards ? count - 1 - step : step;
+    auto& page = *pages[static_cast<std::size_t>(index)].document;
+    const auto& title = pages[static_cast<std::size_t>(index)].title;
+    const auto& page_layers = std::as_const(page).layers();
+    const bool plain_raster = merge == PdfPagesMerge::Layers && page_layers.size() == 1U &&
+                              page_layers.front().kind() == LayerKind::Pixel && !layer_is_text(page_layers.front()) &&
+                              !layer_is_vector_shape(page_layers.front()) &&
+                              !layer_is_smart_object(page_layers.front());
+    LayerId root_id = 0;
+    if (plain_raster) {
+      page.layers().front().set_name(title.toStdString());
+      page.layers().front().set_visible(index == 0);
+      root_id = page.layers().front().id();
+    } else {
+      auto wrapper = merge == PdfPagesMerge::Artboards
+                         ? make_artboard_group(page.allocate_layer_id(), title.toStdString(),
+                                               Rect::from_size(page.width(), page.height()),
+                                               white_background ? ArtboardBackground::White
+                                                                : ArtboardBackground::Transparent)
+                         : Layer(page.allocate_layer_id(), title.toStdString(), LayerKind::Group);
+      if (merge == PdfPagesMerge::Layers) {
+        wrapper.set_blend_mode(BlendMode::PassThrough);
+        wrapper.set_visible(index == 0);
+      }
+      for (auto& layer : page.layers()) {
+        wrapper.add_child(std::move(layer));
+      }
+      page.layers().clear();
+      root_id = wrapper.id();
+      page.layers().push_back(std::move(wrapper));
+    }
+    CrossDocumentLayerPlacement placement;
+    placement.exact_offset = origin_of(index);
+    placement.keep_names = true;
+    QString error;
+    const auto copied =
+        copy_layers_between_documents(std::as_const(page), {root_id}, merged, placement, [] { return true; }, &error);
+    if (merge == PdfPagesMerge::Artboards && !copied.empty()) {
+      if (const auto source = std::as_const(page).metadata().pdf_source_page; source != nullptr) {
+        artboard_sources.emplace_back(copied.front(), source);
+      }
+    }
+  }
+  first = std::move(merged);
+  extras.clear();
+  // Each untouched artboard page re-exports its original image (docs/pdf.md
+  // "Pass-through"): fingerprint the page exactly as the per-artboard export derives it.
+  for (const auto& [artboard_id, source] : artboard_sources) {
+    attach_pdf_artboard_source_page(first, artboard_id, source);
+  }
+  if (const auto default_layer = default_non_group_layer_id(std::as_const(first).layers()); default_layer.has_value()) {
+    first.set_active_layer(*default_layer);
+  }
+}
+
 void MainWindow::open_extra_imported_page_sessions(const QString& file_name,
-                                                  std::vector<PdfImportedDocument> pages) {
+                                                  std::vector<PdfImportedDocument> pages, PdfImportColorMode mode,
+                                                  BitDepth depth, QStringList& notices) {
   if (pages.empty()) {
     return;
   }
@@ -2555,6 +2713,7 @@ void MainWindow::open_extra_imported_page_sessions(const QString& file_name,
       const UiProfileScope profile_scope("pdf_pages.pending_layers", profile_detail);
       render_pending_pdf_text_layers(page.document);
       render_pending_pdf_image_layers(page.document);
+      finish_imported_pdf_document(page.document, mode, depth, notices);
     }
     {
       // In the background: page 1 stays the active document, and each of these fits
@@ -2564,6 +2723,13 @@ void MainWindow::open_extra_imported_page_sessions(const QString& file_name,
       const UiProfileScope profile_scope("pdf_pages.add_session", profile_detail);
       add_document_session(std::move(page.document), tr("%1 - %2").arg(file_name, page.title), QString(),
                            tr("Open"), SessionActivation::Background);
+    }
+    // CMYK is the session's CMYK Proof; a refusal (no CMYK profile) is said once.
+    if (mode == PdfImportColorMode::Cmyk && !sessions_.empty()) {
+      if (const auto refusal = set_session_cmyk_proof(**sessions_.rbegin(), true);
+          !refusal.isEmpty() && !notices.contains(refusal)) {
+        notices.push_back(refusal);
+      }
     }
     const UiProfileScope profile_scope("pdf_pages.pump", profile_detail);
     QApplication::processEvents(QEventLoop::AllEvents);
@@ -2615,6 +2781,14 @@ void MainWindow::reopen_document_session(DocumentSession& target_session) {
     render_pending_af_text_layers(loaded->document);
     render_pending_pdf_text_layers(loaded->document);
     render_pending_pdf_image_layers(loaded->document);
+    if (loaded->pdf_merge != PdfPagesMerge::None) {
+      merge_imported_pdf_pages(loaded->document, loaded->document_title, loaded->extra_documents, loaded->pdf_merge,
+                               loaded->pdf_white_background);
+    }
+    if (loaded->pdf_bit_depth.has_value()) {
+      finish_imported_pdf_document(loaded->document, loaded->pdf_color_mode, *loaded->pdf_bit_depth,
+                                   loaded->import_notices);
+    }
     record_text_layout_metrics_for_reopened_text(loaded->document);
     if (!unattended_automation() &&
         is_affinity_document_extension(QFileInfo(path).suffix().toLower())) {
@@ -2648,7 +2822,8 @@ void MainWindow::reopen_document_session(DocumentSession& target_session) {
     update_undo_redo_actions();
     update_document_action_state();
     refresh_document_tab_titles();
-    open_extra_imported_page_sessions(loaded->file_name, std::move(loaded->extra_documents));
+    open_extra_imported_page_sessions(loaded->file_name, std::move(loaded->extra_documents), loaded->pdf_color_mode,
+                                      loaded->pdf_bit_depth.value_or(BitDepth::UInt8), loaded->import_notices);
     if (loaded->import_notices.isEmpty()) {
       statusBar()->showMessage(tr("Reopened %1").arg(path));
     } else {
@@ -4188,10 +4363,12 @@ void MainWindow::export_multipage_pdf() {
   }
   const bool original_image_data_available =
       std::any_of(sessions_.begin(), sessions_.end(), [](const auto& candidate) {
-        return candidate != nullptr && std::as_const(candidate->document).metadata().pdf_source_page != nullptr;
+        return candidate != nullptr && (std::as_const(candidate->document).metadata().pdf_source_page != nullptr ||
+                                        !std::as_const(candidate->document).metadata().pdf_artboard_source_pages.empty());
       });
+  const auto artboard_count = static_cast<int>(document_artboards(std::as_const(document())).size());
   const auto choice = run_multipage_pdf_export_dialog(this, entries, session().session_id, group_count,
-                                                      original_image_data_available);
+                                                      original_image_data_available, artboard_count);
   if (!choice.has_value()) {
     return;
   }
@@ -4213,6 +4390,12 @@ void MainWindow::export_multipage_pdf() {
     std::vector<const Document*> pages;
     if (choice->source == MultiPagePdfSource::TopLevelGroups) {
       group_pages = documents_for_top_level_groups(std::as_const(document()), choice->include_ungrouped_layers);
+      pages.reserve(group_pages.size());
+      for (const auto& page : group_pages) {
+        pages.push_back(&page);
+      }
+    } else if (choice->source == MultiPagePdfSource::Artboards) {
+      group_pages = documents_for_artboards(std::as_const(document()));
       pages.reserve(group_pages.size());
       for (const auto& page : group_pages) {
         pages.push_back(&page);
@@ -4292,16 +4475,104 @@ void MainWindow::export_documents_to_folder() {
 std::optional<QStringList> MainWindow::export_document_sessions_to_folder(
     const std::vector<std::int64_t>& session_ids, const QString& folder, const QString& extension,
     const ImageSequenceNaming& naming, ExportDocumentsExistingFiles existing_files) {
-  std::vector<DocumentSession*> pages;
+  std::vector<const Document*> pages;
   pages.reserve(session_ids.size());
   for (const auto session_id : session_ids) {
     if (auto* page_session = session_with_id(session_id); page_session != nullptr) {
-      pages.push_back(page_session);
+      pages.push_back(&std::as_const(page_session->document));
     }
   }
+  return export_page_documents_to_folder(pages, {}, folder, extension, naming, existing_files,
+                                         tr("Export Documents to Folder"));
+}
+
+bool MainWindow::export_documents_format_supported(const QString& extension) {
+  const auto choices = export_documents_format_choices();
+  return std::any_of(choices.begin(), choices.end(),
+                     [&extension](const ExportDocumentsFormatChoice& choice) { return choice.extension == extension; });
+}
+
+void MainWindow::export_artboards_to_files() {
+  if (!has_active_document()) {
+    show_status_error(tr("No document"));
+    return;
+  }
+  finish_active_text_editor();
+  const auto artboards = document_artboards(std::as_const(document()));
+  if (artboards.empty()) {
+    show_status_error(tr("This document has no artboards"));
+    return;
+  }
+  std::vector<DocumentOrderEntry> entries;
+  entries.reserve(artboards.size());
+  for (const auto* artboard : artboards) {
+    entries.push_back({QString::fromStdString(artboard->name()), static_cast<std::int64_t>(artboard->id())});
+  }
+  // "Poster - Artboard 1.png": the document's name, then the artboard's.
+  auto base = QFileInfo(session().title).completeBaseName();
+  if (base.isEmpty()) {
+    base = tr("Untitled");
+  }
+  const auto active = canvas_ != nullptr ? canvas_->selected_root_artboard_id() : std::nullopt;
+  const auto choice = run_export_documents_folder_dialog(
+      this, entries, active.has_value() ? static_cast<std::int64_t>(*active) : entries.front().session_id,
+      export_documents_format_choices(), last_save_directory(), ExportDocumentsFolderSource::Artboards,
+      base + QStringLiteral(" - "));
+  if (!choice.has_value()) {
+    return;
+  }
+  std::vector<LayerId> ids;
+  ids.reserve(choice->session_ids.size());
+  for (const auto id : choice->session_ids) {
+    ids.push_back(static_cast<LayerId>(id));
+  }
+  const auto written = export_artboards_to_folder(std::as_const(document()), ids, choice->folder, choice->extension,
+                                                  choice->naming, choice->existing_files);
+  if (!written.has_value()) {
+    return;
+  }
+  statusBar()->showMessage(
+      tr("Exported %1 images to %2").arg(written->size()).arg(QDir::toNativeSeparators(choice->folder)));
+}
+
+std::optional<QStringList> MainWindow::export_artboards_to_folder(const Document& source,
+                                                                  const std::vector<LayerId>& artboard_ids,
+                                                                  const QString& folder, const QString& extension,
+                                                                  const ImageSequenceNaming& naming,
+                                                                  ExportDocumentsExistingFiles existing_files,
+                                                                  QString* script_error) {
+  std::vector<Document> derived;
+  std::vector<QString> names;
+  derived.reserve(artboard_ids.size());
+  for (const auto id : artboard_ids) {
+    const auto* artboard = source.find_layer(id);
+    if (artboard == nullptr || !layer_is_artboard(*artboard)) {
+      continue;
+    }
+    derived.push_back(document_for_artboard(source, id));
+    names.push_back(naming.prefix + QString::fromStdString(artboard->name()));
+  }
+  std::vector<const Document*> pages;
+  pages.reserve(derived.size());
+  for (const auto& page : derived) {
+    pages.push_back(&page);
+  }
+  ImageSequenceNaming named = naming;
+  named.use_layer_names = true;
+  return export_page_documents_to_folder(pages, names, folder, extension, named, existing_files,
+                                         tr("Export Artboards to Files"), script_error);
+}
+
+std::optional<QStringList> MainWindow::export_page_documents_to_folder(
+    const std::vector<const Document*>& pages, const std::vector<QString>& base_names, const QString& folder,
+    const QString& extension, const ImageSequenceNaming& naming, ExportDocumentsExistingFiles existing_files,
+    const QString& title, QString* script_error) {
   if (pages.empty() || folder.trimmed().isEmpty()) {
     return std::nullopt;
   }
+  // A script call: no dialogs at all, and a failure comes back as text to throw.
+  const bool unattended = script_error != nullptr;
+  const bool by_name = naming.use_layer_names && base_names.size() == pages.size();
   try {
     // The dialog already created the folder; direct callers (tests) may not have.
     QDir().mkpath(folder);
@@ -4316,7 +4587,23 @@ std::optional<QStringList> MainWindow::export_document_sessions_to_folder(
     };
     QStringList targets;
     targets.reserve(static_cast<qsizetype>(pages.size()));
-    if (existing_files == ExportDocumentsExistingFiles::AddNumbering) {
+    const auto named_files = by_name ? image_sequence_file_names(base_names, naming, extension) : QStringList();
+    if (by_name && existing_files == ExportDocumentsExistingFiles::AddNumbering) {
+      // Never overwrite: a name already in the folder gets " 2", " 3"... (the names
+      // within the batch are already distinct).
+      for (const auto& name : named_files) {
+        const QFileInfo info(name);
+        const auto stem = info.completeBaseName();
+        const auto suffix = info.suffix().isEmpty() ? QString() : QStringLiteral(".") + info.suffix();
+        auto candidate = name;
+        for (int copy = 2; QFileInfo::exists(directory.filePath(candidate)) ||
+                           targets.contains(directory.filePath(candidate), Qt::CaseInsensitive);
+             ++copy) {
+          candidate = stem + QStringLiteral(" %1").arg(copy) + suffix;
+        }
+        targets.push_back(directory.filePath(candidate));
+      }
+    } else if (existing_files == ExportDocumentsExistingFiles::AddNumbering) {
       // Never overwrite: each file takes the next free number, so a batch lands
       // after whatever the folder already holds.
       int number = naming.start;
@@ -4330,7 +4617,8 @@ std::optional<QStringList> MainWindow::export_document_sessions_to_folder(
     } else {
       QString first_conflict;
       for (std::size_t i = 0; i < pages.size(); ++i) {
-        const auto name = file_name_for(naming.start + static_cast<int>(i));
+        const auto name = by_name ? named_files.at(static_cast<qsizetype>(i))
+                                  : file_name_for(naming.start + static_cast<int>(i));
         const auto target = directory.filePath(name);
         if (first_conflict.isEmpty() && QFileInfo::exists(target)) {
           first_conflict = name;
@@ -4339,9 +4627,9 @@ std::optional<QStringList> MainWindow::export_document_sessions_to_folder(
       }
       // One confirmation for the whole batch, before anything is written; the
       // first colliding name stands in for the rest.
-      if (!first_conflict.isEmpty()) {
+      if (!first_conflict.isEmpty() && !unattended) {
         const auto answer = show_warning_message(
-            this, tr("Export Documents to Folder"), tr("%1 already exists. Overwrite existing files?").arg(first_conflict),
+            this, title, tr("%1 already exists. Overwrite existing files?").arg(first_conflict),
             QMessageBox::Yes | QMessageBox::No, QMessageBox::No, QStringLiteral("exportDocumentsOverwriteMessageBox"));
         if (answer != QMessageBox::Yes) {
           return std::nullopt;
@@ -4354,14 +4642,13 @@ std::optional<QStringList> MainWindow::export_document_sessions_to_folder(
     auto image_options = load_image_save_option_defaults();
     image_options.export_scale = 1;
     if (is_pdf_extension(extension) &&
-        std::any_of(pages.begin(), pages.end(), [](const DocumentSession* page) {
-          return flat_save_discards_layers(std::as_const(page->document));
-        })) {
+        std::any_of(pages.begin(), pages.end(),
+                    [](const Document* page) { return flat_save_discards_layers(*page); })) {
       // Flatten or keep layers editable, decided once for the whole batch the way Save As
       // and Export Flat Image decide it: the remembered policy, or the question. A page
       // that is already one plain pixel layer comes out the same either way.
       const auto pdf_editable_layers =
-          resolve_pdf_layer_choice(/*for_export*/ true, /*allow_prompt*/ !unattended_automation());
+          resolve_pdf_layer_choice(/*for_export*/ true, /*allow_prompt*/ !unattended && !unattended_automation());
       if (!pdf_editable_layers.has_value()) {
         return std::nullopt;
       }
@@ -4371,27 +4658,33 @@ std::optional<QStringList> MainWindow::export_document_sessions_to_folder(
     // On the UI thread with an event pump per file: the pages are live session
     // documents, so no worker may read them while the window stays interactive.
     const int count = static_cast<int>(pages.size());
-    QProgressDialog progress(tr("Writing image %1 of %2...").arg(1).arg(count), tr("Cancel"), 0, count, this);
-    progress.setObjectName(QStringLiteral("exportDocumentsProgressDialog"));
-    progress.setWindowTitle(tr("Export Documents to Folder"));
-    progress.setWindowModality(Qt::WindowModal);
-    progress.setMinimumDuration(0);
-    progress.setAutoClose(false);
-    progress.setAutoReset(false);
-    remember_dialog_position(progress);
-    progress.setValue(0);
+    std::optional<QProgressDialog> progress;
+    if (!unattended) {
+      progress.emplace(tr("Writing image %1 of %2...").arg(1).arg(count), tr("Cancel"), 0, count, this);
+      progress->setObjectName(QStringLiteral("exportDocumentsProgressDialog"));
+      progress->setWindowTitle(title);
+      progress->setWindowModality(Qt::WindowModal);
+      progress->setMinimumDuration(0);
+      progress->setAutoClose(false);
+      progress->setAutoReset(false);
+      remember_dialog_position(*progress);
+      progress->setValue(0);
+    }
     QStringList written;
     for (int index = 0; index < count; ++index) {
-      progress.setLabelText(tr("Writing image %1 of %2...").arg(index + 1).arg(count));
-      progress.setValue(index);
-      QApplication::processEvents(QEventLoop::AllEvents);
-      if (progress.wasCanceled()) {
+      // Scripts get no event pump: their documents must not change mid-export.
+      if (progress.has_value()) {
+        progress->setLabelText(tr("Writing image %1 of %2...").arg(index + 1).arg(count));
+        progress->setValue(index);
+        QApplication::processEvents(QEventLoop::AllEvents);
+      }
+      if (progress.has_value() && progress->wasCanceled()) {
         // Files already written stay: a partial page set is still useful.
-        progress.close();
+        progress->close();
         statusBar()->showMessage(tr("Export cancelled after %1 of %2 images").arg(index).arg(count));
         return std::nullopt;
       }
-      const auto& page_document = std::as_const(pages[static_cast<std::size_t>(index)]->document);
+      const auto& page_document = *pages[static_cast<std::size_t>(index)];
       const auto& target = targets.at(index);
       if (is_photoshop_document_extension(extension)) {
         // Layered, like Save As: a page batch of PSDs keeps every document's layer tree.
@@ -4406,13 +4699,19 @@ std::optional<QStringList> MainWindow::export_document_sessions_to_folder(
       }
       written.push_back(target);
     }
-    progress.setValue(count);
-    progress.close();
-    remember_save_directory_for_path(written.front());
+    if (progress.has_value()) {
+      progress->setValue(count);
+      progress->close();
+      remember_save_directory_for_path(written.front());
+    }
     return written;
   } catch (const std::exception& error) {
-    show_critical_message(this, tr("Export failed"), translated_file_message(error.what()),
-                          QStringLiteral("exportFailedMessageBox"));
+    if (unattended) {
+      *script_error = translated_file_message(error.what());
+    } else {
+      show_critical_message(this, tr("Export failed"), translated_file_message(error.what()),
+                            QStringLiteral("exportFailedMessageBox"));
+    }
     return std::nullopt;
   }
 }

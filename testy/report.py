@@ -284,14 +284,13 @@ function groupRollup(files, groups, editors, badFraction, limit) {
 }
 
 // Files exercising things Patchy deliberately does not do: 16/32-bit documents (it
-// converts to 8-bit on open) and artboards. The header switch leaves them out of
+// converts to 8-bit on open). Artboards render since docs/artboards.md. The header switch leaves them out of
 // every editor's totals, so the scores read as "of the files in scope".
 function knownLimit(f) {
   const t = f.traits;
   if (!t) return "";
   const why = [];
   if (t.depth > 8) why.push(t.depth + "-bit");
-  if (t.artboards) why.push("artboards");
   return why.join(", ");
 }
 let skipKnown = false;
@@ -307,7 +306,7 @@ function renderKnownToggle() {
   const known = S.files.filter(f => knownLimit(f)).length;
   if (!S.files.some(f => f.traits)) { box.innerHTML = ""; return; }
   box.innerHTML = '<label><input type="checkbox"' + (skipKnown ? " checked" : "") +
-    ' onchange="setSkipKnown(this.checked)"> Score without known limitations</label> (16/32-bit and artboard files: ' +
+    ' onchange="setSkipKnown(this.checked)"> Score without known limitations</label> (16/32-bit files: ' +
     known + " of " + S.files.length + (skipKnown ? ", left out of the totals above and the folder table" : "") + ")";
 }
 

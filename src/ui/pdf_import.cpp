@@ -8,6 +8,8 @@
 #include "ui/pdf_export.hpp"
 #include "ui/ui_profile.hpp"
 
+#include "core/gray_conversion.hpp"
+#include "core/pixel_depth.hpp"
 #include "formats/pdf_document_io.hpp"
 
 #include "ui/background_workers.hpp"
@@ -30,7 +32,9 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QLocale>
+#include <QIntValidator>
 #include <QMessageBox>
+#include <QPainter>
 #include <QPdfDocument>
 #include <QPdfDocumentRenderOptions>
 #include <QPixmap>
@@ -39,7 +43,7 @@
 #include <QRect>
 #include <QSize>
 #include <QSizeF>
-#include <QSpinBox>
+#include <QStandardItemModel>
 #include <QStringList>
 #include <QThread>
 #include <QTimer>
@@ -76,6 +80,24 @@ constexpr int kThumbnailPendingRole = Qt::UserRole + 1;
 
 QString settings_key(const char* leaf) {
   return QStringLiteral("imports/pdf") + QLatin1String(leaf);
+}
+
+// imports/pdfColorMode tokens; permanent.
+PdfImportColorMode color_mode_from_token(const QString& token) {
+  if (token == QStringLiteral("grayscale")) {
+    return PdfImportColorMode::Grayscale;
+  }
+  if (token == QStringLiteral("cmyk")) {
+    return PdfImportColorMode::Cmyk;
+  }
+  if (token == QStringLiteral("palette")) {
+    return PdfImportColorMode::Palette;
+  }
+  return PdfImportColorMode::Rgb;
+}
+
+BitDepth bit_depth_from_bits(int bits) {
+  return bits == 16 ? BitDepth::UInt16 : bits == 32 ? BitDepth::Float32 : BitDepth::UInt8;
 }
 
 QPdfDocumentRenderOptions render_options(const PdfImportOptions& options) {
@@ -142,6 +164,44 @@ QImage trimmed_to_content(const QImage& page) {
     return page;  // a blank page: keep it whole rather than collapsing it to nothing
   }
   return page.copy(QRect(QPoint(left, top), QPoint(right, bottom)));
+}
+
+// The paper under a page: PDFium leaves everything the PDF does not paint transparent.
+QImage on_white_page(const QImage& page) {
+  if (page.isNull() || !page.hasAlphaChannel()) {
+    return page;
+  }
+  QImage paper(page.size(), QImage::Format_RGB32);
+  paper.fill(Qt::white);
+  QPainter painter(&paper);
+  painter.drawImage(0, 0, page);
+  painter.end();
+  return paper;
+}
+
+// The Grayscale mode for rendered pages: the same weights as the editable reader's
+// (core/gray_conversion.hpp), alpha untouched, still an RGB image.
+QImage grayed(const QImage& page) {
+  if (page.isNull()) {
+    return page;
+  }
+  QImage gray = page.convertToFormat(page.hasAlphaChannel() ? QImage::Format_ARGB32 : QImage::Format_RGB32);
+  for (int y = 0; y < gray.height(); ++y) {
+    auto* row = reinterpret_cast<QRgb*>(gray.scanLine(y));
+    for (int x = 0; x < gray.width(); ++x) {
+      const QRgb pixel = row[x];
+      // ARGB32 is not premultiplied, so the color channels convert on their own.
+      const int value = gray_from_rgb(static_cast<std::uint8_t>(qRed(pixel)), static_cast<std::uint8_t>(qGreen(pixel)),
+                                      static_cast<std::uint8_t>(qBlue(pixel)));
+      row[x] = qRgba(value, value, value, qAlpha(pixel));
+    }
+  }
+  return gray;
+}
+
+// A page's original image can stand in for gray pixels only when it is gray itself.
+bool source_page_is_gray(const PdfSourcePage& source) {
+  return source.color_space == "/DeviceGray" || (source.icc_profile != nullptr && source.icc_components == 1);
 }
 
 QString error_message(QPdfDocument::Error error, const QString& file_name) {
@@ -233,6 +293,13 @@ RenderedPage finish_rendered_page(QImage image, const RenderJob& job, const PdfI
   const std::string profile_detail = "page=" + std::to_string(job.page + 1);
   RenderedPage result;
   result.image = std::move(image);
+  if (options.white_background && options.merge != PdfPagesMerge::Artboards) {
+    result.image = on_white_page(result.image);
+  }
+  const bool grayscale = options.color_mode == PdfImportColorMode::Grayscale;
+  if (grayscale) {
+    result.image = grayed(result.image);
+  }
   bool trimmed = false;
   if (options.trim_to_bounding_box) {
     const UiProfileScope profile_scope("pdf_import.trim", profile_detail);
@@ -246,7 +313,8 @@ RenderedPage finish_rendered_page(QImage image, const RenderJob& job, const PdfI
     const UiProfileScope profile_scope("pdf_import.probe", profile_detail);
     const std::lock_guard<std::mutex> lock(reader_mutex);
     const auto probe = reader->probe_page(job.page);
-    if (!(options.annotations && probe.has_annotations)) {
+    if (!(options.annotations && probe.has_annotations) &&
+        !(grayscale && probe.source_page != nullptr && !source_page_is_gray(*probe.source_page))) {
       result.source = probe.source_page;
     }
   }
@@ -416,10 +484,16 @@ std::optional<PdfImportResult> render_pages(QPdfDocument& pdf, const PdfImportOp
     result.document = std::move(*document);
   }
 
+  result.color_mode = options.color_mode;
+  result.bit_depth = options.bit_depth;
+  result.merge = options.merge;
+  result.white_background = options.white_background;
   result.notices.push_back(QObject::tr("PDF content was rasterized at %1 ppi; text and vectors are pixels now.")
                                .arg(resolution_ppi)
                                .toStdString());
-  if (page_count > 1 && options.separate_documents) {
+  if (page_count > 1 && options.merge == PdfPagesMerge::Artboards) {
+    result.notices.push_back(QObject::tr("%1 pages became artboards.").arg(page_count).toStdString());
+  } else if (page_count > 1 && options.separate_documents) {
     result.notices.push_back(
         QObject::tr("%1 pages opened as separate documents.").arg(page_count).toStdString());
   } else if (page_count > 1) {
@@ -499,8 +573,12 @@ std::optional<PdfImportResult> run_pdf_import_dialog(QWidget* parent, const QStr
   options.annotations = settings.value(settings_key("Annotations"), options.annotations).toBool();
   options.anti_alias = settings.value(settings_key("AntiAlias"), options.anti_alias).toBool();
   options.trim_to_bounding_box = settings.value(settings_key("TrimToContent"), options.trim_to_bounding_box).toBool();
-  options.separate_documents =
-      settings.value(settings_key("PagesTarget"), QStringLiteral("documents")).toString() != QStringLiteral("layers");
+  const auto stored_pages_target = settings.value(settings_key("PagesTarget"), QStringLiteral("documents")).toString();
+  options.separate_documents = stored_pages_target != QStringLiteral("layers");
+  options.white_background = settings.value(settings_key("WhiteBackground"), options.white_background).toBool();
+  const bool stored_reverse_order = settings.value(settings_key("ReverseOrder"), false).toBool();
+  const auto stored_color_mode = settings.value(settings_key("ColorMode"), QStringLiteral("rgb")).toString();
+  const int stored_bit_depth = settings.value(settings_key("BitDepth"), 8).toInt();
 
   QDialog dialog(parent);
   dialog.setObjectName(QStringLiteral("pdfImportDialog"));
@@ -605,17 +683,53 @@ std::optional<PdfImportResult> run_pdf_import_dialog(QWidget* parent, const QStr
   pages_target->setObjectName(QStringLiteral("pdfImportPagesTargetCombo"));
   pages_target->addItem(QObject::tr("Separate documents"), QStringLiteral("documents"));
   pages_target->addItem(QObject::tr("Layers in one document"), QStringLiteral("layers"));
-  pages_target->setCurrentIndex(
-      std::max(0, pages_target->findData(options.separate_documents ? QStringLiteral("documents")
-                                                                    : QStringLiteral("layers"))));
+  // Every page an artboard of its own size, side by side in one document (GitHub issue 19).
+  pages_target->addItem(QObject::tr("Artboards in one document"), QStringLiteral("artboards"));
+  pages_target->setCurrentIndex(std::max(0, pages_target->findData(stored_pages_target)));
   form->addRow(new QLabel(QObject::tr("Pages become:"), &dialog), pages_target);
-  auto* resolution = new QSpinBox(&dialog);
-  resolution->setObjectName(QStringLiteral("pdfImportResolutionSpin"));
-  resolution->setRange(kMinResolutionPpi, kMaxResolutionPpi);
-  resolution->setSuffix(QObject::tr(" ppi"));
-  resolution->setValue(options.resolution_ppi);
-  configure_dialog_spinbox(resolution);
-  form->addRow(new QLabel(QObject::tr("Resolution:"), &dialog), resolution);
+  // The common screen and print resolutions one pick away (GitHub issue 147), and still
+  // a typed value for anything else in range.
+  auto* resolution = new QComboBox(&dialog);
+  resolution->setObjectName(QStringLiteral("pdfImportResolutionCombo"));
+  resolution->setEditable(true);
+  resolution->setInsertPolicy(QComboBox::NoInsert);
+  for (const int preset : {72, 100, 150, 200, 300, 400, 600}) {
+    resolution->addItem(QString::number(preset), preset);
+  }
+  resolution->lineEdit()->setValidator(new QIntValidator(kMinResolutionPpi, kMaxResolutionPpi, resolution));
+  resolution->setCurrentText(QString::number(options.resolution_ppi));
+  auto* resolution_row = new QHBoxLayout();
+  resolution_row->setContentsMargins(0, 0, 0, 0);
+  resolution_row->addWidget(resolution, 1);
+  resolution_row->addWidget(new QLabel(QObject::tr("ppi"), &dialog));
+  form->addRow(new QLabel(QObject::tr("Resolution:"), &dialog), resolution_row);
+  // 0 while the typed text is not a resolution in range (the Import button waits).
+  const auto resolution_value = [resolution] {
+    bool ok = false;
+    const int value = resolution->currentText().trimmed().toInt(&ok);
+    return ok && value >= kMinResolutionPpi && value <= kMaxResolutionPpi ? value : 0;
+  };
+  // Photoshop's Import PDF Mode and Bit Depth (GitHub issue 152). Patchy edits RGB, so
+  // Grayscale is gray content, CMYK is CMYK Proof, and Palette is Indexed editing.
+  auto* color_mode = new QComboBox(&dialog);
+  color_mode->setObjectName(QStringLiteral("pdfImportColorModeCombo"));
+  color_mode->addItem(QObject::tr("RGB Color"), QStringLiteral("rgb"));
+  color_mode->addItem(QObject::tr("Grayscale"), QStringLiteral("grayscale"));
+  color_mode->addItem(QObject::tr("CMYK Color"), QStringLiteral("cmyk"));
+  color_mode->addItem(QObject::tr("Indexed Color (Palette)"), QStringLiteral("palette"));
+  color_mode->setCurrentIndex(std::max(0, color_mode->findData(stored_color_mode)));
+  form->addRow(new QLabel(QObject::tr("Mode:"), &dialog), color_mode);
+  auto* bit_depth = new QComboBox(&dialog);
+  bit_depth->setObjectName(QStringLiteral("pdfImportBitDepthCombo"));
+  bit_depth->addItem(QObject::tr("8 Bits/Channel"), 8);
+  if (deep_editing_enabled()) {
+    bit_depth->addItem(QObject::tr("16 Bits/Channel"), 16);
+    if (depth_supported_on_platform(BitDepth::Float32)) {
+      bit_depth->addItem(QObject::tr("32 Bits/Channel"), 32);
+    }
+  }
+  bit_depth->setCurrentIndex(std::max(0, bit_depth->findData(stored_bit_depth)));
+  form->addRow(new QLabel(QObject::tr("Bit depth:"), &dialog), bit_depth);
   side->addLayout(form);
 
   auto* annotations = new QCheckBox(QObject::tr("Include annotations"), &dialog);
@@ -632,6 +746,18 @@ std::optional<PdfImportResult> run_pdf_import_dialog(QWidget* parent, const QStr
   trim->setObjectName(QStringLiteral("pdfImportTrimCheck"));
   trim->setChecked(options.trim_to_bounding_box);
   side->addWidget(trim);
+
+  // GitHub issue 153: PDF paints no paper, so without this a page's background is
+  // transparent where a viewer shows white.
+  auto* white_background = new QCheckBox(QObject::tr("White page background"), &dialog);
+  white_background->setObjectName(QStringLiteral("pdfImportWhiteBackgroundCheck"));
+  white_background->setChecked(options.white_background);
+  side->addWidget(white_background);
+
+  auto* reverse_order = new QCheckBox(QObject::tr("Open in reverse order"), &dialog);
+  reverse_order->setObjectName(QStringLiteral("pdfImportReverseOrderCheck"));
+  reverse_order->setChecked(stored_reverse_order);
+  side->addWidget(reverse_order);
 
   auto* size_label = new QLabel(&dialog);
   size_label->setObjectName(QStringLiteral("pdfImportSizeLabel"));
@@ -666,20 +792,29 @@ std::optional<PdfImportResult> run_pdf_import_dialog(QWidget* parent, const QStr
       size_label->setText(QObject::tr("Select at least one page."));
       return;
     }
-    const QSize size = rendered_page_size(pdf.pagePointSize(pages.front()), resolution->value(), nullptr);
-    const bool separate = pages_target->currentData().toString() == QStringLiteral("documents");
-    QString text = (separate ? QObject::tr("%1 document(s), first page %2 x %3 px")
-                             : QObject::tr("%1 layer(s), first page %2 x %3 px"))
+    const int ppi = resolution_value();
+    if (ppi == 0) {
+      import_button->setEnabled(false);
+      size_label->setText(
+          QObject::tr("Enter a resolution from %1 to %2 ppi.").arg(kMinResolutionPpi).arg(kMaxResolutionPpi));
+      return;
+    }
+    const QSize size = rendered_page_size(pdf.pagePointSize(pages.front()), ppi, nullptr);
+    const auto target = pages_target->currentData().toString();
+    QString text = (target == QStringLiteral("documents")   ? QObject::tr("%1 document(s), first page %2 x %3 px")
+                    : target == QStringLiteral("artboards") ? QObject::tr("%1 artboard(s), first page %2 x %3 px")
+                                                            : QObject::tr("%1 layer(s), first page %2 x %3 px"))
                        .arg(pages.size())
                        .arg(size.width())
                        .arg(size.height());
     // Every page is held as RGBA pixels, which a long scanned PDF turns into gigabytes
     // (85 pages at 300 ppi is about 6 GB). Say so before the import, not after.
+    const double bytes_per_channel = bit_depth->isEnabled() ? bit_depth->currentData().toInt() / 8.0 : 1.0;
     double bytes = 0.0;
     for (const int page : pages) {
-      const QSize page_size = rendered_page_size(pdf.pagePointSize(page), resolution->value(), nullptr);
+      const QSize page_size = rendered_page_size(pdf.pagePointSize(page), ppi, nullptr);
       if (page_size.isValid()) {
-        bytes += 4.0 * page_size.width() * page_size.height();
+        bytes += 4.0 * bytes_per_channel * page_size.width() * page_size.height();
       }
     }
     const double gigabytes = bytes / (1024.0 * 1024.0 * 1024.0);
@@ -696,18 +831,41 @@ std::optional<PdfImportResult> run_pdf_import_dialog(QWidget* parent, const QStr
     size_label->setText(text);
   };
   QObject::connect(pages_list, &QListWidget::itemSelectionChanged, &dialog, sync_size_label);
-  QObject::connect(resolution, &QSpinBox::valueChanged, &dialog, sync_size_label);
+  QObject::connect(resolution, &QComboBox::currentTextChanged, &dialog, sync_size_label);
   QObject::connect(pages_target, &QComboBox::currentIndexChanged, &dialog, sync_size_label);
   // The render toggles only shape the raster path; graying them out in editable
-  // mode says so without a second dialog layout.
-  const auto sync_mode_controls = [mode, annotations, anti_alias, trim] {
+  // mode says so without a second dialog layout. Indexed color needs flattened pages:
+  // the conversion refuses shapes, text and images, which keep full color.
+  const auto sync_mode_controls = [mode, annotations, anti_alias, trim, color_mode, bit_depth] {
     const bool flatten = mode->currentData().toString() == QStringLiteral("flatten");
     annotations->setEnabled(flatten);
     anti_alias->setEnabled(flatten);
     trim->setEnabled(flatten);
+    const int palette_row = color_mode->findData(QStringLiteral("palette"));
+    if (auto* model = qobject_cast<QStandardItemModel*>(color_mode->model()); model != nullptr && palette_row >= 0) {
+      if (auto* item = model->item(palette_row); item != nullptr) {
+        item->setEnabled(flatten);
+        item->setToolTip(flatten ? QString()
+                                 : QObject::tr("Indexed color needs \"Flattened image per page\": shapes, text and "
+                                               "images cannot be converted to a palette."));
+      }
+    }
+    if (!flatten && color_mode->currentIndex() == palette_row) {
+      color_mode->setCurrentIndex(std::max(0, color_mode->findData(QStringLiteral("rgb"))));
+    }
+    // Indexed editing is 8-bit only.
+    const bool palette = color_mode->currentIndex() == palette_row;
+    if (palette) {
+      bit_depth->setCurrentIndex(0);
+    }
+    bit_depth->setEnabled(!palette && bit_depth->count() > 1);
   };
   QObject::connect(mode, &QComboBox::currentIndexChanged, &dialog, sync_mode_controls);
+  QObject::connect(color_mode, &QComboBox::currentIndexChanged, &dialog, sync_mode_controls);
   sync_mode_controls();
+  // After the mode sync, which may disable the depth (the size estimate reads it).
+  QObject::connect(bit_depth, &QComboBox::currentIndexChanged, &dialog, sync_size_label);
+  QObject::connect(color_mode, &QComboBox::currentIndexChanged, &dialog, sync_size_label);
   sync_size_label();
 
   remember_dialog_position(dialog);
@@ -716,18 +874,37 @@ std::optional<PdfImportResult> run_pdf_import_dialog(QWidget* parent, const QStr
   }
 
   options.pages = selected_pages();
-  options.resolution_ppi = resolution->value();
+  if (reverse_order->isChecked()) {
+    std::reverse(options.pages.begin(), options.pages.end());
+  }
+  options.resolution_ppi = resolution_value();
+  options.white_background = white_background->isChecked();
+  options.color_mode = color_mode_from_token(color_mode->currentData().toString());
+  options.bit_depth = options.color_mode == PdfImportColorMode::Palette
+                          ? BitDepth::UInt8
+                          : bit_depth_from_bits(bit_depth->currentData().toInt());
   options.annotations = annotations->isChecked();
   options.anti_alias = anti_alias->isChecked();
   options.trim_to_bounding_box = trim->isChecked();
-  options.separate_documents = pages_target->currentData().toString() == QStringLiteral("documents");
+  const auto chosen_target = pages_target->currentData().toString();
   const bool editable = mode->currentData().toString() == QStringLiteral("editable");
+  // Documents is the import's own output. Artboards (raster or editable) and editable
+  // Layers come back as one document per page that the MainWindow merges; raster Layers
+  // keeps one pixel layer per page through document_from_frames.
+  options.separate_documents = chosen_target != QStringLiteral("layers") || editable;
+  options.merge = chosen_target == QStringLiteral("artboards") ? PdfPagesMerge::Artboards
+                  : chosen_target == QStringLiteral("layers") && editable ? PdfPagesMerge::Layers
+                                                                          : PdfPagesMerge::None;
   settings.setValue(settings_key("Mode"), mode->currentData().toString());
   settings.setValue(settings_key("PagesTarget"), pages_target->currentData().toString());
   settings.setValue(settings_key("Resolution"), options.resolution_ppi);
   settings.setValue(settings_key("Annotations"), options.annotations);
   settings.setValue(settings_key("AntiAlias"), options.anti_alias);
   settings.setValue(settings_key("TrimToContent"), options.trim_to_bounding_box);
+  settings.setValue(settings_key("WhiteBackground"), options.white_background);
+  settings.setValue(settings_key("ReverseOrder"), reverse_order->isChecked());
+  settings.setValue(settings_key("ColorMode"), color_mode->currentData().toString());
+  settings.setValue(settings_key("BitDepth"), bit_depth->currentData().toInt());
 
   // A multi-page import runs on the UI thread page by page (QPdfDocument renders here;
   // the vector reader runs on a worker while this pumps events), so the dialog is what
@@ -784,14 +961,10 @@ std::optional<PdfImportResult> run_pdf_import_dialog(QWidget* parent, const QStr
   if (editable && reader == nullptr) {
     editable_failure = reader_failure;
   } else if (editable) {
-    // The vector reader builds one page per call. Separate-documents mode calls it
-    // once per selected page; layers mode keeps page 1 only, because editable text
-    // and shapes from several pages cannot honestly share one canvas.
-    std::vector<int> editable_pages = options.pages.empty() ? std::vector<int>{0} : options.pages;
-    if (!options.separate_documents && editable_pages.size() > 1) {
-      // erase, not resize(1): GCC 12 warns about resize's (unreachable) growing path.
-      editable_pages.erase(editable_pages.begin() + 1, editable_pages.end());
-    }
+    // The vector reader builds one page per call, every selected page its own document;
+    // the Layers and Artboards targets merge them afterwards (one folder or artboard per
+    // page), so editable shapes and text from several pages never share one canvas.
+    const std::vector<int> editable_pages = options.pages.empty() ? std::vector<int>{0} : options.pages;
     // A page that is (mostly) an image in a codec the editable reader cannot decode is a
     // scan: there is nothing to keep editable, and importing it "editable" would drop
     // the image and keep only what little sits on top of it. Such pages flatten.
@@ -825,6 +998,11 @@ std::optional<PdfImportResult> run_pdf_import_dialog(QWidget* parent, const QStr
       pdf::VectorReadOptions vector_options;
       vector_options.page = page;
       vector_options.pixels_per_point = options.resolution_ppi / 72.0;
+      vector_options.grayscale = options.color_mode == PdfImportColorMode::Grayscale;
+      // A page that is one opaque image covering the sheet needs no paper under it, and
+      // staying one raster layer keeps its original image data for export.
+      vector_options.white_background = options.white_background && probes[index].source_page == nullptr &&
+                                        options.merge != PdfPagesMerge::Artboards;
       const auto title = QObject::tr("Page %1").arg(page + 1);
       std::optional<Document> page_document;
       const std::string profile_detail = "page=" + std::to_string(page + 1);
@@ -862,7 +1040,10 @@ std::optional<PdfImportResult> run_pdf_import_dialog(QWidget* parent, const QStr
           page_document = std::move(vectors.document);
           // A page that is one decodable image keeps its original bytes for export too;
           // the composite is only final after the Qt-side image pass, which stamps it.
-          page_document->metadata().pdf_source_page = probes[index].source_page;
+          if (const auto& source = probes[index].source_page;
+              source != nullptr && (!vector_options.grayscale || source_page_is_gray(*source))) {
+            page_document->metadata().pdf_source_page = source;
+          }
           unmodelled = unmodelled || vectors.has_unmodelled_content;
           for (auto& notice : vectors.notices) {
             if (std::find(result.notices.begin(), result.notices.end(), notice) == result.notices.end()) {
@@ -871,9 +1052,6 @@ std::optional<PdfImportResult> run_pdf_import_dialog(QWidget* parent, const QStr
           }
         } catch (const std::exception& exception) {
           editable_failure = QString::fromUtf8(exception.what());
-          if (!options.separate_documents) {
-            break;  // the whole import falls back to the raster path below
-          }
           // One page the vector reader cannot model does not sink the others: that
           // page flattens (with the notice) and the rest stay editable.
           if (!flatten_this_page()) {
@@ -889,20 +1067,27 @@ std::optional<PdfImportResult> run_pdf_import_dialog(QWidget* parent, const QStr
       }
       if (!first_page_done) {
         result.document = std::move(*page_document);
-        result.document_title = options.separate_documents ? title : QString();
+        result.document_title = title;
         first_page_done = true;
       } else {
         result.extra_documents.push_back({std::move(*page_document), title});
       }
     }
     if (first_page_done && editable_failure.isEmpty()) {
+      result.color_mode = options.color_mode;
+      result.bit_depth = options.bit_depth;
+      result.merge = options.merge;
+      result.white_background = options.white_background;
       if (scanned_pages > 0) {
         result.notices.push_back(scanned_pages_notice(scanned_pages));
       }
-      if (!options.separate_documents && options.pages.size() > 1) {
-        result.notices.push_back(QObject::tr("Editable import brings in one page; page %1 was imported.")
-                                     .arg(editable_pages.front() + 1)
+      if (options.merge == PdfPagesMerge::Layers && editable_pages.size() > 1) {
+        result.notices.push_back(QObject::tr("%1 pages imported as folders; only the first starts visible.")
+                                     .arg(1 + result.extra_documents.size())
                                      .toStdString());
+      } else if (options.merge == PdfPagesMerge::Artboards && editable_pages.size() > 1) {
+        result.notices.push_back(
+            QObject::tr("%1 pages became artboards.").arg(1 + result.extra_documents.size()).toStdString());
       } else if (options.separate_documents && editable_pages.size() > 1) {
         result.notices.push_back(QObject::tr("%1 pages opened as separate documents.")
                                      .arg(1 + result.extra_documents.size())

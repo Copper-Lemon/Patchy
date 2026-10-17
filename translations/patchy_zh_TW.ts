@@ -7031,10 +7031,6 @@ RGB：%2, %3, %4</translation>
         <translation>匯入為:</translation>
     </message>
     <message>
-        <source> ppi</source>
-        <translation> ppi</translation>
-    </message>
-    <message>
         <source>Include annotations</source>
         <translation>包含註解</translation>
     </message>
@@ -7053,10 +7049,6 @@ RGB：%2, %3, %4</translation>
     <message>
         <source>Select at least one page.</source>
         <translation>請至少選取一個頁面。</translation>
-    </message>
-    <message>
-        <source>Editable import brings in one page; page %1 was imported.</source>
-        <translation>可編輯匯入一次只會帶入一頁，已匯入第 %1 頁。</translation>
     </message>
     <message>
         <source>Some artwork could not be kept editable; reimport with &quot;Flattened image per page&quot; for an exact copy.</source>
@@ -10204,6 +10196,122 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>Animated PNG: imported the default image only (%1)</source>
         <translation>動畫 PNG：僅匯入預設影像 (%1)</translation>
+    </message>
+    <message>
+        <source>Only a layer group can be an artboard</source>
+        <translation>只有圖層群組可以作為工作區域</translation>
+    </message>
+    <message>
+        <source>ppi</source>
+        <translation>ppi</translation>
+    </message>
+    <message>
+        <source>RGB Color</source>
+        <translation>RGB 色彩</translation>
+    </message>
+    <message>
+        <source>CMYK Color</source>
+        <translation>CMYK 色彩</translation>
+    </message>
+    <message>
+        <source>Indexed Color (Palette)</source>
+        <translation>索引色彩（調色盤）</translation>
+    </message>
+    <message>
+        <source>White page background</source>
+        <translation>白色頁面背景</translation>
+    </message>
+    <message>
+        <source>Open in reverse order</source>
+        <translation>以相反順序開啟</translation>
+    </message>
+    <message>
+        <source>Enter a resolution from %1 to %2 ppi.</source>
+        <translation>請輸入 %1 到 %2 ppi 之間的解析度。</translation>
+    </message>
+    <message>
+        <source>Indexed color needs &quot;Flattened image per page&quot;: shapes, text and images cannot be converted to a palette.</source>
+        <translation>索引色彩需要「每頁一張平面化影像」：形狀、文字與影像無法轉換為調色盤。</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>將工作區域匯出為檔案</translation>
+    </message>
+    <message>
+        <source>Artboards</source>
+        <translation>工作區域</translation>
+    </message>
+    <message>
+        <source>Add puts a number after a name that is already taken; Overwrite asks before replacing anything.</source>
+        <translation>「新增」會在已被使用的名稱後加上編號；「覆寫」在取代任何檔案前詢問。</translation>
+    </message>
+    <message>
+        <source>Select at least one artboard.</source>
+        <translation>請至少選取一個工作區域。</translation>
+    </message>
+    <message>
+        <source>Each artboard as its own page</source>
+        <translation>每個工作區域各成一頁</translation>
+    </message>
+    <message>
+        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
+        <translation>每個工作區域一頁，頁面與其同大。不勾選時，整個版面為一頁。</translation>
+    </message>
+    <message>
+        <source>%1 (%2 x %3)</source>
+        <translation>%1 (%2 x %3)</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>工作區域</translation>
+    </message>
+    <message numerus="yes">
+        <source>One page per artboard of the current document (%n artboard(s))</source>
+        <translation>
+            <numerusform>目前文件的每個工作區域一頁（%n 個工作區域）</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>One page per artboard (the current document has none)</source>
+        <translation>每個工作區域一頁（目前文件沒有工作區域）</translation>
+    </message>
+    <message>
+        <source>Start the document as an artboard the size of the canvas</source>
+        <translation>以與版面同大的工作區域開始文件</translation>
+    </message>
+    <message>
+        <source>%1 pages became artboards.</source>
+        <translation>%1 頁已成為工作區域。</translation>
+    </message>
+    <message>
+        <source>Artboards in one document</source>
+        <translation>單一文件中的工作區域</translation>
+    </message>
+    <message>
+        <source>%1 artboard(s), first page %2 x %3 px</source>
+        <translation>%1 個工作區域，第一頁 %2 x %3 px</translation>
+    </message>
+    <message>
+        <source>%1 pages imported as folders; only the first starts visible.</source>
+        <translation>已將 %1 頁匯入為資料夾；起初只有第一個可見。</translation>
+    </message>
+    <message>
+        <source>Match each artboard</source>
+        <translation>符合每個工作區域</translation>
+    </message>
+    <message>
+        <source>Each page is the size of its artboard, printed at actual size. Save PDF changes the sheet per page; a printer keeps the paper chosen above.</source>
+        <translation>每頁與其工作區域同大，以實際尺寸列印。儲存 PDF 時每頁更換紙張；印表機則維持上方選擇的紙張。</translation>
+    </message>
+    <message numerus="yes">
+        <source>Each Artboard as a Page (%n page(s))</source>
+        <translation>
+            <numerusform>每個工作區域一頁（%n 頁）</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>A PDF image could not be made gray and kept its colors.</source>
+        <translation>某個 PDF 影像無法轉為灰色，保留了原本的顏色。</translation>
     </message>
 </context>
 <context>
@@ -21106,6 +21214,274 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
         <source>Remove from Recent Files</source>
         <translation>從最近使用的檔案中移除</translation>
     </message>
+    <message>
+        <source>The pages stayed RGB: Indexed color needs flattened 8-bit pages.</source>
+        <translation>頁面維持為 RGB：索引色彩需要平面化的 8 位元頁面。</translation>
+    </message>
+    <message>
+        <source>&amp;Artboards to Files...</source>
+        <translation>工作區域至檔案(&amp;A)...</translation>
+    </message>
+    <message>
+        <source>&amp;Artboard...</source>
+        <translation>工作區域(&amp;A)...</translation>
+    </message>
+    <message>
+        <source>Add an artboard beside the others</source>
+        <translation>在其他工作區域旁新增一個工作區域</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Group</source>
+        <translation>從群組建立工作區域(&amp;G)</translation>
+    </message>
+    <message>
+        <source>Make the selected top-level group an artboard around its content</source>
+        <translation>將所選的最上層群組變為包圍其內容的工作區域</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Layers</source>
+        <translation>從圖層建立工作區域(&amp;L)</translation>
+    </message>
+    <message>
+        <source>Put the selected layers on a new artboard around them</source>
+        <translation>將所選圖層放入包圍它們的新工作區域</translation>
+    </message>
+    <message>
+        <source>Convert Artboard to Gr&amp;oup</source>
+        <translation>將工作區域轉換為群組(&amp;O)</translation>
+    </message>
+    <message>
+        <source>Turn the selected artboard into a plain group, keeping its layers</source>
+        <translation>將所選工作區域變為一般群組，保留其圖層</translation>
+    </message>
+    <message>
+        <source>Fit Canvas to A&amp;rtboards</source>
+        <translation>使版面符合工作區域(&amp;R)</translation>
+    </message>
+    <message>
+        <source>Shrink or grow the canvas to just hold the artboards and the layers beside them</source>
+        <translation>縮小或放大版面，使其剛好容納工作區域及其旁邊的圖層</translation>
+    </message>
+    <message>
+        <source>Size preset for the selected artboard, or for new artboards</source>
+        <translation>所選工作區域或新工作區域的尺寸預設</translation>
+    </message>
+    <message>
+        <source>Width of the selected artboard, or of new artboards</source>
+        <translation>所選工作區域或新工作區域的寬度</translation>
+    </message>
+    <message>
+        <source>Swap width and height (portrait or landscape)</source>
+        <translation>交換寬度與高度（直向或橫向）</translation>
+    </message>
+    <message>
+        <source>Height of the selected artboard, or of new artboards</source>
+        <translation>所選工作區域或新工作區域的高度</translation>
+    </message>
+    <message>
+        <source>Background:</source>
+        <translation>背景:</translation>
+    </message>
+    <message>
+        <source>Background of the selected artboard, or of new artboards</source>
+        <translation>所選工作區域或新工作區域的背景</translation>
+    </message>
+    <message>
+        <source>Add Artboard</source>
+        <translation>新增工作區域</translation>
+    </message>
+    <message>
+        <source>Add an artboard of this size beside the others</source>
+        <translation>在其他工作區域旁新增此尺寸的工作區域</translation>
+    </message>
+    <message>
+        <source>Auto-Nest Layers</source>
+        <translation>自動巢狀圖層</translation>
+    </message>
+    <message>
+        <source>A layer moved onto an artboard joins it, and one moved off every artboard leaves it</source>
+        <translation>移到工作區域上的圖層會加入該工作區域，移出所有工作區域的圖層會離開</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>工作區域</translation>
+    </message>
+    <message>
+        <source>Drag on empty space to add an artboard, drag an artboard to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it.</source>
+        <translation>在空白處拖曳以新增工作區域，拖曳工作區域可連同內容移動（%ALT% 會複製），拖曳控點可調整大小，按一下 + 可在旁邊新增一個。</translation>
+    </message>
+    <message>
+        <source>Artboard: drag on empty space to add an artboard, drag one or its name to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it, double-click a name to rename it. Arrows nudge.</source>
+        <translation>工作區域：在空白處拖曳以新增，拖曳工作區域或其名稱可連同內容移動（%ALT% 會複製），拖曳控點可調整大小，按一下 + 可在旁邊新增，按兩下名稱可重新命名。方向鍵可微調位置。</translation>
+    </message>
+    <message>
+        <source>Move Tools</source>
+        <translation>移動工具</translation>
+    </message>
+    <message>
+        <source>Cycle Move Tools</source>
+        <translation>循環切換移動工具</translation>
+    </message>
+    <message>
+        <source>New artboard</source>
+        <translation>新增工作區域</translation>
+    </message>
+    <message>
+        <source>Added artboard %1</source>
+        <translation>已新增工作區域 %1</translation>
+    </message>
+    <message>
+        <source>Duplicate artboard</source>
+        <translation>複製工作區域</translation>
+    </message>
+    <message>
+        <source>Nudge artboard</source>
+        <translation>微調工作區域位置</translation>
+    </message>
+    <message>
+        <source>Move artboard</source>
+        <translation>移動工作區域</translation>
+    </message>
+    <message>
+        <source>Duplicated artboard</source>
+        <translation>已複製工作區域</translation>
+    </message>
+    <message>
+        <source>Moved artboard</source>
+        <translation>已移動工作區域</translation>
+    </message>
+    <message>
+        <source>Resize artboard</source>
+        <translation>調整工作區域大小</translation>
+    </message>
+    <message>
+        <source>Artboard is %1 x %2 px</source>
+        <translation>工作區域為 %1 x %2 px</translation>
+    </message>
+    <message>
+        <source>Artboard background</source>
+        <translation>工作區域背景</translation>
+    </message>
+    <message>
+        <source>Changed the artboard background</source>
+        <translation>已變更工作區域背景</translation>
+    </message>
+    <message>
+        <source>Rename Artboard</source>
+        <translation>重新命名工作區域</translation>
+    </message>
+    <message>
+        <source>Rename artboard</source>
+        <translation>重新命名工作區域</translation>
+    </message>
+    <message>
+        <source>Renamed the artboard %1</source>
+        <translation>已將工作區域重新命名為 %1</translation>
+    </message>
+    <message>
+        <source>New Artboard</source>
+        <translation>新增工作區域</translation>
+    </message>
+    <message>
+        <source>Artboard Background</source>
+        <translation>工作區域背景</translation>
+    </message>
+    <message>
+        <source>Select a top-level group to turn into an artboard</source>
+        <translation>請選取要變為工作區域的最上層群組</translation>
+    </message>
+    <message>
+        <source>Artboard from group</source>
+        <translation>從群組建立工作區域</translation>
+    </message>
+    <message>
+        <source>Made %1 an artboard</source>
+        <translation>已將 %1 變為工作區域</translation>
+    </message>
+    <message>
+        <source>Select the layers to put on the new artboard</source>
+        <translation>請選取要放入新工作區域的圖層</translation>
+    </message>
+    <message>
+        <source>Artboard from Layers takes layers that are not on an artboard</source>
+        <translation>從圖層建立工作區域只接受不在工作區域上的圖層</translation>
+    </message>
+    <message>
+        <source>Artboard from layers</source>
+        <translation>從圖層建立工作區域</translation>
+    </message>
+    <message>
+        <source>Put the layers on a new artboard</source>
+        <translation>已將圖層放入新工作區域</translation>
+    </message>
+    <message>
+        <source>Select an artboard to turn into a group</source>
+        <translation>請選取要變為群組的工作區域</translation>
+    </message>
+    <message>
+        <source>Convert artboard to group</source>
+        <translation>將工作區域轉換為群組</translation>
+    </message>
+    <message>
+        <source>Converted the artboard to a group</source>
+        <translation>已將工作區域轉換為群組</translation>
+    </message>
+    <message>
+        <source>The document has no artboards</source>
+        <translation>文件沒有工作區域</translation>
+    </message>
+    <message>
+        <source>The canvas already fits the artboards</source>
+        <translation>版面已符合工作區域</translation>
+    </message>
+    <message>
+        <source>Fit canvas to artboards</source>
+        <translation>使版面符合工作區域</translation>
+    </message>
+    <message>
+        <source>Canvas is %1 x %2 px</source>
+        <translation>版面為 %1 x %2 px</translation>
+    </message>
+    <message>
+        <source>Left edge of the artboard</source>
+        <translation>工作區域的左邊緣</translation>
+    </message>
+    <message>
+        <source>Top edge of the artboard</source>
+        <translation>工作區域的上邊緣</translation>
+    </message>
+    <message>
+        <source>Width of the artboard</source>
+        <translation>工作區域的寬度</translation>
+    </message>
+    <message>
+        <source>Height of the artboard</source>
+        <translation>工作區域的高度</translation>
+    </message>
+    <message>
+        <source>Layer 1</source>
+        <translation>圖層 1</translation>
+    </message>
+    <message>
+        <source>Page %1</source>
+        <translation>第 %1 頁</translation>
+    </message>
+    <message>
+        <source>This document has no artboards</source>
+        <translation>此文件沒有工作區域</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>將工作區域匯出為檔案</translation>
+    </message>
+    <message>
+        <source>An artboard cannot go inside a folder</source>
+        <translation>工作區域不能放入資料夾</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
+        <translation>工作區域不能使版面大於 %1 x %1 px</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22810,6 +23186,22 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
     <message>
         <source>CMYK values are percentages from 0 to 100</source>
         <translation>CMYK 值是 0 到 100 的百分比</translation>
+    </message>
+    <message>
+        <source>Invalid artboard option or target: %1.</source>
+        <translation>工作區域選項或目標無效：%1。</translation>
+    </message>
+    <message>
+        <source>The artboards could not be exported.</source>
+        <translation>無法匯出工作區域。</translation>
+    </message>
+    <message>
+        <source>exportArtboards cannot write .%1 files.</source>
+        <translation>exportArtboards 無法寫入 .%1 檔案。</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
+        <translation>工作區域不能使版面大於 %1 x %1 px。</translation>
     </message>
 </context>
 <context>

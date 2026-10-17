@@ -69,7 +69,30 @@ enum class CanvasTool {
   DeleteAnchor,
   ConvertPoint,
   // October 2026 Object Selection (append-only: values ride persisted settings).
-  ObjectSelect
+  ObjectSelect,
+  // October 2026 Artboard tool (append-only: values ride persisted settings).
+  Artboard
+};
+
+// What the Artboard tool (and the artboard labels any tool can click) asks MainWindow to do;
+// the canvas never edits the document itself (docs/artboards.md).
+struct ArtboardEditRequest {
+  enum class Kind {
+    Select,       // make `artboard_id` the active layer
+    Create,       // a new empty artboard at `rect`
+    Move,         // move `artboard_id` and its content by `delta` (a copy when `duplicate`)
+    Resize,       // give `artboard_id` the rect `rect`, content untouched
+    AddAdjacent,  // a new artboard the size of `artboard_id` on `side` (0 right, 1 bottom, 2 left, 3 top)
+    Rename        // ask for a new name for `artboard_id`
+  };
+  Kind kind{Kind::Select};
+  std::optional<LayerId> artboard_id;
+  QRect rect;
+  QPoint delta;
+  int side{0};
+  bool duplicate{false};
+  // A Move from an arrow key: a run of them is one undo step.
+  bool nudge{false};
 };
 
 // Which tool produced a committed vector path; MainWindow picks the layer

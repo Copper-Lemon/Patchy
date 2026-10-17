@@ -6,7 +6,9 @@
 #include "core/vector_raster.hpp"
 #include "formats/gradient_placement.hpp"
 #include "formats/pdf_content.hpp"
+#include "core/gray_conversion.hpp"
 #include "formats/pdf_png_writer.hpp"
+#include "formats/stb/stb_image.h"
 #include "formats/vector_fill_rule.hpp"
 #include "psd/psd_text_runs.hpp"
 #include "support/translate_noop.hpp"
@@ -463,6 +465,92 @@ private:
   bool unmodelled_{false};
 };
 
+// The Grayscale import mode: every primitive is copied with its colours made gray and
+// handed on, so LayerSink builds exactly what it would from a gray original.
+class GraySink final : public ContentSink {
+public:
+  explicit GraySink(ContentSink& target) : target_(target) {}
+
+  void on_path(const PaintedPath& path) override {
+    PaintedPath gray = path;
+    gray_paint(gray.fill);
+    gray_paint(gray.stroke);
+    target_.on_path(gray);
+  }
+
+  void on_text(const TextRun& run) override {
+    TextRun gray = run;
+    gray_paint(gray.fill);
+    gray_paint(gray.stroke);
+    target_.on_text(gray);
+  }
+
+  void on_image(const PlacedImage& image) override {
+    PlacedImage gray = image;
+    gray_paint(gray.stencil_fill);
+    if (gray.codec == FilterKind::Dct && !gray.encoded.empty()) {
+      // A JPEG cannot be grayed without decoding it; the gray samples go on as RGBA and
+      // the sink writes them as PNG.
+      int width = 0;
+      int height = 0;
+      int components = 0;
+      stbi_uc* decoded = stbi_load_from_memory(gray.encoded.data(), static_cast<int>(gray.encoded.size()), &width,
+                                               &height, &components, 4);
+      if (decoded != nullptr && width > 0 && height > 0) {
+        gray.rgba.assign(decoded, decoded + static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4U);
+        gray.width = width;
+        gray.height = height;
+        gray.codec = FilterKind::None;
+        gray.encoded.clear();
+      } else {
+        // CMYK, 12-bit and arithmetic-coded JPEGs: kept as they are, and said so.
+        target_.on_notice(
+            PATCHY_TRANSLATE_NOOP("QObject", "A PDF image could not be made gray and kept its colors."));
+      }
+      stbi_image_free(decoded);
+    }
+    if (gray.codec == FilterKind::None) {
+      for (std::size_t index = 0; index + 3U < gray.rgba.size(); index += 4U) {
+        const auto value = gray_from_rgb(gray.rgba[index], gray.rgba[index + 1U], gray.rgba[index + 2U]);
+        gray.rgba[index] = value;
+        gray.rgba[index + 1U] = value;
+        gray.rgba[index + 2U] = value;
+      }
+    }
+    target_.on_image(gray);
+  }
+
+  void on_shading(std::shared_ptr<const ResolvedShading> shading, const VectorPath& clip) override {
+    target_.on_shading(gray_shading(shading), clip);
+  }
+
+  void on_notice(const std::string& text) override { target_.on_notice(text); }
+
+private:
+  static void gray_color(RgbColor& color) {
+    const auto value = gray_from_rgb(color.red, color.green, color.blue);
+    color = RgbColor{value, value, value};
+  }
+
+  static std::shared_ptr<const ResolvedShading> gray_shading(const std::shared_ptr<const ResolvedShading>& shading) {
+    if (shading == nullptr) {
+      return nullptr;
+    }
+    auto gray = std::make_shared<ResolvedShading>(*shading);
+    for (auto& stop : gray->stops) {
+      gray_color(stop.second);
+    }
+    return gray;
+  }
+
+  static void gray_paint(Paint& paint) {
+    gray_color(paint.color);
+    paint.shading = gray_shading(paint.shading);
+  }
+
+  ContentSink& target_;
+};
+
 }  // namespace
 
 std::vector<std::string> pdf_extensions() {
@@ -762,7 +850,12 @@ VectorReadResult PageReader::read_page(const VectorReadOptions& options) const {
 
   const Rect canvas{0, 0, size[0], size[1]};
   LayerSink sink(result.document, canvas, options);
-  execute_page(*file_, page, scale, sink);
+  if (options.grayscale) {
+    GraySink gray(sink);
+    execute_page(*file_, page, scale, gray);
+  } else {
+    execute_page(*file_, page, scale, sink);
+  }
 
   result.notices = open_notices_;
   for (auto& text : sink.take_notices()) {
@@ -775,6 +868,17 @@ VectorReadResult PageReader::read_page(const VectorReadOptions& options) const {
 
   if (result.document.layers().empty()) {
     throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "This PDF page holds no artwork Patchy could import as shapes or text."));
+  }
+  if (options.white_background) {
+    // Opaque RGB under everything, named like every other importer's paper layer so the
+    // Background rules (transparent canvas extension stays white) apply to it.
+    PixelBuffer paper(size[0], size[1], PixelFormat::rgb8());
+    paper.clear(255);
+    Layer background(result.document.allocate_layer_id(), "Background", LayerKind::Pixel);
+    background.set_pixels(std::move(paper));
+    background.set_bounds(canvas);
+    auto& layers = result.document.layers();
+    layers.insert(layers.begin(), std::move(background));
   }
   if (const auto default_layer = default_non_group_layer_id(result.document.layers()); default_layer.has_value()) {
     result.document.set_active_layer(*default_layer);

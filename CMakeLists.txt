@@ -149,6 +149,7 @@ add_library(patchy_core
   src/core/document_recovery_store.cpp
   src/support/atomic_file_write.cpp
   src/core/environment.cpp
+  src/core/artboard.cpp
   src/core/document_geometry.cpp
   src/core/resample.cpp
   src/core/document_path.cpp
@@ -366,6 +367,7 @@ add_library(patchy_psd
   src/psd/grd_io.cpp
   src/psd/pat_reader.cpp
   src/psd/psd_adjustments.cpp
+  src/psd/psd_artboard.cpp
   src/psd/psd_binary.cpp
   src/psd/engine_data.cpp
   src/psd/engine_data.hpp
@@ -1093,7 +1095,9 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/canvas_alt_space_filter.hpp
       src/ui/canvas_alt_space_filter.cpp
       src/ui/canvas_widget_brush.cpp
-      src/ui/canvas_widget_crop.cpp
+      src/ui/canvas_widget_artboard.cpp
+      src/ui/main_window_artboards.cpp
+  src/ui/canvas_widget_crop.cpp
       src/ui/canvas_widget_cursors.cpp
       src/ui/canvas_widget_draw_tools.cpp
       src/ui/canvas_widget_events.cpp
@@ -1317,6 +1321,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/script_vector.cpp
       src/ui/script_vector_paints.cpp
       src/ui/script_vector_shapes.cpp
+      src/ui/script_artboards.cpp
       src/ui/script_vector_paths.cpp
       src/ui/script_vector_masks.cpp
       src/ui/script_vector_host.cpp
@@ -2030,6 +2035,7 @@ if(PATCHY_BUILD_TESTS)
     tests/core/smart_objects_warp_tests.cpp
     tests/core/stroke_mask_effects_tests.cpp
     tests/core/pdf_tests.cpp
+    tests/core/artboard_tests.cpp
     tests/core/svg_tests.cpp
     tests/core/vector_raster_tests.cpp
     tests/core/vector_shape_tests.cpp
@@ -2139,9 +2145,11 @@ if(PATCHY_BUILD_TESTS)
       tests/ui/import_print_resolution_test_support.cpp
       tests/ui/import_print_resolution_tests_import_export.cpp
       tests/ui/import_print_resolution_tests_pdf.cpp
+      tests/ui/import_print_resolution_tests_pdf_upgrade.cpp
       tests/ui/import_print_resolution_tests_geometry_rendering.cpp
       tests/ui/divide_photos_tests.cpp
       tests/ui/folder_open_export_tests.cpp
+      tests/ui/artboard_tests.cpp
       tests/ui/image_adjustments_curves_tests.cpp
       tests/ui/selection_engines_tests.cpp
       tests/ui/ai_selection_tests.cpp

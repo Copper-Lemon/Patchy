@@ -81,6 +81,7 @@ class ToolPaletteFooter;
 class QShowEvent;
 class QSlider;
 class QSpinBox;
+class QVBoxLayout;
 class QTabWidget;
 class QTextCharFormat;
 class QTextEdit;
@@ -111,6 +112,8 @@ struct AiMask;
 namespace patchy::ui {
 
 struct PdfImportedDocument;
+enum class PdfImportColorMode;
+enum class PdfPagesMerge;
 struct ScriptScan;
 struct ShapeAppearanceSettings;
 
@@ -779,7 +782,26 @@ private:
   void render_pending_pdf_image_layers(Document& target);
   // Reopened Patchy PSDs: layout metrics for the kept text rasters (docs/text-render-calibration.md).
   void record_text_layout_metrics_for_reopened_text(Document& target);
-  void open_extra_imported_page_sessions(const QString& file_name, std::vector<PdfImportedDocument> pages);
+  // The Import PDF dialog's Mode and Bit Depth for one finished page document (pending
+  // text and images rendered): Palette converts to Indexed editing (8-bit), otherwise the
+  // depth converts. CMYK is session state, applied where the sessions open. Notes about
+  // what could not be done land in `notices`, each once.
+  void finish_imported_pdf_document(Document& document, PdfImportColorMode mode, BitDepth depth,
+                                    QStringList& notices);
+  // Indexed editing from the page's own colors (exact when they fit, else median cut to
+  // 256), no dither: the non-interactive half of Image > Mode > Indexed. False when the
+  // document is not 8-bit or holds Smart Objects. Defined in main_window_palette.cpp.
+  bool convert_imported_document_to_palette(Document& document);
+  void open_extra_imported_page_sessions(const QString& file_name, std::vector<PdfImportedDocument> pages,
+                                         PdfImportColorMode mode, BitDepth depth, QStringList& notices);
+  // The Layers and Artboards targets of a multi-page PDF import (GitHub issues 154 and 19):
+  // renders the extra pages' pending text and images, then folds every page into `first`
+  // as a "Page N" folder (Layers, only the first visible; a page that is one plain raster
+  // layer stays that layer) or a "Page N" artboard on a grid (Artboards, White or
+  // Transparent background), and empties `extras`. An artboard page that is one original
+  // image keeps it for export (DocumentMetadata::pdf_artboard_source_pages).
+  void merge_imported_pdf_pages(Document& first, const QString& first_title, std::vector<PdfImportedDocument>& extras,
+                                PdfPagesMerge merge, bool white_background);
   // Reloads the session's file from disk in place (tab position, float window,
   // and session identity survive; undo history and unsaved changes do not).
   void reopen_document_session(DocumentSession& target_session);
@@ -875,6 +897,28 @@ private:
                                                                 const QString& folder, const QString& extension,
                                                                 const ImageSequenceNaming& naming,
                                                                 ExportDocumentsExistingFiles existing_files);
+  // File > Export > Artboards to Files: the export-to-folder dialog over the active
+  // document's artboards; each file is document_for_artboard's page, named
+  // prefix + artboard name.
+  void export_artboards_to_files();
+  // A format the export-to-folder dialogs offer (export_documents_format_choices).
+  [[nodiscard]] static bool export_documents_format_supported(const QString& extension);
+  std::optional<QStringList> export_artboards_to_folder(const Document& source,
+                                                        const std::vector<LayerId>& artboard_ids,
+                                                        const QString& folder, const QString& extension,
+                                                        const ImageSequenceNaming& naming,
+                                                        ExportDocumentsExistingFiles existing_files,
+                                                        QString* script_error = nullptr);
+  // The shared writer: `pages` in order, numbered (naming) or, with
+  // naming.use_layer_names, named from `base_names`. `title` heads its prompts. With
+  // `script_error` (doc.exportArtboards) it shows nothing: Overwrite overwrites, the PDF
+  // layer choice is the remembered one, and a failure's text lands there.
+  std::optional<QStringList> export_page_documents_to_folder(const std::vector<const Document*>& pages,
+                                                             const std::vector<QString>& base_names,
+                                                             const QString& folder, const QString& extension,
+                                                             const ImageSequenceNaming& naming,
+                                                             ExportDocumentsExistingFiles existing_files,
+                                                             const QString& title, QString* script_error = nullptr);
   void page_setup();
   void print_document();
   // hotkey_search prefills the Hotkeys page's search field (used with PreferencesPage::Hotkeys).
@@ -1152,6 +1196,40 @@ private:
   void add_layer();
   void create_layer_folder();
   void create_layer_folder_from_layers(std::vector<LayerId> ids);
+  // Artboards (main_window_artboards.cpp, docs/artboards.md). Every edit is one undo step
+  // and grows the canvas until the artboards fit, the view following the artwork.
+  void handle_artboard_edit(const ArtboardEditRequest& request);
+  std::optional<LayerId> create_artboard(QRect rect, std::string name, ArtboardBackground background, RgbColor color,
+                                         const QString& undo_label);
+  void move_artboard(LayerId id, QPoint delta, bool duplicate, bool nudge);
+  void resize_artboard(LayerId id, QRect rect);
+  void set_artboard_background(LayerId id, ArtboardBackground background, RgbColor color);
+  void add_adjacent_artboard(LayerId id, int side);
+  void rename_artboard(LayerId id);
+  void new_artboard();
+  void artboard_from_group();
+  void artboard_from_layers();
+  void convert_artboard_to_group();
+  void fit_canvas_to_artboards_command();
+  // Re-renders the filtered Smart Objects in a moved artboard tree; false when one fails.
+  bool rerender_moved_artboard_smart_objects(LayerId root_id);
+  // After an artboard edit changed the canvas: Canvas Size's selection and channel rules,
+  // and a pan by the coordinate shift so the artwork stays put on screen.
+  void reset_canvas_after_artboard_canvas_change(std::optional<std::array<std::int32_t, 2>> shift);
+  // Duplicate Layer of an artboard: each copy goes beside the rightmost artboard.
+  void place_duplicated_artboards(const std::vector<LayerId>& copy_ids_top_to_bottom);
+  // Auto-nesting after a Move drag: each moved layer joins the artboard under its center,
+  // or the top level off every artboard (tools/artboardAutoNest).
+  void nest_moved_layers_in_artboards(const std::vector<LayerId>& moved_leaf_ids);
+  void sync_artboard_controls();
+  void apply_artboard_size_option(QSize size);
+  void apply_artboard_background_option(const QString& token, bool from_properties);
+  void add_artboard_beside();
+  void apply_properties_artboard_rect();
+  void finish_artboard_edit(const QString& status, std::optional<LayerId> select);
+  void build_properties_artboard_panel(QWidget* parent, QVBoxLayout* layout);
+  [[nodiscard]] std::pair<ArtboardBackground, RgbColor> current_artboard_background() const;
+  [[nodiscard]] QSize current_artboard_size() const;
   void layer_via_copy();
   void layer_via_cut();
   void add_layer_mask();
@@ -2327,6 +2405,25 @@ private:
   QLabel* active_layer_text_label_{nullptr};
   QLabel* active_layer_shape_label_{nullptr};
   QWidget* properties_shape_size_panel_{nullptr};
+  // The Artboard tool's options and the Properties panel's artboard section.
+  QComboBox* artboard_preset_combo_{nullptr};
+  QSpinBox* artboard_width_spin_{nullptr};
+  QSpinBox* artboard_height_spin_{nullptr};
+  QComboBox* artboard_background_combo_{nullptr};
+  bool artboard_auto_nest_{true};
+  QWidget* properties_artboard_panel_{nullptr};
+  QSpinBox* properties_artboard_x_spin_{nullptr};
+  QSpinBox* properties_artboard_y_spin_{nullptr};
+  QSpinBox* properties_artboard_width_spin_{nullptr};
+  QSpinBox* properties_artboard_height_spin_{nullptr};
+  QComboBox* properties_artboard_background_combo_{nullptr};
+  // A run of arrow-key artboard nudges folds into one undo step while nothing else edits.
+  struct ArtboardNudgeRun {
+    std::int64_t session_id{0};
+    LayerId artboard{0};
+    std::int64_t revision{-1};
+  };
+  ArtboardNudgeRun artboard_nudge_run_{};
   UnitSpinBox* properties_shape_width_spin_{nullptr};
   UnitSpinBox* properties_shape_height_spin_{nullptr};
   QPushButton* properties_shape_link_size_button_{nullptr};

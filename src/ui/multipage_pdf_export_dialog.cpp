@@ -31,11 +31,12 @@ constexpr auto kKeepOriginalKey = "saveOptions/pdfKeepOriginalImages";
 
 std::optional<MultiPagePdfExportChoice> run_multipage_pdf_export_dialog(
     QWidget* parent, const std::vector<MultiPagePdfDocumentEntry>& documents, std::int64_t active_session_id,
-    int top_level_group_count, bool original_image_data_available) {
+    int top_level_group_count, bool original_image_data_available, int artboard_count) {
   auto settings = app_settings();
   const bool groups_available = top_level_group_count > 0;
-  const bool stored_groups =
-      settings.value(QLatin1String(kSourceKey), QStringLiteral("documents")).toString() == QStringLiteral("groups");
+  const bool artboards_available = artboard_count > 0;
+  const auto stored_source = settings.value(QLatin1String(kSourceKey), QStringLiteral("documents")).toString();
+  const bool stored_groups = stored_source == QStringLiteral("groups");
 
   QDialog dialog(parent);
   dialog.setObjectName(QStringLiteral("multiPagePdfExportDialog"));
@@ -64,6 +65,14 @@ std::optional<MultiPagePdfExportChoice> run_multipage_pdf_export_dialog(
   groups_radio->setObjectName(QStringLiteral("multiPagePdfGroupsRadio"));
   groups_radio->setEnabled(groups_available);
   source_layout->addWidget(groups_radio);
+  auto* artboards_radio = new QRadioButton(
+      artboards_available ? QObject::tr("One page per artboard of the current document (%n artboard(s))", nullptr,
+                                        artboard_count)
+                          : QObject::tr("One page per artboard (the current document has none)"),
+      source_group);
+  artboards_radio->setObjectName(QStringLiteral("multiPagePdfArtboardsRadio"));
+  artboards_radio->setEnabled(artboards_available);
+  source_layout->addWidget(artboards_radio);
   auto* ungrouped = new QCheckBox(QObject::tr("Draw ungrouped layers on every page"), source_group);
   ungrouped->setObjectName(QStringLiteral("multiPagePdfUngroupedCheck"));
   ungrouped->setChecked(settings.value(QLatin1String(kUngroupedKey), true).toBool());
@@ -120,18 +129,26 @@ std::optional<MultiPagePdfExportChoice> run_multipage_pdf_export_dialog(
 
   const auto sync = [&] {
     const bool by_groups = groups_radio->isChecked();
-    sync_document_order_controls(order, !by_groups);
+    const bool by_artboards = artboards_radio->isChecked();
+    sync_document_order_controls(order, !by_groups && !by_artboards);
     ungrouped->setEnabled(by_groups);
     editable_note->setEnabled(editable->isChecked());
-    const int page_count = by_groups ? top_level_group_count : static_cast<int>(selected_session_ids(*list).size());
+    const int page_count = by_groups      ? top_level_group_count
+                           : by_artboards ? artboard_count
+                                          : static_cast<int>(selected_session_ids(*list).size());
     export_button->setEnabled(page_count > 0);
     summary->setText(page_count > 0 ? QObject::tr("%n page(s) will be written.", nullptr, page_count)
                                     : QObject::tr("Select at least one document."));
   };
-  (groups_available && stored_groups ? groups_radio : documents_radio)->setChecked(true);
+  // An artboard document opens on its artboards: that is what such a document's pages are.
+  (artboards_available && (stored_source == QStringLiteral("artboards") || !stored_groups) ? artboards_radio
+   : groups_available && stored_groups                                                   ? groups_radio
+                                                                                          : documents_radio)
+      ->setChecked(true);
   sync();
   QObject::connect(documents_radio, &QRadioButton::toggled, &dialog, sync);
   QObject::connect(groups_radio, &QRadioButton::toggled, &dialog, sync);
+  QObject::connect(artboards_radio, &QRadioButton::toggled, &dialog, sync);
   QObject::connect(list, &QListWidget::itemSelectionChanged, &dialog, sync);
   QObject::connect(list, &QListWidget::currentRowChanged, &dialog, sync);
   QObject::connect(order.select_all, &QPushButton::clicked, &dialog, sync);
@@ -143,15 +160,18 @@ std::optional<MultiPagePdfExportChoice> run_multipage_pdf_export_dialog(
   }
 
   MultiPagePdfExportChoice choice;
-  choice.source = groups_radio->isChecked() ? MultiPagePdfSource::TopLevelGroups : MultiPagePdfSource::OpenDocuments;
+  choice.source = groups_radio->isChecked()      ? MultiPagePdfSource::TopLevelGroups
+                  : artboards_radio->isChecked() ? MultiPagePdfSource::Artboards
+                                                 : MultiPagePdfSource::OpenDocuments;
   choice.session_ids = selected_session_ids(*list);
   choice.include_ungrouped_layers = ungrouped->isChecked();
   apply_pdf_image_quality(quality->currentData().toString(), choice.options);
   choice.options.editable_layers = editable->isChecked();
   choice.options.missing_fonts_as_images = settings.value(QLatin1String(kMissingFontsKey), false).toBool();
-  settings.setValue(QLatin1String(kSourceKey), choice.source == MultiPagePdfSource::TopLevelGroups
-                                                   ? QStringLiteral("groups")
-                                                   : QStringLiteral("documents"));
+  settings.setValue(QLatin1String(kSourceKey), choice.source == MultiPagePdfSource::TopLevelGroups ? QStringLiteral("groups")
+                                                : choice.source == MultiPagePdfSource::Artboards
+                                                    ? QStringLiteral("artboards")
+                                                    : QStringLiteral("documents"));
   settings.setValue(QLatin1String(kUngroupedKey), choice.include_ungrouped_layers);
   settings.setValue(QLatin1String(kEditableKey), choice.options.editable_layers);
   store_pdf_image_quality_id(quality->currentData().toString());

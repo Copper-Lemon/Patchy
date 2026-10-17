@@ -1114,6 +1114,25 @@ public:
   // Fired when a crop session is established, cancelled, or committed so the
   // options bar and info panel can resync.
   void set_crop_session_changed_callback(std::function<void()> callback);
+  // Every artboard edit the canvas gestures ask for (canvas_widget_artboard.cpp,
+  // docs/artboards.md): the Artboard tool's create/move/resize/add, a label click or
+  // double-click. MainWindow applies them with an undo step.
+  void set_artboard_edit_requested_callback(std::function<void(const ArtboardEditRequest&)> callback);
+  // Artboard tool options the canvas reads: the size a click (no drag) or an add button
+  // makes when there is nothing to copy the size from.
+  void set_artboard_default_size(QSize size) noexcept;
+  [[nodiscard]] bool artboard_drag_active() const noexcept;
+  // Keeps the artwork still on screen after an edit moved every document coordinate by
+  // `document_shift` (an artboard edit that grew the canvas up or left).
+  void shift_view_for_document_offset(QPoint document_shift);
+  // Fired after a Move-tool drag commits, with the moved leaf layers (MainWindow's
+  // artboard auto-nesting).
+  void set_layers_moved_callback(std::function<void(const std::vector<LayerId>&)> callback);
+  // The selected artboard when the Layers panel selection is exactly one artboard (the
+  // Move tool then moves the artboard itself, rect and content together).
+  [[nodiscard]] std::optional<LayerId> selected_root_artboard_id() const;
+  // The topmost artboard whose name label is under a widget point, for every tool.
+  [[nodiscard]] std::optional<LayerId> artboard_label_at(QPoint widget_point) const;
   void set_status_callback(std::function<void(QString)> callback);
   // The commands the host offers in the canvas context menu when a right-click
   // lands on the selection (Remove Object, Fill, Stroke, ...); a nullptr entry
@@ -1835,6 +1854,29 @@ private:
   [[nodiscard]] QRect ratio_fitted_crop_rect(QRect within) const;
   [[nodiscard]] QRect canvas_document_rect() const noexcept;
   void draw_crop_overlay(QPainter& painter) const;
+  // Artboards (canvas_widget_artboard.cpp): the canvas backdrop of an artboard document
+  // (checkerboard only inside artboards), the outlines and name labels, and the Artboard
+  // tool's handles, add buttons and drag previews.
+  void draw_canvas_backdrop(QPainter& painter, const QRectF& target_rect, QRect exposed_rect) const;
+  void draw_artboard_overlay(QPainter& painter) const;
+  [[nodiscard]] std::optional<LayerId> selected_artboard_id() const;
+  [[nodiscard]] QRectF artboard_label_widget_rect(const Layer& artboard) const;
+  [[nodiscard]] QRectF artboard_add_button_widget_rect(QRect artboard_rect, int side) const;
+  [[nodiscard]] int artboard_add_button_at(QPoint widget_point) const;
+  [[nodiscard]] TransformHandle artboard_handle_at(QPoint widget_point) const;
+  [[nodiscard]] QRect artboard_create_rect(QPoint anchor, QPoint current, Qt::KeyboardModifiers modifiers) const;
+  [[nodiscard]] QRect artboard_resize_rect(QPoint point, Qt::KeyboardModifiers modifiers) const;
+  bool handle_artboard_press(QMouseEvent* event);
+  void update_artboard_drag(QMouseEvent* event);
+  void finish_artboard_drag(QMouseEvent* event);
+  void cancel_artboard_drag();
+  bool handle_artboard_label_press(QMouseEvent* event);
+  bool handle_artboard_label_double_click(QMouseEvent* event);
+  bool handle_move_tool_artboard_press(QMouseEvent* event);
+  void begin_artboard_move_drag(const Layer& artboard, QMouseEvent* event);
+  bool nudge_selected_artboard(QPoint delta);
+  void request_artboard_edit(const ArtboardEditRequest& request);
+  void update_artboard_tool_cursor(QPoint widget_point);
   // Patch tool drag lifecycle (canvas_widget_patch_tool.cpp). The drag shows
   // only a raw translated copy of the frozen snapshot; the heal is computed
   // ONCE in commit_patch_tool_drag() on release, with the user-dragged offset
@@ -2465,6 +2507,23 @@ private:
   double crop_ratio_h_{0.0};
   std::function<void(QRect, double)> crop_commit_requested_callback_;
   std::function<void()> crop_session_changed_callback_;
+  // Artboard tool gesture state (canvas_widget_artboard.cpp), document space.
+  enum class ArtboardDragMode { None, Create, Move, Resize };
+  ArtboardDragMode artboard_drag_mode_{ArtboardDragMode::None};
+  std::optional<LayerId> artboard_drag_id_;
+  TransformHandle artboard_drag_handle_{TransformHandle::None};
+  QRect artboard_drag_start_rect_;
+  QRect artboard_drag_rect_;
+  QPoint artboard_drag_anchor_document_;
+  QPointF artboard_drag_start_point_;
+  QPoint artboard_press_widget_point_;
+  bool artboard_drag_moved_{false};
+  bool artboard_drag_duplicate_{false};
+  // The artboard's pixels at the start of a move, drawn at the moving rect.
+  QImage artboard_drag_ghost_;
+  QSize artboard_default_size_{1080, 1080};
+  std::function<void(const ArtboardEditRequest&)> artboard_edit_requested_callback_;
+  std::function<void(const std::vector<LayerId>&)> layers_moved_callback_;
   // Patch tool state (canvas_widget_patch_tool.cpp). The drag latches a frozen
   // snapshot, the selection's soft mask, and the doc-space outline path; the
   // preview blits the snapshot translated by the cumulative delta.

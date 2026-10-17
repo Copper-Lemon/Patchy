@@ -104,6 +104,20 @@ public:
     return window.export_document_sessions_to_folder(session_ids, folder, extension, naming, existing_files);
   }
 
+  // File > Export > Artboards to Files without its dialog (docs/artboards.md).
+  static std::optional<QStringList> export_artboards_to_folder(MainWindow& window, const std::vector<LayerId>& ids,
+                                                               const QString& folder, const QString& extension,
+                                                               const ImageSequenceNaming& naming,
+                                                               ExportDocumentsExistingFiles existing_files) {
+    return window.export_artboards_to_folder(std::as_const(window.document()), ids, folder, extension, naming,
+                                             existing_files);
+  }
+
+  // The Layers panel selection, as a click (and Ctrl-clicks) would make it.
+  static void select_layers(MainWindow& window, const std::vector<LayerId>& ids, LayerId active) {
+    window.select_layers_in_layer_list(ids, active);
+  }
+
   static std::int64_t session_id(MainWindow& window, std::size_t index) {
     return window.sessions_.at(index)->session_id;
   }
@@ -384,6 +398,14 @@ public:
   static QString session_title(MainWindow& window, std::size_t index) {
     return window.sessions_.at(index)->title;
   }
+
+  static bool session_cmyk_proof(MainWindow& window, std::size_t index) {
+    return window.sessions_.at(index)->cmyk_proof;
+  }
+
+  // Starts the inline editor on a text layer of the active document, the way a Type-tool
+  // click on it does.
+  static void edit_text_layer(MainWindow& window, LayerId id) { window.edit_text_layer(id); }
 
   static void activate_session(MainWindow& window, std::size_t index) {
     window.activate_document_session(*window.sessions_.at(index));

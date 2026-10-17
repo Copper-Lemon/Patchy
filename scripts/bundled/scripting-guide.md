@@ -394,7 +394,7 @@ doc.exportAs("page.pdf", {imageQuality: "high", editableLayers: true});
 | `.ico`, `.cur` | `sizes` (an array from 16, 24, 32, 48, 64, 128, 256), `resample` (`"auto"`, `"nearest"`, `"smooth"`); `.cur` also `hotspot: {x, y}` |
 | `.bmp` | `encoding` (`"rgba32"`, `"rgb24"`, `"indexed8"`, `"indexed4"`, `"indexed2"`), `paletteMode` (`"exact"`, `"quantize"`, `"paletteFile"`), `palettePath` |
 | `.rttex` | `encoding` (`"rgba8"`, `"rgba4444"`, `"jpeg"`), `quality` (1 to 100), `powerOfTwo` (`"pad"`, `"stretch"`, `"none"`), `forceSquare`, `forceAlpha`, `compress` |
-| `.pdf` | the `app.exportPdf` keys: `imageQuality`, `lossless`, `editableLayers`, `keepOriginalImageData`, `missingFontsAsImages` |
+| `.pdf` | the `app.exportPdf` keys: `imageQuality`, `lossless`, `editableLayers`, `keepOriginalImageData`, `missingFontsAsImages`, `artboardPages` (a document with artboards writes one page per artboard unless this is `false`) |
 | `.gif` | `animate` (visible top-level layers become frames, top first), `frameDelayMs` |
 
 `.jpg`, `.png`, `.tif`, `.webp`, `.gif`, `.jxl` and `.avif` also take `metadata` (`"all"`, the default; `"copyright"`; `"none"`): the File Info metadata written with the image. The color profile and resolution are always written.
@@ -525,6 +525,28 @@ preview. PNG export may reserve one extra palette entry for transparency.
 | `layer.simplifyPath(options)` | Simplify Path: refits a shape layer's path (or its vector mask) with fewer points. Options: `tolerance` (px, default 1), `cornerAngle` (degrees, default 60), `snapCurvesToLines`. Returns `{anchorsBefore, anchorsAfter}`. |
 
 Colors everywhere are CSS-style strings: `"#rrggbb"`, `"#aarrggbb"`, or named colors like `"red"`.
+
+### Artboards
+
+An artboard is a top-level group with its own canvas rect and background, like Photoshop's: its layers show only inside the rect, over its background. Layers outside every artboard still render. The canvas grows to hold every artboard; when it grows up or left, every document coordinate moves by the same amount, so read positions again after such an edit.
+
+| Member | Meaning |
+| --- | --- |
+| `doc.artboards` | The artboards, top of the layer stack first. |
+| `doc.addArtboard(name, {x, y, width, height}, {background?, color?})` | Layer > New > Artboard. `background` is `"white"` (the default), `"black"`, `"transparent"` or `"color"`; `color` alone means `"color"`. An empty name gives "Artboard N". Returns the new artboard. |
+| `doc.artboardFromLayers(layers, name?)` | Moves the layers onto a new artboard sized to them. Throws for an artboard or a layer already on one. |
+| `layer.isArtboard` / `layer.artboard` | Whether the layer is an artboard, and its `{x, y, width, height, background, color}` (`null` otherwise). |
+| `layer.setArtboard(options)` | Changes an artboard's rect or background (keys you leave out keep their value), makes a top-level group an artboard, or with `null` turns an artboard back into a group. `layer.moveTo`, `x` and `y` move an artboard with everything on it; `bounds` is its rect. |
+| `doc.fitCanvasToArtboards()` | Image > Fit Canvas to Artboards: the canvas becomes the artboards plus any visible layer outside them. Returns `{x, y}`, how far every coordinate moved. |
+| `doc.exportArtboards(folder, {format?, prefix?, artboards?, overwrite?})` | File > Export > Artboards to Files: one file per artboard, named `prefix` (default the document name and " - ") plus the artboard's name. `format` is `"png"` by default; `"psd"` keeps layers, `"pdf"` writes a page each. A name already in the folder gets " 2", " 3" unless `overwrite` is true. Returns the written paths. |
+
+```js
+var doc = app.newDocument(100, 100);
+var phone = doc.addArtboard("Phone", {x: 0, y: 0, width: 390, height: 844});
+var tablet = doc.addArtboard("Tablet", {x: 490, y: 0, width: 820, height: 1180}, {color: "#f2efe8"});
+doc.exportAs("screens.pdf");  // two pages, one per artboard
+doc.exportArtboards("out", {format: "png"});
+```
 
 ### Selection
 

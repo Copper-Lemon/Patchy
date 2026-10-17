@@ -4,10 +4,13 @@
 
 #include <QColor>
 #include <QImage>
+#include <QSize>
+#include <QString>
 #include <QtCore/qnamespace.h>
 
 #include <cstdint>
 #include <optional>
+#include <vector>
 
 class QWidget;
 
@@ -29,6 +32,9 @@ struct NewDocumentSettings {
   BitDepth bit_depth{BitDepth::UInt8};
   bool from_clipboard{false};
   QImage clipboard_image;
+  // Photoshop's Artboards checkbox: the document starts as one artboard the size of the
+  // canvas, its background the chosen one (docs/artboards.md).
+  bool artboards{false};
 };
 
 // Shows the New Document dialog (category chips + clickable preset card grid on the
@@ -39,5 +45,13 @@ struct NewDocumentSettings {
 // time it opens; a clipboard image preselects the Clipboard card instead. On a first
 // run the W/H unit follows the ruler unit preference (`view/rulerUnits`).
 [[nodiscard]] std::optional<NewDocumentSettings> request_new_document_settings(QWidget* parent);
+
+// The New Document size presets an artboard can take (every screen and print card but
+// Clipboard), for the Artboard tool and the New Artboard dialog.
+struct ArtboardSizePreset {
+  QString name;
+  QSize size;
+};
+[[nodiscard]] std::vector<ArtboardSizePreset> artboard_size_presets();
 
 }  // namespace patchy::ui

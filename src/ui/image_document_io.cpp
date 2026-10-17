@@ -2711,6 +2711,7 @@ void write_flat_image_file(const Document& document, const QString& path, const 
     PdfExportOptions pdf_options{options.pdf_lossless, true, options.pdf_missing_fonts_as_images,
                                  options.pdf_jpeg_quality};
     pdf_options.keep_original_image_data = options.pdf_keep_original_images;
+    pdf_options.artboard_pages = options.pdf_artboard_pages;
     write_pdf_document_file(document, path, pdf_options, notices);
     return;
   }
@@ -2850,6 +2851,7 @@ void write_flat_image_file(const Document& document, const QString& path, const 
   if (lower == "pdf") {
     PdfExportOptions pdf_options{options.pdf_lossless, false, false, options.pdf_jpeg_quality};
     pdf_options.keep_original_image_data = options.pdf_keep_original_images;
+    pdf_options.artboard_pages = options.pdf_artboard_pages;
     if (options.export_cmyk) {
       pdf_options.cmyk_space = cmyk_export_space();
       pdf_options.cmyk_black_ink_only = options.export_black_ink_only;

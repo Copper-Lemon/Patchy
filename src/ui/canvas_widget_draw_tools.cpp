@@ -721,6 +721,10 @@ void CanvasWidget::draw_drag_size_readout(QPainter& painter) const {
     // Resizing a committed marquee by a handle: the readout follows the pointer.
     rect = marquee_shape_->rect;
     corner = document_position(last_mouse_position_);
+  } else if (artboard_drag_moved_ && (artboard_drag_mode_ == ArtboardDragMode::Create ||
+                                      artboard_drag_mode_ == ArtboardDragMode::Resize)) {
+    rect = artboard_drag_rect_;
+    corner = QPoint(rect.x() + rect.width(), rect.y() + rect.height());
   } else if (crop_dragging_out_) {
     rect = crop_drag_rect(crop_anchor_document_, crop_current_document_);
     corner = crop_current_document_;

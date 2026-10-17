@@ -146,16 +146,7 @@ Useful flags:
 
 ## The psd-tools collection and the By folder table
 
-`python testy\fetch_psd_tools_corpus.py` checks out psd-tools' `tests/psd_files`
-(309 single-feature PSD/PSB files, GitHub issue 65) at a pinned commit
-into `local-test-fixtures/psd-tools` and writes `testy/corpus/psd-tools.txt`; run
-it with `--corpus corpus\psd-tools.txt` (relative to `testy/`). A multi-folder corpus gets a "By folder" table above
-the matrix (matches, data kept, bad saves per editor); clicking a
-row filters it. The "Score without known limitations" checkbox drops
-16/32-bit and artboard files (entry `traits`) from the totals. Files sharing a stem (`x.psd` beside `x.psb`) get distinct
-artifact directories through the entry's `dir` key (`x~psb`). The core test
-`psd_tools_corpus_reads_and_round_trips_if_available` covers the same files
-without Photoshop.
+`python testy\fetch_psd_tools_corpus.py` checks out psd-tools' `tests/psd_files` (issue 65), pinned, into `local-test-fixtures/psd-tools` and writes `testy/corpus/psd-tools.txt`; run it with `--corpus corpus\psd-tools.txt`. A multi-folder corpus gets a "By folder" table above the matrix (matches, data kept, bad saves per editor); a row click filters it. "Score without known limitations" drops 16/32-bit files (entry `traits`) from the totals. Same-stem files get distinct artifact directories via the entry's `dir` key (`x~psb`). `psd_tools_corpus_reads_and_round_trips_if_available` covers the same files without Photoshop.
 
 ## Publishing a run as a static site
 

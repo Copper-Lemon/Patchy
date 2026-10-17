@@ -21,6 +21,7 @@
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <map>
 
 namespace patchy::ui {
 namespace {
@@ -36,16 +37,19 @@ constexpr auto kExistingFilesKey = "exportDocumentsFolder/existingFiles";
 
 std::optional<ExportDocumentsFolderChoice> run_export_documents_folder_dialog(
     QWidget* parent, const std::vector<DocumentOrderEntry>& documents, std::int64_t active_session_id,
-    const std::vector<ExportDocumentsFormatChoice>& formats, const QString& initial_folder) {
+    const std::vector<ExportDocumentsFormatChoice>& formats, const QString& initial_folder,
+    ExportDocumentsFolderSource source, const QString& artboard_prefix) {
   auto settings = app_settings();
+  const bool artboards = source == ExportDocumentsFolderSource::Artboards;
+  const QString title = artboards ? QObject::tr("Export Artboards to Files") : QObject::tr("Export Documents to Folder");
 
   QDialog dialog(parent);
-  dialog.setObjectName(QStringLiteral("exportDocumentsFolderDialog"));
-  dialog.setWindowTitle(QObject::tr("Export Documents to Folder"));
+  dialog.setObjectName(artboards ? QStringLiteral("exportArtboardsDialog") : QStringLiteral("exportDocumentsFolderDialog"));
+  dialog.setWindowTitle(title);
   dialog.resize(540, 520);
   auto* layout = new QVBoxLayout(&dialog);
 
-  auto* documents_group = new QGroupBox(QObject::tr("Documents"), &dialog);
+  auto* documents_group = new QGroupBox(artboards ? QObject::tr("Artboards") : QObject::tr("Documents"), &dialog);
   auto* documents_layout = new QVBoxLayout(documents_group);
   const auto order = build_document_order_controls(documents_group, QStringLiteral("exportDocuments"), documents,
                                                    active_session_id);
@@ -72,7 +76,8 @@ std::optional<ExportDocumentsFolderChoice> run_export_documents_folder_dialog(
 
   auto* prefix_edit = new QLineEdit(output_group);
   prefix_edit->setObjectName(QStringLiteral("exportDocumentsPrefixEdit"));
-  prefix_edit->setText(settings.value(QLatin1String(kPrefixKey), QStringLiteral("page_")).toString());
+  prefix_edit->setText(artboards ? artboard_prefix
+                                 : settings.value(QLatin1String(kPrefixKey), QStringLiteral("page_")).toString());
   output_form->addRow(QObject::tr("Prefix"), prefix_edit);
 
   auto* numbering_row = new QWidget(output_group);
@@ -95,6 +100,8 @@ std::optional<ExportDocumentsFolderChoice> run_export_documents_folder_dialog(
   numbering_layout->addWidget(padding_label);
   numbering_layout->addWidget(padding_spin, 1);
   output_form->addRow(QObject::tr("Start at"), numbering_row);
+  // Artboard files are named for their artboards, not numbered.
+  output_form->setRowVisible(numbering_row, !artboards);
 
   auto* format_combo = new QComboBox(output_group);
   format_combo->setObjectName(QStringLiteral("exportDocumentsFormatCombo"));
@@ -115,8 +122,10 @@ std::optional<ExportDocumentsFolderChoice> run_export_documents_folder_dialog(
   existing_combo->addItem(QObject::tr("Add"), static_cast<int>(ExportDocumentsExistingFiles::AddNumbering));
   existing_combo->addItem(QObject::tr("Overwrite"), static_cast<int>(ExportDocumentsExistingFiles::Overwrite));
   existing_combo->setToolTip(
-      QObject::tr("Add continues numbering after the files already in the folder; Overwrite "
-                  "starts at the chosen number and asks before replacing anything."));
+      artboards ? QObject::tr("Add puts a number after a name that is already taken; Overwrite asks before "
+                              "replacing anything.")
+                : QObject::tr("Add continues numbering after the files already in the folder; Overwrite "
+                              "starts at the chosen number and asks before replacing anything."));
   existing_combo->setCurrentIndex(
       settings.value(QLatin1String(kExistingFilesKey), static_cast<int>(ExportDocumentsExistingFiles::AddNumbering))
                   .toInt() == static_cast<int>(ExportDocumentsExistingFiles::Overwrite)
@@ -141,13 +150,19 @@ std::optional<ExportDocumentsFolderChoice> run_export_documents_folder_dialog(
   buttons->addButton(QDialogButtonBox::Cancel);
   layout->addWidget(buttons);
 
-  const auto current_naming = [prefix_edit, start_spin, padding_spin] {
+  const auto current_naming = [prefix_edit, start_spin, padding_spin, artboards] {
     ImageSequenceNaming naming;
-    naming.prefix = sanitized_file_name(prefix_edit->text());
+    naming.use_layer_names = artboards;
+    // An artboard prefix is joined to each name before sanitizing (image_sequence_file_names).
+    naming.prefix = artboards ? prefix_edit->text() : sanitized_file_name(prefix_edit->text());
     naming.start = start_spin->value();
     naming.padding = padding_spin->value();
     return naming;
   };
+  std::map<std::int64_t, QString> titles;
+  for (const auto& entry : documents) {
+    titles[entry.session_id] = entry.title;
+  }
   const auto sync = [&] {
     const auto ids = selected_session_ids(*list);
     const int count = static_cast<int>(ids.size());
@@ -155,11 +170,18 @@ std::optional<ExportDocumentsFolderChoice> run_export_documents_folder_dialog(
     export_button->setEnabled(count > 0 && folder_ok);
     if (count == 0) {
       preview->clear();
-      summary->setText(QObject::tr("Select at least one document."));
+      summary->setText(artboards ? QObject::tr("Select at least one artboard.")
+                                 : QObject::tr("Select at least one document."));
       return;
     }
-    const std::vector<QString> placeholders(static_cast<std::size_t>(count));
-    const auto names = image_sequence_file_names(placeholders, current_naming(), format_combo->currentData().toString());
+    const auto naming = current_naming();
+    std::vector<QString> placeholders(static_cast<std::size_t>(count));
+    if (artboards) {
+      for (std::size_t index = 0; index < ids.size(); ++index) {
+        placeholders[index] = naming.prefix + titles[ids[index]];
+      }
+    }
+    const auto names = image_sequence_file_names(placeholders, naming, format_combo->currentData().toString());
     QStringList shown;
     for (qsizetype index = 0; index < std::min<qsizetype>(3, names.size()); ++index) {
       shown.push_back(names[index]);
@@ -192,10 +214,10 @@ std::optional<ExportDocumentsFolderChoice> run_export_documents_folder_dialog(
   });
   // Validating accept: the folder must exist (or be creatable) before the dialog
   // closes; on failure it stays open for a correction.
-  QObject::connect(buttons, &QDialogButtonBox::accepted, &dialog, [&dialog, folder_edit] {
+  QObject::connect(buttons, &QDialogButtonBox::accepted, &dialog, [&dialog, folder_edit, &title] {
     const QString folder = folder_edit->text().trimmed();
     if (folder.isEmpty() || !QDir().mkpath(folder)) {
-      (void)show_warning_message(&dialog, QObject::tr("Export Documents to Folder"),
+      (void)show_warning_message(&dialog, title,
                                  QObject::tr("The folder \"%1\" could not be created.").arg(folder),
                                  QMessageBox::Ok, QMessageBox::Ok,
                                  QStringLiteral("exportDocumentsFolderCreateFailedMessageBox"));
@@ -218,9 +240,11 @@ std::optional<ExportDocumentsFolderChoice> run_export_documents_folder_dialog(
   choice.naming = current_naming();
   choice.existing_files = static_cast<ExportDocumentsExistingFiles>(existing_combo->currentData().toInt());
   settings.setValue(QLatin1String(kFolderKey), choice.folder);
-  settings.setValue(QLatin1String(kPrefixKey), choice.naming.prefix);
-  settings.setValue(QLatin1String(kStartKey), choice.naming.start);
-  settings.setValue(QLatin1String(kPaddingKey), choice.naming.padding);
+  if (!artboards) {
+    settings.setValue(QLatin1String(kPrefixKey), choice.naming.prefix);
+    settings.setValue(QLatin1String(kStartKey), choice.naming.start);
+    settings.setValue(QLatin1String(kPaddingKey), choice.naming.padding);
+  }
   settings.setValue(QLatin1String(kFormatKey), choice.extension);
   settings.setValue(QLatin1String(kExistingFilesKey), static_cast<int>(choice.existing_files));
   return choice;

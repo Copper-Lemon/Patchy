@@ -355,6 +355,7 @@ int main(int argc, char* argv[]) {
            import_print_resolution_tests,
            divide_photos_tests,
            folder_open_export_tests,
+           artboard_ui_tests,
            image_adjustments_curves_tests,
            selection_engines_tests,
            ai_selection_ui_tests,

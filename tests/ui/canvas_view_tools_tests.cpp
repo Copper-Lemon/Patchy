@@ -1569,7 +1569,7 @@ void ui_tool_cycle_hotkeys_walk_each_flyout() {
       {"toolCycleStampAction", "tools.cycle.stamp"},     {"toolCycleHealingAction", "tools.cycle.healing"},
       {"toolCycleDetailAction", "tools.cycle.detail"},   {"toolCycleToningAction", "tools.cycle.tone"},
       {"toolCyclePenAction", "tools.cycle.pen"},         {"toolCyclePathAction", "tools.cycle.path_select"},
-      {"toolCycleShapeAction", "tools.cycle.shape"},
+      {"toolCycleShapeAction", "tools.cycle.shape"},     {"toolCycleMoveAction", "tools.cycle.move"},
   };
   for (const auto& [object_name, id] : cycles) {
     auto* action = require_action(window, object_name);

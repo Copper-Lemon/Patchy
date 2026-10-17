@@ -15,6 +15,7 @@
 #include "core/style_contour.hpp"
 #include "core/text_warp.hpp"
 #include "formats/acv_curves_io.hpp"
+#include "psd/psd_artboard.hpp"
 #include "psd/psd_binary.hpp"
 #include "psd/psd_descriptor.hpp"
 #include "psd/psd_filter_effects.hpp"
@@ -979,6 +980,24 @@ void write_layer_record(BigEndianWriter& writer, const EncodedLayer& encoded, bo
     write_additional_layer_block(extra, {'l', 's', 'c', 't'}, payload, large_document);
   }
 
+  // An artboard's 'artb' record (docs/artboards.md): the preserved block when it still says
+  // what the layer is, else a regenerated one; a layer that stopped being an artboard
+  // drops it (the preserved-block loop below skips every artboard key then).
+  bool keep_preserved_artboard_block = false;
+  if (encoded.kind == EncodedLayerKind::Group && encoded.layer != nullptr) {
+    if (const auto& artboard = encoded.layer->artboard(); artboard.has_value()) {
+      for (const auto& block : encoded.layer->unknown_psd_blocks()) {
+        if (is_artboard_block_key(block.key)) {
+          keep_preserved_artboard_block = parse_artboard_block(block.payload) == artboard;
+          break;
+        }
+      }
+      if (!keep_preserved_artboard_block) {
+        write_additional_layer_block(extra, {'a', 'r', 't', 'b'}, artboard_block_payload(*artboard), large_document);
+      }
+    }
+  }
+
   bool generated_style_payload = false;
   // LayerStyle::empty() is a rendering predicate, so a style containing only a
   // disabled Satin is "empty" visually but still has a native record to save.
@@ -1190,6 +1209,10 @@ void write_layer_record(BigEndianWriter& writer, const EncodedLayer& encoded, bo
     for (const auto& block : encoded.layer->unknown_psd_blocks()) {
       if (should_skip_layer_block(encoded, block, generated_text_payload.has_value(), generated_style_payload,
                                   generated_vector_blocks)) {
+        continue;
+      }
+      if (is_artboard_block_key(block.key) && encoded.kind == EncodedLayerKind::Group &&
+          !keep_preserved_artboard_block) {
         continue;
       }
       if (block.key == "iOpa" && block.payload.size() == 4U) {

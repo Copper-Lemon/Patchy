@@ -657,6 +657,18 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
     return;
   }
 
+  // Artboards (canvas_widget_artboard.cpp): the Artboard tool owns every left press, and
+  // with the Move tool a press on an artboard's name label selects and moves it.
+  if (tool_ == CanvasTool::Artboard && event->button() == Qt::LeftButton && handle_artboard_press(event)) {
+    event->accept();
+    return;
+  }
+  if (tool_ == CanvasTool::Move && event->button() == Qt::LeftButton &&
+      (handle_artboard_label_press(event) || handle_move_tool_artboard_press(event))) {
+    event->accept();
+    return;
+  }
+
   if (tool_ == CanvasTool::Crop && crop_session_active_ && event->button() == Qt::LeftButton) {
     // Handles adjust, the interior of a custom box moves it, a press on the
     // canvas inside the default frame lays out a new box, and a press off the
@@ -1596,6 +1608,22 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
     return;
   }
 
+  if (artboard_drag_active()) {
+    clear_move_hover_outline();
+    if ((event->buttons() & Qt::LeftButton) != 0) {
+      update_artboard_drag(event);
+    }
+    update_artboard_tool_cursor(event->pos());
+    last_mouse_position_ = event->pos();
+    return;
+  }
+  if (tool_ == CanvasTool::Artboard) {
+    clear_move_hover_outline();
+    update_artboard_tool_cursor(event->pos());
+    last_mouse_position_ = event->pos();
+    return;
+  }
+
   if (tool_ == CanvasTool::Crop && crop_dragging_out_) {
     clear_move_hover_outline();
     update_crop_drag_out(document_position(event->pos()), event->modifiers());
@@ -2263,6 +2291,13 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
     return;
   }
 
+  if (artboard_drag_active() && event->button() == Qt::LeftButton) {
+    finish_artboard_drag(event);
+    update_artboard_tool_cursor(event->pos());
+    event->accept();
+    return;
+  }
+
   if (painting_) {
     QRect dirty;
     const auto document_point = document_position(event->pos());
@@ -2412,6 +2447,7 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
     bool defer_accurate_patches = false;
     const auto move_layer_count = committed_layers.size();
     const auto move_operation_active = !commit_delta.isNull();
+    bool move_rolled_back = false;
     const bool rerender_smart_filters =
         document_ != nullptr &&
         std::any_of(committed_layers.begin(), committed_layers.end(),
@@ -2516,6 +2552,7 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
       if (smart_filter_rerender_failed && rollback_document.has_value()) {
         *document_ = std::move(*rollback_document);
         precommit_patches.clear();
+        move_rolled_back = true;
       } else if (rerender_smart_filters && rollback_document.has_value()) {
         auto committed_document = *document_;
         *document_ = std::move(*rollback_document);
@@ -2603,6 +2640,11 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
     }
     if (move_operation_active) {
       end_processing_operation();
+    }
+    // A committed drag (not a click) may carry layers onto or off an artboard: MainWindow
+    // re-nests them (docs/artboards.md, auto-nesting) inside the move's own undo step.
+    if (layers_moved_callback_ && !commit_delta.isNull() && !committed_move_ids.empty() && !move_rolled_back) {
+      layers_moved_callback_(committed_move_ids);
     }
     if (trace_move_release) {
       const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() -
@@ -2986,6 +3028,11 @@ void CanvasWidget::mouseDoubleClickEvent(QMouseEvent* event) {
   const auto document_point = document_position(event->pos());
   if (edit_locked_) {
     show_edit_locked_message();
+    event->accept();
+    return;
+  }
+  // Double-clicking an artboard's name label renames it, whatever the tool.
+  if (handle_artboard_label_double_click(event)) {
     event->accept();
     return;
   }
@@ -3385,6 +3432,40 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event) {
     }
   }
 
+  if (tool_ == CanvasTool::Artboard) {
+    if (event->key() == Qt::Key_Escape && artboard_drag_active()) {
+      cancel_artboard_drag();
+      event->accept();
+      return;
+    }
+    // Arrow keys nudge the selected artboard and its content (Shift = 10 px); MainWindow
+    // folds a run of nudges into one undo step like the Move tool's.
+    if (arrow_modifiers == Qt::NoModifier || arrow_modifiers == Qt::ShiftModifier) {
+      const auto step = arrow_modifiers == Qt::ShiftModifier ? 10 : 1;
+      QPoint delta;
+      switch (event->key()) {
+        case Qt::Key_Left:
+          delta = QPoint(-step, 0);
+          break;
+        case Qt::Key_Right:
+          delta = QPoint(step, 0);
+          break;
+        case Qt::Key_Up:
+          delta = QPoint(0, -step);
+          break;
+        case Qt::Key_Down:
+          delta = QPoint(0, step);
+          break;
+        default:
+          break;
+      }
+      if (!delta.isNull() && nudge_selected_artboard(delta)) {
+        event->accept();
+        return;
+      }
+    }
+  }
+
   if (tool_ == CanvasTool::Crop && (crop_session_active_ || crop_dragging_out_)) {
     if (event->key() == Qt::Key_Escape) {
       // Esc puts the box back around the canvas (Photoshop); only a tool
@@ -3527,6 +3608,33 @@ void CanvasWidget::keyPressEvent(QKeyEvent* event) {
     }
     if (!delta.isNull()) {
       nudge_selection(delta);
+      event->accept();
+      return;
+    }
+  }
+
+  // The Move tool with an artboard itself selected nudges the artboard (rect and content).
+  if (tool_ == CanvasTool::Move && selected_root_artboard_id().has_value() &&
+      (arrow_modifiers == Qt::NoModifier || arrow_modifiers == Qt::ShiftModifier)) {
+    const auto step = arrow_modifiers == Qt::ShiftModifier ? 10 : 1;
+    QPoint delta;
+    switch (event->key()) {
+      case Qt::Key_Left:
+        delta = QPoint(-step, 0);
+        break;
+      case Qt::Key_Right:
+        delta = QPoint(step, 0);
+        break;
+      case Qt::Key_Up:
+        delta = QPoint(0, -step);
+        break;
+      case Qt::Key_Down:
+        delta = QPoint(0, step);
+        break;
+      default:
+        break;
+    }
+    if (!delta.isNull() && nudge_selected_artboard(delta)) {
       event->accept();
       return;
     }

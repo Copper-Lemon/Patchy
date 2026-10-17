@@ -4,6 +4,7 @@
 // identical to the pre-split code. See docs/palette-mode.md before changing anything here.
 
 #include "formats/ico_document_io.hpp"
+#include "core/artboard.hpp"
 #include "core/layer.hpp"
 #include "core/palette.hpp"
 #include "core/vector_shape.hpp"
@@ -554,7 +555,9 @@ ImageSaveOptions MainWindow::image_save_defaults_for_document() {
     // PDF Options shows its "keep original image data" checkbox only for a document that
     // still carries the image it was imported from a PDF with.
     options.pdf_original_image_data_available =
-        std::as_const(document()).metadata().pdf_source_page != nullptr;
+        std::as_const(document()).metadata().pdf_source_page != nullptr ||
+        !std::as_const(document()).metadata().pdf_artboard_source_pages.empty();
+    options.pdf_artboards_available = document_has_artboards(std::as_const(document()));
   }
   if (has_active_document()) {
     // Icon export: preselect only the sizes the document can fill without upscaling (keep
@@ -715,6 +718,25 @@ void MainWindow::convert_document_to_indexed() {
   refresh_document_info();
   statusBar()->showMessage(tr("Converted to indexed palette editing (%n color(s))", nullptr,
                               static_cast<int>(doc.palette_editing()->palette.colors.size())));
+}
+
+bool MainWindow::convert_imported_document_to_palette(Document& doc) {
+  if (std::as_const(doc).color_state().bit_depth != BitDepth::UInt8 ||
+      document_contains_smart_objects(std::as_const(doc))) {
+    return false;
+  }
+  DocumentPaletteEditing editing;
+  editing.palette = patchy::quantize_to_palette(Compositor().flatten_rgb8(doc), 256);
+  if (editing.palette.colors.empty()) {
+    return false;
+  }
+  editing.palette_revision = next_palette_revision();
+  doc.palette_editing() = std::move(editing);
+  patchy::sync_document_indexed_palette(doc);
+  patchy::PaletteLut lut;
+  lut.build(doc.palette_editing()->palette.colors);
+  apply_palette_to_layers(doc.layers(), lut, patchy::PaletteDither::None, doc.palette_editing()->alpha_threshold);
+  return true;
 }
 
 void MainWindow::convert_document_to_rgb() {

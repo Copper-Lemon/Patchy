@@ -7355,10 +7355,6 @@ RGB: %2, %3, %4</translation>
         <translation>페이지를 다음으로 변환:</translation>
     </message>
     <message>
-        <source> ppi</source>
-        <translation> ppi</translation>
-    </message>
-    <message>
         <source>Include annotations</source>
         <translation>주석 포함</translation>
     </message>
@@ -7401,10 +7397,6 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Editable import was not possible for page %1 (%2); it was flattened instead.</source>
         <translation>%1페이지를 편집 가능한 상태로 가져올 수 없어(%2) 병합된 이미지로 가져왔습니다.</translation>
-    </message>
-    <message>
-        <source>Editable import brings in one page; page %1 was imported.</source>
-        <translation>편집 가능한 가져오기는 한 페이지로 가져옵니다. %1 페이지를 가져왔습니다.</translation>
     </message>
     <message>
         <source>Some artwork could not be kept editable; reimport with &quot;Flattened image per page&quot; for an exact copy.</source>
@@ -10204,6 +10196,122 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>Animated PNG: imported the default image only (%1)</source>
         <translation>애니메이션 PNG: 기본 이미지만 가져왔습니다 (%1)</translation>
+    </message>
+    <message>
+        <source>Only a layer group can be an artboard</source>
+        <translation>레이어 그룹만 대지가 될 수 있습니다</translation>
+    </message>
+    <message>
+        <source>ppi</source>
+        <translation>ppi</translation>
+    </message>
+    <message>
+        <source>RGB Color</source>
+        <translation>RGB 색상</translation>
+    </message>
+    <message>
+        <source>CMYK Color</source>
+        <translation>CMYK 색상</translation>
+    </message>
+    <message>
+        <source>Indexed Color (Palette)</source>
+        <translation>인덱스 색상(팔레트)</translation>
+    </message>
+    <message>
+        <source>White page background</source>
+        <translation>흰색 페이지 배경</translation>
+    </message>
+    <message>
+        <source>Open in reverse order</source>
+        <translation>역순으로 열기</translation>
+    </message>
+    <message>
+        <source>Enter a resolution from %1 to %2 ppi.</source>
+        <translation>%1~%2 ppi 사이의 해상도를 입력하세요.</translation>
+    </message>
+    <message>
+        <source>Indexed color needs &quot;Flattened image per page&quot;: shapes, text and images cannot be converted to a palette.</source>
+        <translation>인덱스 색상에는 &quot;페이지당 병합된 이미지&quot;가 필요합니다. 모양, 텍스트, 이미지는 팔레트로 변환할 수 없습니다.</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>대지를 파일로 내보내기</translation>
+    </message>
+    <message>
+        <source>Artboards</source>
+        <translation>대지</translation>
+    </message>
+    <message>
+        <source>Add puts a number after a name that is already taken; Overwrite asks before replacing anything.</source>
+        <translation>추가는 이미 있는 이름 뒤에 번호를 붙입니다. 덮어쓰기는 파일을 바꾸기 전에 확인합니다.</translation>
+    </message>
+    <message>
+        <source>Select at least one artboard.</source>
+        <translation>대지를 하나 이상 선택하세요.</translation>
+    </message>
+    <message>
+        <source>Each artboard as its own page</source>
+        <translation>대지마다 별도 페이지</translation>
+    </message>
+    <message>
+        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
+        <translation>대지마다 그 크기의 페이지를 만듭니다. 선택하지 않으면 캔버스 전체가 한 페이지가 됩니다.</translation>
+    </message>
+    <message>
+        <source>%1 (%2 x %3)</source>
+        <translation>%1 (%2 x %3)</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>대지</translation>
+    </message>
+    <message numerus="yes">
+        <source>One page per artboard of the current document (%n artboard(s))</source>
+        <translation>
+            <numerusform>현재 문서의 대지마다 한 페이지 (대지 %n개)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>One page per artboard (the current document has none)</source>
+        <translation>대지마다 한 페이지 (현재 문서에는 대지가 없음)</translation>
+    </message>
+    <message>
+        <source>Start the document as an artboard the size of the canvas</source>
+        <translation>캔버스 크기의 대지로 문서를 시작합니다</translation>
+    </message>
+    <message>
+        <source>%1 pages became artboards.</source>
+        <translation>%1개 페이지가 대지가 되었습니다.</translation>
+    </message>
+    <message>
+        <source>Artboards in one document</source>
+        <translation>한 문서의 대지로</translation>
+    </message>
+    <message>
+        <source>%1 artboard(s), first page %2 x %3 px</source>
+        <translation>대지 %1개, 첫 페이지 %2 x %3 px</translation>
+    </message>
+    <message>
+        <source>%1 pages imported as folders; only the first starts visible.</source>
+        <translation>%1개 페이지를 폴더로 가져왔습니다. 처음에는 첫 번째만 표시됩니다.</translation>
+    </message>
+    <message>
+        <source>Match each artboard</source>
+        <translation>각 대지에 맞추기</translation>
+    </message>
+    <message>
+        <source>Each page is the size of its artboard, printed at actual size. Save PDF changes the sheet per page; a printer keeps the paper chosen above.</source>
+        <translation>각 페이지는 해당 대지 크기이며 실제 크기로 인쇄됩니다. PDF 저장은 페이지마다 용지를 바꾸고, 프린터는 위에서 고른 용지를 유지합니다.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Each Artboard as a Page (%n page(s))</source>
+        <translation>
+            <numerusform>대지마다 한 페이지 (%n페이지)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>A PDF image could not be made gray and kept its colors.</source>
+        <translation>PDF 이미지를 회색으로 바꿀 수 없어 원래 색을 유지했습니다.</translation>
     </message>
 </context>
 <context>
@@ -21106,6 +21214,274 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
         <source>Remove from Recent Files</source>
         <translation>최근 파일에서 제거</translation>
     </message>
+    <message>
+        <source>The pages stayed RGB: Indexed color needs flattened 8-bit pages.</source>
+        <translation>페이지가 RGB로 유지되었습니다. 인덱스 색상에는 병합된 8비트 페이지가 필요합니다.</translation>
+    </message>
+    <message>
+        <source>&amp;Artboards to Files...</source>
+        <translation>대지를 파일로(&amp;A)...</translation>
+    </message>
+    <message>
+        <source>&amp;Artboard...</source>
+        <translation>대지(&amp;A)...</translation>
+    </message>
+    <message>
+        <source>Add an artboard beside the others</source>
+        <translation>다른 대지 옆에 대지 추가</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Group</source>
+        <translation>그룹에서 대지(&amp;G)</translation>
+    </message>
+    <message>
+        <source>Make the selected top-level group an artboard around its content</source>
+        <translation>선택한 최상위 그룹을 내용을 감싸는 대지로 만듭니다</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Layers</source>
+        <translation>레이어에서 대지(&amp;L)</translation>
+    </message>
+    <message>
+        <source>Put the selected layers on a new artboard around them</source>
+        <translation>선택한 레이어를 이를 감싸는 새 대지에 넣습니다</translation>
+    </message>
+    <message>
+        <source>Convert Artboard to Gr&amp;oup</source>
+        <translation>대지를 그룹으로 변환(&amp;O)</translation>
+    </message>
+    <message>
+        <source>Turn the selected artboard into a plain group, keeping its layers</source>
+        <translation>선택한 대지를 레이어는 유지한 채 일반 그룹으로 바꿉니다</translation>
+    </message>
+    <message>
+        <source>Fit Canvas to A&amp;rtboards</source>
+        <translation>캔버스를 대지에 맞추기(&amp;R)</translation>
+    </message>
+    <message>
+        <source>Shrink or grow the canvas to just hold the artboards and the layers beside them</source>
+        <translation>대지와 그 옆의 레이어가 꼭 맞게 들어가도록 캔버스를 줄이거나 늘립니다</translation>
+    </message>
+    <message>
+        <source>Size preset for the selected artboard, or for new artboards</source>
+        <translation>선택한 대지 또는 새 대지의 크기 사전 설정</translation>
+    </message>
+    <message>
+        <source>Width of the selected artboard, or of new artboards</source>
+        <translation>선택한 대지 또는 새 대지의 폭</translation>
+    </message>
+    <message>
+        <source>Swap width and height (portrait or landscape)</source>
+        <translation>폭과 높이 바꾸기 (세로 또는 가로)</translation>
+    </message>
+    <message>
+        <source>Height of the selected artboard, or of new artboards</source>
+        <translation>선택한 대지 또는 새 대지의 높이</translation>
+    </message>
+    <message>
+        <source>Background:</source>
+        <translation>배경:</translation>
+    </message>
+    <message>
+        <source>Background of the selected artboard, or of new artboards</source>
+        <translation>선택한 대지 또는 새 대지의 배경</translation>
+    </message>
+    <message>
+        <source>Add Artboard</source>
+        <translation>대지 추가</translation>
+    </message>
+    <message>
+        <source>Add an artboard of this size beside the others</source>
+        <translation>이 크기의 대지를 다른 대지 옆에 추가</translation>
+    </message>
+    <message>
+        <source>Auto-Nest Layers</source>
+        <translation>레이어 자동 중첩</translation>
+    </message>
+    <message>
+        <source>A layer moved onto an artboard joins it, and one moved off every artboard leaves it</source>
+        <translation>대지 위로 옮긴 레이어는 그 대지에 들어가고, 모든 대지 밖으로 옮긴 레이어는 대지에서 나옵니다</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>대지</translation>
+    </message>
+    <message>
+        <source>Drag on empty space to add an artboard, drag an artboard to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it.</source>
+        <translation>빈 곳을 드래그하여 대지를 추가하고, 대지를 드래그하여 내용과 함께 이동하며(%ALT%는 복사), 핸들을 드래그하여 크기를 바꾸고, +를 클릭하여 옆에 추가합니다.</translation>
+    </message>
+    <message>
+        <source>Artboard: drag on empty space to add an artboard, drag one or its name to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it, double-click a name to rename it. Arrows nudge.</source>
+        <translation>대지: 빈 곳을 드래그하여 추가하고, 대지나 그 이름을 드래그하여 내용과 함께 이동하며(%ALT%는 복사), 핸들을 드래그하여 크기를 바꾸고, +를 클릭하여 옆에 추가하고, 이름을 두 번 클릭하여 이름을 바꿉니다. 화살표 키로 조금씩 이동합니다.</translation>
+    </message>
+    <message>
+        <source>Move Tools</source>
+        <translation>이동 도구</translation>
+    </message>
+    <message>
+        <source>Cycle Move Tools</source>
+        <translation>이동 도구 전환</translation>
+    </message>
+    <message>
+        <source>New artboard</source>
+        <translation>새 대지</translation>
+    </message>
+    <message>
+        <source>Added artboard %1</source>
+        <translation>대지 %1을(를) 추가했습니다</translation>
+    </message>
+    <message>
+        <source>Duplicate artboard</source>
+        <translation>대지 복제</translation>
+    </message>
+    <message>
+        <source>Nudge artboard</source>
+        <translation>대지 조금씩 이동</translation>
+    </message>
+    <message>
+        <source>Move artboard</source>
+        <translation>대지 이동</translation>
+    </message>
+    <message>
+        <source>Duplicated artboard</source>
+        <translation>대지를 복제했습니다</translation>
+    </message>
+    <message>
+        <source>Moved artboard</source>
+        <translation>대지를 이동했습니다</translation>
+    </message>
+    <message>
+        <source>Resize artboard</source>
+        <translation>대지 크기 조정</translation>
+    </message>
+    <message>
+        <source>Artboard is %1 x %2 px</source>
+        <translation>대지는 %1 x %2 px입니다</translation>
+    </message>
+    <message>
+        <source>Artboard background</source>
+        <translation>대지 배경</translation>
+    </message>
+    <message>
+        <source>Changed the artboard background</source>
+        <translation>대지 배경을 변경했습니다</translation>
+    </message>
+    <message>
+        <source>Rename Artboard</source>
+        <translation>대지 이름 바꾸기</translation>
+    </message>
+    <message>
+        <source>Rename artboard</source>
+        <translation>대지 이름 바꾸기</translation>
+    </message>
+    <message>
+        <source>Renamed the artboard %1</source>
+        <translation>대지 이름을 %1(으)로 바꿨습니다</translation>
+    </message>
+    <message>
+        <source>New Artboard</source>
+        <translation>새 대지</translation>
+    </message>
+    <message>
+        <source>Artboard Background</source>
+        <translation>대지 배경</translation>
+    </message>
+    <message>
+        <source>Select a top-level group to turn into an artboard</source>
+        <translation>대지로 바꿀 최상위 그룹을 선택하세요</translation>
+    </message>
+    <message>
+        <source>Artboard from group</source>
+        <translation>그룹에서 대지</translation>
+    </message>
+    <message>
+        <source>Made %1 an artboard</source>
+        <translation>%1을(를) 대지로 만들었습니다</translation>
+    </message>
+    <message>
+        <source>Select the layers to put on the new artboard</source>
+        <translation>새 대지에 넣을 레이어를 선택하세요</translation>
+    </message>
+    <message>
+        <source>Artboard from Layers takes layers that are not on an artboard</source>
+        <translation>레이어에서 대지는 대지 위에 있지 않은 레이어에만 사용할 수 있습니다</translation>
+    </message>
+    <message>
+        <source>Artboard from layers</source>
+        <translation>레이어에서 대지</translation>
+    </message>
+    <message>
+        <source>Put the layers on a new artboard</source>
+        <translation>레이어를 새 대지에 넣었습니다</translation>
+    </message>
+    <message>
+        <source>Select an artboard to turn into a group</source>
+        <translation>그룹으로 바꿀 대지를 선택하세요</translation>
+    </message>
+    <message>
+        <source>Convert artboard to group</source>
+        <translation>대지를 그룹으로 변환</translation>
+    </message>
+    <message>
+        <source>Converted the artboard to a group</source>
+        <translation>대지를 그룹으로 변환했습니다</translation>
+    </message>
+    <message>
+        <source>The document has no artboards</source>
+        <translation>문서에 대지가 없습니다</translation>
+    </message>
+    <message>
+        <source>The canvas already fits the artboards</source>
+        <translation>캔버스가 이미 대지에 맞습니다</translation>
+    </message>
+    <message>
+        <source>Fit canvas to artboards</source>
+        <translation>캔버스를 대지에 맞추기</translation>
+    </message>
+    <message>
+        <source>Canvas is %1 x %2 px</source>
+        <translation>캔버스는 %1 x %2 px입니다</translation>
+    </message>
+    <message>
+        <source>Left edge of the artboard</source>
+        <translation>대지의 왼쪽 가장자리</translation>
+    </message>
+    <message>
+        <source>Top edge of the artboard</source>
+        <translation>대지의 위쪽 가장자리</translation>
+    </message>
+    <message>
+        <source>Width of the artboard</source>
+        <translation>대지의 폭</translation>
+    </message>
+    <message>
+        <source>Height of the artboard</source>
+        <translation>대지의 높이</translation>
+    </message>
+    <message>
+        <source>Layer 1</source>
+        <translation>레이어 1</translation>
+    </message>
+    <message>
+        <source>Page %1</source>
+        <translation>페이지 %1</translation>
+    </message>
+    <message>
+        <source>This document has no artboards</source>
+        <translation>이 문서에는 대지가 없습니다</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>대지를 파일로 내보내기</translation>
+    </message>
+    <message>
+        <source>An artboard cannot go inside a folder</source>
+        <translation>대지는 폴더 안에 넣을 수 없습니다</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
+        <translation>대지로 캔버스를 %1 x %1 px보다 크게 만들 수 없습니다</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22810,6 +23186,22 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
     <message>
         <source>CMYK values are percentages from 0 to 100</source>
         <translation>CMYK 값은 0에서 100 사이의 백분율입니다</translation>
+    </message>
+    <message>
+        <source>Invalid artboard option or target: %1.</source>
+        <translation>대지 옵션 또는 대상이 잘못되었습니다: %1.</translation>
+    </message>
+    <message>
+        <source>The artboards could not be exported.</source>
+        <translation>대지를 내보낼 수 없습니다.</translation>
+    </message>
+    <message>
+        <source>exportArtboards cannot write .%1 files.</source>
+        <translation>exportArtboards는 .%1 파일을 쓸 수 없습니다.</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
+        <translation>대지로 캔버스를 %1 x %1 px보다 크게 만들 수 없습니다.</translation>
     </message>
 </context>
 <context>

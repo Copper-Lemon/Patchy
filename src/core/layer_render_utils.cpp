@@ -540,6 +540,13 @@ Rect layer_bounds_with_effects(const Layer& layer, Rect bounds) noexcept {
 }
 
 Rect layer_render_bounds(const Layer& layer) noexcept {
+  if (layer.kind() == LayerKind::Group && layer.artboard().has_value()) {
+    // An artboard paints its whole rect (its background) and nothing outside it: the
+    // children clip to it (docs/artboards.md).
+    const auto own_padding = layer_style_effect_padding(layer.layer_style());
+    const auto rect = layer.artboard()->rect;
+    return rect.empty() || own_padding <= 0 ? rect : outset_rect(rect, own_padding);
+  }
   if (layer.kind() == LayerKind::Group) {
     Rect bounds;
     for (const auto& child : layer.children()) {

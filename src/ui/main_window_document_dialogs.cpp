@@ -6,6 +6,7 @@
 // Document dialog itself lives in ui/new_document_dialog.cpp (it grew a preset
 // card grid); create_new_document here just consumes its settings.
 
+#include "core/artboard.hpp"
 #include "core/layer.hpp"
 #include "core/pixel_buffer.hpp"
 #include "ui/main_window.hpp"
@@ -1308,6 +1309,35 @@ void MainWindow::create_new_document() {
   }
   reset_document(settings->width, settings->height, settings->background, tr("New document"),
                  settings->resolution_ppi);
+  if (settings->artboards && has_active_document()) {
+    // The canvas becomes "Artboard 1" with the chosen background and an empty layer to
+    // paint on, in place of the Background layer (Photoshop's Artboards document).
+    auto& doc = document();
+    const auto color = settings->background;
+    const auto background = color.alpha() == 0                ? ArtboardBackground::Transparent
+                            : color == QColor(Qt::white)       ? ArtboardBackground::White
+                            : color == QColor(Qt::black)       ? ArtboardBackground::Black
+                                                               : ArtboardBackground::Custom;
+    doc.layers().clear();
+    auto artboard = make_artboard_group(doc.allocate_layer_id(), next_artboard_name(std::as_const(doc)),
+                                        Rect::from_size(doc.width(), doc.height()), background,
+                                        RgbColor{static_cast<std::uint8_t>(color.red()),
+                                                 static_cast<std::uint8_t>(color.green()),
+                                                 static_cast<std::uint8_t>(color.blue())});
+    Layer layer(doc.allocate_layer_id(), tr("Layer 1").toStdString(),
+                PixelBuffer(doc.width(), doc.height(), PixelFormat::rgba8()));
+    const auto layer_id = layer.id();
+    artboard.add_child(std::move(layer));
+    doc.layers().push_back(std::move(artboard));
+    doc.metadata().artboard_settings.emplace();
+    doc.set_active_layer(layer_id);
+    if (canvas_ != nullptr) {
+      canvas_->set_document(&doc);
+    }
+    refresh_layer_list();
+    refresh_layer_controls();
+    refresh_document_info();
+  }
   if (settings->bit_depth != BitDepth::UInt8 && has_active_document()) {
     // A fresh document: the conversion is part of creating it, not an undo step.
     convert_document_depth(document(), settings->bit_depth);

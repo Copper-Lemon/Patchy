@@ -295,6 +295,10 @@ void CanvasWidget::update_tool_cursor() {
     setCursor(Qt::SizeAllCursor);
     return;
   }
+  if (tool_ == CanvasTool::Artboard) {
+    update_artboard_tool_cursor(last_mouse_position_);
+    return;
+  }
   if (pen_family_tool_active()) {
     const auto modifiers =
         pen_cursor_modifier_override_.value_or(QApplication::keyboardModifiers());

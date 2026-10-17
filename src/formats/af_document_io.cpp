@@ -976,6 +976,55 @@ void accumulate_artboard_bounds(const af::AfClass& node, const std::array<double
   }
 }
 
+// Set by build_artboard and consumed by read_container: a top-level artboard becomes a
+// native artboard there (docs/artboards.md); one nested in a group keeps this masked-group
+// form, because native artboards never nest.
+constexpr const char* kAfArtboardMarker = "patchy.af.artboard";
+
+// The masked-group form of a top-level artboard as a native one: the mask's rect is the
+// artboard, and a plain opaque solid background shape becomes its background color.
+void make_native_artboard(Layer& group) {
+  const auto& mask = std::as_const(group).mask();
+  if (!mask.has_value() || mask->bounds.empty()) {
+    return;
+  }
+  LayerArtboard artboard;
+  artboard.rect = mask->bounds;
+  artboard.background = ArtboardBackground::Transparent;
+  auto& children = group.children();
+  if (!children.empty()) {
+    const auto& bottom = std::as_const(children.front());
+    const auto* shape = bottom.vector_shape();
+    const bool plain = bottom.name().ends_with(" Background") && shape != nullptr &&
+                       shape->fill.kind == VectorFillKind::Solid && !shape->stroke.enabled && bottom.visible() &&
+                       bottom.opacity() >= 1.0F && bottom.fill_opacity() >= 1.0F &&
+                       bottom.blend_mode() == BlendMode::Normal && !bottom.mask().has_value() &&
+                       bottom.vector_mask() == nullptr && bottom.layer_style().empty();
+    if (plain) {
+      const auto color = shape->fill.color;
+      artboard.color = color;
+      artboard.background = color == RgbColor{255, 255, 255} ? ArtboardBackground::White
+                            : color == RgbColor{0, 0, 0}     ? ArtboardBackground::Black
+                                                             : ArtboardBackground::Custom;
+      if (artboard.background != ArtboardBackground::Custom) {
+        artboard.color = RgbColor{255, 255, 255};
+      }
+      children.erase(children.begin());
+    }
+  }
+  group.clear_mask();
+  // Photoshop's artboards are isolated (Normal) groups.
+  group.set_blend_mode(BlendMode::Normal);
+  group.set_artboard(std::move(artboard));
+}
+
+void strip_artboard_markers(std::vector<Layer>& layers) {
+  for (auto& layer : layers) {
+    layer.metadata().erase(kAfArtboardMarker);
+    strip_artboard_markers(layer.children());
+  }
+}
+
 // An artboard: a container whose children live in its local space. It
 // imports as a group at its layout position - the artboard's own rectangle
 // (usually a solid background, sometimes fill-less for transparent
@@ -991,6 +1040,7 @@ void accumulate_artboard_bounds(const af::AfClass& node, const std::array<double
   group.set_opacity(
       static_cast<float>(std::clamp(node.double_field(af::tag4("Opac"), 1.0), 0.0, 1.0)));
   group.set_blend_mode(BlendMode::PassThrough);
+  group.metadata()[kAfArtboardMarker] = "1";
 
   std::vector<Layer> children;
   {
@@ -1722,8 +1772,12 @@ void build_layers(LayerBuildContext& ctx, const std::vector<std::shared_ptr<af::
     }
   }
   for (auto& layer : built) {
+    if (layer.kind() == LayerKind::Group && std::as_const(layer).metadata().contains(kAfArtboardMarker)) {
+      make_native_artboard(layer);
+    }
     document.add_layer(std::move(layer));
   }
+  strip_artboard_markers(document.layers());
   if (document.layers().empty()) {
     throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "Affinity document produced no layers"));
   }

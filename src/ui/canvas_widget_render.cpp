@@ -718,7 +718,7 @@ void CanvasWidget::paintEvent(QPaintEvent* event) {
         QRect(top_left, QSize(bottom_right.x() - top_left.x(), bottom_right.y() - top_left.y()));
   }
   const QRectF target_rect = pixel_aligned_view ? QRectF(pixel_aligned_target_rect) : exact_target_rect;
-  draw_checkerboard(painter, target_rect, exposed_rect);
+  draw_canvas_backdrop(painter, target_rect, exposed_rect);
 
   prepare_vector_preview();
 
@@ -821,7 +821,7 @@ void CanvasWidget::paintEvent(QPaintEvent* event) {
     // a faint rectangular seam at the patch edges (a "ghost" of the patch
     // bounds). In that case draw the patch directly over the prepared base.
     if (clear_under_patch) {
-      draw_checkerboard(painter, target_rect, patch_exposed);
+      draw_canvas_backdrop(painter, target_rect, patch_exposed);
     }
     if (uses_deep_zoom_pixel_renderer(view_zoom())) {
       painter.save();
@@ -1025,6 +1025,7 @@ void CanvasWidget::paintEvent(QPaintEvent* event) {
   }
   draw_grid_overlay(painter, target_rect, exposed_rect);
   draw_guides_overlay(painter);
+  draw_artboard_overlay(painter);
   draw_move_snap_guides(painter);
   painter.setPen(theme().canvas_document_border);
   const auto border_rect = target_rect.adjusted(0.5, 0.5, -0.5, -0.5);

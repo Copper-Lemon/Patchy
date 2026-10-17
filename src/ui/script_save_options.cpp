@@ -412,6 +412,10 @@ bool apply_key(KeyReader& reader, const QString& extension, const QString& key, 
       reader.read_bool(key, value, options.pdf_missing_fonts_as_images);
       return true;
     }
+    if (key == QStringLiteral("artboardPages")) {
+      reader.read_bool(key, value, options.pdf_artboard_pages);
+      return true;
+    }
     return false;
   }
   if (extension == QStringLiteral("gif")) {

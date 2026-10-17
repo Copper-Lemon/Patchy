@@ -26,6 +26,9 @@ enum class MultiPagePdfSource {
   // Every visible top-level layer group of the active document, one page each, top
   // of the layer stack first ("print a folder as a page").
   TopLevelGroups,
+  // Every visible artboard of the active document, one page each, sized to it
+  // (documents_for_artboards, docs/artboards.md).
+  Artboards,
 };
 
 struct MultiPagePdfExportChoice {
@@ -44,6 +47,6 @@ struct MultiPagePdfExportChoice {
 // the only time the "keep original image data" checkbox is shown. nullopt when cancelled.
 [[nodiscard]] std::optional<MultiPagePdfExportChoice> run_multipage_pdf_export_dialog(
     QWidget* parent, const std::vector<MultiPagePdfDocumentEntry>& documents, std::int64_t active_session_id,
-    int top_level_group_count, bool original_image_data_available = false);
+    int top_level_group_count, bool original_image_data_available = false, int artboard_count = 0);
 
 }  // namespace patchy::ui

@@ -8,6 +8,8 @@ a22fb8a07898c0ab photoshop-area-ellipse.psd
 3ec1085a4fdb654b photoshop-area-mixed.psd
 9dbd3a2a84e5509a photoshop-area-triangle.psd
 29c729b20ec93c20 photoshop-area-vertical.psd
+cf5c85c534a09351 photoshop-artboard-backgrounds.psd
+dbad3717e5bfcccd photoshop-artboard-clip.psd
 db597474773a16b5 photoshop-bevel-default.psd
 4f9d639a6c4e7af3 photoshop-bevel-gloss.psd
 e7fc2129dee6f178 photoshop-bevel-smooth.psd

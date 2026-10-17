@@ -43,6 +43,14 @@ struct VectorReadOptions {
   // Tried as the user and then the owner password. Empty works for the common
   // owner-locked files every viewer opens without prompting.
   std::string password;
+  // The Import PDF dialog's Grayscale mode: every colour the page paints (fills,
+  // strokes, text, shading stops, image samples) becomes its gray through
+  // core/gray_conversion.hpp. JPEG images are decoded and re-encoded as gray PNG, so
+  // the smart object holds gray pixels too.
+  bool grayscale{false};
+  // Puts an opaque white "Background" pixel layer under the page's artwork, the paper a
+  // PDF viewer shows (PDF itself paints no page background).
+  bool white_background{false};
 };
 
 struct VectorReadResult {

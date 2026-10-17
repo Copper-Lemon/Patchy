@@ -1,4 +1,5 @@
 #include "render/native_duotone.hpp"
+#include "core/artboard.hpp"
 
 #include "core/psd_source_colors.hpp"
 #include "core/smart_object.hpp"
@@ -134,7 +135,8 @@ std::optional<PixelBuffer> render_native_duotone8(
   if (!space || space->mode != 8 || space->depth != BitDepth::UInt8 || !space->duotone_colors ||
       document.color_state().bit_depth != BitDepth::UInt8 ||
       !document.color_state().embedded_icc_profile.empty() ||
-      render_detail::raster_view_context != nullptr || (overrides && !overrides->empty())) return std::nullopt;
+      render_detail::raster_view_context != nullptr || (overrides && !overrides->empty()) ||
+      document_has_artboards(document)) return std::nullopt;  // artboard paper is RGB: the RGB path draws it
   clip = intersect_rect(clip, Rect::from_size(document.width(), document.height()));
   if (clip.empty()) return PixelBuffer{};
   std::vector<Layer> layers;

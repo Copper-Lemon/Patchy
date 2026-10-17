@@ -47,6 +47,9 @@ class ScriptLayerObject : public QObject {
   Q_PROPERTY(bool isText READ is_text)
   Q_PROPERTY(bool isShape READ is_shape)
   Q_PROPERTY(bool isSmartObject READ is_smart_object)
+  // Artboards (docs/artboards.md, script_artboards.cpp).
+  Q_PROPERTY(bool isArtboard READ is_artboard)
+  Q_PROPERTY(QJSValue artboard READ artboard)
   Q_PROPERTY(QJSValue children READ children)
   Q_PROPERTY(QString text READ text WRITE set_text)
   Q_PROPERTY(QString textOrientation READ text_orientation WRITE set_text_orientation)
@@ -64,6 +67,11 @@ public:
   [[nodiscard]] QString name() const;
   [[nodiscard]] QString id() const;
   Q_INVOKABLE void drawStrokes(const QJSValue& strokes);
+  [[nodiscard]] bool is_artboard() const;
+  [[nodiscard]] QJSValue artboard() const;
+  // Changes the artboard's rect or background; on a top-level group, makes it one; null
+  // turns an artboard back into a plain group.
+  Q_INVOKABLE void setArtboard(const QJSValue& options);
   void set_name(const QString& name);
   [[nodiscard]] double opacity() const;  // 0..100
   void set_opacity(double opacity);
@@ -233,6 +241,7 @@ class ScriptDocumentObject : public QObject {
   Q_PROPERTY(QJSValue clippingPath READ clipping_path WRITE set_clipping_path)
   Q_PROPERTY(QJSValue fileInfo READ file_info)
   Q_PROPERTY(QString xmp READ xmp)
+  Q_PROPERTY(QJSValue artboards READ artboards)
 
 public:
   ScriptDocumentObject(ScriptEngineHost& host, std::int64_t session_id);
@@ -320,6 +329,12 @@ public:
   Q_INVOKABLE bool exportAnimatedWebp(const QString& path, const QJSValue& options = QJSValue());
   Q_INVOKABLE void close();
   Q_INVOKABLE void activate();
+  // Artboards (script_artboards.cpp).
+  [[nodiscard]] QJSValue artboards() const;
+  Q_INVOKABLE QJSValue addArtboard(const QString& name, const QJSValue& rect, const QJSValue& options = QJSValue());
+  Q_INVOKABLE QJSValue artboardFromLayers(const QJSValue& layers, const QString& name = QString());
+  Q_INVOKABLE QJSValue fitCanvasToArtboards();
+  Q_INVOKABLE QJSValue exportArtboards(const QString& folder, const QJSValue& options = QJSValue());
 
   [[nodiscard]] std::int64_t session_id() const noexcept { return session_id_; }
 
@@ -596,5 +611,8 @@ private:
 // given identity (JS-GC-owned, parentless).
 [[nodiscard]] QJSValue make_document_value(ScriptEngineHost& host, std::int64_t session_id);
 [[nodiscard]] QJSValue make_layer_value(ScriptEngineHost& host, std::int64_t session_id, LayerId layer_id);
+// What `layer.bounds`, `x`, `y` and `moveTo` measure: an artboard's rect, else the layer's
+// stored bounds (script_artboards.cpp).
+[[nodiscard]] Rect script_layer_position_bounds(const Layer& layer);
 
 }  // namespace patchy::ui

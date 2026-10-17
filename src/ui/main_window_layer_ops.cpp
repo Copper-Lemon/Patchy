@@ -1,4 +1,5 @@
 #include "ui/palette_panel.hpp"
+#include "core/artboard.hpp"
 #include "core/layer.hpp"
 #include "core/pixel_buffer.hpp"
 #include "core/smart_filter_effects.hpp"
@@ -1334,6 +1335,14 @@ void MainWindow::create_layer_folder_from_layers(std::vector<LayerId> ids) {
   } while (existing_names.contains(name));
 
   auto grouped_ids = root_drop_layer_ids(doc.layers(), ids);
+  // Artboards never nest (docs/artboards.md).
+  if (std::any_of(grouped_ids.begin(), grouped_ids.end(), [&doc](LayerId id) {
+        const auto* layer = std::as_const(doc).find_layer(id);
+        return layer != nullptr && layer_is_artboard(*layer);
+      })) {
+    show_status_error(tr("An artboard cannot go inside a folder"));
+    return;
+  }
   const auto destination = common_sibling_grouping_destination(doc.layers(), grouped_ids);
 
   push_undo_snapshot(tr("New folder"));
@@ -1962,6 +1971,13 @@ std::vector<LayerId> MainWindow::duplicate_layers(std::vector<LayerId> ids) {
   refresh_layer_controls();
   canvas_->document_changed();
   select_layers_in_layer_list(copy_ids_top_to_bottom, copy_ids_top_to_bottom.front());
+  // A duplicated artboard does not sit on its original: it goes beside the others.
+  if (std::any_of(copy_ids_top_to_bottom.begin(), copy_ids_top_to_bottom.end(), [&doc](LayerId id) {
+        const auto* copy = std::as_const(doc).find_layer(id);
+        return copy != nullptr && layer_is_artboard(*copy);
+      })) {
+    place_duplicated_artboards(copy_ids_top_to_bottom);
+  }
   return copy_ids_top_to_bottom;
 }
 

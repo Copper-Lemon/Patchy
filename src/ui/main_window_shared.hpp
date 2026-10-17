@@ -307,6 +307,11 @@ bool rerender_text_layer_through_stored_transform(Layer& layer);
 // "X copy 2", not "X copy copy"). Shared by layer duplication in
 // main_window_layer_ops.cpp and path duplication in main_window_paths.cpp.
 [[nodiscard]] std::string duplicate_name_stem(std::string_view name);
+// The artboard background choices (White, Black, Transparent, Other...) with their
+// permanent tokens, and the size presets (Custom first), for every artboard control
+// (main_window_artboards.cpp).
+void populate_artboard_background_combo(QComboBox* combo);
+void populate_artboard_size_presets(QComboBox* combo);
 [[nodiscard]] std::string next_duplicate_name(std::string_view source_name,
                                               const std::set<std::string>& existing_names);
 

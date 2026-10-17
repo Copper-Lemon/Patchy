@@ -7048,10 +7048,6 @@ RGB: %2, %3, %4</translation>
         <translation>Importieren als:</translation>
     </message>
     <message>
-        <source> ppi</source>
-        <translation> ppi</translation>
-    </message>
-    <message>
         <source>Include annotations</source>
         <translation>Anmerkungen einschließen</translation>
     </message>
@@ -7070,10 +7066,6 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Select at least one page.</source>
         <translation>Wählen Sie mindestens eine Seite aus.</translation>
-    </message>
-    <message>
-        <source>Editable import brings in one page; page %1 was imported.</source>
-        <translation>Der bearbeitbare Import übernimmt nur eine Seite. Seite %1 wurde importiert.</translation>
     </message>
     <message>
         <source>Some artwork could not be kept editable; reimport with &quot;Flattened image per page&quot; for an exact copy.</source>
@@ -10234,6 +10226,124 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>Animated PNG: imported the default image only (%1)</source>
         <translation>PNG-Animation: nur das Standardbild wurde importiert (%1)</translation>
+    </message>
+    <message>
+        <source>Only a layer group can be an artboard</source>
+        <translation>Nur eine Ebenengruppe kann eine Zeichenfläche sein</translation>
+    </message>
+    <message>
+        <source>ppi</source>
+        <translation>ppi</translation>
+    </message>
+    <message>
+        <source>RGB Color</source>
+        <translation>RGB-Farbe</translation>
+    </message>
+    <message>
+        <source>CMYK Color</source>
+        <translation>CMYK-Farbe</translation>
+    </message>
+    <message>
+        <source>Indexed Color (Palette)</source>
+        <translation>Indizierte Farbe (Palette)</translation>
+    </message>
+    <message>
+        <source>White page background</source>
+        <translation>Weißer Seitenhintergrund</translation>
+    </message>
+    <message>
+        <source>Open in reverse order</source>
+        <translation>In umgekehrter Reihenfolge öffnen</translation>
+    </message>
+    <message>
+        <source>Enter a resolution from %1 to %2 ppi.</source>
+        <translation>Geben Sie eine Auflösung von %1 bis %2 ppi ein.</translation>
+    </message>
+    <message>
+        <source>Indexed color needs &quot;Flattened image per page&quot;: shapes, text and images cannot be converted to a palette.</source>
+        <translation>Indizierte Farbe erfordert „Reduziertes Bild pro Seite“: Formen, Text und Bilder lassen sich nicht in eine Palette umwandeln.</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>Zeichenflächen als Dateien exportieren</translation>
+    </message>
+    <message>
+        <source>Artboards</source>
+        <translation>Zeichenflächen</translation>
+    </message>
+    <message>
+        <source>Add puts a number after a name that is already taken; Overwrite asks before replacing anything.</source>
+        <translation>Hinzufügen hängt an einen bereits vergebenen Namen eine Nummer an; Überschreiben fragt nach, bevor etwas ersetzt wird.</translation>
+    </message>
+    <message>
+        <source>Select at least one artboard.</source>
+        <translation>Wählen Sie mindestens eine Zeichenfläche aus.</translation>
+    </message>
+    <message>
+        <source>Each artboard as its own page</source>
+        <translation>Jede Zeichenfläche als eigene Seite</translation>
+    </message>
+    <message>
+        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
+        <translation>Eine Seite pro Zeichenfläche in deren Größe. Ohne Häkchen wird die ganze Arbeitsfläche eine Seite.</translation>
+    </message>
+    <message>
+        <source>%1 (%2 x %3)</source>
+        <translation>%1 (%2 x %3)</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>Zeichenfläche</translation>
+    </message>
+    <message numerus="yes">
+        <source>One page per artboard of the current document (%n artboard(s))</source>
+        <translation>
+            <numerusform>Eine Seite pro Zeichenfläche des aktuellen Dokuments (%n Zeichenfläche)</numerusform>
+            <numerusform>Eine Seite pro Zeichenfläche des aktuellen Dokuments (%n Zeichenflächen)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>One page per artboard (the current document has none)</source>
+        <translation>Eine Seite pro Zeichenfläche (das aktuelle Dokument hat keine)</translation>
+    </message>
+    <message>
+        <source>Start the document as an artboard the size of the canvas</source>
+        <translation>Das Dokument als Zeichenfläche in Größe der Arbeitsfläche beginnen</translation>
+    </message>
+    <message>
+        <source>%1 pages became artboards.</source>
+        <translation>%1 Seiten wurden zu Zeichenflächen.</translation>
+    </message>
+    <message>
+        <source>Artboards in one document</source>
+        <translation>Zeichenflächen in einem Dokument</translation>
+    </message>
+    <message>
+        <source>%1 artboard(s), first page %2 x %3 px</source>
+        <translation>%1 Zeichenfläche(n), erste Seite %2 x %3 px</translation>
+    </message>
+    <message>
+        <source>%1 pages imported as folders; only the first starts visible.</source>
+        <translation>%1 Seiten als Ordner importiert; nur der erste ist anfangs sichtbar.</translation>
+    </message>
+    <message>
+        <source>Match each artboard</source>
+        <translation>An jede Zeichenfläche anpassen</translation>
+    </message>
+    <message>
+        <source>Each page is the size of its artboard, printed at actual size. Save PDF changes the sheet per page; a printer keeps the paper chosen above.</source>
+        <translation>Jede Seite hat die Größe ihrer Zeichenfläche und wird in Originalgröße gedruckt. „PDF speichern“ wechselt das Blatt pro Seite; ein Drucker behält das oben gewählte Papier.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Each Artboard as a Page (%n page(s))</source>
+        <translation>
+            <numerusform>Jede Zeichenfläche als Seite (%n Seite)</numerusform>
+            <numerusform>Jede Zeichenfläche als Seite (%n Seiten)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>A PDF image could not be made gray and kept its colors.</source>
+        <translation>Ein PDF-Bild konnte nicht in Graustufen umgewandelt werden und behielt seine Farben.</translation>
     </message>
 </context>
 <context>
@@ -21169,6 +21279,274 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
         <source>Remove from Recent Files</source>
         <translation>Aus zuletzt verwendeten Dateien entfernen</translation>
     </message>
+    <message>
+        <source>The pages stayed RGB: Indexed color needs flattened 8-bit pages.</source>
+        <translation>Die Seiten bleiben RGB: Indizierte Farbe erfordert reduzierte 8-Bit-Seiten.</translation>
+    </message>
+    <message>
+        <source>&amp;Artboards to Files...</source>
+        <translation>&amp;Zeichenflächen als Dateien...</translation>
+    </message>
+    <message>
+        <source>&amp;Artboard...</source>
+        <translation>&amp;Zeichenfläche...</translation>
+    </message>
+    <message>
+        <source>Add an artboard beside the others</source>
+        <translation>Eine Zeichenfläche neben den anderen hinzufügen</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Group</source>
+        <translation>Zeichenfläche aus &amp;Gruppe</translation>
+    </message>
+    <message>
+        <source>Make the selected top-level group an artboard around its content</source>
+        <translation>Die ausgewählte Gruppe der obersten Ebene zu einer Zeichenfläche um ihren Inhalt machen</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Layers</source>
+        <translation>Zeichenfläche aus &amp;Ebenen</translation>
+    </message>
+    <message>
+        <source>Put the selected layers on a new artboard around them</source>
+        <translation>Die ausgewählten Ebenen auf eine neue Zeichenfläche um sie herum legen</translation>
+    </message>
+    <message>
+        <source>Convert Artboard to Gr&amp;oup</source>
+        <translation>Zeichenfläche in Gr&amp;uppe umwandeln</translation>
+    </message>
+    <message>
+        <source>Turn the selected artboard into a plain group, keeping its layers</source>
+        <translation>Die ausgewählte Zeichenfläche in eine einfache Gruppe umwandeln und ihre Ebenen behalten</translation>
+    </message>
+    <message>
+        <source>Fit Canvas to A&amp;rtboards</source>
+        <translation>Arbeitsfläche an Zeichenfl&amp;ächen anpassen</translation>
+    </message>
+    <message>
+        <source>Shrink or grow the canvas to just hold the artboards and the layers beside them</source>
+        <translation>Die Arbeitsfläche so verkleinern oder vergrößern, dass sie genau die Zeichenflächen und die Ebenen daneben fasst</translation>
+    </message>
+    <message>
+        <source>Size preset for the selected artboard, or for new artboards</source>
+        <translation>Größenvorgabe für die ausgewählte oder neue Zeichenflächen</translation>
+    </message>
+    <message>
+        <source>Width of the selected artboard, or of new artboards</source>
+        <translation>Breite der ausgewählten oder neuer Zeichenflächen</translation>
+    </message>
+    <message>
+        <source>Swap width and height (portrait or landscape)</source>
+        <translation>Breite und Höhe tauschen (Hoch- oder Querformat)</translation>
+    </message>
+    <message>
+        <source>Height of the selected artboard, or of new artboards</source>
+        <translation>Höhe der ausgewählten oder neuer Zeichenflächen</translation>
+    </message>
+    <message>
+        <source>Background:</source>
+        <translation>Hintergrund:</translation>
+    </message>
+    <message>
+        <source>Background of the selected artboard, or of new artboards</source>
+        <translation>Hintergrund der ausgewählten oder neuer Zeichenflächen</translation>
+    </message>
+    <message>
+        <source>Add Artboard</source>
+        <translation>Zeichenfläche hinzufügen</translation>
+    </message>
+    <message>
+        <source>Add an artboard of this size beside the others</source>
+        <translation>Eine Zeichenfläche dieser Größe neben den anderen hinzufügen</translation>
+    </message>
+    <message>
+        <source>Auto-Nest Layers</source>
+        <translation>Ebenen automatisch einordnen</translation>
+    </message>
+    <message>
+        <source>A layer moved onto an artboard joins it, and one moved off every artboard leaves it</source>
+        <translation>Eine auf eine Zeichenfläche verschobene Ebene wird ihr zugeordnet, eine von allen Zeichenflächen weg verschobene verlässt sie</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>Zeichenfläche</translation>
+    </message>
+    <message>
+        <source>Drag on empty space to add an artboard, drag an artboard to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it.</source>
+        <translation>Auf leere Fläche ziehen, um eine Zeichenfläche hinzuzufügen; eine Zeichenfläche ziehen, um sie mit ihrem Inhalt zu verschieben (%ALT% kopiert sie); einen Griff ziehen, um die Größe zu ändern; auf + klicken, um daneben eine hinzuzufügen.</translation>
+    </message>
+    <message>
+        <source>Artboard: drag on empty space to add an artboard, drag one or its name to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it, double-click a name to rename it. Arrows nudge.</source>
+        <translation>Zeichenfläche: Auf leere Fläche ziehen, um eine Zeichenfläche hinzuzufügen; eine Zeichenfläche oder ihren Namen ziehen, um sie mit Inhalt zu verschieben (%ALT% kopiert sie); einen Griff ziehen, um die Größe zu ändern; auf + klicken, um daneben eine hinzuzufügen; auf einen Namen doppelklicken, um ihn umzubenennen. Pfeiltasten verschieben schrittweise.</translation>
+    </message>
+    <message>
+        <source>Move Tools</source>
+        <translation>Verschieben-Werkzeuge</translation>
+    </message>
+    <message>
+        <source>Cycle Move Tools</source>
+        <translation>Verschieben-Werkzeuge durchschalten</translation>
+    </message>
+    <message>
+        <source>New artboard</source>
+        <translation>Neue Zeichenfläche</translation>
+    </message>
+    <message>
+        <source>Added artboard %1</source>
+        <translation>Zeichenfläche %1 hinzugefügt</translation>
+    </message>
+    <message>
+        <source>Duplicate artboard</source>
+        <translation>Zeichenfläche duplizieren</translation>
+    </message>
+    <message>
+        <source>Nudge artboard</source>
+        <translation>Zeichenfläche schrittweise verschieben</translation>
+    </message>
+    <message>
+        <source>Move artboard</source>
+        <translation>Zeichenfläche verschieben</translation>
+    </message>
+    <message>
+        <source>Duplicated artboard</source>
+        <translation>Zeichenfläche dupliziert</translation>
+    </message>
+    <message>
+        <source>Moved artboard</source>
+        <translation>Zeichenfläche verschoben</translation>
+    </message>
+    <message>
+        <source>Resize artboard</source>
+        <translation>Zeichenflächengröße ändern</translation>
+    </message>
+    <message>
+        <source>Artboard is %1 x %2 px</source>
+        <translation>Zeichenfläche ist %1 x %2 px groß</translation>
+    </message>
+    <message>
+        <source>Artboard background</source>
+        <translation>Zeichenflächenhintergrund</translation>
+    </message>
+    <message>
+        <source>Changed the artboard background</source>
+        <translation>Zeichenflächenhintergrund geändert</translation>
+    </message>
+    <message>
+        <source>Rename Artboard</source>
+        <translation>Zeichenfläche umbenennen</translation>
+    </message>
+    <message>
+        <source>Rename artboard</source>
+        <translation>Zeichenfläche umbenennen</translation>
+    </message>
+    <message>
+        <source>Renamed the artboard %1</source>
+        <translation>Zeichenfläche in %1 umbenannt</translation>
+    </message>
+    <message>
+        <source>New Artboard</source>
+        <translation>Neue Zeichenfläche</translation>
+    </message>
+    <message>
+        <source>Artboard Background</source>
+        <translation>Zeichenflächenhintergrund</translation>
+    </message>
+    <message>
+        <source>Select a top-level group to turn into an artboard</source>
+        <translation>Wählen Sie eine Gruppe der obersten Ebene, die zur Zeichenfläche werden soll</translation>
+    </message>
+    <message>
+        <source>Artboard from group</source>
+        <translation>Zeichenfläche aus Gruppe</translation>
+    </message>
+    <message>
+        <source>Made %1 an artboard</source>
+        <translation>%1 zur Zeichenfläche gemacht</translation>
+    </message>
+    <message>
+        <source>Select the layers to put on the new artboard</source>
+        <translation>Wählen Sie die Ebenen für die neue Zeichenfläche aus</translation>
+    </message>
+    <message>
+        <source>Artboard from Layers takes layers that are not on an artboard</source>
+        <translation>„Zeichenfläche aus Ebenen“ nimmt nur Ebenen, die auf keiner Zeichenfläche liegen</translation>
+    </message>
+    <message>
+        <source>Artboard from layers</source>
+        <translation>Zeichenfläche aus Ebenen</translation>
+    </message>
+    <message>
+        <source>Put the layers on a new artboard</source>
+        <translation>Ebenen auf eine neue Zeichenfläche gelegt</translation>
+    </message>
+    <message>
+        <source>Select an artboard to turn into a group</source>
+        <translation>Wählen Sie eine Zeichenfläche, die zur Gruppe werden soll</translation>
+    </message>
+    <message>
+        <source>Convert artboard to group</source>
+        <translation>Zeichenfläche in Gruppe umwandeln</translation>
+    </message>
+    <message>
+        <source>Converted the artboard to a group</source>
+        <translation>Zeichenfläche in eine Gruppe umgewandelt</translation>
+    </message>
+    <message>
+        <source>The document has no artboards</source>
+        <translation>Das Dokument hat keine Zeichenflächen</translation>
+    </message>
+    <message>
+        <source>The canvas already fits the artboards</source>
+        <translation>Die Arbeitsfläche passt bereits zu den Zeichenflächen</translation>
+    </message>
+    <message>
+        <source>Fit canvas to artboards</source>
+        <translation>Arbeitsfläche an Zeichenflächen anpassen</translation>
+    </message>
+    <message>
+        <source>Canvas is %1 x %2 px</source>
+        <translation>Arbeitsfläche ist %1 x %2 px groß</translation>
+    </message>
+    <message>
+        <source>Left edge of the artboard</source>
+        <translation>Linker Rand der Zeichenfläche</translation>
+    </message>
+    <message>
+        <source>Top edge of the artboard</source>
+        <translation>Oberer Rand der Zeichenfläche</translation>
+    </message>
+    <message>
+        <source>Width of the artboard</source>
+        <translation>Breite der Zeichenfläche</translation>
+    </message>
+    <message>
+        <source>Height of the artboard</source>
+        <translation>Höhe der Zeichenfläche</translation>
+    </message>
+    <message>
+        <source>Layer 1</source>
+        <translation>Ebene 1</translation>
+    </message>
+    <message>
+        <source>Page %1</source>
+        <translation>Seite %1</translation>
+    </message>
+    <message>
+        <source>This document has no artboards</source>
+        <translation>Dieses Dokument hat keine Zeichenflächen</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>Zeichenflächen als Dateien exportieren</translation>
+    </message>
+    <message>
+        <source>An artboard cannot go inside a folder</source>
+        <translation>Eine Zeichenfläche kann nicht in einen Ordner</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
+        <translation>Zeichenflächen können die Arbeitsfläche nicht größer als %1 x %1 px machen</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22874,6 +23252,22 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
     <message>
         <source>CMYK values are percentages from 0 to 100</source>
         <translation>CMYK-Werte sind Prozentangaben von 0 bis 100</translation>
+    </message>
+    <message>
+        <source>Invalid artboard option or target: %1.</source>
+        <translation>Ungültige Zeichenflächen-Option oder ungültiges Ziel: %1.</translation>
+    </message>
+    <message>
+        <source>The artboards could not be exported.</source>
+        <translation>Die Zeichenflächen konnten nicht exportiert werden.</translation>
+    </message>
+    <message>
+        <source>exportArtboards cannot write .%1 files.</source>
+        <translation>exportArtboards kann keine .%1-Dateien schreiben.</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
+        <translation>Zeichenflächen können die Arbeitsfläche nicht größer als %1 x %1 px machen.</translation>
     </message>
 </context>
 <context>

@@ -747,6 +747,7 @@ void ui_file_export_menu_actions_registered() {
       {"fileExportFlatAction", "file.export_flat"},
       {"fileExportMultiPagePdfAction", "file.export_multipage_pdf"},
       {"fileExportDocumentsToFolderAction", "file.export_documents_to_folder"},
+      {"fileExportArtboardsAction", "file.export_artboards"},
       {"fileExportSpriteSheetAction", "file.export_sprite_sheet"},
       {"fileExportImageSequenceAction", "file.export_image_sequence"},
       {"fileExportAnimatedGifAction", "file.export_animated_gif"},

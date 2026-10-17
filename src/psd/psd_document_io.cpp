@@ -14,6 +14,7 @@
 #include "core/text_warp.hpp"
 #include "core/text_area.hpp"
 #include "formats/acv_curves_io.hpp"
+#include "psd/psd_artboard.hpp"
 #include "psd/psd_binary.hpp"
 #include "psd/psd_descriptor.hpp"
 #include "psd/psd_filter_effects.hpp"
@@ -484,6 +485,9 @@ void copy_layer_state(Layer& target, const Layer& source) {
   if (const auto* vector_mask = source.vector_mask(); vector_mask != nullptr) {
     target.set_vector_mask(*vector_mask);
   }
+  if (const auto& artboard = source.artboard(); artboard.has_value() && target.kind() == LayerKind::Group) {
+    target.set_artboard(*artboard);
+  }
 }
 
 std::vector<Layer> build_group_hierarchy(std::vector<DecodedLayer> flat_layers) {
@@ -529,6 +533,19 @@ std::vector<Layer> build_group_hierarchy(std::vector<DecodedLayer> flat_layers) 
       Layer group(0, decoded.layer.name(), LayerKind::Group);
       copy_layer_state(group, decoded.layer);
       group.raw_psd_group_boundary_blending_ranges() = std::move(boundary_blending_ranges);
+      // An artboard is a top-level folder carrying an 'artb' record (docs/artboards.md); the
+      // block itself stays preserved so an unedited artboard writes back byte for byte.
+      // A record on a nested folder is ignored, and the writer drops it: artboards never nest.
+      if (stack.size() == 1U) {
+        for (const auto& block : std::as_const(group).unknown_psd_blocks()) {
+          if (is_artboard_block_key(block.key)) {
+            if (auto artboard = parse_artboard_block(block.payload); artboard.has_value()) {
+              group.set_artboard(std::move(*artboard));
+              break;
+            }
+          }
+        }
+      }
       set_layer_group_expanded(group, decoded.section_divider_type == 1U);
       group.children() = std::move(children);
       stack.back().children.push_back(std::move(group));
@@ -1790,6 +1807,12 @@ Document DocumentIo::read(std::span<const std::uint8_t> bytes, ReadOptions optio
         document.metadata().unknown_psd_resources.push_back(
             UnknownPsdBlock{key, std::move(payload), wide_length, global_block_index});
       } else {
+        if (key == "artd") {
+          // Document-wide artboard settings: modeled, and the bytes kept for a verbatim write.
+          if (const auto parsed = parse_document_artboard_block(payload); parsed.has_value()) {
+            document.metadata().artboard_settings = parsed->settings;
+          }
+        }
         document.metadata().unknown_psd_resources.push_back(
             UnknownPsdBlock{key, std::move(payload), wide_length, global_block_index});
       }
@@ -2539,11 +2562,29 @@ std::vector<std::uint8_t> DocumentIo::write_layered_rgb8(const Document& documen
                        return lhs.original_index < rhs.original_index;
                      });
     bool text_engine_emitted = false;
+    const auto artboard_count = static_cast<std::int32_t>(
+        std::count_if(document.layers().begin(), document.layers().end(), [](const Layer& layer) {
+          return layer.kind() == LayerKind::Group && layer.artboard().has_value();
+        }));
+    const auto artboard_settings = document.metadata().artboard_settings.value_or(DocumentArtboardSettings{});
+    bool artboard_settings_emitted = false;
     for (const auto& emission : emissions) {
       switch (emission.kind) {
         case GlobalEmissionKind::Unknown: {
           const auto& block = global_blocks[emission.item_index];
-          if (block.key == "Txt2" && text_engine_payload.has_value()) {
+          if (block.key == "artd") {
+            if (artboard_count == 0 || artboard_settings_emitted) {
+              break;  // no artboards left: Photoshop documents without them have no 'artd'
+            }
+            const auto preserved = parse_document_artboard_block(block.payload);
+            if (preserved.has_value() && preserved->count == artboard_count && preserved->settings == artboard_settings) {
+              emit_global_payload(block.key, block.payload, block.long_length);
+            } else {
+              emit_global_payload("artd", document_artboard_block_payload(artboard_settings, artboard_count),
+                                  block.long_length);
+            }
+            artboard_settings_emitted = true;
+          } else if (block.key == "Txt2" && text_engine_payload.has_value()) {
             emit_global_payload(block.key, *text_engine_payload, block.long_length);
             text_engine_emitted = true;
           } else if (block.key == "Patt" || block.key == "Pat2" || block.key == "Pat3") {
@@ -2570,6 +2611,9 @@ std::vector<std::uint8_t> DocumentIo::write_layered_rgb8(const Document& documen
     if (text_engine_payload.has_value() && !text_engine_emitted) {
       // A document that never had a block (Patchy-born) gets its authored one after the others.
       emit_global_payload("Txt2", *text_engine_payload, false);
+    }
+    if (artboard_count > 0 && !artboard_settings_emitted) {
+      emit_global_payload("artd", document_artboard_block_payload(artboard_settings, artboard_count), false);
     }
   }
   {

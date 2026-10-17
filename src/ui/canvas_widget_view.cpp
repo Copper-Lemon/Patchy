@@ -296,6 +296,16 @@ bool CanvasWidget::constrain_pan() noexcept {
   return true;
 }
 
+void CanvasWidget::shift_view_for_document_offset(QPoint document_shift) {
+  if (document_shift.isNull()) {
+    return;
+  }
+  pan_ -= QPointF(document_shift) * zoom_;
+  constrain_pan();
+  update();
+  notify_view_changed();
+}
+
 void CanvasWidget::notify_view_changed() {
   ZoomTraceScope trace("view_changed", zoom_);
   sync_scroll_bars();  // before the callback so observers see consistent bars

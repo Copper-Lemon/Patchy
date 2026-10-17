@@ -991,6 +991,38 @@ void transform_document_vector_data(Document& document, const std::array<double,
     }
   };
   walk(walk, document.layers());
+  // Artboards ride the same affine (docs/artboards.md). Every whole-document op is a
+  // scale, translation, flip or quarter turn, which keeps the rect a rect; an arbitrary
+  // rotation keeps the rotated rect's bounding box.
+  for (auto& layer : document.layers()) {
+    if (const auto& artboard = std::as_const(layer).artboard(); artboard.has_value()) {
+      const auto& rect = artboard->rect;
+      double left = 0.0;
+      double top = 0.0;
+      double right = 0.0;
+      double bottom = 0.0;
+      bool first = true;
+      for (const auto& [x, y] : {std::pair{rect.x, rect.y}, std::pair{rect.x + rect.width, rect.y},
+                                 std::pair{rect.x, rect.y + rect.height},
+                                 std::pair{rect.x + rect.width, rect.y + rect.height}}) {
+        const double mapped_x = matrix[0] * x + matrix[2] * y + matrix[4];
+        const double mapped_y = matrix[1] * x + matrix[3] * y + matrix[5];
+        left = first ? mapped_x : std::min(left, mapped_x);
+        right = first ? mapped_x : std::max(right, mapped_x);
+        top = first ? mapped_y : std::min(top, mapped_y);
+        bottom = first ? mapped_y : std::max(bottom, mapped_y);
+        first = false;
+      }
+      auto moved = *artboard;
+      const auto x0 = static_cast<std::int32_t>(std::lround(left));
+      const auto y0 = static_cast<std::int32_t>(std::lround(top));
+      moved.rect = Rect{x0, y0, std::max(1, static_cast<std::int32_t>(std::lround(right)) - x0),
+                        std::max(1, static_cast<std::int32_t>(std::lround(bottom)) - y0)};
+      if (moved != *artboard) {
+        layer.set_artboard(std::move(moved));
+      }
+    }
+  }
   for (auto& path : document.paths()) {
     auto updated = path.path();
     transform_vector_path(updated, matrix);

@@ -111,10 +111,6 @@ QByteArray scanned_pdf_bytes(const std::vector<QByteArray>& jpegs, QSize pixels,
 // reader (which shares nothing with either writer).
 std::vector<QByteArray> page_image_streams(const QString& path, std::vector<int>* rotations = nullptr);
 
-// Repeatedly runs `step` on a short timer while open_document_path blocks in the import
-// dialog's exec() loop; `step` returns true when its work is done. Same shape as the raw
-// develop dialog's driver in camera_raw_heif_tests.cpp.
-void drive_modal_dialog(const std::shared_ptr<std::function<bool()>>& step, int attempts = 2400);
 
 // A two-page editable PDF: a blue rectangle on page 1, a red one on page 2.
 QByteArray two_page_editable_pdf_bytes();
@@ -286,20 +282,6 @@ std::vector<QByteArray> page_image_streams(const QString& path, std::vector<int>
     streams.emplace_back(reinterpret_cast<const char*>(data.data.data()), static_cast<qsizetype>(data.data.size()));
   }
   return streams;
-}
-
-void drive_modal_dialog(const std::shared_ptr<std::function<bool()>>& step, int attempts) {
-  QTimer::singleShot(25, [step, attempts] {
-    if (step == nullptr || !static_cast<bool>(*step)) {
-      return;
-    }
-    if ((*step)()) {
-      return;
-    }
-    if (attempts > 0) {
-      drive_modal_dialog(step, attempts - 1);
-    }
-  });
 }
 
 QByteArray two_page_editable_pdf_bytes() {
@@ -1336,12 +1318,14 @@ void ui_pdf_pass_through_keeps_original_image_bytes() {
   // Edit one pixel of page 1: that page re-encodes (gray JPEG at the chosen quality),
   // page 2 still passes through.
   {
+    // The page is opaque on its white paper (an RGB layer) or not (RGBA): edit pixel 10.
     auto& layer = first.layers().front();
+    const auto pixel = static_cast<std::size_t>(10U * std::as_const(layer).pixels().format().channels);
     auto row = layer.pixels().row(10);
-    const auto before = row[40];
-    row[40] = static_cast<std::uint8_t>(before ^ 0xFFU);
-    row[41] = row[40];
-    row[42] = row[40];
+    const auto before = row[pixel];
+    row[pixel] = static_cast<std::uint8_t>(before ^ 0xFFU);
+    row[pixel + 1U] = row[pixel];
+    row[pixel + 2U] = row[pixel];
     const auto edited_path = QStringLiteral("test-artifacts/ui_pdf_pass_through_edited.pdf");
     QFile::remove(edited_path);
     CHECK(patchy::ui::write_multipage_pdf_file(pages, edited_path, options));
@@ -1353,9 +1337,9 @@ void ui_pdf_pass_through_keeps_original_image_bytes() {
       CHECK(edited[1] == jpegs[1]);
     }
     // Undo: the same pixels as at import are the same page again.
-    row[40] = before;
-    row[41] = before;
-    row[42] = before;
+    row[pixel] = before;
+    row[pixel + 1U] = before;
+    row[pixel + 2U] = before;
     const auto undone_path = QStringLiteral("test-artifacts/ui_pdf_pass_through_undone.pdf");
     QFile::remove(undone_path);
     CHECK(patchy::ui::write_multipage_pdf_file(pages, undone_path, options));
@@ -1482,7 +1466,7 @@ void ui_pdf_import_dialog_fills_thumbnails_lazily_and_estimates_memory() {
     }
     auto* pages = dialog->findChild<QListWidget*>(QStringLiteral("pdfImportPagesList"));
     auto* size_label = dialog->findChild<QLabel*>(QStringLiteral("pdfImportSizeLabel"));
-    auto* resolution = dialog->findChild<QSpinBox*>(QStringLiteral("pdfImportResolutionSpin"));
+    auto* resolution = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportResolutionCombo"));
     if (pages == nullptr || size_label == nullptr || resolution == nullptr) {
       return false;
     }
@@ -1493,11 +1477,11 @@ void ui_pdf_import_dialog_fills_thumbnails_lazily_and_estimates_memory() {
       for (int row = 0; row < pages->count(); ++row) {
         CHECK(!pages->item(row)->icon().isNull());
       }
-      resolution->setValue(300);
+      resolution->setCurrentText(QStringLiteral("300"));
       pages->selectAll();
       CHECK(size_label->text().contains(QStringLiteral("20000")));
       CHECK(size_label->text().contains(QStringLiteral("GB")));
-      resolution->setValue(12);
+      resolution->setCurrentText(QStringLiteral("12"));
       CHECK(!size_label->text().contains(QStringLiteral("GB")));  // 2400 px pages: not worth a line
     }
     for (int row = 0; row < pages->count(); ++row) {
@@ -1873,7 +1857,7 @@ void ui_pdf_import_dialog_opens_selected_pages() {
       return false;
     }
     auto* pages = dialog->findChild<QListWidget*>(QStringLiteral("pdfImportPagesList"));
-    auto* resolution = dialog->findChild<QSpinBox*>(QStringLiteral("pdfImportResolutionSpin"));
+    auto* resolution = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportResolutionCombo"));
     auto* mode = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportModeCombo"));
     auto* import_button = dialog->findChild<QPushButton*>(QStringLiteral("pdfImportButton"));
     if (pages == nullptr || resolution == nullptr || mode == nullptr || import_button == nullptr) {
@@ -1889,7 +1873,7 @@ void ui_pdf_import_dialog_opens_selected_pages() {
       pages_target->setCurrentIndex(std::max(0, pages_target->findData(QStringLiteral("layers"))));
     }
     mode->setCurrentIndex(std::max(0, mode->findData(QStringLiteral("flatten"))));
-    resolution->setValue(72);
+    resolution->setCurrentText(QStringLiteral("72"));
     pages->selectAll();
     CHECK(import_button->isEnabled());
     import_button->click();
@@ -1931,7 +1915,7 @@ void ui_pdf_import_dialog_opens_pages_as_documents() {
       return false;
     }
     auto* pages = dialog->findChild<QListWidget*>(QStringLiteral("pdfImportPagesList"));
-    auto* resolution = dialog->findChild<QSpinBox*>(QStringLiteral("pdfImportResolutionSpin"));
+    auto* resolution = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportResolutionCombo"));
     auto* mode = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportModeCombo"));
     auto* pages_target = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportPagesTargetCombo"));
     auto* size_label = dialog->findChild<QLabel*>(QStringLiteral("pdfImportSizeLabel"));
@@ -1942,7 +1926,7 @@ void ui_pdf_import_dialog_opens_pages_as_documents() {
     }
     mode->setCurrentIndex(std::max(0, mode->findData(QStringLiteral("flatten"))));
     pages_target->setCurrentIndex(std::max(0, pages_target->findData(QStringLiteral("documents"))));
-    resolution->setValue(72);
+    resolution->setCurrentText(QStringLiteral("72"));
     pages->selectAll();
     QApplication::processEvents();
     CHECK(size_label->text().startsWith(QStringLiteral("2 document")));
@@ -2037,7 +2021,7 @@ void ui_pdf_import_editable_opens_every_selected_page() {
       return false;
     }
     auto* pages = dialog->findChild<QListWidget*>(QStringLiteral("pdfImportPagesList"));
-    auto* resolution = dialog->findChild<QSpinBox*>(QStringLiteral("pdfImportResolutionSpin"));
+    auto* resolution = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportResolutionCombo"));
     auto* mode = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportModeCombo"));
     auto* pages_target = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportPagesTargetCombo"));
     auto* import_button = dialog->findChild<QPushButton*>(QStringLiteral("pdfImportButton"));
@@ -2047,7 +2031,10 @@ void ui_pdf_import_editable_opens_every_selected_page() {
     }
     mode->setCurrentIndex(std::max(0, mode->findData(QStringLiteral("editable"))));
     pages_target->setCurrentIndex(std::max(0, pages_target->findData(QStringLiteral("documents"))));
-    resolution->setValue(72);
+    resolution->setCurrentText(QStringLiteral("72"));
+    if (auto* paper = dialog->findChild<QCheckBox*>(QStringLiteral("pdfImportWhiteBackgroundCheck"))) {
+      paper->setChecked(false);
+    }
     pages->selectAll();
     import_button->click();
     *clicked = true;
@@ -2093,7 +2080,7 @@ void ui_pdf_import_editable_mode_builds_vector_and_text_layers() {
     if (dialog == nullptr) {
       return false;
     }
-    auto* resolution = dialog->findChild<QSpinBox*>(QStringLiteral("pdfImportResolutionSpin"));
+    auto* resolution = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportResolutionCombo"));
     auto* mode = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportModeCombo"));
     auto* annotations = dialog->findChild<QCheckBox*>(QStringLiteral("pdfImportAnnotationsCheck"));
     auto* import_button = dialog->findChild<QPushButton*>(QStringLiteral("pdfImportButton"));
@@ -2103,7 +2090,12 @@ void ui_pdf_import_editable_mode_builds_vector_and_text_layers() {
     mode->setCurrentIndex(std::max(0, mode->findData(QStringLiteral("editable"))));
     // The raster-only toggles gray out in editable mode.
     CHECK(!annotations->isEnabled());
-    resolution->setValue(144);
+    resolution->setCurrentText(QStringLiteral("144"));
+    // The paper layer stays on (the default): an editable page gets a white Background
+    // under its artwork (GitHub issue 153).
+    if (auto* paper = dialog->findChild<QCheckBox*>(QStringLiteral("pdfImportWhiteBackgroundCheck"))) {
+      paper->setChecked(true);
+    }
     import_button->click();
     *clicked = true;
     return true;
@@ -2117,12 +2109,19 @@ void ui_pdf_import_editable_mode_builds_vector_and_text_layers() {
   CHECK(opened.width() == 400);
   CHECK(opened.height() == 200);
   CHECK(std::abs(opened.print_settings().horizontal_ppi - 144.0) < 0.01);
-  CHECK(opened.layers().size() == 2);
-  if (opened.layers().size() != 2) {
+  CHECK(opened.layers().size() == 3);
+  if (opened.layers().size() != 3) {
     return;
   }
+  const auto& paper = opened.layers()[0];
+  CHECK(paper.name() == "Background");
+  CHECK(paper.bounds().width == 400 && paper.bounds().height == 200);
+  if (!paper.pixels().empty()) {
+    const auto* corner = paper.pixels().pixel(0, 0);
+    CHECK(corner[0] == 255 && corner[1] == 255 && corner[2] == 255);
+  }
 
-  const auto& shape = opened.layers()[0];
+  const auto& shape = opened.layers()[1];
   CHECK(patchy::layer_is_vector_shape(shape));
   CHECK(shape.vector_shape() != nullptr);
   if (shape.vector_shape() != nullptr) {
@@ -2131,7 +2130,7 @@ void ui_pdf_import_editable_mode_builds_vector_and_text_layers() {
 
   // The text layer arrived rendered: the post-open pass rasterized it through the
   // reader's matrix and stamped the standard transformed-text metadata.
-  const auto& text = opened.layers()[1];
+  const auto& text = opened.layers()[2];
   CHECK(patchy::layer_is_text(text));
   CHECK(text.metadata().at(patchy::kLayerMetadataText) == "Hello PDF");
   CHECK(!text.metadata().contains(patchy::kLayerMetadataPdfPendingText));
@@ -2166,14 +2165,14 @@ void ui_pdf_local_brochure_editable_import_composites_if_available() {
     if (dialog == nullptr) {
       return false;
     }
-    auto* resolution = dialog->findChild<QSpinBox*>(QStringLiteral("pdfImportResolutionSpin"));
+    auto* resolution = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportResolutionCombo"));
     auto* mode = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportModeCombo"));
     auto* import_button = dialog->findChild<QPushButton*>(QStringLiteral("pdfImportButton"));
     if (resolution == nullptr || mode == nullptr || import_button == nullptr) {
       return false;
     }
     mode->setCurrentIndex(std::max(0, mode->findData(QStringLiteral("editable"))));
-    resolution->setValue(96);
+    resolution->setCurrentText(QStringLiteral("96"));
     import_button->click();
     *clicked = true;
     return true;

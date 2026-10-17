@@ -19,6 +19,7 @@
 #include <QBoxLayout>
 #include <QButtonGroup>
 #include <QClipboard>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
 #include <QDoubleSpinBox>
@@ -96,6 +97,22 @@ std::vector<NewDocumentPreset> presets_for_category(PresetCategory category, QSi
       {QStringLiteral("print-8x10"), QObject::tr("8 x 10 in"), QSize(2400, 3000), kPrintPpi},
   };
 }
+
+}  // namespace
+
+std::vector<ArtboardSizePreset> artboard_size_presets() {
+  std::vector<ArtboardSizePreset> presets;
+  for (const auto category : {PresetCategory::Screen, PresetCategory::Print}) {
+    for (const auto& preset : presets_for_category(category, QSize())) {
+      if (!preset.clipboard) {
+        presets.push_back({preset.name, preset.size});
+      }
+    }
+  }
+  return presets;
+}
+
+namespace {
 
 PresetCategory category_of_preset_id(const QString& id) {
   for (const auto& preset : presets_for_category(PresetCategory::Print, QSize())) {
@@ -462,6 +479,11 @@ std::optional<NewDocumentSettings> request_new_document_settings(QWidget* parent
   } else {
     bit_depth->hide();
   }
+  auto* artboards = new QCheckBox(QObject::tr("Artboards"), &dialog);
+  artboards->setObjectName(QStringLiteral("newDocumentArtboardsCheck"));
+  artboards->setToolTip(QObject::tr("Start the document as an artboard the size of the canvas"));
+  artboards->setChecked(app_settings().value(QStringLiteral("newDocument/artboards"), false).toBool());
+  grid->addWidget(artboards, 5, 1, 1, 2);
 
   auto* summary = new QLabel(&dialog);
   summary->setObjectName(QStringLiteral("newDocumentSummaryLabel"));
@@ -824,6 +846,7 @@ std::optional<NewDocumentSettings> request_new_document_settings(QWidget* parent
     settings.endGroup();
     remember_dialog_unit(QStringLiteral("newDocument/lastUnit"), current_unit());
     remember_resolution_unit(QStringLiteral("newDocument/lastResolutionUnit"), resolution_unit->currentIndex());
+    app_settings().setValue(QStringLiteral("newDocument/artboards"), artboards->isChecked());
   }
   const auto chosen_bits = deep_editing_enabled() ? bit_depth->currentData().toInt() : 8;
   return NewDocumentSettings{state.pixel_width,
@@ -834,7 +857,8 @@ std::optional<NewDocumentSettings> request_new_document_settings(QWidget* parent
                              : chosen_bits == 16 ? BitDepth::UInt16
                                                  : BitDepth::UInt8,
                              clipboard_selected,
-                             clipboard_selected ? QApplication::clipboard()->image() : QImage()};
+                             clipboard_selected ? QApplication::clipboard()->image() : QImage(),
+                             !clipboard_selected && artboards->isChecked()};
 }
 
 }  // namespace patchy::ui

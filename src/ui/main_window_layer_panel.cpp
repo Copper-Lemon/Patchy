@@ -3,6 +3,7 @@
 // and the layer-list drag/visibility plumbing. Pure function moves from
 // main_window.cpp; behavior must stay identical.
 
+#include "core/artboard.hpp"
 #include "core/layer.hpp"
 #include "core/pixel_buffer.hpp"
 #include "core/vector_shape.hpp"
@@ -1001,6 +1002,37 @@ void draw_missing_font_thumbnail_badge(QPainter& painter, int size, const QColor
 QPixmap layer_content_thumbnail(const Layer& layer, int document_width, int document_height,
                                 const std::optional<Rect>& crop = std::nullopt) {
   constexpr int kSize = 28;
+  if (layer.kind() == LayerKind::Group && layer.artboard().has_value()) {
+    // An artboard: a page in its own background color (a checker when Transparent)
+    // under a name tab, like the canvas shows it.
+    QPixmap pixmap(kSize, kSize);
+    pixmap.fill(Qt::transparent);
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(QColor(0, 0, 0, 90));
+    painter.drawRect(QRectF(5.7, 9.0, 19.0, 15.0));
+    const QRectF page(4.5, 7.8, 19.0, 15.0);
+    if (const auto paper = artboard_background_rgba(*layer.artboard()); paper.has_value()) {
+      painter.setBrush(QColor((*paper)[0], (*paper)[1], (*paper)[2]));
+      painter.drawRect(page);
+    } else {
+      for (int row = 0; row < 3; ++row) {
+        for (int column = 0; column < 4; ++column) {
+          painter.setBrush((row + column) % 2 == 0 ? QColor(236, 236, 236) : QColor(188, 188, 188));
+          painter.drawRect(QRectF(page.x() + column * page.width() / 4.0, page.y() + row * page.height() / 3.0,
+                                  page.width() / 4.0, page.height() / 3.0));
+        }
+      }
+    }
+    painter.setBrush(Qt::NoBrush);
+    painter.setPen(QPen(QColor(40, 44, 50), 1.0));
+    painter.drawRect(page);
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(QColor(116, 192, 255));
+    painter.drawRoundedRect(QRectF(4.5, 3.6, 10.0, 2.8), 1.2, 1.2);
+    return pixmap;
+  }
   if (layer.kind() == LayerKind::Group) {
     QPixmap pixmap(kSize, kSize);
     pixmap.fill(Qt::transparent);
@@ -1248,6 +1280,7 @@ QWidget* make_layer_row_widget(const Layer& layer, QListWidgetItem* item, QWidge
   row->setObjectName(QStringLiteral("layerRowWidget"));
   row->setAttribute(Qt::WA_StyledBackground, true);
   row->setProperty("layerRowGroup", layer.kind() == LayerKind::Group);
+  row->setProperty("layerRowArtboard", layer_is_artboard(layer));
   row->setProperty("layerRowSelected", false);
   row->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
   auto* list_parent = dynamic_cast<LayerListWidget*>(parent);
@@ -1383,7 +1416,8 @@ QWidget* make_layer_row_widget(const Layer& layer, QListWidgetItem* item, QWidge
         .arg(missing);
   };
   thumbnail->setToolTip(
-      layer.kind() == LayerKind::Group
+      layer_is_artboard(layer) ? QObject::tr("Artboard")
+      : layer.kind() == LayerKind::Group
           ? QObject::tr("Folder layer")
           : layer.kind() == LayerKind::Adjustment
               ? QObject::tr("Adjustment Layer")
@@ -3782,6 +3816,7 @@ void MainWindow::refresh_document_info() {
   const UiProfileScope profile_scope("refresh_document_info");
   refresh_ruler_unit_field_metrics();  // the PPI is per document
   sync_vector_shape_size_spins();
+  sync_artboard_controls();
   refresh_palette_panel();
   schedule_palette_compliance_check();
   if (zoom_status_edit_ != nullptr) {
@@ -3860,7 +3895,8 @@ void MainWindow::refresh_document_info() {
     set_property_label_text(active_layer_info_label_,
                             tr("Layer: %1 | %2 | Mode: %3 | Opacity: %4% | %5%6")
                                 .arg(QString::fromStdString(layer->name()))
-                                .arg(layer_is_text(*layer)           ? layer_kind_name(LayerKind::Text)
+                                .arg(layer_is_artboard(*layer)       ? QObject::tr("Artboard")
+                                     : layer_is_text(*layer)         ? layer_kind_name(LayerKind::Text)
                                      : layer_is_vector_shape(*layer) ? layer_kind_name(LayerKind::Vector)
                                                                      : layer_kind_name(layer->kind()))
                                 .arg(blend_mode_name(layer->blend_mode()))

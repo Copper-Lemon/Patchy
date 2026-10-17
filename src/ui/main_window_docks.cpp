@@ -2047,6 +2047,8 @@ void MainWindow::create_docks() {
     }
   });
 
+  build_properties_artboard_panel(properties_panel, properties_layout);
+
   properties_edit_appearance_button_ = new QPushButton(tr("Edit Appearance..."), properties_panel);
   properties_edit_appearance_button_->setObjectName(QStringLiteral("propertiesEditAppearanceButton"));
   bind_widget_text(properties_edit_appearance_button_, QT_TR_NOOP("Edit Appearance..."));

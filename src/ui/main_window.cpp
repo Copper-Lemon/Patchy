@@ -5681,6 +5681,18 @@ void MainWindow::configure_canvas(CanvasWidget* canvas) {
     refresh_options_bar();
     refresh_document_info();
   });
+  canvas->set_artboard_edit_requested_callback([this, canvas](const ArtboardEditRequest& request) {
+    if (canvas != canvas_) {
+      return;
+    }
+    handle_artboard_edit(request);
+  });
+  canvas->set_layers_moved_callback([this, canvas](const std::vector<LayerId>& moved) {
+    if (canvas != canvas_) {
+      return;
+    }
+    nest_moved_layers_in_artboards(moved);
+  });
   canvas->set_vector_tool_mode(current_vector_tool_mode_);
   canvas->set_pen_auto_add_delete(current_pen_auto_add_delete_);
   canvas->set_vector_shape_drawn_callback(
@@ -8763,6 +8775,21 @@ void MainWindow::render_pending_pdf_text_layers(Document& target) {
       metadata.erase(kLayerMetadataPdfPendingText);
       metadata.erase(kLayerMetadataPdfTextXfrm);
       metadata.erase(kLayerMetadataPdfTextIntendedWidth);
+
+      // GitHub issue 155: the reader's size is the Tf operand in text-space units, and the
+      // points-to-pixels scale (plus any Tm scale; "1 Tf 12 0 0 12 Tm" is what many
+      // producers write) lives in the matrix. Left there, everything the editor sizes in
+      // text-local units (the 3 px caret, the minimum point-text box, the editor font) is
+      // multiplied by it. Fold the em's document height into the font size first, so the
+      // stored transform keeps only rotation, aspect, flip and position.
+      if (transform.has_value()) {
+        const double em_pixels = std::hypot((*transform)[2], (*transform)[3]);
+        if (const auto unfolded = text_render_inputs_from_layer(layer);
+            unfolded.has_value() && std::isfinite(em_pixels) && em_pixels > 0.0) {
+          const double scale = em_pixels / std::max(1, unfolded->settings.size);
+          static_cast<void>(fold_text_transform_scale_into_font_size(layer, QTransform::fromScale(scale, scale)));
+        }
+      }
 
       const auto inputs = text_render_inputs_from_layer(layer);
       if (!transform.has_value() || !inputs.has_value()) {

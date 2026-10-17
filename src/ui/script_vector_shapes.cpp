@@ -1,4 +1,5 @@
 #include "core/vector_compound.hpp"
+#include "core/artboard.hpp"
 #include "ui/script_vector.hpp"
 #include "ui/script_api.hpp"
 #include "core/layer_metadata.hpp"
@@ -246,6 +247,8 @@ QJSValue ScriptDocumentObject::groupLayers(const QJSValue& layers, const QString
     const auto& original = document(host_, session_id_);
     const auto first = find_layer_location(original.layers(), ids.front());
     for (const auto id : ids) { if (find_layer_location(original.layers(), id)->siblings != first->siblings) { invalid("layers.parent"); } }
+    // Artboards stay top level (docs/artboards.md): none goes into a group.
+    for (const auto id : ids) { if (layer_is_artboard(*original.find_layer(id))) { invalid("layers.artboard"); } }
     auto staged = original;
     const auto destination = find_layer_location(staged.layers(), ids.front());
     const auto id = staged.allocate_layer_id();
@@ -267,6 +270,7 @@ void ScriptDocumentObject::moveLayers(const QJSValue& layers, const QJSValue& de
     if (args.contains("parentId") && !args["parentId"].isNull()) {
       bool ok = false; parent = string(args, "parentId").toULongLong(&ok);
       if (!ok || layer(host_, session_id_, *parent, true).kind() != LayerKind::Group) { invalid("parentId"); }
+      for (const auto id : ids) { if (layer_is_artboard(*original.find_layer(id))) { invalid("layers.artboard"); } }
       for (const auto id : ids) {
         if (id == *parent || layer_contains_descendant(*original.find_layer(id), *parent)) { invalid("parentId.cycle"); }
       }

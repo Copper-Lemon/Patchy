@@ -1,8 +1,123 @@
-# Scripting API changes: archive through 2026-09-11
+# Scripting API changes: archive through 2026-09-30
 
 Older entries of the permanent scripting API change log, moved here unchanged in
 substance when [scripting-api-changes.md](scripting-api-changes.md) reached its size
 limit. Newer entries live there. `app.apiVersion` stayed 1 throughout. Newest first.
+
+2026-09-30 (additive): smart objects. `doc.addSmartObject(path, {linked?, x?, y?, width?,
+height?, scale?, name?})` places a file as an embedded or linked smart-object layer
+(the core behind File > Place Embedded and the new File > Place Linked); a linked
+placement of a file the document already links shares that source. Layers expose
+`isSmartObject`, `getSmartObject()` (`{linked, fileName, path, relativePath, missing,
+changed, sourceId, width, height, resolution, quad}` or null) and `updateSmartObject()`
+(Update Smart Object Content for every layer sharing the source; returns the count).
+See [smart-object-editing.md](smart-object-editing.md).
+
+2026-09-28 (additive): `patchy.plugins.folder` (the plug-ins folder next to the
+application, created with its README on read; "" off Windows) and the `captureDialog`
+option of `layer.applyPlugin` (a PNG of the plug-in's own dialog while it is up). See
+[plugins.md](plugins.md).
+
+2026-09-28 (additive): legacy Photoshop plug-ins. `patchy.plugins` (`list()`, `rescan()`,
+`folders` get/set) exposes the `.8bf` filters found in the plug-in folders, and
+`layer.applyPlugin(id, {dialog?})` runs one on a pixel layer inside the selection as one
+undoable edit (`{dialog: false}` skips the plug-in's own dialog; unattended runs never show
+it). Windows only; elsewhere every entry lists as unsupported and `applyPlugin` throws.
+See [plugins.md](plugins.md).
+
+2026-09-27 (additive): paragraph metrics. Text layers expose `textParagraph` (read/write:
+`{firstLineIndent, startIndent, endIndent, spaceBefore, spaceAfter}` in document pixels;
+reading gives the first paragraph, setting merges the given fields into every paragraph), and
+`doc.addTextLayer` takes the same object as its `paragraph` option. See
+[text-tool.md](text-tool.md).
+
+2026-09-26 (additive): rich text. `doc.addTextLayer` accepts an array of runs (`{text, font?,
+size?, bold?, italic?, color?}`) in place of the string, so one layer mixes faces, sizes and
+colors; options gain `box` (`{width, height}`: a wrapping paragraph text box with x/y as its
+top-left corner) and `align`. Text layers expose `textRuns` (the stored runs), `textBox`
+(`{width, height}` or null), `textAlign` (read/write) and `setTextRuns(runs)`, which retypes
+the layer with formatted runs on top of the first character's formatting. See
+[text-tool.md](text-tool.md).
+
+2026-09-26 (behavioral fixes): `doc.addTextLayer` renders exactly the face its options name.
+The session seeded its face from the options bar's style picker, so with the bar parked on a
+Semibold or Black layer every scripted layer in a family offering that face took it,
+whatever `font`, `bold` and `italic` said. The requested `size` is now committed exactly
+at every canvas zoom, and an unchanged `layer.text` re-edit keeps the size (the whole-pixel
+editor font divided by a low zoom used to shift it by a pixel or two). On Windows `font`
+also accepts a face's full name or PostScript name ("Futura Extra Black BT",
+"FuturaBT-ExtraBlack") for the face the database lists as family + style. See
+[text-tool.md](text-tool.md).
+
+2026-09-26 (additive): `app.listFonts()` returns every family the text engine can use as
+`{family, styles, writingSystems}` objects sorted by family, loading the installed
+fonts first under `--headless` on Windows.
+
+2026-09-26 (behavioral fix plus additive): `doc.addTextLayer`'s `font` option now takes
+effect. The script path set the family on the editor's character format only, while the
+commit read the session's family, so every script-made text layer rendered in the options
+bar's current font. A family that is not installed now logs a console warning naming it,
+and text layers expose a read-only `layer.textFont` (the stored family name, `""` for
+other layers). See [text-tool.md](text-tool.md).
+
+2026-09-25 (additive): `patchy.recovery` exposes the automatic document recovery store:
+`enabled` and `intervalMinutes` (the Preferences values), `directory`, `writeNow()`,
+`listFiles()`, `listOrphaned()`, `recoverAll()`, and `discardOrphaned()`. See
+[document-recovery.md](document-recovery.md).
+
+2026-09-25 (additive): `doc.importFilesAsLayers(paths)` adds image files as layers directly
+above the active layer, bottom to top in argument order (the core behind File > Import >
+Files as Layers, the Layers-panel file drop, and Paste with copied files). A multi-layer
+file becomes a folder named after it; an unreadable file throws without adding anything.
+See [import.md](import.md).
+
+2026-09-25 (behavioral fix): the `layer.text` setter replaces the text the way retyping it
+in the editor does, so the new text keeps the first character's run formatting (exact
+fractional size, Character-panel glyph scales, leading, tracking, faux styles). It used to
+delete the text first and re-insert at the session's fallback font, so an imported
+Photoshop layer with a 0.93 vertical glyph scale re-rendered 7.5% taller than the same
+layer applied interactively. See [text-tool.md](text-tool.md).
+
+2026-09-24 (additive): `layer.removeObject(options?)` gains `toneMatch` (0..100, default
+0, the raw exemplar fill), `feather` (px, default 0; softens the fill's edge
+outward), and, for the content-aware method, `attempt` as the variation number (0 = the
+best-match fill, each n > 0 a different reproducible fill, the dialog's Reroll). The
+result gains `attempt`. Existing calls are unchanged. See [healing.md](healing.md).
+
+2026-09-22 (additive plus behavioral): `app.exportPdf` options gain `imageQuality`
+(`"lossless"`, `"high"`, `"medium"`, `"low"`; an unknown id throws), which wins over
+`lossless`. Image pages now go through Patchy's own PDF writer: `lossless: false` means
+JPEG quality 90 (it was Qt's fixed 94), and gray pages are written as one channel in every
+mode. The default stays lossless. `keepOriginalImageData` (default true) writes a page that
+was imported from a PDF as one image, and has not visibly changed since, with that image's
+original bytes. Pinned by `ui_script_export_pdf_writes_pages`.
+
+2026-09-22 (additive): `doc.alignLayers(edge, options?)` and `doc.distributeLayers(mode,
+options?)` run Layer > Arrange > Align / Distribute (`edge` ids `left`, `hcenter`, `right`,
+`top`, `vcenter`, `bottom`; Distribute adds `hspacing`, `vspacing`; options `layers` and,
+for Align, `alignTo: "selection" | "canvas"`). Both return the number of layers moved and
+ride the run's single undo entry. See [alignment.md](alignment.md).
+
+2026-09-22 (additive): `layer.removeObject(options?)` runs Edit > Remove Object on the
+document selection. `{method}` is `"contentAware"` (default, the exhaustive exemplar
+fill) or `"nearestEdge"` (the selection form of Spot Healing, where `{attempt}` picks
+the source candidate); the call returns `{method, patches, source, sourceCount}`. The
+layer must be the active layer. See [healing.md](healing.md).
+
+2026-09-21 (additive): `PatchyShapeState.feather` (px) and `.density` (0..100), plus
+`layer.updateShape({feather, density})`: Photoshop's vector-mask Feather / Density on a
+shape layer's own path, the same convention as `setVectorMask`. Pinned by
+`ui_script_shape_feather_and_density`.
+
+2026-09-21 (additive): `app.exportPdf(documents, path, options?)` writes a multi-page PDF
+with one page per document (`lossless`, `editableLayers`, `missingFontsAsImages`
+options), the same writer as File > Export Multi-Page PDF. See [pdf.md](pdf.md).
+
+2026-09-20 (additive): vertical type and paragraph direction. `doc.addTextLayer` takes
+`orientation` (`"horizontal"` | `"vertical"`) and `direction` (`"auto"` | `"ltr"` |
+`"rtl"`); text layers expose `textOrientation` and `textDirection` (read/write, a write
+re-renders through the same hidden session as `text`). Invalid values throw. See
+[text-tool.md](text-tool.md).
 
 2026-09-11 (additive): `layer.duplicate(targetDocument?)` accepts another open document
 and copies the layer there, above its active layer at the same coordinates (centered when

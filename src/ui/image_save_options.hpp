@@ -44,6 +44,11 @@ struct ImageSaveOptions {
   // Options dialog shows the checkbox only then.
   bool pdf_keep_original_images{true};
   bool pdf_original_image_data_available{false};
+  // PDF: one page per artboard (PdfExportOptions::artboard_pages). Persists as
+  // saveOptions/pdfArtboardPages; pdf_artboards_available is per save (the document has
+  // artboards) and shows the choice in PDF Options.
+  bool pdf_artboard_pages{true};
+  bool pdf_artboards_available{false};
   // PDF: keep layers as editable objects (paths, real text, images) instead of one
   // flattened image. Per save, never a persisted default: MainWindow::resolve_pdf_layer_choice
   // sets it from the saveOptions/pdfLayerPolicy preference or the flatten-or-keep question.

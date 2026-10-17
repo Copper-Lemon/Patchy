@@ -266,6 +266,14 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   register_hotkey(export_documents_folder_action, "file.export_documents_to_folder");
   connect(export_documents_folder_action, &QAction::triggered, this, [this] { export_documents_to_folder(); });
   register_document_action(export_documents_folder_action);
+  // One file per artboard of this document (docs/artboards.md).
+  auto* export_artboards_action = export_menu->addAction(tr("&Artboards to Files..."));
+  bind_action_text(export_artboards_action, QT_TR_NOOP("&Artboards to Files..."));
+  export_artboards_action->setObjectName(QStringLiteral("fileExportArtboardsAction"));
+  export_artboards_action->setMenuRole(QAction::NoRole);
+  register_hotkey(export_artboards_action, "file.export_artboards");
+  connect(export_artboards_action, &QAction::triggered, this, [this] { export_artboards_to_files(); });
+  register_document_action(export_artboards_action);
   // Above the line: whole documents. Below it: the layers of the active one.
   export_menu->addSeparator();
   auto* export_sprite_sheet_action = export_menu->addAction(tr("Layers as Sprite S&heet..."));
@@ -717,6 +725,37 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
                   QKeySequence(Qt::CTRL | Qt::ALT | Qt::SHIFT | Qt::Key_T));
   connect(trace_image_action, &QAction::triggered, this, [this] { trace_image_to_shapes(); });
   register_document_action(trace_image_action);
+  // Artboards (docs/artboards.md), in New like Photoshop's Layer > New > Artboard.
+  layer_new_menu->addSeparator();
+  const auto add_menu_command = [this](QMenu* menu, const char* source, const char* object_name, const char* hotkey_id,
+                                       const char* status_source, std::function<void()> handler) {
+    auto* action = menu->addAction(QString());
+    action->setObjectName(QLatin1String(object_name));
+    action->setMenuRole(QAction::NoRole);
+    action->setProperty("patchy.channelViewBlocked", true);
+    bind_action_text(action, source);
+    bind_translated_status_tip(action, status_source);
+    apply_bound_translation(action);
+    register_hotkey(action, QString::fromLatin1(hotkey_id));
+    connect(action, &QAction::triggered, this, [handler = std::move(handler)] { handler(); });
+    register_document_action(action);
+    return action;
+  };
+  add_menu_command(layer_new_menu, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "&Artboard..."), "layerNewArtboardAction",
+                   "layer.new_artboard", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Add an artboard beside the others"),
+                   [this] { new_artboard(); });
+  add_menu_command(layer_new_menu, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Artboard from &Group"),
+                   "layerArtboardFromGroupAction", "layer.artboard_from_group",
+                   QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Make the selected top-level group an artboard around its content"),
+                   [this] { artboard_from_group(); });
+  add_menu_command(layer_new_menu, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Artboard from &Layers"),
+                   "layerArtboardFromLayersAction", "layer.artboard_from_layers",
+                   QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Put the selected layers on a new artboard around them"),
+                   [this] { artboard_from_layers(); });
+  add_menu_command(layer_new_menu, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Convert Artboard to Gr&oup"),
+                   "layerArtboardToGroupAction", "layer.artboard_to_group",
+                   QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Turn the selected artboard into a plain group, keeping its layers"),
+                   [this] { convert_artboard_to_group(); });
   auto* new_adjustment_layer_menu = layer_menu->addMenu(tr("New &Adjustment Layer"));
   new_adjustment_layer_menu->setObjectName(QStringLiteral("layerNewAdjustmentMenu"));
   populate_new_adjustment_layer_menu(new_adjustment_layer_menu, QStringLiteral("layerNew"));
@@ -1356,6 +1395,17 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
       crop_advanced_action,
       QT_TR_NOOP("Open Canvas Size prefilled with the selection so the crop can be adjusted before it is applied"));
   apply_bound_translation(crop_advanced_action);
+  {
+    auto* fit_artboards_action = image_menu->addAction(QString());
+    fit_artboards_action->setObjectName(QStringLiteral("imageFitCanvasToArtboardsAction"));
+    bind_action_text(fit_artboards_action, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Fit Canvas to A&rtboards"));
+    bind_translated_status_tip(fit_artboards_action,
+                               QT_TR_NOOP("Shrink or grow the canvas to just hold the artboards and the layers beside them"));
+    apply_bound_translation(fit_artboards_action);
+    register_hotkey(fit_artboards_action, QStringLiteral("image.fit_canvas_to_artboards"));
+    connect(fit_artboards_action, &QAction::triggered, this, [this] { fit_canvas_to_artboards_command(); });
+    register_document_action(fit_artboards_action);
+  }
   image_menu->addSeparator();
   // "Right" is the 90-degree clockwise turn and "Left" the counterclockwise one; the object
   // names and hotkey ids keep their persisted clockwise/counterclockwise identities.

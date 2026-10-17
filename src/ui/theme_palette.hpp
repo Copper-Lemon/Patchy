@@ -283,6 +283,13 @@ struct ThemePalette {
   // canvas (docs/alignment.md). Magenta like Photoshop's Smart Guides; drawn
   // over artwork, so Light restates it instead of flipping it.
   QColor canvas_snap_guide;
+  // Artboards on the canvas (docs/artboards.md): every artboard's outline and name
+  // label, the selected one's outline, label and handles in the selected color, and the
+  // Artboard tool's handle fill. Drawn over the pasteboard and artwork alike.
+  QColor canvas_artboard_outline;
+  QColor canvas_artboard_label;
+  QColor canvas_artboard_selected;
+  QColor canvas_artboard_handle;
 
   // Scroll bars. The canvas track slaves to the canvas backdrop rather than the
   // window surface: it is document-window chrome sitting against the pasteboard,

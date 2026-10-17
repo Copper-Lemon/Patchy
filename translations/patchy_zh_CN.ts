@@ -7031,10 +7031,6 @@ RGB：%2, %3, %4</translation>
         <translation>导入为:</translation>
     </message>
     <message>
-        <source> ppi</source>
-        <translation> ppi</translation>
-    </message>
-    <message>
         <source>Include annotations</source>
         <translation>包含注释</translation>
     </message>
@@ -7053,10 +7049,6 @@ RGB：%2, %3, %4</translation>
     <message>
         <source>Select at least one page.</source>
         <translation>请至少选择一个页面。</translation>
-    </message>
-    <message>
-        <source>Editable import brings in one page; page %1 was imported.</source>
-        <translation>可编辑导入只会导入一页；已导入第 %1 页。</translation>
     </message>
     <message>
         <source>Some artwork could not be kept editable; reimport with &quot;Flattened image per page&quot; for an exact copy.</source>
@@ -10204,6 +10196,122 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>Animated PNG: imported the default image only (%1)</source>
         <translation>动画 PNG：仅导入了默认图像（%1）</translation>
+    </message>
+    <message>
+        <source>Only a layer group can be an artboard</source>
+        <translation>只有图层组可以作为画板</translation>
+    </message>
+    <message>
+        <source>ppi</source>
+        <translation>ppi</translation>
+    </message>
+    <message>
+        <source>RGB Color</source>
+        <translation>RGB 颜色</translation>
+    </message>
+    <message>
+        <source>CMYK Color</source>
+        <translation>CMYK 颜色</translation>
+    </message>
+    <message>
+        <source>Indexed Color (Palette)</source>
+        <translation>索引颜色（调色板）</translation>
+    </message>
+    <message>
+        <source>White page background</source>
+        <translation>白色页面背景</translation>
+    </message>
+    <message>
+        <source>Open in reverse order</source>
+        <translation>按相反顺序打开</translation>
+    </message>
+    <message>
+        <source>Enter a resolution from %1 to %2 ppi.</source>
+        <translation>请输入 %1 到 %2 ppi 之间的分辨率。</translation>
+    </message>
+    <message>
+        <source>Indexed color needs &quot;Flattened image per page&quot;: shapes, text and images cannot be converted to a palette.</source>
+        <translation>索引颜色需要“每页一个拼合图像”：形状、文本和图像无法转换为调色板。</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>将画板导出到文件</translation>
+    </message>
+    <message>
+        <source>Artboards</source>
+        <translation>画板</translation>
+    </message>
+    <message>
+        <source>Add puts a number after a name that is already taken; Overwrite asks before replacing anything.</source>
+        <translation>“添加”会在已被占用的名称后加上编号；“覆盖”在替换任何文件前询问。</translation>
+    </message>
+    <message>
+        <source>Select at least one artboard.</source>
+        <translation>请至少选择一个画板。</translation>
+    </message>
+    <message>
+        <source>Each artboard as its own page</source>
+        <translation>每个画板单独成页</translation>
+    </message>
+    <message>
+        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
+        <translation>每个画板一页，页面与画板同大。不勾选时，整个画布为一页。</translation>
+    </message>
+    <message>
+        <source>%1 (%2 x %3)</source>
+        <translation>%1 (%2 x %3)</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>画板</translation>
+    </message>
+    <message numerus="yes">
+        <source>One page per artboard of the current document (%n artboard(s))</source>
+        <translation>
+            <numerusform>当前文档的每个画板一页（%n 个画板）</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>One page per artboard (the current document has none)</source>
+        <translation>每个画板一页（当前文档没有画板）</translation>
+    </message>
+    <message>
+        <source>Start the document as an artboard the size of the canvas</source>
+        <translation>以与画布同大的画板开始文档</translation>
+    </message>
+    <message>
+        <source>%1 pages became artboards.</source>
+        <translation>%1 页已成为画板。</translation>
+    </message>
+    <message>
+        <source>Artboards in one document</source>
+        <translation>单个文档中的画板</translation>
+    </message>
+    <message>
+        <source>%1 artboard(s), first page %2 x %3 px</source>
+        <translation>%1 个画板，第一页 %2 x %3 px</translation>
+    </message>
+    <message>
+        <source>%1 pages imported as folders; only the first starts visible.</source>
+        <translation>已将 %1 页导入为文件夹；起初只有第一个可见。</translation>
+    </message>
+    <message>
+        <source>Match each artboard</source>
+        <translation>匹配每个画板</translation>
+    </message>
+    <message>
+        <source>Each page is the size of its artboard, printed at actual size. Save PDF changes the sheet per page; a printer keeps the paper chosen above.</source>
+        <translation>每页与其画板同大，按实际大小打印。保存 PDF 时每页更换纸张；打印机则保持上面选择的纸张。</translation>
+    </message>
+    <message numerus="yes">
+        <source>Each Artboard as a Page (%n page(s))</source>
+        <translation>
+            <numerusform>每个画板一页（%n 页）</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>A PDF image could not be made gray and kept its colors.</source>
+        <translation>某个 PDF 图像无法转为灰色，保留了原来的颜色。</translation>
     </message>
 </context>
 <context>
@@ -21106,6 +21214,274 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
         <source>Remove from Recent Files</source>
         <translation>从最近使用的文件中移除</translation>
     </message>
+    <message>
+        <source>The pages stayed RGB: Indexed color needs flattened 8-bit pages.</source>
+        <translation>页面保持为 RGB：索引颜色需要拼合的 8 位页面。</translation>
+    </message>
+    <message>
+        <source>&amp;Artboards to Files...</source>
+        <translation>画板到文件(&amp;A)...</translation>
+    </message>
+    <message>
+        <source>&amp;Artboard...</source>
+        <translation>画板(&amp;A)...</translation>
+    </message>
+    <message>
+        <source>Add an artboard beside the others</source>
+        <translation>在其他画板旁添加一个画板</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Group</source>
+        <translation>从组创建画板(&amp;G)</translation>
+    </message>
+    <message>
+        <source>Make the selected top-level group an artboard around its content</source>
+        <translation>将所选顶层组变为包围其内容的画板</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Layers</source>
+        <translation>从图层创建画板(&amp;L)</translation>
+    </message>
+    <message>
+        <source>Put the selected layers on a new artboard around them</source>
+        <translation>将所选图层放入包围它们的新画板</translation>
+    </message>
+    <message>
+        <source>Convert Artboard to Gr&amp;oup</source>
+        <translation>将画板转换为组(&amp;O)</translation>
+    </message>
+    <message>
+        <source>Turn the selected artboard into a plain group, keeping its layers</source>
+        <translation>将所选画板变为普通组，保留其图层</translation>
+    </message>
+    <message>
+        <source>Fit Canvas to A&amp;rtboards</source>
+        <translation>使画布适合画板(&amp;R)</translation>
+    </message>
+    <message>
+        <source>Shrink or grow the canvas to just hold the artboards and the layers beside them</source>
+        <translation>缩小或扩大画布，使其刚好容纳画板及其旁边的图层</translation>
+    </message>
+    <message>
+        <source>Size preset for the selected artboard, or for new artboards</source>
+        <translation>所选画板或新画板的尺寸预设</translation>
+    </message>
+    <message>
+        <source>Width of the selected artboard, or of new artboards</source>
+        <translation>所选画板或新画板的宽度</translation>
+    </message>
+    <message>
+        <source>Swap width and height (portrait or landscape)</source>
+        <translation>交换宽度和高度（纵向或横向）</translation>
+    </message>
+    <message>
+        <source>Height of the selected artboard, or of new artboards</source>
+        <translation>所选画板或新画板的高度</translation>
+    </message>
+    <message>
+        <source>Background:</source>
+        <translation>背景:</translation>
+    </message>
+    <message>
+        <source>Background of the selected artboard, or of new artboards</source>
+        <translation>所选画板或新画板的背景</translation>
+    </message>
+    <message>
+        <source>Add Artboard</source>
+        <translation>添加画板</translation>
+    </message>
+    <message>
+        <source>Add an artboard of this size beside the others</source>
+        <translation>在其他画板旁添加此尺寸的画板</translation>
+    </message>
+    <message>
+        <source>Auto-Nest Layers</source>
+        <translation>自动嵌套图层</translation>
+    </message>
+    <message>
+        <source>A layer moved onto an artboard joins it, and one moved off every artboard leaves it</source>
+        <translation>移到画板上的图层会加入该画板，移出所有画板的图层会离开画板</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>画板</translation>
+    </message>
+    <message>
+        <source>Drag on empty space to add an artboard, drag an artboard to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it.</source>
+        <translation>在空白处拖动以添加画板，拖动画板可连同内容移动（%ALT% 复制），拖动手柄可调整大小，单击 + 可在旁边添加一个。</translation>
+    </message>
+    <message>
+        <source>Artboard: drag on empty space to add an artboard, drag one or its name to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it, double-click a name to rename it. Arrows nudge.</source>
+        <translation>画板：在空白处拖动以添加画板，拖动画板或其名称可连同内容移动（%ALT% 复制），拖动手柄可调整大小，单击 + 可在旁边添加，双击名称可重命名。方向键可微移。</translation>
+    </message>
+    <message>
+        <source>Move Tools</source>
+        <translation>移动工具</translation>
+    </message>
+    <message>
+        <source>Cycle Move Tools</source>
+        <translation>循环切换移动工具</translation>
+    </message>
+    <message>
+        <source>New artboard</source>
+        <translation>新建画板</translation>
+    </message>
+    <message>
+        <source>Added artboard %1</source>
+        <translation>已添加画板 %1</translation>
+    </message>
+    <message>
+        <source>Duplicate artboard</source>
+        <translation>复制画板</translation>
+    </message>
+    <message>
+        <source>Nudge artboard</source>
+        <translation>微移画板</translation>
+    </message>
+    <message>
+        <source>Move artboard</source>
+        <translation>移动画板</translation>
+    </message>
+    <message>
+        <source>Duplicated artboard</source>
+        <translation>已复制画板</translation>
+    </message>
+    <message>
+        <source>Moved artboard</source>
+        <translation>已移动画板</translation>
+    </message>
+    <message>
+        <source>Resize artboard</source>
+        <translation>调整画板大小</translation>
+    </message>
+    <message>
+        <source>Artboard is %1 x %2 px</source>
+        <translation>画板为 %1 x %2 px</translation>
+    </message>
+    <message>
+        <source>Artboard background</source>
+        <translation>画板背景</translation>
+    </message>
+    <message>
+        <source>Changed the artboard background</source>
+        <translation>已更改画板背景</translation>
+    </message>
+    <message>
+        <source>Rename Artboard</source>
+        <translation>重命名画板</translation>
+    </message>
+    <message>
+        <source>Rename artboard</source>
+        <translation>重命名画板</translation>
+    </message>
+    <message>
+        <source>Renamed the artboard %1</source>
+        <translation>已将画板重命名为 %1</translation>
+    </message>
+    <message>
+        <source>New Artboard</source>
+        <translation>新建画板</translation>
+    </message>
+    <message>
+        <source>Artboard Background</source>
+        <translation>画板背景</translation>
+    </message>
+    <message>
+        <source>Select a top-level group to turn into an artboard</source>
+        <translation>请选择要变为画板的顶层组</translation>
+    </message>
+    <message>
+        <source>Artboard from group</source>
+        <translation>从组创建画板</translation>
+    </message>
+    <message>
+        <source>Made %1 an artboard</source>
+        <translation>已将 %1 变为画板</translation>
+    </message>
+    <message>
+        <source>Select the layers to put on the new artboard</source>
+        <translation>请选择要放入新画板的图层</translation>
+    </message>
+    <message>
+        <source>Artboard from Layers takes layers that are not on an artboard</source>
+        <translation>从图层创建画板只接受不在画板上的图层</translation>
+    </message>
+    <message>
+        <source>Artboard from layers</source>
+        <translation>从图层创建画板</translation>
+    </message>
+    <message>
+        <source>Put the layers on a new artboard</source>
+        <translation>已将图层放入新画板</translation>
+    </message>
+    <message>
+        <source>Select an artboard to turn into a group</source>
+        <translation>请选择要变为组的画板</translation>
+    </message>
+    <message>
+        <source>Convert artboard to group</source>
+        <translation>将画板转换为组</translation>
+    </message>
+    <message>
+        <source>Converted the artboard to a group</source>
+        <translation>已将画板转换为组</translation>
+    </message>
+    <message>
+        <source>The document has no artboards</source>
+        <translation>文档没有画板</translation>
+    </message>
+    <message>
+        <source>The canvas already fits the artboards</source>
+        <translation>画布已适合画板</translation>
+    </message>
+    <message>
+        <source>Fit canvas to artboards</source>
+        <translation>使画布适合画板</translation>
+    </message>
+    <message>
+        <source>Canvas is %1 x %2 px</source>
+        <translation>画布为 %1 x %2 px</translation>
+    </message>
+    <message>
+        <source>Left edge of the artboard</source>
+        <translation>画板的左边缘</translation>
+    </message>
+    <message>
+        <source>Top edge of the artboard</source>
+        <translation>画板的上边缘</translation>
+    </message>
+    <message>
+        <source>Width of the artboard</source>
+        <translation>画板的宽度</translation>
+    </message>
+    <message>
+        <source>Height of the artboard</source>
+        <translation>画板的高度</translation>
+    </message>
+    <message>
+        <source>Layer 1</source>
+        <translation>图层 1</translation>
+    </message>
+    <message>
+        <source>Page %1</source>
+        <translation>第 %1 页</translation>
+    </message>
+    <message>
+        <source>This document has no artboards</source>
+        <translation>此文档没有画板</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>将画板导出到文件</translation>
+    </message>
+    <message>
+        <source>An artboard cannot go inside a folder</source>
+        <translation>画板不能放入文件夹</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
+        <translation>画板不能使画布大于 %1 x %1 px</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22810,6 +23186,22 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
     <message>
         <source>CMYK values are percentages from 0 to 100</source>
         <translation>CMYK 值是 0 到 100 的百分比</translation>
+    </message>
+    <message>
+        <source>Invalid artboard option or target: %1.</source>
+        <translation>画板选项或目标无效：%1。</translation>
+    </message>
+    <message>
+        <source>The artboards could not be exported.</source>
+        <translation>无法导出画板。</translation>
+    </message>
+    <message>
+        <source>exportArtboards cannot write .%1 files.</source>
+        <translation>exportArtboards 无法写入 .%1 文件。</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
+        <translation>画板不能使画布大于 %1 x %1 px。</translation>
     </message>
 </context>
 <context>

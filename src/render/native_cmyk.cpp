@@ -1,4 +1,5 @@
 #include "render/native_cmyk.hpp"
+#include "core/artboard.hpp"
 
 #include "color/color_management.hpp"
 #include "core/psd_source_colors.hpp"
@@ -357,7 +358,8 @@ std::optional<PixelBuffer> render_native_cmyk8(
   if (!space || space->mode != 4 || space->depth != BitDepth::UInt8 ||
       document.color_state().bit_depth != BitDepth::UInt8 ||
       !document.color_state().embedded_icc_profile.empty() ||
-      render_detail::raster_view_context != nullptr || !supported_layers(document.layers())) return std::nullopt;
+      render_detail::raster_view_context != nullptr || !supported_layers(document.layers()) ||
+      document_has_artboards(document)) return std::nullopt;  // artboard paper is RGB: the RGB path draws it
   // A flat PSD has already converted its composite through the source profile.
   // With no native layer records there is no ink blend to reconstruct; an RGB
   // round trip through the CMYK gamut would only damage that correct preview.

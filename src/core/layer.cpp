@@ -646,6 +646,37 @@ void Layer::add_child(Layer child) {
   content_revision_ = next_layer_revision();
 }
 
+const std::optional<LayerArtboard>& Layer::artboard() const noexcept {
+  return artboard_;
+}
+
+void Layer::set_artboard(LayerArtboard artboard) {
+  if (kind_ != LayerKind::Group) {
+    throw std::logic_error(PATCHY_TRANSLATE_NOOP("QObject", "Only a layer group can be an artboard"));
+  }
+  artboard_ = std::move(artboard);
+  render_revision_ = next_layer_revision();
+  content_revision_ = next_layer_revision();
+}
+
+void Layer::clear_artboard() noexcept {
+  if (!artboard_.has_value()) {
+    return;
+  }
+  artboard_.reset();
+  render_revision_ = next_layer_revision();
+  content_revision_ = next_layer_revision();
+}
+
+void Layer::translate_artboard(std::int32_t dx, std::int32_t dy) noexcept {
+  if (!artboard_.has_value() || (dx == 0 && dy == 0)) {
+    return;
+  }
+  artboard_->rect.x += dx;
+  artboard_->rect.y += dy;
+  render_revision_ = next_layer_revision();
+}
+
 void Layer::mark_render_changed() noexcept {
   render_revision_ = next_layer_revision();
 }

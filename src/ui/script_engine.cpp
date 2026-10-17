@@ -1,4 +1,5 @@
 #include "ui/image_document_io.hpp"
+#include "ui/export_documents_folder_dialog.hpp"
 #include "ui/animation_preview_window.hpp"
 #include "formats/webp_animation_io.hpp"
 // The JS scripting engine host (docs/scripting.md): per-run QJSEngine lifecycle,
@@ -1202,6 +1203,33 @@ bool ScriptEngineHost::export_sessions_to_pdf(const std::vector<std::int64_t>& s
     return false;
   }
   return true;
+}
+
+std::optional<QStringList> ScriptEngineHost::export_artboards(std::int64_t session_id,
+                                                              const std::vector<LayerId>& artboard_ids,
+                                                              const QString& folder, const QString& extension,
+                                                              const std::optional<QString>& prefix, bool overwrite,
+                                                              QString* error) {
+  pump_progress_indicator();
+  const auto* session = window_.session_with_id(session_id);
+  if (session == nullptr) {
+    *error = tr("The document is no longer open.");
+    return std::nullopt;
+  }
+  if (!window_.export_documents_format_supported(extension)) {
+    *error = tr("exportArtboards cannot write .%1 files.").arg(extension);
+    return std::nullopt;
+  }
+  ImageSequenceNaming naming;
+  naming.use_layer_names = true;
+  if (prefix.has_value()) {
+    naming.prefix = *prefix;
+  } else if (const auto base = QFileInfo(session->title).completeBaseName(); !base.isEmpty()) {
+    naming.prefix = base + QStringLiteral(" - ");
+  }
+  return window_.export_artboards_to_folder(
+      std::as_const(session->document), artboard_ids, folder, extension, naming,
+      overwrite ? ExportDocumentsExistingFiles::Overwrite : ExportDocumentsExistingFiles::AddNumbering, error);
 }
 
 bool ScriptEngineHost::close_session(std::int64_t session_id) {

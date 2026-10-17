@@ -7048,10 +7048,6 @@ RGB: %2, %3, %4</translation>
         <translation>Importa come:</translation>
     </message>
     <message>
-        <source> ppi</source>
-        <translation> ppi</translation>
-    </message>
-    <message>
         <source>Include annotations</source>
         <translation>Includi annotazioni</translation>
     </message>
@@ -7070,10 +7066,6 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Select at least one page.</source>
         <translation>Seleziona almeno una pagina.</translation>
-    </message>
-    <message>
-        <source>Editable import brings in one page; page %1 was imported.</source>
-        <translation>L&apos;importazione modificabile include una sola pagina; è stata importata la pagina %1.</translation>
     </message>
     <message>
         <source>Some artwork could not be kept editable; reimport with &quot;Flattened image per page&quot; for an exact copy.</source>
@@ -10234,6 +10226,124 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>Animated PNG: imported the default image only (%1)</source>
         <translation>PNG animato: importata solo l&apos;immagine predefinita (%1)</translation>
+    </message>
+    <message>
+        <source>Only a layer group can be an artboard</source>
+        <translation>Solo un gruppo di livelli può essere una tavola da disegno</translation>
+    </message>
+    <message>
+        <source>ppi</source>
+        <translation>ppi</translation>
+    </message>
+    <message>
+        <source>RGB Color</source>
+        <translation>Colore RGB</translation>
+    </message>
+    <message>
+        <source>CMYK Color</source>
+        <translation>Colore CMYK</translation>
+    </message>
+    <message>
+        <source>Indexed Color (Palette)</source>
+        <translation>Colore indicizzato (tavolozza)</translation>
+    </message>
+    <message>
+        <source>White page background</source>
+        <translation>Sfondo pagina bianco</translation>
+    </message>
+    <message>
+        <source>Open in reverse order</source>
+        <translation>Apri in ordine inverso</translation>
+    </message>
+    <message>
+        <source>Enter a resolution from %1 to %2 ppi.</source>
+        <translation>Inserisci una risoluzione da %1 a %2 ppi.</translation>
+    </message>
+    <message>
+        <source>Indexed color needs &quot;Flattened image per page&quot;: shapes, text and images cannot be converted to a palette.</source>
+        <translation>Il colore indicizzato richiede &quot;Immagine unificata per ogni pagina&quot;: forme, testo e immagini non possono essere convertiti in una tavolozza.</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>Esporta tavole da disegno come file</translation>
+    </message>
+    <message>
+        <source>Artboards</source>
+        <translation>Tavole da disegno</translation>
+    </message>
+    <message>
+        <source>Add puts a number after a name that is already taken; Overwrite asks before replacing anything.</source>
+        <translation>Aggiungi mette un numero dopo un nome già usato; Sovrascrivi chiede conferma prima di sostituire qualsiasi cosa.</translation>
+    </message>
+    <message>
+        <source>Select at least one artboard.</source>
+        <translation>Seleziona almeno una tavola da disegno.</translation>
+    </message>
+    <message>
+        <source>Each artboard as its own page</source>
+        <translation>Ogni tavola da disegno come pagina a sé</translation>
+    </message>
+    <message>
+        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
+        <translation>Una pagina per tavola da disegno, delle sue dimensioni. Se deselezionato, l&apos;intero quadro è una pagina.</translation>
+    </message>
+    <message>
+        <source>%1 (%2 x %3)</source>
+        <translation>%1 (%2 x %3)</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>Tavola da disegno</translation>
+    </message>
+    <message numerus="yes">
+        <source>One page per artboard of the current document (%n artboard(s))</source>
+        <translation>
+            <numerusform>Una pagina per tavola da disegno del documento corrente (%n tavola)</numerusform>
+            <numerusform>Una pagina per tavola da disegno del documento corrente (%n tavole)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>One page per artboard (the current document has none)</source>
+        <translation>Una pagina per tavola da disegno (il documento corrente non ne ha)</translation>
+    </message>
+    <message>
+        <source>Start the document as an artboard the size of the canvas</source>
+        <translation>Inizia il documento con una tavola da disegno grande quanto il quadro</translation>
+    </message>
+    <message>
+        <source>%1 pages became artboards.</source>
+        <translation>%1 pagine sono diventate tavole da disegno.</translation>
+    </message>
+    <message>
+        <source>Artboards in one document</source>
+        <translation>Tavole da disegno in un unico documento</translation>
+    </message>
+    <message>
+        <source>%1 artboard(s), first page %2 x %3 px</source>
+        <translation>%1 tavola/e da disegno, prima pagina %2 x %3 px</translation>
+    </message>
+    <message>
+        <source>%1 pages imported as folders; only the first starts visible.</source>
+        <translation>%1 pagine importate come cartelle; all&apos;inizio è visibile solo la prima.</translation>
+    </message>
+    <message>
+        <source>Match each artboard</source>
+        <translation>Adatta a ogni tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Each page is the size of its artboard, printed at actual size. Save PDF changes the sheet per page; a printer keeps the paper chosen above.</source>
+        <translation>Ogni pagina ha le dimensioni della sua tavola da disegno e viene stampata a grandezza reale. Salva PDF cambia foglio a ogni pagina; una stampante mantiene la carta scelta sopra.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Each Artboard as a Page (%n page(s))</source>
+        <translation>
+            <numerusform>Ogni tavola da disegno come pagina (%n pagina)</numerusform>
+            <numerusform>Ogni tavola da disegno come pagina (%n pagine)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>A PDF image could not be made gray and kept its colors.</source>
+        <translation>Un&apos;immagine del PDF non è stata convertita in grigio e ha mantenuto i suoi colori.</translation>
     </message>
 </context>
 <context>
@@ -21169,6 +21279,274 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
         <source>Remove from Recent Files</source>
         <translation>Rimuovi dai file recenti</translation>
     </message>
+    <message>
+        <source>The pages stayed RGB: Indexed color needs flattened 8-bit pages.</source>
+        <translation>Le pagine restano RGB: il colore indicizzato richiede pagine unite a 8 bit.</translation>
+    </message>
+    <message>
+        <source>&amp;Artboards to Files...</source>
+        <translation>&amp;Tavole da disegno come file...</translation>
+    </message>
+    <message>
+        <source>&amp;Artboard...</source>
+        <translation>&amp;Tavola da disegno...</translation>
+    </message>
+    <message>
+        <source>Add an artboard beside the others</source>
+        <translation>Aggiungi una tavola da disegno accanto alle altre</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Group</source>
+        <translation>Tavola da disegno da &amp;gruppo</translation>
+    </message>
+    <message>
+        <source>Make the selected top-level group an artboard around its content</source>
+        <translation>Trasforma il gruppo di primo livello selezionato in una tavola da disegno attorno al suo contenuto</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Layers</source>
+        <translation>Tavola da disegno da &amp;livelli</translation>
+    </message>
+    <message>
+        <source>Put the selected layers on a new artboard around them</source>
+        <translation>Metti i livelli selezionati su una nuova tavola da disegno attorno a essi</translation>
+    </message>
+    <message>
+        <source>Convert Artboard to Gr&amp;oup</source>
+        <translation>Converti tavola da disegno in gr&amp;uppo</translation>
+    </message>
+    <message>
+        <source>Turn the selected artboard into a plain group, keeping its layers</source>
+        <translation>Trasforma la tavola da disegno selezionata in un gruppo semplice, mantenendone i livelli</translation>
+    </message>
+    <message>
+        <source>Fit Canvas to A&amp;rtboards</source>
+        <translation>Adatta quadro alle tavole da dise&amp;gno</translation>
+    </message>
+    <message>
+        <source>Shrink or grow the canvas to just hold the artboards and the layers beside them</source>
+        <translation>Riduci o ingrandisci il quadro perché contenga solo le tavole da disegno e i livelli accanto</translation>
+    </message>
+    <message>
+        <source>Size preset for the selected artboard, or for new artboards</source>
+        <translation>Dimensione predefinita della tavola da disegno selezionata o delle nuove</translation>
+    </message>
+    <message>
+        <source>Width of the selected artboard, or of new artboards</source>
+        <translation>Larghezza della tavola da disegno selezionata o delle nuove</translation>
+    </message>
+    <message>
+        <source>Swap width and height (portrait or landscape)</source>
+        <translation>Scambia larghezza e altezza (verticale od orizzontale)</translation>
+    </message>
+    <message>
+        <source>Height of the selected artboard, or of new artboards</source>
+        <translation>Altezza della tavola da disegno selezionata o delle nuove</translation>
+    </message>
+    <message>
+        <source>Background:</source>
+        <translation>Sfondo:</translation>
+    </message>
+    <message>
+        <source>Background of the selected artboard, or of new artboards</source>
+        <translation>Sfondo della tavola da disegno selezionata o delle nuove</translation>
+    </message>
+    <message>
+        <source>Add Artboard</source>
+        <translation>Aggiungi tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Add an artboard of this size beside the others</source>
+        <translation>Aggiungi una tavola da disegno di queste dimensioni accanto alle altre</translation>
+    </message>
+    <message>
+        <source>Auto-Nest Layers</source>
+        <translation>Annida livelli automaticamente</translation>
+    </message>
+    <message>
+        <source>A layer moved onto an artboard joins it, and one moved off every artboard leaves it</source>
+        <translation>Un livello spostato su una tavola da disegno vi entra, e uno spostato fuori da tutte ne esce</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>Tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Drag on empty space to add an artboard, drag an artboard to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it.</source>
+        <translation>Trascina in uno spazio vuoto per aggiungere una tavola da disegno, trascina una tavola per spostarla con il suo contenuto (%ALT% la copia), trascina una maniglia per ridimensionarla, fai clic su + per aggiungerne una accanto.</translation>
+    </message>
+    <message>
+        <source>Artboard: drag on empty space to add an artboard, drag one or its name to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it, double-click a name to rename it. Arrows nudge.</source>
+        <translation>Tavola da disegno: trascina in uno spazio vuoto per aggiungerne una, trascina una tavola o il suo nome per spostarla con il contenuto (%ALT% la copia), trascina una maniglia per ridimensionarla, fai clic su + per aggiungerne una accanto, fai doppio clic su un nome per rinominarla. Le frecce la spostano.</translation>
+    </message>
+    <message>
+        <source>Move Tools</source>
+        <translation>Strumenti sposta</translation>
+    </message>
+    <message>
+        <source>Cycle Move Tools</source>
+        <translation>Alterna strumenti sposta</translation>
+    </message>
+    <message>
+        <source>New artboard</source>
+        <translation>Nuova tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Added artboard %1</source>
+        <translation>Tavola da disegno %1 aggiunta</translation>
+    </message>
+    <message>
+        <source>Duplicate artboard</source>
+        <translation>Duplica tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Nudge artboard</source>
+        <translation>Sposta tavola da disegno di poco</translation>
+    </message>
+    <message>
+        <source>Move artboard</source>
+        <translation>Sposta tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Duplicated artboard</source>
+        <translation>Tavola da disegno duplicata</translation>
+    </message>
+    <message>
+        <source>Moved artboard</source>
+        <translation>Tavola da disegno spostata</translation>
+    </message>
+    <message>
+        <source>Resize artboard</source>
+        <translation>Ridimensiona tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Artboard is %1 x %2 px</source>
+        <translation>La tavola da disegno misura %1 x %2 px</translation>
+    </message>
+    <message>
+        <source>Artboard background</source>
+        <translation>Sfondo tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Changed the artboard background</source>
+        <translation>Sfondo della tavola da disegno modificato</translation>
+    </message>
+    <message>
+        <source>Rename Artboard</source>
+        <translation>Rinomina tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Rename artboard</source>
+        <translation>Rinomina tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Renamed the artboard %1</source>
+        <translation>Tavola da disegno rinominata in %1</translation>
+    </message>
+    <message>
+        <source>New Artboard</source>
+        <translation>Nuova tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Artboard Background</source>
+        <translation>Sfondo tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Select a top-level group to turn into an artboard</source>
+        <translation>Seleziona un gruppo di primo livello da trasformare in tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Artboard from group</source>
+        <translation>Tavola da disegno da gruppo</translation>
+    </message>
+    <message>
+        <source>Made %1 an artboard</source>
+        <translation>%1 trasformato in tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Select the layers to put on the new artboard</source>
+        <translation>Seleziona i livelli da mettere sulla nuova tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Artboard from Layers takes layers that are not on an artboard</source>
+        <translation>Tavola da disegno da livelli accetta solo livelli che non sono su una tavola</translation>
+    </message>
+    <message>
+        <source>Artboard from layers</source>
+        <translation>Tavola da disegno da livelli</translation>
+    </message>
+    <message>
+        <source>Put the layers on a new artboard</source>
+        <translation>Livelli messi su una nuova tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Select an artboard to turn into a group</source>
+        <translation>Seleziona una tavola da disegno da trasformare in gruppo</translation>
+    </message>
+    <message>
+        <source>Convert artboard to group</source>
+        <translation>Converti tavola da disegno in gruppo</translation>
+    </message>
+    <message>
+        <source>Converted the artboard to a group</source>
+        <translation>Tavola da disegno convertita in gruppo</translation>
+    </message>
+    <message>
+        <source>The document has no artboards</source>
+        <translation>Il documento non ha tavole da disegno</translation>
+    </message>
+    <message>
+        <source>The canvas already fits the artboards</source>
+        <translation>Il quadro è già adattato alle tavole da disegno</translation>
+    </message>
+    <message>
+        <source>Fit canvas to artboards</source>
+        <translation>Adatta quadro alle tavole da disegno</translation>
+    </message>
+    <message>
+        <source>Canvas is %1 x %2 px</source>
+        <translation>Il quadro misura %1 x %2 px</translation>
+    </message>
+    <message>
+        <source>Left edge of the artboard</source>
+        <translation>Bordo sinistro della tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Top edge of the artboard</source>
+        <translation>Bordo superiore della tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Width of the artboard</source>
+        <translation>Larghezza della tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Height of the artboard</source>
+        <translation>Altezza della tavola da disegno</translation>
+    </message>
+    <message>
+        <source>Layer 1</source>
+        <translation>Livello 1</translation>
+    </message>
+    <message>
+        <source>Page %1</source>
+        <translation>Pagina %1</translation>
+    </message>
+    <message>
+        <source>This document has no artboards</source>
+        <translation>Questo documento non ha tavole da disegno</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>Esporta tavole da disegno come file</translation>
+    </message>
+    <message>
+        <source>An artboard cannot go inside a folder</source>
+        <translation>Una tavola da disegno non può stare in una cartella</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
+        <translation>Le tavole da disegno non possono rendere il quadro più grande di %1 x %1 px</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22874,6 +23252,22 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
     <message>
         <source>CMYK values are percentages from 0 to 100</source>
         <translation>I valori CMYK sono percentuali da 0 a 100</translation>
+    </message>
+    <message>
+        <source>Invalid artboard option or target: %1.</source>
+        <translation>Opzione o destinazione della tavola da disegno non valida: %1.</translation>
+    </message>
+    <message>
+        <source>The artboards could not be exported.</source>
+        <translation>Impossibile esportare le tavole da disegno.</translation>
+    </message>
+    <message>
+        <source>exportArtboards cannot write .%1 files.</source>
+        <translation>exportArtboards non può scrivere file .%1.</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
+        <translation>Le tavole da disegno non possono rendere il quadro più grande di %1 x %1 px.</translation>
     </message>
 </context>
 <context>

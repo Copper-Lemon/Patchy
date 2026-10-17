@@ -2,6 +2,7 @@
 
 #include "core/adjustment_deep.hpp"
 #include "core/adjustment_layer.hpp"
+#include "core/artboard.hpp"
 #include "core/blend_math.hpp"
 #include "core/layer_render_utils.hpp"
 #include "core/pattern_resource.hpp"
@@ -352,7 +353,8 @@ inline std::optional<Rect> layer_mask_bounds_for_render(const Layer& layer,
 // its effects - which is all the isolation merge needs (coverage can only
 // exist where pixel children painted).
 inline Rect layer_render_bounds_for_render(const Layer& layer, const std::vector<LayerBoundsOverride>* overrides) {
-  if (overrides == nullptr || overrides->empty()) {
+  if (overrides == nullptr || overrides->empty() || (layer.kind() == LayerKind::Group && layer.artboard().has_value())) {
+    // An artboard's extent is its rect whatever its children's previews do.
     return layer_render_bounds(layer);
   }
   if (layer.kind() == LayerKind::Group) {
@@ -379,6 +381,13 @@ inline Rect group_content_bounds_for_render(const Layer& group, const std::vecto
   Rect bounds;
   for (const auto& child : group.children()) {
     bounds = unite_rect(bounds, layer_render_bounds_for_render(child, overrides));
+  }
+  if (const auto& artboard = group.artboard(); artboard.has_value()) {
+    // An artboard's content is its rect: children clip to it, and its paper fills it.
+    bounds = intersect_rect(bounds, artboard->rect);
+    if (artboard_background_rgba(*artboard).has_value()) {
+      bounds = unite_rect(bounds, artboard->rect);
+    }
   }
   return bounds;
 }
@@ -4107,6 +4116,18 @@ void composite_layers(Target& destination, const std::vector<Layer>& layers, Rec
       patterns, knockout_backdrops);
 }
 
+// An artboard's background over `rect` (docs/artboards.md): one opaque color under the
+// artboard's children. Every target takes an 8-bit color (layer-style colors do too).
+template <typename Target>
+void paint_artboard_paper(Target& target, Rect rect, const std::array<std::uint8_t, 4>& paper, float alpha) {
+  const RgbColor color{paper[0], paper[1], paper[2]};
+  for (std::int32_t y = rect.y; y < rect.y + rect.height; ++y) {
+    for (std::int32_t x = rect.x; x < rect.x + rect.width; ++x) {
+      target.composite_color(x, y, color, alpha, BlendMode::Normal);
+    }
+  }
+}
+
 template <typename Color>
 PixelBuffer group_silhouette_for_render(const Layer& layer, Rect bounds,
                                         const std::vector<LayerBoundsOverride>* overrides,
@@ -4121,8 +4142,18 @@ PixelBuffer group_silhouette_for_render(const Layer& layer, Rect bounds,
       [&](Rect rect) {
         IsolatedClipGroupTargetT<Color> isolated(rect, false, domain);
         const KnockoutBackdropT<Color> isolated_backdrops;
-        composite_layers(isolated, layer.children(), rect, overrides,
-                         throw_on_unsupported_pixel_format, masks, patterns, &isolated_backdrops);
+        auto child_clip = rect;
+        if (const auto& artboard = layer.artboard(); artboard.has_value()) {
+          // A styled artboard: its paper and clipped children are the styled content.
+          child_clip = intersect_rect(rect, artboard->rect);
+          if (const auto paper = artboard_background_rgba(*artboard); paper.has_value() && !child_clip.empty()) {
+            paint_artboard_paper(isolated, child_clip, *paper, 1.0F);
+          }
+        }
+        if (!child_clip.empty()) {
+          composite_layers(isolated, layer.children(), child_clip, overrides,
+                           throw_on_unsupported_pixel_format, masks, patterns, &isolated_backdrops);
+        }
         StyleMaskEntry result;
         result.group_pixels = std::make_shared<const PixelBuffer>(isolated.to_pixel_buffer());
         return result;
@@ -4153,6 +4184,19 @@ void composite_layer(Target& destination, const Layer& layer, Rect clip,
       // mirroring the pixel-layer rule (the P4b probe).
       return;
     }
+    // An artboard (docs/artboards.md): its children clip to its rect and its background
+    // paints under them INSIDE the group, so the group's opacity and blend mode apply to
+    // both (Photoshop's flatten of photoshop-artboard-clip.psd: a 50% Multiply artboard
+    // shows its white paper at alpha 128 over transparency).
+    Rect group_clip = clip;
+    std::optional<std::array<std::uint8_t, 4>> paper;
+    if (const auto& artboard = layer.artboard(); artboard.has_value()) {
+      group_clip = intersect_rect(clip, artboard->rect);
+      if (group_clip.empty()) {
+        return;
+      }
+      paper = artboard_background_rgba(*artboard);
+    }
     // A group whose own style renders (July 2026; COM-calibrated rules in
     // docs/ps-compat.md): the flattened children become the pipeline's source
     // buffer and the group plays the layer's role (blend mode, opacity, mask,
@@ -4165,8 +4209,10 @@ void composite_layer(Target& destination, const Layer& layer, Rect clip,
     // 100%: Photoshop's flatten of psd-tools' passthrough_fill_adjustment.psd
     // keeps the group's Exposure off the backdrop and matches the isolated
     // merge within 1/255 (a plain fade is off by up to 69).
+    // An artboard always isolates, even one a PSD marks Pass Through: its paper needs a
+    // group buffer, and the merge then applies the group's masks and Blend If to both.
     if (knockout_mode != 0U || layer_has_rendered_blend_if(layer) || layer.blend_mode() != BlendMode::PassThrough ||
-        group_fill_factor_for_render(layer) < 1.0F) {
+        group_fill_factor_for_render(layer) < 1.0F || layer.artboard().has_value()) {
       // Blend-if groups keep the calibrated full-clip buffer; the plain
       // isolated path bounds it by the children's render bounds instead,
       // override-aware since August 2026 (move/transform previews used to
@@ -4176,8 +4222,8 @@ void composite_layer(Target& destination, const Layer& layer, Rect clip,
       // identically.
       const auto isolated_rect = styled || knockout_mode != 0U ? group_content_bounds_for_render(layer, overrides)
                                  : !layer_has_rendered_blend_if(layer)
-                                     ? intersect_rect(clip, layer_render_bounds_for_render(layer, overrides))
-                                     : clip;
+                                     ? intersect_rect(group_clip, layer_render_bounds_for_render(layer, overrides))
+                                     : group_clip;
       if (isolated_rect.empty()) {
         return;
       }
@@ -4203,12 +4249,15 @@ void composite_layer(Target& destination, const Layer& layer, Rect clip,
             layer.id(), isolated_rect, &flattened,
             outer_override != nullptr ? outer_override->mask_bounds : std::nullopt,
             std::optional<bool>{}}};
-        composite_pixel_layer(destination, layer, clip, &styled_override,
+        composite_pixel_layer(destination, layer, group_clip, &styled_override,
                               throw_on_unsupported_pixel_format, masks, blend_if_backdrop, patterns,
                               suppress_channel_restriction, nullptr, knockout_floor, knockout_mode != 0U);
         return;
       }
       auto isolated = make_isolated_target(destination, isolated_rect);
+      if (paper.has_value()) {
+        paint_artboard_paper(isolated, isolated_rect, *paper, 1.0F);
+      }
       const target_knockout_t<Target> isolated_backdrops;
       composite_layers(isolated, layer.children(), isolated_rect, overrides, throw_on_unsupported_pixel_format,
                        masks, patterns, &isolated_backdrops);
@@ -4229,7 +4278,7 @@ void composite_layer(Target& destination, const Layer& layer, Rect clip,
     // children and the group's effects make is gated in place.
     with_channel_restriction(destination, layer_rendered_channel_restriction(layer),
                              [&](auto& pass_destination) {
-                               composite_pass_through_group(pass_destination, layer, clip, overrides,
+                               composite_pass_through_group(pass_destination, layer, group_clip, overrides,
                                                             throw_on_unsupported_pixel_format, masks,
                                                             patterns, styled, knockout_backdrops);
                              });

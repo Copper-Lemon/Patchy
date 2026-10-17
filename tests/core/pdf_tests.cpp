@@ -1,3 +1,4 @@
+#include "core/gray_conversion.hpp"
 #include "core/layer_metadata.hpp"
 #include "core/pdf_source_page.hpp"
 #include "core/smart_object.hpp"
@@ -1097,6 +1098,78 @@ patchy::pdf::VectorReadResult read_vectors(const std::vector<std::uint8_t>& byte
   options.page = page;
   options.pixels_per_point = pixels_per_point;
   return patchy::pdf::read_page_as_vectors(bytes, options);
+}
+
+// The Import PDF dialog's Grayscale mode and white paper on the editable reader: every
+// painted colour (fill, stroke, text, image samples) is the shared 30/59/11 gray, and the
+// paper is an opaque white Background under everything.
+void pdf_vector_import_grayscale_and_white_background() {
+  const std::string content =
+      "1 0 0 rg 10 20 30 40 re f\n"
+      "0 0 1 RG 3 w 5 5 m 60 70 l S\n"
+      "BT /F1 12 Tf 1 0 0 1 20 60 Tm 1 0 0 rg (Gray) Tj ET\n"
+      "q 20 0 0 10 100 50 cm /Im1 Do Q\n";
+  const std::string samples = std::string("\xFF\x00\x00\x00\xFF\x00", 6);  // red, green
+  const auto bytes = build_pdf({
+      "<</Type/Catalog/Pages 2 0 R>>",
+      "<</Type/Pages/Kids[3 0 R]/Count 1>>",
+      "<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 100]/Contents 4 0 R"
+      "/Resources<</Font<</F1 5 0 R>>/XObject<</Im1 6 0 R>>>>>>",
+      "<</Length " + std::to_string(content.size()) + ">>\nstream\n" + content + "\nendstream",
+      "<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>",
+      "<</Type/XObject/Subtype/Image/Width 2/Height 1/ColorSpace/DeviceRGB/BitsPerComponent 8/Length 6>>\nstream\n" +
+          samples + "\nendstream",
+  });
+  patchy::pdf::VectorReadOptions options;
+  options.grayscale = true;
+  options.white_background = true;
+  const auto result = patchy::pdf::read_page_as_vectors(bytes, options);
+  const auto& layers = result.document.layers();
+  CHECK(layers.size() == 5);
+  if (layers.size() != 5) {
+    return;
+  }
+  const auto& paper = layers[0];
+  CHECK(paper.name() == "Background");
+  CHECK(paper.pixels().width() == 200 && paper.pixels().height() == 100);
+  CHECK(paper.pixels().format().channels == 3);
+  const auto* corner = paper.pixels().pixel(199, 99);
+  CHECK(corner[0] == 255 && corner[1] == 255 && corner[2] == 255);
+
+  const auto red_gray = patchy::gray_from_rgb(255, 0, 0);
+  const auto blue_gray = patchy::gray_from_rgb(0, 0, 255);
+  CHECK(layers[1].vector_shape() != nullptr);
+  if (layers[1].vector_shape() != nullptr) {
+    const auto color = layers[1].vector_shape()->fill.color;
+    CHECK(color.red == red_gray && color.green == red_gray && color.blue == red_gray);
+  }
+  CHECK(layers[2].vector_shape() != nullptr);
+  if (layers[2].vector_shape() != nullptr) {
+    const auto color = layers[2].vector_shape()->stroke.content.color;
+    CHECK(color.red == blue_gray && color.green == blue_gray && color.blue == blue_gray);
+  }
+  CHECK(patchy::layer_is_text(layers[3]));
+  CHECK(layers[3].metadata().at(patchy::kLayerMetadataTextColor) == "#4c4c4c");
+  CHECK(red_gray == 0x4c);
+  // The image is a smart object whose embedded source is the grayed samples as PNG.
+  CHECK(patchy::layer_is_smart_object(layers[4]));
+  const auto placement = patchy::smart_object_placement_from_layer(layers[4]);
+  CHECK(placement.has_value());
+  if (placement.has_value()) {
+    const auto* source = result.document.metadata().smart_objects.find(placement->uuid);
+    CHECK(source != nullptr);
+    if (source != nullptr) {
+      CHECK(source->filetype == "png ");
+    }
+  }
+
+  // Off by default: the same page keeps its colours and has no paper.
+  const auto plain = read_vectors(bytes);
+  CHECK(plain.document.layers().size() == 4);
+  if (!plain.document.layers().empty() && plain.document.layers()[0].vector_shape() != nullptr) {
+    CHECK(plain.document.layers()[0].vector_shape()->fill.color.red == 255);
+    CHECK(plain.document.layers()[0].vector_shape()->fill.color.green == 0);
+  }
 }
 
 void pdf_vector_import_builds_shape_layers() {
@@ -2528,6 +2601,7 @@ std::vector<patchy::test::TestCase> pdf_tests() {
       {"pdf_interpreter_reads_images_and_ext_gstate", pdf_interpreter_reads_images_and_ext_gstate},
       {"pdf_interpreter_survives_damaged_content", pdf_interpreter_survives_damaged_content},
       {"pdf_local_brochure_interprets_to_shapes_and_text_if_available", pdf_local_brochure_interprets_to_shapes_and_text_if_available},
+      {"pdf_vector_import_grayscale_and_white_background", pdf_vector_import_grayscale_and_white_background},
       {"pdf_vector_import_builds_shape_layers", pdf_vector_import_builds_shape_layers},
       {"pdf_vector_import_applies_nonzero_holes", pdf_vector_import_applies_nonzero_holes},
       {"pdf_vector_import_builds_editable_text_layers", pdf_vector_import_builds_editable_text_layers},

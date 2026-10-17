@@ -7376,10 +7376,6 @@ RGB: %2, %3, %4</translation>
         <translation>As páginas se tornam:</translation>
     </message>
     <message>
-        <source> ppi</source>
-        <translation> ppi</translation>
-    </message>
-    <message>
         <source>Include annotations</source>
         <translation>Incluir anotações</translation>
     </message>
@@ -7422,10 +7418,6 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Editable import was not possible for page %1 (%2); it was flattened instead.</source>
         <translation>Não foi possível importar a página %1 como conteúdo editável (%2); ela foi importada como imagem achatada.</translation>
-    </message>
-    <message>
-        <source>Editable import brings in one page; page %1 was imported.</source>
-        <translation>A importação editável traz uma página; a página %1 foi importada.</translation>
     </message>
     <message>
         <source>Some artwork could not be kept editable; reimport with &quot;Flattened image per page&quot; for an exact copy.</source>
@@ -10234,6 +10226,124 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>Animated PNG: imported the default image only (%1)</source>
         <translation>PNG animado: importou apenas a imagem padrão (%1)</translation>
+    </message>
+    <message>
+        <source>Only a layer group can be an artboard</source>
+        <translation>Somente um grupo de camadas pode ser uma prancheta</translation>
+    </message>
+    <message>
+        <source>ppi</source>
+        <translation>ppi</translation>
+    </message>
+    <message>
+        <source>RGB Color</source>
+        <translation>Cor RGB</translation>
+    </message>
+    <message>
+        <source>CMYK Color</source>
+        <translation>Cor CMYK</translation>
+    </message>
+    <message>
+        <source>Indexed Color (Palette)</source>
+        <translation>Cor indexada (paleta)</translation>
+    </message>
+    <message>
+        <source>White page background</source>
+        <translation>Fundo de página branco</translation>
+    </message>
+    <message>
+        <source>Open in reverse order</source>
+        <translation>Abrir em ordem inversa</translation>
+    </message>
+    <message>
+        <source>Enter a resolution from %1 to %2 ppi.</source>
+        <translation>Digite uma resolução de %1 a %2 ppi.</translation>
+    </message>
+    <message>
+        <source>Indexed color needs &quot;Flattened image per page&quot;: shapes, text and images cannot be converted to a palette.</source>
+        <translation>A cor indexada requer &quot;Imagem achatada por página&quot;: formas, texto e imagens não podem ser convertidos em uma paleta.</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>Exportar pranchetas para arquivos</translation>
+    </message>
+    <message>
+        <source>Artboards</source>
+        <translation>Pranchetas</translation>
+    </message>
+    <message>
+        <source>Add puts a number after a name that is already taken; Overwrite asks before replacing anything.</source>
+        <translation>Adicionar coloca um número após um nome já usado; Substituir pergunta antes de substituir qualquer arquivo.</translation>
+    </message>
+    <message>
+        <source>Select at least one artboard.</source>
+        <translation>Selecione pelo menos uma prancheta.</translation>
+    </message>
+    <message>
+        <source>Each artboard as its own page</source>
+        <translation>Cada prancheta como uma página própria</translation>
+    </message>
+    <message>
+        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
+        <translation>Uma página por prancheta, no tamanho dela. Desmarcado, a tela inteira é uma página.</translation>
+    </message>
+    <message>
+        <source>%1 (%2 x %3)</source>
+        <translation>%1 (%2 x %3)</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>Prancheta</translation>
+    </message>
+    <message numerus="yes">
+        <source>One page per artboard of the current document (%n artboard(s))</source>
+        <translation>
+            <numerusform>Uma página por prancheta do documento atual (%n prancheta)</numerusform>
+            <numerusform>Uma página por prancheta do documento atual (%n pranchetas)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>One page per artboard (the current document has none)</source>
+        <translation>Uma página por prancheta (o documento atual não tem nenhuma)</translation>
+    </message>
+    <message>
+        <source>Start the document as an artboard the size of the canvas</source>
+        <translation>Começar o documento como uma prancheta do tamanho da tela</translation>
+    </message>
+    <message>
+        <source>%1 pages became artboards.</source>
+        <translation>%1 páginas viraram pranchetas.</translation>
+    </message>
+    <message>
+        <source>Artboards in one document</source>
+        <translation>Pranchetas em um documento</translation>
+    </message>
+    <message>
+        <source>%1 artboard(s), first page %2 x %3 px</source>
+        <translation>%1 prancheta(s), primeira página %2 x %3 px</translation>
+    </message>
+    <message>
+        <source>%1 pages imported as folders; only the first starts visible.</source>
+        <translation>%1 páginas importadas como pastas; só a primeira começa visível.</translation>
+    </message>
+    <message>
+        <source>Match each artboard</source>
+        <translation>Ajustar a cada prancheta</translation>
+    </message>
+    <message>
+        <source>Each page is the size of its artboard, printed at actual size. Save PDF changes the sheet per page; a printer keeps the paper chosen above.</source>
+        <translation>Cada página tem o tamanho da sua prancheta e é impressa em tamanho real. Salvar PDF troca a folha a cada página; uma impressora mantém o papel escolhido acima.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Each Artboard as a Page (%n page(s))</source>
+        <translation>
+            <numerusform>Cada prancheta como página (%n página)</numerusform>
+            <numerusform>Cada prancheta como página (%n páginas)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>A PDF image could not be made gray and kept its colors.</source>
+        <translation>Uma imagem do PDF não pôde ser convertida em cinza e manteve suas cores.</translation>
     </message>
 </context>
 <context>
@@ -21169,6 +21279,274 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
         <source>Remove from Recent Files</source>
         <translation>Remover dos arquivos recentes</translation>
     </message>
+    <message>
+        <source>The pages stayed RGB: Indexed color needs flattened 8-bit pages.</source>
+        <translation>As páginas continuaram em RGB: a cor indexada requer páginas achatadas de 8 bits.</translation>
+    </message>
+    <message>
+        <source>&amp;Artboards to Files...</source>
+        <translation>&amp;Pranchetas para arquivos...</translation>
+    </message>
+    <message>
+        <source>&amp;Artboard...</source>
+        <translation>&amp;Prancheta...</translation>
+    </message>
+    <message>
+        <source>Add an artboard beside the others</source>
+        <translation>Adicionar uma prancheta ao lado das outras</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Group</source>
+        <translation>Prancheta a partir do &amp;grupo</translation>
+    </message>
+    <message>
+        <source>Make the selected top-level group an artboard around its content</source>
+        <translation>Transformar o grupo de nível superior selecionado em uma prancheta ao redor do conteúdo</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Layers</source>
+        <translation>Prancheta a partir das &amp;camadas</translation>
+    </message>
+    <message>
+        <source>Put the selected layers on a new artboard around them</source>
+        <translation>Colocar as camadas selecionadas em uma nova prancheta ao redor delas</translation>
+    </message>
+    <message>
+        <source>Convert Artboard to Gr&amp;oup</source>
+        <translation>Converter prancheta em gr&amp;upo</translation>
+    </message>
+    <message>
+        <source>Turn the selected artboard into a plain group, keeping its layers</source>
+        <translation>Transformar a prancheta selecionada em um grupo comum, mantendo as camadas</translation>
+    </message>
+    <message>
+        <source>Fit Canvas to A&amp;rtboards</source>
+        <translation>Ajustar tela às p&amp;ranchetas</translation>
+    </message>
+    <message>
+        <source>Shrink or grow the canvas to just hold the artboards and the layers beside them</source>
+        <translation>Reduzir ou ampliar a tela para conter apenas as pranchetas e as camadas ao lado</translation>
+    </message>
+    <message>
+        <source>Size preset for the selected artboard, or for new artboards</source>
+        <translation>Tamanho predefinido da prancheta selecionada ou das novas</translation>
+    </message>
+    <message>
+        <source>Width of the selected artboard, or of new artboards</source>
+        <translation>Largura da prancheta selecionada ou das novas</translation>
+    </message>
+    <message>
+        <source>Swap width and height (portrait or landscape)</source>
+        <translation>Trocar largura e altura (retrato ou paisagem)</translation>
+    </message>
+    <message>
+        <source>Height of the selected artboard, or of new artboards</source>
+        <translation>Altura da prancheta selecionada ou das novas</translation>
+    </message>
+    <message>
+        <source>Background:</source>
+        <translation>Fundo:</translation>
+    </message>
+    <message>
+        <source>Background of the selected artboard, or of new artboards</source>
+        <translation>Fundo da prancheta selecionada ou das novas</translation>
+    </message>
+    <message>
+        <source>Add Artboard</source>
+        <translation>Adicionar prancheta</translation>
+    </message>
+    <message>
+        <source>Add an artboard of this size beside the others</source>
+        <translation>Adicionar uma prancheta deste tamanho ao lado das outras</translation>
+    </message>
+    <message>
+        <source>Auto-Nest Layers</source>
+        <translation>Aninhar camadas automaticamente</translation>
+    </message>
+    <message>
+        <source>A layer moved onto an artboard joins it, and one moved off every artboard leaves it</source>
+        <translation>Uma camada movida para uma prancheta entra nela, e uma movida para fora de todas sai dela</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>Prancheta</translation>
+    </message>
+    <message>
+        <source>Drag on empty space to add an artboard, drag an artboard to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it.</source>
+        <translation>Arraste em um espaço vazio para adicionar uma prancheta, arraste uma prancheta para movê-la com o conteúdo (%ALT% a copia), arraste uma alça para redimensioná-la, clique em + para adicionar outra ao lado.</translation>
+    </message>
+    <message>
+        <source>Artboard: drag on empty space to add an artboard, drag one or its name to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it, double-click a name to rename it. Arrows nudge.</source>
+        <translation>Prancheta: arraste em um espaço vazio para adicionar uma, arraste uma prancheta ou o nome dela para movê-la com o conteúdo (%ALT% a copia), arraste uma alça para redimensioná-la, clique em + para adicionar outra ao lado, clique duas vezes em um nome para renomeá-la. As setas a deslocam.</translation>
+    </message>
+    <message>
+        <source>Move Tools</source>
+        <translation>Ferramentas de mover</translation>
+    </message>
+    <message>
+        <source>Cycle Move Tools</source>
+        <translation>Alternar ferramentas de mover</translation>
+    </message>
+    <message>
+        <source>New artboard</source>
+        <translation>Nova prancheta</translation>
+    </message>
+    <message>
+        <source>Added artboard %1</source>
+        <translation>Prancheta %1 adicionada</translation>
+    </message>
+    <message>
+        <source>Duplicate artboard</source>
+        <translation>Duplicar prancheta</translation>
+    </message>
+    <message>
+        <source>Nudge artboard</source>
+        <translation>Deslocar prancheta</translation>
+    </message>
+    <message>
+        <source>Move artboard</source>
+        <translation>Mover prancheta</translation>
+    </message>
+    <message>
+        <source>Duplicated artboard</source>
+        <translation>Prancheta duplicada</translation>
+    </message>
+    <message>
+        <source>Moved artboard</source>
+        <translation>Prancheta movida</translation>
+    </message>
+    <message>
+        <source>Resize artboard</source>
+        <translation>Redimensionar prancheta</translation>
+    </message>
+    <message>
+        <source>Artboard is %1 x %2 px</source>
+        <translation>A prancheta tem %1 x %2 px</translation>
+    </message>
+    <message>
+        <source>Artboard background</source>
+        <translation>Fundo da prancheta</translation>
+    </message>
+    <message>
+        <source>Changed the artboard background</source>
+        <translation>Fundo da prancheta alterado</translation>
+    </message>
+    <message>
+        <source>Rename Artboard</source>
+        <translation>Renomear prancheta</translation>
+    </message>
+    <message>
+        <source>Rename artboard</source>
+        <translation>Renomear prancheta</translation>
+    </message>
+    <message>
+        <source>Renamed the artboard %1</source>
+        <translation>Prancheta renomeada para %1</translation>
+    </message>
+    <message>
+        <source>New Artboard</source>
+        <translation>Nova prancheta</translation>
+    </message>
+    <message>
+        <source>Artboard Background</source>
+        <translation>Fundo da prancheta</translation>
+    </message>
+    <message>
+        <source>Select a top-level group to turn into an artboard</source>
+        <translation>Selecione um grupo de nível superior para transformar em prancheta</translation>
+    </message>
+    <message>
+        <source>Artboard from group</source>
+        <translation>Prancheta a partir do grupo</translation>
+    </message>
+    <message>
+        <source>Made %1 an artboard</source>
+        <translation>%1 transformado em prancheta</translation>
+    </message>
+    <message>
+        <source>Select the layers to put on the new artboard</source>
+        <translation>Selecione as camadas para colocar na nova prancheta</translation>
+    </message>
+    <message>
+        <source>Artboard from Layers takes layers that are not on an artboard</source>
+        <translation>Prancheta a partir das camadas aceita apenas camadas que não estão em uma prancheta</translation>
+    </message>
+    <message>
+        <source>Artboard from layers</source>
+        <translation>Prancheta a partir das camadas</translation>
+    </message>
+    <message>
+        <source>Put the layers on a new artboard</source>
+        <translation>Camadas colocadas em uma nova prancheta</translation>
+    </message>
+    <message>
+        <source>Select an artboard to turn into a group</source>
+        <translation>Selecione uma prancheta para transformar em grupo</translation>
+    </message>
+    <message>
+        <source>Convert artboard to group</source>
+        <translation>Converter prancheta em grupo</translation>
+    </message>
+    <message>
+        <source>Converted the artboard to a group</source>
+        <translation>Prancheta convertida em grupo</translation>
+    </message>
+    <message>
+        <source>The document has no artboards</source>
+        <translation>O documento não tem pranchetas</translation>
+    </message>
+    <message>
+        <source>The canvas already fits the artboards</source>
+        <translation>A tela já está ajustada às pranchetas</translation>
+    </message>
+    <message>
+        <source>Fit canvas to artboards</source>
+        <translation>Ajustar tela às pranchetas</translation>
+    </message>
+    <message>
+        <source>Canvas is %1 x %2 px</source>
+        <translation>A tela tem %1 x %2 px</translation>
+    </message>
+    <message>
+        <source>Left edge of the artboard</source>
+        <translation>Borda esquerda da prancheta</translation>
+    </message>
+    <message>
+        <source>Top edge of the artboard</source>
+        <translation>Borda superior da prancheta</translation>
+    </message>
+    <message>
+        <source>Width of the artboard</source>
+        <translation>Largura da prancheta</translation>
+    </message>
+    <message>
+        <source>Height of the artboard</source>
+        <translation>Altura da prancheta</translation>
+    </message>
+    <message>
+        <source>Layer 1</source>
+        <translation>Camada 1</translation>
+    </message>
+    <message>
+        <source>Page %1</source>
+        <translation>Página %1</translation>
+    </message>
+    <message>
+        <source>This document has no artboards</source>
+        <translation>Este documento não tem pranchetas</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>Exportar pranchetas para arquivos</translation>
+    </message>
+    <message>
+        <source>An artboard cannot go inside a folder</source>
+        <translation>Uma prancheta não pode ficar dentro de uma pasta</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
+        <translation>As pranchetas não podem deixar a tela maior que %1 x %1 px</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22874,6 +23252,22 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
     <message>
         <source>CMYK values are percentages from 0 to 100</source>
         <translation>Os valores CMYK são porcentagens de 0 a 100</translation>
+    </message>
+    <message>
+        <source>Invalid artboard option or target: %1.</source>
+        <translation>Opção ou destino de prancheta inválido: %1.</translation>
+    </message>
+    <message>
+        <source>The artboards could not be exported.</source>
+        <translation>Não foi possível exportar as pranchetas.</translation>
+    </message>
+    <message>
+        <source>exportArtboards cannot write .%1 files.</source>
+        <translation>exportArtboards não pode gravar arquivos .%1.</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
+        <translation>As pranchetas não podem deixar a tela maior que %1 x %1 px.</translation>
     </message>
 </context>
 <context>

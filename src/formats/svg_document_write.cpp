@@ -1,4 +1,5 @@
 #include "core/vector_compound.hpp"
+#include "core/artboard.hpp"
 #include "formats/svg_document_io.hpp"
 
 #include "core/blend_math.hpp"
@@ -787,6 +788,13 @@ std::vector<std::uint8_t> DocumentIo::write(const Document& document, std::vecto
   if (document_has_compound_vectors(document)) {
     return write(expand_compound_vectors(document, true), notices);
   }
+  if (document_has_artboards(document)) {
+    // SVG has no artboards: each becomes its clipped group and background rect
+    // (docs/artboards.md), which composite the same way.
+    auto plain = document;
+    convert_artboards_to_plain_groups(plain);
+    return write(plain, notices);
+  }
   if (document.width() <= 0 || document.height() <= 0) {
     throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "Cannot export an empty document as SVG"));
   }
@@ -802,6 +810,11 @@ void DocumentIo::write_file(const Document& document, const std::filesystem::pat
 std::vector<BakedContent> DocumentIo::baked_content(const Document& document) {
   if (document_has_compound_vectors(document)) {
     return baked_content(expand_compound_vectors(document, true));
+  }
+  if (document_has_artboards(document)) {
+    auto plain = document;
+    convert_artboards_to_plain_groups(plain);
+    return baked_content(plain);
   }
   std::vector<BakedContent> baked;
   if (document.width() <= 0 || document.height() <= 0) {

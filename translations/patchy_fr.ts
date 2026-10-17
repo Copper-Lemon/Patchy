@@ -7048,10 +7048,6 @@ RVB : %2, %3, %4</translation>
         <translation>Importer comme :</translation>
     </message>
     <message>
-        <source> ppi</source>
-        <translation> ppp</translation>
-    </message>
-    <message>
         <source>Include annotations</source>
         <translation>Inclure les annotations</translation>
     </message>
@@ -7070,10 +7066,6 @@ RVB : %2, %3, %4</translation>
     <message>
         <source>Select at least one page.</source>
         <translation>Sélectionnez au moins une page.</translation>
-    </message>
-    <message>
-        <source>Editable import brings in one page; page %1 was imported.</source>
-        <translation>L&apos;importation modifiable ne prend qu&apos;une page ; la page %1 a été importée.</translation>
     </message>
     <message>
         <source>Some artwork could not be kept editable; reimport with &quot;Flattened image per page&quot; for an exact copy.</source>
@@ -10234,6 +10226,124 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>Animated PNG: imported the default image only (%1)</source>
         <translation>PNG animé : seule l&apos;image par défaut a été importée (%1)</translation>
+    </message>
+    <message>
+        <source>Only a layer group can be an artboard</source>
+        <translation>Seul un groupe de calques peut être un plan de travail</translation>
+    </message>
+    <message>
+        <source>ppi</source>
+        <translation>ppp</translation>
+    </message>
+    <message>
+        <source>RGB Color</source>
+        <translation>Couleurs RVB</translation>
+    </message>
+    <message>
+        <source>CMYK Color</source>
+        <translation>Couleurs CMJN</translation>
+    </message>
+    <message>
+        <source>Indexed Color (Palette)</source>
+        <translation>Couleurs indexées (palette)</translation>
+    </message>
+    <message>
+        <source>White page background</source>
+        <translation>Fond de page blanc</translation>
+    </message>
+    <message>
+        <source>Open in reverse order</source>
+        <translation>Ouvrir dans l&apos;ordre inverse</translation>
+    </message>
+    <message>
+        <source>Enter a resolution from %1 to %2 ppi.</source>
+        <translation>Saisissez une résolution de %1 à %2 ppp.</translation>
+    </message>
+    <message>
+        <source>Indexed color needs &quot;Flattened image per page&quot;: shapes, text and images cannot be converted to a palette.</source>
+        <translation>Les couleurs indexées nécessitent « Image aplatie par page » : les formes, le texte et les images ne peuvent pas être convertis en palette.</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>Exporter les plans de travail en fichiers</translation>
+    </message>
+    <message>
+        <source>Artboards</source>
+        <translation>Plans de travail</translation>
+    </message>
+    <message>
+        <source>Add puts a number after a name that is already taken; Overwrite asks before replacing anything.</source>
+        <translation>Ajouter place un numéro après un nom déjà pris ; Remplacer demande confirmation avant de remplacer quoi que ce soit.</translation>
+    </message>
+    <message>
+        <source>Select at least one artboard.</source>
+        <translation>Sélectionnez au moins un plan de travail.</translation>
+    </message>
+    <message>
+        <source>Each artboard as its own page</source>
+        <translation>Chaque plan de travail sur sa propre page</translation>
+    </message>
+    <message>
+        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
+        <translation>Une page par plan de travail, à sa taille. Décoché, toute la zone de travail forme une page.</translation>
+    </message>
+    <message>
+        <source>%1 (%2 x %3)</source>
+        <translation>%1 (%2 x %3)</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>Plan de travail</translation>
+    </message>
+    <message numerus="yes">
+        <source>One page per artboard of the current document (%n artboard(s))</source>
+        <translation>
+            <numerusform>Une page par plan de travail du document actuel (%n plan de travail)</numerusform>
+            <numerusform>Une page par plan de travail du document actuel (%n plans de travail)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>One page per artboard (the current document has none)</source>
+        <translation>Une page par plan de travail (le document actuel n&apos;en a aucun)</translation>
+    </message>
+    <message>
+        <source>Start the document as an artboard the size of the canvas</source>
+        <translation>Commencer le document par un plan de travail de la taille de la zone de travail</translation>
+    </message>
+    <message>
+        <source>%1 pages became artboards.</source>
+        <translation>%1 pages sont devenues des plans de travail.</translation>
+    </message>
+    <message>
+        <source>Artboards in one document</source>
+        <translation>Plans de travail dans un seul document</translation>
+    </message>
+    <message>
+        <source>%1 artboard(s), first page %2 x %3 px</source>
+        <translation>%1 plan(s) de travail, première page %2 x %3 px</translation>
+    </message>
+    <message>
+        <source>%1 pages imported as folders; only the first starts visible.</source>
+        <translation>%1 pages importées en dossiers ; seul le premier est visible au départ.</translation>
+    </message>
+    <message>
+        <source>Match each artboard</source>
+        <translation>Adapter à chaque plan de travail</translation>
+    </message>
+    <message>
+        <source>Each page is the size of its artboard, printed at actual size. Save PDF changes the sheet per page; a printer keeps the paper chosen above.</source>
+        <translation>Chaque page a la taille de son plan de travail et s&apos;imprime en taille réelle. Enregistrer en PDF change de feuille à chaque page ; une imprimante garde le papier choisi ci-dessus.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Each Artboard as a Page (%n page(s))</source>
+        <translation>
+            <numerusform>Chaque plan de travail comme page (%n page)</numerusform>
+            <numerusform>Chaque plan de travail comme page (%n pages)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>A PDF image could not be made gray and kept its colors.</source>
+        <translation>Une image du PDF n&apos;a pas pu être convertie en gris et a gardé ses couleurs.</translation>
     </message>
 </context>
 <context>
@@ -21169,6 +21279,274 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
         <source>Remove from Recent Files</source>
         <translation>Retirer des fichiers récents</translation>
     </message>
+    <message>
+        <source>The pages stayed RGB: Indexed color needs flattened 8-bit pages.</source>
+        <translation>Les pages restent en RVB : les couleurs indexées nécessitent des pages aplaties en 8 bits.</translation>
+    </message>
+    <message>
+        <source>&amp;Artboards to Files...</source>
+        <translation>&amp;Plans de travail en fichiers...</translation>
+    </message>
+    <message>
+        <source>&amp;Artboard...</source>
+        <translation>&amp;Plan de travail...</translation>
+    </message>
+    <message>
+        <source>Add an artboard beside the others</source>
+        <translation>Ajouter un plan de travail à côté des autres</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Group</source>
+        <translation>Plan de travail depuis le &amp;groupe</translation>
+    </message>
+    <message>
+        <source>Make the selected top-level group an artboard around its content</source>
+        <translation>Faire du groupe de premier niveau sélectionné un plan de travail autour de son contenu</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Layers</source>
+        <translation>Plan de travail depuis les &amp;calques</translation>
+    </message>
+    <message>
+        <source>Put the selected layers on a new artboard around them</source>
+        <translation>Placer les calques sélectionnés sur un nouveau plan de travail qui les entoure</translation>
+    </message>
+    <message>
+        <source>Convert Artboard to Gr&amp;oup</source>
+        <translation>Convertir le plan de travail en gr&amp;oupe</translation>
+    </message>
+    <message>
+        <source>Turn the selected artboard into a plain group, keeping its layers</source>
+        <translation>Transformer le plan de travail sélectionné en groupe simple, en gardant ses calques</translation>
+    </message>
+    <message>
+        <source>Fit Canvas to A&amp;rtboards</source>
+        <translation>Adapter la zone de travail aux plans de t&amp;ravail</translation>
+    </message>
+    <message>
+        <source>Shrink or grow the canvas to just hold the artboards and the layers beside them</source>
+        <translation>Réduire ou agrandir la zone de travail pour contenir juste les plans de travail et les calques à côté</translation>
+    </message>
+    <message>
+        <source>Size preset for the selected artboard, or for new artboards</source>
+        <translation>Taille prédéfinie du plan de travail sélectionné ou des nouveaux</translation>
+    </message>
+    <message>
+        <source>Width of the selected artboard, or of new artboards</source>
+        <translation>Largeur du plan de travail sélectionné ou des nouveaux</translation>
+    </message>
+    <message>
+        <source>Swap width and height (portrait or landscape)</source>
+        <translation>Permuter largeur et hauteur (portrait ou paysage)</translation>
+    </message>
+    <message>
+        <source>Height of the selected artboard, or of new artboards</source>
+        <translation>Hauteur du plan de travail sélectionné ou des nouveaux</translation>
+    </message>
+    <message>
+        <source>Background:</source>
+        <translation>Arrière-plan :</translation>
+    </message>
+    <message>
+        <source>Background of the selected artboard, or of new artboards</source>
+        <translation>Arrière-plan du plan de travail sélectionné ou des nouveaux</translation>
+    </message>
+    <message>
+        <source>Add Artboard</source>
+        <translation>Ajouter un plan de travail</translation>
+    </message>
+    <message>
+        <source>Add an artboard of this size beside the others</source>
+        <translation>Ajouter un plan de travail de cette taille à côté des autres</translation>
+    </message>
+    <message>
+        <source>Auto-Nest Layers</source>
+        <translation>Imbriquer les calques auto</translation>
+    </message>
+    <message>
+        <source>A layer moved onto an artboard joins it, and one moved off every artboard leaves it</source>
+        <translation>Un calque déplacé sur un plan de travail le rejoint, et un calque déplacé hors de tous le quitte</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>Plan de travail</translation>
+    </message>
+    <message>
+        <source>Drag on empty space to add an artboard, drag an artboard to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it.</source>
+        <translation>Faites glisser dans un espace vide pour ajouter un plan de travail, faites glisser un plan de travail pour le déplacer avec son contenu (%ALT% le copie), faites glisser une poignée pour le redimensionner, cliquez sur + pour en ajouter un à côté.</translation>
+    </message>
+    <message>
+        <source>Artboard: drag on empty space to add an artboard, drag one or its name to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it, double-click a name to rename it. Arrows nudge.</source>
+        <translation>Plan de travail : faites glisser dans un espace vide pour en ajouter un, faites glisser un plan ou son nom pour le déplacer avec son contenu (%ALT% le copie), faites glisser une poignée pour le redimensionner, cliquez sur + pour en ajouter un à côté, double-cliquez sur un nom pour le renommer. Les flèches le décalent.</translation>
+    </message>
+    <message>
+        <source>Move Tools</source>
+        <translation>Outils de déplacement</translation>
+    </message>
+    <message>
+        <source>Cycle Move Tools</source>
+        <translation>Alterner les outils de déplacement</translation>
+    </message>
+    <message>
+        <source>New artboard</source>
+        <translation>Nouveau plan de travail</translation>
+    </message>
+    <message>
+        <source>Added artboard %1</source>
+        <translation>Plan de travail %1 ajouté</translation>
+    </message>
+    <message>
+        <source>Duplicate artboard</source>
+        <translation>Dupliquer le plan de travail</translation>
+    </message>
+    <message>
+        <source>Nudge artboard</source>
+        <translation>Décaler le plan de travail</translation>
+    </message>
+    <message>
+        <source>Move artboard</source>
+        <translation>Déplacer le plan de travail</translation>
+    </message>
+    <message>
+        <source>Duplicated artboard</source>
+        <translation>Plan de travail dupliqué</translation>
+    </message>
+    <message>
+        <source>Moved artboard</source>
+        <translation>Plan de travail déplacé</translation>
+    </message>
+    <message>
+        <source>Resize artboard</source>
+        <translation>Redimensionner le plan de travail</translation>
+    </message>
+    <message>
+        <source>Artboard is %1 x %2 px</source>
+        <translation>Le plan de travail mesure %1 x %2 px</translation>
+    </message>
+    <message>
+        <source>Artboard background</source>
+        <translation>Arrière-plan du plan de travail</translation>
+    </message>
+    <message>
+        <source>Changed the artboard background</source>
+        <translation>Arrière-plan du plan de travail modifié</translation>
+    </message>
+    <message>
+        <source>Rename Artboard</source>
+        <translation>Renommer le plan de travail</translation>
+    </message>
+    <message>
+        <source>Rename artboard</source>
+        <translation>Renommer le plan de travail</translation>
+    </message>
+    <message>
+        <source>Renamed the artboard %1</source>
+        <translation>Plan de travail renommé %1</translation>
+    </message>
+    <message>
+        <source>New Artboard</source>
+        <translation>Nouveau plan de travail</translation>
+    </message>
+    <message>
+        <source>Artboard Background</source>
+        <translation>Arrière-plan du plan de travail</translation>
+    </message>
+    <message>
+        <source>Select a top-level group to turn into an artboard</source>
+        <translation>Sélectionnez un groupe de premier niveau à transformer en plan de travail</translation>
+    </message>
+    <message>
+        <source>Artboard from group</source>
+        <translation>Plan de travail depuis le groupe</translation>
+    </message>
+    <message>
+        <source>Made %1 an artboard</source>
+        <translation>%1 transformé en plan de travail</translation>
+    </message>
+    <message>
+        <source>Select the layers to put on the new artboard</source>
+        <translation>Sélectionnez les calques à placer sur le nouveau plan de travail</translation>
+    </message>
+    <message>
+        <source>Artboard from Layers takes layers that are not on an artboard</source>
+        <translation>Plan de travail depuis les calques n&apos;accepte que des calques hors de tout plan de travail</translation>
+    </message>
+    <message>
+        <source>Artboard from layers</source>
+        <translation>Plan de travail depuis les calques</translation>
+    </message>
+    <message>
+        <source>Put the layers on a new artboard</source>
+        <translation>Calques placés sur un nouveau plan de travail</translation>
+    </message>
+    <message>
+        <source>Select an artboard to turn into a group</source>
+        <translation>Sélectionnez un plan de travail à transformer en groupe</translation>
+    </message>
+    <message>
+        <source>Convert artboard to group</source>
+        <translation>Convertir le plan de travail en groupe</translation>
+    </message>
+    <message>
+        <source>Converted the artboard to a group</source>
+        <translation>Plan de travail converti en groupe</translation>
+    </message>
+    <message>
+        <source>The document has no artboards</source>
+        <translation>Le document n&apos;a aucun plan de travail</translation>
+    </message>
+    <message>
+        <source>The canvas already fits the artboards</source>
+        <translation>La zone de travail est déjà adaptée aux plans de travail</translation>
+    </message>
+    <message>
+        <source>Fit canvas to artboards</source>
+        <translation>Adapter la zone de travail aux plans de travail</translation>
+    </message>
+    <message>
+        <source>Canvas is %1 x %2 px</source>
+        <translation>La zone de travail mesure %1 x %2 px</translation>
+    </message>
+    <message>
+        <source>Left edge of the artboard</source>
+        <translation>Bord gauche du plan de travail</translation>
+    </message>
+    <message>
+        <source>Top edge of the artboard</source>
+        <translation>Bord supérieur du plan de travail</translation>
+    </message>
+    <message>
+        <source>Width of the artboard</source>
+        <translation>Largeur du plan de travail</translation>
+    </message>
+    <message>
+        <source>Height of the artboard</source>
+        <translation>Hauteur du plan de travail</translation>
+    </message>
+    <message>
+        <source>Layer 1</source>
+        <translation>Calque 1</translation>
+    </message>
+    <message>
+        <source>Page %1</source>
+        <translation>Page %1</translation>
+    </message>
+    <message>
+        <source>This document has no artboards</source>
+        <translation>Ce document n&apos;a aucun plan de travail</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>Exporter les plans de travail en fichiers</translation>
+    </message>
+    <message>
+        <source>An artboard cannot go inside a folder</source>
+        <translation>Un plan de travail ne peut pas aller dans un dossier</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
+        <translation>Les plans de travail ne peuvent pas agrandir la zone de travail au-delà de %1 x %1 px</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22874,6 +23252,22 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
     <message>
         <source>CMYK values are percentages from 0 to 100</source>
         <translation>Les valeurs CMJN sont des pourcentages de 0 à 100</translation>
+    </message>
+    <message>
+        <source>Invalid artboard option or target: %1.</source>
+        <translation>Option ou cible de plan de travail non valide : %1.</translation>
+    </message>
+    <message>
+        <source>The artboards could not be exported.</source>
+        <translation>Les plans de travail n&apos;ont pas pu être exportés.</translation>
+    </message>
+    <message>
+        <source>exportArtboards cannot write .%1 files.</source>
+        <translation>exportArtboards ne peut pas écrire de fichiers .%1.</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
+        <translation>Les plans de travail ne peuvent pas agrandir la zone de travail au-delà de %1 x %1 px.</translation>
     </message>
 </context>
 <context>

@@ -1,6 +1,6 @@
 # Layers panel
 
-Read this before changing layer rows, thumbnails, click selection, the disclosure arrow, the visibility eye, or the blend and opacity row. Generic item-widget row rules (selection painting, transparent containers, `bind_widget_text`) stay in [ui-conventions.md](ui-conventions.md). Shape and style editors opened from a selected row or badge keep an existing multi-selection; an unselected row becomes the sole target ([batch-appearance.md](batch-appearance.md) has the matching rules).
+Read this before changing layer rows, thumbnails, click selection, the disclosure arrow, the eye, or the blend and opacity row. Generic item-widget row rules stay in [ui-conventions.md](ui-conventions.md). Artboard rows (glyph, `layerRowArtboard`, drop rules): [artboards.md](artboards.md). Shape and style editors opened from a selected row or badge keep an existing multi-selection; an unselected row becomes the sole target ([batch-appearance.md](batch-appearance.md) has the matching rules).
 
 ## Row styling
 

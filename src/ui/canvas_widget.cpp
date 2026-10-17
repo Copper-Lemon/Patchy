@@ -259,7 +259,7 @@ bool CanvasWidget::pointer_gesture_active() const noexcept {
          crop_dragging_out_ || crop_rotating_ ||
          crop_drag_handle_ != TransformHandle::None || pen_handle_dragging_ ||
          pen_session_drag_anchor_ >= 0 || path_drag_mode_ != PathEditDrag::None ||
-         path_transform_drag_handle_ != TransformHandle::None;
+         path_transform_drag_handle_ != TransformHandle::None || artboard_drag_active();
 }
 
 void CanvasWidget::set_tiling_preview_enabled(bool enabled) {
@@ -479,6 +479,7 @@ void CanvasWidget::set_tool(CanvasTool tool) {
     // A pending crop cancels on tool switch (never commits): an accidental
     // switch must not resize the document.
     cancel_crop_session();
+    cancel_artboard_drag();
     commit_path_transform();  // tool switches commit, like the pen session
     finish_free_transform();
     finish_warp_transform();

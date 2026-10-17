@@ -1,6 +1,7 @@
 #include "psd/psd_filter_effects.hpp"
 #include "ui/main_window_shared.hpp"
 
+#include "core/artboard.hpp"
 #include "core/adjustment_layer.hpp"
 #include "core/document.hpp"
 #include "core/layer.hpp"
@@ -704,6 +705,8 @@ QString tool_name(CanvasTool tool) {
       return QObject::tr("Delete Anchor Point");
     case CanvasTool::ConvertPoint:
       return QObject::tr("Convert Point");
+    case CanvasTool::Artboard:
+      return QObject::tr("Artboard");
   }
   return QObject::tr("Tool");
 }
@@ -1154,6 +1157,10 @@ std::vector<Layer>* layer_siblings_containing(std::vector<Layer>& layers, LayerI
 }  // namespace
 
 void insert_layer_after_anchor(Document& document, Layer layer, std::optional<LayerId> anchor_id) {
+  if (anchor_id.has_value() && layer_is_artboard(std::as_const(layer))) {
+    // Artboards never nest (docs/artboards.md): above the anchor's top-level layer.
+    anchor_id = top_level_ancestor_id(std::as_const(document), *anchor_id);
+  }
   if (anchor_id.has_value()) {
     std::size_t index = 0;
     if (auto* siblings = layer_siblings_containing(document.layers(), *anchor_id, index); siblings != nullptr) {
@@ -1165,6 +1172,9 @@ void insert_layer_after_anchor(Document& document, Layer layer, std::optional<La
 }
 
 void insert_layer_below_anchor(Document& document, Layer layer, std::optional<LayerId> anchor_id) {
+  if (anchor_id.has_value() && layer_is_artboard(std::as_const(layer))) {
+    anchor_id = top_level_ancestor_id(std::as_const(document), *anchor_id);
+  }
   std::size_t index = 0;
   auto* siblings =
       anchor_id.has_value() ? layer_siblings_containing(document.layers(), *anchor_id, index) : nullptr;
@@ -1183,6 +1193,7 @@ void offset_copied_layer_tree(Layer& layer, std::int32_t dx, std::int32_t dy, st
   }
   const bool mask_linked = layer_mask_linked(std::as_const(layer));
   translate_moved_layer_metadata(layer, dx, dy, document_width, document_height);
+  layer.translate_artboard(dx, dy);
   if (!mask_linked) {
     if (auto& mask = layer.mask(); mask.has_value()) {
       mask->bounds.x += dx;

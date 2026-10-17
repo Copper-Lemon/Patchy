@@ -14,6 +14,7 @@
 #include <QIODevice>
 #include <QPainter>
 #include <QString>
+#include <QTimer>
 #include <Qt>
 
 #include <cmath>
@@ -86,6 +87,38 @@ patchy::Layer solid_rect_shape_layer(patchy::Document& document, const char* nam
                                      &document.metadata().patterns);
   return layer;
 }
+
+void drive_modal_dialog(const std::shared_ptr<std::function<bool()>>& step, int attempts) {
+  QTimer::singleShot(25, [step, attempts] {
+    if (step == nullptr || !static_cast<bool>(*step)) {
+      return;
+    }
+    if ((*step)()) {
+      return;
+    }
+    if (attempts > 0) {
+      drive_modal_dialog(step, attempts - 1);
+    }
+  });
+}
+
+QByteArray pdf_from_objects(const std::vector<std::string>& objects) {
+  std::string pdf = "%PDF-1.7\n";
+  std::vector<std::size_t> offsets;
+  for (std::size_t index = 0; index < objects.size(); ++index) {
+    offsets.push_back(pdf.size());
+    pdf += std::to_string(index + 1) + " 0 obj\n" + objects[index] + "\nendobj\n";
+  }
+  const std::size_t xref_offset = pdf.size();
+  pdf += "xref\n0 " + std::to_string(objects.size() + 1) + "\n0000000000 65535 f \n";
+  for (const auto offset : offsets) {
+    pdf += QStringLiteral("%1 00000 n \n").arg(offset, 10, 10, QLatin1Char('0')).toStdString();
+  }
+  pdf += "trailer\n<</Size " + std::to_string(objects.size() + 1) + "/Root 1 0 R>>\nstartxref\n" +
+         std::to_string(xref_offset) + "\n%%EOF\n";
+  return QByteArray::fromStdString(pdf);
+}
+
 #endif
 
 }  // namespace patchy::test::ui::import_print_resolution_support

@@ -4,6 +4,7 @@
 // parse-or-die. zlib cels go through the vendored miniz (src/formats/miniz/).
 
 #include "formats/aseprite_document_io.hpp"
+#include "core/artboard.hpp"
 
 #include "core/palette.hpp"
 #include "formats/binary_le.hpp"
@@ -582,6 +583,14 @@ void write_chunk(LittleEndianWriter& frame, std::uint16_t type, const std::vecto
 }  // namespace
 
 std::vector<std::uint8_t> DocumentIo::write(const Document& document) {
+  if (document_has_artboards(document)) {
+    // Aseprite has no artboards: each becomes a plain group with its background as a layer
+    // (docs/artboards.md). Aseprite groups cannot clip, so content past an artboard's edge
+    // shows in the file.
+    auto plain = document;
+    convert_artboards_to_plain_groups(plain);
+    return write(plain);
+  }
   if (document.width() <= 0 || document.height() <= 0 || document.width() > 0xffff ||
       document.height() > 0xffff) {
     throw std::runtime_error(PATCHY_TRANSLATE_NOOP("QObject", "Aseprite dimensions must be between 1 and 65535"));

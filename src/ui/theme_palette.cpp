@@ -249,6 +249,10 @@ const ThemePalette& dark_palette() {
       .dialog_busy_spinner = rgb(0x6fb1e8),
       .brush_leash = rgb(0xb48aff),
       .canvas_snap_guide = rgb(0xff46b4),
+      .canvas_artboard_outline = rgb(0x8a919b),
+      .canvas_artboard_label = rgb(0xc3c9d1),
+      .canvas_artboard_selected = rgb(0x5faaff),
+      .canvas_artboard_handle = rgb(0xf5f8fc),
 
       // Scroll bars.
       .canvas_scrollbar_track = rgb(0x262626),
@@ -524,6 +528,11 @@ const ThemePalette& light_palette() {
     // Alignment guides are drawn over artwork too: a flip would pull the
     // magenta toward a mid tone, so keep Photoshop's magenta, slightly deepened.
     light.canvas_snap_guide = rgb(0xe0289c);
+    // Artboard outlines and labels sit on the mid-gray pasteboard: darker, not flipped.
+    light.canvas_artboard_outline = rgb(0x5a6068);
+    light.canvas_artboard_label = rgb(0x2b2f35);
+    light.canvas_artboard_selected = rgb(0x246cb0);
+    light.canvas_artboard_handle = rgb(0xffffff);
 
     // The chrome bar sits between the pasteboard and the window surface, and has
     // to read as distinct from both: darker than the dialog body it heads, and
@@ -915,6 +924,10 @@ std::span<const ThemePaletteRole> theme_palette_roles() {
       PATCHY_THEME_ROLE(dialog_busy_spinner),
       PATCHY_THEME_ROLE(brush_leash),
       PATCHY_THEME_ROLE(canvas_snap_guide),
+      PATCHY_THEME_ROLE(canvas_artboard_outline),
+      PATCHY_THEME_ROLE(canvas_artboard_label),
+      PATCHY_THEME_ROLE(canvas_artboard_selected),
+      PATCHY_THEME_ROLE(canvas_artboard_handle),
 
       PATCHY_THEME_ROLE(canvas_scrollbar_track),
       PATCHY_THEME_ROLE(panel_scrollbar_track),

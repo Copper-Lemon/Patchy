@@ -154,6 +154,8 @@ const char* tool_action_source(CanvasTool tool) {
       return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Delete Anchor");
     case CanvasTool::ConvertPoint:
       return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Convert Point");
+    case CanvasTool::Artboard:
+      return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Artboard");
   }
   return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Tool");
 }
@@ -240,6 +242,8 @@ QString tool_hotkey_id(CanvasTool tool) {
       return QStringLiteral("tools.delete_anchor");
     case CanvasTool::ConvertPoint:
       return QStringLiteral("tools.convert_point");
+    case CanvasTool::Artboard:
+      return QStringLiteral("tools.artboard");
   }
   return QStringLiteral("tools.unknown");
 }
@@ -266,6 +270,9 @@ const char* tool_tooltip_detail_source(CanvasTool tool) {
       return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Click a point to remove it.");
     case CanvasTool::ConvertPoint:
       return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Click a point to switch it between corner and smooth.");
+    case CanvasTool::Artboard:
+      return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Drag on empty space to add an artboard, drag an artboard to move it with its "
+             "content (%ALT% copies it), drag a handle to resize it, click + to add one beside it.");
     default:
       return nullptr;
   }
@@ -298,6 +305,10 @@ const char* tool_activation_hint_source(CanvasTool tool) {
       return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Delete Anchor Point: click a point to remove it.");
     case CanvasTool::ConvertPoint:
       return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Convert Point: click a point to switch it between corner and smooth.");
+    case CanvasTool::Artboard:
+      return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Artboard: drag on empty space to add an artboard, drag one or its name to move "
+             "it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it, "
+             "double-click a name to rename it. Arrows nudge.");
     case CanvasTool::PatchTool:
       return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Patch: draw around the area to fix, then drag the selection to a clean source area, or press Enter to remove the object automatically");
     case CanvasTool::Marquee:
@@ -787,6 +798,9 @@ QIcon tool_icon(CanvasTool tool) {
     case CanvasTool::ConvertPoint:
       name = "tool-convert-point";
       break;
+    case CanvasTool::Artboard:
+      name = "tool-artboard";
+      break;
   }
   return themed_svg_icon(QLatin1String(name));
 }
@@ -891,7 +905,18 @@ void MainWindow::build_tool_palette(ActionBuildContext& ctx) {
     });
   };
 
-  move_tool_action_ = add_tool_action(tool_palette, tool_group, tr("Move"), CanvasTool::Move, QKeySequence(Qt::Key_V));
+  // Move and Artboard share a slot, as in Photoshop (docs/artboards.md).
+  auto* move_menu = new QMenu(tr("Move Tools"), tool_palette);
+  move_menu->setObjectName(QStringLiteral("moveToolMenu"));
+  bind_widget_text(move_menu, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Move Tools"));
+  move_tool_action_ = create_flyout_tool_action(move_menu, tr("Move"), CanvasTool::Move, QKeySequence(Qt::Key_V));
+  auto* artboard_action = create_flyout_tool_action(move_menu, tr("Artboard"), CanvasTool::Artboard, QKeySequence());
+  auto* move_tool_button = new QToolButton(tool_palette);
+  move_tool_button->setObjectName(QStringLiteral("moveToolButton"));
+  configure_tool_flyout(tool_palette, move_menu, move_tool_button, move_tool_action_,
+                        {move_tool_action_, artboard_action},
+                        QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Cycle Move Tools"),
+                        "toolCycleMoveAction", "tools.cycle.move", QKeySequence(Qt::SHIFT | Qt::Key_V));
   auto* marquee_menu = new QMenu(tr("Marquee Tools"), tool_palette);
   marquee_menu->setObjectName(QStringLiteral("marqueeToolMenu"));
   bind_widget_text(marquee_menu, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Marquee Tools"));

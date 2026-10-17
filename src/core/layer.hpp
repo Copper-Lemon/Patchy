@@ -42,6 +42,8 @@ struct Rect {
   [[nodiscard]] bool contains(std::int32_t px, std::int32_t py) const noexcept;
 
   static Rect from_size(std::int32_t width, std::int32_t height);
+
+  friend bool operator==(const Rect&, const Rect&) = default;
 };
 
 enum class BlendMode {
@@ -128,6 +130,26 @@ struct RgbColor {
   std::uint8_t blue{0};
 
   friend bool operator==(const RgbColor&, const RgbColor&) = default;
+};
+
+// An artboard's background, Photoshop's 'artb' artboardBackgroundType. The numbers are the
+// file's values (pinned by photoshop-artboard-backgrounds.psd): append-only.
+enum class ArtboardBackground : std::uint8_t { White = 1, Black = 2, Transparent = 3, Custom = 4 };
+
+// A top-level group that is an artboard (docs/artboards.md): a canvas inside the document.
+// Its children clip to `rect` (document pixels) and composite over the background, inside
+// the group, so the group's opacity and blend mode apply to both, as in Photoshop.
+struct LayerArtboard {
+  Rect rect{};
+  ArtboardBackground background{ArtboardBackground::White};
+  // The Custom color. Photoshop writes a color for every type (white for the others).
+  RgbColor color{255, 255, 255};
+  // Photoshop's size-preset label ("iPhone 14"); kept, never interpreted.
+  std::string preset_name;
+  // Photoshop's guideIndeces: which document guides belong to this artboard.
+  std::vector<std::int32_t> guide_indices;
+
+  friend bool operator==(const LayerArtboard&, const LayerArtboard&) = default;
 };
 
 // Photoshop Blend If stores the two halves of each black and white triangle
@@ -589,6 +611,9 @@ public:
   // pattern (replace whole via the setters; shared across undo snapshots).
   [[nodiscard]] const VectorShapeContent* vector_shape() const noexcept;
   [[nodiscard]] const LayerVectorMask* vector_mask() const noexcept;
+  // Set only on artboard groups (docs/artboards.md). Read-only through Layer: an edit
+  // replaces the whole value so the revision bump cannot be skipped.
+  [[nodiscard]] const std::optional<LayerArtboard>& artboard() const noexcept;
   [[nodiscard]] std::uint64_t render_revision() const noexcept;
   [[nodiscard]] std::uint64_t content_revision() const noexcept;
   // Changes only when the pixel buffer may have changed. Alpha-bound caches
@@ -627,6 +652,9 @@ public:
   void clear_vector_shape() noexcept;
   void set_vector_mask(LayerVectorMask mask);
   void clear_vector_mask() noexcept;
+  // An artboard is a group property: setting one on a non-group throws.
+  void set_artboard(LayerArtboard artboard);
+  void clear_artboard() noexcept;
   void add_child(Layer child);
   // For composition-affecting state changes that live on ANOTHER layer (e.g. a
   // sibling joining/leaving this layer's clipping group): bumps the render
@@ -641,6 +669,7 @@ public:
   void translate_linked_mask(std::int32_t dx, std::int32_t dy) noexcept;
   void set_vector_shape_translated(VectorShapeContent content);
   void set_vector_mask_translated(LayerVectorMask mask);
+  void translate_artboard(std::int32_t dx, std::int32_t dy) noexcept;
   // Render-revision-only mutable access for translation and writer dirty-mark
   // plumbing (kLayerMetadata*BlockDirty); pair with a real edit's bump when
   // the change is more than positional/bookkeeping.
@@ -672,6 +701,7 @@ private:
   std::shared_ptr<const SmartFilterStack> smart_filter_stack_{};
   std::shared_ptr<const VectorShapeContent> vector_shape_{};
   std::shared_ptr<const LayerVectorMask> vector_mask_{};
+  std::optional<LayerArtboard> artboard_{};
   std::uint64_t render_revision_{1};
   std::uint64_t content_revision_{1};
   std::uint64_t pixel_revision_{1};

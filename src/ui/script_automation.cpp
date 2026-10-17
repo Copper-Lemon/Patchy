@@ -41,6 +41,9 @@ QJsonArray layer_state(const std::vector<Layer>& layers, const std::vector<Layer
                             {"opacity", layer.opacity() * 100.0},
                             {"blendMode", script_blend_mode_id(layer.blend_mode())},
                             {"isGroup", layer.kind() == LayerKind::Group}, {"isText", layer_is_text(layer)},
+                            {"isArtboard", layer.artboard().has_value()},
+                            {"artboard", layer.artboard() ? QJsonValue(rect_json(to_qrect(layer.artboard()->rect)))
+                                                          : QJsonValue(QJsonValue::Null)},
                             {"isShape", layer_has_vector_shape_marker(layer)},
                             {"vectorEditable", (layer.vector_shape() || layer.vector_mask()) &&
                               vector_lock_reason(layer).empty() && layer.lock_flags() == kLayerLockNone &&

@@ -24,6 +24,12 @@ namespace patchy::ui {
 // Persisted as ints in exportDocumentsFolder/existingFiles (permanent identifiers).
 enum class ExportDocumentsExistingFiles : int { AddNumbering = 0, Overwrite = 1 };
 
+// What the list holds. Artboards (File > Export > Artboards to Files): the rows are the
+// active document's artboards (ids in the session_id slot), each file is prefix + the
+// artboard's name (naming.use_layer_names is true), and a taken name gets " 2", " 3"
+// in Add mode. The prefix starts as `artboard_prefix` and is not remembered.
+enum class ExportDocumentsFolderSource { Documents, Artboards };
+
 struct ExportDocumentsFolderChoice {
   std::vector<std::int64_t> session_ids;  // the selected sessions in list order
   QString folder;                         // absolute, already created by the dialog
@@ -42,6 +48,8 @@ using ExportDocumentsFormatChoice = DividePhotosFormatChoice;
 // reads and writes the exportDocumentsFolder/* settings keys. nullopt when cancelled.
 [[nodiscard]] std::optional<ExportDocumentsFolderChoice> run_export_documents_folder_dialog(
     QWidget* parent, const std::vector<DocumentOrderEntry>& documents, std::int64_t active_session_id,
-    const std::vector<ExportDocumentsFormatChoice>& formats, const QString& initial_folder);
+    const std::vector<ExportDocumentsFormatChoice>& formats, const QString& initial_folder,
+    ExportDocumentsFolderSource source = ExportDocumentsFolderSource::Documents,
+    const QString& artboard_prefix = QString());
 
 }  // namespace patchy::ui

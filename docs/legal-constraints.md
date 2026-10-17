@@ -1,6 +1,6 @@
 # Binding legal and licensing constraints
 
-Read this before changing any feature named below or adding an adjacent implementation. The claim-level research record lives in [patent-research.md](patent-research.md) and, for content-aware fill, [patent-research-inpainting.md](patent-research-inpainting.md), with alignment guides in [patent-research-alignment.md](patent-research-alignment.md), automatic selection in [patent-research-selection.md](patent-research-selection.md), the G'MIC filters in [patent-research-gmic.md](patent-research-gmic.md), soft proofing in [patent-research-proofing.md](patent-research-proofing.md), and format law, codecs and trademarks in [patent-research-formats.md](patent-research-formats.md); detailed compatibility records live in [smart-objects.md](smart-objects.md), [selection-tools.md](selection-tools.md), [liquify.md](liquify.md), [brushes.md](brushes.md), [vector-tools.md](vector-tools.md), [image-trace.md](image-trace.md), [file-formats.md](file-formats.md), and [af-format.md](af-format.md). They bind even when a feature looks straightforward.
+Read before changing a feature named below or adding an adjacent one. Claim-level records: [patent-research.md](patent-research.md), [inpainting](patent-research-inpainting.md), [alignment guides](patent-research-alignment.md), [automatic selection](patent-research-selection.md), [G'MIC](patent-research-gmic.md), [soft proofing](patent-research-proofing.md), [formats, codecs and trademarks](patent-research-formats.md), [artboards](patent-research-artboards.md); compatibility records: [smart-objects.md](smart-objects.md), [selection-tools.md](selection-tools.md), [liquify.md](liquify.md), [brushes.md](brushes.md), [vector-tools.md](vector-tools.md), [image-trace.md](image-trace.md), [file-formats.md](file-formats.md), [af-format.md](af-format.md). They bind even when a feature looks straightforward.
 
 ## Selection tools
 
@@ -54,16 +54,17 @@ Design in [gmic.md](gmic.md); claim record in [patent-research-gmic.md](patent-r
 
 - **Alignment snapping snaps edges and centers only, never spacing** (September 2026, research record in [patent-research-alignment.md](patent-research-alignment.md), design in [alignment.md](alignment.md)). While a layer is dragged, Patchy may snap its edges and centers to other layers' opaque bounds, the selection, guides, the grid, and the canvas, and draw a line through the matched edge or center. It must never position a dragged layer equidistant between other layers or at a neighbouring pair's spacing, and must never show spacing or distance measurements during a drag (Adobe US 10782861, to 2036). Every edge and center of every moving layer is a snap source regardless of where the drag was grabbed (Adobe US 9250786, to 2034: grab-point-dependent source features). The snap search stays a plain linear comparison of edge coordinates against a tolerance, with no cursor guide line, reference-point distance index, or sorted candidate structure (Adobe US 9442623, to 2033). Targets are layer bounds and user-drawn geometry only, never objects detected inside a layer's pixels (Adobe US 11562488, to 2041). Static Align and Distribute commands are user-invoked one-shot layout with no reposition input and stay outside these claims; keep them out of the drag path.
 
+## Artboards
+
+- **No artboard is chosen from edit history** (October 2026, record in [patent-research-artboards.md](patent-research-artboards.md)): a new artboard's size and place come from the user's explicit input or from the artboard whose add button was clicked, never from the most recently edited artboard (Adobe US 8667406, to 2031-02-04). Angular snapping, cross-artboard change propagation and content reflow need a new review.
+
 ## Soft proof and gamut warning
 
 - **Proof Colors and Gamut Warning stay the generic ICC view** (October 2026, record in [patent-research-proofing.md](patent-research-proofing.md), design in [cmyk.md](cmyk.md)). One fixed transform through the user's chosen CMYK profile and rendering intent, and one flat fill for out-of-gamut colors, both from Little CMS, applied to the whole canvas view on the user's menu choice. Never add, without a new review: a view correction for a measured monitor, paper white or viewing condition beyond the ICC intents; a proof chosen or adjusted per region or from image content; automatic editing of pixels into gamut; learned gamut mapping. The record is a prior-art note, not a claim-level review.
 
 ## Format, copyright, trademarks, and assets
 
-- **Open from Clipboard** creates only an unsaved in-memory raster document from
-  the current clipboard image. The scoped review and claim analysis are in
-  [clipboard.md](clipboard.md). Do not extend that assessment to automatic
-  clipboard-to-file/cloud storage or shortcut-bound destinations.
+- **Open from Clipboard** makes only an unsaved in-memory raster document ([clipboard.md](clipboard.md)); never extend it to automatic clipboard-to-file/cloud storage or shortcut-bound destinations.
 - PSD interoperability comes from observed output of a licensed Photoshop, never decompilation. Never copy verbatim Adobe specification text into the repository; link to it. Use self-authored fixtures only and do not support the undocumented PSDC cloud-document format.
 - "Smart Object(s)", "Smart Filter(s)", "Filter Gallery", and "PSD" are not Adobe trademarks in the reviewed record. PHOTOSHOP is registered and policed. Use referential language such as "compatible with Adobe Photoshop"; never put Adobe marks in Patchy's name, icons or branding, and keep README.md's Trademark Notice.
 - Bundled art and textures must never come from AI image generation. Acceptable sources: code generation, or real photography/human artwork under a commercially compatible license, preferably CC0. Every third-party asset needs a `NOTICE-THIRD-PARTY.md` entry and ships losslessly. Poly Haven textures are human-made.
@@ -79,9 +80,8 @@ Design in [gmic.md](gmic.md); claim record in [patent-research-gmic.md](patent-r
 - JPEG XR decoding and encoding must use Windows' in-box Imaging Component codec. Never
   vendor or link jxrlib, libjxr, or another JPEG XR codec, and never add a JPEG XR path to a
   non-Windows build, without a new review. Patchy ships no codec, so no JPEG XR patent reads
-  on the binary. The position is friendlier than HEVC's (Microsoft's Open Specification
-  Promise, a BSD-2 reference implementation, 2006-2009 priority dates at or past term) but
-  has had no claim-level review, so it is no licence to vendor a codec. Design:
+  on the binary. Friendlier than HEVC (Open Specification Promise, 2006-2009 priorities)
+  but never claim-reviewed, so no licence to vendor a codec. Design:
   [jxr.md](jxr.md); wiring: [file-formats.md](file-formats.md).
 - AVIF may ship in-process AV1 codecs (Seth's decision, October 16, 2026; record in
   [patent-research-formats.md](patent-research-formats.md)): libavif 1.4.2 over dav1d

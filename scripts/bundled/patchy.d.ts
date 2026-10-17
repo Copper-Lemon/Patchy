@@ -247,6 +247,20 @@ interface PatchySmartObjectState {
   quad: number[];
 }
 
+/** An artboard's background: "color" paints `color`. */
+type PatchyArtboardBackground = "white" | "black" | "transparent" | "color";
+
+/** An artboard's rect (document pixels) and background, as layer.artboard reads it. */
+interface PatchyArtboard {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  background: PatchyArtboardBackground;
+  /** "#rrggbb"; meaningful when background is "color" (white otherwise). */
+  color: string;
+}
+
 interface PatchyLayer {
   /** Decimal string identity, scoped to this open document. Re-query after undo/reopen. */
   readonly id: string;
@@ -259,14 +273,28 @@ interface PatchyLayer {
   /** Blend mode id string (see the list above). */
   blendMode: string;
   locked: boolean;
-  /** Content offset in document pixels; setting either moves the layer like `moveTo`. */
+  /** Content offset in document pixels; setting either moves the layer like `moveTo`.
+   *  For an artboard, the artboard's top-left corner. */
   x: number;
   y: number;
+  /** The layer's bounds; an artboard's rect for an artboard. */
   readonly bounds: PatchyRect;
   readonly isGroup: boolean;
   readonly isText: boolean;
   readonly isShape: boolean;
   readonly isSmartObject: boolean;
+  /** True for an artboard: a top-level group with its own canvas rect and background. */
+  readonly isArtboard: boolean;
+  /** The artboard's rect and background, or null for every other layer. */
+  readonly artboard: PatchyArtboard | null;
+  /**
+   * Changes an artboard's rect or background (absent keys keep their value; `color`
+   * alone means background "color"), or makes a top-level group an artboard sized to
+   * its content unless the rect is given. null turns an artboard back into a plain
+   * group. The canvas grows to hold every artboard; growing up or left moves every
+   * document coordinate by the same amount. Throws for a layer that cannot be one.
+   */
+  setArtboard(options: Partial<PatchyArtboard> | null): void;
   /** The smart object's state, or null for other layers. */
   getSmartObject(): PatchySmartObjectState | null;
   /**
@@ -652,6 +680,9 @@ interface PatchySaveOptions {
   editableLayers?: boolean;
   keepOriginalImageData?: boolean;
   missingFontsAsImages?: boolean;
+  /** .pdf of a document with artboards: one page per artboard (default true), or false
+   *  for one page of the whole canvas. */
+  artboardPages?: boolean;
   /** .gif, .jxl: write the visible top-level layers as an animation (top layer = frame 1)
    *  instead of one flattened image; frameDelayMs is the default per-frame delay. */
   animate?: boolean;
@@ -937,6 +968,34 @@ interface PatchyDocument {
    *  throws. Text layers and smart objects re-render from their sources afterwards. */
   resizeImage(width: number, height: number, options?: {method?: PatchyResampleMethod}): void;
   resizeCanvas(width: number, height: number): void;
+  /** The artboards, top of the layer stack first (empty without artboards). */
+  readonly artboards: PatchyLayer[];
+  /**
+   * Layer > New > Artboard: a new artboard on top of the stack. An empty name gives
+   * "Artboard N". The canvas grows to hold it (see setArtboard).
+   */
+  addArtboard(
+    name: string,
+    rect: PatchyRect,
+    options?: {background?: PatchyArtboardBackground; color?: string},
+  ): PatchyLayer;
+  /** Layer > New > Artboard from Layers: moves the layers (none on an artboard, none an
+   *  artboard) onto a new artboard sized to them. */
+  artboardFromLayers(layers: PatchyLayer[], name?: string): PatchyLayer;
+  /** Image > Fit Canvas to Artboards: the canvas becomes the artboards plus any visible
+   *  layer outside them. Returns how far every document coordinate moved. */
+  fitCanvasToArtboards(): {x: number; y: number};
+  /**
+   * File > Export > Artboards to Files: one file per artboard (all of them, or
+   * options.artboards), named options.prefix (default "<document name> - ") plus the
+   * artboard's name. A taken name gets " 2", " 3" unless options.overwrite. format is
+   * any extension the export dialog offers ("png" by default; "psd" keeps layers).
+   * Returns the written paths in order.
+   */
+  exportArtboards(
+    folder: string,
+    options?: {format?: string; prefix?: string; artboards?: PatchyLayer[]; overwrite?: boolean},
+  ): string[];
   /** Image > Mode > 8/16/32 Bits/Channel: converts every layer, mask and channel.
    *  16 and 32 need deep editing to be on; Indexed documents stay 8-bit. */
   convertBitDepth(bits: 8 | 16 | 32): void;
@@ -1062,7 +1121,8 @@ interface PatchyApp {
    * with the image data it came with. options.editableLayers (default false) keeps
    * shapes and text as PDF objects the way Save As PDF's "Keep Layers
    * Editable" does; options.missingFontsAsImages embeds text in uninstalled
-   * fonts as pixels. Returns true on success and throws on bad arguments or a
+   * fonts as pixels. options.artboardPages (default true) makes each artboard of a
+   * document its own page. Returns true on success and throws on bad arguments or a
    * write failure.
    */
   exportPdf(
@@ -1074,6 +1134,7 @@ interface PatchyApp {
       keepOriginalImageData?: boolean;
       editableLayers?: boolean;
       missingFontsAsImages?: boolean;
+      artboardPages?: boolean;
     },
   ): boolean;
 }

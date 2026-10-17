@@ -65,10 +65,16 @@
 
 ## PDF documents
 
-- Import selected PDF pages on desktop as editable text, vector shapes, and images, or as flattened images at a chosen resolution. Pages can open as separate documents; flattened pages can also become layers in one document
-- Export a single document or assemble a multi-page PDF from open documents or top-level layer groups, with page ordering and editable or flattened output
+- Import selected PDF pages on desktop as editable text, vector shapes, and images, or as flattened images at a chosen resolution (presets from 72 to 600 ppi, or any value you type). Pages can open as separate documents, as one document with a folder or layer per page, or as one document with an artboard per page. Choose RGB, Grayscale, CMYK Proof, or Indexed Color, 8, 16, or 32 bits per channel, a white or transparent page background, and reverse page order
+- Export a single document or assemble a multi-page PDF from open documents, top-level layer groups, or artboards, with page ordering and editable or flattened output. A document with artboards saves as one PDF page per artboard, each its own size
 - Editable export preserves supported text and vectors. Effects and unsupported combinations are rasterized with notices; it does not preserve every PSD layer property. Imported PDFs save as a new copy so the original is not overwritten by a normal Save
 - Lossless and JPEG quality options, with original compressed image data retained for supported, unchanged scanned pages to avoid re-encoding. PDF export also works in the browser; PDF import requires the desktop app. See [PDF support and limitations](pdf.md)
+
+## Artboards
+
+- Photoshop-style artboards: several canvases of different sizes in one document, each with a white, black, transparent, or custom background, and layers that show only inside their artboard. Layers outside every artboard still render
+- The Artboard tool (in the Move tool's flyout) draws, moves, copies (Alt-drag), resizes, and nudges artboards, and its + buttons add one beside the selected artboard. Size presets, Auto-Nest Layers, the Properties panel, and Layer > New commands (Artboard, Artboard from Group, Artboard from Layers, Convert Artboard to Group) cover the rest, and New Document can start with one
+- Artboards open and save in Photoshop's own PSD format, export to PDF one page per artboard, export as separate files (File > Export > Artboards to Files), and print one sheet per artboard, optionally on paper the artboard's size. Affinity artboards import as artboards, and scripts can create and edit them
 
 ## Plug-ins, scripting, and AI control
 

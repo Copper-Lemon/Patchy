@@ -1,6 +1,7 @@
 #include "core/vector_compound.hpp"
 #include "ui/vector_preview_renderer.hpp"
 
+#include "core/artboard.hpp"
 #include "core/layer_metadata.hpp"
 #include "core/layer_render_utils.hpp"
 #include "core/smart_object.hpp"
@@ -499,8 +500,10 @@ QString vector_preview_fallback_text(VectorPreviewFallback reason) {
 VectorPreviewScene build_vector_preview_scene(const Document& document) {
   VectorPreviewScene scene;
   scene.canvas = {document.width(), document.height()};
+  // Artboards clip and paint their paper in the CPU compositor only (docs/artboards.md),
+  // so an artboard document keeps the normal view.
   if (document.palette_editing() || document.format().color_mode != ColorMode::RGB ||
-      document.format().bit_depth != BitDepth::UInt8) {
+      document.format().bit_depth != BitDepth::UInt8 || document_has_artboards(document)) {
     scene.fallback = VectorPreviewFallback::Content;
   } else {
     scene.patterns = document.metadata().patterns;

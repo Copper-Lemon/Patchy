@@ -26,6 +26,19 @@ namespace patchy::ui {
 //
 // PDF EXPORT is unrelated and always available: see ui/pdf_export.hpp.
 
+// The Import PDF dialog's Mode choice (permanent tokens in imports/pdfColorMode: rgb,
+// grayscale, cmyk, palette). Patchy edits RGB, so Grayscale is gray CONTENT in an RGB
+// document (applied while the pages are read), CMYK opens the sessions in Image > Mode >
+// CMYK Proof, and Palette converts to Indexed editing; the last two are applied by the
+// MainWindow once the pages are documents (PdfImportResult carries the choice).
+enum class PdfImportColorMode { Rgb, Grayscale, Cmyk, Palette };
+
+// How the MainWindow folds the per-page documents of an import into ONE document once
+// their text and images are rendered (GitHub issues 154 and 19, docs/pdf.md "Import"):
+// Layers puts each page's layers in a "Page N" folder (only the first visible), Artboards
+// makes each page an artboard of its own size. None opens what the import returned.
+enum class PdfPagesMerge { None, Layers, Artboards };
+
 struct PdfImportOptions {
   // 0-based page indices, in the order they should become layers. Empty means page 0.
   std::vector<int> pages;
@@ -45,6 +58,16 @@ struct PdfImportOptions {
   // selection size). Returning false stops the import after the pages already done,
   // which are kept, with a notice saying where it stopped. Empty = no reporting.
   std::function<bool(int position, int count)> progress;
+  // PDFium renders onto a transparent page and PDF paints no paper; true composites
+  // every page over white, the page a viewer (and Photoshop's import) shows.
+  bool white_background{true};
+  PdfImportColorMode color_mode{PdfImportColorMode::Rgb};
+  // Applied after the pages are documents (convert_document_depth); Palette forces 8.
+  BitDepth bit_depth{BitDepth::UInt8};
+  // Set with separate_documents: the pages come back as documents and the MainWindow
+  // merges them. The Artboards target paints no paper into the pages: the artboard's own
+  // background is the paper.
+  PdfPagesMerge merge{PdfPagesMerge::None};
 };
 
 // One page opened as its own document. `title` is the page label ("Page 3"); the
@@ -62,6 +85,13 @@ struct PdfImportResult {
   // after it as its own document.
   QString document_title;
   std::vector<PdfImportedDocument> extra_documents;
+  // What the MainWindow still has to apply once every page is a finished document
+  // (pending text and images rendered): CMYK Proof, Indexed conversion, bit depth.
+  PdfImportColorMode color_mode{PdfImportColorMode::Rgb};
+  BitDepth bit_depth{BitDepth::UInt8};
+  PdfPagesMerge merge{PdfPagesMerge::None};
+  // The White page background choice, for the merged artboards' background.
+  bool white_background{true};
 };
 
 // True when this build linked Qt PDF, i.e. when opening a .pdf can work at all.

@@ -1141,6 +1141,105 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   crop_cancel_button_->setIconSize(QSize(20, 20));
   crop_cancel_button_->setProperty("optionsSessionButton", true);
   add_option_widget(crop_cancel_button_, {CanvasTool::Crop});
+
+  // Artboard tool (docs/artboards.md): the size and background show the selected
+  // artboard and edit it; with none selected they are what a new artboard gets.
+  add_option_label(QT_TR_NOOP("Size:"), {CanvasTool::Artboard});
+  artboard_preset_combo_ = new QComboBox(toolbar);
+  artboard_preset_combo_->setObjectName(QStringLiteral("artboardPresetCombo"));
+  artboard_preset_combo_->setMinimumWidth(150);
+  populate_artboard_size_presets(artboard_preset_combo_);
+  QPointer<QComboBox> artboard_presets(artboard_preset_combo_);
+  register_retranslation([artboard_presets] {
+    if (artboard_presets != nullptr) {
+      const QSignalBlocker blocker(artboard_presets);
+      const auto index = artboard_presets->currentIndex();
+      populate_artboard_size_presets(artboard_presets);
+      artboard_presets->setCurrentIndex(index);
+    }
+  });
+  bind_tooltip(artboard_preset_combo_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Size preset for the selected artboard, or for new artboards"));
+  add_option_widget(artboard_preset_combo_, {CanvasTool::Artboard});
+  const auto make_artboard_size_spin = [this, toolbar](const char* name, const char* tooltip) {
+    auto* spin = new QSpinBox(toolbar);
+    spin->setObjectName(QLatin1String(name));
+    spin->setRange(1, 30000);
+    spin->setSuffix(pixel_suffix());
+    QPointer<QSpinBox> guarded(spin);
+    register_retranslation([guarded] {
+      if (guarded != nullptr) {
+        guarded->setSuffix(pixel_suffix());
+      }
+    });
+    spin->setKeyboardTracking(false);
+    bind_tooltip(spin, tooltip);
+    configure_toolbar_spinbox(spin, 84);
+    return spin;
+  };
+  add_option_label(QT_TR_NOOP("W:"), {CanvasTool::Artboard});
+  artboard_width_spin_ = make_artboard_size_spin(
+      "artboardWidthSpin", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Width of the selected artboard, or of new artboards"));
+  add_option_widget(artboard_width_spin_, {CanvasTool::Artboard});
+  auto* artboard_swap = new QPushButton(toolbar);
+  artboard_swap->setObjectName(QStringLiteral("artboardSwapSizeButton"));
+  artboard_swap->setIcon(simple_icon(QStringLiteral("swap")));
+  artboard_swap->setFixedWidth(28);
+  bind_tooltip(artboard_swap, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Swap width and height (portrait or landscape)"));
+  add_option_widget(artboard_swap, {CanvasTool::Artboard});
+  add_option_label(QT_TR_NOOP("H:"), {CanvasTool::Artboard});
+  artboard_height_spin_ = make_artboard_size_spin(
+      "artboardHeightSpin", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Height of the selected artboard, or of new artboards"));
+  add_option_widget(artboard_height_spin_, {CanvasTool::Artboard});
+  add_option_label(QT_TR_NOOP("Background:"), {CanvasTool::Artboard});
+  artboard_background_combo_ = new QComboBox(toolbar);
+  artboard_background_combo_->setObjectName(QStringLiteral("artboardBackgroundCombo"));
+  populate_artboard_background_combo(artboard_background_combo_);
+  QPointer<QComboBox> artboard_backgrounds(artboard_background_combo_);
+  register_retranslation([artboard_backgrounds] {
+    if (artboard_backgrounds != nullptr) {
+      const QSignalBlocker blocker(artboard_backgrounds);
+      const auto index = artboard_backgrounds->currentIndex();
+      populate_artboard_background_combo(artboard_backgrounds);
+      artboard_backgrounds->setCurrentIndex(index);
+    }
+  });
+  bind_tooltip(artboard_background_combo_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Background of the selected artboard, or of new artboards"));
+  add_option_widget(artboard_background_combo_, {CanvasTool::Artboard});
+  auto* artboard_add = new QPushButton(tr("Add Artboard"), toolbar);
+  artboard_add->setObjectName(QStringLiteral("artboardAddButton"));
+  bind_widget_text(artboard_add, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Add Artboard"));
+  bind_tooltip(artboard_add, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Add an artboard of this size beside the others"));
+  add_option_widget(artboard_add, {CanvasTool::Artboard});
+  artboard_auto_nest_ = app_settings().value(QStringLiteral("tools/artboardAutoNest"), true).toBool();
+  auto* artboard_auto_nest = new CheckGlyphBox(tr("Auto-Nest Layers"), toolbar);
+  artboard_auto_nest->setObjectName(QStringLiteral("artboardAutoNestCheck"));
+  bind_widget_text(artboard_auto_nest, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Auto-Nest Layers"));
+  artboard_auto_nest->setChecked(artboard_auto_nest_);
+  bind_tooltip(artboard_auto_nest,
+               QT_TR_NOOP("A layer moved onto an artboard joins it, and one moved off every artboard leaves it"));
+  add_option_widget(artboard_auto_nest, {CanvasTool::Artboard, CanvasTool::Move});
+  connect(artboard_auto_nest, &QCheckBox::toggled, this, [this](bool checked) {
+    artboard_auto_nest_ = checked;
+    app_settings().setValue(QStringLiteral("tools/artboardAutoNest"), checked);
+  });
+  connect(artboard_preset_combo_, &QComboBox::activated, this, [this](int index) {
+    if (const auto size = artboard_preset_combo_->itemData(index).toSize(); size.isValid()) {
+      apply_artboard_size_option(size);
+    }
+  });
+  connect(artboard_width_spin_, &QSpinBox::valueChanged, this, [this](int value) {
+    apply_artboard_size_option(QSize(value, artboard_height_spin_->value()));
+  });
+  connect(artboard_height_spin_, &QSpinBox::valueChanged, this, [this](int value) {
+    apply_artboard_size_option(QSize(artboard_width_spin_->value(), value));
+  });
+  connect(artboard_swap, &QPushButton::clicked, this, [this] {
+    apply_artboard_size_option(QSize(artboard_height_spin_->value(), artboard_width_spin_->value()));
+  });
+  connect(artboard_background_combo_, &QComboBox::activated, this, [this](int index) {
+    apply_artboard_background_option(artboard_background_combo_->itemData(index).toString(), false);
+  });
+  connect(artboard_add, &QPushButton::clicked, this, [this] { add_artboard_beside(); });
   const auto apply_crop_ratio = [this] {
     if (crop_ratio_w_spin_ == nullptr || crop_ratio_h_spin_ == nullptr) {
       return;

@@ -10,6 +10,7 @@
 #include "filters/gmic/gmic_engine.hpp"
 #include "ui/gmic_library.hpp"
 
+#include "core/artboard.hpp"
 #include "core/document_depth.hpp"
 #include "core/pixel_depth.hpp"
 #include "ui/image_document_io.hpp"
@@ -307,6 +308,8 @@ Layer clone_layer_with_fresh_ids(Document& document, const Layer& source) {
 // bounds by hand, and an unlinked mask stays where it is.
 void offset_layer_recursive(Layer& layer, int dx, int dy, std::int32_t document_width,
                             std::int32_t document_height) {
+  // An artboard's rect travels with its content (docs/artboards.md).
+  layer.translate_artboard(dx, dy);
   if (const auto bounds = std::as_const(layer).bounds(); !bounds.empty()) {
     layer.set_bounds(Rect{bounds.x + dx, bounds.y + dy, bounds.width, bounds.height});
   }
@@ -485,20 +488,20 @@ void ScriptLayerObject::set_locked(bool locked) {
 int ScriptLayerObject::x() const {
   const ScriptApiCall api_call(host_);
   const auto* layer = read_layer();
-  return layer != nullptr ? layer->bounds().x : 0;
+  return layer != nullptr ? script_layer_position_bounds(*layer).x : 0;
 }
 
 int ScriptLayerObject::y() const {
   const ScriptApiCall api_call(host_);
   const auto* layer = read_layer();
-  return layer != nullptr ? layer->bounds().y : 0;
+  return layer != nullptr ? script_layer_position_bounds(*layer).y : 0;
 }
 
 void ScriptLayerObject::set_x(double x) {
   const ScriptApiCall api_call(host_);
   const auto* current = read_layer();
   if (current != nullptr) {
-    moveTo(x, current->bounds().y);
+    moveTo(x, script_layer_position_bounds(*current).y);
   }
 }
 
@@ -506,7 +509,7 @@ void ScriptLayerObject::set_y(double y) {
   const ScriptApiCall api_call(host_);
   const auto* current = read_layer();
   if (current != nullptr) {
-    moveTo(current->bounds().x, y);
+    moveTo(script_layer_position_bounds(*current).x, y);
   }
 }
 
@@ -516,7 +519,7 @@ void ScriptLayerObject::moveTo(double x, double y) {
   if (current == nullptr) {
     return;
   }
-  const auto bounds = current->bounds();
+  const auto bounds = script_layer_position_bounds(*current);
   const auto valid_integer = [](double value) {
     return std::isfinite(value) && value >= std::numeric_limits<int>::min() &&
            value <= std::numeric_limits<int>::max();
@@ -534,6 +537,30 @@ void ScriptLayerObject::moveTo(double x, double y) {
   const int dy = static_cast<int>(snapped_y) - bounds.y;
   if (dx == 0 && dy == 0) {
     return;
+  }
+  if (layer_is_artboard(*current)) {
+    // The canvas grows to follow an artboard, within the Artboard tool's limits; checked
+    // on a copy so a refusal changes nothing (docs/artboards.md).
+    const auto* source = host_.session_document_const(session_id_);
+    if (source == nullptr) {
+      return;
+    }
+    auto probe = *source;
+    for (auto& top : probe.layers()) {
+      if (top.id() == layer_id_) {
+        top.translate_artboard(dx, dy);
+      }
+    }
+    if (!artboard_canvas_within_limit(probe)) {
+      host_.throw_js_error(ScriptEngineHost::tr("Artboards cannot make the canvas larger than %1 x %1 px.")
+                               .arg(kMaxArtboardCanvasSide));
+      return;
+    }
+    if (artboard_canvas_would_grow(probe) &&
+        (document_contains_smart_filters(probe) || document_contains_unparsed_smart_objects(probe))) {
+      host_.throw_js_error(MainWindow::tr("Rasterize Smart Filters before changing document geometry"));
+      return;
+    }
   }
   auto* layer = write_layer();
   if (layer == nullptr) {
@@ -561,6 +588,15 @@ void ScriptLayerObject::moveTo(double x, double y) {
     }
   }
   const auto* moved = std::as_const(*document).find_layer(layer_id_);
+  if (moved != nullptr && layer_is_artboard(*moved)) {
+    // An artboard moved past the canvas edge grows the canvas, as in the Artboard tool.
+    if (!std::as_const(*document).metadata().artboard_settings.has_value()) {
+      document->metadata().artboard_settings.emplace();
+    }
+    static_cast<void>(grow_canvas_to_artboards(*document));
+    host_.note_structure_changed(session_id_);
+    return;
+  }
   const auto after = moved != nullptr ? to_qrect(layer_render_bounds(*moved)) : before;
   host_.note_pixels_changed(session_id_, before.united(after));
 }
@@ -568,7 +604,7 @@ void ScriptLayerObject::moveTo(double x, double y) {
 QJSValue ScriptLayerObject::bounds() const {
   const ScriptApiCall api_call(host_);
   const auto* layer = read_layer();
-  return layer != nullptr ? rect_to_js(host_.engine(), layer->bounds()) : QJSValue();
+  return layer != nullptr ? rect_to_js(host_.engine(), script_layer_position_bounds(*layer)) : QJSValue();
 }
 
 bool ScriptLayerObject::is_group() const {
@@ -2870,6 +2906,9 @@ bool ScriptAppObject::exportPdf(const QJSValue& documents, const QString& path, 
     }
     if (const auto value = options.property(QStringLiteral("missingFontsAsImages")); value.isBool()) {
       export_options.missing_fonts_as_images = value.toBool();
+    }
+    if (const auto value = options.property(QStringLiteral("artboardPages")); value.isBool()) {
+      export_options.artboard_pages = value.toBool();
     }
     if (const auto value = options.property(QStringLiteral("keepOriginalImageData")); value.isBool()) {
       export_options.keep_original_image_data = value.toBool();

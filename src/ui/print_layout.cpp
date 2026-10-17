@@ -2,6 +2,7 @@
 
 #include "ui/app_settings.hpp"
 #include "ui/image_document_io.hpp"
+#include "ui/pdf_export.hpp"
 #include "ui/print_internal.hpp"
 
 #include <QColor>
@@ -105,6 +106,34 @@ QPageLayout page_layout_with_size(const QPageLayout& layout, const QPageSize& si
     result.setMargins(QMarginsF(0.0, 0.0, 0.0, 0.0));
   }
   return result;
+}
+
+QPageLayout artboard_page_layout(const Document& page) {
+  const auto size = custom_page_size_points(
+      QSizeF(static_cast<double>(std::max<std::int32_t>(1, page.width())) / document_horizontal_ppi(page) *
+                 kPointsPerInch,
+             static_cast<double>(std::max<std::int32_t>(1, page.height())) / document_vertical_ppi(page) *
+                 kPointsPerInch));
+  QPageLayout layout(size, QPageLayout::Portrait, QMarginsF(0.0, 0.0, 0.0, 0.0), QPageLayout::Point,
+                     QMarginsF(0.0, 0.0, 0.0, 0.0));
+  return valid_page_layout(layout);
+}
+
+std::vector<Document> print_artboard_pages(const Document& document) {
+  return documents_for_artboards(document);
+}
+
+PrintSettings artboard_page_print_settings(const PrintSettings& settings) {
+  auto page = settings;
+  page.area_mode = PrintAreaMode::Document;
+  page.selection_bounds = QRect();
+  if (settings.match_artboard_paper) {
+    page.scale_mode = PrintScaleMode::ActualSize;
+    page.scale_percent = 100.0;
+    page.center = true;
+    page.crop_marks = false;
+  }
+  return page;
 }
 
 namespace {

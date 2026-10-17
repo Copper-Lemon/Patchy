@@ -7048,10 +7048,6 @@ RGB: %2, %3, %4</translation>
         <translation>Importar como:</translation>
     </message>
     <message>
-        <source> ppi</source>
-        <translation> ppp</translation>
-    </message>
-    <message>
         <source>Include annotations</source>
         <translation>Incluir anotaciones</translation>
     </message>
@@ -7070,10 +7066,6 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Select at least one page.</source>
         <translation>Seleccione al menos una página.</translation>
-    </message>
-    <message>
-        <source>Editable import brings in one page; page %1 was imported.</source>
-        <translation>La importación editable trae una sola página; se importó la página %1.</translation>
     </message>
     <message>
         <source>Some artwork could not be kept editable; reimport with &quot;Flattened image per page&quot; for an exact copy.</source>
@@ -10234,6 +10226,124 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>Animated PNG: imported the default image only (%1)</source>
         <translation>PNG animado: solo se importó la imagen predeterminada (%1)</translation>
+    </message>
+    <message>
+        <source>Only a layer group can be an artboard</source>
+        <translation>Solo un grupo de capas puede ser una mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>ppi</source>
+        <translation>ppp</translation>
+    </message>
+    <message>
+        <source>RGB Color</source>
+        <translation>Color RGB</translation>
+    </message>
+    <message>
+        <source>CMYK Color</source>
+        <translation>Color CMYK</translation>
+    </message>
+    <message>
+        <source>Indexed Color (Palette)</source>
+        <translation>Color indexado (paleta)</translation>
+    </message>
+    <message>
+        <source>White page background</source>
+        <translation>Fondo de página blanco</translation>
+    </message>
+    <message>
+        <source>Open in reverse order</source>
+        <translation>Abrir en orden inverso</translation>
+    </message>
+    <message>
+        <source>Enter a resolution from %1 to %2 ppi.</source>
+        <translation>Introduzca una resolución de %1 a %2 ppp.</translation>
+    </message>
+    <message>
+        <source>Indexed color needs &quot;Flattened image per page&quot;: shapes, text and images cannot be converted to a palette.</source>
+        <translation>El color indexado necesita &quot;Imagen acoplada por página&quot;: las formas, el texto y las imágenes no se pueden convertir a una paleta.</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>Exportar mesas de trabajo a archivos</translation>
+    </message>
+    <message>
+        <source>Artboards</source>
+        <translation>Mesas de trabajo</translation>
+    </message>
+    <message>
+        <source>Add puts a number after a name that is already taken; Overwrite asks before replacing anything.</source>
+        <translation>Añadir pone un número tras un nombre que ya existe; Sobrescribir pregunta antes de reemplazar nada.</translation>
+    </message>
+    <message>
+        <source>Select at least one artboard.</source>
+        <translation>Seleccione al menos una mesa de trabajo.</translation>
+    </message>
+    <message>
+        <source>Each artboard as its own page</source>
+        <translation>Cada mesa de trabajo como una página</translation>
+    </message>
+    <message>
+        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
+        <translation>Una página por mesa de trabajo, de su tamaño. Sin marcar, todo el lienzo es una página.</translation>
+    </message>
+    <message>
+        <source>%1 (%2 x %3)</source>
+        <translation>%1 (%2 x %3)</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>Mesa de trabajo</translation>
+    </message>
+    <message numerus="yes">
+        <source>One page per artboard of the current document (%n artboard(s))</source>
+        <translation>
+            <numerusform>Una página por mesa de trabajo del documento actual (%n mesa de trabajo)</numerusform>
+            <numerusform>Una página por mesa de trabajo del documento actual (%n mesas de trabajo)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>One page per artboard (the current document has none)</source>
+        <translation>Una página por mesa de trabajo (el documento actual no tiene ninguna)</translation>
+    </message>
+    <message>
+        <source>Start the document as an artboard the size of the canvas</source>
+        <translation>Empezar el documento como una mesa de trabajo del tamaño del lienzo</translation>
+    </message>
+    <message>
+        <source>%1 pages became artboards.</source>
+        <translation>%1 páginas se convirtieron en mesas de trabajo.</translation>
+    </message>
+    <message>
+        <source>Artboards in one document</source>
+        <translation>Mesas de trabajo en un documento</translation>
+    </message>
+    <message>
+        <source>%1 artboard(s), first page %2 x %3 px</source>
+        <translation>%1 mesa(s) de trabajo, primera página %2 x %3 px</translation>
+    </message>
+    <message>
+        <source>%1 pages imported as folders; only the first starts visible.</source>
+        <translation>%1 páginas importadas como carpetas; solo la primera empieza visible.</translation>
+    </message>
+    <message>
+        <source>Match each artboard</source>
+        <translation>Ajustar a cada mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Each page is the size of its artboard, printed at actual size. Save PDF changes the sheet per page; a printer keeps the paper chosen above.</source>
+        <translation>Cada página tiene el tamaño de su mesa de trabajo y se imprime a tamaño real. Guardar PDF cambia la hoja en cada página; una impresora mantiene el papel elegido arriba.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Each Artboard as a Page (%n page(s))</source>
+        <translation>
+            <numerusform>Cada mesa de trabajo como página (%n página)</numerusform>
+            <numerusform>Cada mesa de trabajo como página (%n páginas)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>A PDF image could not be made gray and kept its colors.</source>
+        <translation>Una imagen del PDF no se pudo pasar a gris y conservó sus colores.</translation>
     </message>
 </context>
 <context>
@@ -21169,6 +21279,274 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
         <source>Remove from Recent Files</source>
         <translation>Quitar de archivos recientes</translation>
     </message>
+    <message>
+        <source>The pages stayed RGB: Indexed color needs flattened 8-bit pages.</source>
+        <translation>Las páginas siguen en RGB: el color indexado necesita páginas acopladas de 8 bits.</translation>
+    </message>
+    <message>
+        <source>&amp;Artboards to Files...</source>
+        <translation>&amp;Mesas de trabajo a archivos...</translation>
+    </message>
+    <message>
+        <source>&amp;Artboard...</source>
+        <translation>&amp;Mesa de trabajo...</translation>
+    </message>
+    <message>
+        <source>Add an artboard beside the others</source>
+        <translation>Añadir una mesa de trabajo junto a las demás</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Group</source>
+        <translation>Mesa de trabajo desde &amp;grupo</translation>
+    </message>
+    <message>
+        <source>Make the selected top-level group an artboard around its content</source>
+        <translation>Convertir el grupo de nivel superior seleccionado en una mesa de trabajo alrededor de su contenido</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Layers</source>
+        <translation>Mesa de trabajo desde &amp;capas</translation>
+    </message>
+    <message>
+        <source>Put the selected layers on a new artboard around them</source>
+        <translation>Poner las capas seleccionadas en una nueva mesa de trabajo a su alrededor</translation>
+    </message>
+    <message>
+        <source>Convert Artboard to Gr&amp;oup</source>
+        <translation>Convertir mesa de trabajo en gr&amp;upo</translation>
+    </message>
+    <message>
+        <source>Turn the selected artboard into a plain group, keeping its layers</source>
+        <translation>Convertir la mesa de trabajo seleccionada en un grupo normal, conservando sus capas</translation>
+    </message>
+    <message>
+        <source>Fit Canvas to A&amp;rtboards</source>
+        <translation>Ajustar lienzo a mesas de t&amp;rabajo</translation>
+    </message>
+    <message>
+        <source>Shrink or grow the canvas to just hold the artboards and the layers beside them</source>
+        <translation>Reducir o ampliar el lienzo para que contenga justo las mesas de trabajo y las capas junto a ellas</translation>
+    </message>
+    <message>
+        <source>Size preset for the selected artboard, or for new artboards</source>
+        <translation>Tamaño predefinido de la mesa de trabajo seleccionada o de las nuevas</translation>
+    </message>
+    <message>
+        <source>Width of the selected artboard, or of new artboards</source>
+        <translation>Anchura de la mesa de trabajo seleccionada o de las nuevas</translation>
+    </message>
+    <message>
+        <source>Swap width and height (portrait or landscape)</source>
+        <translation>Intercambiar anchura y altura (vertical u horizontal)</translation>
+    </message>
+    <message>
+        <source>Height of the selected artboard, or of new artboards</source>
+        <translation>Altura de la mesa de trabajo seleccionada o de las nuevas</translation>
+    </message>
+    <message>
+        <source>Background:</source>
+        <translation>Fondo:</translation>
+    </message>
+    <message>
+        <source>Background of the selected artboard, or of new artboards</source>
+        <translation>Fondo de la mesa de trabajo seleccionada o de las nuevas</translation>
+    </message>
+    <message>
+        <source>Add Artboard</source>
+        <translation>Añadir mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Add an artboard of this size beside the others</source>
+        <translation>Añadir una mesa de trabajo de este tamaño junto a las demás</translation>
+    </message>
+    <message>
+        <source>Auto-Nest Layers</source>
+        <translation>Anidar capas automáticamente</translation>
+    </message>
+    <message>
+        <source>A layer moved onto an artboard joins it, and one moved off every artboard leaves it</source>
+        <translation>Una capa movida sobre una mesa de trabajo se une a ella, y una movida fuera de todas la abandona</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>Mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Drag on empty space to add an artboard, drag an artboard to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it.</source>
+        <translation>Arrastre en un espacio vacío para añadir una mesa de trabajo, arrastre una para moverla con su contenido (%ALT% la copia), arrastre un tirador para cambiar su tamaño y haga clic en + para añadir otra al lado.</translation>
+    </message>
+    <message>
+        <source>Artboard: drag on empty space to add an artboard, drag one or its name to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it, double-click a name to rename it. Arrows nudge.</source>
+        <translation>Mesa de trabajo: arrastre en un espacio vacío para añadir una, arrastre una o su nombre para moverla con su contenido (%ALT% la copia), arrastre un tirador para cambiar su tamaño, haga clic en + para añadir otra al lado y doble clic en un nombre para cambiarlo. Las flechas la desplazan.</translation>
+    </message>
+    <message>
+        <source>Move Tools</source>
+        <translation>Herramientas de mover</translation>
+    </message>
+    <message>
+        <source>Cycle Move Tools</source>
+        <translation>Alternar herramientas de mover</translation>
+    </message>
+    <message>
+        <source>New artboard</source>
+        <translation>Nueva mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Added artboard %1</source>
+        <translation>Mesa de trabajo %1 añadida</translation>
+    </message>
+    <message>
+        <source>Duplicate artboard</source>
+        <translation>Duplicar mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Nudge artboard</source>
+        <translation>Desplazar mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Move artboard</source>
+        <translation>Mover mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Duplicated artboard</source>
+        <translation>Mesa de trabajo duplicada</translation>
+    </message>
+    <message>
+        <source>Moved artboard</source>
+        <translation>Mesa de trabajo movida</translation>
+    </message>
+    <message>
+        <source>Resize artboard</source>
+        <translation>Cambiar tamaño de mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Artboard is %1 x %2 px</source>
+        <translation>La mesa de trabajo mide %1 x %2 px</translation>
+    </message>
+    <message>
+        <source>Artboard background</source>
+        <translation>Fondo de la mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Changed the artboard background</source>
+        <translation>Fondo de la mesa de trabajo cambiado</translation>
+    </message>
+    <message>
+        <source>Rename Artboard</source>
+        <translation>Cambiar nombre de mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Rename artboard</source>
+        <translation>Cambiar nombre de mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Renamed the artboard %1</source>
+        <translation>Mesa de trabajo renombrada a %1</translation>
+    </message>
+    <message>
+        <source>New Artboard</source>
+        <translation>Nueva mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Artboard Background</source>
+        <translation>Fondo de mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Select a top-level group to turn into an artboard</source>
+        <translation>Seleccione un grupo de nivel superior para convertirlo en mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Artboard from group</source>
+        <translation>Mesa de trabajo desde grupo</translation>
+    </message>
+    <message>
+        <source>Made %1 an artboard</source>
+        <translation>%1 convertido en mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Select the layers to put on the new artboard</source>
+        <translation>Seleccione las capas que irán en la nueva mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Artboard from Layers takes layers that are not on an artboard</source>
+        <translation>Mesa de trabajo desde capas solo acepta capas que no estén en una mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Artboard from layers</source>
+        <translation>Mesa de trabajo desde capas</translation>
+    </message>
+    <message>
+        <source>Put the layers on a new artboard</source>
+        <translation>Capas puestas en una nueva mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Select an artboard to turn into a group</source>
+        <translation>Seleccione una mesa de trabajo para convertirla en grupo</translation>
+    </message>
+    <message>
+        <source>Convert artboard to group</source>
+        <translation>Convertir mesa de trabajo en grupo</translation>
+    </message>
+    <message>
+        <source>Converted the artboard to a group</source>
+        <translation>Mesa de trabajo convertida en grupo</translation>
+    </message>
+    <message>
+        <source>The document has no artboards</source>
+        <translation>El documento no tiene mesas de trabajo</translation>
+    </message>
+    <message>
+        <source>The canvas already fits the artboards</source>
+        <translation>El lienzo ya se ajusta a las mesas de trabajo</translation>
+    </message>
+    <message>
+        <source>Fit canvas to artboards</source>
+        <translation>Ajustar lienzo a mesas de trabajo</translation>
+    </message>
+    <message>
+        <source>Canvas is %1 x %2 px</source>
+        <translation>El lienzo mide %1 x %2 px</translation>
+    </message>
+    <message>
+        <source>Left edge of the artboard</source>
+        <translation>Borde izquierdo de la mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Top edge of the artboard</source>
+        <translation>Borde superior de la mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Width of the artboard</source>
+        <translation>Anchura de la mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Height of the artboard</source>
+        <translation>Altura de la mesa de trabajo</translation>
+    </message>
+    <message>
+        <source>Layer 1</source>
+        <translation>Capa 1</translation>
+    </message>
+    <message>
+        <source>Page %1</source>
+        <translation>Página %1</translation>
+    </message>
+    <message>
+        <source>This document has no artboards</source>
+        <translation>Este documento no tiene mesas de trabajo</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>Exportar mesas de trabajo a archivos</translation>
+    </message>
+    <message>
+        <source>An artboard cannot go inside a folder</source>
+        <translation>Una mesa de trabajo no puede ir dentro de una carpeta</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
+        <translation>Las mesas de trabajo no pueden hacer el lienzo mayor de %1 x %1 px</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22874,6 +23252,22 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
     <message>
         <source>CMYK values are percentages from 0 to 100</source>
         <translation>Los valores CMYK son porcentajes de 0 a 100</translation>
+    </message>
+    <message>
+        <source>Invalid artboard option or target: %1.</source>
+        <translation>Opción o destino de mesa de trabajo no válido: %1.</translation>
+    </message>
+    <message>
+        <source>The artboards could not be exported.</source>
+        <translation>No se pudieron exportar las mesas de trabajo.</translation>
+    </message>
+    <message>
+        <source>exportArtboards cannot write .%1 files.</source>
+        <translation>exportArtboards no puede escribir archivos .%1.</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
+        <translation>Las mesas de trabajo no pueden hacer el lienzo mayor de %1 x %1 px.</translation>
     </message>
 </context>
 <context>

@@ -30,6 +30,24 @@ struct DocumentColorState {
   float view_exposure_stops{0.0F};
 };
 
+// Photoshop's document-wide artboard settings, the global 'artd' block (docs/artboards.md).
+// Kept from a source file and written back, with its count refreshed, whenever the
+// document has artboards; Patchy reads none of the behavior flags.
+struct DocumentArtboardSettings {
+  double origin_x{0.0};
+  double origin_y{0.0};
+  double auto_expand_offset_x{0.0};
+  double auto_expand_offset_y{0.0};
+  bool auto_expand{true};
+  bool auto_nest{true};
+  bool auto_position{true};
+  bool shrinkwrap_on_save{true};
+  RgbColor default_color{255, 255, 255};
+  ArtboardBackground default_background{ArtboardBackground::White};
+
+  friend bool operator==(const DocumentArtboardSettings&, const DocumentArtboardSettings&) = default;
+};
+
 struct DocumentMetadata {
   std::map<std::string, std::string> values;
   // Document-global PSD tagged blocks (the additional layer information that follows
@@ -64,6 +82,11 @@ struct DocumentMetadata {
   // untouched while the page is unchanged. Session-only and never serialized: see
   // core/pdf_source_page.hpp.
   std::shared_ptr<const PdfSourcePage> pdf_source_page;
+  // The same for a document whose pages became artboards: each untouched artboard's own
+  // page image, keyed by the artboard group's layer id. Session-only, never serialized.
+  std::map<LayerId, std::shared_ptr<const PdfSourcePage>> pdf_artboard_source_pages;
+  // Present when the source had an 'artd' block or the document has artboards.
+  std::optional<DocumentArtboardSettings> artboard_settings;
 };
 
 struct DocumentPrintSettings {

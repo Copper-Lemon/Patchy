@@ -7040,10 +7040,6 @@ RGB: %2, %3, %4</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source> ppi</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Include annotations</source>
         <translation type="unfinished"></translation>
     </message>
@@ -7061,10 +7057,6 @@ RGB: %2, %3, %4</source>
     </message>
     <message>
         <source>Select at least one page.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Editable import brings in one page; page %1 was imported.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -10217,6 +10209,124 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</source>
     </message>
     <message>
         <source>Animated PNG: imported the default image only (%1)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Only a layer group can be an artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>ppi</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>RGB Color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>CMYK Color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Indexed Color (Palette)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>White page background</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open in reverse order</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enter a resolution from %1 to %2 ppi.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Indexed color needs &quot;Flattened image per page&quot;: shapes, text and images cannot be converted to a palette.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Artboards</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add puts a number after a name that is already taken; Overwrite asks before replacing anything.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select at least one artboard.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Each artboard as its own page</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 (%2 x %3)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <source>One page per artboard of the current document (%n artboard(s))</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>One page per artboard (the current document has none)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Start the document as an artboard the size of the canvas</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 pages became artboards.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Artboards in one document</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 artboard(s), first page %2 x %3 px</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 pages imported as folders; only the first starts visible.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Match each artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Each page is the size of its artboard, printed at actual size. Save PDF changes the sheet per page; a printer keeps the paper chosen above.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <source>Each Artboard as a Page (%n page(s))</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>A PDF image could not be made gray and kept its colors.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -21096,6 +21206,274 @@ Patchy can download the update, replace this AppImage, and start again. You will
         <source>Remove from Recent Files</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>The pages stayed RGB: Indexed color needs flattened 8-bit pages.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Artboards to Files...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Artboard...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add an artboard beside the others</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Make the selected top-level group an artboard around its content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Layers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Put the selected layers on a new artboard around them</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Convert Artboard to Gr&amp;oup</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Turn the selected artboard into a plain group, keeping its layers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Fit Canvas to A&amp;rtboards</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Shrink or grow the canvas to just hold the artboards and the layers beside them</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Size preset for the selected artboard, or for new artboards</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Width of the selected artboard, or of new artboards</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Swap width and height (portrait or landscape)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Height of the selected artboard, or of new artboards</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Background:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Background of the selected artboard, or of new artboards</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add Artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add an artboard of this size beside the others</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Auto-Nest Layers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A layer moved onto an artboard joins it, and one moved off every artboard leaves it</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Drag on empty space to add an artboard, drag an artboard to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Artboard: drag on empty space to add an artboard, drag one or its name to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it, double-click a name to rename it. Arrows nudge.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Move Tools</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cycle Move Tools</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Added artboard %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Duplicate artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Nudge artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Move artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Duplicated artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Moved artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Resize artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Artboard is %1 x %2 px</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Artboard background</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Changed the artboard background</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rename Artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rename artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Renamed the artboard %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New Artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Artboard Background</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select a top-level group to turn into an artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Artboard from group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Made %1 an artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select the layers to put on the new artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Artboard from Layers takes layers that are not on an artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Artboard from layers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Put the layers on a new artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select an artboard to turn into a group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Convert artboard to group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Converted the artboard to a group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The document has no artboards</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The canvas already fits the artboards</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Fit canvas to artboards</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Canvas is %1 x %2 px</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Left edge of the artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Top edge of the artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Width of the artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Height of the artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Layer 1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Page %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This document has no artboards</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>An artboard cannot go inside a folder</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22800,6 +23178,22 @@ Patchy can download the update, replace this AppImage, and start again. You will
     </message>
     <message>
         <source>CMYK values are percentages from 0 to 100</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid artboard option or target: %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The artboards could not be exported.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>exportArtboards cannot write .%1 files.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

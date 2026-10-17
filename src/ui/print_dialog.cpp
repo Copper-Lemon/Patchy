@@ -142,6 +142,27 @@ void populate_printer_combo(QComboBox* printer_combo) {
 
 bool paint_printer_page(QPrinter& printer, const Document& document, const PrintSettings& settings,
                         int copies = 1) {
+  // Each artboard is a page of its own (PrintAreaMode::Artboards).
+  std::vector<Document> artboard_pages;
+  if (settings.area_mode == PrintAreaMode::Artboards) {
+    artboard_pages = print_artboard_pages(document);
+  }
+  std::vector<const Document*> pages;
+  if (artboard_pages.empty()) {
+    pages.push_back(&document);
+  } else {
+    for (const auto& page : artboard_pages) {
+      pages.push_back(&page);
+    }
+  }
+  const auto page_settings = artboard_pages.empty() ? settings : artboard_page_print_settings(settings);
+  // Only a PDF can change sheet between pages: Qt refuses a new layout for an active
+  // native print job.
+  const bool sheet_per_page =
+      !artboard_pages.empty() && settings.match_artboard_paper && printer.outputFormat() == QPrinter::PdfFormat;
+  if (sheet_per_page) {
+    printer.setPageLayout(artboard_page_layout(*pages.front()));
+  }
   const auto requested_copies = std::max(1, copies);
   // Drivers that can duplicate a job themselves take the count and get one painted page.
   // The rest need the page painted once per copy inside a single job.
@@ -166,22 +187,32 @@ bool paint_printer_page(QPrinter& printer, const Document& document, const Print
     painter.setRenderHint(QPainter::LosslessImageRendering, true);
   }
 
-  const auto layout = valid_page_layout(printer.pageLayout());
-  const auto full_points = layout.fullRect(QPageLayout::Point).toAlignedRect();
-  const auto full_pixels = layout.fullRectPixels(std::max(1, printer.resolution()));
-  const auto painted_pages = driver_duplicates ? 1 : requested_copies;
-  for (int page = 0; page < painted_pages; ++page) {
-    if (page > 0 && !printer.newPage()) {
-      painter.end();
-      return false;
+  const auto painted_copies = driver_duplicates ? 1 : requested_copies;
+  bool first = true;
+  for (int copy = 0; copy < painted_copies; ++copy) {
+    for (const auto* page : pages) {
+      if (!first) {
+        // The next sheet's layout is set before newPage() so that page starts on it.
+        if (sheet_per_page) {
+          printer.setPageLayout(artboard_page_layout(*page));
+        }
+        if (!printer.newPage()) {
+          painter.end();
+          return false;
+        }
+      }
+      first = false;
+      const auto layout = valid_page_layout(printer.pageLayout());
+      const auto full_points = layout.fullRect(QPageLayout::Point).toAlignedRect();
+      const auto full_pixels = layout.fullRectPixels(std::max(1, printer.resolution()));
+      // newPage() resets the painter state on some platforms, so re-establish the
+      // full-page mapping for every page rather than once before the loop.
+      if (!full_points.isEmpty() && !full_pixels.isEmpty()) {
+        painter.setWindow(full_points);
+        painter.setViewport(full_pixels);
+      }
+      render_print_page(painter, *page, page_settings, layout);
     }
-    // newPage() resets the painter state on some platforms, so re-establish the
-    // full-page mapping for every page rather than once before the loop.
-    if (!full_points.isEmpty() && !full_pixels.isEmpty()) {
-      painter.setWindow(full_points);
-      painter.setViewport(full_pixels);
-    }
-    render_print_page(painter, document, settings, layout);
   }
   return painter.end();
 }
@@ -831,8 +862,13 @@ bool run_print_dialog(QWidget* parent, const Document& document, const QString& 
   root->setContentsMargins(12, 12, 12, 12);
   root->setSpacing(14);
 
+  // What the preview shows: the document, or in artboard mode the first artboard page
+  // on its own sheet when the paper matches it.
+  const auto artboard_pages = print_artboard_pages(document);
+  PrintSettings preview_settings = settings;
+  QPageLayout preview_layout = current_layout;
   auto* preview = new PrintPreviewPane(&dialog);
-  preview->set_state(&document, &settings, &current_layout);
+  preview->set_state(&document, &preview_settings, &preview_layout);
   root->addWidget(preview, 1);
 
   auto* side = new QWidget(&dialog);
@@ -891,6 +927,13 @@ bool run_print_dialog(QWidget* parent, const Document& document, const QString& 
   configure_dialog_spinbox(page_height);
   paper_form->addRow(QObject::tr("Width"), page_width);
   paper_form->addRow(QObject::tr("Height"), page_height);
+  // Artboard pages only: a sheet the size of each artboard (custom sizes without a
+  // printer driver, issue 19).
+  auto* match_artboard = new QCheckBox(QObject::tr("Match each artboard"), paper_group);
+  match_artboard->setObjectName(QStringLiteral("printMatchArtboardCheck"));
+  match_artboard->setToolTip(QObject::tr("Each page is the size of its artboard, printed at actual size. Save PDF "
+                                         "changes the sheet per page; a printer keeps the paper chosen above."));
+  paper_form->addRow(QString(), match_artboard);
   side_layout->addWidget(paper_group);
 
   auto* settings_group = new QGroupBox(QObject::tr("Position and Size"), side);
@@ -900,6 +943,10 @@ bool run_print_dialog(QWidget* parent, const Document& document, const QString& 
   area->addItem(QObject::tr("Document"), static_cast<int>(PrintAreaMode::Document));
   if (selection_bounds.has_value() && !selection_bounds->isEmpty()) {
     area->addItem(QObject::tr("Selection"), static_cast<int>(PrintAreaMode::Selection));
+  }
+  if (!artboard_pages.empty()) {
+    area->addItem(QObject::tr("Each Artboard as a Page (%n page(s))", nullptr, static_cast<int>(artboard_pages.size())),
+                  static_cast<int>(PrintAreaMode::Artboards));
   }
   form->addRow(QObject::tr("Print"), area);
 
@@ -1016,10 +1063,14 @@ bool run_print_dialog(QWidget* parent, const Document& document, const QString& 
     const bool custom = page_size_combo->currentData().toInt() == static_cast<int>(QPageSize::Custom);
     const auto factor = unit_factor_from_inches(units);
     const auto sheet_points = size.size(QPageSize::Point);
+    // A matched artboard sheet replaces the paper choice.
+    const bool matched = settings.area_mode == PrintAreaMode::Artboards && settings.match_artboard_paper;
+    page_size_combo->setEnabled(!matched);
+    orientation_combo->setEnabled(!matched);
     for (auto* spin : {page_width, page_height}) {
       spin->setSuffix(unit_suffix(units));
       spin->setRange(0.1 * factor, 200.0 * factor);
-      spin->setEnabled(custom);
+      spin->setEnabled(custom && !matched);
     }
     page_width->setValue(sheet_points.width() / kPointsPerInch * factor);
     page_height->setValue(sheet_points.height() / kPointsPerInch * factor);
@@ -1033,24 +1084,36 @@ bool run_print_dialog(QWidget* parent, const Document& document, const QString& 
     settings.offset_x_inches = x->value();
     settings.offset_y_inches = y->value();
     settings.crop_marks = crop_marks->isChecked();
-    scale->setEnabled(!scale_to_fit->isChecked());
-    x->setEnabled(!settings.center);
-    y->setEnabled(!settings.center);
-    const auto placement = calculate_print_placement(document, settings, current_layout);
+    settings.match_artboard_paper = match_artboard->isChecked();
+    const bool by_artboards = settings.area_mode == PrintAreaMode::Artboards && !artboard_pages.empty();
+    const bool matched = by_artboards && settings.match_artboard_paper;
+    match_artboard->setVisible(by_artboards);
+    scale_to_fit->setEnabled(!matched);
+    center->setEnabled(!matched);
+    crop_marks->setEnabled(!matched);
+    scale->setEnabled(!scale_to_fit->isChecked() && !matched);
+    x->setEnabled(!settings.center && !matched);
+    y->setEnabled(!settings.center && !matched);
+    // The figures below describe the first page printed.
+    const auto& shown = by_artboards ? artboard_pages.front() : document;
+    preview_settings = by_artboards ? artboard_page_print_settings(settings) : settings;
+    preview_layout = matched ? artboard_page_layout(shown) : current_layout;
+    preview->set_state(&shown, &preview_settings, &preview_layout);
+    const auto placement = calculate_print_placement(shown, preview_settings, preview_layout);
     scale->setValue(placement.scale_percent);
     scale_size->setText(formatted_size(placement.print_size_inches, units));
     const auto scale_factor = std::max(0.01, placement.scale_percent / 100.0);
     const auto derived_horizontal =
-        static_cast<int>(std::lround(document_horizontal_ppi(document) / scale_factor));
+        static_cast<int>(std::lround(document_horizontal_ppi(shown) / scale_factor));
     const auto derived_vertical =
-        static_cast<int>(std::lround(document_vertical_ppi(document) / scale_factor));
+        static_cast<int>(std::lround(document_vertical_ppi(shown) / scale_factor));
     resolution_value->setText(derived_horizontal == derived_vertical
                                   ? QObject::tr("%1 PPI").arg(derived_horizontal)
                                   : QObject::tr("%1 x %2 PPI").arg(derived_horizontal).arg(derived_vertical));
-    auto actual_settings = settings;
+    auto actual_settings = preview_settings;
     actual_settings.scale_mode = PrintScaleMode::ActualSize;
     actual_settings.scale_percent = 100.0;
-    image_size->setText(formatted_size(calculate_print_placement(document, actual_settings, current_layout).print_size_inches,
+    image_size->setText(formatted_size(calculate_print_placement(shown, actual_settings, preview_layout).print_size_inches,
                                        units));
     preview->update();
   };
@@ -1093,6 +1156,11 @@ bool run_print_dialog(QWidget* parent, const Document& document, const QString& 
   QObject::connect(x, &QDoubleSpinBox::valueChanged, &dialog, sync_settings);
   QObject::connect(y, &QDoubleSpinBox::valueChanged, &dialog, sync_settings);
   QObject::connect(crop_marks, &QCheckBox::toggled, &dialog, sync_settings);
+  QObject::connect(match_artboard, &QCheckBox::toggled, &dialog, [&] {
+    sync_settings();
+    sync_paper_controls();
+  });
+  QObject::connect(area, &QComboBox::currentIndexChanged, &dialog, sync_paper_controls);
 
   const auto send_print_job = [&](QPrinter& printer, int copies) {
     try {
@@ -1147,7 +1215,7 @@ bool run_print_dialog(QWidget* parent, const Document& document, const QString& 
     }
     QPrintDialog system_print(printer.get(), &dialog);
     system_print.setObjectName(QStringLiteral("printSystemPrintDialog"));
-    // Patchy always emits a single page, so a page range makes no sense.
+    // Patchy chooses its pages itself (one, or one per artboard), so no page range.
     system_print.setOption(QAbstractPrintDialog::PrintPageRange, false);
     if (exec_dialog(system_print) != QDialog::Accepted) {
       return;

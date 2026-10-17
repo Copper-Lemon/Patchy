@@ -214,6 +214,13 @@ public:
   // set when a session is gone or the writer refuses.
   bool export_sessions_to_pdf(const std::vector<std::int64_t>& session_ids, const QString& path,
                               const PdfExportOptions& options, QString* error);
+  // doc.exportArtboards: File > Export > Artboards to Files without its dialogs. Each
+  // file is `prefix` (default "<document name> - ") + the artboard's name; a taken name
+  // gets " 2", " 3" unless `overwrite`. The written paths in order, or nullopt with
+  // *error set (an unsupported format, a gone document, a write failure).
+  std::optional<QStringList> export_artboards(std::int64_t session_id, const std::vector<LayerId>& artboard_ids,
+                                              const QString& folder, const QString& extension,
+                                              const std::optional<QString>& prefix, bool overwrite, QString* error);
   bool close_session(std::int64_t session_id);
   void activate_session(std::int64_t session_id);
   // layer.duplicate(targetDocument): copies the layers into another open

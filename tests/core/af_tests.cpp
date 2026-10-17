@@ -938,16 +938,27 @@ void af_imports_multi_artboard_document() {
   // Synthesized groups collapse with the rest of the import.
   CHECK(!patchy::layer_group_expanded(*board_a));
   CHECK(!patchy::layer_group_expanded(*board_b));
-  // Each artboard group clips to its box via a rectangular mask.
+  // Each top-level artboard is a native artboard (docs/artboards.md): its box clips its
+  // content, and its plain solid fill is the artboard background, not a layer.
   const auto rect_is = [](const patchy::Rect& rect, std::int32_t x, std::int32_t y,
                           std::int32_t w, std::int32_t h) {
     return rect.x == x && rect.y == y && rect.width == w && rect.height == h;
   };
-  CHECK(board_a->mask().has_value());
-  CHECK(rect_is(board_a->mask()->bounds, 0, 0, 80, 60));
-  CHECK(board_a->mask()->default_color == 0);
-  CHECK(board_b->mask().has_value());
-  CHECK(rect_is(board_b->mask()->bounds, 100, 10, 60, 60));
+  CHECK(board_a->artboard().has_value() && board_b->artboard().has_value());
+  if (!board_a->artboard().has_value() || !board_b->artboard().has_value()) {
+    return;
+  }
+  CHECK(rect_is(board_a->artboard()->rect, 0, 0, 80, 60));
+  CHECK(rect_is(board_b->artboard()->rect, 100, 10, 60, 60));
+  CHECK(!board_a->mask().has_value() && !board_b->mask().has_value());
+  CHECK(board_a->artboard()->background == patchy::ArtboardBackground::Custom);
+  CHECK(board_a->artboard()->color == (patchy::RgbColor{230, 120, 20}));
+  CHECK(board_b->artboard()->color == (patchy::RgbColor{20, 160, 150}));
+  CHECK(board_a->blend_mode() == patchy::BlendMode::Normal);
+  for (const auto& child : board_a->children()) {
+    CHECK(child.name() != "board-a Background");
+  }
+  CHECK(!board_a->metadata().contains("patchy.af.artboard"));
 
   const auto flattened = patchy::flatten_document_rgba8(document);
   const auto probe = [&](std::int32_t x, std::int32_t y) {

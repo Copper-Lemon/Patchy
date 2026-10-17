@@ -7397,10 +7397,6 @@ RGB: %2, %3, %4</translation>
         <translation>Strony stają się:</translation>
     </message>
     <message>
-        <source> ppi</source>
-        <translation> ppi</translation>
-    </message>
-    <message>
         <source>Include annotations</source>
         <translation>Dołącz adnotacje</translation>
     </message>
@@ -7443,10 +7439,6 @@ RGB: %2, %3, %4</translation>
     <message>
         <source>Editable import was not possible for page %1 (%2); it was flattened instead.</source>
         <translation>Nie udało się zaimportować strony %1 w postaci edytowalnej (%2); została spłaszczona.</translation>
-    </message>
-    <message>
-        <source>Editable import brings in one page; page %1 was imported.</source>
-        <translation>Edytowalny import przenosi jedną stronę; strona %1 została zaimportowana.</translation>
     </message>
     <message>
         <source>Some artwork could not be kept editable; reimport with &quot;Flattened image per page&quot; for an exact copy.</source>
@@ -10264,6 +10256,126 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>Animated PNG: imported the default image only (%1)</source>
         <translation>Animowany PNG: zaimportowano tylko obraz domyślny (%1)</translation>
+    </message>
+    <message>
+        <source>Only a layer group can be an artboard</source>
+        <translation>Obszarem roboczym może być tylko grupa warstw</translation>
+    </message>
+    <message>
+        <source>ppi</source>
+        <translation>ppi</translation>
+    </message>
+    <message>
+        <source>RGB Color</source>
+        <translation>Kolor RGB</translation>
+    </message>
+    <message>
+        <source>CMYK Color</source>
+        <translation>Kolor CMYK</translation>
+    </message>
+    <message>
+        <source>Indexed Color (Palette)</source>
+        <translation>Kolor indeksowany (paleta)</translation>
+    </message>
+    <message>
+        <source>White page background</source>
+        <translation>Białe tło strony</translation>
+    </message>
+    <message>
+        <source>Open in reverse order</source>
+        <translation>Otwórz w odwrotnej kolejności</translation>
+    </message>
+    <message>
+        <source>Enter a resolution from %1 to %2 ppi.</source>
+        <translation>Wpisz rozdzielczość od %1 do %2 ppi.</translation>
+    </message>
+    <message>
+        <source>Indexed color needs &quot;Flattened image per page&quot;: shapes, text and images cannot be converted to a palette.</source>
+        <translation>Kolor indeksowany wymaga opcji „Spłaszczony obraz na stronę”: kształtów, tekstu i obrazów nie można przekształcić na paletę.</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>Eksportuj obszary robocze do plików</translation>
+    </message>
+    <message>
+        <source>Artboards</source>
+        <translation>Obszary robocze</translation>
+    </message>
+    <message>
+        <source>Add puts a number after a name that is already taken; Overwrite asks before replacing anything.</source>
+        <translation>Dodaj dopisuje numer po nazwie, która jest już zajęta; Nadpisywanie pyta przed zastąpieniem czegokolwiek.</translation>
+    </message>
+    <message>
+        <source>Select at least one artboard.</source>
+        <translation>Wybierz co najmniej jeden obszar roboczy.</translation>
+    </message>
+    <message>
+        <source>Each artboard as its own page</source>
+        <translation>Każdy obszar roboczy jako osobna strona</translation>
+    </message>
+    <message>
+        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
+        <translation>Jedna strona na obszar roboczy, w jego rozmiarze. Bez zaznaczenia całe płótno jest jedną stroną.</translation>
+    </message>
+    <message>
+        <source>%1 (%2 x %3)</source>
+        <translation>%1 (%2 x %3)</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>Obszar roboczy</translation>
+    </message>
+    <message numerus="yes">
+        <source>One page per artboard of the current document (%n artboard(s))</source>
+        <translation>
+            <numerusform>Jedna strona na obszar roboczy bieżącego dokumentu (%n obszar)</numerusform>
+            <numerusform>Jedna strona na obszar roboczy bieżącego dokumentu (%n obszary)</numerusform>
+            <numerusform>Jedna strona na obszar roboczy bieżącego dokumentu (%n obszarów)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>One page per artboard (the current document has none)</source>
+        <translation>Jedna strona na obszar roboczy (bieżący dokument nie ma żadnego)</translation>
+    </message>
+    <message>
+        <source>Start the document as an artboard the size of the canvas</source>
+        <translation>Rozpocznij dokument jako obszar roboczy w rozmiarze płótna</translation>
+    </message>
+    <message>
+        <source>%1 pages became artboards.</source>
+        <translation>Stron zamienionych w obszary robocze: %1.</translation>
+    </message>
+    <message>
+        <source>Artboards in one document</source>
+        <translation>Obszary robocze w jednym dokumencie</translation>
+    </message>
+    <message>
+        <source>%1 artboard(s), first page %2 x %3 px</source>
+        <translation>Obszary robocze: %1, pierwsza strona %2 x %3 px</translation>
+    </message>
+    <message>
+        <source>%1 pages imported as folders; only the first starts visible.</source>
+        <translation>Stron zaimportowanych jako foldery: %1; na początku widoczny jest tylko pierwszy.</translation>
+    </message>
+    <message>
+        <source>Match each artboard</source>
+        <translation>Dopasuj do każdego obszaru roboczego</translation>
+    </message>
+    <message>
+        <source>Each page is the size of its artboard, printed at actual size. Save PDF changes the sheet per page; a printer keeps the paper chosen above.</source>
+        <translation>Każda strona ma rozmiar swojego obszaru roboczego i jest drukowana w rzeczywistym rozmiarze. Zapis PDF zmienia arkusz na każdej stronie; drukarka zachowuje papier wybrany powyżej.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Each Artboard as a Page (%n page(s))</source>
+        <translation>
+            <numerusform>Każdy obszar roboczy jako strona (%n strona)</numerusform>
+            <numerusform>Każdy obszar roboczy jako strona (%n strony)</numerusform>
+            <numerusform>Każdy obszar roboczy jako strona (%n stron)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>A PDF image could not be made gray and kept its colors.</source>
+        <translation>Obrazu z PDF nie udało się zamienić na szary i zachował swoje kolory.</translation>
     </message>
 </context>
 <context>
@@ -21232,6 +21344,274 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
         <source>Remove from Recent Files</source>
         <translation>Usuń z ostatnich plików</translation>
     </message>
+    <message>
+        <source>The pages stayed RGB: Indexed color needs flattened 8-bit pages.</source>
+        <translation>Strony pozostały w RGB: kolor indeksowany wymaga spłaszczonych stron 8-bitowych.</translation>
+    </message>
+    <message>
+        <source>&amp;Artboards to Files...</source>
+        <translation>&amp;Obszary robocze do plików...</translation>
+    </message>
+    <message>
+        <source>&amp;Artboard...</source>
+        <translation>&amp;Obszar roboczy...</translation>
+    </message>
+    <message>
+        <source>Add an artboard beside the others</source>
+        <translation>Dodaj obszar roboczy obok pozostałych</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Group</source>
+        <translation>Obszar roboczy z &amp;grupy</translation>
+    </message>
+    <message>
+        <source>Make the selected top-level group an artboard around its content</source>
+        <translation>Zamień wybraną grupę najwyższego poziomu w obszar roboczy obejmujący jej zawartość</translation>
+    </message>
+    <message>
+        <source>Artboard from &amp;Layers</source>
+        <translation>Obszar roboczy z &amp;warstw</translation>
+    </message>
+    <message>
+        <source>Put the selected layers on a new artboard around them</source>
+        <translation>Umieść wybrane warstwy na nowym obszarze roboczym wokół nich</translation>
+    </message>
+    <message>
+        <source>Convert Artboard to Gr&amp;oup</source>
+        <translation>Konwertuj obszar roboczy na gr&amp;upę</translation>
+    </message>
+    <message>
+        <source>Turn the selected artboard into a plain group, keeping its layers</source>
+        <translation>Zamień wybrany obszar roboczy w zwykłą grupę, zachowując jego warstwy</translation>
+    </message>
+    <message>
+        <source>Fit Canvas to A&amp;rtboards</source>
+        <translation>Dopasuj płótno do obszarów &amp;roboczych</translation>
+    </message>
+    <message>
+        <source>Shrink or grow the canvas to just hold the artboards and the layers beside them</source>
+        <translation>Zmniejsz lub powiększ płótno, by mieściło tylko obszary robocze i warstwy obok nich</translation>
+    </message>
+    <message>
+        <source>Size preset for the selected artboard, or for new artboards</source>
+        <translation>Gotowy rozmiar wybranego lub nowych obszarów roboczych</translation>
+    </message>
+    <message>
+        <source>Width of the selected artboard, or of new artboards</source>
+        <translation>Szerokość wybranego lub nowych obszarów roboczych</translation>
+    </message>
+    <message>
+        <source>Swap width and height (portrait or landscape)</source>
+        <translation>Zamień szerokość i wysokość (pionowo lub poziomo)</translation>
+    </message>
+    <message>
+        <source>Height of the selected artboard, or of new artboards</source>
+        <translation>Wysokość wybranego lub nowych obszarów roboczych</translation>
+    </message>
+    <message>
+        <source>Background:</source>
+        <translation>Tło:</translation>
+    </message>
+    <message>
+        <source>Background of the selected artboard, or of new artboards</source>
+        <translation>Tło wybranego lub nowych obszarów roboczych</translation>
+    </message>
+    <message>
+        <source>Add Artboard</source>
+        <translation>Dodaj obszar roboczy</translation>
+    </message>
+    <message>
+        <source>Add an artboard of this size beside the others</source>
+        <translation>Dodaj obszar roboczy tego rozmiaru obok pozostałych</translation>
+    </message>
+    <message>
+        <source>Auto-Nest Layers</source>
+        <translation>Automatycznie zagnieżdżaj warstwy</translation>
+    </message>
+    <message>
+        <source>A layer moved onto an artboard joins it, and one moved off every artboard leaves it</source>
+        <translation>Warstwa przesunięta na obszar roboczy dołącza do niego, a przesunięta poza wszystkie go opuszcza</translation>
+    </message>
+    <message>
+        <source>Artboard</source>
+        <translation>Obszar roboczy</translation>
+    </message>
+    <message>
+        <source>Drag on empty space to add an artboard, drag an artboard to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it.</source>
+        <translation>Przeciągnij w pustym miejscu, aby dodać obszar roboczy, przeciągnij obszar, aby przenieść go z zawartością (%ALT% kopiuje), przeciągnij uchwyt, aby zmienić rozmiar, kliknij +, aby dodać obszar obok.</translation>
+    </message>
+    <message>
+        <source>Artboard: drag on empty space to add an artboard, drag one or its name to move it with its content (%ALT% copies it), drag a handle to resize it, click + to add one beside it, double-click a name to rename it. Arrows nudge.</source>
+        <translation>Obszar roboczy: przeciągnij w pustym miejscu, aby dodać obszar, przeciągnij obszar lub jego nazwę, aby przenieść go z zawartością (%ALT% kopiuje), przeciągnij uchwyt, aby zmienić rozmiar, kliknij +, aby dodać obszar obok, kliknij dwukrotnie nazwę, aby ją zmienić. Strzałki przesuwają.</translation>
+    </message>
+    <message>
+        <source>Move Tools</source>
+        <translation>Narzędzia przesuwania</translation>
+    </message>
+    <message>
+        <source>Cycle Move Tools</source>
+        <translation>Przełącz narzędzia przesuwania</translation>
+    </message>
+    <message>
+        <source>New artboard</source>
+        <translation>Nowy obszar roboczy</translation>
+    </message>
+    <message>
+        <source>Added artboard %1</source>
+        <translation>Dodano obszar roboczy %1</translation>
+    </message>
+    <message>
+        <source>Duplicate artboard</source>
+        <translation>Duplikuj obszar roboczy</translation>
+    </message>
+    <message>
+        <source>Nudge artboard</source>
+        <translation>Przesuń obszar roboczy o krok</translation>
+    </message>
+    <message>
+        <source>Move artboard</source>
+        <translation>Przenieś obszar roboczy</translation>
+    </message>
+    <message>
+        <source>Duplicated artboard</source>
+        <translation>Zduplikowano obszar roboczy</translation>
+    </message>
+    <message>
+        <source>Moved artboard</source>
+        <translation>Przeniesiono obszar roboczy</translation>
+    </message>
+    <message>
+        <source>Resize artboard</source>
+        <translation>Zmień rozmiar obszaru roboczego</translation>
+    </message>
+    <message>
+        <source>Artboard is %1 x %2 px</source>
+        <translation>Obszar roboczy ma %1 x %2 px</translation>
+    </message>
+    <message>
+        <source>Artboard background</source>
+        <translation>Tło obszaru roboczego</translation>
+    </message>
+    <message>
+        <source>Changed the artboard background</source>
+        <translation>Zmieniono tło obszaru roboczego</translation>
+    </message>
+    <message>
+        <source>Rename Artboard</source>
+        <translation>Zmień nazwę obszaru roboczego</translation>
+    </message>
+    <message>
+        <source>Rename artboard</source>
+        <translation>Zmień nazwę obszaru roboczego</translation>
+    </message>
+    <message>
+        <source>Renamed the artboard %1</source>
+        <translation>Zmieniono nazwę obszaru roboczego na %1</translation>
+    </message>
+    <message>
+        <source>New Artboard</source>
+        <translation>Nowy obszar roboczy</translation>
+    </message>
+    <message>
+        <source>Artboard Background</source>
+        <translation>Tło obszaru roboczego</translation>
+    </message>
+    <message>
+        <source>Select a top-level group to turn into an artboard</source>
+        <translation>Wybierz grupę najwyższego poziomu do zamiany w obszar roboczy</translation>
+    </message>
+    <message>
+        <source>Artboard from group</source>
+        <translation>Obszar roboczy z grupy</translation>
+    </message>
+    <message>
+        <source>Made %1 an artboard</source>
+        <translation>Zamieniono %1 w obszar roboczy</translation>
+    </message>
+    <message>
+        <source>Select the layers to put on the new artboard</source>
+        <translation>Wybierz warstwy do umieszczenia na nowym obszarze roboczym</translation>
+    </message>
+    <message>
+        <source>Artboard from Layers takes layers that are not on an artboard</source>
+        <translation>Obszar roboczy z warstw przyjmuje tylko warstwy spoza obszarów roboczych</translation>
+    </message>
+    <message>
+        <source>Artboard from layers</source>
+        <translation>Obszar roboczy z warstw</translation>
+    </message>
+    <message>
+        <source>Put the layers on a new artboard</source>
+        <translation>Umieszczono warstwy na nowym obszarze roboczym</translation>
+    </message>
+    <message>
+        <source>Select an artboard to turn into a group</source>
+        <translation>Wybierz obszar roboczy do zamiany w grupę</translation>
+    </message>
+    <message>
+        <source>Convert artboard to group</source>
+        <translation>Konwertuj obszar roboczy na grupę</translation>
+    </message>
+    <message>
+        <source>Converted the artboard to a group</source>
+        <translation>Przekonwertowano obszar roboczy na grupę</translation>
+    </message>
+    <message>
+        <source>The document has no artboards</source>
+        <translation>Dokument nie ma obszarów roboczych</translation>
+    </message>
+    <message>
+        <source>The canvas already fits the artboards</source>
+        <translation>Płótno jest już dopasowane do obszarów roboczych</translation>
+    </message>
+    <message>
+        <source>Fit canvas to artboards</source>
+        <translation>Dopasuj płótno do obszarów roboczych</translation>
+    </message>
+    <message>
+        <source>Canvas is %1 x %2 px</source>
+        <translation>Płótno ma %1 x %2 px</translation>
+    </message>
+    <message>
+        <source>Left edge of the artboard</source>
+        <translation>Lewa krawędź obszaru roboczego</translation>
+    </message>
+    <message>
+        <source>Top edge of the artboard</source>
+        <translation>Górna krawędź obszaru roboczego</translation>
+    </message>
+    <message>
+        <source>Width of the artboard</source>
+        <translation>Szerokość obszaru roboczego</translation>
+    </message>
+    <message>
+        <source>Height of the artboard</source>
+        <translation>Wysokość obszaru roboczego</translation>
+    </message>
+    <message>
+        <source>Layer 1</source>
+        <translation>Warstwa 1</translation>
+    </message>
+    <message>
+        <source>Page %1</source>
+        <translation>Strona %1</translation>
+    </message>
+    <message>
+        <source>This document has no artboards</source>
+        <translation>Ten dokument nie ma obszarów roboczych</translation>
+    </message>
+    <message>
+        <source>Export Artboards to Files</source>
+        <translation>Eksportuj obszary robocze do plików</translation>
+    </message>
+    <message>
+        <source>An artboard cannot go inside a folder</source>
+        <translation>Obszar roboczy nie może trafić do folderu</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
+        <translation>Obszary robocze nie mogą powiększyć płótna ponad %1 x %1 px</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22938,6 +23318,22 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
     <message>
         <source>CMYK values are percentages from 0 to 100</source>
         <translation>Wartości CMYK to procenty od 0 do 100</translation>
+    </message>
+    <message>
+        <source>Invalid artboard option or target: %1.</source>
+        <translation>Nieprawidłowa opcja lub cel obszaru roboczego: %1.</translation>
+    </message>
+    <message>
+        <source>The artboards could not be exported.</source>
+        <translation>Nie można wyeksportować obszarów roboczych.</translation>
+    </message>
+    <message>
+        <source>exportArtboards cannot write .%1 files.</source>
+        <translation>exportArtboards nie może zapisywać plików .%1.</translation>
+    </message>
+    <message>
+        <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
+        <translation>Obszary robocze nie mogą powiększyć płótna ponad %1 x %1 px.</translation>
     </message>
 </context>
 <context>
