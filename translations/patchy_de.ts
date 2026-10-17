@@ -11843,6 +11843,10 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>Refining preview...</source>
         <translation>Vorschau wird verfeinert...</translation>
     </message>
+    <message>
+        <source>Select a pixel layer to sample the current layer, or sample all layers</source>
+        <translation>Wählen Sie eine Pixelebene, um die aktuelle Ebene aufzunehmen, oder nehmen Sie alle Ebenen auf</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21124,6 +21128,38 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
     <message>
         <source>Fit on Screen</source>
         <translation>Ganzes Bild</translation>
+    </message>
+    <message>
+        <source>Sample Size:</source>
+        <translation>Aufnahmebereich:</translation>
+    </message>
+    <message>
+        <source>Point Sample</source>
+        <translation>1 Pixel</translation>
+    </message>
+    <message>
+        <source>%1 by %1 Average</source>
+        <translation>Durchschnitt %1 x %1</translation>
+    </message>
+    <message>
+        <source>Average the colors in a square around the click instead of one pixel</source>
+        <translation>Den Durchschnitt der Farben in einem Quadrat um den Klick statt eines Pixels aufnehmen</translation>
+    </message>
+    <message>
+        <source>Sample:</source>
+        <translation>Aufnehmen:</translation>
+    </message>
+    <message>
+        <source>All Layers</source>
+        <translation>Alle Ebenen</translation>
+    </message>
+    <message>
+        <source>Current Layer</source>
+        <translation>Aktuelle Ebene</translation>
+    </message>
+    <message>
+        <source>Pick from the merged image or from the active layer alone</source>
+        <translation>Aus dem zusammengefügten Bild oder nur aus der aktiven Ebene aufnehmen</translation>
     </message>
     <message>
         <source>Remove from Recent Folders</source>

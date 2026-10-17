@@ -11843,6 +11843,10 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>Refining preview...</source>
         <translation>Affinage de l&apos;aperçu...</translation>
     </message>
+    <message>
+        <source>Select a pixel layer to sample the current layer, or sample all layers</source>
+        <translation>Sélectionnez un calque de pixels pour échantillonner le calque actif, ou échantillonnez tous les calques</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21124,6 +21128,38 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
     <message>
         <source>Fit on Screen</source>
         <translation>Taille écran</translation>
+    </message>
+    <message>
+        <source>Sample Size:</source>
+        <translation>Taille de l&apos;échantillon :</translation>
+    </message>
+    <message>
+        <source>Point Sample</source>
+        <translation>Échantillon ponctuel</translation>
+    </message>
+    <message>
+        <source>%1 by %1 Average</source>
+        <translation>Moyenne %1 x %1</translation>
+    </message>
+    <message>
+        <source>Average the colors in a square around the click instead of one pixel</source>
+        <translation>Faire la moyenne des couleurs d&apos;un carré autour du clic au lieu d&apos;un seul pixel</translation>
+    </message>
+    <message>
+        <source>Sample:</source>
+        <translation>Échantillon :</translation>
+    </message>
+    <message>
+        <source>All Layers</source>
+        <translation>Tous les calques</translation>
+    </message>
+    <message>
+        <source>Current Layer</source>
+        <translation>Calque actif</translation>
+    </message>
+    <message>
+        <source>Pick from the merged image or from the active layer alone</source>
+        <translation>Prélever dans l&apos;image fusionnée ou seulement dans le calque actif</translation>
     </message>
     <message>
         <source>Remove from Recent Folders</source>

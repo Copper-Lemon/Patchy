@@ -1796,6 +1796,108 @@ void ui_eyedropper_alt_click_picks_the_background_color() {
   CHECK(color_close(canvas.primary_color(), QColor(20, 140, 160), 1));
   CHECK(canvas.secondary_color() == QColor(250, 250, 250));
 }
+// Eyedropper Sample Size and Sample (GitHub issue 151): a square average around
+// the click over the merged image or over the active layer alone, where a
+// transparent spot leaves the color unchanged.
+void ui_eyedropper_sample_size_and_current_layer() {
+  patchy::Document document(48, 16, patchy::PixelFormat::rgba8());
+  document.add_pixel_layer("White", solid_pixels(48, 16, patchy::PixelFormat::rgba8(), QColor(Qt::white)));
+  auto dot = solid_pixels(48, 16, patchy::PixelFormat::rgba8(), QColor(0, 0, 0, 0));
+  fill_pixel_rect(dot, QRect(10, 8, 1, 1), QColor(255, 0, 0));
+  const auto dot_id = document.add_pixel_layer("Dot", std::move(dot)).id();
+  document.set_active_layer(dot_id);
+  patchy::ui::CanvasWidget canvas;
+  canvas.resize(192, 64);
+  canvas.set_document(&document);
+  canvas.set_tool(patchy::ui::CanvasTool::Eyedropper);
+  canvas.show();
+  QApplication::processEvents();
+  const auto click = [&canvas](QPoint document_point) {
+    const auto point = canvas.widget_position_for_document_point(document_point);
+    send_mouse(canvas, QEvent::MouseButtonPress, point, Qt::LeftButton, Qt::LeftButton);
+    send_mouse(canvas, QEvent::MouseButtonRelease, point, Qt::LeftButton, Qt::NoButton);
+    QApplication::processEvents();
+  };
+
+  // Defaults: Point Sample over all layers, the pick unchanged from before.
+  CHECK(canvas.eyedropper_sample_size() == 1);
+  CHECK(canvas.eyedropper_sample_all_layers());
+  click(QPoint(10, 8));
+  CHECK(color_close(canvas.primary_color(), QColor(255, 0, 0), 1));
+
+  // 3 by 3 over all layers: one red pixel among eight white ones.
+  canvas.set_eyedropper_sample_size(3);
+  click(QPoint(10, 8));
+  CHECK(color_close(canvas.primary_color(), QColor(255, 227, 227), 1));
+  // Clipped at the document edge: the corner square holds four white pixels.
+  click(QPoint(0, 0));
+  CHECK(color_close(canvas.primary_color(), QColor(255, 255, 255), 1));
+
+  // Current Layer: only the dot has alpha, so the average is pure red.
+  canvas.set_eyedropper_sample_all_layers(false);
+  click(QPoint(11, 9));
+  CHECK(color_close(canvas.primary_color(), QColor(255, 0, 0), 1));
+  // A transparent spot on the current layer keeps the color.
+  canvas.set_primary_color(QColor(1, 2, 3));
+  click(QPoint(30, 4));
+  CHECK(canvas.primary_color() == QColor(1, 2, 3));
+
+  // Sides are odd and capped at Photoshop's 101.
+  canvas.set_eyedropper_sample_size(4);
+  CHECK(canvas.eyedropper_sample_size() == 5);
+  canvas.set_eyedropper_sample_size(500);
+  CHECK(canvas.eyedropper_sample_size() == 101);
+}
+
+// The Eyedropper options row (GitHub issue 151): Sample Size and Sample combos
+// for the Eyedropper only, reaching the canvas, every new document and the
+// saved tool settings.
+void ui_eyedropper_options_bar_sample_controls() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* size_combo = window.findChild<QComboBox*>(QStringLiteral("eyedropperSampleSizeCombo"));
+  auto* layers_combo = window.findChild<QComboBox*>(QStringLiteral("eyedropperSampleLayersCombo"));
+  CHECK(size_combo != nullptr && layers_combo != nullptr);
+  require_action_by_text(window, QStringLiteral("Brush"))->trigger();
+  QApplication::processEvents();
+  CHECK(!size_combo->isVisible() && !layers_combo->isVisible());
+  require_action_by_text(window, QStringLiteral("Pick"))->trigger();
+  QApplication::processEvents();
+  CHECK(size_combo->isVisible() && layers_combo->isVisible());
+  CHECK(size_combo->count() == 7);
+  CHECK(size_combo->itemText(0) == QStringLiteral("Point Sample"));
+  CHECK(size_combo->itemText(3) == QStringLiteral("11 by 11 Average"));
+  CHECK(layers_combo->itemText(0) == QStringLiteral("All Layers"));
+  CHECK(layers_combo->itemText(1) == QStringLiteral("Current Layer"));
+  save_widget_artifact("ui_eyedropper_options_bar", window);
+
+  size_combo->setCurrentIndex(size_combo->findData(5));
+  layers_combo->setCurrentIndex(1);
+  QApplication::processEvents();
+  auto* canvas = require_canvas(window);
+  CHECK(canvas->eyedropper_sample_size() == 5);
+  CHECK(!canvas->eyedropper_sample_all_layers());
+  {
+    auto settings = patchy::ui::app_settings();
+    CHECK(settings.value(QStringLiteral("tools/eyedropperSampleSize")).toInt() == 5);
+    CHECK(!settings.value(QStringLiteral("tools/eyedropperSampleAllLayers")).toBool());
+  }
+  patchy::ui::MainWindowTestAccess::create_default_document(window);
+  QApplication::processEvents();
+  auto* second = require_canvas(window);
+  CHECK(second != canvas);
+  CHECK(second->eyedropper_sample_size() == 5);
+  CHECK(!second->eyedropper_sample_all_layers());
+
+  // Back to the defaults so later tests see Photoshop's starting state.
+  size_combo->setCurrentIndex(0);
+  layers_combo->setCurrentIndex(0);
+  QApplication::processEvents();
+  auto settings = patchy::ui::app_settings();
+  CHECK(settings.value(QStringLiteral("tools/eyedropperSampleSize")).toInt() == 1);
+  CHECK(settings.value(QStringLiteral("tools/eyedropperSampleAllLayers")).toBool());
+}
+
 // The 8-bit eyedropper reads the real composite, not a per-layer approximation: an
 // opaque red child inside a 50% group over white picks pink (the old sampler returned
 // pure red), a clipped layer shows only over its base, and every pick equals the
@@ -3042,6 +3144,8 @@ std::vector<patchy::test::TestCase> pickers_notices_hotkeys_tests() {
       {"ui_eyedropper_picks_group_opacity_and_clipping_composite",
        ui_eyedropper_picks_group_opacity_and_clipping_composite},
       {"ui_eyedropper_alt_click_picks_the_background_color", ui_eyedropper_alt_click_picks_the_background_color},
+      {"ui_eyedropper_sample_size_and_current_layer", ui_eyedropper_sample_size_and_current_layer},
+      {"ui_eyedropper_options_bar_sample_controls", ui_eyedropper_options_bar_sample_controls},
       {"ui_eyedropper_starts_in_gray_area_and_drags_to_document_color",
        ui_eyedropper_starts_in_gray_area_and_drags_to_document_color},
       {"ui_photoshop_shortcuts_are_registered", ui_photoshop_shortcuts_are_registered},

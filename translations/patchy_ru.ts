@@ -11873,6 +11873,10 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>Refining preview...</source>
         <translation>Уточнение предпросмотра...</translation>
     </message>
+    <message>
+        <source>Select a pixel layer to sample the current layer, or sample all layers</source>
+        <translation>Выберите пиксельный слой, чтобы брать образец с текущего слоя, или берите образец со всех слоёв</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21187,6 +21191,38 @@ Patchy может скачать обновление, заменить этот
     <message>
         <source>Fit on Screen</source>
         <translation>По размеру экрана</translation>
+    </message>
+    <message>
+        <source>Sample Size:</source>
+        <translation>Размер образца:</translation>
+    </message>
+    <message>
+        <source>Point Sample</source>
+        <translation>Точка</translation>
+    </message>
+    <message>
+        <source>%1 by %1 Average</source>
+        <translation>Среднее %1 x %1</translation>
+    </message>
+    <message>
+        <source>Average the colors in a square around the click instead of one pixel</source>
+        <translation>Усреднять цвета в квадрате вокруг щелчка вместо одного пикселя</translation>
+    </message>
+    <message>
+        <source>Sample:</source>
+        <translation>Образец:</translation>
+    </message>
+    <message>
+        <source>All Layers</source>
+        <translation>Все слои</translation>
+    </message>
+    <message>
+        <source>Current Layer</source>
+        <translation>Текущий слой</translation>
+    </message>
+    <message>
+        <source>Pick from the merged image or from the active layer alone</source>
+        <translation>Брать цвет из сведённого изображения или только с активного слоя</translation>
     </message>
     <message>
         <source>Remove from Recent Folders</source>

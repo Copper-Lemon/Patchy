@@ -11873,6 +11873,10 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>Refining preview...</source>
         <translation>Dopracowywanie podglądu...</translation>
     </message>
+    <message>
+        <source>Select a pixel layer to sample the current layer, or sample all layers</source>
+        <translation>Wybierz warstwę pikseli, aby próbkować bieżącą warstwę, albo próbkuj wszystkie warstwy</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21187,6 +21191,38 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
     <message>
         <source>Fit on Screen</source>
         <translation>Dopasuj do ekranu</translation>
+    </message>
+    <message>
+        <source>Sample Size:</source>
+        <translation>Rozmiar próbki:</translation>
+    </message>
+    <message>
+        <source>Point Sample</source>
+        <translation>Próbka punktowa</translation>
+    </message>
+    <message>
+        <source>%1 by %1 Average</source>
+        <translation>Średnia %1 na %1</translation>
+    </message>
+    <message>
+        <source>Average the colors in a square around the click instead of one pixel</source>
+        <translation>Uśrednij kolory w kwadracie wokół kliknięcia zamiast jednego piksela</translation>
+    </message>
+    <message>
+        <source>Sample:</source>
+        <translation>Próbka:</translation>
+    </message>
+    <message>
+        <source>All Layers</source>
+        <translation>Wszystkie warstwy</translation>
+    </message>
+    <message>
+        <source>Current Layer</source>
+        <translation>Bieżąca warstwa</translation>
+    </message>
+    <message>
+        <source>Pick from the merged image or from the active layer alone</source>
+        <translation>Pobierz kolor ze scalonego obrazu albo tylko z aktywnej warstwy</translation>
     </message>
     <message>
         <source>Remove from Recent Folders</source>

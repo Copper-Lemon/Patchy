@@ -11843,6 +11843,10 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>Refining preview...</source>
         <translation>Rifinitura dell&apos;anteprima...</translation>
     </message>
+    <message>
+        <source>Select a pixel layer to sample the current layer, or sample all layers</source>
+        <translation>Seleziona un livello di pixel per campionare il livello attivo, oppure campiona tutti i livelli</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21124,6 +21128,38 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
     <message>
         <source>Fit on Screen</source>
         <translation>Adatta allo schermo</translation>
+    </message>
+    <message>
+        <source>Sample Size:</source>
+        <translation>Dimensione campione:</translation>
+    </message>
+    <message>
+        <source>Point Sample</source>
+        <translation>Campione puntiforme</translation>
+    </message>
+    <message>
+        <source>%1 by %1 Average</source>
+        <translation>Media %1 x %1</translation>
+    </message>
+    <message>
+        <source>Average the colors in a square around the click instead of one pixel</source>
+        <translation>Fai la media dei colori in un quadrato attorno al clic invece di un solo pixel</translation>
+    </message>
+    <message>
+        <source>Sample:</source>
+        <translation>Campione:</translation>
+    </message>
+    <message>
+        <source>All Layers</source>
+        <translation>Tutti i livelli</translation>
+    </message>
+    <message>
+        <source>Current Layer</source>
+        <translation>Livello attivo</translation>
+    </message>
+    <message>
+        <source>Pick from the merged image or from the active layer alone</source>
+        <translation>Preleva dall&apos;immagine unita o solo dal livello attivo</translation>
     </message>
     <message>
         <source>Remove from Recent Folders</source>

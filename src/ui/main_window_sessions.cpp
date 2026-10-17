@@ -129,6 +129,8 @@ void MainWindow::add_document_session(Document document, QString title, QString 
     session->canvas->set_local_protect_tones(current_local_protect_tones_);
     session->canvas->set_sponge_mode(current_sponge_mode_);
     session->canvas->set_sponge_vibrance(current_sponge_vibrance_);
+    session->canvas->set_eyedropper_sample_size(current_eyedropper_sample_size_);
+    session->canvas->set_eyedropper_sample_all_layers(current_eyedropper_sample_all_layers_);
     session->canvas->set_gradient_method(canvas_->gradient_method());
     session->canvas->set_gradient_reverse(canvas_->gradient_reverse());
     session->canvas->set_gradient_opacity(canvas_->gradient_opacity());
@@ -163,6 +165,8 @@ void MainWindow::add_document_session(Document document, QString title, QString 
   session->canvas->set_local_protect_tones(current_local_protect_tones_);
   session->canvas->set_sponge_mode(current_sponge_mode_);
   session->canvas->set_sponge_vibrance(current_sponge_vibrance_);
+  session->canvas->set_eyedropper_sample_size(current_eyedropper_sample_size_);
+  session->canvas->set_eyedropper_sample_all_layers(current_eyedropper_sample_all_layers_);
   session->canvas->set_mixer_wet(current_mixer_wet_);
   session->canvas->set_mixer_load(current_mixer_load_);
   session->canvas->set_mixer_mix(current_mixer_mix_);
@@ -409,6 +413,8 @@ void MainWindow::activate_document_canvas(CanvasWidget* canvas, const std::funct
   canvas_->set_local_protect_tones(current_local_protect_tones_);
   canvas_->set_sponge_mode(current_sponge_mode_);
   canvas_->set_sponge_vibrance(current_sponge_vibrance_);
+  canvas_->set_eyedropper_sample_size(current_eyedropper_sample_size_);
+  canvas_->set_eyedropper_sample_all_layers(current_eyedropper_sample_all_layers_);
   canvas_->set_mixer_wet(current_mixer_wet_);
   canvas_->set_mixer_load(current_mixer_load_);
   canvas_->set_mixer_mix(current_mixer_mix_);

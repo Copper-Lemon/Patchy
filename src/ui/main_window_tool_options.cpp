@@ -1830,6 +1830,12 @@ void MainWindow::load_tool_settings() {
   canvas_->set_local_protect_tones(current_local_protect_tones_);
   canvas_->set_sponge_mode(current_sponge_mode_);
   canvas_->set_sponge_vibrance(current_sponge_vibrance_);
+  canvas_->set_eyedropper_sample_size(
+      settings.value(QStringLiteral("tools/eyedropperSampleSize"), current_eyedropper_sample_size_).toInt());
+  current_eyedropper_sample_size_ = canvas_->eyedropper_sample_size();  // clamped to an odd side
+  current_eyedropper_sample_all_layers_ =
+      settings.value(QStringLiteral("tools/eyedropperSampleAllLayers"), current_eyedropper_sample_all_layers_).toBool();
+  canvas_->set_eyedropper_sample_all_layers(current_eyedropper_sample_all_layers_);
   canvas_->set_shape_corner_radius(
       settings.value(QStringLiteral("tools/shapeCornerRadius"), canvas_->shape_corner_radius()).toInt());
   // The spin resync below is signal-blocked, so mirror the loaded value by hand.
@@ -2116,6 +2122,8 @@ void MainWindow::save_tool_settings() const {
                         ? QStringLiteral("saturate")
                         : QStringLiteral("desaturate"));
   settings.setValue(QStringLiteral("tools/spongeVibrance"), current_sponge_vibrance_);
+  settings.setValue(QStringLiteral("tools/eyedropperSampleSize"), current_eyedropper_sample_size_);
+  settings.setValue(QStringLiteral("tools/eyedropperSampleAllLayers"), current_eyedropper_sample_all_layers_);
   settings.setValue(QStringLiteral("tools/shapeCornerRadius"), canvas_->shape_corner_radius());
   settings.setValue(QStringLiteral("tools/vectorToolMode"),
                     current_vector_tool_mode_ == VectorToolMode::Path     ? QStringLiteral("path")
@@ -2775,6 +2783,16 @@ void MainWindow::refresh_options_bar() {
     const auto index = sponge_mode_combo_->findData(static_cast<int>(current_sponge_mode_));
     QSignalBlocker blocker(sponge_mode_combo_);
     sponge_mode_combo_->setCurrentIndex(std::max(0, index));
+  }
+  if (eyedropper_sample_size_combo_ != nullptr) {
+    QSignalBlocker blocker(eyedropper_sample_size_combo_);
+    eyedropper_sample_size_combo_->setCurrentIndex(
+        std::max(0, eyedropper_sample_size_combo_->findData(current_eyedropper_sample_size_)));
+  }
+  if (eyedropper_sample_layers_combo_ != nullptr) {
+    QSignalBlocker blocker(eyedropper_sample_layers_combo_);
+    eyedropper_sample_layers_combo_->setCurrentIndex(
+        std::max(0, eyedropper_sample_layers_combo_->findData(current_eyedropper_sample_all_layers_)));
   }
   if (sponge_vibrance_check_ != nullptr) {
     QSignalBlocker blocker(sponge_vibrance_check_);

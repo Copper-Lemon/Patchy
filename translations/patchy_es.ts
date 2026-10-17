@@ -11843,6 +11843,10 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>Refining preview...</source>
         <translation>Refinando la previsualización...</translation>
     </message>
+    <message>
+        <source>Select a pixel layer to sample the current layer, or sample all layers</source>
+        <translation>Seleccione una capa de píxeles para muestrear la capa actual, o muestree todas las capas</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21124,6 +21128,38 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
     <message>
         <source>Fit on Screen</source>
         <translation>Encajar en pantalla</translation>
+    </message>
+    <message>
+        <source>Sample Size:</source>
+        <translation>Tamaño de muestra:</translation>
+    </message>
+    <message>
+        <source>Point Sample</source>
+        <translation>Muestra puntual</translation>
+    </message>
+    <message>
+        <source>%1 by %1 Average</source>
+        <translation>Promedio de %1 por %1</translation>
+    </message>
+    <message>
+        <source>Average the colors in a square around the click instead of one pixel</source>
+        <translation>Promediar los colores de un cuadrado alrededor del clic en lugar de un solo píxel</translation>
+    </message>
+    <message>
+        <source>Sample:</source>
+        <translation>Muestra:</translation>
+    </message>
+    <message>
+        <source>All Layers</source>
+        <translation>Todas las capas</translation>
+    </message>
+    <message>
+        <source>Current Layer</source>
+        <translation>Capa actual</translation>
+    </message>
+    <message>
+        <source>Pick from the merged image or from the active layer alone</source>
+        <translation>Tomar el color de la imagen combinada o solo de la capa activa</translation>
     </message>
     <message>
         <source>Remove from Recent Folders</source>

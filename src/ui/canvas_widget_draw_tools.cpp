@@ -1384,8 +1384,39 @@ QRect CanvasWidget::flood_fill_mask(QPoint start) {
   return dirty;
 }
 
+namespace {
+
+// The alpha-weighted mean color of a sample square, or nothing when every pixel
+// is fully transparent.
+std::optional<QColor> average_sample_color(const QImage& image) {
+  double red = 0.0;
+  double green = 0.0;
+  double blue = 0.0;
+  double weight = 0.0;
+  for (int y = 0; y < image.height(); ++y) {
+    for (int x = 0; x < image.width(); ++x) {
+      const auto color = image.pixelColor(x, y);
+      const auto alpha = color.alphaF();
+      red += color.redF() * alpha;
+      green += color.greenF() * alpha;
+      blue += color.blueF() * alpha;
+      weight += alpha;
+    }
+  }
+  if (weight <= 0.0) {
+    return std::nullopt;
+  }
+  const auto channel = [weight](double sum) {
+    return static_cast<int>(std::clamp(std::lround(sum / weight * 255.0), 0L, 255L));
+  };
+  return QColor(channel(red), channel(green), channel(blue));
+}
+
+}  // namespace
+
 void CanvasWidget::begin_color_pick(QPoint widget_position, QPoint global_position) {
   color_picking_ = true;
+  color_pick_layer_warned_ = false;
   grabMouse();
   update_color_pick(widget_position, global_position);
 }
@@ -1437,7 +1468,31 @@ void CanvasWidget::pick_color(QPoint point) {
     return;
   }
 
-  set_picked_color(compose_document_pixel(point.x(), point.y()));
+  const int half = eyedropper_sample_size_ / 2;
+  const QRect area = QRect(point.x() - half, point.y() - half, 2 * half + 1, 2 * half + 1)
+                         .intersected(QRect(0, 0, document_->width(), document_->height()));
+  if (!eyedropper_sample_all_layers_) {
+    // Current Layer: the active layer's own pixels (mask and opacity folded into
+    // alpha). A transparent spot leaves the color as it was, as in Photoshop.
+    const Layer* layer = active_pixel_layer();
+    if (layer == nullptr) {
+      if (!color_pick_layer_warned_) {
+        color_pick_layer_warned_ = true;
+        report_status_error(tr("Select a pixel layer to sample the current layer, or sample all layers"));
+      }
+      return;
+    }
+    if (const auto color = average_sample_color(active_layer_sample_region(*layer, area)); color.has_value()) {
+      set_picked_color(*color);
+    }
+    return;
+  }
+  if (area.width() == 1 && area.height() == 1) {
+    set_picked_color(compose_document_pixel(point.x(), point.y()));
+    return;
+  }
+  // Merged and fully transparent reads like the point sample there (black).
+  set_picked_color(average_sample_color(compose_document_rect(area)).value_or(QColor(Qt::transparent)));
 }
 
 }  // namespace patchy::ui

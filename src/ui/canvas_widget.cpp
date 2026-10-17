@@ -913,6 +913,23 @@ bool CanvasWidget::local_protect_tones() const noexcept {
   return local_protect_tones_;
 }
 
+void CanvasWidget::set_eyedropper_sample_size(int size) noexcept {
+  // Odd sides only, so the square centers on the clicked pixel.
+  eyedropper_sample_size_ = std::clamp(size, 1, 101) | 1;
+}
+
+int CanvasWidget::eyedropper_sample_size() const noexcept {
+  return eyedropper_sample_size_;
+}
+
+void CanvasWidget::set_eyedropper_sample_all_layers(bool enabled) noexcept {
+  eyedropper_sample_all_layers_ = enabled;
+}
+
+bool CanvasWidget::eyedropper_sample_all_layers() const noexcept {
+  return eyedropper_sample_all_layers_;
+}
+
 void CanvasWidget::set_sponge_mode(SpongeMode mode) noexcept {
   sponge_mode_ = mode;
 }

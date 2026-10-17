@@ -366,9 +366,13 @@ void blend_straight_rgba(std::uint8_t* dst, const std::uint8_t* src, float amoun
 }
 
 QImage active_layer_sample_image(const Layer& layer, QSize document_size) {
-  QImage image(document_size, QImage::Format_RGBA8888);
+  return active_layer_sample_region(layer, QRect(QPoint(), document_size));
+}
+
+QImage active_layer_sample_region(const Layer& layer, QRect region) {
+  QImage image(region.size(), QImage::Format_RGBA8888);
   image.fill(Qt::transparent);
-  if (document_size.isEmpty() || !layer.visible() || layer.opacity() <= 0.0F) {
+  if (region.isEmpty() || !layer.visible() || layer.opacity() <= 0.0F) {
     return image;
   }
 
@@ -379,9 +383,9 @@ QImage active_layer_sample_image(const Layer& layer, QSize document_size) {
   if (pixels.format().bit_depth != BitDepth::UInt8) {
     // 16/32-bit: sample the display bytes (the picker reads 8-bit colors).
     const auto deep_bounds = layer_pixel_bounds(layer);
-    const auto deep_rect = to_qrect(deep_bounds).intersected(QRect(QPoint(), document_size));
+    const auto deep_rect = to_qrect(deep_bounds).intersected(region);
     for (int y = deep_rect.top(); y <= deep_rect.bottom() && !deep_rect.isEmpty(); ++y) {
-      auto* output = image.scanLine(y) + static_cast<std::size_t>(deep_rect.left()) * 4U;
+      auto* output = image.scanLine(y - region.top()) + static_cast<std::size_t>(deep_rect.left() - region.left()) * 4U;
       for (int x = deep_rect.left(); x <= deep_rect.right(); ++x) {
         const auto bytes = display_rgba8_at(pixels, x - deep_bounds.x, y - deep_bounds.y);
         const auto alpha = static_cast<float>(bytes[3]) / 255.0F * layer_mask_alpha_at(layer, x, y) * layer.opacity();
@@ -398,15 +402,14 @@ QImage active_layer_sample_image(const Layer& layer, QSize document_size) {
   }
 
   const auto bounds = layer_pixel_bounds(layer);
-  const QRect canvas_rect(QPoint(), document_size);
-  const auto draw_rect = to_qrect(bounds).intersected(canvas_rect);
+  const auto draw_rect = to_qrect(bounds).intersected(region);
   if (draw_rect.isEmpty()) {
     return image;
   }
 
   const auto channels = pixels.format().channels;
   for (int y = draw_rect.top(); y <= draw_rect.bottom(); ++y) {
-    auto* output = image.scanLine(y) + static_cast<std::size_t>(draw_rect.left()) * 4U;
+    auto* output = image.scanLine(y - region.top()) + static_cast<std::size_t>(draw_rect.left() - region.left()) * 4U;
     for (int x = draw_rect.left(); x <= draw_rect.right(); ++x) {
       const auto* src = pixels.pixel(x - bounds.x, y - bounds.y);
       const auto source_alpha = channels >= 4 ? static_cast<float>(src[3]) / 255.0F : 1.0F;

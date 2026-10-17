@@ -2209,6 +2209,8 @@ private:
   QComboBox* local_tone_range_combo_{nullptr};
   QCheckBox* local_protect_tones_check_{nullptr};
   QComboBox* sponge_mode_combo_{nullptr};
+  QComboBox* eyedropper_sample_size_combo_{nullptr};
+  QComboBox* eyedropper_sample_layers_combo_{nullptr};
   QCheckBox* sponge_vibrance_check_{nullptr};
   QCheckBox* wand_contiguous_check_{nullptr};
   QCheckBox* fill_contiguous_check_{nullptr};
@@ -2657,6 +2659,8 @@ private:
   bool current_local_protect_tones_{true};
   SpongeMode current_sponge_mode_{SpongeMode::Desaturate};
   bool current_sponge_vibrance_{true};
+  int current_eyedropper_sample_size_{1};
+  bool current_eyedropper_sample_all_layers_{true};
   bool view_rulers_visible_{false};
   MeasurementUnit ruler_unit_{MeasurementUnit::Pixels};
   std::vector<QPointer<UnitSpinBox>> ruler_unit_fields_;

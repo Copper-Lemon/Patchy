@@ -11813,6 +11813,10 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>Refining preview...</source>
         <translation>正在优化预览...</translation>
     </message>
+    <message>
+        <source>Select a pixel layer to sample the current layer, or sample all layers</source>
+        <translation>请选择像素图层以对当前图层取样，或对所有图层取样</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21061,6 +21065,38 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
     <message>
         <source>Fit on Screen</source>
         <translation>按屏幕大小缩放</translation>
+    </message>
+    <message>
+        <source>Sample Size:</source>
+        <translation>取样大小:</translation>
+    </message>
+    <message>
+        <source>Point Sample</source>
+        <translation>取样点</translation>
+    </message>
+    <message>
+        <source>%1 by %1 Average</source>
+        <translation>%1 x %1 平均</translation>
+    </message>
+    <message>
+        <source>Average the colors in a square around the click instead of one pixel</source>
+        <translation>对单击位置周围正方形内的颜色取平均值，而不是单个像素</translation>
+    </message>
+    <message>
+        <source>Sample:</source>
+        <translation>样本:</translation>
+    </message>
+    <message>
+        <source>All Layers</source>
+        <translation>所有图层</translation>
+    </message>
+    <message>
+        <source>Current Layer</source>
+        <translation>当前图层</translation>
+    </message>
+    <message>
+        <source>Pick from the merged image or from the active layer alone</source>
+        <translation>从合并后的图像或仅从当前图层取色</translation>
     </message>
     <message>
         <source>Remove from Recent Folders</source>

@@ -11813,6 +11813,10 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>Refining preview...</source>
         <translation>미리 보기 다듬는 중...</translation>
     </message>
+    <message>
+        <source>Select a pixel layer to sample the current layer, or sample all layers</source>
+        <translation>현재 레이어를 샘플링하려면 픽셀 레이어를 선택하거나 모든 레이어를 샘플링하세요</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21061,6 +21065,38 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
     <message>
         <source>Fit on Screen</source>
         <translation>화면 크기에 맞추기</translation>
+    </message>
+    <message>
+        <source>Sample Size:</source>
+        <translation>샘플 크기:</translation>
+    </message>
+    <message>
+        <source>Point Sample</source>
+        <translation>포인트 샘플</translation>
+    </message>
+    <message>
+        <source>%1 by %1 Average</source>
+        <translation>%1 x %1 평균</translation>
+    </message>
+    <message>
+        <source>Average the colors in a square around the click instead of one pixel</source>
+        <translation>클릭한 픽셀 하나 대신 주변 정사각형의 색상을 평균합니다</translation>
+    </message>
+    <message>
+        <source>Sample:</source>
+        <translation>샘플:</translation>
+    </message>
+    <message>
+        <source>All Layers</source>
+        <translation>모든 레이어</translation>
+    </message>
+    <message>
+        <source>Current Layer</source>
+        <translation>현재 레이어</translation>
+    </message>
+    <message>
+        <source>Pick from the merged image or from the active layer alone</source>
+        <translation>병합된 이미지 또는 활성 레이어에서만 색상을 가져옵니다</translation>
     </message>
     <message>
         <source>Remove from Recent Folders</source>

@@ -379,6 +379,14 @@ public:
   [[nodiscard]] SpongeMode sponge_mode() const noexcept;
   void set_sponge_vibrance(bool enabled) noexcept;
   [[nodiscard]] bool sponge_vibrance() const noexcept;
+  // Eyedropper options (GitHub issue 151), shared by the paint tools' Alt
+  // eyedropper as in Photoshop: the side of the averaged square in document
+  // pixels (1 = Point Sample; Photoshop's 3, 5, 11, 31, 51 and 101), and
+  // whether a pick reads the merged document or the active layer alone.
+  void set_eyedropper_sample_size(int size) noexcept;
+  [[nodiscard]] int eyedropper_sample_size() const noexcept;
+  void set_eyedropper_sample_all_layers(bool enabled) noexcept;
+  [[nodiscard]] bool eyedropper_sample_all_layers() const noexcept;
   void set_pen_input_settings(PenInputSettings settings) noexcept;
   [[nodiscard]] const PenInputSettings& pen_input_settings() const noexcept;
   [[nodiscard]] std::optional<PenInputSample> last_pen_input_sample() const;
@@ -1357,6 +1365,8 @@ private:
   [[nodiscard]] const QImage& move_base_display_image_for_zoom();
   [[nodiscard]] const QImage& warp_base_display_image_for_zoom();
   [[nodiscard]] QColor compose_document_pixel(std::int32_t x, std::int32_t y) const;
+  // The displayed composite over `area` (inside the document), like compose_document_pixel.
+  [[nodiscard]] QImage compose_document_rect(QRect area) const;
   void draw_checkerboard(QPainter& painter, const QRectF& rect, QRect exposed_rect) const;
   void draw_deep_zoom_image(QPainter& painter, const QImage& image, QRect exposed_rect) const;
   // Seamless tiling mode internals (canvas_widget_render.cpp). tiling_ghosts_visible is
@@ -2651,6 +2661,8 @@ private:
   bool local_protect_tones_{true};
   SpongeMode sponge_mode_{SpongeMode::Desaturate};
   bool sponge_vibrance_{true};
+  int eyedropper_sample_size_{1};
+  bool eyedropper_sample_all_layers_{true};
   PenInputSettings pen_input_settings_{};
   std::optional<PenInputSample> active_pen_input_sample_{};
   std::optional<PenInputSample> last_pen_input_sample_{};
@@ -2887,6 +2899,8 @@ private:
   // The Eyedropper tool's own Alt+click picks the background color; the paint
   // tools' temporary Alt eyedropper always picks the foreground (issue 150).
   bool color_pick_to_background_{false};
+  // One "no layer to sample" warning per pick gesture, not one per drag step.
+  bool color_pick_layer_warned_{false};
   std::function<void(const CanvasReadGesture&)> transient_read_callback_;
   QCursor transient_read_cursor_{Qt::CrossCursor};
   bool transient_read_dragging_{false};

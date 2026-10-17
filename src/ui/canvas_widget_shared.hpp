@@ -125,6 +125,11 @@ QImage feather_blur_mask(QImage mask, int feather_radius);
 // and the retouch tools' source snapshots (Clone, Healing, Spot Healing,
 // Patch).
 QImage active_layer_sample_image(const Layer& layer, QSize document_size);
+// The same render limited to `region` (document pixels): an image of region's
+// size whose (0, 0) is region's top-left, transparent outside the layer. The
+// eyedropper's Current Layer sample reads a few pixels through it instead of
+// rendering the whole document.
+QImage active_layer_sample_region(const Layer& layer, QRect region);
 // What automatic selection analyzes with Sample All Layers off (docs/ai-selection.md): the
 // layer rendered on its own, whatever its kind (pixel, shape, text, Smart Object, or a group
 // with its contents), with its opacity, mask and effects. Every other layer is hidden except

@@ -11827,6 +11827,10 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</source>
         <source>Refining preview...</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Select a pixel layer to sample the current layer, or sample all layers</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21050,6 +21054,38 @@ Patchy can download the update, replace this AppImage, and start again. You will
     </message>
     <message>
         <source>Fit on Screen</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Sample Size:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Point Sample</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 by %1 Average</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Average the colors in a square around the click instead of one pixel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Sample:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>All Layers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Current Layer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pick from the merged image or from the active layer alone</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

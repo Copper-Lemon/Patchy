@@ -2366,6 +2366,77 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
     }
   });
 
+  // Photoshop's Eyedropper options (GitHub issue 151): Sample Size averages a
+  // square around the click, Sample picks from the merged document or the
+  // active layer alone. The paint tools' Alt eyedropper uses the same settings.
+  add_option_label(QT_TR_NOOP("Sample Size:"), {CanvasTool::Eyedropper});
+  eyedropper_sample_size_combo_ = new QComboBox(toolbar);
+  eyedropper_sample_size_combo_->setObjectName(QStringLiteral("eyedropperSampleSizeCombo"));
+  static constexpr std::array<int, 7> kEyedropperSampleSizes{1, 3, 5, 11, 31, 51, 101};
+  const auto eyedropper_sample_size_text = [](int size) {
+    return size == 1 ? QCoreApplication::translate(kMainWindowTranslationContext, "Point Sample")
+                     : QCoreApplication::translate(kMainWindowTranslationContext, "%1 by %1 Average").arg(size);
+  };
+  for (const int size : kEyedropperSampleSizes) {
+    eyedropper_sample_size_combo_->addItem(eyedropper_sample_size_text(size), size);
+  }
+  // Marked for lupdate; the texts above are built from these sources.
+  static_cast<void>(QT_TR_NOOP("Point Sample"));
+  static_cast<void>(QT_TR_NOOP("%1 by %1 Average"));
+  eyedropper_sample_size_combo_->setCurrentIndex(
+      std::max(0, eyedropper_sample_size_combo_->findData(current_eyedropper_sample_size_)));
+  bind_tooltip(eyedropper_sample_size_combo_,
+               QT_TR_NOOP("Average the colors in a square around the click instead of one pixel"));
+  add_option_widget(eyedropper_sample_size_combo_, {CanvasTool::Eyedropper});
+  connect(eyedropper_sample_size_combo_, &QComboBox::currentIndexChanged, this, [this](int index) {
+    if (index < 0 || eyedropper_sample_size_combo_ == nullptr) {
+      return;
+    }
+    current_eyedropper_sample_size_ = eyedropper_sample_size_combo_->itemData(index).toInt();
+    if (canvas_ != nullptr) {
+      canvas_->set_eyedropper_sample_size(current_eyedropper_sample_size_);
+    }
+    save_tool_settings();
+  });
+
+  add_option_label(QT_TR_NOOP("Sample:"), {CanvasTool::Eyedropper});
+  eyedropper_sample_layers_combo_ = new QComboBox(toolbar);
+  eyedropper_sample_layers_combo_->setObjectName(QStringLiteral("eyedropperSampleLayersCombo"));
+  eyedropper_sample_layers_combo_->addItem(tr("All Layers"), true);
+  eyedropper_sample_layers_combo_->addItem(tr("Current Layer"), false);
+  eyedropper_sample_layers_combo_->setCurrentIndex(
+      std::max(0, eyedropper_sample_layers_combo_->findData(current_eyedropper_sample_all_layers_)));
+  bind_tooltip(eyedropper_sample_layers_combo_,
+               QT_TR_NOOP("Pick from the merged image or from the active layer alone"));
+  add_option_widget(eyedropper_sample_layers_combo_, {CanvasTool::Eyedropper});
+  connect(eyedropper_sample_layers_combo_, &QComboBox::currentIndexChanged, this, [this](int index) {
+    if (index < 0 || eyedropper_sample_layers_combo_ == nullptr) {
+      return;
+    }
+    current_eyedropper_sample_all_layers_ = eyedropper_sample_layers_combo_->itemData(index).toBool();
+    if (canvas_ != nullptr) {
+      canvas_->set_eyedropper_sample_all_layers(current_eyedropper_sample_all_layers_);
+    }
+    save_tool_settings();
+  });
+  QPointer<QComboBox> eyedropper_size_combo(eyedropper_sample_size_combo_);
+  QPointer<QComboBox> eyedropper_layers_combo(eyedropper_sample_layers_combo_);
+  register_retranslation([eyedropper_size_combo, eyedropper_layers_combo, eyedropper_sample_size_text] {
+    if (eyedropper_size_combo != nullptr) {
+      const QSignalBlocker blocker(eyedropper_size_combo);
+      for (int index = 0; index < eyedropper_size_combo->count(); ++index) {
+        eyedropper_size_combo->setItemText(
+            index, eyedropper_sample_size_text(eyedropper_size_combo->itemData(index).toInt()));
+      }
+    }
+    if (eyedropper_layers_combo != nullptr && eyedropper_layers_combo->count() == 2) {
+      const QSignalBlocker blocker(eyedropper_layers_combo);
+      eyedropper_layers_combo->setItemText(0, QCoreApplication::translate(kMainWindowTranslationContext, "All Layers"));
+      eyedropper_layers_combo->setItemText(
+          1, QCoreApplication::translate(kMainWindowTranslationContext, "Current Layer"));
+    }
+  });
+
 
   // The appearance controls also register for the path-select tools: there
   // they show only while an editable shape layer is active and live-edit it

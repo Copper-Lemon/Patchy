@@ -11813,6 +11813,10 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>Refining preview...</source>
         <translation>プレビューを仕上げています...</translation>
     </message>
+    <message>
+        <source>Select a pixel layer to sample the current layer, or sample all layers</source>
+        <translation>現在のレイヤーを対象にするにはピクセルレイヤーを選択するか、すべてのレイヤーを対象にしてください</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21061,6 +21065,38 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
     <message>
         <source>Fit on Screen</source>
         <translation>画面サイズに合わせる</translation>
+    </message>
+    <message>
+        <source>Sample Size:</source>
+        <translation>サンプル範囲:</translation>
+    </message>
+    <message>
+        <source>Point Sample</source>
+        <translation>指定したピクセル</translation>
+    </message>
+    <message>
+        <source>%1 by %1 Average</source>
+        <translation>%1 x %1 ピクセルの平均</translation>
+    </message>
+    <message>
+        <source>Average the colors in a square around the click instead of one pixel</source>
+        <translation>クリックした 1 ピクセルではなく、周囲の正方形の色を平均します</translation>
+    </message>
+    <message>
+        <source>Sample:</source>
+        <translation>サンプル:</translation>
+    </message>
+    <message>
+        <source>All Layers</source>
+        <translation>すべてのレイヤー</translation>
+    </message>
+    <message>
+        <source>Current Layer</source>
+        <translation>現在のレイヤー</translation>
+    </message>
+    <message>
+        <source>Pick from the merged image or from the active layer alone</source>
+        <translation>統合した画像から取得するか、アクティブなレイヤーのみから取得します</translation>
     </message>
     <message>
         <source>Remove from Recent Folders</source>

@@ -1960,6 +1960,22 @@ QColor CanvasWidget::compose_document_pixel(std::int32_t x, std::int32_t y) cons
   return image.isNull() ? QColor(Qt::transparent) : image.pixelColor(0, 0);
 }
 
+QImage CanvasWidget::compose_document_rect(QRect area) const {
+  if (document_ == nullptr) {
+    return {};
+  }
+  area = area.intersected(QRect(0, 0, document_->width(), document_->height()));
+  if (area.isEmpty()) {
+    return {};
+  }
+  // The same two sources as compose_document_pixel, for a sample square.
+  if (!render_cache_dirty_ && !render_cache_.isNull() &&
+      render_cache_.size() == QSize(document_->width(), document_->height()) && palette_snap_context() == nullptr) {
+    return render_cache_.copy(area);
+  }
+  return qimage_from_document_rect(*document_, area, true);
+}
+
 void CanvasWidget::draw_checkerboard(QPainter& painter, const QRectF& rect, QRect exposed_rect) const {
   if (rect.isEmpty()) {
     return;
