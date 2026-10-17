@@ -60,6 +60,18 @@ install -y podman uidmap`, one time). It builds the image from
    FUSE mount: `--headless --run-script` must end in `[done]`, and
    `PatchyLinux.AppImage patchy-mcp --check` must pass.
 
+**AppImage catalog** (appimage.github.io, entry `data/Patchy`, PR 10388 there): its test
+mounts the newest release's AppImage and runs its `code/appdir-lint.sh` on Ubuntu 22.04.
+That lint fails on any `desktop-file-validate` error from 22.04's desktop-file-utils 0.26,
+which predates Desktop Entry 1.5, so the build drops `SingleMainWindow` from the AppImage's
+copy of the desktop file (the Flatpak keeps it). It warns unless `.DirIcon` is a PNG, so the
+build points `.DirIcon` at a root copy of the 256 px PNG instead of linuxdeploy's SVG. The
+build fails if either check regresses. Still warnings, by choice: "Linux" in the file name
+(renaming breaks the zsync update name older installs follow), the dark default window, and
+"No appdata file" (the lint looks only for `*appdata.xml`; ours is the current
+`.metainfo.xml` name, which the worker still copies for screenshots). After a release with a
+fix, `/retest` on that PR reruns the test.
+
 All downloaded tools are pinned to release tags and SHA-256 in the Containerfile, and the
 base images are pinned by digest. To bump one, update tag and checksum together.
 
