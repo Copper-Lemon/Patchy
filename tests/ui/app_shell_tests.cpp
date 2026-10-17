@@ -3298,6 +3298,28 @@ void ui_preferences_hotkey_is_ctrl_k_off_macos() {
 #endif
 }
 
+// GitHub issue 158: the recent-files filter matches the file name, so "jpg" lists
+// the JPEGs even when every file sits under a folder called JPG; ".jpg" / "*.jpg"
+// filter by extension and a token with a slash still matches the folder path.
+void ui_recent_filter_matches_file_names_and_extensions() {
+  using patchy::ui::recent_filter_tokens;
+  using patchy::ui::recent_path_matches;
+  const QString photo = QStringLiteral("/mnt/jay/JPG/jpg-zip/002/photo.jpg");
+  const QString scan = QStringLiteral("/mnt/jay/JPG/jpg-zip/002/scan.PNG");
+  const QString beta = QStringLiteral("C:/work/Beta Shots/final.psd");
+  CHECK(recent_path_matches(photo, recent_filter_tokens(QStringLiteral("jpg"))));
+  CHECK(!recent_path_matches(scan, recent_filter_tokens(QStringLiteral("jpg"))));
+  CHECK(recent_path_matches(scan, recent_filter_tokens(QStringLiteral(".png"))));
+  CHECK(recent_path_matches(scan, recent_filter_tokens(QStringLiteral("*.png"))));
+  CHECK(!recent_path_matches(photo, recent_filter_tokens(QStringLiteral(".png"))));
+  CHECK(recent_path_matches(beta, recent_filter_tokens(QStringLiteral("FINAL"))));
+  CHECK(!recent_path_matches(beta, recent_filter_tokens(QStringLiteral("beta"))));  // folder, not name
+  CHECK(recent_path_matches(beta, recent_filter_tokens(QStringLiteral("shots/"))));  // a slash reaches the folder
+  CHECK(recent_path_matches(photo, recent_filter_tokens(QStringLiteral("pho .jpg"))));  // every token must hold
+  CHECK(!recent_path_matches(photo, recent_filter_tokens(QStringLiteral("pho .png"))));
+  CHECK(recent_path_matches(photo, recent_filter_tokens(QString())));
+}
+
 void ui_preferences_dialog_resizes_and_remembers_its_size() {
   SettingsValueRestorer restore_size(QStringLiteral("preferences/dialogSize"));
   {
@@ -5818,8 +5840,12 @@ void ui_start_panel_recent_filter_narrows_rows_and_opens_match() {
   CHECK(clear_button->geometry().right() < filter_edit->width());
   CHECK(std::abs(clear_button->geometry().center().y() - filter_edit->rect().center().y()) <= 1);
 
-  // The whole path is matched, so a folder name narrows the same way a file name does.
+  // A bare folder name no longer matches (GitHub issue 158: a folder called JPG made
+  // "jpg" match everything); a token with a slash reaches the folder path.
   filter_edit->setText(QStringLiteral("test-artifacts"));
+  QApplication::processEvents();
+  CHECK(recent_list->count() == 1);  // the placeholder row only
+  filter_edit->setText(QStringLiteral("test-artifacts/"));
   QApplication::processEvents();
   CHECK(recent_list->count() == 3);
 
@@ -6760,6 +6786,7 @@ std::vector<patchy::test::TestCase> app_shell_tests() {
       {"ui_update_checks_can_be_switched_off", ui_update_checks_can_be_switched_off},
       {"ui_preferences_wheel_over_unfocused_control_scrolls_the_page",
        ui_preferences_wheel_over_unfocused_control_scrolls_the_page},
+      {"ui_recent_filter_matches_file_names_and_extensions", ui_recent_filter_matches_file_names_and_extensions},
       {"ui_preferences_dialog_resizes_and_remembers_its_size", ui_preferences_dialog_resizes_and_remembers_its_size},
       {"ui_preferences_interval_combos_fit_their_longest_entry",
        ui_preferences_interval_combos_fit_their_longest_entry},

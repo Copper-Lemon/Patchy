@@ -29,9 +29,24 @@ QStringList recent_filter_tokens(const QString& filter_text) {
 }
 
 bool recent_path_matches(const QString& path, const QStringList& tokens) {
+  // A plain token matches the FILE NAME (extension included), not the folder: the
+  // whole path used to count, so "jpg" matched every file under a folder called
+  // JPG and the filter looked broken (GitHub issue 158). ".jpg" or "*.jpg" is an
+  // extension filter, and a token with a slash still matches the folder path.
   const auto native_path = QDir::toNativeSeparators(path);
-  return std::all_of(tokens.begin(), tokens.end(), [&native_path](const QString& token) {
-    return native_path.contains(token, Qt::CaseInsensitive);
+  const auto name = QFileInfo(path).fileName();
+  return std::all_of(tokens.begin(), tokens.end(), [&native_path, &name](const QString& token) {
+    if (token.contains(QLatin1Char('/')) || token.contains(QLatin1Char('\\'))) {
+      return native_path.contains(QDir::toNativeSeparators(token), Qt::CaseInsensitive);
+    }
+    auto extension = token;
+    if (extension.startsWith(QLatin1Char('*'))) {
+      extension.remove(0, 1);
+    }
+    if (extension.startsWith(QLatin1Char('.')) && extension.size() > 1) {
+      return name.endsWith(extension, Qt::CaseInsensitive);
+    }
+    return name.contains(token, Qt::CaseInsensitive);
   });
 }
 
