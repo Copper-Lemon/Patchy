@@ -144,6 +144,19 @@
     <control>tablet</control>
   </supports>
   <releases>
+    <release version="1.13" date="2026-10-17">
+      <description>
+        <ul>
+          <li>AVIF, JPEG 2000, Radiance HDR and OpenEXR open and save; animated AVIF and animated PNG open as layers; JPEG-compressed TIFF opens</li>
+          <li>Paint strokes keep only their changed pixels in the undo history</li>
+          <li>Image rotate 180 and flips; layer rotate right, left and 180</li>
+          <li>Marquee drags stop at the image edge, with a readout pill beside the pointer</li>
+          <li>Color picker: a 48-color Basic palette, Add Custom Color, percentages for Sat and Val, Alt+click eyedropper for the background color</li>
+          <li>Tool palette overflow and icon fixes, Ctrl+K for Preferences, options-bar labels without colons</li>
+          <li>Linux: Patchy's own frameless window chrome with a system title bar option, HEIC through the system libheif, Wayland maximize and screen color picking fixes</li>
+        </ul>
+      </description>
+    </release>
     <release version="1.12" date="2026-10-16">
       <description>
         <ul>

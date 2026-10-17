@@ -18,7 +18,7 @@ For bug reports and feature requests, please [open an issue](https://github.com/
 
 ## Download
 
-**Latest release: 1.12** · October 16, 2026 · [Release notes](#whats-new) · [All releases](https://github.com/SethRobinson/Patchy/releases)
+**Latest release: 1.13** · October 17, 2026 · [Release notes](#whats-new) · [All releases](https://github.com/SethRobinson/Patchy/releases)
 
 Windows releases are code signed by Seth A. Robinson; the macOS app is signed and
 notarized (Robinson Technologies Corporation); the Linux Flatpak repository is GPG
@@ -179,6 +179,18 @@ and Affinity import has format-specific limitations. See [current compatibility]
 
 ## What's New
 
+### 1.13 - October 17, 2026
+
+- File formats: AVIF opens and saves on every platform with no system codec, animated AVIF and animated PNG open with each frame as a layer ([issue 120](https://github.com/SethRobinson/Patchy/issues/120), [issue 119](https://github.com/SethRobinson/Patchy/issues/119)); JPEG 2000, Radiance HDR and OpenEXR open and save, and JPEG-compressed TIFFs open ([issue 117](https://github.com/SethRobinson/Patchy/issues/117), [issue 118](https://github.com/SethRobinson/Patchy/issues/118)); when a file cannot be opened the message now says why and names the file ([issue 112](https://github.com/SethRobinson/Patchy/issues/112))
+- Memory: a paint stroke keeps only the pixels it changed in the undo history instead of a copy of the whole layer, tens of kilobytes instead of megabytes per stroke ([issue 109](https://github.com/SethRobinson/Patchy/issues/109))
+- Image > Rotate 180, Flip Horizontal and Flip Vertical, and Layer > Arrange > Rotate Layer Right, Left and 180 ([issue 139](https://github.com/SethRobinson/Patchy/issues/139))
+- Selection: marquee drags and handles stop at the image edge ([issue 143](https://github.com/SethRobinson/Patchy/issues/143)), the size readout is a pill beside the pointer ([issue 142](https://github.com/SethRobinson/Patchy/issues/142)), and copying a whole layer puts its pixels on the clipboard ([issue 116](https://github.com/SethRobinson/Patchy/issues/116))
+- Color picker: a 48-color Basic palette ([issue 141](https://github.com/SethRobinson/Patchy/issues/141)), Add Custom Color ([issue 140](https://github.com/SethRobinson/Patchy/issues/140)), Sat and Val as percentages ([issue 149](https://github.com/SethRobinson/Patchy/issues/149)), and the Eyedropper's Alt+click sets the background color ([issue 150](https://github.com/SethRobinson/Patchy/issues/150))
+- Tool palette: the overflow arrow points where the extra column opens and never covers a tool, the expansion reserves only the columns it uses, and nothing shifts when it opens ([issue 122](https://github.com/SethRobinson/Patchy/issues/122), [issue 126](https://github.com/SethRobinson/Patchy/issues/126), [issue 124](https://github.com/SethRobinson/Patchy/issues/124), [issue 121](https://github.com/SethRobinson/Patchy/issues/121)); a new Magnetic Lasso icon ([issue 130](https://github.com/SethRobinson/Patchy/issues/130)) and icon accents that read on the Light scheme ([issue 129](https://github.com/SethRobinson/Patchy/issues/129))
+- Shape and pen tools: the stroke preview matches the committed stroke ([issue 125](https://github.com/SethRobinson/Patchy/issues/125)), and anchors and handles read at any zoom ([issue 105](https://github.com/SethRobinson/Patchy/issues/105))
+- Interface: Ctrl+K opens Preferences ([issue 144](https://github.com/SethRobinson/Patchy/issues/144)), options-bar labels lose their colons ([issue 127](https://github.com/SethRobinson/Patchy/issues/127)), layer row badges sit centered ([issue 134](https://github.com/SethRobinson/Patchy/issues/134)), the recent-files filter matches names and extensions ([issue 158](https://github.com/SethRobinson/Patchy/issues/158)), plus the swap-colors glyph, Preferences dropdowns and the dock tab line ([issue 115](https://github.com/SethRobinson/Patchy/issues/115), [issue 146](https://github.com/SethRobinson/Patchy/issues/146), [issue 123](https://github.com/SethRobinson/Patchy/issues/123))
+- Linux: the window uses Patchy's own frameless chrome like Windows, with a "system title bar" preference ([issue 145](https://github.com/SethRobinson/Patchy/issues/145)); HEIC opens through the distribution's libheif, AppImage included ([issue 117](https://github.com/SethRobinson/Patchy/issues/117)); on Wayland a maximized window restores correctly ([issue 132](https://github.com/SethRobinson/Patchy/issues/132)) and Pick Screen Color works through the desktop portal ([issue 128](https://github.com/SethRobinson/Patchy/issues/128)); the AppImage keeps the chosen color scheme ([issue 133](https://github.com/SethRobinson/Patchy/issues/133))
+
 ### 1.12 - October 16, 2026
 
 - Tool palette: a compact Photoshop-style color well that sits with Quick Mask in a footer pinned to the bottom of the palette. The footer stays put when a short screen expands the palette to a second column, and the overflow chevron is no longer clipped
@@ -190,19 +202,6 @@ and Affinity import has format-specific limitations. See [current compatibility]
 - Interface: the Scripting Guide has the dialog chrome and a Close button and the About box has an X ([issue 107](https://github.com/SethRobinson/Patchy/issues/107)), the Feather label has the same gap to its field as every other options-bar label ([issue 106](https://github.com/SethRobinson/Patchy/issues/106)), and File Info never wraps the Created, Modified, Application and Format values ([issue 103](https://github.com/SethRobinson/Patchy/issues/103))
 - Linux: short screens keep the bottom panels on-screen, since the right column's panel floors now fit the screen height ([issue 108](https://github.com/SethRobinson/Patchy/issues/108), [issue 110](https://github.com/SethRobinson/Patchy/issues/110)), and on Wayland menus and combo lists open in place at a non-100% interface scale ([issue 100](https://github.com/SethRobinson/Patchy/issues/100))
 - Browser version: the Filter menu shows the G'MIC Filter Library row and explains that its nearly 400 filters need the desktop version
-
-### 1.11 - October 15, 2026
-
-- G'MIC Filter Library: nearly 400 G'MIC filters built in (desktop), with a live preview on the canvas, draggable points for filters that take a position, filters that read or add several layers, and script access ([issue 87](https://github.com/SethRobinson/Patchy/issues/87))
-- CMYK for print: a CMYK working profile, CMYK color picker and Info readouts with a gamut warning, soft proofing with C, M, Y and K plates, CMYK export, and Image > Mode > CMYK Proof. CMYK JPEG and TIFF files open through their profile ([issue 90](https://github.com/SethRobinson/Patchy/issues/90))
-- JPEG XL: open and save .jxl files on every platform
-- AVIF: open and save .avif files on every platform, animated sequences open as layers; no system codec needed ([issue 120](https://github.com/SethRobinson/Patchy/issues/120))
-- Linux: an official AppImage with one-click self-update ([issue 83](https://github.com/SethRobinson/Patchy/issues/83))
-- Filter > Last Filter (Ctrl+Alt+F by default) applies the last filter again with the same settings, G'MIC filters and plug-ins included, to the current layer and selection
-- Background layer: transparency is locked like Photoshop's, the Eraser paints the background color, and Image > Flatten Image was added ([issue 97](https://github.com/SethRobinson/Patchy/issues/97))
-- Interface: the right panel opens at its content width and drags narrower ([issue 96](https://github.com/SethRobinson/Patchy/issues/96)), the options bar stays one row at 1366 px ([issue 91](https://github.com/SethRobinson/Patchy/issues/91)), the tool palette no longer mixes up when expanded ([issue 88](https://github.com/SethRobinson/Patchy/issues/88)), Open Recent is a scrolling list, Preferences can be resized and sets how often to check for updates ([issue 92](https://github.com/SethRobinson/Patchy/issues/92)), and dark stroke swatches are visible in the dark theme ([issue 89](https://github.com/SethRobinson/Patchy/issues/89)). Collapsing the Layers panel collapses its Channels and Paths tabs too, so no empty gap is left ([issue 101](https://github.com/SethRobinson/Patchy/issues/101))
-- Linux: dialog buttons and the toolbar overflow button no longer pick up dark icons from a light desktop theme ([issue 99](https://github.com/SethRobinson/Patchy/issues/99)), and on Wayland the side panels stay docked, since dragging one out could leave the mouse unresponsive ([issue 102](https://github.com/SethRobinson/Patchy/issues/102))
-- macOS: fixed a crash in accessibility tools when the Layers list changes ([issue 95](https://github.com/SethRobinson/Patchy/issues/95))
 
 [Older releases](RELEASE-HISTORY.md)
 

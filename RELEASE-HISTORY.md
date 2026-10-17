@@ -3,6 +3,18 @@
 Older Patchy release notes are collected here. The two most recent releases
 remain in [README.md](README.md#whats-new).
 
+### 1.11 - October 15, 2026
+
+- G'MIC Filter Library: nearly 400 G'MIC filters built in (desktop), with a live preview on the canvas, draggable points for filters that take a position, filters that read or add several layers, and script access ([issue 87](https://github.com/SethRobinson/Patchy/issues/87))
+- CMYK for print: a CMYK working profile, CMYK color picker and Info readouts with a gamut warning, soft proofing with C, M, Y and K plates, CMYK export, and Image > Mode > CMYK Proof. CMYK JPEG and TIFF files open through their profile ([issue 90](https://github.com/SethRobinson/Patchy/issues/90))
+- JPEG XL: open and save .jxl files on every platform
+- Linux: an official AppImage with one-click self-update ([issue 83](https://github.com/SethRobinson/Patchy/issues/83))
+- Filter > Last Filter (Ctrl+Alt+F by default) applies the last filter again with the same settings, G'MIC filters and plug-ins included, to the current layer and selection
+- Background layer: transparency is locked like Photoshop's, the Eraser paints the background color, and Image > Flatten Image was added ([issue 97](https://github.com/SethRobinson/Patchy/issues/97))
+- Interface: the right panel opens at its content width and drags narrower ([issue 96](https://github.com/SethRobinson/Patchy/issues/96)), the options bar stays one row at 1366 px ([issue 91](https://github.com/SethRobinson/Patchy/issues/91)), the tool palette no longer mixes up when expanded ([issue 88](https://github.com/SethRobinson/Patchy/issues/88)), Open Recent is a scrolling list, Preferences can be resized and sets how often to check for updates ([issue 92](https://github.com/SethRobinson/Patchy/issues/92)), and dark stroke swatches are visible in the dark theme ([issue 89](https://github.com/SethRobinson/Patchy/issues/89)). Collapsing the Layers panel collapses its Channels and Paths tabs too, so no empty gap is left ([issue 101](https://github.com/SethRobinson/Patchy/issues/101))
+- Linux: dialog buttons and the toolbar overflow button no longer pick up dark icons from a light desktop theme ([issue 99](https://github.com/SethRobinson/Patchy/issues/99)), and on Wayland the side panels stay docked, since dragging one out could leave the mouse unresponsive ([issue 102](https://github.com/SethRobinson/Patchy/issues/102))
+- macOS: fixed a crash in accessibility tools when the Layers list changes ([issue 95](https://github.com/SethRobinson/Patchy/issues/95))
+
 ### 1.10 - October 13, 2026
 
 - Windows: one-click updates. Starting with the release after this one, the update prompt can download the new version, close Patchy, install it and start it again. It asks about unsaved work first and needs no administrator rights. It checks signatures and SHA-256 checksums, and the manifest hosted here on github can also disable this system and go back to "here's the link, install it yourself" if I notice a problem with it later.
