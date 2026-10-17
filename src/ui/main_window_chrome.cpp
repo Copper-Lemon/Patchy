@@ -1,9 +1,9 @@
 // MainWindow window-chrome implementation, split out of main_window.cpp: the frameless-
-// window machinery (Win32 WM_NCCALCSIZE/WM_NCHITTEST native frame, resize borders and
-// cursors, maximize/restore behavior, geometry persistence). This file deliberately
-// concentrates the Q_OS_WIN-specific window code so a future Linux/macOS port has one
-// place to add platform equivalents; keep new platform-specific window code here.
-// Pure function moves from main_window.cpp; behavior must stay identical.
+// window machinery (Win32 WM_NCCALCSIZE/WM_NCHITTEST native frame, the Qt-neutral
+// startSystemMove/startSystemResize path Linux uses, resize borders and cursors,
+// maximize/restore behavior, geometry persistence). This file deliberately concentrates
+// the platform-specific window code so every port has one place for its equivalents;
+// keep new platform-specific window code here.
 
 #include "ui/main_window.hpp"
 #include "ui/main_window_shared.hpp"
@@ -366,9 +366,14 @@ void apply_windows_pen_feedback_suppression(WId window_id) {
 }  // namespace
 
 bool MainWindow::use_custom_window_chrome() {
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN) || (defined(Q_OS_LINUX) && !defined(Q_OS_WASM))
+  // Windows: the native frame stays behind the custom look (WM_NCCALCSIZE/WM_NCHITTEST
+  // below). Linux: a plain Qt::FramelessWindowHint window on X11 and Wayland, so Qt's
+  // own client-side decoration (the light title bar GNOME gets, docs/wayland.md) never
+  // appears; drag, resize, snap and tiling go through startSystemMove/startSystemResize.
   return true;
 #else
+  // macOS keeps the native frame and global menu bar by design.
   return false;
 #endif
 }
@@ -376,13 +381,21 @@ bool MainWindow::use_custom_window_chrome() {
 bool MainWindow::handle_window_resize_event(QObject* watched, QEvent* event) {
   if (!use_custom_window_chrome()) {
     // Native window frames own their resize borders; the Qt-level edge machinery below
-    // exists only for the Windows frameless window.
+    // exists only for the frameless window.
     return false;
   }
   if (isMaximized() || isFullScreen()) {
     if (!chrome_resizing_) {
       clear_window_resize_cursor();
     }
+    return false;
+  }
+  if (watched == this && event->type() == QEvent::Leave && !chrome_resizing_) {
+    // The override cursor is application-wide: a pointer that leaves through a resize
+    // border (or is taken by the compositor's own resize on Linux) would otherwise keep
+    // the resize arrow over every other Patchy window until it crossed the main window
+    // again.
+    clear_window_resize_cursor();
     return false;
   }
 
@@ -438,6 +451,21 @@ bool MainWindow::handle_window_resize_event(QObject* watched, QEvent* event) {
   if (event->type() != QEvent::MouseButtonPress || mouse_event->button() != Qt::LeftButton ||
       edges == Qt::Edges{}) {
     return false;
+  }
+
+  // The window system resizes better than Qt can: on Wayland a client cannot move its
+  // own top-left edge at all, and on X11 the window manager keeps the resize snapped and
+  // the pointer grabbed. The Qt-level geometry path below stays as the fallback where no
+  // system resize exists (the offscreen test platform, a window manager without
+  // _NET_WM_MOVERESIZE). A real Windows window never arrives here: WM_NCHITTEST answers
+  // HTLEFT and friends and the OS resizes.
+  if (auto* handle = windowHandle(); handle != nullptr && handle->startSystemResize(edges)) {
+    chrome_resizing_ = false;
+    chrome_resize_edges_ = Qt::Edges{};
+    chrome_dragging_ = false;
+    clear_window_resize_cursor();
+    mouse_event->accept();
+    return true;
   }
 
   chrome_resize_edges_ = edges;
@@ -712,9 +740,12 @@ void MainWindow::showEvent(QShowEvent* event) {
   if (!wayland_first_show_clamped_ &&
       QGuiApplication::platformName().startsWith(QLatin1String("wayland"), Qt::CaseInsensitive)) {
     wayland_first_show_clamped_ = true;
-    // Qt's client-side decoration (GNOME) exists only once the window is shown, so the
-    // constructor's clamp could not count it; an oversize window cannot be moved back onto
-    // a Wayland screen, so shrink it now while the compositor still accepts the first size.
+    // Decorations outside the client area are known only once the window is shown (none
+    // for the frameless chrome; Qt's own client-side decoration if a build ever runs with
+    // a native frame), so the constructor's clamp could not count them; an oversize window
+    // cannot be moved back onto a Wayland screen, so shrink it now while the compositor
+    // still accepts the first size. The same turn applies a restored maximized state,
+    // which the compositor drops when asked before the first configure (GitHub issue 132).
     QTimer::singleShot(0, this, [this] {
       if (wayland_maximize_on_first_show_) {
         wayland_maximize_on_first_show_ = false;
@@ -760,8 +791,9 @@ void MainWindow::restore_maximized_under_cursor(QPoint global_cursor) {
 }
 
 void MainWindow::restore_window_from_maximize() {
+#ifdef Q_OS_WIN
   // After an OS snap maximize (a real native zoom), Qt's showNormal() is a plain resize
-  // whose geometry the platform window applies from stale bookkeeping — the window keeps
+  // whose geometry the platform window applies from stale bookkeeping: the window keeps
   // the maximized size (changeEvent strips the leftover WS_MAXIMIZE bit, but Qt reapplies
   // its own geometry after that event, so the fix must happen once showNormal() returns).
   // Capture the remembered normal geometry up front and enforce it afterwards.
@@ -770,6 +802,12 @@ void MainWindow::restore_window_from_maximize() {
   if (restored.isValid() && geometry().size() != restored.size()) {
     setGeometry(restored);
   }
+#else
+  // Linux: the restore is asynchronous (the compositor's configure brings the saved size
+  // back and Qt applies it), so a geometry set here would only race it. Wayland cannot
+  // position a window anyway.
+  showNormal();
+#endif
 }
 
 void MainWindow::resync_native_frame_geometry() {
@@ -930,9 +968,9 @@ bool MainWindow::restore_window_geometry() {
 
 void MainWindow::configure_window_chrome() {
   if (!use_custom_window_chrome()) {
-    // Native frame: the platform draws the title bar and window buttons. Leave the menu
-    // bar fully default too — on macOS QMenuBar's default (nativeMenuBar=true) moves the
-    // menus into the global menu bar.
+    // Native frame (macOS): the platform draws the title bar and window buttons. Leave the
+    // menu bar fully default too: QMenuBar's default (nativeMenuBar=true) moves the menus
+    // into the global menu bar.
     return;
   }
   auto* bar = menuBar();

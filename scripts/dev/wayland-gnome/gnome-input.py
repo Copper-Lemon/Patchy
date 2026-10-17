@@ -1,6 +1,7 @@
 # Drives a headless gnome-shell: pointer through org.gnome.Mutter.RemoteDesktop, captures
 # through org.gnome.Shell.Screenshot (needs --unsafe-mode). Commands on stdin:
 #   move X Y     absolute layout pixels (a big relative jump to the corner, then the offset)
+#   rel DX DY    relative motion only (for drags: move re-anchors at the corner first)
 #   press | release | click
 #   kdown SYM | kup SYM   X keysym number (0x.. accepted); hold modifiers with kdown, release with kup
 #   sleep MS
@@ -42,6 +43,8 @@ for line in sys.stdin:
         x, y = float(parts[1]), float(parts[2])
         rel(-5000, 5000); time.sleep(0.05)  # bottom-left: top-left is the Activities hot corner
         rel(x, y - (SCREEN_H - 1)); cur = [x, y]
+    elif parts[0] == "rel":
+        rel(float(parts[1]), float(parts[2])); cur = [cur[0] + float(parts[1]), cur[1] + float(parts[2])]
     elif parts[0] == "press":
         button(True)
     elif parts[0] == "release":
