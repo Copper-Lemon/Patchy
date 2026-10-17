@@ -38,7 +38,7 @@ Required release handoff steps:
 
    The throttling is mandatory: `-j 20` caps ninja for local Windows builds (remote builds use every core but four) and `scripts\run-throttled.bat` runs the build at below-normal priority. Run tests through it too, batch files as-is. Never use an unthrottled build or a bare `start "" /b /wait /belownormal` (it reports 0 once the program launched; the helper returns the real code). It refuses a `cmake --build` (exit 3) while another build runs here: wait, or use `scripts\remote\remote-build.ps1 -Target windows`; `PATCHY_ALLOW_CONCURRENT_BUILD=1` only when Seth says. Never edit it mid-run (cmd rereads it).
 
-   Run from the repository root in PowerShell or real cmd, never Git Bash: nested quoting can exit 0 without building. Require compile/link lines or `ninja: no work to do`, not just exit 0. Unchanged builds reuse binaries and dates; changed source/build inputs refresh the date, and packagers explicitly refresh it (docs/building.md). The version uses generated `patchy_version.hpp` (`cmake/patchy_version.hpp.in`), included only where used; never make it a target-wide define, which recompiles all of `patchy_ui`.
+   Run from the repository root in PowerShell or real cmd, never Git Bash: nested quoting can exit 0 without building. Require compile/link lines or `ninja: no work to do`, not just exit 0. Iterate with `--target <the test/app you run>`; a full build is five LTCG links (~12 min, docs/building.md). The version uses generated `patchy_version.hpp` (`cmake/patchy_version.hpp.in`), included only where used; never make it a target-wide define, which recompiles all of `patchy_ui`.
 
    Call `scripts\vs-env.bat`, never VsDevCmd.bat directly. See [docs/release-process.md](docs/release-process.md).
 

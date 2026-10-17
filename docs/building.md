@@ -111,6 +111,16 @@ CMakeLists.txt owns the MSVC Release codegen flags (`/Zi /GL` on compiles, `/DEB
 
 ## Incremental development builds
 
+Iterate on the `release` preset by building only the targets you will run:
+`--target patchy_ui_visual_tests`, `--target patchy_core_tests`, or `--target patchy`
+(several `--target` flags combine). A plain `--build --preset release` relinks five
+LTCG executables, and the links, not the compiles, dominate: measured October 2026
+on the dev box, a change touching `main_window.hpp` and `canvas_widget.hpp` compiled
+about 130 files in 90 s, then linked `patchy_ui_visual_tests.exe` in 606 s,
+`patchy_perf_tests.exe` 545 s, `patchy-mcp.exe` 433 s, `patchy_translation_checks.exe`
+199 s and `patchy.exe` 166 s, running in parallel for about 12 minutes. Run the full
+release build once, at handoff (AGENTS.md; Seth, October 18, 2026).
+
 `opt-dev` uses `RelWithDebInfo` in `build/opt-dev`: optimized MSVC code and debug
 symbols without Release's `/GL` and `/LTCG`. It is for the edit/build cycle; the
 `release` preset remains the required handoff and packaging build. Use the same
