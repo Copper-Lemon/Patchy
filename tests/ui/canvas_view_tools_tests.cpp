@@ -751,26 +751,49 @@ void ui_status_bar_zoom_percent_box_edits_zoom() {
 
 // The status zoom box works like an options-bar field (GitHub issue 159): the
 // wheel and Up/Down step the zoom ladder, a sideways drag from the unfocused box
-// scrubs the zoom while a plain click still focuses it for typing, and the 100%
-// and Fit buttons beside it set the view.
+// scrubs the zoom while a plain click still focuses it for typing, the chevron
+// inside it opens the zoom presets (800% down to 12.5%, current one checked), and
+// Fit fits the view.
 void ui_status_bar_zoom_box_wheel_scrub_and_buttons() {
   patchy::ui::MainWindow window;
   show_window(window);
   auto* canvas = require_canvas(window);
   auto* zoom_edit = window.statusBar()->findChild<patchy::ui::ZoomPercentEdit*>(QStringLiteral("statusZoomEdit"));
   auto* controls = window.statusBar()->findChild<QWidget*>(QStringLiteral("statusZoomControls"));
-  auto* actual_pixels = window.statusBar()->findChild<QToolButton*>(QStringLiteral("statusZoomActualPixelsButton"));
   auto* fit = window.statusBar()->findChild<QToolButton*>(QStringLiteral("statusZoomFitButton"));
-  CHECK(zoom_edit != nullptr && controls != nullptr && actual_pixels != nullptr && fit != nullptr);
+  CHECK(zoom_edit != nullptr && controls != nullptr && fit != nullptr);
+  CHECK(window.statusBar()->findChild<QToolButton*>(QStringLiteral("statusZoomActualPixelsButton")) == nullptr);
+  QAction* presets = nullptr;
+  for (auto* action : zoom_edit->actions()) {
+    if (action->objectName() == QStringLiteral("statusZoomPresetsAction")) {
+      presets = action;
+    }
+  }
+  auto* presets_menu = zoom_edit->findChild<QMenu*>(QStringLiteral("statusZoomPresetsMenu"));
+  CHECK(presets != nullptr && presets_menu != nullptr);
 
-  // The buttons sit right of the box and stay visible under a status message.
+  // The chevron sits inside the box, at its right end; Fit follows the box, and
+  // both stay visible under a status message.
   window.statusBar()->showMessage(QStringLiteral("Something informative"));
   QApplication::processEvents();
-  CHECK(actual_pixels->isVisible() && fit->isVisible());
-  CHECK(actual_pixels->text() == QStringLiteral("100%"));
-  CHECK(fit->text() == QStringLiteral("Fit"));
-  CHECK(actual_pixels->mapTo(controls, QPoint()).x() > zoom_edit->geometry().right());
-  CHECK(fit->mapTo(controls, QPoint()).x() > actual_pixels->mapTo(controls, QPoint()).x());
+  CHECK(fit->isVisible() && fit->text() == QStringLiteral("Fit"));
+  QToolButton* chevron = nullptr;
+  for (auto* button : zoom_edit->findChildren<QToolButton*>()) {
+    if (button->isVisible() && button->defaultAction() == presets) {
+      chevron = button;
+    }
+  }
+  CHECK(chevron != nullptr);
+  CHECK(zoom_edit->rect().contains(chevron->geometry()));
+  CHECK(chevron->geometry().center().x() > zoom_edit->width() / 2);
+  CHECK(fit->mapTo(controls, QPoint()).x() > zoom_edit->geometry().right());
+  QStringList preset_texts;
+  for (auto* action : presets_menu->actions()) {
+    preset_texts << action->text();
+  }
+  CHECK(preset_texts == (QStringList{QStringLiteral("800%"), QStringLiteral("400%"), QStringLiteral("200%"),
+                                     QStringLiteral("100%"), QStringLiteral("50%"), QStringLiteral("25%"),
+                                     QStringLiteral("12.5%")}));
   CHECK(controls->height() <= window.statusBar()->height());
 
   // Wheel: one notch is one ladder rung each way.
@@ -822,17 +845,36 @@ void ui_status_bar_zoom_box_wheel_scrub_and_buttons() {
   send_key(*zoom_edit, Qt::Key_Escape);
   QApplication::processEvents();
 
-  // Fit matches View > Fit on Screen; 100% returns to actual pixels.
+  // Fit matches View > Fit on Screen; a preset sets that zoom, and the menu
+  // checks the preset the view is at.
   canvas->fit_to_view();
   const double fit_zoom = canvas->view_zoom();
   canvas->set_view_zoom_centered(3.0);
   fit->click();
   QApplication::processEvents();
   CHECK(std::abs(canvas->view_zoom() - fit_zoom) < 1e-6);
-  actual_pixels->click();
+  presets_menu->actions()[4]->trigger();  // 50%
+  QApplication::processEvents();
+  CHECK(std::abs(canvas->view_zoom() - 0.5) < 1e-6);
+  presets_menu->actions()[6]->trigger();  // 12.5%
+  QApplication::processEvents();
+  CHECK(std::abs(canvas->view_zoom() - 0.125) < 1e-6);
+  presets_menu->actions()[3]->trigger();  // 100%
   QApplication::processEvents();
   CHECK(std::abs(canvas->view_zoom() - 1.0) < 1e-6);
+  // The chevron opens the list above the box, the 100% row checked.
+  presets->trigger();
+  QApplication::processEvents();
+  CHECK(presets_menu->isVisible());
+  CHECK(presets_menu->geometry().bottom() <= zoom_edit->mapToGlobal(QPoint(0, 0)).y());
+  CHECK(presets_menu->actions()[3]->isChecked());
+  CHECK(!presets_menu->actions()[4]->isChecked());
+  save_widget_artifact("ui_status_zoom_presets_menu_open", *presets_menu);
+  presets_menu->close();
   save_widget_artifact("ui_status_zoom_controls", *window.statusBar());
+  presets_menu->ensurePolished();
+  presets_menu->adjustSize();
+  save_widget_artifact("ui_status_zoom_presets_menu", *presets_menu);
 
   // With no document open the whole group is disabled.
   patchy::ui::MainWindow empty;

@@ -9,6 +9,10 @@ class QPainter;
 
 namespace patchy::ui {
 
+// A QAction property marking view-only navigation (the status-bar zoom presets)
+// that the MCP input guard lets through while automation runs.
+inline constexpr char kViewNavigationActionProperty[] = "patchy.viewNavigation";
+
 // Photoshop-style zoom percentage box for the status bar: shows the canvas zoom
 // as e.g. "300%" and lets the user click it, type a new percentage, and press
 // Enter to apply it. Escape (or invalid input on focus loss) reverts to the

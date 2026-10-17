@@ -21106,6 +21106,10 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
         <source>Remove from Recent Files</source>
         <translation>최근 파일에서 제거</translation>
     </message>
+    <message>
+        <source>Zoom presets</source>
+        <translation>확대/축소 사전 설정</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

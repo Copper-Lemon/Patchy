@@ -21232,6 +21232,10 @@ Patchy может скачать обновление, заменить этот
         <source>Remove from Recent Files</source>
         <translation>Удалить из последних файлов</translation>
     </message>
+    <message>
+        <source>Zoom presets</source>
+        <translation>Предустановки масштаба</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

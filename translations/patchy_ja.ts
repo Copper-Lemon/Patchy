@@ -21106,6 +21106,10 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <source>Remove from Recent Files</source>
         <translation>最近使ったファイルから削除</translation>
     </message>
+    <message>
+        <source>Zoom presets</source>
+        <translation>ズームのプリセット</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

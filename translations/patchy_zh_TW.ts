@@ -21106,6 +21106,10 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
         <source>Remove from Recent Files</source>
         <translation>從最近使用的檔案中移除</translation>
     </message>
+    <message>
+        <source>Zoom presets</source>
+        <translation>縮放預設</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

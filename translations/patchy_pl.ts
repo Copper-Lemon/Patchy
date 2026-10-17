@@ -21232,6 +21232,10 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
         <source>Remove from Recent Files</source>
         <translation>Usuń z ostatnich plików</translation>
     </message>
+    <message>
+        <source>Zoom presets</source>
+        <translation>Ustawienia powiększenia</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

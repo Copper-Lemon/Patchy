@@ -2,7 +2,7 @@
 
 Read this before changing the Zoom tool, the pen ZoomCanvas drag, or wheel zoom. The tool palette and the Zoom button's double-click live in [tool-palette.md](tool-palette.md); the status-bar zoom box is `ZoomPercentEdit` (src/ui/zoom_status_bar.hpp).
 
-Status-bar zoom controls (GitHub issue 159): `statusZoomControls` groups the box with `statusZoomActualPixelsButton` (100%) and `statusZoomFitButton` (Fit), positioned by `ZoomStatusBar` as one left widget and disabled with no document. Over the box the wheel and Up/Down step the zoom ladder (`next_zoom_ladder_step`); a horizontal drag that starts on the unfocused box scrubs (`kScrubFactorPerPixel` per pixel, right = in, SizeHor cursor), while a click without travel focuses it for typing (IBeam). The MCP input guard lets the group through as navigation. Test: `ui_status_bar_zoom_box_wheel_scrub_and_buttons`.
+Status-bar zoom controls (GitHub issue 159): `statusZoomControls` groups the box, whose trailing chevron (`statusZoomPresetsAction`, a QLineEdit trailing action like an options-bar field's) opens `statusZoomPresetsMenu` upward (800% down to 12.5%, the current zoom checked, actions marked `kViewNavigationActionProperty`), with `statusZoomFitButton` (Fit), positioned by `ZoomStatusBar` as one left widget and disabled with no document. Over the box the wheel and Up/Down step the zoom ladder (`next_zoom_ladder_step`); a horizontal drag that starts on the unfocused box scrubs (`kScrubFactorPerPixel` per pixel, right = in, SizeHor cursor), while a click without travel focuses it for typing (IBeam). The MCP input guard lets the group through as navigation. Test: `ui_status_bar_zoom_box_wheel_scrub_and_buttons`.
 
 ## Zoom model
 

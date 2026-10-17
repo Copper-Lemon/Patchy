@@ -21169,6 +21169,10 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
         <source>Remove from Recent Files</source>
         <translation>Aus zuletzt verwendeten Dateien entfernen</translation>
     </message>
+    <message>
+        <source>Zoom presets</source>
+        <translation>Zoomvorgaben</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

@@ -146,6 +146,7 @@ bool McpActivity::action_allowed(const QAction* action) const {
   }
   if (id == QStringLiteral("file.quit")) return false;
   if (window_.script_engine_host().manual_edit_pause()) return true;
+  if (action->property(kViewNavigationActionProperty).toBool()) return true;
   if (action->menuRole() == QAction::AboutRole || action->menuRole() == QAction::AboutQtRole ||
       action->menuRole() == QAction::PreferencesRole || id == QStringLiteral("file.preferences") ||
       id.startsWith(QStringLiteral("help."))) return true;
@@ -253,7 +254,8 @@ bool McpActivity::eventFilter(QObject* watched, QEvent* event) {
   // automation stroke may already own their painting/selection gesture state.
   if (qobject_cast<ZoomPercentEdit*>(widget)) { return false; }
   if (widget->parentWidget() != nullptr &&
-      widget->parentWidget()->objectName() == QStringLiteral("statusZoomControls")) { return false; }
+      (widget->parentWidget()->objectName() == QStringLiteral("statusZoomControls") ||
+       qobject_cast<ZoomPercentEdit*>(widget->parentWidget()) != nullptr)) { return false; }
   if (widget->objectName() == QStringLiteral("layerNameFilterEdit") ||
       widget->objectName() == QStringLiteral("layerFolderDisclosureButton") ||
       widget->property("dockCollapseButton").toBool() ||

@@ -35,7 +35,7 @@ constexpr int kErrorFlashFrameMs = 33;     // ~30 fps, only while the flash runs
 
 ZoomPercentEdit::ZoomPercentEdit(QWidget* parent) : QLineEdit(parent) {
   setObjectName(QStringLiteral("statusZoomEdit"));
-  setFixedSize(64, 18);
+  setFixedSize(80, 18);  // room for "12800%" beside the trailing presets chevron
   setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
   setFocusPolicy(Qt::ClickFocus);
   static const QRegularExpression zoom_pattern(QStringLiteral("^\\s*\\d{1,6}([.,]\\d{0,2})?\\s*%?\\s*$"));
