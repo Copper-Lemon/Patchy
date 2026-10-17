@@ -119,13 +119,12 @@ Two pipelines:
   would block a script on; `shot_readme_long_shadow` opens the Layer Style dialog
   beside generated editable text with a live continuous shadow.
 
-One scene is invoked separately: `scripts/dev/readme-shots/plugin-dialog.js` produces
+`scripts/dev/readme-shots/plugin-dialog.js` (driver scene `plugin_dialog`) produces
 `docs/images/screenshots/plugin_dialog.png`, the dialog of a third-party 8bf plug-in
 (Mehdi's Absolute Color from `local-test-fixtures/photoshop-plugins/mehdi`) captured through
-`layer.applyPlugin(id, {captureDialog})` on Windows. It is not in the driver's table because
-the plug-in is not committed; invoke the script explicitly (see its header) when the shot
-needs refreshing. Its window-targeted capture and automatic dialog answers are authorized
-Patchy automation, not desktop control.
+`layer.applyPlugin(id, {captureDialog})` on Windows. The plug-in is not committed, so the
+driver skips the scene with a `[SKIP]` line where that folder is missing; its window-targeted
+capture and automatic dialog answers are authorized Patchy automation, not desktop control.
 
 Both pipelines round the corners of the window they captured, because DWM rounds Patchy's
 frameless windows in the compositor and a `QWidget::grab()` is therefore square. The offscreen

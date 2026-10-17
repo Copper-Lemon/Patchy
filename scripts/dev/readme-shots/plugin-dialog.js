@@ -3,9 +3,10 @@
 // @description dialog for docs/images/screenshots/plugin_dialog.png. Dev tooling, never staged.
 // @cli --script-arg out=plugin_dialog.png --script-arg plugins=local-test-fixtures/photoshop-plugins/mehdi --script-arg photo=test-fixtures/readme/san_francisco_cityscape_cc0.jpg --script-arg name=Absolute Color
 //
-// Windows only, and manual: the plug-in (Mehdi's Absolute Color, see agents_local.md)
-// is not committed, so this scene is not in scripts\make-readme-screenshots.ps1's table.
-// Run it from a real (not offscreen) session, for example:
+// Windows only. The plug-in (Mehdi's Absolute Color, see agents_local.md) is not
+// committed: scripts\make-readme-screenshots.ps1 lists this scene as plugin_dialog
+// and skips it when local-test-fixtures\photoshop-plugins\mehdi is missing. To run
+// it by hand from a real (not offscreen) session:
 //
 //   set PATCHY_NO_SINGLE_INSTANCE=1
 //   build\release\patchy.exe --run-script scripts\dev\readme-shots\plugin-dialog.js ^

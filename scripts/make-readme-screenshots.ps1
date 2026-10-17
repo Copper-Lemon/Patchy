@@ -21,8 +21,10 @@
 #
 # Some scenes need local fixtures (not committed): akiko_cycling_okinawa.jpg,
 # ipad_main_v04.psd, mow_master.psd in local-test-fixtures/psd/, the Camera Raw
-# scene's local-test-fixtures/raw/fujifilm_xt1.raf (CC0, raw.pixls.us). Scenes whose
-# fixture is missing are skipped with a [SKIP] line.
+# scene's local-test-fixtures/raw/fujifilm_xt1.raf (CC0, raw.pixls.us), and the
+# plug-in dialog scene's local-test-fixtures/photoshop-plugins/mehdi (Mehdi's
+# Absolute Color .8bf files; see agents_local.md). Scenes whose fixture is missing
+# are skipped with a [SKIP] line.
 param(
     [switch]$SkipBuild,
     [ValidatePattern('^[a-z0-9_]+$')][string]$Scene = 'shot_readme',
@@ -93,6 +95,16 @@ $jsScenes = [ordered]@{
     'object_select' = @{
         Script = Join-Path $repo 'scripts\dev\readme-shots\object-select.js'
         Args = @("photo=$(Join-Path $repo 'test-fixtures\readme\havana_vintage_car_cc0.jpg')")
+    }
+    'plugin_dialog' = @{
+        # A third-party 8bf plug-in's own settings dialog, captured through
+        # layer.applyPlugin's captureDialog option and answered by the scene.
+        Script = Join-Path $repo 'scripts\dev\readme-shots\plugin-dialog.js'
+        Args = @(
+            "photo=$(Join-Path $repo 'test-fixtures\readme\san_francisco_cityscape_cc0.jpg')",
+            "plugins=$(Join-Path $repo 'local-test-fixtures\photoshop-plugins\mehdi')"
+        )
+        Fixture = Join-Path $repo 'local-test-fixtures\photoshop-plugins\mehdi'
     }
     'plugin_kpt5' = @{
         Script = Join-Path $repo 'scripts\dev\readme-shots\plugin-kpt5.js'
