@@ -21126,6 +21126,10 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
         <source>A click sets the background color; %ALT%+click sets the foreground</source>
         <translation>单击设置背景色；%ALT%+单击设置前景色</translation>
     </message>
+    <message>
+        <source>Ro&amp;tate &amp;&amp; Flip</source>
+        <translation>旋转和翻转(&amp;T)</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

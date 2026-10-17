@@ -21252,6 +21252,10 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
         <source>A click sets the background color; %ALT%+click sets the foreground</source>
         <translation>Kliknięcie ustawia kolor tła; %ALT%+kliknięcie ustawia pierwszy plan</translation>
     </message>
+    <message>
+        <source>Ro&amp;tate &amp;&amp; Flip</source>
+        <translation>Obr&amp;ót i odbicie</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

@@ -21189,6 +21189,10 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
         <source>A click sets the background color; %ALT%+click sets the foreground</source>
         <translation>Un clic define el color de fondo; %ALT%+clic define el frontal</translation>
     </message>
+    <message>
+        <source>Ro&amp;tate &amp;&amp; Flip</source>
+        <translation>Ro&amp;tar y voltear</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

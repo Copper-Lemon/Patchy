@@ -21252,6 +21252,10 @@ Patchy может скачать обновление, заменить этот
         <source>A click sets the background color; %ALT%+click sets the foreground</source>
         <translation>Щелчок задаёт фоновый цвет; %ALT%+щелчок задаёт основной</translation>
     </message>
+    <message>
+        <source>Ro&amp;tate &amp;&amp; Flip</source>
+        <translation>Пово&amp;рот и отражение</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

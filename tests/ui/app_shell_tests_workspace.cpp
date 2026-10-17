@@ -971,8 +971,36 @@ void ui_main_window_renders_color_controls() {
   auto* layer_arrange_menu = window.findChild<QMenu*>(QStringLiteral("layerArrangeMenu"));
   CHECK(layer_arrange_menu != nullptr);
   CHECK(layer_arrange_menu->actions().contains(require_action_by_text(window, QStringLiteral("Move Layer Up"))));
-  CHECK(layer_arrange_menu->actions().contains(
-      require_action_by_text(window, QStringLiteral("Flip Layer Horizontal"))));
+  // Image > Rotate & Flip and Layer > Rotate & Flip hold the turns and flips; Arrange keeps
+  // only the stacking order and Align / Distribute.
+  auto* layer_rotate_flip_menu = window.findChild<QMenu*>(QStringLiteral("layerRotateFlipMenu"));
+  CHECK(layer_rotate_flip_menu != nullptr);
+  CHECK(layer_menu->actions().contains(layer_rotate_flip_menu->menuAction()));
+  for (const char* name : {"layerRotateClockwiseAction", "layerRotateCounterclockwiseAction", "layerRotate180Action"}) {
+    CHECK(layer_rotate_flip_menu->actions().contains(require_action(window, name)));
+    CHECK(!layer_arrange_menu->actions().contains(require_action(window, name)));
+  }
+  for (const char* text : {"Flip Layer Horizontal", "Flip Layer Vertical"}) {
+    CHECK(layer_rotate_flip_menu->actions().contains(require_action_by_text(window, QLatin1String(text))));
+    CHECK(!layer_arrange_menu->actions().contains(require_action_by_text(window, QLatin1String(text))));
+  }
+  auto* image_menu = window.findChild<QMenu*>(QStringLiteral("imageMenu"));
+  auto* image_rotate_flip_menu = window.findChild<QMenu*>(QStringLiteral("imageRotateFlipMenu"));
+  CHECK(image_menu != nullptr && image_rotate_flip_menu != nullptr);
+  CHECK(image_menu->actions().contains(image_rotate_flip_menu->menuAction()));
+  for (const char* name : {"imageRotateClockwiseAction", "imageRotateCounterclockwiseAction", "imageRotate180Action",
+                           "imageRotateArbitraryAction", "imageFlipHorizontalAction", "imageFlipVerticalAction"}) {
+    CHECK(image_rotate_flip_menu->actions().contains(require_action(window, name)));
+    CHECK(!image_menu->actions().contains(require_action(window, name)));
+  }
+  CHECK(image_menu->actions().contains(require_action(window, "imageShiftSeamsAction")));
+  // Captures for review: test-artifacts/menu_imageMenu.png and the three others.
+  for (auto* menu : {image_menu, image_rotate_flip_menu, layer_menu, layer_rotate_flip_menu}) {
+    menu->popup(window.mapToGlobal(QPoint(40, 40)));
+    QApplication::processEvents();
+    save_widget_artifact("menu_" + menu->objectName().toStdString(), *menu);
+    menu->hide();
+  }
   auto* feather_spin = window.findChild<QSpinBox*>(QStringLiteral("selectionFeatherSpin"));
   CHECK(feather_spin != nullptr);
   // Photoshop's 0..1000 px selection Feather.

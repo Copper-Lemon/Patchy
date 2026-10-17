@@ -21126,6 +21126,10 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <source>A click sets the background color; %ALT%+click sets the foreground</source>
         <translation>クリックで背景色を設定します。%ALT%+クリックで描画色を設定します</translation>
     </message>
+    <message>
+        <source>Ro&amp;tate &amp;&amp; Flip</source>
+        <translation>回転と反転(&amp;T)</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

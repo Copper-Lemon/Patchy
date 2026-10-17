@@ -21189,6 +21189,10 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
         <source>A click sets the background color; %ALT%+click sets the foreground</source>
         <translation>Um clique define a cor de plano de fundo; %ALT%+clique define a de primeiro plano</translation>
     </message>
+    <message>
+        <source>Ro&amp;tate &amp;&amp; Flip</source>
+        <translation>Gi&amp;rar e inverter</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

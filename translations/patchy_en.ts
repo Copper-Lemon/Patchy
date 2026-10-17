@@ -21116,6 +21116,10 @@ Patchy can download the update, replace this AppImage, and start again. You will
         <source>A click sets the background color; %ALT%+click sets the foreground</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Ro&amp;tate &amp;&amp; Flip</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
