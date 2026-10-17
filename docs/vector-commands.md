@@ -17,13 +17,14 @@ vanished on a light pasteboard). The accent is a saturated blue (`path_overlay_a
 255), every glyph is three-tone, and lines sit on a translucent dark halo: handle lines
 (`draw_handle_line`: 3.5 px black at 47 percent under a 1.6 px accent line) and, since a second
 pass found the bare 1.2 px curve still lost on a busy photo, every path outline and the Pen's
-preview segment (`draw_path_outline`: 4 px halo under a 2 px accent). Anchors are 10 px
+preview segment (`draw_path_outline`: 4 px halo under a 2 px accent). Anchors are 8 px
 squares with a dark 1 px edge: white with an accent inner ring when unselected (Photoshop's
-hollow anchor), accent with a white inner ring when selected. Handle knobs are 12 px white
-discs with the dark edge and an accent dot, and grab from 9 px (`kHandleHitRadiusPx`; a press
+hollow anchor), accent with a white inner ring when selected. Handle knobs are 8 px white
+discs with the dark edge and an accent dot (10 and 12 px glyphs read as too big beside
+Photoshop's), and grab from 9 px (`kHandleHitRadiusPx`; a press
 nearer the anchor stays the anchor's; `ui_path_handle_knobs_read_and_grab`). `kGlyphReach` (8 px) is how far a glyph reaches
 past its point; every repaint region around path points pads by it
-(`ui_path_overlay_outline_has_halo_and_ten_pixel_anchors`). The tests'
+(`ui_path_overlay_outline_has_halo`). The tests'
 `accent_overlay_near` probes 3 px around a point for the accent, which the inner ring and the
 knob dot satisfy.
 

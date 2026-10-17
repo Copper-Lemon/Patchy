@@ -420,13 +420,14 @@ bool CanvasWidget::handle_pen_key(QKeyEvent* event) {
 // a dark 1 px edge, a white band, and the accent (a saturated blue rather than the
 // old pale one); handle lines ride on a translucent dark halo. A second pass
 // (October 2026) found the curve itself, a bare 1.2 px line, still lost on a busy
-// photo at 100%: the outline now rides the same halo at 2 px, and the glyphs grew
-// to 10 px (anchors) and 12 px (handle knobs).
+// photo at 100%: the outline now rides the same halo at 2 px. Glyphs stay at
+// Photoshop's scale (8 px): 10 and 12 px read as too big beside it (Seth,
+// October 2026); knobs are easier to hit through kHandleHitRadiusPx instead.
 namespace {
-constexpr double kAnchorHalf = 5.0;  // 10 px square
-constexpr double kKnobRadius = 6.0;  // 12 px round knob, a size up from anchors
-// Widget pixels a glyph can reach past its point (half size, edge and antialiasing);
-// repaint regions around path points pad by this much.
+constexpr double kAnchorHalf = 4.0;  // 8 px square
+constexpr double kKnobRadius = 4.0;  // 8 px round knob
+// Widget pixels a glyph can reach past its point (half size, edge, antialiasing and
+// the line halo); repaint regions around path points pad by this much.
 constexpr double kGlyphReach = 8.0;
 constexpr double kOutlineWidth = 2.0;
 constexpr double kOutlineHaloWidth = 4.0;
@@ -458,7 +459,7 @@ void draw_knob_glyph(QPainter& painter, QPointF center, const QColor& accent) {
   painter.drawEllipse(center, kKnobRadius, kKnobRadius);
   painter.setPen(Qt::NoPen);
   painter.setBrush(accent);
-  painter.drawEllipse(center, kKnobRadius - 2.25, kKnobRadius - 2.25);
+  painter.drawEllipse(center, kKnobRadius - 1.75, kKnobRadius - 1.75);
 }
 
 // The direction line from an anchor to its handle knob: a 1.6 px accent line on a
