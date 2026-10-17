@@ -21106,10 +21106,6 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
         <translation>Usar la barra de título del sistema</translation>
     </message>
     <message>
-        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
-        <translation>Muestra la barra de título y el marco de ventana del escritorio en lugar de los controles de ventana de Patchy en la barra de menús. Se aplica la próxima vez que se inicie Patchy.</translation>
-    </message>
-    <message>
         <source>System Title Bar</source>
         <translation>Barra de título del sistema</translation>
     </message>
@@ -21192,6 +21188,10 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
     <message>
         <source>Ro&amp;tate &amp;&amp; Flip</source>
         <translation>Ro&amp;tar y voltear</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>Muestra la barra de título y el marco de ventana del escritorio en lugar de los controles de ventana de Patchy en la barra de menús. Activado de forma predeterminada cuando el escritorio muestra los menús de las aplicaciones en una barra de menús global. Se aplica la próxima vez que se inicie Patchy.</translation>
     </message>
 </context>
 <context>

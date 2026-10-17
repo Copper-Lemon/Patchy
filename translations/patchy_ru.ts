@@ -21169,10 +21169,6 @@ Patchy может скачать обновление, заменить этот
         <translation>Использовать системный заголовок окна</translation>
     </message>
     <message>
-        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
-        <translation>Показывает заголовок и рамку окна рабочего стола вместо кнопок окна Patchy в строке меню. Вступает в силу при следующем запуске Patchy.</translation>
-    </message>
-    <message>
         <source>System Title Bar</source>
         <translation>Системный заголовок окна</translation>
     </message>
@@ -21255,6 +21251,10 @@ Patchy может скачать обновление, заменить этот
     <message>
         <source>Ro&amp;tate &amp;&amp; Flip</source>
         <translation>Пово&amp;рот и отражение</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>Показывает заголовок и рамку окна рабочего стола вместо кнопок окна Patchy в строке меню. Включено по умолчанию, если рабочий стол показывает меню приложений в глобальной строке меню. Вступает в силу при следующем запуске Patchy.</translation>
     </message>
 </context>
 <context>

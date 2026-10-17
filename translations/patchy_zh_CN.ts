@@ -21043,10 +21043,6 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
         <translation>使用系统标题栏</translation>
     </message>
     <message>
-        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
-        <translation>显示桌面自身的标题栏和窗口边框，而不是菜单栏中 Patchy 的窗口控制按钮。下次启动 Patchy 时生效。</translation>
-    </message>
-    <message>
         <source>System Title Bar</source>
         <translation>系统标题栏</translation>
     </message>
@@ -21129,6 +21125,10 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
     <message>
         <source>Ro&amp;tate &amp;&amp; Flip</source>
         <translation>旋转和翻转(&amp;T)</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>显示桌面自身的标题栏和窗口边框，而不是菜单栏中 Patchy 的窗口控制按钮。桌面在全局菜单栏中显示应用程序菜单时默认开启。下次启动 Patchy 时生效。</translation>
     </message>
 </context>
 <context>

@@ -685,13 +685,16 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
 #if defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
   // Linux only: the desktop's own title bar and frame instead of the frameless chrome
   // (GitHub issue 145; docs/wayland.md). Read at startup, so like the interface scale it
-  // applies on the next launch and the accept branch shows the restart notice.
+  // applies on the next launch and the accept branch shows the restart notice. It shows
+  // the setting in effect: until the user picks, that is the desktop default (on with a
+  // global menu bar, GitHub issue 161), and the key is written only when they change it.
   auto* system_title_bar_check = new QCheckBox(tr("Use the system title bar"), application_group);
   system_title_bar_check->setObjectName(QStringLiteral("preferencesSystemTitleBarCheck"));
   system_title_bar_check->setToolTip(
       tr("Shows the desktop's own title bar and window frame instead of Patchy's window "
-         "controls in the menu bar. Takes effect the next time Patchy starts."));
-  const bool entry_system_title_bar = stored_system_title_bar();
+         "controls in the menu bar. On by default where the desktop shows application "
+         "menus in a global menu bar. Takes effect the next time Patchy starts."));
+  const bool entry_system_title_bar = system_title_bar_effective();
   system_title_bar_check->setChecked(entry_system_title_bar);
   application_form->addRow(system_title_bar_check);
 #endif

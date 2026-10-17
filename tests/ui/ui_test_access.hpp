@@ -375,6 +375,9 @@ public:
   // Makes the next use_custom_window_chrome() re-read the Linux "Use the system title
   // bar" preference (the app reads it once per process).
   static void reset_window_chrome_gate_cache() { MainWindow::reset_window_chrome_gate_cache(); }
+  static void set_global_menu_bar_probe(std::optional<bool> global) {
+    MainWindow::set_global_menu_bar_probe_for_testing(global);
+  }
 
   // Sessions in creation order (the multi-page PDF open adds one per page).
   static Document& session_document(MainWindow& window, std::size_t index) {

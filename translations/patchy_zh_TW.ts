@@ -21043,10 +21043,6 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
         <translation>使用系統標題列</translation>
     </message>
     <message>
-        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
-        <translation>顯示桌面本身的標題列和視窗框架，而不是功能表列中 Patchy 的視窗控制按鈕。下次啟動 Patchy 時生效。</translation>
-    </message>
-    <message>
         <source>System Title Bar</source>
         <translation>系統標題列</translation>
     </message>
@@ -21129,6 +21125,10 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
     <message>
         <source>Ro&amp;tate &amp;&amp; Flip</source>
         <translation>旋轉與翻轉(&amp;T)</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>顯示桌面本身的標題列和視窗框架，而不是功能表列中 Patchy 的視窗控制按鈕。桌面在全域功能表列中顯示應用程式功能表時預設開啟。下次啟動 Patchy 時生效。</translation>
     </message>
 </context>
 <context>

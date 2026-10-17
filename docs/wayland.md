@@ -53,11 +53,28 @@ the window is built, so a change applies on the next launch and the accept branc
 usual restart notice (`preferencesSystemTitleBarMessageBox`). With it on, Linux behaves as
 it did before the frameless chrome: Qt's client-side decoration on GNOME Wayland, the
 server-side title bar on X11 and KDE, native move and resize, no badge or controls in the
-menu bar, the blank menu-bar drag still a `startSystemMove`. The key is stored but inert on
-Windows and macOS. `ui_system_title_bar_preference_disables_custom_chrome`,
-`ui_system_title_bar_preference_defaults_off` and
-`ui_preferences_system_title_bar_checkbox_persists_key` cover it (the gate cache resets
-through `MainWindowTestAccess::reset_window_chrome_gate_cache`).
+menu bar, the blank menu-bar drag still a `startSystemMove`, and the menus in a global menu
+bar where the desktop has one. The key is stored but inert on Windows and macOS.
+
+**Global menu desktops** (GitHub issue 161): the frameless chrome calls
+`setNativeMenuBar(false)`, which keeps the menus in the window even where KDE's Global
+Menu, elementary or a Unity-style panel would take them. So until the user writes the key
+(`stored_system_title_bar_choice()` is nullopt), the default is the system title bar
+exactly where `MainWindow::desktop_has_global_menu_bar()` is true. That probe builds a
+throwaway `QMenuBar` before the window and reads `isNativeMenuBar()`: Qt creates a
+platform menu bar only when its platform theme would export the menus (the generic theme
+checks for `com.canonical.AppMenu.Registrar` on the session bus, the KDE theme its own
+way), so Patchy decides the same thing Qt does. Offscreen it is false. The Preferences
+checkbox shows the effective state (`system_title_bar_effective()`) and writes the key only
+when the user changes it, so an untouched install keeps following the desktop.
+
+`ui_system_title_bar_preference_disables_custom_chrome`,
+`ui_system_title_bar_preference_defaults_off`,
+`ui_system_title_bar_follows_global_menu_bar_until_set`,
+`ui_preferences_system_title_bar_checkbox_persists_key` and
+`ui_preferences_system_title_bar_checkbox_shows_desktop_default` cover it (the gate cache
+resets through `MainWindowTestAccess::reset_window_chrome_gate_cache`, and
+`set_global_menu_bar_probe` stands in for the desktop).
 
 The maximize-after-first-show rule below (issue 132) is unchanged in both modes: a restored
 maximized state is still requested from `showEvent`'s first-show turn, and

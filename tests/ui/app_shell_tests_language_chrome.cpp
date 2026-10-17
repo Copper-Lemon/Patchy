@@ -1816,6 +1816,9 @@ void ui_system_title_bar_preference_defaults_off() {
       settings.sync();
     }
     CHECK(!patchy::ui::stored_system_title_bar());
+    CHECK(!patchy::ui::stored_system_title_bar_choice().has_value());
+    // A desktop without a global menu bar (offscreen reports none either).
+    patchy::ui::MainWindowTestAccess::set_global_menu_bar_probe(false);
     patchy::ui::MainWindowTestAccess::reset_window_chrome_gate_cache();
 #if defined(Q_OS_WIN) || (defined(Q_OS_LINUX) && !defined(Q_OS_WASM))
     CHECK(patchy::ui::MainWindow::use_custom_window_chrome());
@@ -1825,6 +1828,96 @@ void ui_system_title_bar_preference_defaults_off() {
     CHECK(!window_has_custom_chrome());
 #endif
   }
+  patchy::ui::MainWindowTestAccess::set_global_menu_bar_probe(std::nullopt);
+  patchy::ui::MainWindowTestAccess::reset_window_chrome_gate_cache();
+}
+
+// GitHub issue 161: until the user sets the preference, Linux follows the desktop. Where a
+// global menu bar takes the menus (KDE's Global Menu, elementary), the frameless chrome
+// would keep them in the window, so the system title bar is the default there; an
+// explicit choice still wins either way.
+void ui_system_title_bar_follows_global_menu_bar_until_set() {
+  {
+    SettingsValueRestorer restore_key(QStringLiteral("window/systemTitleBar"));
+    {
+      auto settings = patchy::ui::app_settings();
+      settings.remove(QStringLiteral("window/systemTitleBar"));
+      settings.sync();
+    }
+    patchy::ui::MainWindowTestAccess::set_global_menu_bar_probe(true);
+    patchy::ui::MainWindowTestAccess::reset_window_chrome_gate_cache();
+    CHECK(patchy::ui::MainWindow::system_title_bar_effective() == kSystemTitleBarPreferenceApplies);
+#if defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
+    CHECK(patchy::ui::MainWindow::desktop_has_global_menu_bar());
+    CHECK(!patchy::ui::MainWindow::use_custom_window_chrome());
+    CHECK(!window_has_custom_chrome());
+#elif defined(Q_OS_WIN)
+    CHECK(patchy::ui::MainWindow::use_custom_window_chrome());
+#endif
+    // Nothing was written: the default keeps following the desktop.
+    CHECK(!patchy::ui::stored_system_title_bar_choice().has_value());
+
+    // The user turned it off on that desktop: their choice wins.
+    patchy::ui::set_stored_system_title_bar(false);
+    CHECK(patchy::ui::stored_system_title_bar_choice() == std::optional<bool>(false));
+    patchy::ui::MainWindowTestAccess::reset_window_chrome_gate_cache();
+    CHECK(!patchy::ui::MainWindow::system_title_bar_effective());
+#if defined(Q_OS_WIN) || (defined(Q_OS_LINUX) && !defined(Q_OS_WASM))
+    CHECK(patchy::ui::MainWindow::use_custom_window_chrome());
+#endif
+  }
+  patchy::ui::MainWindowTestAccess::set_global_menu_bar_probe(std::nullopt);
+  patchy::ui::MainWindowTestAccess::reset_window_chrome_gate_cache();
+}
+
+// Preferences shows the setting in effect: on a global-menu desktop with the key unset the
+// box starts checked, accepting it unchanged writes nothing, and unchecking stores false.
+void ui_preferences_system_title_bar_checkbox_shows_desktop_default() {
+  SettingsValueRestorer restore_key(QStringLiteral("window/systemTitleBar"));
+  {
+    auto settings = patchy::ui::app_settings();
+    settings.remove(QStringLiteral("window/systemTitleBar"));
+    settings.sync();
+  }
+  patchy::ui::MainWindowTestAccess::set_global_menu_bar_probe(true);
+  patchy::ui::MainWindowTestAccess::reset_window_chrome_gate_cache();
+  {
+    patchy::ui::MainWindow window;
+    show_window(window);
+    run_preferences_dialog(window, /*accept=*/true, [&](QDialog& dialog) {
+      auto* check = dialog.findChild<QCheckBox*>(QStringLiteral("preferencesSystemTitleBarCheck"));
+      CHECK((check != nullptr) == kSystemTitleBarPreferenceApplies);
+      if (check != nullptr) {
+        CHECK(check->isChecked());
+      }
+    });
+    CHECK(find_top_level_dialog(QStringLiteral("preferencesSystemTitleBarMessageBox")) == nullptr);
+    CHECK(!patchy::ui::stored_system_title_bar_choice().has_value());
+
+    if (kSystemTitleBarPreferenceApplies) {
+      bool dismissed_message = false;
+      run_preferences_dialog(window, /*accept=*/true, [&](QDialog& dialog) {
+        auto* check = dialog.findChild<QCheckBox*>(QStringLiteral("preferencesSystemTitleBarCheck"));
+        CHECK(check != nullptr);
+        if (check == nullptr) {
+          return;
+        }
+        check->setChecked(false);
+        QTimer::singleShot(0, [&] {
+          auto* message = qobject_cast<QMessageBox*>(
+              find_top_level_dialog(QStringLiteral("preferencesSystemTitleBarMessageBox")));
+          CHECK(message != nullptr);
+          if (message != nullptr) {
+            message->accept();
+            dismissed_message = true;
+          }
+        });
+      });
+      CHECK(dismissed_message);
+      CHECK(patchy::ui::stored_system_title_bar_choice() == std::optional<bool>(false));
+    }
+  }
+  patchy::ui::MainWindowTestAccess::set_global_menu_bar_probe(std::nullopt);
   patchy::ui::MainWindowTestAccess::reset_window_chrome_gate_cache();
 }
 
@@ -2174,6 +2267,9 @@ std::vector<patchy::test::TestCase> app_shell_tests_part3() {
       {"ui_title_bar_drag_moves_window_only_past_threshold", ui_title_bar_drag_moves_window_only_past_threshold},
       {"ui_system_title_bar_preference_disables_custom_chrome", ui_system_title_bar_preference_disables_custom_chrome},
       {"ui_system_title_bar_preference_defaults_off", ui_system_title_bar_preference_defaults_off},
+      {"ui_system_title_bar_follows_global_menu_bar_until_set", ui_system_title_bar_follows_global_menu_bar_until_set},
+      {"ui_preferences_system_title_bar_checkbox_shows_desktop_default",
+       ui_preferences_system_title_bar_checkbox_shows_desktop_default},
       {"ui_preferences_system_title_bar_checkbox_persists_key", ui_preferences_system_title_bar_checkbox_persists_key},
       {"ui_right_edge_scrollbars_remain_draggable", ui_right_edge_scrollbars_remain_draggable},
       {"ui_single_instance_socket_names_the_server_process", ui_single_instance_socket_names_the_server_process},

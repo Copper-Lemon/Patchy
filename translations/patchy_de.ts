@@ -21106,10 +21106,6 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
         <translation>Systemtitelleiste verwenden</translation>
     </message>
     <message>
-        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
-        <translation>Zeigt die Titelleiste und den Fensterrahmen des Desktops statt der Fensterschaltflächen von Patchy in der Menüleiste. Wird beim nächsten Start von Patchy wirksam.</translation>
-    </message>
-    <message>
         <source>System Title Bar</source>
         <translation>Systemtitelleiste</translation>
     </message>
@@ -21192,6 +21188,10 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
     <message>
         <source>Ro&amp;tate &amp;&amp; Flip</source>
         <translation>Dre&amp;hen und spiegeln</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>Zeigt die Titelleiste und den Fensterrahmen des Desktops statt der Fensterschaltflächen von Patchy in der Menüleiste. Standardmäßig an, wenn der Desktop die Anwendungsmenüs in einer globalen Menüleiste zeigt. Wird beim nächsten Start von Patchy wirksam.</translation>
     </message>
 </context>
 <context>

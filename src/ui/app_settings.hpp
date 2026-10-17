@@ -8,6 +8,7 @@
 #include <QStringList>
 
 #include <array>
+#include <optional>
 #include <utility>
 
 namespace patchy::ui {
@@ -84,6 +85,9 @@ void set_stored_update_skipped_version(const QString& version);
 // compatibility contract). Read once at startup by MainWindow::use_custom_window_chrome;
 // a change applies on the next launch. Stored but inert on other platforms.
 [[nodiscard]] bool stored_system_title_bar();
+// The user's explicit choice, or nullopt when the key was never written: Linux then
+// follows the desktop (on where a global menu bar takes the menus, GitHub issue 161).
+[[nodiscard]] std::optional<bool> stored_system_title_bar_choice();
 void set_stored_system_title_bar(bool enabled);
 
 // The size the user dragged the Preferences dialog to (key `preferences/dialogSize`, a

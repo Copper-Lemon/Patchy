@@ -185,6 +185,12 @@ public:
   // global menu bar (docs/platform.md). On Linux the preference is read once, on the
   // first call, so a change applies on the next launch.
   [[nodiscard]] static bool use_custom_window_chrome();
+  // Linux: true where Qt exports the menu bar to the desktop's global menu (KDE's Global
+  // Menu, elementary, Unity-style panels). Probed once; false elsewhere.
+  [[nodiscard]] static bool desktop_has_global_menu_bar();
+  // Whether "Use the system title bar" is in effect: the stored choice, else the desktop
+  // default (on with a global menu bar). Inert off Linux.
+  [[nodiscard]] static bool system_title_bar_effective();
   // A plain mouse wheel zooms by default on every platform (Seth, October 2026). macOS
   // used to default this off for trackpads, which no longer read the setting: a
   // two-finger scroll always pans and pinch zooms (docs/view-navigation.md).
@@ -459,6 +465,8 @@ private:
   // Forgets the cached Linux preference so the next use_custom_window_chrome() re-reads
   // it (tests; the app decides once per process).
   static void reset_window_chrome_gate_cache();
+  // Replaces the global-menu probe (tests; nullopt probes again on the next call).
+  static void set_global_menu_bar_probe_for_testing(std::optional<bool> global);
   void configure_window_chrome();
   void position_window_chrome_controls();
   void ensure_native_resizable_frame();
