@@ -6,7 +6,11 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QFontMetrics>
+#include <QHelpEvent>
+#include <QMetaObject>
+#include <QMouseEvent>
 #include <QPainter>
+#include <QToolTip>
 #include <QStyleOptionViewItem>
 
 #include <algorithm>
@@ -80,6 +84,91 @@ QSize RecentFileList::minimumSizeHint() const {
   return {QListWidget::minimumSizeHint().width(), kRecentRowHeight + kRecentListChrome};
 }
 
+void RecentFileList::set_remove_handler(std::function<void(const QString&)> handler, const QString& tooltip) {
+  remove_handler_ = std::move(handler);
+  remove_tooltip_ = tooltip;
+  viewport()->update();
+}
+
+QRect RecentFileList::remove_button_rect(const QRect& row_rect) {
+  constexpr int kSize = 22;
+  return {row_rect.right() - 8 - kSize + 1, row_rect.center().y() - kSize / 2 + 1, kSize, kSize};
+}
+
+int RecentFileList::remove_button_row_at(const QPoint& position) const {
+  if (!remove_handler_) {
+    return -1;
+  }
+  const auto index = indexAt(position);
+  if (!index.isValid() || index.data(kRecentPathRole).toString().isEmpty()) {
+    return -1;
+  }
+  return remove_button_rect(visualRect(index)).contains(position) ? index.row() : -1;
+}
+
+void RecentFileList::set_remove_hover_row(int row) {
+  if (row == remove_hover_row_) {
+    return;
+  }
+  remove_hover_row_ = row;
+  viewport()->update();
+}
+
+void RecentFileList::mousePressEvent(QMouseEvent* event) {
+  if (event->button() == Qt::LeftButton) {
+    remove_pressed_row_ = remove_button_row_at(event->position().toPoint());
+    if (remove_pressed_row_ >= 0) {
+      event->accept();
+      return;  // the row under the button neither opens nor takes the press
+    }
+  }
+  QListWidget::mousePressEvent(event);
+}
+
+void RecentFileList::mouseReleaseEvent(QMouseEvent* event) {
+  if (remove_pressed_row_ >= 0 && event->button() == Qt::LeftButton) {
+    const int pressed = remove_pressed_row_;
+    remove_pressed_row_ = -1;
+    event->accept();
+    if (remove_button_row_at(event->position().toPoint()) != pressed) {
+      return;  // released off the button: nothing happens, as with any button
+    }
+    const auto path = item(pressed) != nullptr ? item(pressed)->data(kRecentPathRole).toString() : QString();
+    if (!path.isEmpty()) {
+      // Queued: the handler rebuilds this list, which must not happen inside
+      // its own mouse event.
+      QMetaObject::invokeMethod(
+          this, [handler = remove_handler_, path] { handler(path); }, Qt::QueuedConnection);
+    }
+    return;
+  }
+  QListWidget::mouseReleaseEvent(event);
+}
+
+void RecentFileList::mouseMoveEvent(QMouseEvent* event) {
+  set_remove_hover_row(remove_button_row_at(event->position().toPoint()));
+  QListWidget::mouseMoveEvent(event);
+}
+
+void RecentFileList::leaveEvent(QEvent* event) {
+  set_remove_hover_row(-1);
+  QListWidget::leaveEvent(event);
+}
+
+bool RecentFileList::viewportEvent(QEvent* event) {
+  if (event->type() == QEvent::ToolTip) {
+    const auto* help = static_cast<QHelpEvent*>(event);
+    if (remove_button_row_at(help->pos()) >= 0) {
+      QToolTip::showText(help->globalPos(), remove_tooltip_, viewport());
+      return true;
+    }
+  }
+  if (event->type() == QEvent::Leave) {
+    set_remove_hover_row(-1);
+  }
+  return QListWidget::viewportEvent(event);
+}
+
 QSize RecentFileDelegate::sizeHint(const QStyleOptionViewItem& option, const QModelIndex&) const {
   return QSize(option.rect.width(), kRecentRowHeight);
 }
@@ -108,8 +197,32 @@ void RecentFileDelegate::paint(QPainter* painter, const QStyleOptionViewItem& op
     painter->setRenderHint(QPainter::Antialiasing, false);
   }
 
+  // The remove button of a list that offers one, drawn on the hovered row only;
+  // the text gives up the button's width while it shows.
+  const auto* list = dynamic_cast<const RecentFileList*>(option.widget);
+  const bool show_remove = hovered && list != nullptr && list->has_remove_button();
+  int text_right_inset = 12;  // from option.rect: the row's 2 px inset plus the usual 10
+  if (show_remove) {
+    const QRect button = RecentFileList::remove_button_rect(option.rect);
+    text_right_inset = option.rect.right() - button.left() + 4;
+    painter->setRenderHint(QPainter::Antialiasing, true);
+    if (list->remove_button_hovered(index.row())) {
+      painter->setPen(Qt::NoPen);
+      painter->setBrush(theme().start_panel_row_remove_hover_bg);
+      painter->drawRoundedRect(button, 4.0, 4.0);
+    }
+    QPen cross(list->remove_button_hovered(index.row()) ? theme().text_primary : theme().start_panel_muted_text);
+    cross.setWidthF(1.6);
+    cross.setCapStyle(Qt::RoundCap);
+    painter->setPen(cross);
+    const QRectF glyph = QRectF(button).adjusted(7.0, 7.0, -7.0, -7.0);
+    painter->drawLine(glyph.topLeft(), glyph.bottomRight());
+    painter->drawLine(glyph.topRight(), glyph.bottomLeft());
+    painter->setRenderHint(QPainter::Antialiasing, false);
+  }
+
   const QFileInfo info(path);
-  const QRect text_area = row.adjusted(10, 3, -10, -3);
+  const QRect text_area = row.adjusted(10, 3, -(text_right_inset - 2), -3);
   const auto name_font = offset_font(option.font, 0, true);
   painter->setFont(name_font);
   painter->setPen(theme().text_primary);

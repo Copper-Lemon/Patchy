@@ -21062,6 +21062,14 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
         <source>Fit on Screen</source>
         <translation>화면 크기에 맞추기</translation>
     </message>
+    <message>
+        <source>Remove from Recent Folders</source>
+        <translation>최근 폴더에서 제거</translation>
+    </message>
+    <message>
+        <source>Remove from Recent Files</source>
+        <translation>최근 파일에서 제거</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22880,6 +22888,10 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
     <message>
         <source>More features, nearly 400 G&apos;MIC filters, faster editing, and full access to your system fonts.</source>
         <translation>더 많은 기능, 약 400개의 G&apos;MIC 필터, 더 빠른 편집, 시스템 글꼴 전체 사용.</translation>
+    </message>
+    <message>
+        <source>Remove from Recent Files</source>
+        <translation>최근 파일에서 제거</translation>
     </message>
 </context>
 <context>

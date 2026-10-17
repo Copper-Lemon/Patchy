@@ -437,6 +437,7 @@ struct ThemePalette {
   QColor start_panel_section_text;
   QColor start_panel_hint_text;
   QColor start_panel_row_hover_bg;
+  QColor start_panel_row_remove_hover_bg;  // the hovered row's remove (x) button under the cursor
 
   // Icon ink. The hand-authored SVGs in src/ui/icons are written in these exact
   // dark values and recolored at paint time (see icon_theme.hpp), so each source

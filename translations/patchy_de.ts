@@ -21125,6 +21125,14 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
         <source>Fit on Screen</source>
         <translation>Ganzes Bild</translation>
     </message>
+    <message>
+        <source>Remove from Recent Folders</source>
+        <translation>Aus zuletzt verwendeten Ordnern entfernen</translation>
+    </message>
+    <message>
+        <source>Remove from Recent Files</source>
+        <translation>Aus zuletzt verwendeten Dateien entfernen</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22944,6 +22952,10 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
     <message>
         <source>More features, nearly 400 G&apos;MIC filters, faster editing, and full access to your system fonts.</source>
         <translation>Mehr Funktionen, fast 400 G&apos;MIC-Filter, schnellere Bearbeitung und voller Zugriff auf Ihre Systemschriften.</translation>
+    </message>
+    <message>
+        <source>Remove from Recent Files</source>
+        <translation>Aus zuletzt verwendeten Dateien entfernen</translation>
     </message>
 </context>
 <context>

@@ -197,8 +197,13 @@ StartPanel::StartPanel(QWidget* parent) : QWidget(parent) {
   recent_header->addWidget(recent_filter_edit_, 1);
   column_layout->addLayout(recent_header);
 
-  recent_list_ = new RecentFileList(column, kVisibleRecentRows);
+  auto* recent_list = new RecentFileList(column, kVisibleRecentRows);
+  recent_list_ = recent_list;
   recent_list_->setObjectName(QStringLiteral("startPanelRecentList"));
+  retranslation_callbacks_.push_back([this, recent_list] {
+    recent_list->set_remove_handler([this](const QString& path) { emit recent_file_remove_requested(path); },
+                                    tr("Remove from Recent Files"));
+  });
   recent_list_->setSelectionMode(QAbstractItemView::NoSelection);
   recent_list_->setFocusPolicy(Qt::NoFocus);
   column_layout->addWidget(recent_list_);

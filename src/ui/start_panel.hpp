@@ -42,6 +42,8 @@ class StartPanel final : public QWidget {
   // Right-click on a recent row; MainWindow builds the menu so it shares the
   // Open Recent menu's actions, reveal helper, and status messages.
   void recent_file_context_menu_requested(const QString& path, const QPoint& global_position);
+  // The remove (x) button on a hovered recent row (GitHub issue 157).
+  void recent_file_remove_requested(const QString& path);
 
  protected:
   void showEvent(QShowEvent* event) override;

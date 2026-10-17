@@ -296,6 +296,7 @@
     "start_panel_section_text": "#9ba6bc",
     "start_panel_hint_text": "#707d96",
     "start_panel_row_hover_bg": "#383f4e",
+    "start_panel_row_remove_hover_bg": "#424b5d",
     "icon_ink": "#dee5e9",
     "icon_accent": "#85d7ee",
     "icon_accent_soft": "#c1e8f6",

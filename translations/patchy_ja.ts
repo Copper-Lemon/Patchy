@@ -21062,6 +21062,14 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <source>Fit on Screen</source>
         <translation>画面サイズに合わせる</translation>
     </message>
+    <message>
+        <source>Remove from Recent Folders</source>
+        <translation>最近使ったフォルダーから削除</translation>
+    </message>
+    <message>
+        <source>Remove from Recent Files</source>
+        <translation>最近使ったファイルから削除</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22880,6 +22888,10 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
     <message>
         <source>More features, nearly 400 G&apos;MIC filters, faster editing, and full access to your system fonts.</source>
         <translation>より多くの機能、400 近い G&apos;MIC フィルター、高速な編集、システムフォントへのフルアクセス。</translation>
+    </message>
+    <message>
+        <source>Remove from Recent Files</source>
+        <translation>最近使ったファイルから削除</translation>
     </message>
 </context>
 <context>

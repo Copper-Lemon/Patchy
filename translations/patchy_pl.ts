@@ -21188,6 +21188,14 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
         <source>Fit on Screen</source>
         <translation>Dopasuj do ekranu</translation>
     </message>
+    <message>
+        <source>Remove from Recent Folders</source>
+        <translation>Usuń z ostatnich folderów</translation>
+    </message>
+    <message>
+        <source>Remove from Recent Files</source>
+        <translation>Usuń z ostatnich plików</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -23008,6 +23016,10 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
     <message>
         <source>More features, nearly 400 G&apos;MIC filters, faster editing, and full access to your system fonts.</source>
         <translation>Więcej funkcji, blisko 400 filtrów G&apos;MIC, szybsza edycja i pełny dostęp do czcionek systemowych.</translation>
+    </message>
+    <message>
+        <source>Remove from Recent Files</source>
+        <translation>Usuń z ostatnich plików</translation>
     </message>
 </context>
 <context>

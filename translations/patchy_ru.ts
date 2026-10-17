@@ -21188,6 +21188,14 @@ Patchy может скачать обновление, заменить этот
         <source>Fit on Screen</source>
         <translation>По размеру экрана</translation>
     </message>
+    <message>
+        <source>Remove from Recent Folders</source>
+        <translation>Удалить из последних папок</translation>
+    </message>
+    <message>
+        <source>Remove from Recent Files</source>
+        <translation>Удалить из последних файлов</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -23008,6 +23016,10 @@ Patchy может скачать обновление, заменить этот
     <message>
         <source>More features, nearly 400 G&apos;MIC filters, faster editing, and full access to your system fonts.</source>
         <translation>Больше функций, почти 400 фильтров G&apos;MIC, быстрее редактирование и полный доступ к системным шрифтам.</translation>
+    </message>
+    <message>
+        <source>Remove from Recent Files</source>
+        <translation>Удалить из последних файлов</translation>
     </message>
 </context>
 <context>

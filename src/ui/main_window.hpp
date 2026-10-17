@@ -1905,6 +1905,9 @@ private:
   void show_recent_path_context_menu(QWidget* parent, QMenu* source_menu, const QString& path,
                                      bool is_folder, const QPoint& global_position);
   void reveal_path_in_file_explorer(const QString& path, bool is_file);
+  // Drops one entry from the stored recent files or folders and refreshes the
+  // menus and the start panel (GitHub issue 157).
+  void remove_recent_path(const QString& path, bool is_folder);
   void open_recent_document(QString path);
   QAction* add_tool_action(QToolBar* palette, QActionGroup* group, QString label, CanvasTool tool,
                            QKeySequence shortcut);

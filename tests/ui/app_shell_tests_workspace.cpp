@@ -465,6 +465,102 @@ void ui_start_panel_recent_files_scroll_and_context_menu() {
   CHECK(tabs->count() == 0);
 }
 
+// A hovered recent row offers a remove (x) button, and the row's context menu a
+// Remove from Recent Files item; either drops only that entry from the stored
+// list and never opens it (GitHub issue 157).
+void ui_start_panel_recent_row_remove_button_and_menu() {
+  ensure_artifact_dir();
+  QStringList recent_files;
+  for (int index = 0; index < 3; ++index) {
+    const auto path =
+        QFileInfo(QStringLiteral("test-artifacts/start_panel_remove_%1.png").arg(index)).absoluteFilePath();
+    QImage image(16, 16, QImage::Format_RGB32);
+    image.fill(QColor(60 + index * 40, 90, 160));
+    CHECK(image.save(path));
+    recent_files << path;
+  }
+  {
+    auto settings = patchy::ui::app_settings();
+    settings.setValue(QStringLiteral("recentFiles"), recent_files);
+    settings.sync();
+  }
+  const auto stored_recent_files = [] {
+    auto settings = patchy::ui::app_settings();
+    settings.sync();
+    return settings.value(QStringLiteral("recentFiles")).toStringList();
+  };
+
+  patchy::ui::MainWindow window;
+  show_window_empty(window);
+  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* recent_list = dynamic_cast<patchy::ui::RecentFileList*>(
+      window.findChild<QListWidget*>(QStringLiteral("startPanelRecentList")));
+  CHECK(tabs != nullptr && recent_list != nullptr);
+  CHECK(recent_list->has_remove_button());
+  CHECK(recent_list->count() == 3);
+
+  // Hovering the button lights it; the row's own click area is untouched.
+  const auto button_center = [recent_list](int row) {
+    return patchy::ui::RecentFileList::remove_button_rect(recent_list->visualItemRect(recent_list->item(row)))
+        .center();
+  };
+  send_mouse(*recent_list->viewport(), QEvent::MouseMove, button_center(1), Qt::NoButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(recent_list->remove_button_hovered(1));
+  CHECK(!recent_list->remove_button_hovered(0));
+  save_widget_artifact("ui_start_panel_recent_remove_hover", window);
+
+  // A press that leaves the button before release removes nothing.
+  send_mouse(*recent_list->viewport(), QEvent::MouseButtonPress, button_center(1), Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*recent_list->viewport(), QEvent::MouseButtonRelease, recent_list->visualItemRect(recent_list->item(1)).topLeft() + QPoint(12, 8),
+             Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(recent_list->count() == 3);
+  CHECK(tabs->count() == 0);
+
+  // A click on the button removes that row only and opens nothing.
+  send_mouse(*recent_list->viewport(), QEvent::MouseButtonPress, button_center(1), Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*recent_list->viewport(), QEvent::MouseButtonRelease, button_center(1), Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  QApplication::processEvents();
+  CHECK(tabs->count() == 0);
+  CHECK(recent_list->count() == 2);
+  CHECK(!stored_recent_files().contains(recent_files[1]));
+  CHECK(stored_recent_files().contains(recent_files[0]));
+  CHECK(stored_recent_files().contains(recent_files[2]));
+
+  // The context menu's Remove item does the same.
+  bool saw_remove = false;
+  QTimer::singleShot(0, [&] {
+    for (auto* widget : QApplication::topLevelWidgets()) {
+      auto* menu = qobject_cast<QMenu*>(widget);
+      if (menu == nullptr || menu->objectName() != QStringLiteral("recentFileContextMenu")) {
+        continue;
+      }
+      auto* remove_action = find_menu_action_by_text(*menu, QStringLiteral("Remove from Recent Files"));
+      CHECK(remove_action != nullptr);
+      if (remove_action != nullptr) {
+        CHECK(remove_action->objectName() == QStringLiteral("recentFileRemoveAction"));
+        remove_action->trigger();
+        saw_remove = true;
+      }
+      menu->close();
+      return;
+    }
+  });
+  const auto context_point = recent_list->visualItemRect(recent_list->item(0)).center();
+  QContextMenuEvent context_event(QContextMenuEvent::Mouse, context_point,
+                                  recent_list->viewport()->mapToGlobal(context_point));
+  QApplication::sendEvent(recent_list->viewport(), &context_event);
+  QApplication::processEvents();
+  QApplication::processEvents();
+  CHECK(saw_remove);
+  CHECK(tabs->count() == 0);
+  CHECK(stored_recent_files() == QStringList{recent_files[2]});
+  CHECK(recent_list->count() == 1);
+  CHECK(recent_list->item(0)->data(patchy::ui::kRecentPathRole).toString() == recent_files[2]);
+}
+
 void ui_start_panel_recent_filter_narrows_rows_and_opens_match() {
   ensure_artifact_dir();
   // An empty kRecentPathRole path marks the no-match placeholder (ui/recent_file_list.hpp).
@@ -2068,6 +2164,7 @@ std::vector<patchy::test::TestCase> app_shell_tests_part1() {
       {"ui_start_panel_recent_files_open_on_click", ui_start_panel_recent_files_open_on_click},
       {"ui_large_document_session_keeps_loading_responsive", ui_large_document_session_keeps_loading_responsive},
       {"ui_start_panel_recent_files_scroll_and_context_menu", ui_start_panel_recent_files_scroll_and_context_menu},
+      {"ui_start_panel_recent_row_remove_button_and_menu", ui_start_panel_recent_row_remove_button_and_menu},
       {"ui_start_panel_recent_filter_narrows_rows_and_opens_match", ui_start_panel_recent_filter_narrows_rows_and_opens_match},
       {"ui_start_panel_shows_about_info_and_update_status", ui_start_panel_shows_about_info_and_update_status},
       {"ui_main_window_renders_color_controls", ui_main_window_renders_color_controls},

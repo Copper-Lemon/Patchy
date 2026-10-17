@@ -21062,6 +21062,14 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
         <source>Fit on Screen</source>
         <translation>顯示全頁</translation>
     </message>
+    <message>
+        <source>Remove from Recent Folders</source>
+        <translation>從最近使用的資料夾中移除</translation>
+    </message>
+    <message>
+        <source>Remove from Recent Files</source>
+        <translation>從最近使用的檔案中移除</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22880,6 +22888,10 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
     <message>
         <source>More features, nearly 400 G&apos;MIC filters, faster editing, and full access to your system fonts.</source>
         <translation>更多功能、近 400 個 G&apos;MIC 濾鏡、更快的編輯速度，以及完整使用系統字型。</translation>
+    </message>
+    <message>
+        <source>Remove from Recent Files</source>
+        <translation>從最近使用的檔案中移除</translation>
     </message>
 </context>
 <context>

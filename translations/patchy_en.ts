@@ -21052,6 +21052,14 @@ Patchy can download the update, replace this AppImage, and start again. You will
         <source>Fit on Screen</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Remove from Recent Folders</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove from Recent Files</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
@@ -22870,6 +22878,10 @@ Patchy can download the update, replace this AppImage, and start again. You will
     </message>
     <message>
         <source>More features, nearly 400 G&apos;MIC filters, faster editing, and full access to your system fonts.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove from Recent Files</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

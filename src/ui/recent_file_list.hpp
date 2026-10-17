@@ -10,6 +10,8 @@
 #include <QStringList>
 #include <QStyledItemDelegate>
 
+#include <functional>
+
 namespace patchy::ui {
 
 // The full path of a recent row. An empty path marks the "no matches" placeholder row,
@@ -39,9 +41,34 @@ class RecentFileList final : public QListWidget {
   QSize sizeHint() const override;
   QSize minimumSizeHint() const override;
 
+  // Gives every real row a remove (x) button at its right end while the row is
+  // hovered (GitHub issue 157). A click on it calls `handler` with the row's path,
+  // queued, instead of opening the row; `tooltip` labels the button.
+  void set_remove_handler(std::function<void(const QString&)> handler, const QString& tooltip);
+  [[nodiscard]] bool has_remove_button() const noexcept { return static_cast<bool>(remove_handler_); }
+  // Whether the cursor is over the remove button of the row at `row_index`.
+  [[nodiscard]] bool remove_button_hovered(int row_index) const noexcept { return remove_hover_row_ == row_index; }
+  // The remove button inside a row's rectangle (viewport coordinates).
+  [[nodiscard]] static QRect remove_button_rect(const QRect& row_rect);
+
+ protected:
+  void mousePressEvent(QMouseEvent* event) override;
+  void mouseReleaseEvent(QMouseEvent* event) override;
+  void mouseMoveEvent(QMouseEvent* event) override;
+  void leaveEvent(QEvent* event) override;
+  bool viewportEvent(QEvent* event) override;
+
  private:
+  // The real row whose remove button contains `position`, or -1.
+  [[nodiscard]] int remove_button_row_at(const QPoint& position) const;
+  void set_remove_hover_row(int row);
+
   int visible_rows_;
   int fixed_rows_{0};
+  std::function<void(const QString&)> remove_handler_;
+  QString remove_tooltip_;
+  int remove_hover_row_{-1};
+  int remove_pressed_row_{-1};
 };
 
 // Two-line recent row: file name over its dimmed directory, with hover and selection

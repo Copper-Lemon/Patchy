@@ -5299,7 +5299,36 @@ void MainWindow::show_recent_path_context_menu(QWidget* parent, QMenu* source_me
     close_menus();
   });
 
+  context_menu.addSeparator();
+  auto* remove_action =
+      context_menu.addAction(is_folder ? tr("Remove from Recent Folders") : tr("Remove from Recent Files"));
+  remove_action->setObjectName(is_folder ? QStringLiteral("recentFolderRemoveAction")
+                                         : QStringLiteral("recentFileRemoveAction"));
+  connect(remove_action, &QAction::triggered, this, [this, close_menus, is_folder, path] {
+    close_menus();
+    // Queued: removing rebuilds the list this menu was opened from, which is
+    // still delivering the right-click that opened it.
+    QTimer::singleShot(0, this, [this, is_folder, path] { remove_recent_path(path, is_folder); });
+  });
+
   context_menu.exec(global_position);
+}
+
+void MainWindow::remove_recent_path(const QString& path, bool is_folder) {
+  if (path.isEmpty()) {
+    return;
+  }
+  const auto target = QFileInfo(path).absoluteFilePath();
+  const auto drop = [&target](QStringList& paths) {
+    paths.removeIf([&target](const QString& entry) { return QFileInfo(entry).absoluteFilePath() == target; });
+  };
+  if (is_folder) {
+    set_recent_folders_from_stored(update_recent_history(QStringLiteral("recentFolders"), kMaxRecentFolders, drop));
+    rebuild_recent_folders_menu();
+  } else {
+    set_recent_files_from_stored(update_recent_history(QStringLiteral("recentFiles"), kMaxRecentFiles, drop));
+    rebuild_recent_files_menu();
+  }
 }
 
 void MainWindow::reveal_path_in_file_explorer(const QString& path, bool is_file) {

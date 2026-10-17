@@ -390,6 +390,7 @@ const ThemePalette& dark_palette() {
       .start_panel_section_text = rgb(0x9a9a9a),
       .start_panel_hint_text = rgb(0x7a7a7a),
       .start_panel_row_hover_bg = rgb(0x323232),
+      .start_panel_row_remove_hover_bg = rgb(0x4a4a4a),
 
       // Icon ink.
       .icon_ink = rgb(0xdce2eb),
@@ -1044,6 +1045,7 @@ std::span<const ThemePaletteRole> theme_palette_roles() {
       PATCHY_THEME_ROLE(start_panel_section_text),
       PATCHY_THEME_ROLE(start_panel_hint_text),
       PATCHY_THEME_ROLE(start_panel_row_hover_bg),
+      PATCHY_THEME_ROLE(start_panel_row_remove_hover_bg),
 
       PATCHY_THEME_ROLE(icon_ink),
       PATCHY_THEME_ROLE(icon_accent),
