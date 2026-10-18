@@ -5,6 +5,7 @@
 
 #include "ui/canvas_widget.hpp"
 #include "core/layer_metadata.hpp"
+#include "core/text_warp.hpp"
 #include "ui/color_panel.hpp"
 #include "ui/filter_workflows.hpp"
 #include "ui/font_picker.hpp"
@@ -1878,6 +1879,214 @@ void ui_text_placeholder_survives_options_bar_changes() {
   }
 }
 
+// GitHub issue 175, the rest of the Type bar: the Vertical toggle, the size field's slider popup,
+// the Character and Paragraph panels (Enter in a field, a checkbox, a combo pick) and Warp Text
+// all leave the "Type" placeholder selected with the keyboard in the editor. Warp commits the
+// session for its dialog and reopens it with the same selection, as Photoshop stays in edit mode.
+void ui_text_placeholder_survives_panels_and_warp() {
+  register_test_fonts(TestFontRole::UiDefault);
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* canvas = require_canvas(window);
+  canvas->set_zoom(1.0);
+  canvas->set_primary_color(QColor(20, 20, 20));
+  require_action_by_text(window, QStringLiteral("Type"))->trigger();
+  QApplication::processEvents();
+  auto* vertical = window.findChild<QPushButton*>(QStringLiteral("textOrientationButton"));
+  auto* size = window.findChild<QDoubleSpinBox*>(QStringLiteral("textSizeSpin"));
+  auto* character = window.findChild<QPushButton*>(QStringLiteral("textCharacterButton"));
+  auto* paragraph = window.findChild<QPushButton*>(QStringLiteral("textParagraphButton"));
+  auto* warp = window.findChild<QPushButton*>(QStringLiteral("textWarpButton"));
+  QAction* size_popup_action = nullptr;
+  if (size != nullptr) {
+    for (auto* action : size->actions()) {
+      if (action->objectName() == QStringLiteral("textSizePopupAction")) {
+        size_popup_action = action;
+      }
+    }
+  }
+  CHECK(vertical != nullptr);
+  CHECK(size_popup_action != nullptr);
+  CHECK(character != nullptr);
+  CHECK(paragraph != nullptr);
+  CHECK(warp != nullptr);
+  if (vertical == nullptr || size_popup_action == nullptr || character == nullptr || paragraph == nullptr ||
+      warp == nullptr) {
+    return;
+  }
+  const auto live_editor = [&] { return canvas->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor")); };
+  const auto ready = [&] {
+    auto* editor = live_editor();
+    if (editor == nullptr || QApplication::focusWidget() != editor) {
+      return false;
+    }
+    const auto cursor = editor->textCursor();
+    return editor->toPlainText() == QStringLiteral("Type") && cursor.selectionStart() == 0 &&
+           cursor.selectionEnd() == 4;
+  };
+  const auto top_level = [](const QString& name) -> QWidget* {
+    for (auto* widget : QApplication::topLevelWidgets()) {
+      if (widget->objectName() == name && widget->isVisible()) {
+        return widget;
+      }
+    }
+    return nullptr;
+  };
+
+  // Locals only until the session ends: a failing CHECK with a live editor aborts the suite, and
+  // the timer bodies driving the panels must never throw across Qt's event dispatch.
+  auto* editor = open_point_text_session(window, *canvas, QPoint(40, 80));
+  const bool opened = editor != nullptr;
+  bool vertical_ok = false;
+  bool size_popup_seen = false;
+  bool size_popup_ok = false;
+  bool character_seen = false;
+  bool character_spin_ok = false;
+  bool character_check_ok = false;
+  bool paragraph_seen = false;
+  bool paragraph_spin_ok = false;
+  bool paragraph_combo_ok = false;
+  bool warp_seen = false;
+  bool warp_ok = false;
+  QString typed;
+  QString committed;
+  bool committed_warped = false;
+  if (opened) {
+    vertical->click();
+    QApplication::processEvents();
+    vertical->click();
+    process_events_for(20);
+    vertical_ok = ready();
+
+    size->setFocus(Qt::MouseFocusReason);  // the chevron press focuses the field first
+    size_popup_action->trigger();
+    QApplication::processEvents();
+    if (auto* popup = top_level(QStringLiteral("textSizePopup")); popup != nullptr) {
+      size_popup_seen = true;
+      if (auto* slider = popup->findChild<QSlider*>(QStringLiteral("textSizePopupSlider")); slider != nullptr) {
+        slider->setValue(slider->value() + slider->pageStep());
+      }
+      popup->close();
+    }
+    process_events_for(30);
+    size_popup_ok = ready();
+
+    QTimer::singleShot(0, [&] {
+      auto* dialog = top_level(QStringLiteral("textCharacterDialog"));
+      if (dialog == nullptr) {
+        return;
+      }
+      character_seen = true;
+      // A click into the panel activates its window first.
+      dialog->activateWindow();
+      QApplication::processEvents();
+      if (auto* tracking = dialog->findChild<QSpinBox*>(QStringLiteral("textCharacterTrackingSpin"));
+          tracking != nullptr) {
+        tracking->setFocus(Qt::MouseFocusReason);
+        tracking->setValue(40);
+        send_key(*tracking, Qt::Key_Return);
+        process_events_for(20);
+        character_spin_ok = ready();
+      }
+      if (auto* faux_italic = dialog->findChild<QCheckBox*>(QStringLiteral("textCharacterFauxItalic"));
+          faux_italic != nullptr) {
+        faux_italic->setFocus(Qt::MouseFocusReason);
+        faux_italic->click();
+        process_events_for(20);
+        character_check_ok = ready();
+      }
+      dialog->close();
+    });
+    character->click();
+    process_events_for(20);
+
+    QTimer::singleShot(0, [&] {
+      auto* dialog = top_level(QStringLiteral("textParagraphDialog"));
+      if (dialog == nullptr) {
+        return;
+      }
+      paragraph_seen = true;
+      // A click into the panel activates its window first.
+      dialog->activateWindow();
+      QApplication::processEvents();
+      if (auto* before = dialog->findChild<QDoubleSpinBox*>(QStringLiteral("textParagraphSpaceBeforeSpin"));
+          before != nullptr) {
+        before->setFocus(Qt::MouseFocusReason);
+        before->setValue(2.0);
+        send_key(*before, Qt::Key_Return);
+        process_events_for(20);
+        paragraph_spin_ok = ready();
+      }
+      if (auto* align = dialog->findChild<QComboBox*>(QStringLiteral("textParagraphAlignCombo")); align != nullptr) {
+        align->setFocus(Qt::MouseFocusReason);
+        const auto index = (align->currentIndex() + 1) % std::max(1, align->count());
+        align->setCurrentIndex(index);
+        emit align->activated(index);
+        process_events_for(20);
+        paragraph_combo_ok = ready();
+      }
+      dialog->close();
+    });
+    paragraph->click();
+    process_events_for(20);
+
+    QTimer::singleShot(0, [&] {
+      auto* dialog = find_top_level_dialog(QStringLiteral("warpTextDialog"));
+      if (dialog == nullptr) {
+        return;
+      }
+      warp_seen = true;
+      if (auto* style = dialog->findChild<QComboBox*>(QStringLiteral("warpTextStyleCombo")); style != nullptr) {
+        style->setCurrentIndex(style->findData(QStringLiteral("warpArc")));
+      }
+      if (auto* bend = dialog->findChild<QSpinBox*>(QStringLiteral("warpTextBendSpin")); bend != nullptr) {
+        bend->setValue(50);  // Arc at 0 % bend is no warp at all
+      }
+      QApplication::processEvents();
+      dialog->accept();
+    });
+    warp->click();
+    process_events_for(150);
+    warp_ok = ready();
+
+    if (auto* focus = QApplication::focusWidget(); focus != nullptr) {
+      QTest::keyClicks(focus, QStringLiteral("Ok"));
+    }
+    QApplication::processEvents();
+    if (auto* reopened = live_editor(); reopened != nullptr) {
+      typed = reopened->toPlainText();
+      send_key(*reopened, Qt::Key_Enter, Qt::KeypadModifier);
+      process_events_for(150);
+    }
+    committed = active_layer_text(window);
+    auto& document = patchy::ui::MainWindowTestAccess::document(window);
+    if (const auto* layer =
+            std::as_const(document).find_layer(document.active_layer_id().value_or(patchy::LayerId{}));
+        layer != nullptr) {
+      committed_warped = patchy::text_warp_from_layer(*layer).has_value();
+    }
+  }
+  if (auto* leftover = live_editor(); leftover != nullptr) {
+    send_key(*leftover, Qt::Key_Escape);
+    process_events_for(50);
+  }
+  CHECK(opened);
+  CHECK(vertical_ok);
+  CHECK(size_popup_seen);
+  CHECK(size_popup_ok);
+  CHECK(character_seen);
+  CHECK(character_spin_ok);
+  CHECK(character_check_ok);
+  CHECK(paragraph_seen);
+  CHECK(paragraph_spin_ok);
+  CHECK(paragraph_combo_ok);
+  CHECK(warp_seen);
+  CHECK(warp_ok);
+  CHECK(typed == QStringLiteral("Ok"));
+  CHECK(committed == QStringLiteral("Ok"));
+  CHECK(committed_warped);
+}
+
 // GitHub issue 173: Preferences > Tools > "Use Esc to commit text" (input/escapeCommitsText,
 // default off). Off, Esc cancels the session; on, Esc commits it like Ctrl+Enter.
 void ui_text_escape_commits_preference() {
@@ -2797,6 +3006,7 @@ std::vector<patchy::test::TestCase> text_editor_font_picker_tests() {
       {"ui_text_keypad_enter_commits_and_return_breaks_line", ui_text_keypad_enter_commits_and_return_breaks_line},
       {"ui_text_triple_click_selects_the_line", ui_text_triple_click_selects_the_line},
       {"ui_text_placeholder_survives_options_bar_changes", ui_text_placeholder_survives_options_bar_changes},
+      {"ui_text_placeholder_survives_panels_and_warp", ui_text_placeholder_survives_panels_and_warp},
       {"ui_text_escape_commits_preference", ui_text_escape_commits_preference},
       {"ui_expensive_text_style_preview_never_blanks_while_typing",
        ui_expensive_text_style_preview_never_blanks_while_typing},

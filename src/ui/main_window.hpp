@@ -1909,6 +1909,9 @@ private:
   // Photoshop does, so the next keystroke types (replacing a still-selected "Type"
   // placeholder) instead of landing on the control or a tool shortcut (GitHub issue 175).
   void return_keyboard_to_text_editor();
+  // The Character and Paragraph panels follow the same rule: Enter in a field, a checkbox
+  // click or a combo pick hands the keyboard back to a live session.
+  void return_keyboard_after_text_panel_edits(QWidget& panel);
   // The text color panel is live; with no session each change would commit every selected
   // layer, so the layer edit waits for the picker to settle on `color`.
   void apply_text_color_to_selected_layers_debounced(QColor color);
@@ -1928,6 +1931,8 @@ private:
   // text layer (committing any open inline edit first) with live preview; OK is one
   // undo step, Cancel restores the pre-dialog pixels and metadata.
   void request_warp_text_dialog();
+  // False when the dialog never opened (no text layer, locked pixels, faux bold).
+  bool run_warp_text_dialog_on_active_layer();
   // Character changes apply to the inline selection, or the selected text layer
   // through a hidden session committed immediately without an unwarped preview.
   void open_text_character_dialog();
