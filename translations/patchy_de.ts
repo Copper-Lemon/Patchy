@@ -21193,6 +21193,10 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
         <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
         <translation>Zeigt die Titelleiste und den Fensterrahmen des Desktops statt der Fensterschaltflächen von Patchy in der Menüleiste. Standardmäßig an, wenn der Desktop die Anwendungsmenüs in einer globalen Menüleiste zeigt. Wird beim nächsten Start von Patchy wirksam.</translation>
     </message>
+    <message>
+        <source>Reset Panels</source>
+        <translation>Bedienfelder zurücksetzen</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

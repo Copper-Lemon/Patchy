@@ -21193,6 +21193,10 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
         <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
         <translation>Mostra a barra de título e a moldura de janela da área de trabalho em vez dos controles de janela do Patchy na barra de menus. Ativado por padrão quando a área de trabalho mostra os menus dos aplicativos em uma barra de menus global. Entra em vigor na próxima vez que o Patchy for iniciado.</translation>
     </message>
+    <message>
+        <source>Reset Panels</source>
+        <translation>Redefinir painéis</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

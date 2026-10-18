@@ -528,6 +528,19 @@ private:
   // text each time the menu opens (GitHub issue 163). Runs once, after create_docks.
   void install_window_panel_entries();
   void sort_window_panel_entries();
+  // The saved panel layout (docs/right-docks.md "Saved panel layout"): which panels and
+  // toolbars are closed, which are collapsed, the tab group's front panel and a picked
+  // column width. Read once after the window geometry, written on a consented close;
+  // offscreen runs skip both (panel_layout_persists).
+  static bool panel_layout_persists();
+  void save_panel_layout();
+  void restore_panel_layout();
+  void write_panel_layout();
+  void read_panel_layout();
+  QStringList collapsed_panel_names();
+  void apply_collapsed_panels(const QStringList& collapsed);
+  // Window > Reset Panels: the first-launch layout, column width included.
+  void reset_panels();
   void create_palette_dock();
   // Palette (indexed) mode plumbing. Every document-palette mutation goes through
   // these so the undo snapshot, the revision bump (app-globally unique values,
@@ -2441,6 +2454,9 @@ private:
   QAction* window_panels_separator_{nullptr};
   QAction* window_documents_separator_{nullptr};
   std::vector<QAction*> window_panel_actions_;
+  QAction* window_reset_panels_separator_{nullptr};
+  QAction* window_reset_panels_action_{nullptr};
+  QStringList default_collapsed_panels_;
   std::vector<QAction*> window_document_actions_;
   QAction* duplicate_layer_to_document_action_{nullptr};
   QAction* dock_document_action_{nullptr};

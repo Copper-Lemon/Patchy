@@ -262,6 +262,16 @@ public:
     window.set_right_dock_stack_width(width);
   }
 
+  // The saved panel layout without the offscreen gate (panel_layout_persists), so a test
+  // can write one window's layout and read it into the next before that one is shown.
+  static void write_panel_layout(MainWindow& window) { window.write_panel_layout(); }
+  static void read_panel_layout(MainWindow& window) { window.read_panel_layout(); }
+  static bool panel_layout_persists() { return MainWindow::panel_layout_persists(); }
+  static int right_dock_pinned_width(MainWindow& window) { return window.right_dock_pinned_width_; }
+  static bool right_dock_width_follows_content(MainWindow& window) {
+    return window.right_dock_width_follows_minimum_;
+  }
+
   // The narrowest column width at which no right panel scrolls sideways.
   static int right_dock_content_minimum_width(MainWindow& window) {
     window.update_right_dock_minimum_width();

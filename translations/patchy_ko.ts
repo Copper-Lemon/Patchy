@@ -21130,6 +21130,10 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
         <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
         <translation>메뉴 모음의 Patchy 창 컨트롤 대신 데스크톱 자체의 제목 표시줄과 창 테두리를 표시합니다. 데스크톱이 애플리케이션 메뉴를 전역 메뉴 모음에 표시하는 경우 기본으로 켜집니다. 다음에 Patchy를 시작할 때 적용됩니다.</translation>
     </message>
+    <message>
+        <source>Reset Panels</source>
+        <translation>패널 초기화</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

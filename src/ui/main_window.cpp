@@ -4399,6 +4399,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
   });
 #endif
   create_docks();
+  default_collapsed_panels_ = collapsed_panel_names();
   install_window_panel_entries();
   hotkey_registry_.apply_to_actions();
   // Script hotkeys must work from the first keypress, before File > Scripts was ever
@@ -4415,6 +4416,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     resize(1280, 860);
     clamp_window_to_available_screen();
   }
+  restore_panel_layout();
   setStyleSheet(photoshop_style());
   // Connected after the first sheet is applied: connecting earlier would let a
   // scheme change restyle a half-built window.
@@ -5491,6 +5493,7 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     }
   }
   save_window_geometry();
+  save_panel_layout();
   // Flush any tool-option change still waiting on the save debounce; the timer
   // will not fire once the window is gone.
   save_tool_settings();

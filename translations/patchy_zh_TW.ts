@@ -21130,6 +21130,10 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
         <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
         <translation>顯示桌面本身的標題列和視窗框架，而不是功能表列中 Patchy 的視窗控制按鈕。桌面在全域功能表列中顯示應用程式功能表時預設開啟。下次啟動 Patchy 時生效。</translation>
     </message>
+    <message>
+        <source>Reset Panels</source>
+        <translation>重設面板</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

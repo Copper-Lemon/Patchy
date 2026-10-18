@@ -21256,6 +21256,10 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
         <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
         <translation>Pokazuje pasek tytułu i ramkę okna pulpitu zamiast przycisków okna Patchy na pasku menu. Domyślnie włączone, gdy pulpit pokazuje menu aplikacji na globalnym pasku menu. Zacznie obowiązywać przy następnym uruchomieniu Patchy.</translation>
     </message>
+    <message>
+        <source>Reset Panels</source>
+        <translation>Resetuj panele</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

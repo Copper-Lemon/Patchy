@@ -21120,6 +21120,10 @@ Patchy can download the update, replace this AppImage, and start again. You will
         <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Reset Panels</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

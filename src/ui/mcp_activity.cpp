@@ -152,8 +152,10 @@ bool McpActivity::action_allowed(const QAction* action) const {
       id.startsWith(QStringLiteral("help."))) return true;
   if (id.startsWith(QStringLiteral("view.")) && !id.startsWith(QStringLiteral("view.new_guide")) &&
       !id.startsWith(QStringLiteral("view.clear_"))) return true;
-  return id == QStringLiteral("window.force_refresh") ||
-         action->objectName().startsWith(QStringLiteral("windowSetScreenSize"));
+  // Showing, hiding and resetting panels leaves the document alone.
+  return id == QStringLiteral("window.force_refresh") || id == QStringLiteral("window.reset_panels") ||
+         action->objectName().startsWith(QStringLiteral("windowSetScreenSize")) ||
+         action->objectName().startsWith(QStringLiteral("windowPanel"));
 }
 const QAction* McpActivity::shortcut_action(const QKeyEvent& event) const {
   const QKeySequence sequence(event.keyCombination());

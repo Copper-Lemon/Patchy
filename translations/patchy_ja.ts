@@ -21130,6 +21130,10 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
         <translation>メニューバー内の Patchy のウィンドウ操作ボタンの代わりに、デスクトップ自身のタイトルバーとウィンドウ枠を表示します。デスクトップがアプリケーションのメニューをグローバルメニューバーに表示する場合は、既定でオンになります。次回 Patchy を起動したときに有効になります。</translation>
     </message>
+    <message>
+        <source>Reset Panels</source>
+        <translation>パネルをリセット</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

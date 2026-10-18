@@ -1345,6 +1345,17 @@ void MainWindow::install_window_panel_entries() {
       window_panel_actions_.push_back(toolbar->toggleViewAction());
     }
   }
+  // Window > Reset Panels closes the list: every panel and toolbar back to the layout a
+  // first launch has (reset_panels).
+  window_reset_panels_separator_ = new QAction(window_menu);
+  window_reset_panels_separator_->setSeparator(true);
+  window_reset_panels_action_ = new QAction(window_menu);
+  window_reset_panels_action_->setObjectName(QStringLiteral("windowResetPanelsAction"));
+  window_reset_panels_action_->setMenuRole(QAction::NoRole);
+  window_reset_panels_action_->setProperty(kWorksWithoutDocumentProperty, true);
+  bind_action_text(window_reset_panels_action_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Reset Panels"));
+  register_hotkey(window_reset_panels_action_, "window.reset_panels", QKeySequence());
+  connect(window_reset_panels_action_, &QAction::triggered, this, [this] { reset_panels(); });
   sort_window_panel_entries();
   connect(window_menu, &QMenu::aboutToShow, this, [this] { sort_window_panel_entries(); });
 }
@@ -1370,6 +1381,198 @@ void MainWindow::sort_window_panel_entries() {
       action->setChecked(!dock->isHidden());
     }
   }
+  for (auto* action : {window_reset_panels_separator_, window_reset_panels_action_}) {
+    if (action != nullptr) {
+      window_menu->removeAction(action);
+      window_menu->insertAction(window_documents_separator_, action);
+    }
+  }
+}
+
+namespace {
+
+// The saved panel layout (docs/right-docks.md, "Saved panel layout"). Every key is a
+// compatibility contract. The version guards what the lists mean: a release that adds,
+// renames or regroups panels bumps it, and an older record is then ignored rather than
+// half applied.
+constexpr int kPanelLayoutVersion = 1;
+QString panel_layout_version_key() { return QStringLiteral("window/panelLayoutVersion"); }
+QString hidden_panels_key() { return QStringLiteral("window/hiddenPanels"); }
+QString collapsed_panels_key() { return QStringLiteral("window/collapsedPanels"); }
+QString front_panel_key() { return QStringLiteral("window/frontPanel"); }
+QString panel_column_width_key() { return QStringLiteral("window/panelColumnWidth"); }
+
+// The two toolbars, by object name, with the area each starts in.
+struct DefaultToolbar {
+  const char* name;
+  Qt::ToolBarArea area;
+};
+constexpr DefaultToolbar kDefaultToolbars[] = {{"toolPalette", Qt::LeftToolBarArea},
+                                                {"Options", Qt::TopToolBarArea}};
+
+// The tab group's docks, in their default tab order.
+constexpr const char* kPanelTabGroup[] = {"layersDock", "channelsDock", "pathsDock"};
+
+bool in_panel_tab_group(const QString& name) {
+  return std::any_of(std::begin(kPanelTabGroup), std::end(kPanelTabGroup),
+                     [&name](const char* member) { return name == QLatin1String(member); });
+}
+
+}  // namespace
+
+bool MainWindow::panel_layout_persists() {
+  // Offscreen runs (the UI tests, --headless scripts, the MCP connector's own window)
+  // neither read nor write the user's layout: a test that closes a panel must not leave
+  // it closed for the next one, and a headless run must not change the desktop layout.
+  return QGuiApplication::platformName().compare(QStringLiteral("offscreen"), Qt::CaseInsensitive) != 0;
+}
+
+QStringList MainWindow::collapsed_panel_names() {
+  QStringList names;
+  for (const auto& name : right_dock_stack_names()) {
+    auto* dock = findChild<QDockWidget*>(name);
+    auto* collapse = dock != nullptr ? dock_collapse_button(*dock) : nullptr;
+    if (collapse != nullptr && !collapse->isChecked()) {
+      names << name;
+    }
+  }
+  return names;
+}
+
+void MainWindow::apply_collapsed_panels(const QStringList& collapsed) {
+  // The tab group shares one state, and setting one member's toggle sets the others', so
+  // the group follows its first member.
+  for (const auto& name : right_dock_stack_names()) {
+    auto* dock = findChild<QDockWidget*>(name);
+    auto* collapse = dock != nullptr ? dock_collapse_button(*dock) : nullptr;
+    if (collapse == nullptr || (in_panel_tab_group(name) && name != QLatin1String(kPanelTabGroup[0]))) {
+      continue;
+    }
+    collapse->setChecked(!collapsed.contains(name));
+  }
+  refresh_collapsed_right_dock_heights();
+}
+
+void MainWindow::save_panel_layout() {
+  if (panel_layout_persists()) {
+    write_panel_layout();
+  }
+}
+
+void MainWindow::write_panel_layout() {
+  auto settings = app_settings();
+  QStringList hidden;
+  for (const auto& name : right_dock_stack_names()) {
+    if (auto* dock = findChild<QDockWidget*>(name); dock != nullptr && dock->isHidden()) {
+      hidden << name;
+    }
+  }
+  for (const auto& toolbar : kDefaultToolbars) {
+    if (auto* bar = findChild<QToolBar*>(QLatin1String(toolbar.name)); bar != nullptr && bar->isHidden()) {
+      hidden << QLatin1String(toolbar.name);
+    }
+  }
+  QString front;
+  for (const auto* name : kPanelTabGroup) {
+    auto* dock = findChild<QDockWidget*>(QLatin1String(name));
+    if (dock != nullptr && !dock->isHidden() && !dock->isFloating() && dock_is_front_tab(*this, *dock)) {
+      front = QLatin1String(name);
+      break;
+    }
+  }
+  settings.setValue(panel_layout_version_key(), kPanelLayoutVersion);
+  settings.setValue(hidden_panels_key(), hidden);
+  settings.setValue(collapsed_panels_key(), collapsed_panel_names());
+  settings.setValue(front_panel_key(), front);
+  if (right_dock_width_follows_minimum_ || right_dock_pinned_width_ <= 0) {
+    settings.remove(panel_column_width_key());
+  } else {
+    settings.setValue(panel_column_width_key(), right_dock_pinned_width_);
+  }
+}
+
+void MainWindow::restore_panel_layout() {
+  if (panel_layout_persists()) {
+    read_panel_layout();
+  }
+}
+
+void MainWindow::read_panel_layout() {
+  const auto settings = app_settings();
+  if (settings.value(panel_layout_version_key(), 0).toInt() != kPanelLayoutVersion) {
+    return;
+  }
+  const auto hidden = settings.value(hidden_panels_key()).toStringList();
+  apply_collapsed_panels(settings.value(collapsed_panels_key()).toStringList());
+  const auto front = settings.value(front_panel_key()).toString();
+  if (auto* dock = front.isEmpty() ? nullptr : findChild<QDockWidget*>(front); dock != nullptr) {
+    dock->raise();
+  }
+  for (const auto& name : right_dock_stack_names()) {
+    if (auto* dock = findChild<QDockWidget*>(name); dock != nullptr && hidden.contains(name)) {
+      dock->hide();
+    }
+  }
+  for (const auto& toolbar : kDefaultToolbars) {
+    if (auto* bar = findChild<QToolBar*>(QLatin1String(toolbar.name));
+        bar != nullptr && hidden.contains(QLatin1String(toolbar.name))) {
+      bar->hide();
+    }
+  }
+  // A picked width; without one the column keeps following the content-fit width. The
+  // window's own size is restored first, so the clamp sees the real width.
+  if (const auto width = settings.value(panel_column_width_key(), 0).toInt(); width > 0) {
+    set_right_dock_stack_width(width);
+  }
+}
+
+void MainWindow::reset_panels() {
+  // Back into the right column in the first-launch order and grouping: floated,
+  // rearranged and closed panels alike.
+  std::vector<QDockWidget*> docks;
+  for (const auto& name : right_dock_stack_names()) {
+    if (auto* dock = findChild<QDockWidget*>(name); dock != nullptr) {
+      docks.push_back(dock);
+    }
+  }
+  for (auto* dock : docks) {
+    if (dock->isFloating()) {
+      dock->setFloating(false);
+    }
+    removeDockWidget(dock);
+  }
+  for (auto* dock : docks) {
+    addDockWidget(Qt::RightDockWidgetArea, dock);
+    dock->show();
+  }
+  QDockWidget* previous = nullptr;
+  for (const auto* name : kPanelTabGroup) {
+    auto* dock = findChild<QDockWidget*>(QLatin1String(name));
+    if (dock != nullptr && previous != nullptr) {
+      tabifyDockWidget(previous, dock);
+    }
+    if (dock != nullptr) {
+      previous = dock;
+    }
+  }
+  for (const auto& toolbar : kDefaultToolbars) {
+    if (auto* bar = findChild<QToolBar*>(QLatin1String(toolbar.name)); bar != nullptr) {
+      addToolBar(toolbar.area, bar);
+      bar->show();
+    }
+  }
+  apply_collapsed_panels(default_collapsed_panels_);
+  if (auto* layers = findChild<QDockWidget*>(QLatin1String(kPanelTabGroup[0])); layers != nullptr) {
+    layers->raise();
+  }
+  // The column follows the content-fit width again, as on a first launch.
+  right_dock_width_follows_minimum_ = true;
+  update_right_dock_minimum_width();
+  pin_right_dock_stack_width(right_dock_minimum_width_ > 0 ? right_dock_minimum_width_ : kRightDockMinimumWidth);
+  if (isVisible()) {
+    fit_right_dock_floors_to_screen(nullptr);
+  }
+  sort_window_panel_entries();
 }
 
 void MainWindow::create_docks() {

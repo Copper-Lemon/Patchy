@@ -21256,6 +21256,10 @@ Patchy может скачать обновление, заменить этот
         <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
         <translation>Показывает заголовок и рамку окна рабочего стола вместо кнопок окна Patchy в строке меню. Включено по умолчанию, если рабочий стол показывает меню приложений в глобальной строке меню. Вступает в силу при следующем запуске Patchy.</translation>
     </message>
+    <message>
+        <source>Reset Panels</source>
+        <translation>Сбросить панели</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
