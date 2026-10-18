@@ -10365,6 +10365,14 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
         <translation>Un PDF importé en dossiers de pages n&apos;affiche que sa première page ; ses pages masquées restent des pages.</translation>
     </message>
+    <message>
+        <source>Last Used</source>
+        <translation>Derniers réglages</translation>
+    </message>
+    <message>
+        <source>The settings of the last document created here: %1 x %2 px at %3 ppi</source>
+        <translation>Les paramètres du dernier document créé ici : %1 x %2 px à %3 ppp</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

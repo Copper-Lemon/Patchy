@@ -1566,13 +1566,17 @@ void accept_clipboard_new_document_dialog(QSize clipboard_size) {
         return nullptr;
       };
 
-      // An image on the clipboard preselects the (enabled) Clipboard card and
-      // locks the fields to the clipboard dimensions.
+      // An image on the clipboard enables the Clipboard card without preselecting
+      // it; picking it locks the fields to the clipboard dimensions.
       CHECK(screen_chip->isChecked());
       auto* clipboard_card = find_card(QStringLiteral("clipboard"));
       CHECK(clipboard_card != nullptr);
       CHECK((clipboard_card->flags() & Qt::ItemIsEnabled) != 0);
-      CHECK(presets->currentItem() == clipboard_card);
+      CHECK(presets->currentItem() != nullptr);
+      CHECK(presets->currentItem() != clipboard_card);
+      CHECK(width->isEnabled());
+      presets->setCurrentItem(clipboard_card);
+      QApplication::processEvents();
       CHECK(width->value() == clipboard_size.width());
       CHECK(height->value() == clipboard_size.height());
       CHECK(!width->isEnabled());
