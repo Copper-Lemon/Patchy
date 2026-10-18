@@ -23,10 +23,11 @@ shared color and numeric rows. Page object names, stacked indices, and translati
 contexts remain compatibility contracts for the UI tests.
 
 The settings pages sit in the `layerStyleOptionsScroll` scroll area (GitHub issue 190).
-`OptionsPaneHeightCap` keeps its minimum equal to the tallest page up to what the
+`OptionsPaneScreenCap` keeps its minimum equal to the tallest page up to what the
 screen leaves (available height minus 40, measured before the dialog shows), so a
 tall screen opens and grows the dialog exactly as before and a short one scrolls
-the pane with OK/Cancel in view. `ui_layer_style_dialog_fits_a_short_screen` pins
+the pane with OK/Cancel in view. The first Show takes any overflow left (height,
+or width on a screen narrower than the dialog's minimum) out of the pane. `ui_layer_style_dialog_fits_a_short_screen` pins
 it on the 800 x 800 offscreen screen.
 
 ## StyleLibrary (src/ui/style_library.*)
