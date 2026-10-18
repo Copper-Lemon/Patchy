@@ -3119,6 +3119,27 @@ void CanvasWidget::update_free_transform_preview(QPointF document_point, Qt::Key
 }
 
 void CanvasWidget::commit_free_transform() {
+  // Photoshop warns before transforming type whose font is missing (GitHub issue 185); the
+  // owner asks before anything is written, and a refusal cancels the session untouched.
+  if (transforming_layer_ && document_ != nullptr && missing_font_transform_confirm_callback_) {
+    const bool geometry_changed =
+        transform_scale_x_sign_ < 0.0 || transform_scale_y_sign_ < 0.0 || std::abs(transform_angle_) > 0.01 ||
+        std::lround(transform_current_rect_.left()) != std::lround(transform_original_rect_.left()) ||
+        std::lround(transform_current_rect_.top()) != std::lround(transform_original_rect_.top()) ||
+        std::lround(transform_current_rect_.width()) != std::lround(transform_original_rect_.width()) ||
+        std::lround(transform_current_rect_.height()) != std::lround(transform_original_rect_.height());
+    std::vector<LayerId> ids;
+    for (const auto& target : transform_targets_) {
+      ids.push_back(target.id);
+    }
+    if (ids.empty() && transform_layer_id_.has_value()) {
+      ids.push_back(*transform_layer_id_);
+    }
+    if (geometry_changed && !ids.empty() && !missing_font_transform_confirm_callback_(ids)) {
+      cancel_free_transform();
+      return;
+    }
+  }
   if (transforming_layer_ && !transform_targets_.empty()) {
     // Multi-target session; pending warp cannot coexist (warp refuses these).
     commit_free_transform_multi();

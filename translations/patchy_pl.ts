@@ -6449,18 +6449,6 @@ Przepływ:%6
         <translation>Rozwiń folder (%ALT%-kliknięcie obejmuje zagnieżdżone foldery, %CTRL%+%ALT%-kliknięcie wszystkich folderów)</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. No glyphs for this text in: %2. Other fonts are being substituted, so the text does not look as it was authored.</source>
-        <translation>Warstwa tekstowa. Brakująca czcionka: %1. Brak glifów dla tego tekstu w: %2. Używane są czcionki zastępcze, więc tekst wygląda inaczej niż w oryginale.</translation>
-    </message>
-    <message>
-        <source>Text layer. No glyphs for this text in: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>Warstwa tekstowa. Brak glifów dla tego tekstu w: %1. Używana jest czcionka zastępcza, więc tekst wygląda inaczej niż w oryginale.</translation>
-    </message>
-    <message>
-        <source>Text layer. Missing font: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>Warstwa tekstowa. Brakująca czcionka: %1. Używana jest czcionka zastępcza, więc tekst wygląda inaczej niż w oryginale.</translation>
-    </message>
-    <message>
         <source>Folder layer</source>
         <translation>Warstwa folderów</translation>
     </message>
@@ -10404,6 +10392,58 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>The settings of the last document created here: %1 x %2 px at %3 ppi</source>
         <translation>Ustawienia ostatniego dokumentu utworzonego tutaj: %1 x %2 px przy %3 ppi</translation>
+    </message>
+    <message>
+        <source>Missing Fonts</source>
+        <translation>Brakujące czcionki</translation>
+    </message>
+    <message>
+        <source>Some fonts used in this document are missing. Choose an installed font to replace each one in every text layer that uses it, or leave it unresolved.</source>
+        <translation>Brakuje niektórych czcionek użytych w tym dokumencie. Wybierz zainstalowaną czcionkę, która zastąpi każdą z nich we wszystkich warstwach tekstowych, albo pozostaw ją nierozwiązaną.</translation>
+    </message>
+    <message>
+        <source>Resolve Fonts</source>
+        <translation>Rozwiąż czcionki</translation>
+    </message>
+    <message numerus="yes">
+        <source>Installed, but has no glyphs for this text. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>Zainstalowana, ale nie ma glifów dla tego tekstu. Używana w %n warstwie tekstowej.</numerusform>
+            <numerusform>Zainstalowana, ale nie ma glifów dla tego tekstu. Używana w %n warstwach tekstowych.</numerusform>
+            <numerusform>Zainstalowana, ale nie ma glifów dla tego tekstu. Używana w %n warstwach tekstowych.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Not installed. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>Niezainstalowana. Używana w %n warstwie tekstowej.</numerusform>
+            <numerusform>Niezainstalowana. Używana w %n warstwach tekstowych.</numerusform>
+            <numerusform>Niezainstalowana. Używana w %n warstwach tekstowych.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Replace with:</source>
+        <translation>Zastąp przez:</translation>
+    </message>
+    <message>
+        <source>Don&apos;t show when opening documents</source>
+        <translation>Nie pokazuj przy otwieraniu dokumentów</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens this dialog at any time. Preferences can turn it back on for opened documents.</source>
+        <translation>Tekst &gt; Rozwiąż brakujące czcionki otwiera to okno w dowolnej chwili. W Preferencjach można je ponownie włączyć dla otwieranych dokumentów.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1. No glyphs for this text in: %2.</source>
+        <translation>Warstwa tekstowa. Brak czcionki na tym komputerze: %1. Brak glifów dla tego tekstu w: %2.</translation>
+    </message>
+    <message>
+        <source>Text layer. No glyphs for this text in: %1.</source>
+        <translation>Warstwa tekstowa. Brak glifów dla tego tekstu w: %1.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1.</source>
+        <translation>Warstwa tekstowa. Brak czcionki na tym komputerze: %1.</translation>
     </message>
 </context>
 <context>
@@ -21775,6 +21815,54 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
     <message>
         <source>Distribute spacing and choose what to align to</source>
         <translation>Rozłóż odstępy i wybierz, do czego chcesz wyrównać</translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts...</source>
+        <translation>Rozwiąż brakujące czcionki...</translation>
+    </message>
+    <message>
+        <source>This document has no missing fonts</source>
+        <translation>Ten dokument nie ma brakujących czcionek</translation>
+    </message>
+    <message numerus="yes">
+        <source>Replaced missing fonts in %n text layer(s)</source>
+        <translation>
+            <numerusform>Zastąpiono brakujące czcionki w %n warstwie tekstowej</numerusform>
+            <numerusform>Zastąpiono brakujące czcionki w %n warstwach tekstowych</numerusform>
+            <numerusform>Zastąpiono brakujące czcionki w %n warstwach tekstowych</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>(%n locked layer(s) kept their fonts)</source>
+        <translation>
+            <numerusform>(%n zablokowana warstwa zachowała czcionki)</numerusform>
+            <numerusform>(%n zablokowane warstwy zachowały czcionki)</numerusform>
+            <numerusform>(%n zablokowanych warstw zachowało czcionki)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts</source>
+        <translation>Rozwiąż brakujące czcionki</translation>
+    </message>
+    <message>
+        <source>Show the Missing Fonts dialog when opening a document with missing fonts</source>
+        <translation>Pokazuj okno Brakujące czcionki przy otwieraniu dokumentu z brakującymi czcionkami</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens the same dialog at any time.</source>
+        <translation>Tekst &gt; Rozwiąż brakujące czcionki otwiera to samo okno w dowolnej chwili.</translation>
+    </message>
+    <message>
+        <source>The following fonts are missing for text layer &quot;%1&quot;: %2. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>Brakuje następujących czcionek dla warstwy tekstowej „%1”: %2. Istniejące piksele zostaną przekształcone zamiast ponownie wyrenderowane. Kontynuować?</translation>
+    </message>
+    <message numerus="yes">
+        <source>The following fonts are missing for %n text layer(s): %1. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>
+            <numerusform>Brakuje następujących czcionek dla %n warstwy tekstowej: %1. Istniejące piksele zostaną przekształcone zamiast ponownie wyrenderowane. Kontynuować?</numerusform>
+            <numerusform>Brakuje następujących czcionek dla %n warstw tekstowych: %1. Istniejące piksele zostaną przekształcone zamiast ponownie wyrenderowane. Kontynuować?</numerusform>
+            <numerusform>Brakuje następujących czcionek dla %n warstw tekstowych: %1. Istniejące piksele zostaną przekształcone zamiast ponownie wyrenderowane. Kontynuować?</numerusform>
+        </translation>
     </message>
 </context>
 <context>

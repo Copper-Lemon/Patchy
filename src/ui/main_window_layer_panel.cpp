@@ -132,6 +132,9 @@ namespace patchy::ui {
 namespace {
 
 constexpr const char* kLayerContentThumbnailRevisionProperty = "patchyContentRevision";
+// Set while the thumbnail leaves out a text layer's missing-font badge because an open session
+// already draws the layer in installed faces (GitHub issue 178).
+constexpr const char* kLayerContentThumbnailFontBadgeHiddenProperty = "patchyFontBadgeHidden";
 constexpr const char* kLayerMaskThumbnailRevisionProperty = "patchyMaskRevision";
 
 constexpr int kLayerRowBaseIndent = 6;
@@ -1000,7 +1003,7 @@ void draw_missing_font_thumbnail_badge(QPainter& painter, int size, const QColor
 // are icons, not document previews, so neither the document rect nor the
 // zoomed-mode crop applies.
 QPixmap layer_content_thumbnail(const Layer& layer, int document_width, int document_height,
-                                const std::optional<Rect>& crop = std::nullopt) {
+                                const std::optional<Rect>& crop = std::nullopt, bool font_badge = true) {
   constexpr int kSize = 28;
   if (layer.kind() == LayerKind::Group && layer.artboard().has_value()) {
     // An artboard: a page in its own background color (a checker when Transparent)
@@ -1151,7 +1154,7 @@ QPixmap layer_content_thumbnail(const Layer& layer, int document_width, int docu
     painter.drawText(baseline + QPoint(1, 1), glyph);
     painter.setPen(text_color);
     painter.drawText(baseline, glyph);
-    if (!missing_text_families_for_layer(layer).isEmpty()) {
+    if (font_badge && !missing_text_families_for_layer(layer).isEmpty()) {
       draw_missing_font_thumbnail_badge(painter, kSize, background);
     }
     return pixmap;
@@ -1249,6 +1252,37 @@ QPixmap layer_content_thumbnail(const Layer& layer, int document_width, int docu
   QPainter painter(&pixmap);
   draw_thumbnail_frame(painter, tile);
   return pixmap;
+}
+
+// `report_font_problems` is false while an open session already draws the layer's missing fonts
+// in installed faces (the badge is left out then too).
+QString layer_content_thumbnail_tooltip(const Layer& layer, bool report_font_problems = true) {
+  const auto font_problems =
+      report_font_problems && layer_is_text(layer) ? text_font_problems_for_layer(layer) : TextFontProblems{};
+  // The badge says "something is wrong"; the tooltip says what, and WHICH thing: "missing"
+  // sends the user hunting for a font that may be installed and merely lack the glyphs. It says
+  // nothing about substitution (GitHub issue 184): until an edit or transform, the layer shows
+  // the pixels it was saved with, and those paths ask before they substitute.
+  const auto font_problem_tooltip = [&font_problems] {
+    const auto missing = font_problems.not_installed.join(QStringLiteral(", "));
+    const auto glyphless = font_problems.no_glyphs.join(QStringLiteral(", "));
+    if (!missing.isEmpty() && !glyphless.isEmpty()) {
+      return QObject::tr("Text layer. Font is missing on this computer: %1. No glyphs for this text in: %2.")
+          .arg(missing, glyphless);
+    }
+    if (!glyphless.isEmpty()) {
+      return QObject::tr("Text layer. No glyphs for this text in: %1.").arg(glyphless);
+    }
+    return QObject::tr("Text layer. Font is missing on this computer: %1.").arg(missing);
+  };
+  return layer_is_artboard(layer) ? QObject::tr("Artboard")
+         : layer.kind() == LayerKind::Group
+             ? QObject::tr("Folder layer")
+             : layer.kind() == LayerKind::Adjustment
+                 ? QObject::tr("Adjustment Layer")
+                 : !font_problems.empty()
+                       ? font_problem_tooltip()
+                       : layer_is_text(layer) ? QObject::tr("Text layer") : QObject::tr("Layer thumbnail");
 }
 
 QWidget* make_layer_row_widget(const Layer& layer, QListWidgetItem* item, QWidget* parent,
@@ -1394,36 +1428,7 @@ QWidget* make_layer_row_widget(const Layer& layer, QListWidgetItem* item, QWidge
                                                      thumbnail_crop));
   thumbnail->setProperty(kLayerContentThumbnailRevisionProperty,
                          QVariant::fromValue<qulonglong>(static_cast<qulonglong>(layer.render_revision())));
-  const auto font_problems = layer_is_text(layer) ? text_font_problems_for_layer(layer) : TextFontProblems{};
-  // The badge says "something is wrong"; the tooltip has to say what, because the substituted
-  // face often looks like a plausible design choice. It also has to say WHICH thing is wrong:
-  // "missing" sends the user hunting for a font that may be installed and merely lack the glyphs.
-  const auto font_problem_tooltip = [&font_problems] {
-    const auto missing = font_problems.not_installed.join(QStringLiteral(", "));
-    const auto glyphless = font_problems.no_glyphs.join(QStringLiteral(", "));
-    if (!missing.isEmpty() && !glyphless.isEmpty()) {
-      return QObject::tr("Text layer. Missing font: %1. No glyphs for this text in: %2. Other fonts are being "
-                         "substituted, so the text does not look as it was authored.")
-          .arg(missing, glyphless);
-    }
-    if (!glyphless.isEmpty()) {
-      return QObject::tr("Text layer. No glyphs for this text in: %1. Another font is being "
-                         "substituted, so the text does not look as it was authored.")
-          .arg(glyphless);
-    }
-    return QObject::tr("Text layer. Missing font: %1. Another font is being "
-                       "substituted, so the text does not look as it was authored.")
-        .arg(missing);
-  };
-  thumbnail->setToolTip(
-      layer_is_artboard(layer) ? QObject::tr("Artboard")
-      : layer.kind() == LayerKind::Group
-          ? QObject::tr("Folder layer")
-          : layer.kind() == LayerKind::Adjustment
-              ? QObject::tr("Adjustment Layer")
-              : !font_problems.empty()
-                    ? font_problem_tooltip()
-                    : layer_is_text(layer) ? QObject::tr("Text layer") : QObject::tr("Layer thumbnail"));
+  thumbnail->setToolTip(layer_content_thumbnail_tooltip(layer));
   thumbnail->setProperty("layerTargetActive", content_target_active);
   // Thumbnails stay enabled even when the layer is hidden: a disabled QLabel
   // repaints its pixmap through the style's grayscale disabled-icon filter,
@@ -3229,6 +3234,7 @@ void MainWindow::refresh_layer_list(bool retire_automation_rows, const std::func
   const auto build_started = std::chrono::steady_clock::now();
   append_layers(doc.layers(), 0, true, kLayerLockNone);
   const auto insert_started = std::chrono::steady_clock::now();
+  const auto session_layer = live_text_session_layer_id();
   for (const auto& pending : pending_rows) {
     layer_list_->addItem(pending.item);
     if (active.has_value() && *active == pending.layer->id()) {
@@ -3350,6 +3356,14 @@ void MainWindow::refresh_layer_list(bool retire_automation_rows, const std::func
                                         return layer_thumbnail_crop(row_layer);
                                       });
     widget_ms += phase_ms(widget_started);
+    if (session_layer == layer.id() && layer_is_text(layer)) {
+      // The content tile above came without the badge; the tooltip has to agree.
+      if (auto* thumbnail = row_widget->findChild<QLabel*>(QStringLiteral("layerContentThumbnail"));
+          thumbnail != nullptr) {
+        thumbnail->setProperty(kLayerContentThumbnailFontBadgeHiddenProperty, true);
+        thumbnail->setToolTip(layer_content_thumbnail_tooltip(layer, false));
+      }
+    }
     const auto set_widget_started = std::chrono::steady_clock::now();
     layer_list_->setItemWidget(item, row_widget);
     set_widget_ms += phase_ms(set_widget_started);
@@ -3421,10 +3435,12 @@ QPixmap MainWindow::cached_layer_content_thumbnail(const Layer& layer, int docum
   // Render revision, not content: thumbnails are document-positioned and a
   // pure move bumps only the render revision.
   const auto revision = layer.render_revision();
-  if (entry.content.isNull() || entry.content_render_revision != revision) {
+  const bool font_badge = !layer_is_text(layer) || live_text_session_layer_id() != layer.id();
+  if (entry.content.isNull() || entry.content_render_revision != revision || entry.content_font_badge != font_badge) {
     entry.content = layer_content_thumbnail(layer, document_width, document_height,
-                                            layer_thumbnail_crop(layer));
+                                            layer_thumbnail_crop(layer), font_badge);
     entry.content_render_revision = revision;
+    entry.content_font_badge = font_badge;
   }
   return entry.content;
 }
@@ -3462,6 +3478,7 @@ void MainWindow::refresh_layer_thumbnails() {
   int content_skipped = 0;
   int mask_refreshed = 0;
   int mask_skipped = 0;
+  const auto session_layer = live_text_session_layer_id();
   std::set<LayerId> live_layer_ids;
   for (int row_index = 0; row_index < layer_list_->count(); ++row_index) {
     auto* item = layer_list_->item(row_index);
@@ -3478,9 +3495,15 @@ void MainWindow::refresh_layer_thumbnails() {
     const auto revision = static_cast<qulonglong>(layer->render_revision());
     if (auto* thumbnail = row->findChild<QLabel*>(QStringLiteral("layerContentThumbnail")); thumbnail != nullptr &&
         (layer->kind() == LayerKind::Pixel || layer_is_text(*layer))) {
-      if (extent_changed || thumbnail->property(kLayerContentThumbnailRevisionProperty).toULongLong() != revision) {
+      const bool font_badge_hidden = layer_is_text(*layer) && session_layer == layer_id;
+      if (extent_changed || thumbnail->property(kLayerContentThumbnailRevisionProperty).toULongLong() != revision ||
+          thumbnail->property(kLayerContentThumbnailFontBadgeHiddenProperty).toBool() != font_badge_hidden) {
         thumbnail->setPixmap(cached_layer_content_thumbnail(*layer, doc.width(), doc.height()));
         thumbnail->setProperty(kLayerContentThumbnailRevisionProperty, QVariant::fromValue<qulonglong>(revision));
+        if (layer_is_text(*layer)) {
+          thumbnail->setProperty(kLayerContentThumbnailFontBadgeHiddenProperty, font_badge_hidden);
+          thumbnail->setToolTip(layer_content_thumbnail_tooltip(*layer, !font_badge_hidden));
+        }
         ++content_refreshed;
       } else {
         ++content_skipped;

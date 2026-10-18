@@ -715,6 +715,13 @@ QStringList render_text_families_for_display_family(const QString& family) {
 // still flagged as missing its font -- adding one letter to such a layer brought the layer-panel
 // warning badge straight back. Returns `family` unchanged when it can draw `demanded` itself, and
 // when nothing installed can (the layer honestly still has a font problem).
+// The compact key the missing-font check dedupes by, so "LiberationSans" in one run and
+// "Liberation Sans" in another take the same replacement.
+QString text_font_replacement_key(const QString& family) {
+  const auto compact = compact_text_family_key(family);
+  return compact.isEmpty() ? family.trimmed().toCaseFolded() : compact;
+}
+
 QString substituted_text_family(const QString& family, const QString& demanded) {
   const auto cannot_draw = [&demanded](const QString& candidate) {
     QStringList missing;

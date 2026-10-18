@@ -1506,6 +1506,11 @@ void CanvasWidget::set_text_layer_transform_render_callback(std::function<bool(L
   text_layer_transform_render_callback_ = std::move(callback);
 }
 
+void CanvasWidget::set_missing_font_transform_confirm_callback(
+    std::function<bool(const std::vector<LayerId>&)> callback) {
+  missing_font_transform_confirm_callback_ = std::move(callback);
+}
+
 void CanvasWidget::set_selected_layer_ids(std::vector<LayerId> layer_ids) {
   if (layer_ids != selected_layer_ids_) {
     cancel_path_transform();

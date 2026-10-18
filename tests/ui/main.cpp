@@ -347,6 +347,10 @@ int main(int argc, char* argv[]) {
     settings.remove(QStringLiteral("preferences/language"));
     settings.remove(QStringLiteral("preferences/colorScheme"));
     settings.setValue(QStringLiteral("updates/checkOnStartup"), false);
+    // Many fixtures name fonts a test host lacks; the Missing Fonts dialog would block every
+    // interactive open of them. The tests that cover it turn it on themselves.
+    settings.setValue(QStringLiteral("imports/showMissingFontsDialog"), false);
+    settings.setValue(QStringLiteral("text/warnMissingFontsOnTransform"), false);
     settings.sync();
   }
   patchy::ui::LocalizationManager::instance().set_language(QStringLiteral("en"), false);
@@ -362,6 +366,7 @@ int main(int argc, char* argv[]) {
            app_shell_tests,
            localization_tests,
            font_coverage_tests,
+           missing_fonts_tests,
            filter_catalog_dialog_tests,
            layer_style_gradient_tests,
            destructive_filters_gallery_tests,

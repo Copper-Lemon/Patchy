@@ -6185,10 +6185,6 @@ Flow: %6
         <translation>資料夾圖層</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>文字圖層。遺失字體：%1。系統已改用其他字體替代，因此文字外觀與原始設計不同。</translation>
-    </message>
-    <message>
         <source>Text layer</source>
         <translation>文字圖層</translation>
     </message>
@@ -8672,14 +8668,6 @@ RGB：%2, %3, %4</translation>
         <translation>這些字體沒有其文字所需的字符：%1。編輯這個 PSD 點陣預視時會以其他字體取代。要繼續嗎？</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. No glyphs for this text in: %2. Other fonts are being substituted, so the text does not look as it was authored.</source>
-        <translation>文字圖層。遺失字體：%1。下列字體沒有這段文字所需的字符：%2。系統已改用其他字體替代，因此文字外觀與原始設計不同。</translation>
-    </message>
-    <message>
-        <source>Text layer. No glyphs for this text in: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>文字圖層。下列字體沒有這段文字所需的字符：%1。系統已改用其他字體替代，因此文字外觀與原始設計不同。</translation>
-    </message>
-    <message>
         <source>UI language for this run only, not saved: en, de, es, fr, it, ja, ko, pl, pt_BR, ru, zh_CN, or zh_TW.</source>
         <translation>僅本次執行使用的介面語言，不會儲存：en、de、es、fr、it、ja、ko、pl、pt_BR、ru、zh_CN 或 zh_TW。</translation>
     </message>
@@ -10340,6 +10328,54 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>The settings of the last document created here: %1 x %2 px at %3 ppi</source>
         <translation>上次在此建立的文件的設定：%1 x %2 px，%3 ppi</translation>
+    </message>
+    <message>
+        <source>Missing Fonts</source>
+        <translation>遺失的字體</translation>
+    </message>
+    <message>
+        <source>Some fonts used in this document are missing. Choose an installed font to replace each one in every text layer that uses it, or leave it unresolved.</source>
+        <translation>此文件使用的部分字體遺失。請為每種字體選擇一種已安裝的字體，在使用它的所有文字圖層中取代，或保持不解析。</translation>
+    </message>
+    <message>
+        <source>Resolve Fonts</source>
+        <translation>解析字體</translation>
+    </message>
+    <message numerus="yes">
+        <source>Installed, but has no glyphs for this text. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>已安裝，但沒有此文字的字符。用於 %n 個文字圖層。</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Not installed. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>未安裝。用於 %n 個文字圖層。</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Replace with:</source>
+        <translation>取代為：</translation>
+    </message>
+    <message>
+        <source>Don&apos;t show when opening documents</source>
+        <translation>開啟文件時不顯示</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens this dialog at any time. Preferences can turn it back on for opened documents.</source>
+        <translation>文字 &gt; 解析遺失的字體 可隨時開啟此對話框。可在偏好設定中為開啟的文件重新啟用。</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1. No glyphs for this text in: %2.</source>
+        <translation>文字圖層。此電腦上遺失字體：%1。下列字體沒有這段文字所需的字符：%2。</translation>
+    </message>
+    <message>
+        <source>Text layer. No glyphs for this text in: %1.</source>
+        <translation>文字圖層。下列字體沒有這段文字所需的字符：%1。</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1.</source>
+        <translation>文字圖層。此電腦上遺失字體：%1。</translation>
     </message>
 </context>
 <context>
@@ -21645,6 +21681,48 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
     <message>
         <source>Distribute spacing and choose what to align to</source>
         <translation>分佈間距並選擇對齊目標</translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts...</source>
+        <translation>解析遺失的字體...</translation>
+    </message>
+    <message>
+        <source>This document has no missing fonts</source>
+        <translation>此文件沒有遺失的字體</translation>
+    </message>
+    <message numerus="yes">
+        <source>Replaced missing fonts in %n text layer(s)</source>
+        <translation>
+            <numerusform>已取代 %n 個文字圖層中遺失的字體</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>(%n locked layer(s) kept their fonts)</source>
+        <translation>
+            <numerusform>（%n 個鎖定的圖層保留了其字體）</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts</source>
+        <translation>解析遺失的字體</translation>
+    </message>
+    <message>
+        <source>Show the Missing Fonts dialog when opening a document with missing fonts</source>
+        <translation>開啟含有遺失字體的文件時顯示「遺失的字體」對話框</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens the same dialog at any time.</source>
+        <translation>文字 &gt; 解析遺失的字體 可隨時開啟同一對話框。</translation>
+    </message>
+    <message>
+        <source>The following fonts are missing for text layer &quot;%1&quot;: %2. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>文字圖層「%1」遺失下列字體：%2。將變形現有像素，而非重新算繪。是否繼續？</translation>
+    </message>
+    <message numerus="yes">
+        <source>The following fonts are missing for %n text layer(s): %1. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>
+            <numerusform>%n 個文字圖層遺失下列字體：%1。將變形現有像素，而非重新算繪。是否繼續？</numerusform>
+        </translation>
     </message>
 </context>
 <context>

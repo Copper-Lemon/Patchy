@@ -1209,6 +1209,9 @@ public:
   // Re-render a just-transformed text layer's glyphs crisply through its stored transform.  Returns
   // true if it replaced the layer's pixels/bounds (so the resampled bitmap is overridden).
   void set_text_layer_transform_render_callback(std::function<bool(LayerId)> callback);
+  // Asked before a Free Transform that changes geometry commits, with every layer it would
+  // transform. False cancels the whole transform (GitHub issue 185: the missing-font warning).
+  void set_missing_font_transform_confirm_callback(std::function<bool(const std::vector<LayerId>&)> callback);
   void set_smart_object_transform_render_callback(std::function<bool(LayerId)> callback);
   // The natural-size decode of a smart object's source for the Warp cage: embedded
   // bytes, or a linked file resolved against the owning document's folder (the canvas
@@ -3133,6 +3136,7 @@ private:
   std::function<void()> view_changed_callback_;
   std::function<void()> transform_controls_changed_callback_;
   std::function<bool(LayerId)> text_layer_transform_render_callback_;
+  std::function<bool(const std::vector<LayerId>&)> missing_font_transform_confirm_callback_;
   std::function<bool(LayerId)> smart_object_transform_render_callback_;
   std::function<std::optional<QImage>(LayerId, QString*)> smart_object_source_image_callback_;
   std::function<void(LayerId)> smart_object_paint_prompt_callback_;
