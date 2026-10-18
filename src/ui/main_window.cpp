@@ -5687,12 +5687,13 @@ void MainWindow::configure_canvas(CanvasWidget* canvas) {
     }
     handle_artboard_edit(request);
   });
-  canvas->set_layers_moved_callback([this, canvas](const std::vector<LayerId>& moved) {
+  canvas->set_layers_moved_callback([this, canvas](const std::vector<LayerId>& /*moved*/) {
     if (canvas != canvas_) {
       return;
     }
-    nest_moved_layers_in_artboards(moved);
+    refresh_after_artboard_nesting();
   });
+  canvas->set_artboard_auto_nest(artboard_auto_nest_);
   canvas->set_vector_tool_mode(current_vector_tool_mode_);
   canvas->set_pen_auto_add_delete(current_pen_auto_add_delete_);
   canvas->set_vector_shape_drawn_callback(

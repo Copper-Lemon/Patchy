@@ -1226,9 +1226,9 @@ OpenDocumentResult load_document_from_path(QString path) {
     apply_imported_image_density(opened, read_all_file_bytes(path), image);
   };
   // PDF before the registry, like PSD: the reader is Qt PDF, which cannot live in the
-  // Qt-free format registry. This is the non-interactive path (CLI opens, tests, Reopen),
-  // so it renders page 1 at the remembered resolution and says so; the Open command goes
-  // through the page picker in load_document_interactive first.
+  // Qt-free format registry. This is the non-interactive path (CLI opens, tests, scripts,
+  // Files as Layers), so it renders page 1 at the remembered resolution and says so; Open
+  // and Reopen go through the page picker in load_document_interactive first.
   if (is_pdf_extension(extension)) {
     PdfImportOptions pdf_options;
     pdf_options.resolution_ppi =
@@ -2620,60 +2620,56 @@ void MainWindow::merge_imported_pdf_pages(Document& first, const QString& first_
     merged.metadata().artboard_settings.emplace();
   }
 
-  std::vector<std::pair<LayerId, std::shared_ptr<const PdfSourcePage>>> artboard_sources;
-  // Copied in stacking order: Layers bottom-up (page 1 at the bottom, like one layer per
-  // page), Artboards top-down (page 1 the topmost artboard, so the per-artboard exports run
-  // in page order).
+  std::vector<std::pair<LayerId, std::shared_ptr<const PdfSourcePage>>> page_sources;
+  // Copied bottom-up so page 1 ends on top: the topmost folder (only it visible) or the
+  // topmost, top-left artboard, which is also the order every per-page export writes.
   for (int step = 0; step < count; ++step) {
-    const int index = merge == PdfPagesMerge::Artboards ? count - 1 - step : step;
+    const int index = count - 1 - step;
     auto& page = *pages[static_cast<std::size_t>(index)].document;
     const auto& title = pages[static_cast<std::size_t>(index)].title;
-    const auto& page_layers = std::as_const(page).layers();
-    const bool plain_raster = merge == PdfPagesMerge::Layers && page_layers.size() == 1U &&
-                              page_layers.front().kind() == LayerKind::Pixel && !layer_is_text(page_layers.front()) &&
-                              !layer_is_vector_shape(page_layers.front()) &&
-                              !layer_is_smart_object(page_layers.front());
-    LayerId root_id = 0;
-    if (plain_raster) {
-      page.layers().front().set_name(title.toStdString());
-      page.layers().front().set_visible(index == 0);
-      root_id = page.layers().front().id();
-    } else {
-      auto wrapper = merge == PdfPagesMerge::Artboards
-                         ? make_artboard_group(page.allocate_layer_id(), title.toStdString(),
-                                               Rect::from_size(page.width(), page.height()),
-                                               white_background ? ArtboardBackground::White
-                                                                : ArtboardBackground::Transparent)
-                         : Layer(page.allocate_layer_id(), title.toStdString(), LayerKind::Group);
-      if (merge == PdfPagesMerge::Layers) {
-        wrapper.set_blend_mode(BlendMode::PassThrough);
-        wrapper.set_visible(index == 0);
-      }
-      for (auto& layer : page.layers()) {
-        wrapper.add_child(std::move(layer));
-      }
-      page.layers().clear();
-      root_id = wrapper.id();
-      page.layers().push_back(std::move(wrapper));
+    auto wrapper = merge == PdfPagesMerge::Artboards
+                       ? make_artboard_group(page.allocate_layer_id(), title.toStdString(),
+                                             Rect::from_size(page.width(), page.height()),
+                                             white_background ? ArtboardBackground::White
+                                                              : ArtboardBackground::Transparent)
+                       : Layer(page.allocate_layer_id(), title.toStdString(), LayerKind::Group);
+    if (merge == PdfPagesMerge::Layers) {
+      // Every page is a folder, a scan included, and remembers its own size: exporting by
+      // groups gives each page back at that size (docs/pdf.md).
+      wrapper.set_blend_mode(BlendMode::PassThrough);
+      wrapper.set_visible(index == 0);
+      const auto origin = origin_of(index);
+      wrapper.metadata()[kLayerMetadataPdfPageRect] = QStringLiteral("%1,%2,%3,%4")
+                                                          .arg(origin.x())
+                                                          .arg(origin.y())
+                                                          .arg(page.width())
+                                                          .arg(page.height())
+                                                          .toStdString();
     }
+    for (auto& layer : page.layers()) {
+      wrapper.add_child(std::move(layer));
+    }
+    page.layers().clear();
+    const auto root_id = wrapper.id();
+    page.layers().push_back(std::move(wrapper));
     CrossDocumentLayerPlacement placement;
     placement.exact_offset = origin_of(index);
     placement.keep_names = true;
     QString error;
     const auto copied =
         copy_layers_between_documents(std::as_const(page), {root_id}, merged, placement, [] { return true; }, &error);
-    if (merge == PdfPagesMerge::Artboards && !copied.empty()) {
+    if (!copied.empty()) {
       if (const auto source = std::as_const(page).metadata().pdf_source_page; source != nullptr) {
-        artboard_sources.emplace_back(copied.front(), source);
+        page_sources.emplace_back(copied.front(), source);
       }
     }
   }
   first = std::move(merged);
   extras.clear();
-  // Each untouched artboard page re-exports its original image (docs/pdf.md
-  // "Pass-through"): fingerprint the page exactly as the per-artboard export derives it.
-  for (const auto& [artboard_id, source] : artboard_sources) {
-    attach_pdf_artboard_source_page(first, artboard_id, source);
+  // Each untouched page re-exports its original image (docs/pdf.md "Pass-through"):
+  // fingerprint the page exactly as the per-page export derives it.
+  for (const auto& [page_layer_id, source] : page_sources) {
+    attach_pdf_page_source(first, page_layer_id, source);
   }
   if (const auto default_layer = default_non_group_layer_id(std::as_const(first).layers()); default_layer.has_value()) {
     first.set_active_layer(*default_layer);
@@ -2776,6 +2772,11 @@ void MainWindow::reopen_document_session(DocumentSession& target_session) {
     auto loaded = load_document_interactive(this, path, !unattended_automation(), allow_raw_dialog);
     if (!loaded.has_value()) {
       return;
+    }
+    // Reopen replaces this one tab: a PDF re-imported as separate documents brings back
+    // only its first page here, never a second set of page tabs.
+    if (loaded->pdf_merge == PdfPagesMerge::None) {
+      loaded->extra_documents.clear();
     }
     render_pending_svg_text_layers(loaded->document);
     render_pending_af_text_layers(loaded->document);
@@ -4356,19 +4357,22 @@ void MainWindow::export_multipage_pdf() {
     }
   }
   int group_count = 0;
+  int hidden_group_count = 0;
   for (const auto& layer : std::as_const(document()).layers()) {
-    if (layer.kind() == LayerKind::Group && layer.visible()) {
+    if (layer.kind() == LayerKind::Group && !layer_is_artboard(layer)) {
       ++group_count;
+      hidden_group_count += layer.visible() ? 0 : 1;
     }
   }
   const bool original_image_data_available =
       std::any_of(sessions_.begin(), sessions_.end(), [](const auto& candidate) {
         return candidate != nullptr && (std::as_const(candidate->document).metadata().pdf_source_page != nullptr ||
-                                        !std::as_const(candidate->document).metadata().pdf_artboard_source_pages.empty());
+                                        !std::as_const(candidate->document).metadata().pdf_page_source_pages.empty());
       });
   const auto artboard_count = static_cast<int>(document_artboards(std::as_const(document())).size());
   const auto choice = run_multipage_pdf_export_dialog(this, entries, session().session_id, group_count,
-                                                      original_image_data_available, artboard_count);
+                                                      original_image_data_available, artboard_count,
+                                                      hidden_group_count);
   if (!choice.has_value()) {
     return;
   }
@@ -4389,7 +4393,8 @@ void MainWindow::export_multipage_pdf() {
     std::vector<Document> group_pages;
     std::vector<const Document*> pages;
     if (choice->source == MultiPagePdfSource::TopLevelGroups) {
-      group_pages = documents_for_top_level_groups(std::as_const(document()), choice->include_ungrouped_layers);
+      group_pages = documents_for_top_level_groups(std::as_const(document()), choice->include_ungrouped_layers,
+                                                   choice->include_hidden_groups);
       pages.reserve(group_pages.size());
       for (const auto& page : group_pages) {
         pages.push_back(&page);

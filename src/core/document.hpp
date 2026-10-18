@@ -84,7 +84,7 @@ struct DocumentMetadata {
   std::shared_ptr<const PdfSourcePage> pdf_source_page;
   // The same for a document whose pages became artboards: each untouched artboard's own
   // page image, keyed by the artboard group's layer id. Session-only, never serialized.
-  std::map<LayerId, std::shared_ptr<const PdfSourcePage>> pdf_artboard_source_pages;
+  std::map<LayerId, std::shared_ptr<const PdfSourcePage>> pdf_page_source_pages;
   // Present when the source had an 'artd' block or the document has artboards.
   std::optional<DocumentArtboardSettings> artboard_settings;
 };

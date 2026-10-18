@@ -28,6 +28,7 @@
 #include <QColor>
 #include <QCursor>
 #include <QImage>
+#include <QPainter>
 #include <QPixmap>
 #include <QPoint>
 #include <QPointF>
@@ -247,6 +248,25 @@ CanvasWidget::CanvasWidget(QWidget* parent) : QWidget(parent) {
 
 void CanvasWidget::set_document(Document* document) {
   set_document_internal(document, /*preserve_frame_for_same_size=*/false);
+}
+
+void CanvasWidget::set_document_after_canvas_growth(Document* document, QPoint document_shift) {
+  const QImage old_frame = render_cache_dirty_ ? QImage() : render_cache_;
+  set_document_internal(document, /*preserve_frame_for_same_size=*/false);
+  if (document_ == nullptr || old_frame.isNull()) {
+    return;
+  }
+  QImage seeded(document_->width(), document_->height(), old_frame.format());
+  seeded.fill(Qt::transparent);
+  {
+    QPainter painter(&seeded);
+    painter.setCompositionMode(QPainter::CompositionMode_Source);
+    painter.drawImage(document_shift, old_frame);
+  }
+  // Still dirty: the edit changed pixels too, so the refresh renders the whole canvas;
+  // until it lands this seed is the frame paint shows (should_defer_full_refresh_to_async).
+  render_cache_ = std::move(seeded);
+  render_cache_dirty_ = true;
 }
 
 bool CanvasWidget::pointer_gesture_active() const noexcept {

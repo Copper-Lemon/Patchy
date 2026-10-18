@@ -31,6 +31,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <cstdio>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -505,8 +506,9 @@ void write_pdf_document_file(const Document& document, const QString& path, cons
   if (document.width() <= 0 || document.height() <= 0) {
     throw std::runtime_error("The document could not be rendered for PDF export.");
   }
-  if (options.artboard_pages && document_has_artboards(document)) {
-    // Photoshop's Artboards to PDF: a page per artboard, each its own size.
+  if ((options.pages == PdfPageSource::Artboards && document_has_artboards(document)) ||
+      (options.pages == PdfPageSource::Groups && document_has_page_groups(document))) {
+    // Photoshop's Artboards to PDF, or a page per top-level group: each page its own size.
     const Document* single = &document;
     static_cast<void>(write_multipage_pdf_file(std::span<const Document* const>(&single, 1), path, options, notices));
     return;
@@ -530,20 +532,25 @@ bool write_multipage_pdf_file(std::span<const Document* const> requested_pages, 
       throw std::runtime_error("The document could not be rendered for PDF export.");
     }
   }
-  // A document with artboards stands for its artboards, one page each.
+  // A document with artboards stands for its artboards (or, with Groups, one with groups
+  // for its groups), one page each.
+  const auto expands = [&options](const Document& page) {
+    return (options.pages == PdfPageSource::Artboards && document_has_artboards(page)) ||
+           (options.pages == PdfPageSource::Groups && document_has_page_groups(page));
+  };
   std::vector<Document> artboard_pages;
   std::vector<const Document*> expanded;
-  if (options.artboard_pages &&
-      std::any_of(requested_pages.begin(), requested_pages.end(),
-                  [](const Document* page) { return document_has_artboards(*page); })) {
+  if (std::any_of(requested_pages.begin(), requested_pages.end(),
+                  [&](const Document* page) { return expands(*page); })) {
     std::vector<std::pair<std::size_t, std::size_t>> spans;  // [first, end) in artboard_pages, or SIZE_MAX
     for (const auto* page : requested_pages) {
-      if (!document_has_artboards(*page)) {
+      if (!expands(*page)) {
         spans.emplace_back(SIZE_MAX, 0);
         continue;
       }
       const auto first = artboard_pages.size();
-      for (auto& derived : documents_for_artboards(*page)) {
+      for (auto& derived : options.pages == PdfPageSource::Groups ? documents_for_top_level_groups(*page, false)
+                                                                  : documents_for_artboards(*page)) {
         artboard_pages.push_back(std::move(derived));
       }
       // Every artboard hidden: the document is one page of its canvas, like Save As.
@@ -679,11 +686,11 @@ Document document_for_artboard(const Document& document, LayerId artboard_id, bo
     return page;
   }
   page.metadata().pdf_source_page.reset();
-  if (const auto found = document.metadata().pdf_artboard_source_pages.find(artboard_id);
-      found != document.metadata().pdf_artboard_source_pages.end()) {
+  if (const auto found = document.metadata().pdf_page_source_pages.find(artboard_id);
+      found != document.metadata().pdf_page_source_pages.end()) {
     page.metadata().pdf_source_page = found->second;
   }
-  page.metadata().pdf_artboard_source_pages.clear();
+  page.metadata().pdf_page_source_pages.clear();
   static_cast<void>(crop_document(page, *rect, EditColor{0, 0, 0, 0}));
   for (auto& layer : layers) {
     if (!layer_is_artboard(std::as_const(layer))) {
@@ -724,36 +731,127 @@ std::vector<Document> documents_for_artboards(const Document& document, bool inc
   return pages;
 }
 
-void attach_pdf_artboard_source_page(Document& document, LayerId artboard_id,
-                                     const std::shared_ptr<const PdfSourcePage>& source) {
-  auto page = document_for_artboard(document, artboard_id);
+void attach_pdf_page_source(Document& document, LayerId page_layer_id,
+                            const std::shared_ptr<const PdfSourcePage>& source) {
+  const auto* layer = std::as_const(document).find_layer(page_layer_id);
+  if (layer == nullptr) {
+    return;
+  }
+  auto page = layer_is_artboard(*layer) ? document_for_artboard(document, page_layer_id)
+                                        : document_for_page_group(document, page_layer_id);
   attach_pdf_source_page(page, source);
   if (const auto stamped = std::as_const(page).metadata().pdf_source_page; stamped != nullptr) {
-    document.metadata().pdf_artboard_source_pages[artboard_id] = stamped;
+    document.metadata().pdf_page_source_pages[page_layer_id] = stamped;
   }
 }
 
-std::vector<Document> documents_for_top_level_groups(const Document& document, bool include_ungrouped_layers) {
+QString pdf_page_source_token(PdfPageSource source) {
+  switch (source) {
+    case PdfPageSource::Canvas:
+      return QStringLiteral("canvas");
+    case PdfPageSource::Groups:
+      return QStringLiteral("groups");
+    case PdfPageSource::Artboards:
+      break;
+  }
+  return QStringLiteral("artboards");
+}
+
+std::optional<PdfPageSource> pdf_page_source_from_token(const QString& token) {
+  if (token == QStringLiteral("canvas")) {
+    return PdfPageSource::Canvas;
+  }
+  if (token == QStringLiteral("artboards")) {
+    return PdfPageSource::Artboards;
+  }
+  if (token == QStringLiteral("groups")) {
+    return PdfPageSource::Groups;
+  }
+  return std::nullopt;
+}
+
+bool document_has_page_groups(const Document& document) noexcept {
+  return std::any_of(document.layers().begin(), document.layers().end(), [](const Layer& layer) {
+    return layer.kind() == LayerKind::Group && !layer.artboard().has_value();
+  });
+}
+
+bool document_has_imported_page_groups(const Document& document) noexcept {
+  return std::any_of(document.layers().begin(), document.layers().end(), [](const Layer& layer) {
+    return layer.kind() == LayerKind::Group && layer.metadata().contains(kLayerMetadataPdfPageRect);
+  });
+}
+
+Document document_for_page_group(const Document& document, LayerId group_id, bool include_ungrouped_layers) {
+  Document page = document;
+  auto& layers = page.layers();
+  std::optional<Rect> page_rect;
+  // Keep only what the page shows (copying every other page per page would make a long
+  // document's export quadratic).
+  std::erase_if(layers, [&](const Layer& layer) {
+    if (layer.id() == group_id) {
+      return false;
+    }
+    return !(include_ungrouped_layers && layer.kind() != LayerKind::Group && layer.visible());
+  });
+  for (auto& layer : layers) {
+    if (layer.id() != group_id) {
+      continue;
+    }
+    layer.set_visible(true);  // a hidden page is still a page
+    if (const auto found = std::as_const(layer).metadata().find(kLayerMetadataPdfPageRect);
+        found != std::as_const(layer).metadata().end()) {
+      const auto parts = QString::fromStdString(found->second).split(QLatin1Char(','));
+      std::array<int, 4> values{};
+      bool valid = parts.size() == 4;
+      for (qsizetype index = 0; valid && index < 4; ++index) {
+        values[static_cast<std::size_t>(index)] = parts[index].toInt(&valid);
+      }
+      if (valid && values[2] > 0 && values[3] > 0) {
+        page_rect = Rect{values[0], values[1], values[2], values[3]};
+      }
+    }
+  }
+  page.metadata().pdf_source_page.reset();
+  if (const auto found = document.metadata().pdf_page_source_pages.find(group_id);
+      found != document.metadata().pdf_page_source_pages.end()) {
+    page.metadata().pdf_source_page = found->second;
+  }
+  page.metadata().pdf_page_source_pages.clear();
+  if (page_rect.has_value() && !(*page_rect == Rect::from_size(page.width(), page.height()))) {
+    static_cast<void>(crop_document(page, *page_rect, EditColor{0, 0, 0, 0}));
+  }
+  // An imported page folder holding one layer is just that layer on this page: unwrap it
+  // so a page that is one image stays one image (the image writer and its pass-through).
+  if (page_rect.has_value() && layers.size() == 1U && layers.front().kind() == LayerKind::Group &&
+      layers.front().children().size() == 1U) {
+    const auto& group = std::as_const(layers.front());
+    if (!group.artboard().has_value() && group.opacity() >= 1.0F && group.fill_opacity() >= 1.0F &&
+        (group.blend_mode() == BlendMode::Normal || group.blend_mode() == BlendMode::PassThrough) &&
+        !group.mask().has_value() && group.vector_mask() == nullptr && group.layer_style().empty()) {
+      auto children = std::move(layers.front().children());
+      layers = std::move(children);
+      layers.front().set_visible(true);
+    }
+  }
+  convert_artboards_to_plain_groups(page);
+  if (const auto default_layer = default_non_group_layer_id(std::as_const(page).layers()); default_layer.has_value()) {
+    page.set_active_layer(*default_layer);
+  }
+  return page;
+}
+
+std::vector<Document> documents_for_top_level_groups(const Document& document, bool include_ungrouped_layers,
+                                                     bool include_hidden_groups) {
   std::vector<Document> pages;
   const auto& layers = document.layers();
   for (std::size_t index = layers.size(); index-- > 0;) {
     const Layer& group = layers[index];
-    if (group.kind() != LayerKind::Group || !group.visible()) {
+    if (group.kind() != LayerKind::Group || group.artboard().has_value() ||
+        (!group.visible() && !include_hidden_groups)) {
       continue;
     }
-    Document page = document;
-    auto& page_layers = page.layers();
-    for (std::size_t other = 0; other < page_layers.size(); ++other) {
-      if (other == index) {
-        continue;
-      }
-      Layer& layer = page_layers[other];
-      const bool keep = include_ungrouped_layers && layer.kind() != LayerKind::Group;
-      if (!keep) {
-        layer.set_visible(false);
-      }
-    }
-    pages.push_back(std::move(page));
+    pages.push_back(document_for_page_group(document, group.id(), include_ungrouped_layers));
   }
   return pages;
 }

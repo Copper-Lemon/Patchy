@@ -12,6 +12,7 @@
 #include "core/layer_tree.hpp"
 #include "ui/canvas_types.hpp"
 #include "ui/canvas_widget_shared.hpp"
+#include "ui/image_document_io.hpp"
 #include "ui/theme_palette.hpp"
 
 #include <QApplication>
@@ -68,6 +69,98 @@ void CanvasWidget::set_layers_moved_callback(std::function<void(const std::vecto
   layers_moved_callback_ = std::move(callback);
 }
 
+void CanvasWidget::set_artboard_auto_nest(bool enabled) noexcept {
+  artboard_auto_nest_ = enabled;
+}
+
+std::vector<ArtboardNestMove> CanvasWidget::move_nest_moves_for_delta(QPoint delta) const {
+  if (!artboard_auto_nest_ || document_ == nullptr || move_nest_root_ids_.empty()) {
+    return {};
+  }
+  return artboard_nest_moves(std::as_const(*document_), move_nest_root_ids_, delta.x(), delta.y());
+}
+
+const Document& CanvasWidget::move_patch_source(const Document& base, int level, QPoint delta) {
+  auto moves = move_nest_moves_for_delta(delta);
+  if (moves.empty()) {
+    return base;
+  }
+  // One copy per change of destination, not per frame: the moves only change when the
+  // drag carries a layer across an artboard edge. Ids are shared with the scaled preview
+  // document, so the same moves re-nest either one.
+  if (!move_nest_preview_document_.has_value() || moves != move_nest_preview_moves_ ||
+      move_nest_preview_document_level_ != level || move_nest_preview_document_base_ != &base) {
+    move_nest_preview_document_.emplace(base);
+    static_cast<void>(apply_artboard_nest_moves(*move_nest_preview_document_, moves));
+    move_nest_preview_moves_ = std::move(moves);
+    move_nest_preview_document_level_ = level;
+    move_nest_preview_document_base_ = &base;
+  }
+  return *move_nest_preview_document_;
+}
+
+std::optional<QRect> CanvasWidget::move_proxy_clip_document_rect(QPoint delta) const {
+  if (document_ == nullptr || moving_layers_.empty() || !document_has_artboards(std::as_const(*document_))) {
+    return std::nullopt;
+  }
+  const auto& document = std::as_const(*document_);
+  const auto moves = move_nest_moves_for_delta(delta);
+  std::optional<std::optional<LayerId>> common;
+  for (const auto& moving : moving_layers_) {
+    const auto* owner = artboard_owning_layer(document, moving.id);
+    std::optional<LayerId> clip = owner != nullptr ? std::optional<LayerId>(owner->id()) : std::nullopt;
+    for (const auto& move : moves) {
+      const auto* root = document.find_layer(move.id);
+      if (root != nullptr && (root->id() == moving.id || layer_contains_descendant(*root, moving.id))) {
+        clip = move.target;
+      }
+    }
+    if (common.has_value() && *common != clip) {
+      return std::nullopt;  // content landing in different artboards: no single clip
+    }
+    common = clip;
+  }
+  if (!common.has_value() || !common->has_value()) {
+    return std::nullopt;
+  }
+  const auto* artboard = document.find_layer(**common);
+  return artboard != nullptr && artboard->artboard().has_value() ? std::optional<QRect>(qrect(artboard->artboard()->rect))
+                                                                 : std::nullopt;
+}
+
+bool CanvasWidget::move_proxy_allowed_for_artboards() const {
+  if (document_ == nullptr) {
+    return true;
+  }
+  // The proxy draws the moving content over the base frame, clipped to one artboard; an
+  // artboard that blends, fades, masks or styles its content cannot be faked that way.
+  for (const auto* artboard : document_artboards(std::as_const(*document_))) {
+    if (!artboard_composites_plainly(*artboard)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+Document CanvasWidget::move_proxy_snapshot_source(const Document& source) const {
+  Document snapshot = source;
+  if (!document_has_artboards(source)) {
+    return snapshot;
+  }
+  for (auto& layer : snapshot.layers()) {
+    if (!layer_is_artboard(std::as_const(layer))) {
+      continue;
+    }
+    const bool owns_moving = std::any_of(moving_layers_.begin(), moving_layers_.end(), [&](const MovingLayer& moving) {
+      return layer_contains_descendant(std::as_const(layer), moving.id);
+    });
+    if (owns_moving) {
+      layer.clear_artboard();
+    }
+  }
+  return snapshot;
+}
+
 std::optional<LayerId> CanvasWidget::selected_root_artboard_id() const {
   if (document_ == nullptr) {
     return std::nullopt;
@@ -96,6 +189,7 @@ void CanvasWidget::begin_artboard_move_drag(const Layer& artboard, QMouseEvent* 
   artboard_drag_moved_ = false;
   artboard_drag_duplicate_ = (event->modifiers() & Qt::AltModifier) != 0;
   artboard_drag_ghost_ = QImage();
+  artboard_drag_vacated_ = QImage();
 }
 
 bool CanvasWidget::handle_move_tool_artboard_press(QMouseEvent* event) {
@@ -330,6 +424,7 @@ bool CanvasWidget::handle_artboard_press(QMouseEvent* event) {
   artboard_drag_moved_ = false;
   artboard_drag_duplicate_ = false;
   artboard_drag_ghost_ = QImage();
+  artboard_drag_vacated_ = QImage();
 
   // The add buttons, then the selected artboard's handles, then any label.
   if (const auto side = artboard_add_button_at(event->pos()); side >= 0) {
@@ -374,12 +469,23 @@ void CanvasWidget::update_artboard_drag(QMouseEvent* event) {
   if (!artboard_drag_moved_ &&
       (event->pos() - artboard_press_widget_point_).manhattanLength() >= QApplication::startDragDistance()) {
     artboard_drag_moved_ = true;
-    if (artboard_drag_mode_ == ArtboardDragMode::Move && document_ != nullptr) {
-      // The artboard as it looks now, carried along at the moving rect.
-      const auto rect = artboard_drag_start_rect_.intersected(QRect(0, 0, document_->width(), document_->height()));
-      if (!render_cache_.isNull() && render_cache_.size() == QSize(document_->width(), document_->height()) &&
-          !rect.isEmpty()) {
-        artboard_drag_ghost_ = render_cache_.copy(rect);
+    if (artboard_drag_mode_ == ArtboardDragMode::Move && document_ != nullptr && artboard_drag_id_.has_value()) {
+      // The artboard alone (its paper and content, nothing around or over it), carried
+      // along at the moving rect, and the canvas without it where it was.
+      const auto& document = std::as_const(*document_);
+      const auto rect = artboard_drag_start_rect_.intersected(QRect(0, 0, document.width(), document.height()));
+      if (!rect.isEmpty()) {
+        std::vector<LayerId> others;
+        for (const auto& layer : document.layers()) {
+          if (layer.id() != *artboard_drag_id_) {
+            others.push_back(layer.id());
+          }
+        }
+        artboard_drag_ghost_ = qimage_from_document_rect_with_hidden_layers_banded(document, rect, true, others);
+        if (!artboard_drag_duplicate_) {
+          artboard_drag_vacated_ =
+              qimage_from_document_rect_with_hidden_layers_banded(document, rect, true, {*artboard_drag_id_});
+        }
       }
     }
   }
@@ -465,6 +571,7 @@ void CanvasWidget::cancel_artboard_drag() {
   artboard_drag_moved_ = false;
   artboard_drag_duplicate_ = false;
   artboard_drag_ghost_ = QImage();
+  artboard_drag_vacated_ = QImage();
   if (had_drag) {
     update();
   }
@@ -562,13 +669,15 @@ void CanvasWidget::draw_artboard_overlay(QPainter& painter) const {
   painter.setFont(font);
   const QFontMetricsF metrics(font);
 
-  // The moving artboard's pixels at the drag rect (the original stays until release).
+  // The moving artboard at the drag rect, and the canvas without it where it was (an
+  // Alt-drag copy leaves the original in place).
   if (artboard_drag_mode_ == ArtboardDragMode::Move && artboard_drag_moved_ && !artboard_drag_ghost_.isNull()) {
     const auto clipped = artboard_drag_start_rect_.intersected(QRect(0, 0, document_->width(), document_->height()));
     const auto offset = artboard_drag_rect_.topLeft() - artboard_drag_start_rect_.topLeft();
-    painter.setOpacity(0.8);
+    if (!artboard_drag_vacated_.isNull() && !artboard_drag_duplicate_) {
+      painter.drawImage(widget_rect_for_document_rect(QRectF(clipped)), artboard_drag_vacated_);
+    }
     painter.drawImage(widget_rect_for_document_rect(QRectF(clipped.translated(offset))), artboard_drag_ghost_);
-    painter.setOpacity(1.0);
   }
 
   for (const auto* artboard : artboards) {

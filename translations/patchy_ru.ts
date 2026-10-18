@@ -10310,14 +10310,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>Выберите хотя бы одну монтажную область.</translation>
     </message>
     <message>
-        <source>Each artboard as its own page</source>
-        <translation>Каждая монтажная область на отдельной странице</translation>
-    </message>
-    <message>
-        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
-        <translation>По странице на монтажную область, по её размеру. Если снять флажок, весь холст станет одной страницей.</translation>
-    </message>
-    <message>
         <source>%1 (%2 x %3)</source>
         <translation>%1 (%2 x %3)</translation>
     </message>
@@ -10376,6 +10368,34 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>A PDF image could not be made gray and kept its colors.</source>
         <translation>Изображение из PDF не удалось перевести в серый, и оно сохранило свои цвета.</translation>
+    </message>
+    <message>
+        <source>Pages:</source>
+        <translation>Страницы:</translation>
+    </message>
+    <message>
+        <source>One page per artboard</source>
+        <translation>По странице на монтажную область</translation>
+    </message>
+    <message>
+        <source>One page per top-level group</source>
+        <translation>По странице на группу верхнего уровня</translation>
+    </message>
+    <message>
+        <source>One page of the whole canvas</source>
+        <translation>Одна страница со всем холстом</translation>
+    </message>
+    <message>
+        <source>Artboard and group pages each take their own size; hidden groups are pages too.</source>
+        <translation>Страницы монтажных областей и групп получают свой размер; скрытые группы тоже становятся страницами.</translation>
+    </message>
+    <message>
+        <source>Include hidden groups</source>
+        <translation>Включить скрытые группы</translation>
+    </message>
+    <message>
+        <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
+        <translation>PDF, импортированный папками страниц, показывает только первую страницу; скрытые страницы всё равно остаются страницами.</translation>
     </message>
 </context>
 <context>
@@ -23334,6 +23354,10 @@ Patchy может скачать обновление, заменить этот
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
         <translation>Монтажные области не могут сделать холст больше %1 x %1 px.</translation>
+    </message>
+    <message>
+        <source>exportPdf pages must be &quot;artboards&quot;, &quot;groups&quot; or &quot;canvas&quot;.</source>
+        <translation>exportPdf pages должен быть &quot;artboards&quot;, &quot;groups&quot; или &quot;canvas&quot;.</translation>
     </message>
 </context>
 <context>

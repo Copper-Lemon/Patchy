@@ -10280,14 +10280,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>Sélectionnez au moins un plan de travail.</translation>
     </message>
     <message>
-        <source>Each artboard as its own page</source>
-        <translation>Chaque plan de travail sur sa propre page</translation>
-    </message>
-    <message>
-        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
-        <translation>Une page par plan de travail, à sa taille. Décoché, toute la zone de travail forme une page.</translation>
-    </message>
-    <message>
         <source>%1 (%2 x %3)</source>
         <translation>%1 (%2 x %3)</translation>
     </message>
@@ -10344,6 +10336,34 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>A PDF image could not be made gray and kept its colors.</source>
         <translation>Une image du PDF n&apos;a pas pu être convertie en gris et a gardé ses couleurs.</translation>
+    </message>
+    <message>
+        <source>Pages:</source>
+        <translation>Pages :</translation>
+    </message>
+    <message>
+        <source>One page per artboard</source>
+        <translation>Une page par plan de travail</translation>
+    </message>
+    <message>
+        <source>One page per top-level group</source>
+        <translation>Une page par groupe de premier niveau</translation>
+    </message>
+    <message>
+        <source>One page of the whole canvas</source>
+        <translation>Une page de toute la zone de travail</translation>
+    </message>
+    <message>
+        <source>Artboard and group pages each take their own size; hidden groups are pages too.</source>
+        <translation>Les pages de plans de travail et de groupes ont chacune leur taille ; les groupes masqués sont aussi des pages.</translation>
+    </message>
+    <message>
+        <source>Include hidden groups</source>
+        <translation>Inclure les groupes masqués</translation>
+    </message>
+    <message>
+        <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
+        <translation>Un PDF importé en dossiers de pages n&apos;affiche que sa première page ; ses pages masquées restent des pages.</translation>
     </message>
 </context>
 <context>
@@ -23268,6 +23288,10 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
         <translation>Les plans de travail ne peuvent pas agrandir la zone de travail au-delà de %1 x %1 px.</translation>
+    </message>
+    <message>
+        <source>exportPdf pages must be &quot;artboards&quot;, &quot;groups&quot; or &quot;canvas&quot;.</source>
+        <translation>exportPdf pages doit valoir &quot;artboards&quot;, &quot;groups&quot; ou &quot;canvas&quot;.</translation>
     </message>
 </context>
 <context>

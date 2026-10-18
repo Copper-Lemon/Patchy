@@ -5,6 +5,7 @@
 
 #include "color/color_management.hpp"
 
+#include "core/artboard.hpp"
 #include "core/document.hpp"
 #include "core/exemplar_inpaint.hpp"
 #include "core/layer_alignment.hpp"
@@ -196,6 +197,10 @@ public:
   explicit CanvasWidget(QWidget* parent = nullptr);
 
   void set_document(Document* document);
+  // set_document for the same document after its canvas grew by an artboard edit
+  // (docs/artboards.md): the old frame, moved by `document_shift`, stays on screen as the
+  // stale frame the refresh replaces, instead of a blank canvas.
+  void set_document_after_canvas_growth(Document* document, QPoint document_shift);
   [[nodiscard]] bool pointer_gesture_active() const noexcept;
   [[nodiscard]] double zoom() const noexcept;
   void set_zoom(double zoom);
@@ -1125,9 +1130,12 @@ public:
   // Keeps the artwork still on screen after an edit moved every document coordinate by
   // `document_shift` (an artboard edit that grew the canvas up or left).
   void shift_view_for_document_offset(QPoint document_shift);
-  // Fired after a Move-tool drag commits, with the moved leaf layers (MainWindow's
-  // artboard auto-nesting).
+  // Fired after a Move-tool drag re-nested layers into or out of artboards (the canvas
+  // applies auto-nesting inside the move's undo step; MainWindow refreshes its panels).
   void set_layers_moved_callback(std::function<void(const std::vector<LayerId>&)> callback);
+  // Artboard auto-nesting for Move-tool drags (the Auto-Nest Layers option): the drag
+  // previews, and the release applies, the artboard each moved layer lands in.
+  void set_artboard_auto_nest(bool enabled) noexcept;
   // The selected artboard when the Layers panel selection is exactly one artboard (the
   // Move tool then moves the artboard itself, rect and content together).
   [[nodiscard]] std::optional<LayerId> selected_root_artboard_id() const;
@@ -1333,6 +1341,18 @@ private:
   void refresh_curves_clipping_preview();
   void ensure_move_base_cache();
   bool request_move_preview();
+  // Auto-nesting during a Move drag (docs/artboards.md, "Fast paths"): the re-parenting
+  // the release will apply at `delta`, the document the live patches render from (the
+  // re-nested copy, cached while the moves stay the same), the rect the proxy blit clips
+  // to (the artboard the moving content lands in, nullopt for none or a mixed set), and
+  // whether the proxy can stand in at all (every artboard composites plainly).
+  [[nodiscard]] std::vector<ArtboardNestMove> move_nest_moves_for_delta(QPoint delta) const;
+  [[nodiscard]] const Document& move_patch_source(const Document& base, int level, QPoint delta);
+  [[nodiscard]] std::optional<QRect> move_proxy_clip_document_rect(QPoint delta) const;
+  [[nodiscard]] bool move_proxy_allowed_for_artboards() const;
+  // `source` with every artboard that owns a moving layer turned into a plain group: the
+  // proxy snapshot then holds the moving content without paper or clip.
+  [[nodiscard]] Document move_proxy_snapshot_source(const Document& source) const;
   void set_move_preview_requested(bool requested);
   bool should_prepare_move_preview_async() const noexcept;
   void cancel_move_preview() noexcept;
@@ -1351,6 +1371,7 @@ private:
   // proxy preview (empty/oversized/failed render) so the caller falls back to
   // the dashed outline.
   [[nodiscard]] bool ensure_move_proxy_image();
+  void clip_painter_to_transform_artboard(QPainter& painter) const;
   [[nodiscard]] QRect move_proxy_dirty_rect(QPoint old_delta, QPoint new_delta) const;
   void clear_move_proxy() noexcept;
   // Hash of the sorted moving-layer ids and the composite level; keys the
@@ -2521,9 +2542,20 @@ private:
   bool artboard_drag_duplicate_{false};
   // The artboard's pixels at the start of a move, drawn at the moving rect.
   QImage artboard_drag_ghost_;
+  // What the canvas shows where the moving artboard was (it, hidden): the drag shows the
+  // artboard leaving its place, not a copy over the original.
+  QImage artboard_drag_vacated_;
   QSize artboard_default_size_{1080, 1080};
   std::function<void(const ArtboardEditRequest&)> artboard_edit_requested_callback_;
   std::function<void(const std::vector<LayerId>&)> layers_moved_callback_;
+  bool artboard_auto_nest_{true};
+  // The Move drag's re-nesting roots (artboard_nest_roots, taken at drag start) and the
+  // cached re-nested patch source (see move_patch_source).
+  std::vector<LayerId> move_nest_root_ids_;
+  std::vector<ArtboardNestMove> move_nest_preview_moves_;
+  std::optional<Document> move_nest_preview_document_;
+  int move_nest_preview_document_level_{-1};
+  const Document* move_nest_preview_document_base_{nullptr};
   // Patch tool state (canvas_widget_patch_tool.cpp). The drag latches a frozen
   // snapshot, the selection's soft mask, and the doc-space outline path; the
   // preview blits the snapshot translated by the cumulative delta.
@@ -2796,6 +2828,7 @@ private:
   int move_commit_hold_scale_level_{0};
   QImage move_commit_hold_proxy_{};
   QRect move_commit_hold_proxy_rect_{};
+  std::optional<QRect> move_commit_hold_proxy_clip_{};
   std::vector<RenderedDocumentPatch> move_commit_hold_patches_{};
   // Delta the live preview patches were last rendered at, at either composite
   // level (move_preview_patches_delta_ is reset for scaled patches so the
@@ -2893,6 +2926,9 @@ private:
   QImage transform_multi_snapshot_{};
   QRect transform_multi_snapshot_rect_{};
   int transform_multi_snapshot_scale_level_{0};
+  // The artboard the targets sit on (all of them), the snapshot blit's clip: the snapshot
+  // renders that artboard as a plain group, without paper or clip (docs/artboards.md).
+  std::optional<QRect> transform_multi_snapshot_clip_{};
   // Commit-time preview composition (see arm_transform_commit_hold): shown
   // instead of the stale render cache while the commit's refresh is pending.
   // Armed just before the commit's document_changed call (the fresh flag lets

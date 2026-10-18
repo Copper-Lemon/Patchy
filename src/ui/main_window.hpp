@@ -799,7 +799,7 @@ private:
   // as a "Page N" folder (Layers, only the first visible; a page that is one plain raster
   // layer stays that layer) or a "Page N" artboard on a grid (Artboards, White or
   // Transparent background), and empties `extras`. An artboard page that is one original
-  // image keeps it for export (DocumentMetadata::pdf_artboard_source_pages).
+  // image keeps it for export (DocumentMetadata::pdf_page_source_pages).
   void merge_imported_pdf_pages(Document& first, const QString& first_title, std::vector<PdfImportedDocument>& extras,
                                 PdfPagesMerge merge, bool white_background);
   // Reloads the session's file from disk in place (tab position, float window,
@@ -1220,7 +1220,7 @@ private:
   void place_duplicated_artboards(const std::vector<LayerId>& copy_ids_top_to_bottom);
   // Auto-nesting after a Move drag: each moved layer joins the artboard under its center,
   // or the top level off every artboard (tools/artboardAutoNest).
-  void nest_moved_layers_in_artboards(const std::vector<LayerId>& moved_leaf_ids);
+  void refresh_after_artboard_nesting();
   void sync_artboard_controls();
   void apply_artboard_size_option(QSize size);
   void apply_artboard_background_option(const QString& token, bool from_properties);

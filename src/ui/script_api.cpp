@@ -2908,7 +2908,15 @@ bool ScriptAppObject::exportPdf(const QJSValue& documents, const QString& path, 
       export_options.missing_fonts_as_images = value.toBool();
     }
     if (const auto value = options.property(QStringLiteral("artboardPages")); value.isBool()) {
-      export_options.artboard_pages = value.toBool();
+      export_options.pages = value.toBool() ? PdfPageSource::Artboards : PdfPageSource::Canvas;
+    }
+    if (const auto value = options.property(QStringLiteral("pages")); value.isString()) {
+      const auto pages = pdf_page_source_from_token(value.toString());
+      if (!pages.has_value()) {
+        host_.throw_js_error(ScriptEngineHost::tr("exportPdf pages must be \"artboards\", \"groups\" or \"canvas\"."));
+        return false;
+      }
+      export_options.pages = *pages;
     }
     if (const auto value = options.property(QStringLiteral("keepOriginalImageData")); value.isBool()) {
       export_options.keep_original_image_data = value.toBool();

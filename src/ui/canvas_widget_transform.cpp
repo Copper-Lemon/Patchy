@@ -187,7 +187,9 @@ bool layer_has_visible_content_above(const Document& document, LayerId id) {
 }
 
 bool transform_preview_needs_compositing(const Document& document, const Layer& layer) {
-  return layer_needs_composited_transform_preview(layer) || layer_has_visible_content_above(document, layer.id());
+  // A layer on an artboard clips to it (docs/artboards.md): the raw blit has no clip.
+  return layer_needs_composited_transform_preview(layer) || layer_has_visible_content_above(document, layer.id()) ||
+         artboard_owning_layer(document, layer.id()) != nullptr;
 }
 
 // Smallest sub-rect of a gray8 mask buffer holding every pixel that differs
@@ -1345,6 +1347,7 @@ bool CanvasWidget::begin_free_transform_multi(TransformTargetCollection collecti
   transform_multi_snapshot_ = QImage();
   transform_multi_snapshot_rect_ = QRect();
   transform_multi_snapshot_scale_level_ = 0;
+  transform_multi_snapshot_clip_.reset();
   // The subtree snapshot bakes intra-set blending, masks, and styles, and every
   // non-drag refresh renders accurate patches, so multi sessions always use the
   // composited-preview machinery.
@@ -1403,6 +1406,9 @@ QImage CanvasWidget::compose_transform_commit_hold_image() const {
     }
   } else if (multi) {
     // draw_free_transform's snapshot blit, minus the document-to-widget map.
+    if (transform_multi_snapshot_clip_.has_value()) {
+      painter.setClipRect(QRectF(*transform_multi_snapshot_clip_), Qt::IntersectClip);
+    }
     painter.setRenderHint(QPainter::SmoothPixmapTransform, smooth);
     const auto delta = free_transform_delta(transform_original_rect_, transform_current_rect_, transform_angle_,
                                             transform_scale_x_sign_, transform_scale_y_sign_);
@@ -1478,6 +1484,7 @@ void CanvasWidget::reset_free_transform_session_state() {
   transform_multi_snapshot_ = QImage();
   transform_multi_snapshot_rect_ = QRect();
   transform_multi_snapshot_scale_level_ = 0;
+  transform_multi_snapshot_clip_.reset();
 }
 
 void CanvasWidget::clear_pending_warp() {
@@ -1768,6 +1775,19 @@ void CanvasWidget::rebuild_transform_base_cache() {
 // snapshot's colors stay close to the final composite). Blends against the
 // real backdrop and content clipped at the canvas edge stay approximate until
 // the release/numeric refresh renders accurate patches.
+void CanvasWidget::clip_painter_to_transform_artboard(QPainter& painter) const {
+  // The single-layer blits hold the layer alone: clip them to its artboard, as the
+  // composite will (docs/artboards.md).
+  if (document_ == nullptr || !transform_layer_id_.has_value()) {
+    return;
+  }
+  if (const auto* owner = artboard_owning_layer(std::as_const(*document_), *transform_layer_id_); owner != nullptr) {
+    const auto& rect = owner->artboard()->rect;
+    painter.setClipRect(widget_rect_for_document_rect(QRectF(rect.x, rect.y, rect.width, rect.height)),
+                        Qt::IntersectClip);
+  }
+}
+
 bool CanvasWidget::ensure_transform_multi_snapshot() {
   if (!transform_multi_snapshot_.isNull()) {
     return true;
@@ -1819,13 +1839,45 @@ bool CanvasWidget::ensure_transform_multi_snapshot() {
     collect_hidden(layer);
   }
 
+  // Artboards holding targets render as plain groups (no paper, no clip baked in); the
+  // blit clips to the one artboard they share, or not at all when they span several.
+  const Document& base_source = scaled_document != nullptr ? *scaled_document : std::as_const(*document_);
+  std::optional<Document> unclipped;
+  transform_multi_snapshot_clip_.reset();
+  std::optional<std::optional<LayerId>> common_owner;
+  bool mixed_owners = false;
+  for (const auto& target : transform_targets_) {
+    const auto* owner = artboard_owning_layer(std::as_const(*document_), target.id);
+    const std::optional<LayerId> owner_id = owner != nullptr ? std::optional<LayerId>(owner->id()) : std::nullopt;
+    if (common_owner.has_value() && *common_owner != owner_id) {
+      mixed_owners = true;
+    }
+    common_owner = owner_id;
+    if (owner != nullptr) {
+      if (!unclipped.has_value()) {
+        unclipped.emplace(base_source);
+      }
+      for (auto& top : unclipped->layers()) {
+        if (top.id() == owner->id()) {
+          top.clear_artboard();
+        }
+      }
+    }
+  }
+  if (!mixed_owners && common_owner.has_value() && common_owner->has_value()) {
+    if (const auto* owner = std::as_const(*document_).find_layer(**common_owner); owner != nullptr) {
+      const auto& rect = owner->artboard()->rect;
+      transform_multi_snapshot_clip_ = QRect(rect.x, rect.y, rect.width, rect.height);
+    }
+  }
+  const Document& snapshot_source = unclipped.has_value() ? *unclipped : base_source;
   // Banded: the snapshot is bounded but can cross the whole styled stack
   // (preview-only, so the band divergence class is acceptable).
   auto snapshot =
       scaled_document != nullptr
           ? qimage_from_document_rect_with_hidden_layers_banded(
-                *scaled_document, preview_scaled_document_rect(snapshot_rect, composite_level), true, hidden_leaves)
-          : qimage_from_document_rect_with_hidden_layers_banded(*document_, snapshot_rect, true, hidden_leaves);
+                snapshot_source, preview_scaled_document_rect(snapshot_rect, composite_level), true, hidden_leaves)
+          : qimage_from_document_rect_with_hidden_layers_banded(snapshot_source, snapshot_rect, true, hidden_leaves);
   if (snapshot.isNull()) {
     return false;
   }
@@ -2293,6 +2345,7 @@ void CanvasWidget::refresh_free_transform_preview_caches() {
     transform_multi_snapshot_ = QImage();
     transform_multi_snapshot_rect_ = QRect();
     transform_multi_snapshot_scale_level_ = 0;
+    transform_multi_snapshot_clip_.reset();
     ensure_transform_multi_snapshot();
     refresh_transform_multi_preview_cache(false);
     if (isVisible()) {
@@ -2654,6 +2707,9 @@ void CanvasWidget::draw_free_transform(QPainter& painter) const {
       // backdrop, canvas clipping, and effect geometry stay approximate until
       // the release/numeric refresh renders the accurate patches).
       painter.save();
+      if (transform_multi_snapshot_clip_.has_value()) {
+        painter.setClipRect(widget_rect_for_document_rect(QRectF(*transform_multi_snapshot_clip_)), Qt::IntersectClip);
+      }
       painter.setRenderHint(QPainter::SmoothPixmapTransform,
                             transform_interpolation_ != TransformInterpolation::NearestNeighbor);
       const auto delta = free_transform_delta(transform_original_rect_, transform_current_rect_, transform_angle_,
@@ -2670,6 +2726,7 @@ void CanvasWidget::draw_free_transform(QPainter& painter) const {
     // opacity and scale-sign flips, matching what the release-time patches
     // will show; blend mode, masks, and styles stay approximated until then.
     painter.save();
+    clip_painter_to_transform_artboard(painter);
     painter.setRenderHint(QPainter::SmoothPixmapTransform,
                           transform_interpolation_ != TransformInterpolation::NearestNeighbor);
     painter.setOpacity(transform_proxy_layer_opacity_);
@@ -2681,6 +2738,7 @@ void CanvasWidget::draw_free_transform(QPainter& painter) const {
     painter.restore();
   } else if (!transform_source_image_.isNull() && transform_preview_patches_.empty()) {
     painter.save();
+    clip_painter_to_transform_artboard(painter);
     painter.setRenderHint(QPainter::SmoothPixmapTransform,
                           transform_interpolation_ != TransformInterpolation::NearestNeighbor);
     painter.translate(rect.center());

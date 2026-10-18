@@ -10280,14 +10280,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>Wählen Sie mindestens eine Zeichenfläche aus.</translation>
     </message>
     <message>
-        <source>Each artboard as its own page</source>
-        <translation>Jede Zeichenfläche als eigene Seite</translation>
-    </message>
-    <message>
-        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
-        <translation>Eine Seite pro Zeichenfläche in deren Größe. Ohne Häkchen wird die ganze Arbeitsfläche eine Seite.</translation>
-    </message>
-    <message>
         <source>%1 (%2 x %3)</source>
         <translation>%1 (%2 x %3)</translation>
     </message>
@@ -10344,6 +10336,34 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>A PDF image could not be made gray and kept its colors.</source>
         <translation>Ein PDF-Bild konnte nicht in Graustufen umgewandelt werden und behielt seine Farben.</translation>
+    </message>
+    <message>
+        <source>Pages:</source>
+        <translation>Seiten:</translation>
+    </message>
+    <message>
+        <source>One page per artboard</source>
+        <translation>Eine Seite pro Zeichenfläche</translation>
+    </message>
+    <message>
+        <source>One page per top-level group</source>
+        <translation>Eine Seite pro Gruppe der obersten Ebene</translation>
+    </message>
+    <message>
+        <source>One page of the whole canvas</source>
+        <translation>Eine Seite mit der ganzen Arbeitsfläche</translation>
+    </message>
+    <message>
+        <source>Artboard and group pages each take their own size; hidden groups are pages too.</source>
+        <translation>Zeichenflächen- und Gruppenseiten haben jeweils ihre eigene Größe; auch ausgeblendete Gruppen werden zu Seiten.</translation>
+    </message>
+    <message>
+        <source>Include hidden groups</source>
+        <translation>Ausgeblendete Gruppen einbeziehen</translation>
+    </message>
+    <message>
+        <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
+        <translation>Ein als Seitenordner importiertes PDF zeigt nur seine erste Seite; seine ausgeblendeten Seiten sind trotzdem Seiten.</translation>
     </message>
 </context>
 <context>
@@ -23268,6 +23288,10 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
         <translation>Zeichenflächen können die Arbeitsfläche nicht größer als %1 x %1 px machen.</translation>
+    </message>
+    <message>
+        <source>exportPdf pages must be &quot;artboards&quot;, &quot;groups&quot; or &quot;canvas&quot;.</source>
+        <translation>exportPdf pages muss &quot;artboards&quot;, &quot;groups&quot; oder &quot;canvas&quot; sein.</translation>
     </message>
 </context>
 <context>

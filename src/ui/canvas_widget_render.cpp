@@ -933,7 +933,17 @@ void CanvasWidget::paintEvent(QPaintEvent* event) {
       const auto proxy_target =
           widget_rect_for_document_rect(QRectF(move_proxy_document_rect_.translated(move_preview_delta_)));
       const QImage& proxy_image = proof_display_image(move_proxy_image_);
+      // The snapshot holds the moving content without its artboard's clip: clip the blit
+      // to the artboard it lands in, as the release will (docs/artboards.md).
+      const auto clip = move_proxy_clip_document_rect(move_preview_delta_);
+      if (clip.has_value()) {
+        painter.save();
+        painter.setClipRect(widget_rect_for_document_rect(QRectF(*clip)), Qt::IntersectClip);
+      }
       painter.drawImage(proxy_target, proxy_image, QRectF(proxy_image.rect()));
+      if (clip.has_value()) {
+        painter.restore();
+      }
     } else {
       for (const auto& patch : move_preview_patches_) {
         draw_document_patch(patch, !base_excludes_layer);
@@ -949,8 +959,15 @@ void CanvasWidget::paintEvent(QPaintEvent* event) {
     draw_scaled_image(move_commit_hold_base_);
     if (!move_commit_hold_proxy_.isNull()) {
       const QImage& hold_proxy = proof_display_image(move_commit_hold_proxy_);
+      if (move_commit_hold_proxy_clip_.has_value()) {
+        painter.save();
+        painter.setClipRect(widget_rect_for_document_rect(QRectF(*move_commit_hold_proxy_clip_)), Qt::IntersectClip);
+      }
       painter.drawImage(widget_rect_for_document_rect(QRectF(move_commit_hold_proxy_rect_)), hold_proxy,
                         QRectF(hold_proxy.rect()));
+      if (move_commit_hold_proxy_clip_.has_value()) {
+        painter.restore();
+      }
     } else {
       for (const auto& patch : move_commit_hold_patches_) {
         if (!patch.image.isNull() && !patch.document_rect.isEmpty()) {
@@ -1601,10 +1618,12 @@ void CanvasWidget::arm_move_commit_hold(QPoint commit_delta) {
   if (move_drag_uses_proxy_preview_ && !move_proxy_image_.isNull()) {
     move_commit_hold_proxy_ = move_proxy_image_;
     move_commit_hold_proxy_rect_ = move_proxy_document_rect_.translated(commit_delta);
+    move_commit_hold_proxy_clip_ = move_proxy_clip_document_rect(commit_delta);
     move_commit_hold_patches_.clear();
   } else {
     move_commit_hold_proxy_ = QImage();
     move_commit_hold_proxy_rect_ = QRect();
+    move_commit_hold_proxy_clip_.reset();
     move_commit_hold_patches_ = move_preview_patches_;
   }
 }
@@ -1614,6 +1633,7 @@ void CanvasWidget::clear_move_commit_hold() noexcept {
   move_commit_hold_scale_level_ = 0;
   move_commit_hold_proxy_ = QImage();
   move_commit_hold_proxy_rect_ = QRect();
+  move_commit_hold_proxy_clip_.reset();
   move_commit_hold_patches_.clear();
 }
 

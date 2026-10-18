@@ -559,7 +559,8 @@ void MainWindow::reset_canvas_after_artboard_canvas_change(std::optional<std::ar
   const auto previous_channel_target = canvas_->layer_edit_target();
   const auto previous_channel_id = canvas_->active_document_channel_id();
   const auto previous_channel_display = canvas_->mask_display_mode();
-  canvas_->set_document(&document());
+  canvas_->set_document_after_canvas_growth(
+      &document(), shift.has_value() ? QPoint((*shift)[0], (*shift)[1]) : QPoint());
   restore_channel_target_after_document_reset(previous_channel_target, previous_channel_id,
                                               previous_channel_display);
   if (shift.has_value()) {
@@ -629,80 +630,11 @@ void MainWindow::place_duplicated_artboards(const std::vector<LayerId>& copy_ids
   }
 }
 
-void MainWindow::nest_moved_layers_in_artboards(const std::vector<LayerId>& moved_leaf_ids) {
-  if (!has_active_document() || moved_leaf_ids.empty() || !artboard_auto_nest_) {
+void MainWindow::refresh_after_artboard_nesting() {
+  // The Move tool already re-parented the layers inside its own undo step and patched the
+  // canvas (docs/artboards.md, auto-nesting): only the panels follow.
+  if (!has_active_document()) {
     return;
-  }
-  auto& doc = document();
-  if (!document_has_artboards(std::as_const(doc))) {
-    return;
-  }
-  // The layers the user moved, as roots (a moved folder moves as one), minus artboards:
-  // the selection's roots that hold a moved layer, else the moved layers themselves.
-  const auto holds_moved = [&](const Layer& root) {
-    return std::any_of(moved_leaf_ids.begin(), moved_leaf_ids.end(), [&](LayerId moved) {
-      return root.id() == moved || layer_contains_descendant(root, moved);
-    });
-  };
-  std::vector<LayerId> roots;
-  for (const auto id : root_drop_layer_ids(std::as_const(doc).layers(), selected_or_active_layer_ids())) {
-    const auto* layer = std::as_const(doc).find_layer(id);
-    if (layer != nullptr && !layer_is_artboard(*layer) && holds_moved(*layer)) {
-      roots.push_back(id);
-    }
-  }
-  if (roots.empty()) {
-    for (const auto id : root_drop_layer_ids(std::as_const(doc).layers(), moved_leaf_ids)) {
-      const auto* layer = std::as_const(doc).find_layer(id);
-      if (layer != nullptr && !layer_is_artboard(*layer)) {
-        roots.push_back(id);
-      }
-    }
-  }
-  bool changed = false;
-  for (const auto id : roots) {
-    const auto* layer = std::as_const(doc).find_layer(id);
-    if (layer == nullptr) {
-      continue;
-    }
-    const auto bounds = layer_render_bounds(*layer);
-    if (bounds.empty()) {
-      continue;
-    }
-    // The layer belongs to the artboard under its center (Photoshop's auto-nesting);
-    // off every artboard it goes to the top level.
-    const auto* target = artboard_at(std::as_const(doc), bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-    const auto* owner = artboard_owning_layer(std::as_const(doc), id);
-    if (target == owner) {
-      continue;
-    }
-    const auto target_id = target != nullptr ? std::optional<LayerId>(target->id()) : std::nullopt;
-    const auto owner_id = owner != nullptr ? std::optional<LayerId>(owner->id()) : std::nullopt;
-    auto taken = take_layer_from_tree(doc.layers(), id);
-    if (!taken.has_value()) {
-      continue;
-    }
-    if (target_id.has_value()) {
-      if (auto* board = top_level_artboard(doc, target_id); board != nullptr) {
-        board->add_child(std::move(*taken));
-      }
-    } else {
-      // Above the artboard it left, so it stays where it was in the stack.
-      auto insert_at = doc.layers().end();
-      for (auto it = doc.layers().begin(); it != doc.layers().end(); ++it) {
-        if (owner_id.has_value() && it->id() == *owner_id) {
-          insert_at = it + 1;
-        }
-      }
-      doc.layers().insert(insert_at, std::move(*taken));
-    }
-    changed = true;
-  }
-  if (!changed) {
-    return;
-  }
-  if (canvas_ != nullptr) {
-    canvas_->document_changed();
   }
   refresh_layer_list();
   refresh_layer_controls();

@@ -841,8 +841,6 @@ ImageSaveOptions load_image_save_option_defaults() {
           .toBool();
   options.pdf_keep_original_images =
       settings.value(QStringLiteral("saveOptions/pdfKeepOriginalImages"), options.pdf_keep_original_images).toBool();
-  options.pdf_artboard_pages =
-      settings.value(QStringLiteral("saveOptions/pdfArtboardPages"), options.pdf_artboard_pages).toBool();
   options.gif_frame_delay_cs = std::clamp(
       settings.value(QStringLiteral("saveOptions/gifFrameDelayCs"), options.gif_frame_delay_cs).toInt(), 0, 0xffff);
   options.animation_frame_delay_ms = std::clamp(
@@ -912,7 +910,6 @@ void save_image_save_option_defaults(const ImageSaveOptions& options) {
   store_pdf_image_quality_id(pdf_image_quality_id(options.pdf_lossless, options.pdf_jpeg_quality));
   settings.setValue(QStringLiteral("saveOptions/pdfMissingFontsAsImages"), options.pdf_missing_fonts_as_images);
   settings.setValue(QStringLiteral("saveOptions/pdfKeepOriginalImages"), options.pdf_keep_original_images);
-  settings.setValue(QStringLiteral("saveOptions/pdfArtboardPages"), options.pdf_artboard_pages);
   settings.setValue(QStringLiteral("saveOptions/gifFrameDelayCs"), std::clamp(options.gif_frame_delay_cs, 0, 0xffff));
   settings.setValue(QStringLiteral("saveOptions/animationFrameDelayMs"), options.animation_frame_delay_ms);
   settings.setValue(QStringLiteral("saveOptions/jxrQuality"), std::clamp(options.jxr_quality, 1, 100));
@@ -1801,15 +1798,29 @@ std::optional<ImageSaveOptions> prompt_image_save_options(QWidget* parent, const
     keep_original->setVisible(options.pdf_original_image_data_available);
     content->addWidget(keep_original);
 
-    // Photoshop's Artboards to PDF: a page per artboard, each its own size; off, one page
-    // of the whole canvas. Only asked of a document that has artboards.
-    auto* artboard_pages = new QCheckBox(QObject::tr("Each artboard as its own page"), &dialog);
-    artboard_pages->setObjectName(QStringLiteral("pdfArtboardPagesCheck"));
-    artboard_pages->setChecked(options.pdf_artboard_pages);
-    artboard_pages->setToolTip(
-        QObject::tr("One page per artboard, sized to it. Unchecked, the whole canvas is one page."));
-    artboard_pages->setVisible(options.pdf_artboards_available);
-    content->addWidget(artboard_pages);
+    // What a page is: each artboard (Photoshop's Artboards to PDF), each top-level group
+    // (a PDF imported as page folders goes back page by page), or the whole canvas. Only
+    // asked of a document that has artboards or groups.
+    auto* pages_row = new QWidget(&dialog);
+    auto* pages_layout = new QHBoxLayout(pages_row);
+    pages_layout->setContentsMargins(0, 0, 0, 0);
+    auto* pages_label = new QLabel(QObject::tr("Pages:"), pages_row);
+    auto* pages = new QComboBox(pages_row);
+    pages->setObjectName(QStringLiteral("pdfPagesCombo"));
+    if (options.pdf_artboards_available) {
+      pages->addItem(QObject::tr("One page per artboard"), QStringLiteral("artboards"));
+    }
+    if (options.pdf_groups_available) {
+      pages->addItem(QObject::tr("One page per top-level group"), QStringLiteral("groups"));
+    }
+    pages->addItem(QObject::tr("One page of the whole canvas"), QStringLiteral("canvas"));
+    pages->setCurrentIndex(std::max(0, pages->findData(options.pdf_pages)));
+    pages->setToolTip(QObject::tr("Artboard and group pages each take their own size; hidden groups are pages too."));
+    pages_label->setBuddy(pages);
+    pages_layout->addWidget(pages_label);
+    pages_layout->addWidget(pages, 1);
+    pages_row->setVisible(options.pdf_artboards_available || options.pdf_groups_available);
+    content->addWidget(pages_row);
 
     // Editable layers (decided before this dialog by MainWindow::resolve_pdf_layer_choice:
     // the flatten-or-keep question or the remembered policy) trade fidelity for
@@ -1876,8 +1887,8 @@ std::optional<ImageSaveOptions> prompt_image_save_options(QWidget* parent, const
     if (options.pdf_original_image_data_available) {
       options.pdf_keep_original_images = keep_original->isChecked();
     }
-    if (options.pdf_artboards_available) {
-      options.pdf_artboard_pages = artboard_pages->isChecked();
+    if (options.pdf_artboards_available || options.pdf_groups_available) {
+      options.pdf_pages = pages->currentData().toString();
     }
     if (keep_layers) {
       options.pdf_missing_fonts_as_images = missing_fonts_as_images->isChecked();

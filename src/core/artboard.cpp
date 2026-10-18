@@ -159,6 +159,107 @@ std::string next_artboard_name(const Document& document) {
   return std::string(kPrefix) + std::to_string(highest + 1);
 }
 
+std::vector<LayerId> artboard_nest_roots(const Document& document, const std::vector<LayerId>& selected_ids,
+                                         const std::vector<LayerId>& moved_leaf_ids) {
+  const auto& layers = document.layers();
+  const auto holds_moved = [&](const Layer& root) {
+    return std::any_of(moved_leaf_ids.begin(), moved_leaf_ids.end(),
+                       [&](LayerId moved) { return tree_contains(root, moved); });
+  };
+  std::vector<LayerId> roots;
+  for (const auto id : root_drop_layer_ids(layers, selected_ids)) {
+    const auto* layer = document.find_layer(id);
+    if (layer != nullptr && !layer_is_artboard(*layer) && holds_moved(*layer)) {
+      roots.push_back(id);
+    }
+  }
+  if (roots.empty()) {
+    for (const auto id : root_drop_layer_ids(layers, moved_leaf_ids)) {
+      const auto* layer = document.find_layer(id);
+      if (layer != nullptr && !layer_is_artboard(*layer)) {
+        roots.push_back(id);
+      }
+    }
+  }
+  return roots;
+}
+
+std::vector<ArtboardNestMove> artboard_nest_moves(const Document& document, const std::vector<LayerId>& root_ids,
+                                                  std::int32_t dx, std::int32_t dy) {
+  std::vector<ArtboardNestMove> moves;
+  if (!document_has_artboards(document)) {
+    return moves;
+  }
+  for (const auto id : root_ids) {
+    const auto* layer = document.find_layer(id);
+    if (layer == nullptr || layer_is_artboard(*layer)) {
+      continue;
+    }
+    const auto bounds = layer_render_bounds(*layer);
+    if (bounds.empty()) {
+      continue;
+    }
+    const auto* target = artboard_at(document, bounds.x + dx + bounds.width / 2, bounds.y + dy + bounds.height / 2);
+    const auto* owner = artboard_owning_layer(document, id);
+    if (target == owner) {
+      continue;
+    }
+    moves.push_back({id, target != nullptr ? std::optional<LayerId>(target->id()) : std::nullopt});
+  }
+  return moves;
+}
+
+bool apply_artboard_nest_moves(Document& document, const std::vector<ArtboardNestMove>& moves) {
+  bool changed = false;
+  for (const auto& move : moves) {
+    const auto* owner = artboard_owning_layer(std::as_const(document), move.id);
+    const auto owner_id = owner != nullptr ? std::optional<LayerId>(owner->id()) : std::nullopt;
+    if (owner_id == move.target) {
+      continue;
+    }
+    Layer* board = nullptr;
+    if (move.target.has_value()) {
+      for (auto& layer : document.layers()) {
+        if (layer.id() == *move.target && layer_is_artboard(std::as_const(layer))) {
+          board = &layer;
+        }
+      }
+      if (board == nullptr) {
+        continue;
+      }
+    }
+    auto taken = take_layer_from_tree(document.layers(), move.id);
+    if (!taken.has_value()) {
+      continue;
+    }
+    if (move.target.has_value()) {
+      // take_layer_from_tree may have shifted top-level layers: find the board again.
+      for (auto& layer : document.layers()) {
+        if (layer.id() == *move.target) {
+          layer.add_child(std::move(*taken));
+        }
+      }
+    } else {
+      auto insert_at = document.layers().end();
+      for (auto it = document.layers().begin(); it != document.layers().end(); ++it) {
+        if (owner_id.has_value() && it->id() == *owner_id) {
+          insert_at = it + 1;
+        }
+      }
+      document.layers().insert(insert_at, std::move(*taken));
+    }
+    changed = true;
+  }
+  return changed;
+}
+
+bool artboard_composites_plainly(const Layer& artboard) noexcept {
+  return (artboard.blend_mode() == BlendMode::Normal || artboard.blend_mode() == BlendMode::PassThrough) &&
+         artboard.opacity() >= 1.0F && artboard.fill_opacity() >= 1.0F &&
+         (!artboard.mask().has_value() || artboard.mask()->disabled) && artboard.vector_mask() == nullptr &&
+         artboard.layer_style().empty();
+}
+
 std::optional<LayerId> put_layers_on_new_artboard(Document& document, const std::vector<LayerId>& ids,
                                                   std::string name) {
   if (ids.empty()) {

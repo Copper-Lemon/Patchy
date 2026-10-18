@@ -10264,14 +10264,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Each artboard as its own page</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>%1 (%2 x %3)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -10327,6 +10319,34 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</source>
     </message>
     <message>
         <source>A PDF image could not be made gray and kept its colors.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pages:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>One page per artboard</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>One page per top-level group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>One page of the whole canvas</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Artboard and group pages each take their own size; hidden groups are pages too.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Include hidden groups</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -23194,6 +23214,10 @@ Patchy can download the update, replace this AppImage, and start again. You will
     </message>
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>exportPdf pages must be &quot;artboards&quot;, &quot;groups&quot; or &quot;canvas&quot;.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

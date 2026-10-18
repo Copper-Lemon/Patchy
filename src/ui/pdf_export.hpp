@@ -9,6 +9,8 @@
 #include <QPageSize>
 #include <QString>
 
+#include <optional>
+
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -34,6 +36,12 @@ namespace patchy::ui {
 // knows only Flate RGB (lossless) or JPEG at a fixed quality 94 and ignores the quality.
 // The struct default is lossless because scripts and the command line must not degrade
 // pixels unasked; the dialogs default to the "high" preset (pdf_image_quality_presets).
+// PdfExportOptions::pages. Persisted as the tokens "canvas", "artboards", "groups"
+// (saveOptions/pdfPages, the script `pages` key); never renumber.
+enum class PdfPageSource : int { Canvas = 0, Artboards = 1, Groups = 2 };
+[[nodiscard]] QString pdf_page_source_token(PdfPageSource source);
+[[nodiscard]] std::optional<PdfPageSource> pdf_page_source_from_token(const QString& token);
+
 struct PdfExportOptions {
   bool lossless{true};
   // Keep layers as editable objects instead of one flattened image: shape layers become
@@ -63,10 +71,10 @@ struct PdfExportOptions {
   std::shared_ptr<const CmykWorkingSpace> cmyk_space{};
   // With cmyk_space: black and grays separate to black ink alone (SeparationOptions).
   bool cmyk_black_ink_only{false};
-  // A document with artboards becomes one page per artboard (documents_for_artboards),
-  // sized to it, instead of one page of the whole canvas. Persists as
-  // saveOptions/pdfArtboardPages.
-  bool artboard_pages{true};
+  // What a page is (docs/pdf.md): one page per artboard (documents_for_artboards) when
+  // the document has artboards, one page per top-level group (documents_for_top_level_groups)
+  // when it has groups, else, or with Canvas, one page of the whole canvas.
+  PdfPageSource pages{PdfPageSource::Artboards};
 };
 
 // The "did this page change since import" fingerprint: the size and RGBA bytes of
@@ -127,8 +135,22 @@ bool write_multipage_pdf_file(std::span<const Document* const> pages, const QStr
 // `include_ungrouped_layers`, the non-group root layers (a shared background). Top of
 // the layer stack first, so groups named Page 1, Page 2, ... in the panel come out in
 // reading order. Empty when the document has no visible top-level group.
+// One page per top-level group, top of the stack first, hidden groups included unless
+// `include_hidden_groups` is false: each page is document_for_page_group's.
 [[nodiscard]] std::vector<Document> documents_for_top_level_groups(const Document& document,
-                                                                   bool include_ungrouped_layers);
+                                                                   bool include_ungrouped_layers,
+                                                                   bool include_hidden_groups = true);
+// The page one top-level group stands for: a copy holding that group (shown, even when it
+// is hidden) and, with `include_ungrouped_layers`, the visible layers in no group; cropped
+// to the group's kLayerMetadataPdfPageRect when it has one (a PDF import's page), else the
+// whole canvas. The group's imported page image (pdf_page_source_pages) rides along, and a
+// plain group of one layer is unwrapped so a scanned page stays one image.
+[[nodiscard]] Document document_for_page_group(const Document& document, LayerId group_id,
+                                               bool include_ungrouped_layers = false);
+// True when some top-level group (not an artboard) can be a page.
+[[nodiscard]] bool document_has_page_groups(const Document& document) noexcept;
+// True when a top-level group carries a PDF import's page rect (the default page source).
+[[nodiscard]] bool document_has_imported_page_groups(const Document& document) noexcept;
 
 // One page per visible artboard (docs/artboards.md), top of the layer stack first: a copy
 // of the document holding just that artboard (and, with `include_loose_layers`, the layers
@@ -136,16 +158,16 @@ bool write_multipage_pdf_file(std::span<const Document* const> pages, const QStr
 // every writer understands (convert_artboards_to_plain_groups); a background that nothing
 // shows through is left out, and an artboard that then is a plain Normal group is
 // unwrapped, so a scanned page stays one image. The artboard's imported page image
-// (pdf_artboard_source_pages) rides along as the page's pdf_source_page. Empty when the
+// (pdf_page_source_pages) rides along as the page's pdf_source_page. Empty when the
 // document has no visible artboard.
 [[nodiscard]] std::vector<Document> documents_for_artboards(const Document& document,
                                                             bool include_loose_layers = false);
 [[nodiscard]] Document document_for_artboard(const Document& document, LayerId artboard_id,
                                              bool include_loose_layers = false);
-// attach_pdf_source_page for one artboard of a merged import: stamps `source` against the
-// page document_for_artboard derives and files it under the artboard's id.
-void attach_pdf_artboard_source_page(Document& document, LayerId artboard_id,
-                                     const std::shared_ptr<const PdfSourcePage>& source);
+// attach_pdf_source_page for one page of a merged import (an artboard or a page group):
+// stamps `source` against the page its exporter derives and files it under the layer's id.
+void attach_pdf_page_source(Document& document, LayerId page_layer_id,
+                            const std::shared_ptr<const PdfSourcePage>& source);
 
 namespace pdf_detail {
 // The Qt engine's side of the atomic-write rule: QPdfWriter draws onto device(), a

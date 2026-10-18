@@ -10250,14 +10250,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>대지를 하나 이상 선택하세요.</translation>
     </message>
     <message>
-        <source>Each artboard as its own page</source>
-        <translation>대지마다 별도 페이지</translation>
-    </message>
-    <message>
-        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
-        <translation>대지마다 그 크기의 페이지를 만듭니다. 선택하지 않으면 캔버스 전체가 한 페이지가 됩니다.</translation>
-    </message>
-    <message>
         <source>%1 (%2 x %3)</source>
         <translation>%1 (%2 x %3)</translation>
     </message>
@@ -10312,6 +10304,34 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>A PDF image could not be made gray and kept its colors.</source>
         <translation>PDF 이미지를 회색으로 바꿀 수 없어 원래 색을 유지했습니다.</translation>
+    </message>
+    <message>
+        <source>Pages:</source>
+        <translation>페이지:</translation>
+    </message>
+    <message>
+        <source>One page per artboard</source>
+        <translation>대지마다 한 페이지</translation>
+    </message>
+    <message>
+        <source>One page per top-level group</source>
+        <translation>최상위 그룹마다 한 페이지</translation>
+    </message>
+    <message>
+        <source>One page of the whole canvas</source>
+        <translation>캔버스 전체를 한 페이지로</translation>
+    </message>
+    <message>
+        <source>Artboard and group pages each take their own size; hidden groups are pages too.</source>
+        <translation>대지와 그룹 페이지는 각각 고유한 크기를 가지며, 숨겨진 그룹도 페이지가 됩니다.</translation>
+    </message>
+    <message>
+        <source>Include hidden groups</source>
+        <translation>숨겨진 그룹 포함</translation>
+    </message>
+    <message>
+        <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
+        <translation>페이지 폴더로 가져온 PDF는 첫 페이지만 표시하지만, 숨겨진 페이지도 페이지입니다.</translation>
     </message>
 </context>
 <context>
@@ -23202,6 +23222,10 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
         <translation>대지로 캔버스를 %1 x %1 px보다 크게 만들 수 없습니다.</translation>
+    </message>
+    <message>
+        <source>exportPdf pages must be &quot;artboards&quot;, &quot;groups&quot; or &quot;canvas&quot;.</source>
+        <translation>exportPdf pages는 &quot;artboards&quot;, &quot;groups&quot;, &quot;canvas&quot; 중 하나여야 합니다.</translation>
     </message>
 </context>
 <context>

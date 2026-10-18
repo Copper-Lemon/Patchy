@@ -10280,14 +10280,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>Selecione pelo menos uma prancheta.</translation>
     </message>
     <message>
-        <source>Each artboard as its own page</source>
-        <translation>Cada prancheta como uma página própria</translation>
-    </message>
-    <message>
-        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
-        <translation>Uma página por prancheta, no tamanho dela. Desmarcado, a tela inteira é uma página.</translation>
-    </message>
-    <message>
         <source>%1 (%2 x %3)</source>
         <translation>%1 (%2 x %3)</translation>
     </message>
@@ -10344,6 +10336,34 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>A PDF image could not be made gray and kept its colors.</source>
         <translation>Uma imagem do PDF não pôde ser convertida em cinza e manteve suas cores.</translation>
+    </message>
+    <message>
+        <source>Pages:</source>
+        <translation>Páginas:</translation>
+    </message>
+    <message>
+        <source>One page per artboard</source>
+        <translation>Uma página por prancheta</translation>
+    </message>
+    <message>
+        <source>One page per top-level group</source>
+        <translation>Uma página por grupo de nível superior</translation>
+    </message>
+    <message>
+        <source>One page of the whole canvas</source>
+        <translation>Uma página com a tela inteira</translation>
+    </message>
+    <message>
+        <source>Artboard and group pages each take their own size; hidden groups are pages too.</source>
+        <translation>As páginas de pranchetas e grupos têm cada uma o seu tamanho; grupos ocultos também são páginas.</translation>
+    </message>
+    <message>
+        <source>Include hidden groups</source>
+        <translation>Incluir grupos ocultos</translation>
+    </message>
+    <message>
+        <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
+        <translation>Um PDF importado como pastas de páginas mostra só a primeira página; as páginas ocultas continuam sendo páginas.</translation>
     </message>
 </context>
 <context>
@@ -23268,6 +23288,10 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
         <translation>As pranchetas não podem deixar a tela maior que %1 x %1 px.</translation>
+    </message>
+    <message>
+        <source>exportPdf pages must be &quot;artboards&quot;, &quot;groups&quot; or &quot;canvas&quot;.</source>
+        <translation>exportPdf pages deve ser &quot;artboards&quot;, &quot;groups&quot; ou &quot;canvas&quot;.</translation>
     </message>
 </context>
 <context>

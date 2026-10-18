@@ -23,6 +23,7 @@ namespace {
 
 constexpr auto kSourceKey = "exportOptions/multiPagePdfSource";
 constexpr auto kUngroupedKey = "exportOptions/multiPagePdfUngroupedLayers";
+constexpr auto kHiddenGroupsKey = "exportOptions/multiPagePdfHiddenGroups";
 constexpr auto kEditableKey = "exportOptions/multiPagePdfEditableLayers";
 constexpr auto kMissingFontsKey = "saveOptions/pdfMissingFontsAsImages";
 constexpr auto kKeepOriginalKey = "saveOptions/pdfKeepOriginalImages";
@@ -31,7 +32,7 @@ constexpr auto kKeepOriginalKey = "saveOptions/pdfKeepOriginalImages";
 
 std::optional<MultiPagePdfExportChoice> run_multipage_pdf_export_dialog(
     QWidget* parent, const std::vector<MultiPagePdfDocumentEntry>& documents, std::int64_t active_session_id,
-    int top_level_group_count, bool original_image_data_available, int artboard_count) {
+    int top_level_group_count, bool original_image_data_available, int artboard_count, int hidden_group_count) {
   auto settings = app_settings();
   const bool groups_available = top_level_group_count > 0;
   const bool artboards_available = artboard_count > 0;
@@ -77,6 +78,13 @@ std::optional<MultiPagePdfExportChoice> run_multipage_pdf_export_dialog(
   ungrouped->setObjectName(QStringLiteral("multiPagePdfUngroupedCheck"));
   ungrouped->setChecked(settings.value(QLatin1String(kUngroupedKey), true).toBool());
   source_layout->addWidget(ungrouped);
+  auto* hidden_groups = new QCheckBox(QObject::tr("Include hidden groups"), source_group);
+  hidden_groups->setObjectName(QStringLiteral("multiPagePdfHiddenGroupsCheck"));
+  hidden_groups->setChecked(settings.value(QLatin1String(kHiddenGroupsKey), true).toBool());
+  hidden_groups->setToolTip(QObject::tr("A PDF imported as page folders shows only its first page; its hidden pages "
+                                        "are still pages."));
+  hidden_groups->setVisible(hidden_group_count > 0);
+  source_layout->addWidget(hidden_groups);
   layout->addWidget(source_group);
 
   auto* options_group = new QGroupBox(QObject::tr("PDF Options"), &dialog);
@@ -132,8 +140,9 @@ std::optional<MultiPagePdfExportChoice> run_multipage_pdf_export_dialog(
     const bool by_artboards = artboards_radio->isChecked();
     sync_document_order_controls(order, !by_groups && !by_artboards);
     ungrouped->setEnabled(by_groups);
+    hidden_groups->setEnabled(by_groups);
     editable_note->setEnabled(editable->isChecked());
-    const int page_count = by_groups      ? top_level_group_count
+    const int page_count = by_groups      ? top_level_group_count - (hidden_groups->isChecked() ? 0 : hidden_group_count)
                            : by_artboards ? artboard_count
                                           : static_cast<int>(selected_session_ids(*list).size());
     export_button->setEnabled(page_count > 0);
@@ -153,6 +162,7 @@ std::optional<MultiPagePdfExportChoice> run_multipage_pdf_export_dialog(
   QObject::connect(list, &QListWidget::currentRowChanged, &dialog, sync);
   QObject::connect(order.select_all, &QPushButton::clicked, &dialog, sync);
   QObject::connect(editable, &QCheckBox::toggled, &dialog, sync);
+  QObject::connect(hidden_groups, &QCheckBox::toggled, &dialog, sync);
 
   remember_dialog_position(dialog);
   if (exec_dialog(dialog) != QDialog::Accepted) {
@@ -165,6 +175,7 @@ std::optional<MultiPagePdfExportChoice> run_multipage_pdf_export_dialog(
                                                  : MultiPagePdfSource::OpenDocuments;
   choice.session_ids = selected_session_ids(*list);
   choice.include_ungrouped_layers = ungrouped->isChecked();
+  choice.include_hidden_groups = hidden_groups->isChecked();
   apply_pdf_image_quality(quality->currentData().toString(), choice.options);
   choice.options.editable_layers = editable->isChecked();
   choice.options.missing_fonts_as_images = settings.value(QLatin1String(kMissingFontsKey), false).toBool();
@@ -173,6 +184,7 @@ std::optional<MultiPagePdfExportChoice> run_multipage_pdf_export_dialog(
                                                     ? QStringLiteral("artboards")
                                                     : QStringLiteral("documents"));
   settings.setValue(QLatin1String(kUngroupedKey), choice.include_ungrouped_layers);
+  settings.setValue(QLatin1String(kHiddenGroupsKey), choice.include_hidden_groups);
   settings.setValue(QLatin1String(kEditableKey), choice.options.editable_layers);
   store_pdf_image_quality_id(quality->currentData().toString());
   choice.options.keep_original_image_data = settings.value(QLatin1String(kKeepOriginalKey), true).toBool();

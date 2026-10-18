@@ -1920,8 +1920,11 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
                           scaled_layer->bounds().height};
           }
         }
+        // Rendered from the re-nested copy while the drag carries layers into another
+        // artboard, so the frame shows what the release will (docs/artboards.md).
         move_preview_patches_ = qimage_patches_from_document_region_with_layer_bounds(
-            *scaled_preview_document, scaled_region, true, scaled_bounds);
+            move_patch_source(*scaled_preview_document, composite_level, move_preview_delta_), scaled_region, true,
+            scaled_bounds);
         for (auto& patch : move_preview_patches_) {
           patch.image = patch.image.convertToFormat(QImage::Format_RGBA8888);
           patch.document_rect =
@@ -1938,7 +1941,8 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
       } else {
         move_preview_patches_scale_level_ = 0;
         move_preview_patches_ = qimage_patches_from_document_region_with_layer_bounds(
-            *document_, patch_region, true, moving_layer_bounds(move_preview_delta_));
+            move_patch_source(std::as_const(*document_), 0, move_preview_delta_), patch_region, true,
+            moving_layer_bounds(move_preview_delta_));
         for (auto& patch : move_preview_patches_) {
           patch.image = patch.image.convertToFormat(QImage::Format_RGBA8888);
         }
@@ -2448,6 +2452,11 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
     const auto move_layer_count = committed_layers.size();
     const auto move_operation_active = !commit_delta.isNull();
     bool move_rolled_back = false;
+    // Auto-nesting (docs/artboards.md): decided from the pre-move tree, exactly as the drag
+    // previewed it, and applied right after the move inside the same undo step.
+    const auto commit_nest_moves = commit_delta.isNull() ? std::vector<ArtboardNestMove>{}
+                                                         : move_nest_moves_for_delta(commit_delta);
+    bool nested_layers = false;
     const bool rerender_smart_filters =
         document_ != nullptr &&
         std::any_of(committed_layers.begin(), committed_layers.end(),
@@ -2486,12 +2495,14 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
           // cache carried the vacated area during the drag); render the
           // vacated half fresh so the cache patch leaves no trail. Vacated
           // rects go first: Source-mode patching lets the new-position
-          // patches rewrite the old/new overlap.
+          // patches rewrite the old/new overlap. Both halves come from the
+          // re-nested tree when the move changes artboards, like the preview.
           if (!move_base_cache_.isNull()) {
             const auto vacated_region =
                 moving_layers_dirty_region(committed_layers, QPoint(), QPoint()).intersected(patched_region);
             precommit_patches = qimage_patches_from_document_region_with_layer_bounds(
-                *document_, vacated_region, true, moving_layer_bounds(committed_layers, commit_delta));
+                move_patch_source(std::as_const(*document_), 0, commit_delta), vacated_region, true,
+                moving_layer_bounds(committed_layers, commit_delta));
             for (auto& patch : precommit_patches) {
               patch.image = patch.image.convertToFormat(QImage::Format_RGBA8888);
             }
@@ -2507,8 +2518,13 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
               moving_layers_use_outline_preview_ || move_drag_uses_proxy_preview_ ||
               std::any_of(committed_layers.begin(), committed_layers.end(),
                           [](const MovingLayer& layer) { return layer.expensive_style; });
-          if ((force_processing_wait || dirty_region_should_use_processing_wait(patched_region)) &&
-              (can_hold_move_commit_preview(commit_delta) || move_preview_requested_)) {
+          const bool can_defer = can_hold_move_commit_preview(commit_delta) || move_preview_requested_;
+          if (!commit_nest_moves.empty() && !can_defer) {
+            // Re-nested by this release: the patch renderer reads the live tree, so the
+            // bounded invalidation after the re-parent renders these rects instead.
+          } else if ((force_processing_wait || dirty_region_should_use_processing_wait(patched_region) ||
+                      !commit_nest_moves.empty()) &&
+                     can_defer) {
             // Deferred commit: this render would block behind the processing
             // overlay (a 4000x2781 styled poster paid 9-19 s per release,
             // September 2026). Mutate now, keep the preview frame on screen,
@@ -2549,10 +2565,16 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
           }
         }
       }
+      // The re-parent joins the move (and, below, its undo snapshot); a failed Smart
+      // Filter re-render rolls both back.
+      if (!smart_filter_rerender_failed && !commit_nest_moves.empty()) {
+        nested_layers = apply_artboard_nest_moves(*document_, commit_nest_moves);
+      }
       if (smart_filter_rerender_failed && rollback_document.has_value()) {
         *document_ = std::move(*rollback_document);
         precommit_patches.clear();
         move_rolled_back = true;
+        nested_layers = false;
       } else if (rerender_smart_filters && rollback_document.has_value()) {
         auto committed_document = *document_;
         *document_ = std::move(*rollback_document);
@@ -2590,7 +2612,11 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
       if (defer_accurate_patches) {
         start_move_commit_job(patched_region);
         retain_move_caches = true;
-        retarget_preview_scaled_for_committed_move(committed_move_ids);
+        if (nested_layers) {
+          clear_preview_scaled_document();  // its tree predates the re-parent
+        } else {
+          retarget_preview_scaled_for_committed_move(committed_move_ids);
+        }
         if (async_render_cache_in_flight_) {
           async_render_cache_pending_ = true;
         }
@@ -2606,7 +2632,11 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
         // This route skips document_changed_impl, so the preview-scaled
         // document survives; refit its copies of the moved layers or the next
         // proxy snapshot renders them at their pre-commit positions.
-        retarget_preview_scaled_for_committed_move(committed_move_ids);
+        if (nested_layers) {
+          clear_preview_scaled_document();  // its tree predates the re-parent
+        } else {
+          retarget_preview_scaled_for_committed_move(committed_move_ids);
+        }
         // It also skips the generation bump, so an async refresh snapshotted
         // before this commit would install pre-move pixels over the patch.
         // Pending makes its completion discard that frame and re-snapshot;
@@ -2641,9 +2671,9 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
     if (move_operation_active) {
       end_processing_operation();
     }
-    // A committed drag (not a click) may carry layers onto or off an artboard: MainWindow
-    // re-nests them (docs/artboards.md, auto-nesting) inside the move's own undo step.
-    if (layers_moved_callback_ && !commit_delta.isNull() && !committed_move_ids.empty() && !move_rolled_back) {
+    // The release re-nested layers into or out of artboards (docs/artboards.md): the
+    // panels follow; the canvas is already patched.
+    if (layers_moved_callback_ && nested_layers && !move_rolled_back) {
       layers_moved_callback_(committed_move_ids);
     }
     if (trace_move_release) {

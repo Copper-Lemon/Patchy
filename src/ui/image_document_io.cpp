@@ -1044,15 +1044,16 @@ void composite_document_layer(QImageCompositeTarget& target, const Layer& layer,
         render_detail::layer_rendered_channel_restriction(layer) != 0U ||
         layer.blend_mode() != BlendMode::PassThrough || layer.opacity() < 1.0F || layer.fill_opacity() < 1.0F ||
         (layer.mask().has_value() && !layer.mask()->disabled) || layer_has_enabled_vector_mask(layer) ||
-        group_style_renders(layer)) {
+        group_style_renders(layer) || layer.artboard().has_value()) {
       // A Blend-If group must be rendered as one isolated source so This Layer
       // samples the group result and Underlying Layer samples the outer stack.
       // A masked group routes through composite_layer too, so the group mask
       // attenuates every child contribution, a non-pass-through group so it
       // isolates with its blend mode and opacity, a faded pass-through
-      // group so the post-composite opacity fade applies, and a STYLED group
+      // group so the post-composite opacity fade applies, a STYLED group
       // so its layer effects render (July 2026; same tradeoff for all: no
-      // per-member style cache or profiling inside).
+      // per-member style cache or profiling inside), and an artboard, even one
+      // marked Pass Through, so its children clip to its rect over its paper.
       render_detail::composite_layer(target, layer, clip, overrides, false, masks, nullptr, patterns);
     } else {
       // Clip runs inside the children go through render_detail::composite_layer
@@ -2711,7 +2712,7 @@ void write_flat_image_file(const Document& document, const QString& path, const 
     PdfExportOptions pdf_options{options.pdf_lossless, true, options.pdf_missing_fonts_as_images,
                                  options.pdf_jpeg_quality};
     pdf_options.keep_original_image_data = options.pdf_keep_original_images;
-    pdf_options.artboard_pages = options.pdf_artboard_pages;
+    pdf_options.pages = pdf_page_source_from_token(options.pdf_pages).value_or(PdfPageSource::Artboards);
     write_pdf_document_file(document, path, pdf_options, notices);
     return;
   }
@@ -2851,7 +2852,7 @@ void write_flat_image_file(const Document& document, const QString& path, const 
   if (lower == "pdf") {
     PdfExportOptions pdf_options{options.pdf_lossless, false, false, options.pdf_jpeg_quality};
     pdf_options.keep_original_image_data = options.pdf_keep_original_images;
-    pdf_options.artboard_pages = options.pdf_artboard_pages;
+    pdf_options.pages = pdf_page_source_from_token(options.pdf_pages).value_or(PdfPageSource::Artboards);
     if (options.export_cmyk) {
       pdf_options.cmyk_space = cmyk_export_space();
       pdf_options.cmyk_black_ink_only = options.export_black_ink_only;

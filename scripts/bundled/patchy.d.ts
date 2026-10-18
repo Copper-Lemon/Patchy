@@ -680,8 +680,12 @@ interface PatchySaveOptions {
   editableLayers?: boolean;
   keepOriginalImageData?: boolean;
   missingFontsAsImages?: boolean;
-  /** .pdf of a document with artboards: one page per artboard (default true), or false
-   *  for one page of the whole canvas. */
+  /** .pdf: what a page is. "artboards" (the default) writes one page per artboard when
+   *  the document has artboards, "groups" one page per top-level group (hidden ones too;
+   *  a PDF imported as page folders goes back page by page at each page's size),
+   *  "canvas" one page of the whole canvas. */
+  pages?: "artboards" | "groups" | "canvas";
+  /** Older spelling: true is pages "artboards", false is "canvas". */
   artboardPages?: boolean;
   /** .gif, .jxl: write the visible top-level layers as an animation (top layer = frame 1)
    *  instead of one flattened image; frameDelayMs is the default per-frame delay. */
@@ -1121,9 +1125,10 @@ interface PatchyApp {
    * with the image data it came with. options.editableLayers (default false) keeps
    * shapes and text as PDF objects the way Save As PDF's "Keep Layers
    * Editable" does; options.missingFontsAsImages embeds text in uninstalled
-   * fonts as pixels. options.artboardPages (default true) makes each artboard of a
-   * document its own page. Returns true on success and throws on bad arguments or a
-   * write failure.
+   * fonts as pixels. options.pages ("artboards", the default, "groups" or "canvas")
+   * says what a page of each document is, like the .pdf save option; artboardPages is
+   * the older true/false spelling. Returns true on success and throws on bad arguments
+   * or a write failure.
    */
   exportPdf(
     documents: PatchyDocument | PatchyDocument[],
@@ -1134,6 +1139,7 @@ interface PatchyApp {
       keepOriginalImageData?: boolean;
       editableLayers?: boolean;
       missingFontsAsImages?: boolean;
+      pages?: "artboards" | "groups" | "canvas";
       artboardPages?: boolean;
     },
   ): boolean;

@@ -10250,14 +10250,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>請至少選取一個工作區域。</translation>
     </message>
     <message>
-        <source>Each artboard as its own page</source>
-        <translation>每個工作區域各成一頁</translation>
-    </message>
-    <message>
-        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
-        <translation>每個工作區域一頁，頁面與其同大。不勾選時，整個版面為一頁。</translation>
-    </message>
-    <message>
         <source>%1 (%2 x %3)</source>
         <translation>%1 (%2 x %3)</translation>
     </message>
@@ -10312,6 +10304,34 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>A PDF image could not be made gray and kept its colors.</source>
         <translation>某個 PDF 影像無法轉為灰色，保留了原本的顏色。</translation>
+    </message>
+    <message>
+        <source>Pages:</source>
+        <translation>頁面:</translation>
+    </message>
+    <message>
+        <source>One page per artboard</source>
+        <translation>每個工作區域一頁</translation>
+    </message>
+    <message>
+        <source>One page per top-level group</source>
+        <translation>每個最上層群組一頁</translation>
+    </message>
+    <message>
+        <source>One page of the whole canvas</source>
+        <translation>整個版面為一頁</translation>
+    </message>
+    <message>
+        <source>Artboard and group pages each take their own size; hidden groups are pages too.</source>
+        <translation>工作區域頁和群組頁各自保持自己的尺寸；隱藏的群組也會成為頁面。</translation>
+    </message>
+    <message>
+        <source>Include hidden groups</source>
+        <translation>包含隱藏的群組</translation>
+    </message>
+    <message>
+        <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
+        <translation>以頁面資料夾匯入的 PDF 只顯示第一頁；隱藏的頁面仍然是頁面。</translation>
     </message>
 </context>
 <context>
@@ -23202,6 +23222,10 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
         <translation>工作區域不能使版面大於 %1 x %1 px。</translation>
+    </message>
+    <message>
+        <source>exportPdf pages must be &quot;artboards&quot;, &quot;groups&quot; or &quot;canvas&quot;.</source>
+        <translation>exportPdf pages 必須是 &quot;artboards&quot;、&quot;groups&quot; 或 &quot;canvas&quot;。</translation>
     </message>
 </context>
 <context>

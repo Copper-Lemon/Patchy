@@ -1221,6 +1221,11 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   connect(artboard_auto_nest, &QCheckBox::toggled, this, [this](bool checked) {
     artboard_auto_nest_ = checked;
     app_settings().setValue(QStringLiteral("tools/artboardAutoNest"), checked);
+    for (const auto& target_session : sessions_) {
+      if (target_session != nullptr && target_session->canvas != nullptr) {
+        target_session->canvas->set_artboard_auto_nest(checked);
+      }
+    }
   });
   connect(artboard_preset_combo_, &QComboBox::activated, this, [this](int index) {
     if (const auto size = artboard_preset_combo_->itemData(index).toSize(); size.isValid()) {

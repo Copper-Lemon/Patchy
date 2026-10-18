@@ -14,6 +14,7 @@
 #include "ui/app_settings.hpp"
 #include "import_print_resolution_test_support.hpp"
 #include "test_fonts.hpp"
+#include "local_psd_fixtures.hpp"
 #include "test_harness.hpp"
 #include "ui_test_access.hpp"
 #include "ui_test_support.hpp"
@@ -24,6 +25,7 @@
 #include <QComboBox>
 #include <QDialog>
 #include <QFile>
+#include <QFileInfo>
 #include <QImageWriter>
 #include <QLabel>
 #if defined(PATCHY_HAVE_QT_PDF)
@@ -38,7 +40,9 @@
 #include <QTransform>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstdio>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -480,7 +484,7 @@ void reset_pdf_pages_target() {
 
 // GitHub issue 154: "Layers in one document" with editable pages used to import page 1
 // only. Every page comes in now, each in its own Pass Through "Page N" folder on a canvas
-// of the largest page, page 1 at the bottom and the only one visible.
+// of the largest page, page 1 on top and the only one visible.
 void ui_pdf_import_editable_pages_become_folders() {
   const auto path = write_artifact(QStringLiteral("ui_pdf_import_editable_folders.pdf"), red_square_pdf_bytes());
   for (const bool paper : {false, true}) {
@@ -496,8 +500,8 @@ void ui_pdf_import_editable_pages_become_folders() {
     if (document.layers().size() != 2) {
       continue;
     }
-    const auto& page1 = document.layers()[0];
-    const auto& page2 = document.layers()[1];
+    const auto& page1 = document.layers()[1];
+    const auto& page2 = document.layers()[0];
     CHECK(page1.name() == "Page 1" && page2.name() == "Page 2");
     CHECK(page1.kind() == patchy::LayerKind::Group && page2.kind() == patchy::LayerKind::Group);
     CHECK(page1.blend_mode() == patchy::BlendMode::PassThrough);
@@ -514,6 +518,103 @@ void ui_pdf_import_editable_pages_become_folders() {
     const auto bounds = patchy::layer_render_bounds(page2.children().back());
     CHECK(bounds.x == 0 && bounds.y == 0 && bounds.width == 60 && bounds.height == 60);
   }
+  reset_pdf_pages_target();
+}
+
+QByteArray gray_scan_jpeg(int width, int height, int seed);
+
+// Flattened scans imported as page folders go back out page by page: Multi-Page PDF by
+// groups (hidden pages included) and Save As with Pages = groups both write every page at
+// its own size, in page order, with each scan's original JPEG bytes; Pages = canvas writes
+// one page.
+void ui_pdf_import_page_folders_export_back_by_groups() {
+  const auto first = gray_scan_jpeg(72, 72, 0);
+  const auto second = gray_scan_jpeg(48, 96, 40);
+  std::vector<std::string> objects = {"<</Type/Catalog/Pages 2 0 R>>",
+                                      "<</Type/Pages/Kids[3 0 R 6 0 R]/Count 2>>"};
+  const std::array<std::pair<int, int>, 2> sizes{{{72, 72}, {48, 96}}};
+  for (std::size_t index = 0; index < 2; ++index) {
+    const auto& jpeg = index == 0 ? first : second;
+    const auto [width, height] = sizes[index];
+    const int base = static_cast<int>(objects.size()) + 1;
+    const std::string content =
+        "q " + std::to_string(width) + " 0 0 " + std::to_string(height) + " 0 0 cm /Im0 Do Q";
+    objects.push_back("<</Type/Page/Parent 2 0 R/MediaBox[0 0 " + std::to_string(width) + " " +
+                      std::to_string(height) + "]/Resources<</XObject<</Im0 " + std::to_string(base + 2) +
+                      " 0 R>>>>/Contents " + std::to_string(base + 1) + " 0 R>>");
+    objects.push_back("<</Length " + std::to_string(content.size()) + ">>\nstream\n" + content + "\nendstream");
+    objects.push_back("<</Type/XObject/Subtype/Image/Width " + std::to_string(width) + "/Height " +
+                      std::to_string(height) + "/ColorSpace/DeviceGray/BitsPerComponent 8/Filter/DCTDecode/Length " +
+                      std::to_string(jpeg.size()) + ">>\nstream\n" + jpeg.toStdString() + "\nendstream");
+  }
+  const auto path = write_artifact(QStringLiteral("ui_pdf_import_page_folders.pdf"), pdf_from_objects(objects));
+  patchy::ui::MainWindow window;
+  show_window(window);
+  CHECK(import_through_dialog(window, path, QStringLiteral("flatten"), QStringLiteral("layers"), true));
+  auto& document = patchy::ui::MainWindowTestAccess::document(window);
+  CHECK(document.layers().size() == 2);
+  CHECK(document.width() == 72 && document.height() == 96);
+  CHECK(patchy::ui::document_has_imported_page_groups(std::as_const(document)));
+  CHECK(std::as_const(document).metadata().pdf_page_source_pages.size() == 2);
+
+  const auto streams_of = [](const QString& written, std::vector<QSizeF>* sizes_out) {
+    std::vector<QByteArray> streams;
+    QPdfDocument reader;
+    if (reader.load(written) == QPdfDocument::Error::None && sizes_out != nullptr) {
+      for (int page = 0; page < reader.pageCount(); ++page) {
+        sizes_out->push_back(reader.pagePointSize(page));
+      }
+    }
+    reader.close();
+    const QByteArray bytes = read_file_bytes(written);
+    auto file = patchy::pdf::File::open(std::vector<std::uint8_t>(bytes.begin(), bytes.end()), nullptr);
+    if (!file.has_value()) {
+      return streams;
+    }
+    for (const auto& page : file->pages()) {
+      const auto* xobjects = file->get(page.resources, "XObject").dictionary();
+      if (xobjects == nullptr || xobjects->empty()) {
+        streams.emplace_back();
+        continue;
+      }
+      const auto data = file->stream_data(file->resolve(xobjects->begin()->second));
+      streams.emplace_back(reinterpret_cast<const char*>(data.data.data()), static_cast<qsizetype>(data.data.size()));
+    }
+    return streams;
+  };
+
+  // Multi-Page PDF by groups: page 2 is hidden and is still a page.
+  const auto pages = patchy::ui::documents_for_top_level_groups(std::as_const(document), false);
+  CHECK(pages.size() == 2);
+  std::vector<const patchy::Document*> pointers;
+  for (const auto& page : pages) {
+    pointers.push_back(&page);
+  }
+  const auto groups_path = QStringLiteral("test-artifacts/ui_pdf_import_page_folders_groups.pdf");
+  QFile::remove(groups_path);
+  patchy::ui::PdfExportOptions options;
+  CHECK(patchy::ui::write_multipage_pdf_file(pointers, groups_path, options));
+  std::vector<QSizeF> group_sizes;
+  const auto group_streams = streams_of(groups_path, &group_sizes);
+  CHECK(group_streams.size() == 2 && group_streams[0] == first && group_streams[1] == second);
+  CHECK(group_sizes.size() == 2 && std::abs(group_sizes[0].width() - 72.0) < 0.5 &&
+        std::abs(group_sizes[1].height() - 96.0) < 0.5);
+
+  // Save As with Pages = groups does the same; canvas writes one page.
+  options.pages = patchy::ui::PdfPageSource::Groups;
+  const auto save_path = QStringLiteral("test-artifacts/ui_pdf_import_page_folders_save.pdf");
+  QFile::remove(save_path);
+  patchy::ui::write_pdf_document_file(std::as_const(document), save_path, options);
+  std::vector<QSizeF> save_sizes;
+  const auto save_streams = streams_of(save_path, &save_sizes);
+  CHECK(save_streams.size() == 2 && save_streams[0] == first && save_streams[1] == second);
+  options.pages = patchy::ui::PdfPageSource::Canvas;
+  const auto canvas_path = QStringLiteral("test-artifacts/ui_pdf_import_page_folders_canvas.pdf");
+  QFile::remove(canvas_path);
+  patchy::ui::write_pdf_document_file(std::as_const(document), canvas_path, options);
+  std::vector<QSizeF> canvas_sizes;
+  static_cast<void>(streams_of(canvas_path, &canvas_sizes));
+  CHECK(canvas_sizes.size() == 1);
   reset_pdf_pages_target();
 }
 
@@ -562,7 +663,7 @@ void ui_pdf_import_pages_become_artboards_and_export_back() {
       }
     }
     // Whole canvas when asked: one page of the canvas size.
-    options.artboard_pages = false;
+    options.pages = patchy::ui::PdfPageSource::Canvas;
     const auto whole_path = QStringLiteral("test-artifacts/ui_pdf_import_artboards_whole_%1.pdf").arg(QLatin1String(mode));
     QFile::remove(whole_path);
     patchy::ui::write_pdf_document_file(std::as_const(document), whole_path, options);
@@ -616,7 +717,7 @@ void ui_pdf_import_artboard_pages_pass_through() {
   auto& document = patchy::ui::MainWindowTestAccess::document(window);
   const auto artboards = patchy::document_artboards(std::as_const(document));
   CHECK(artboards.size() == 2);
-  CHECK(std::as_const(document).metadata().pdf_artboard_source_pages.size() == 2);
+  CHECK(std::as_const(document).metadata().pdf_page_source_pages.size() == 2);
   if (artboards.size() != 2) {
     reset_pdf_pages_target();
     return;
@@ -640,7 +741,7 @@ void ui_pdf_import_artboard_pages_pass_through() {
     return streams;
   };
   patchy::ui::PdfExportOptions options;
-  CHECK(options.keep_original_image_data && options.artboard_pages);
+  CHECK(options.keep_original_image_data && options.pages == patchy::ui::PdfPageSource::Artboards);
   const auto out_path = QStringLiteral("test-artifacts/ui_pdf_import_artboard_scans_out.pdf");
   QFile::remove(out_path);
   patchy::ui::write_pdf_document_file(std::as_const(document), out_path, options);
@@ -666,6 +767,89 @@ void ui_pdf_import_artboard_pages_pass_through() {
   reset_pdf_pages_target();
 }
 
+// The real scanned document (85 pages of JPEG 2000; the first 5 here) round-trips both
+// ways: imported as page folders and exported by groups, and imported as artboards and
+// exported by artboards, every page comes back with its original image bytes, in order.
+void ui_pdf_local_scans_round_trip_as_folders_and_artboards_if_available() {
+  const auto fixture = QString::fromStdString(
+      patchy::test::local_format_fixture_path("pdf", "C2_Kyoto_House_Plans_Compressed.pdf").string());
+  if (!QFileInfo::exists(fixture)) {
+    std::printf("[SKIP] ui_pdf_local_scans_round_trip_as_folders_and_artboards_if_available (no local fixture)\n");
+    return;
+  }
+  const auto source_streams = [](const QString& written, int limit) {
+    std::vector<QByteArray> streams;
+    const QByteArray bytes = read_file_bytes(written);
+    auto file = patchy::pdf::File::open(std::vector<std::uint8_t>(bytes.begin(), bytes.end()), nullptr);
+    if (!file.has_value()) {
+      return streams;
+    }
+    for (const auto& page : file->pages()) {
+      if (static_cast<int>(streams.size()) == limit) {
+        break;
+      }
+      const auto* xobjects = file->get(page.resources, "XObject").dictionary();
+      if (xobjects == nullptr || xobjects->empty()) {
+        streams.emplace_back();
+        continue;
+      }
+      const auto data = file->stream_data(file->resolve(xobjects->begin()->second));
+      streams.emplace_back(reinterpret_cast<const char*>(data.data.data()), static_cast<qsizetype>(data.data.size()));
+    }
+    return streams;
+  };
+  const auto originals = source_streams(fixture, 5);
+  CHECK(originals.size() == 5);
+  for (const char* target : {"layers", "artboards"}) {
+    patchy::ui::MainWindow window;
+    show_window(window);
+    auto clicked = std::make_shared<bool>(false);
+    auto step = std::make_shared<std::function<bool()>>();
+    const QString target_id = QString::fromLatin1(target);
+    *step = [clicked, target_id] {
+      auto* dialog = find_top_level_dialog(QStringLiteral("pdfImportDialog"));
+      if (dialog == nullptr) {
+        return false;
+      }
+      auto* pages = dialog->findChild<QListWidget*>(QStringLiteral("pdfImportPagesList"));
+      auto* resolution = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportResolutionCombo"));
+      auto* mode = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportModeCombo"));
+      auto* pages_target = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportPagesTargetCombo"));
+      auto* import_button = dialog->findChild<QPushButton*>(QStringLiteral("pdfImportButton"));
+      if (pages == nullptr || resolution == nullptr || mode == nullptr || pages_target == nullptr ||
+          import_button == nullptr) {
+        return false;
+      }
+      mode->setCurrentIndex(mode->findData(QStringLiteral("flatten")));
+      pages_target->setCurrentIndex(pages_target->findData(target_id));
+      resolution->setCurrentText(QStringLiteral("72"));
+      pages->clearSelection();
+      for (int row = 0; row < 5 && row < pages->count(); ++row) {
+        pages->item(row)->setSelected(true);
+      }
+      import_button->click();
+      *clicked = true;
+      return true;
+    };
+    drive_modal_dialog(step);
+    patchy::ui::MainWindowTestAccess::open_document_path(window, fixture);
+    CHECK(*clicked);
+    const auto& document = std::as_const(patchy::ui::MainWindowTestAccess::document(window));
+    CHECK(document.layers().size() == 5);
+    CHECK(document.metadata().pdf_page_source_pages.size() == 5);
+    patchy::ui::PdfExportOptions options;
+    options.pages = target_id == QStringLiteral("layers") ? patchy::ui::PdfPageSource::Groups
+                                                          : patchy::ui::PdfPageSource::Artboards;
+    const auto out = QStringLiteral("test-artifacts/ui_pdf_local_scans_%1.pdf").arg(target_id);
+    QFile::remove(out);
+    patchy::ui::write_pdf_document_file(document, out, options);
+    const auto written = source_streams(out, 99);
+    CHECK(written.size() == 5);
+    CHECK(written == originals);
+  }
+  reset_pdf_pages_target();
+}
+
 #endif  // PATCHY_HAVE_QT_PDF
 
 }  // namespace
@@ -683,6 +867,9 @@ std::vector<patchy::test::TestCase> import_print_resolution_tests_part4() {
       {"ui_pdf_import_editable_pages_become_folders", ui_pdf_import_editable_pages_become_folders},
       {"ui_pdf_import_pages_become_artboards_and_export_back", ui_pdf_import_pages_become_artboards_and_export_back},
       {"ui_pdf_import_artboard_pages_pass_through", ui_pdf_import_artboard_pages_pass_through},
+      {"ui_pdf_import_page_folders_export_back_by_groups", ui_pdf_import_page_folders_export_back_by_groups},
+      {"ui_pdf_local_scans_round_trip_as_folders_and_artboards_if_available",
+       ui_pdf_local_scans_round_trip_as_folders_and_artboards_if_available},
 #endif
   };
 }

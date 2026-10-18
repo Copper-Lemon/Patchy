@@ -106,6 +106,16 @@ QPoint move_proxy_snapshot_shift(QRect effect_union, QRect canvas_rect, int leve
 // Bounds overrides that render the moving set translated by `shift`. `source`
 // is the document the snapshot renders from: the real one, or the
 // preview-scaled copy at `level`, whose layers shift by the scaled amount.
+// The proxy snapshot's artboards that hold moving layers become plain groups (no paper,
+// no clip); paint clips the blit to the artboard the content lands in.
+void clear_artboards_for_proxy(Document& document, const std::vector<LayerId>& artboard_ids) {
+  for (auto& layer : document.layers()) {
+    if (std::find(artboard_ids.begin(), artboard_ids.end(), layer.id()) != artboard_ids.end()) {
+      layer.clear_artboard();
+    }
+  }
+}
+
 std::vector<std::pair<LayerId, Rect>> move_proxy_shifted_bounds(const Document& source,
                                                                 const std::vector<LayerId>& moving_ids, QPoint shift,
                                                                 int level) {
@@ -664,6 +674,22 @@ void CanvasWidget::begin_move_drag(const std::vector<LayerId>& layer_ids, QPoint
   move_preview_patches_.clear();
   move_preview_patches_delta_.reset();
   move_preview_patches_scale_level_ = 0;
+  // What auto-nesting will re-parent (docs/artboards.md): the selection's roots that hold
+  // a moving leaf. The preview re-nests a copy as the drag crosses artboards.
+  move_nest_preview_moves_.clear();
+  move_nest_preview_document_.reset();
+  move_nest_preview_document_level_ = -1;
+  move_nest_preview_document_base_ = nullptr;
+  move_nest_root_ids_.clear();
+  if (document_has_artboards(std::as_const(*document_))) {
+    auto selection = std::vector<LayerId>(selected_layer_ids_.begin(), selected_layer_ids_.end());
+    if (selection.empty()) {
+      if (const auto active = std::as_const(*document_).active_layer_id(); active.has_value()) {
+        selection.push_back(*active);
+      }
+    }
+    move_nest_root_ids_ = artboard_nest_roots(std::as_const(*document_), selection, layer_ids);
+  }
 }
 
 void CanvasWidget::collect_movable_leaf_ids(const Layer& root, LayerLockFlags ancestor_flags,
@@ -1072,6 +1098,7 @@ void CanvasWidget::cancel_move_preview() noexcept {
 bool CanvasWidget::request_move_preview() {
   if constexpr (kBackgroundWorkRunsInline) return false;
   if (document_ == nullptr || moving_layers_.empty()) return false;
+  if (!move_proxy_allowed_for_artboards()) return false;
   set_move_preview_requested(true);
   if (move_preview_in_flight_) return true;
 
@@ -1112,6 +1139,16 @@ bool CanvasWidget::request_move_preview() {
     }
   };
   for (const auto& layer : snapshot->layers()) collect_hidden(layer);
+  // The artboards holding moving layers render as plain groups in the proxy snapshot: no
+  // paper and no clip baked in; paint clips the blit to where the content lands.
+  std::vector<LayerId> unclip_ids;
+  for (const auto& layer : snapshot->layers()) {
+    if (layer_is_artboard(layer) &&
+        std::any_of(moving_ids.begin(), moving_ids.end(),
+                    [&](LayerId id) { return layer_contains_descendant(layer, id); })) {
+      unclip_ids.push_back(layer.id());
+    }
+  }
   auto base = move_base_cache_scale_level_ == level ? move_base_cache_ : QImage();
   const auto cancelled = std::make_shared<std::atomic_bool>(false);
   move_preview_cancel_ = cancelled;
@@ -1120,7 +1157,7 @@ bool CanvasWidget::request_move_preview() {
   auto* app = QApplication::instance();
   const QPointer<CanvasWidget> widget(this);
   run_tracked_background_worker([widget, app, generation, level, key, snapshot, scaled, moving_ids, hidden,
-                                 proxy_rect, proxy_shift, clipped, cancelled, delay, scale_cache,
+                                 unclip_ids, proxy_rect, proxy_shift, clipped, cancelled, delay, scale_cache,
                                  base = std::move(base)]() mutable {
     QImage proxy;
     try {
@@ -1137,12 +1174,18 @@ bool CanvasWidget::request_move_preview() {
       const auto area = static_cast<std::int64_t>(proxy_rect.width()) * proxy_rect.height();
       if (!cancelled->load() && !proxy_rect.isEmpty() &&
           (level >= 1 || area <= kMoveProxyLastResortSnapshotArea)) {
+        std::optional<Document> unclipped;
+        if (!unclip_ids.empty()) {
+          unclipped.emplace(source);
+          clear_artboards_for_proxy(*unclipped, unclip_ids);
+        }
+        const auto& proxy_source = unclipped.has_value() ? *unclipped : source;
         const auto source_rect = level >= 1 ? preview_scaled_document_rect(proxy_rect, level) : proxy_rect;
         proxy = proxy_shift.isNull()
-                    ? qimage_from_document_rect_with_hidden_layers_banded(source, source_rect, true, hidden)
+                    ? qimage_from_document_rect_with_hidden_layers_banded(proxy_source, source_rect, true, hidden)
                     : qimage_from_document_rect_with_hidden_layers_and_layer_bounds_banded(
-                          source, source_rect, true, hidden,
-                          move_proxy_shifted_bounds(source, moving_ids, proxy_shift, level));
+                          proxy_source, source_rect, true, hidden,
+                          move_proxy_shifted_bounds(proxy_source, moving_ids, proxy_shift, level));
         const auto pixels = static_cast<std::int64_t>(proxy.width()) * proxy.height();
         if (pixels > kMoveProxyMaxPixels) {
           const auto scale = std::sqrt(static_cast<double>(kMoveProxyMaxPixels) / static_cast<double>(pixels));
@@ -1165,6 +1208,7 @@ bool CanvasWidget::request_move_preview() {
           key == widget->move_live_latch_key() && level == preview_composite_level_for_zoom(widget->view_zoom())) {
         widget->set_move_preview_requested(false);
         if (*scaled) {
+          widget->move_nest_preview_document_.reset();
           widget->preview_scaled_document_ = std::move(*scaled);
           widget->preview_scaled_document_level_ = level;
           widget->preview_scale_cache_ = std::move(scale_cache);
@@ -1194,7 +1238,7 @@ bool CanvasWidget::ensure_move_proxy_image() {
   if (!move_proxy_image_.isNull()) {
     return true;
   }
-  if (document_ == nullptr || moving_layers_.empty()) {
+  if (document_ == nullptr || moving_layers_.empty() || !move_proxy_allowed_for_artboards()) {
     return false;
   }
 
@@ -1263,7 +1307,15 @@ bool CanvasWidget::ensure_move_proxy_image() {
   // Banded: the snapshot is small but crosses the styled stack, and this
   // render is the other half of the latch hitch (preview-only, so the band
   // divergence class is acceptable).
-  const Document& snapshot_source = scaled_document != nullptr ? *scaled_document : std::as_const(*document_);
+  // Owner artboards render as plain groups here (move_proxy_snapshot_source); paint clips.
+  std::optional<Document> unclipped;
+  if (document_has_artboards(std::as_const(*document_))) {
+    unclipped.emplace(move_proxy_snapshot_source(scaled_document != nullptr ? *scaled_document
+                                                                             : std::as_const(*document_)));
+  }
+  const Document& snapshot_source = unclipped.has_value() ? *unclipped
+                                    : scaled_document != nullptr ? *scaled_document
+                                                                 : std::as_const(*document_);
   const auto source_level = scaled_document != nullptr ? composite_level : 0;
   const auto source_rect =
       scaled_document != nullptr ? preview_scaled_document_rect(snapshot_rect, composite_level) : snapshot_rect;
@@ -1408,6 +1460,7 @@ Document* CanvasWidget::preview_scaled_document_for_level(int level) {
     return &*preview_scaled_document_;
   }
   if (!preview_scale_cache_) preview_scale_cache_ = std::make_shared<PreviewScaleCache>();
+  move_nest_preview_document_.reset();  // it may copy the document rebuilt here
   preview_scaled_document_.emplace(build_preview_scaled_document(std::as_const(*document_), level,
                                                                 preview_scale_cache_.get()));
   preview_scaled_document_level_ = level;
@@ -1416,6 +1469,7 @@ Document* CanvasWidget::preview_scaled_document_for_level(int level) {
 
 void CanvasWidget::clear_preview_scaled_document() noexcept {
   cancel_move_preview();
+  move_nest_preview_document_.reset();
   preview_scaled_document_.reset();
   preview_scaled_document_level_ = 0;
 }
@@ -1424,6 +1478,7 @@ void CanvasWidget::retarget_preview_scaled_for_committed_move(const std::vector<
   if (!preview_scaled_document_.has_value() || preview_scaled_document_level_ < 1 || document_ == nullptr) {
     return;
   }
+  move_nest_preview_document_.reset();
   for (const auto id : committed_ids) {
     const auto* real = std::as_const(*document_).find_layer(id);
     auto* scaled = preview_scaled_document_->find_layer(id);

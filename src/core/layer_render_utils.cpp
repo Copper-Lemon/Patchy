@@ -693,6 +693,12 @@ void shrink_layer_for_preview(Layer& layer, int level, PreviewScaleCache* cache)
       shrink_layer_for_preview(child, level, cache);
     }
     layer.set_bounds(preview_scaled_bounds_endpoints(layer.bounds(), level));
+    if (const auto& artboard = original.artboard(); artboard.has_value()) {
+      // The artboard's clip and paper live in document coordinates too.
+      auto scaled = *artboard;
+      scaled.rect = preview_scaled_bounds_endpoints(artboard->rect, level);
+      layer.set_artboard(std::move(scaled));
+    }
   } else if (!original.pixels().empty()) {
     auto buffer = cached_preview_surface(original.pixels(), level, cache, layer.id(), 0);
     const auto bounds = layer.bounds();
@@ -812,6 +818,13 @@ void retarget_preview_scaled_layer_bounds(Layer& scaled, const Layer& real, int 
   const auto real_bounds = real.bounds();
   if (scaled.kind() == LayerKind::Group || const_scaled.pixels().empty()) {
     scaled.set_bounds(preview_scaled_bounds_endpoints(real_bounds, level));
+    if (const auto& artboard = real.artboard(); artboard.has_value() && scaled.kind() == LayerKind::Group) {
+      auto retargeted = *artboard;
+      retargeted.rect = preview_scaled_bounds_endpoints(artboard->rect, level);
+      if (const_scaled.artboard() != retargeted) {
+        scaled.set_artboard(std::move(retargeted));
+      }
+    }
   } else {
     scaled.set_bounds(Rect{preview_scaled_position(real_bounds.x, level),
                            preview_scaled_position(real_bounds.y, level), const_scaled.pixels().width(),

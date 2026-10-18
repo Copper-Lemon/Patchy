@@ -10250,14 +10250,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>请至少选择一个画板。</translation>
     </message>
     <message>
-        <source>Each artboard as its own page</source>
-        <translation>每个画板单独成页</translation>
-    </message>
-    <message>
-        <source>One page per artboard, sized to it. Unchecked, the whole canvas is one page.</source>
-        <translation>每个画板一页，页面与画板同大。不勾选时，整个画布为一页。</translation>
-    </message>
-    <message>
         <source>%1 (%2 x %3)</source>
         <translation>%1 (%2 x %3)</translation>
     </message>
@@ -10312,6 +10304,34 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>A PDF image could not be made gray and kept its colors.</source>
         <translation>某个 PDF 图像无法转为灰色，保留了原来的颜色。</translation>
+    </message>
+    <message>
+        <source>Pages:</source>
+        <translation>页面:</translation>
+    </message>
+    <message>
+        <source>One page per artboard</source>
+        <translation>每个画板一页</translation>
+    </message>
+    <message>
+        <source>One page per top-level group</source>
+        <translation>每个顶层组一页</translation>
+    </message>
+    <message>
+        <source>One page of the whole canvas</source>
+        <translation>整个画布为一页</translation>
+    </message>
+    <message>
+        <source>Artboard and group pages each take their own size; hidden groups are pages too.</source>
+        <translation>画板页和组页各自保持自己的尺寸；隐藏的组也会成为页面。</translation>
+    </message>
+    <message>
+        <source>Include hidden groups</source>
+        <translation>包括隐藏的组</translation>
+    </message>
+    <message>
+        <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
+        <translation>以页面文件夹导入的 PDF 只显示第一页；隐藏的页面仍然是页面。</translation>
     </message>
 </context>
 <context>
@@ -23202,6 +23222,10 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px.</source>
         <translation>画板不能使画布大于 %1 x %1 px。</translation>
+    </message>
+    <message>
+        <source>exportPdf pages must be &quot;artboards&quot;, &quot;groups&quot; or &quot;canvas&quot;.</source>
+        <translation>exportPdf pages 必须是 &quot;artboards&quot;、&quot;groups&quot; 或 &quot;canvas&quot;。</translation>
     </message>
 </context>
 <context>

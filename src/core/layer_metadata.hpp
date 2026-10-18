@@ -117,6 +117,10 @@ inline constexpr const char* kLayerMetadataPdfTextIntendedWidth = "patchy.pdf.te
 // put the bytes in the document's SmartObjectStore and written the placement quad,
 // so this only marks the layer for MainWindow::render_pending_pdf_images.
 inline constexpr const char* kLayerMetadataPdfPendingImage = "patchy.pdf.pending_image_render";
+// A PDF import's page group (docs/pdf.md): "x,y,width,height" of the page on the merged
+// canvas, so exporting by groups gives each page its own size again. Patchy-only: never
+// written to PSD.
+inline constexpr const char* kLayerMetadataPdfPageRect = "patchy.pdf.page_rect";
 
 using LayerAffineTransform = std::array<double, 6>;
 

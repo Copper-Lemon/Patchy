@@ -543,6 +543,85 @@ void ui_script_artboards_add_move_and_export() {
 #endif
 }
 
+
+// The drag shows what the release does (docs/artboards.md, "Fast paths"): a red layer
+// dragged from artboard A into artboard B draws over B's paper mid-drag and leaves A's
+// paper clean, at 100% and 50% zoom (the preview-scaled document), with live patches and
+// with the latched proxy; with Auto-Nest off it stays clipped to A, mid-drag and after.
+void ui_artboard_drag_across_artboards_previews_the_release() {
+  EnvironmentVariableRestorer restore_latch("PATCHY_MOVE_LIVE_LATCH_MS");
+  struct Case {
+    double zoom;
+    bool proxy;
+    bool auto_nest;
+  };
+  for (const auto& run : {Case{1.0, false, true}, Case{0.5, false, true}, Case{1.0, true, true},
+                          Case{0.5, true, true}, Case{1.0, false, false}}) {
+    if (run.proxy) {
+      qputenv("PATCHY_MOVE_LIVE_LATCH_MS", QByteArray("0"));
+    } else {
+      qunsetenv("PATCHY_MOVE_LIVE_LATCH_MS");
+    }
+    auto document = board_document(360, 160);
+    const auto board_a = add_board(document, "A", patchy::Rect{0, 0, 140, 140}, patchy::ArtboardBackground::White,
+                                   QColor());
+    const auto board_b = add_board(document, "B", patchy::Rect{200, 0, 140, 140}, patchy::ArtboardBackground::White,
+                                   QColor());
+    patchy::Layer red(document.allocate_layer_id(), "Red",
+                      solid_pixels(24, 24, patchy::PixelFormat::rgba8(), QColor(220, 30, 30)));
+    red.set_bounds(patchy::Rect{20, 20, 24, 24});
+    const auto red_id = red.id();
+    for (auto& layer : document.layers()) {
+      if (layer.id() == board_a) {
+        layer.add_child(std::move(red));
+      }
+    }
+
+    patchy::ui::CanvasWidget canvas;
+    canvas.resize(820, 420);
+    canvas.set_document(&document);
+    canvas.set_zoom(run.zoom);
+    canvas.set_tool(patchy::ui::CanvasTool::Move);
+    canvas.set_show_transform_controls(false);
+    canvas.set_auto_select_layer(false);
+    canvas.set_snap_enabled(false);
+    canvas.set_artboard_auto_nest(run.auto_nest);
+    canvas.set_selected_layer_ids({red_id});
+    canvas.show();
+    QApplication::processEvents();
+
+    // From the red square's center (32, 32) to (252, 32): into B, 220 px right.
+    const auto start = canvas.widget_position_for_document_point(QPoint(32, 32));
+    const auto end = canvas.widget_position_for_document_point(QPoint(252, 32));
+    send_mouse(canvas, QEvent::MouseButtonPress, start, Qt::LeftButton, Qt::LeftButton);
+    for (int step = 1; step <= 6; ++step) {
+      send_mouse(canvas, QEvent::MouseMove, start + (end - start) * step / 6, Qt::NoButton, Qt::LeftButton);
+      QApplication::processEvents();
+    }
+    if (run.auto_nest) {
+      // Visual QA: the mid-drag frame (test-artifacts/ui_artboard_drag_mid_*.png).
+      save_image_artifact(std::string("ui_artboard_drag_mid_") + (run.zoom < 1.0 ? "50" : "100") +
+                              (run.proxy ? "_proxy" : "_live"),
+                          canvas.grab().toImage());
+    }
+    const auto mid_destination = canvas_pixel(canvas, QPoint(252, 32));
+    const auto mid_origin = canvas_pixel(canvas, QPoint(32, 32));
+    CHECK(color_close(mid_origin, QColor(Qt::white), 30));  // A's paper, the square gone
+    if (run.auto_nest) {
+      CHECK(color_close(mid_destination, QColor(220, 30, 30), 45));  // drawn on B, over its paper
+    } else {
+      CHECK(color_close(mid_destination, QColor(Qt::white), 30));  // still A's: clipped away
+    }
+    send_mouse(canvas, QEvent::MouseButtonRelease, end, Qt::LeftButton, Qt::NoButton);
+    QApplication::processEvents();
+    const auto* owner = patchy::artboard_owning_layer(std::as_const(document), red_id);
+    CHECK(owner != nullptr && owner->id() == (run.auto_nest ? board_b : board_a));
+    // The released frame matches the drag's last frame.
+    const auto after = canvas_pixel(canvas, QPoint(252, 32));
+    CHECK(color_close(after, mid_destination, 30));
+  }
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> artboard_ui_tests() {
@@ -556,5 +635,6 @@ std::vector<patchy::test::TestCase> artboard_ui_tests() {
       {"ui_artboard_multipage_pdf_source", ui_artboard_multipage_pdf_source},
       {"ui_artboard_commands_and_hotkeys_registered", ui_artboard_commands_and_hotkeys_registered},
       {"ui_script_artboards_add_move_and_export", ui_script_artboards_add_move_and_export},
+      {"ui_artboard_drag_across_artboards_previews_the_release", ui_artboard_drag_across_artboards_previews_the_release},
   };
 }

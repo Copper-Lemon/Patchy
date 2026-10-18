@@ -59,6 +59,8 @@ scene in place. Other invalidations drop the scene but preserve reusable
 surface mip buffers. A clipped proxy rebuilds on the next drag. Tool, document, selection and zoom boundaries still validate or
 discard the retained images.
 
+Artboards (docs/artboards.md, "Fast paths"): the proxy snapshot unclips the moving layers' artboards and paint clips the blit to the artboard the content lands in; the live patches render from the re-nested copy auto-nesting will produce.
+
 ## Deferred Move commit
 
 A Move release defers its accurate full-res patches (vacated plus destination region) instead of rendering them under the processing overlay (`render_document_patches_with_processing`) whenever that render would wait (`force_processing_wait` or `dirty_region_should_use_processing_wait`) and a preview frame can be held (`can_hold_move_commit_preview`: a base cache plus either the proxy or live patches rendered at the release delta; never on single-threaded wasm. A canvas-clipped proxy still holds: its gap beats the freeze):

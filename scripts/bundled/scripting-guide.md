@@ -394,7 +394,7 @@ doc.exportAs("page.pdf", {imageQuality: "high", editableLayers: true});
 | `.ico`, `.cur` | `sizes` (an array from 16, 24, 32, 48, 64, 128, 256), `resample` (`"auto"`, `"nearest"`, `"smooth"`); `.cur` also `hotspot: {x, y}` |
 | `.bmp` | `encoding` (`"rgba32"`, `"rgb24"`, `"indexed8"`, `"indexed4"`, `"indexed2"`), `paletteMode` (`"exact"`, `"quantize"`, `"paletteFile"`), `palettePath` |
 | `.rttex` | `encoding` (`"rgba8"`, `"rgba4444"`, `"jpeg"`), `quality` (1 to 100), `powerOfTwo` (`"pad"`, `"stretch"`, `"none"`), `forceSquare`, `forceAlpha`, `compress` |
-| `.pdf` | the `app.exportPdf` keys: `imageQuality`, `lossless`, `editableLayers`, `keepOriginalImageData`, `missingFontsAsImages`, `artboardPages` (a document with artboards writes one page per artboard unless this is `false`) |
+| `.pdf` | the `app.exportPdf` keys: `imageQuality`, `lossless`, `editableLayers`, `keepOriginalImageData`, `missingFontsAsImages`, `pages` (`"artboards"`, the default: one page per artboard when there are any; `"groups"`: one page per top-level group, hidden ones included, so a PDF imported as page folders goes back page by page; `"canvas"`: one page), `artboardPages` (the older true/false spelling) |
 | `.gif` | `animate` (visible top-level layers become frames, top first), `frameDelayMs` |
 
 `.jpg`, `.png`, `.tif`, `.webp`, `.gif`, `.jxl` and `.avif` also take `metadata` (`"all"`, the default; `"copyright"`; `"none"`): the File Info metadata written with the image. The color profile and resolution are always written.

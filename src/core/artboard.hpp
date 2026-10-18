@@ -103,6 +103,36 @@ inline constexpr std::int32_t kArtboardSpacing = 100;
 // new artboard's id, or nullopt (the document untouched) when the list is empty or a
 // listed layer is missing, is an artboard, lives on one, or sits inside another listed
 // layer.
+// Auto-nesting (docs/artboards.md): a layer moved by the Move tool belongs to the
+// artboard under its center afterwards, or to the top level when it is over none. The
+// Move tool previews exactly what the commit applies, so both go through these.
+struct ArtboardNestMove {
+  LayerId id{};
+  std::optional<LayerId> target;  // nullopt: the top level
+  friend bool operator==(const ArtboardNestMove&, const ArtboardNestMove&) = default;
+};
+
+// The layers a move re-nests: the roots of `selected_ids` (a moved folder moves as one)
+// that hold one of `moved_leaf_ids`, else the moved leaves' own roots; never an artboard.
+[[nodiscard]] std::vector<LayerId> artboard_nest_roots(const Document& document,
+                                                       const std::vector<LayerId>& selected_ids,
+                                                       const std::vector<LayerId>& moved_leaf_ids);
+
+// For `root_ids` shifted by (dx, dy) from where they are now: the ones whose artboard
+// changes, with the artboard they join (or the top level).
+[[nodiscard]] std::vector<ArtboardNestMove> artboard_nest_moves(const Document& document,
+                                                                const std::vector<LayerId>& root_ids,
+                                                                std::int32_t dx, std::int32_t dy);
+
+// Applies them: a layer joining an artboard goes on top of its children; one leaving
+// for the top level goes right above the artboard it left. True when anything moved.
+bool apply_artboard_nest_moves(Document& document, const std::vector<ArtboardNestMove>& moves);
+
+// True when an artboard composites like plain paper plus clip: Normal or Pass Through,
+// full opacity and fill, no masks, no style, so a preview may draw its content clipped
+// to its rect over the base frame (the Move tool's proxy).
+[[nodiscard]] bool artboard_composites_plainly(const Layer& artboard) noexcept;
+
 std::optional<LayerId> put_layers_on_new_artboard(Document& document, const std::vector<LayerId>& ids,
                                                   std::string name = {});
 

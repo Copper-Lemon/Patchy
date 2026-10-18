@@ -493,6 +493,9 @@ std::optional<PdfImportResult> render_pages(QPdfDocument& pdf, const PdfImportOp
                                .toStdString());
   if (page_count > 1 && options.merge == PdfPagesMerge::Artboards) {
     result.notices.push_back(QObject::tr("%1 pages became artboards.").arg(page_count).toStdString());
+  } else if (page_count > 1 && options.merge == PdfPagesMerge::Layers) {
+    result.notices.push_back(
+        QObject::tr("%1 pages imported as folders; only the first starts visible.").arg(page_count).toStdString());
   } else if (page_count > 1 && options.separate_documents) {
     result.notices.push_back(
         QObject::tr("%1 pages opened as separate documents.").arg(page_count).toStdString());
@@ -888,13 +891,13 @@ std::optional<PdfImportResult> run_pdf_import_dialog(QWidget* parent, const QStr
   options.trim_to_bounding_box = trim->isChecked();
   const auto chosen_target = pages_target->currentData().toString();
   const bool editable = mode->currentData().toString() == QStringLiteral("editable");
-  // Documents is the import's own output. Artboards (raster or editable) and editable
-  // Layers come back as one document per page that the MainWindow merges; raster Layers
-  // keeps one pixel layer per page through document_from_frames.
-  options.separate_documents = chosen_target != QStringLiteral("layers") || editable;
+  // Every target imports one document per page: Documents keeps them, Layers and
+  // Artboards (raster or editable) come back to MainWindow::merge_imported_pdf_pages,
+  // which makes one folder or one artboard per page.
+  options.separate_documents = true;
   options.merge = chosen_target == QStringLiteral("artboards") ? PdfPagesMerge::Artboards
-                  : chosen_target == QStringLiteral("layers") && editable ? PdfPagesMerge::Layers
-                                                                          : PdfPagesMerge::None;
+                  : chosen_target == QStringLiteral("layers") ? PdfPagesMerge::Layers
+                                                              : PdfPagesMerge::None;
   settings.setValue(settings_key("Mode"), mode->currentData().toString());
   settings.setValue(settings_key("PagesTarget"), pages_target->currentData().toString());
   settings.setValue(settings_key("Resolution"), options.resolution_ppi);

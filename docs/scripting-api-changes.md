@@ -8,6 +8,11 @@ Remove Object, Align/Distribute and smart objects) are in
 [scripting-api-changes-through-2026-09-30.md](scripting-api-changes-through-2026-09-30.md).
 Every entry below is API 1.
 
+2026-10-18 (additive plus behavioral): `.pdf` save options and `app.exportPdf` take `pages`
+(`"artboards"`, the default, `"groups"`, `"canvas"`); `artboardPages` stays as its true/false
+spelling. Exporting by groups now includes hidden top-level groups and crops a PDF import's
+page folders to their own page size. Permanent identifiers: the key and its tokens. Pinned
+by `ui_pdf_import_page_folders_export_back_by_groups`.
 2026-10-18 (additive): artboards (docs/artboards.md). Documents gain `artboards` (top of
 the stack first), `addArtboard(name, rect, {background, color})`, `artboardFromLayers(layers,
 name?)`, `fitCanvasToArtboards()` (returns the `{x, y}` coordinate shift) and

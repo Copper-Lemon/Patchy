@@ -44,11 +44,13 @@ struct ImageSaveOptions {
   // Options dialog shows the checkbox only then.
   bool pdf_keep_original_images{true};
   bool pdf_original_image_data_available{false};
-  // PDF: one page per artboard (PdfExportOptions::artboard_pages). Persists as
-  // saveOptions/pdfArtboardPages; pdf_artboards_available is per save (the document has
-  // artboards) and shows the choice in PDF Options.
-  bool pdf_artboard_pages{true};
+  // PDF: what a page is (PdfExportOptions::pages), as its token: "artboards", "groups"
+  // or "canvas". Chosen per save, never persisted: the document decides the default
+  // (artboards when it has them, groups for a PDF imported as page folders, else the
+  // canvas). The *_available flags are per save and show the choices in PDF Options.
+  QString pdf_pages{QStringLiteral("artboards")};
   bool pdf_artboards_available{false};
+  bool pdf_groups_available{false};
   // PDF: keep layers as editable objects (paths, real text, images) instead of one
   // flattened image. Per save, never a persisted default: MainWindow::resolve_pdf_layer_choice
   // sets it from the saveOptions/pdfLayerPolicy preference or the flatten-or-keep question.

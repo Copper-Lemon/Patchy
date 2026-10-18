@@ -413,7 +413,14 @@ bool apply_key(KeyReader& reader, const QString& extension, const QString& key, 
       return true;
     }
     if (key == QStringLiteral("artboardPages")) {
-      reader.read_bool(key, value, options.pdf_artboard_pages);
+      bool artboard_pages = options.pdf_pages == QStringLiteral("artboards");
+      reader.read_bool(key, value, artboard_pages);
+      options.pdf_pages = artboard_pages ? QStringLiteral("artboards") : QStringLiteral("canvas");
+      return true;
+    }
+    if (key == QStringLiteral("pages")) {
+      reader.read_token(key, value, {QStringLiteral("artboards"), QStringLiteral("groups"), QStringLiteral("canvas")},
+                        [&options](const QString& token) { options.pdf_pages = token; });
       return true;
     }
     return false;

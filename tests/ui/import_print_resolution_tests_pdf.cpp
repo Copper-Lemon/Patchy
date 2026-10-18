@@ -1888,6 +1888,15 @@ void ui_pdf_import_dialog_opens_selected_pages() {
   CHECK(opened.width() == 144);
   CHECK(opened.height() == 144);
   CHECK(opened.layers().size() == 2);
+  // One folder per page, page 1 on top and the only one shown, each holding its page.
+  if (opened.layers().size() == 2) {
+    const auto& top = std::as_const(opened).layers()[1];
+    const auto& bottom = std::as_const(opened).layers()[0];
+    CHECK(top.name() == "Page 1" && top.kind() == patchy::LayerKind::Group && top.visible());
+    CHECK(bottom.name() == "Page 2" && bottom.kind() == patchy::LayerKind::Group && !bottom.visible());
+    CHECK(top.children().size() == 1U && bottom.children().size() == 1U);
+    CHECK(top.metadata().at(patchy::kLayerMetadataPdfPageRect) == "0,0,144,72");
+  }
   CHECK(patchy::ui::MainWindowTestAccess::active_session_path(window) == path);
 }
 #endif

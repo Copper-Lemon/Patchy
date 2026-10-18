@@ -1729,8 +1729,9 @@ void ui_pdf_export_multipage_writes_one_page_per_document() {
 #endif
 
 #if defined(PATCHY_HAVE_QT_PDF)
-// "Print a folder as a page": every visible top-level group becomes a page, top of the
-// stack first, and ungrouped root layers ride along on every page when asked.
+// "Print a folder as a page": every top-level group becomes a page (hidden ones unless
+// told otherwise), top of the stack first, and ungrouped root layers ride along on every
+// page when asked.
 void ui_pdf_export_multipage_groups_become_pages() {
   ensure_artifact_dir();
   patchy::Document document(100, 100, patchy::PixelFormat::rgba8());
@@ -1759,7 +1760,9 @@ void ui_pdf_export_multipage_groups_become_pages() {
     document.add_layer(std::move(group));
   }
 
-  const auto with_background = patchy::ui::documents_for_top_level_groups(document, true);
+  // Hidden groups are pages by default (a PDF imported as page folders hides pages 2..N).
+  CHECK(patchy::ui::documents_for_top_level_groups(document, true).size() == 3);
+  const auto with_background = patchy::ui::documents_for_top_level_groups(document, true, false);
   CHECK(with_background.size() == 2);
   if (with_background.size() != 2) {
     return;
@@ -1777,7 +1780,7 @@ void ui_pdf_export_multipage_groups_become_pages() {
   };
   CHECK(visible_names(with_background[0]) == (QStringList{QStringLiteral("Background"), QStringLiteral("Page B")}));
   CHECK(visible_names(with_background[1]) == (QStringList{QStringLiteral("Background"), QStringLiteral("Page A")}));
-  const auto without_background = patchy::ui::documents_for_top_level_groups(document, false);
+  const auto without_background = patchy::ui::documents_for_top_level_groups(document, false, false);
   CHECK(without_background.size() == 2);
   if (without_background.size() != 2) {
     return;
