@@ -311,6 +311,9 @@ void ui_missing_font_badge_clears_when_the_substitution_is_accepted() {
 // step. A family left unchecked keeps its name. The replacement reaches TySh and Txt2 on save.
 void ui_resolve_missing_fonts_replaces_the_font_in_every_layer() {
   patchy::test::register_test_fonts(patchy::test::TestFontRole::UiDefault);
+  // The shipped default, so the saved dialog image shows what a user sees.
+  SettingsValueRestorer restorer(QStringLiteral("imports/showMissingFontsDialog"));
+  patchy::ui::app_settings().setValue(QStringLiteral("imports/showMissingFontsDialog"), true);
   const auto replacement = patchy::test::visual_test_font().family();
   CHECK(QFontDatabase::families().contains(replacement));
   auto document = white_document();
@@ -370,6 +373,7 @@ void ui_resolve_missing_fonts_replaces_the_font_in_every_layer() {
     CHECK(layer_font(window, id) == replacement);
   }
   CHECK(layer_font(window, other_id) == kOtherMissing);
+  save_widget_artifact("ui_resolve_missing_fonts_after", window);
   const auto* hidden = std::as_const(MainWindowTestAccess::document(window)).find_layer(hidden_id);
   CHECK(hidden != nullptr && !hidden->visible());
   auto* layer_list = window.findChild<QListWidget*>(QStringLiteral("layerList"));

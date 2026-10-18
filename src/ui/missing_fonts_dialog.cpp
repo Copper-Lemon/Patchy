@@ -61,7 +61,7 @@ std::optional<MissingFontsDialogResult> run_missing_fonts_dialog(QWidget* parent
                                   : QObject::tr("Not installed. Used in %n text layer(s).", nullptr, entry.layer_count),
                               rows_widget);
     detail->setObjectName(QStringLiteral("missingFontDetail"));
-    detail->setWordWrap(true);
+    // One line: wrapped, the name column shrank until the count broke across lines.
     auto* name_column = new QVBoxLayout;
     name_column->setSpacing(1);
     name_column->addWidget(name);
