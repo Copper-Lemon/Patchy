@@ -20,6 +20,8 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdlib>
+#include <vector>
 
 namespace patchy::ui {
 
@@ -330,6 +332,7 @@ void PanelColumn::set_panel_visible(const QString& id, bool visible) {
     // A reopened section gets its working height back from its neighbors.
     grant_preferred_height(*section);
   }
+  settle_sizes(*section);
   emit panel_visibility_changed(id, visible);
 }
 
@@ -371,6 +374,7 @@ void PanelColumn::set_panel_expanded(const QString& id, bool expanded) {
   if (expanded) {
     grant_preferred_height(*section);
   }
+  settle_sizes(*section);
   for (const auto& member : section->pages) {
     emit panel_expanded_changed(member->spec.id, expanded);
   }
@@ -531,6 +535,56 @@ void PanelColumn::grant_preferred_height(Section& section) {
     if (need <= 0) {
       break;
     }
+  }
+  splitter_->setSizes(sizes);
+}
+
+void PanelColumn::settle_sizes(const Section& changed) {
+  if (!isVisible() || preferred_heights_pending_) {
+    return;
+  }
+  // QSplitter keeps the size it remembers for a slot even after the section's maximum
+  // shrinks to its title row, so a collapse or close would leave a band under the header
+  // until a divider moved. Clamp every slot to its section's limits and hand the
+  // difference to the nearest expanded sections, the ones above first.
+  auto sizes = splitter_->sizes();
+  const auto count = static_cast<int>(sizes.size());
+  int visible = 0;
+  int used = 0;
+  for (int index = 0; index < count; ++index) {
+    const auto* widget = splitter_->widget(index);
+    if (widget->isHidden()) {
+      sizes[index] = 0;
+      continue;
+    }
+    ++visible;
+    sizes[index] = std::clamp(sizes[index], widget_floor(widget), std::max(widget_floor(widget), widget->maximumHeight()));
+    used += sizes[index];
+  }
+  const auto total = splitter_->height() - splitter_->handleWidth() * std::max(0, visible - 1);
+  auto spare = total - used;
+  const auto origin = section_index(&changed);
+  std::vector<int> order;
+  for (int index = 0; index < count; ++index) {
+    const auto& section = *sections_[static_cast<std::size_t>(index)];
+    if (index != origin && section.expanded && !section.widget->isHidden()) {
+      order.push_back(index);
+    }
+  }
+  std::stable_sort(order.begin(), order.end(), [origin](int left, int right) {
+    const auto left_distance = std::abs(left - origin) * 2 + (left > origin ? 1 : 0);
+    const auto right_distance = std::abs(right - origin) * 2 + (right > origin ? 1 : 0);
+    return left_distance < right_distance;
+  });
+  for (const auto index : order) {
+    if (spare == 0) {
+      break;
+    }
+    const auto* widget = splitter_->widget(index);
+    const auto change = spare > 0 ? std::min(spare, std::max(0, widget->maximumHeight() - sizes[index]))
+                                  : std::max(spare, -std::max(0, sizes[index] - widget_floor(widget)));
+    sizes[index] += change;
+    spare -= change;
   }
   splitter_->setSizes(sizes);
 }

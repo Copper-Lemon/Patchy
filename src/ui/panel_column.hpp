@@ -120,6 +120,7 @@ private:
   void apply_section_state(Section& section);
   void update_section_visibility(Section& section);
   void grant_preferred_height(Section& section);
+  void settle_sizes(const Section& changed);
   [[nodiscard]] int collapsed_height(const Section& section) const;
   [[nodiscard]] int section_floor(const Section& section) const;
   [[nodiscard]] int section_preferred(const Section& section) const;

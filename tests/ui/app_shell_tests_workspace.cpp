@@ -973,6 +973,70 @@ void ui_panel_close_and_reopen_keeps_full_width() {
   save_widget_artifact("ui_panel_close_and_reopen_keeps_full_width", *column);
 }
 
+// Seth's case: expanding a panel and collapsing it again (or closing it) must hand its
+// height back to the other panels at once, never leave a band between the title rows.
+void ui_panel_collapse_and_close_leave_no_gap() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* column = patchy::ui::MainWindowTestAccess::panel_column(window);
+  CHECK(column != nullptr);
+  if (column == nullptr) {
+    return;
+  }
+  auto* splitter = column->splitter();
+  const auto check_filled = [&](const QString& context) {
+    QApplication::processEvents();
+    QApplication::processEvents();
+    int expected_top = 0;
+    int last_bottom = -1;
+    for (int index = 0; index < splitter->count(); ++index) {
+      auto* section = splitter->widget(index);
+      if (section->isHidden()) {
+        continue;
+      }
+      if (section->y() != expected_top) {
+        std::printf("%s: section %s at y %d, expected %d\n", qPrintable(context),
+                    qPrintable(section->objectName()), section->y(), expected_top);
+      }
+      CHECK(section->y() == expected_top);
+      expected_top = section->geometry().bottom() + 1 + splitter->handleWidth();
+      last_bottom = section->geometry().bottom();
+    }
+    if (last_bottom != splitter->height() - 1) {
+      std::printf("%s: last section ends at %d, column height %d\n", qPrintable(context), last_bottom,
+                  splitter->height());
+    }
+    CHECK(last_bottom == splitter->height() - 1);
+  };
+  check_filled(QStringLiteral("start"));
+  for (const auto& id : {QStringLiteral("propertiesDock"), QStringLiteral("historyDock"),
+                         QStringLiteral("infoDock"), QStringLiteral("paletteDock")}) {
+    auto* toggle = column->collapse_button(id);
+    CHECK(toggle != nullptr);
+    if (toggle == nullptr) {
+      continue;
+    }
+    if (column->panel_expanded(id)) {
+      toggle->click();
+      check_filled(QStringLiteral("collapsed ") + id);
+    }
+    toggle->click();
+    CHECK(column->panel_expanded(id));
+    check_filled(QStringLiteral("expanded ") + id);
+    toggle->click();
+    CHECK(!column->panel_expanded(id));
+    check_filled(QStringLiteral("collapsed again ") + id);
+    toggle->click();
+    column->set_panel_visible(id, false);
+    check_filled(QStringLiteral("closed expanded ") + id);
+    patchy::ui::MainWindowTestAccess::show_panel(window, id);
+    check_filled(QStringLiteral("reopened ") + id);
+    column->collapse_button(id)->click();
+    check_filled(QStringLiteral("collapsed after reopen ") + id);
+  }
+  save_widget_artifact("ui_panel_collapse_and_close_leave_no_gap", *column);
+}
+
 // Right-clicking a panel's title row opens the panel menu (collapse or expand, close, the
 // panel toggles and Reset Panels); on the tab group's tab bar the close entry closes the
 // whole group.
@@ -2696,6 +2760,7 @@ std::vector<patchy::test::TestCase> app_shell_tests_part1() {
       {"ui_main_window_renders_color_controls", ui_main_window_renders_color_controls},
       {"ui_window_menu_lists_panels_and_toolbars", ui_window_menu_lists_panels_and_toolbars},
       {"ui_panel_close_and_reopen_keeps_full_width", ui_panel_close_and_reopen_keeps_full_width},
+      {"ui_panel_collapse_and_close_leave_no_gap", ui_panel_collapse_and_close_leave_no_gap},
       {"ui_panel_header_right_click_opens_panel_menu", ui_panel_header_right_click_opens_panel_menu},
       {"ui_panel_layout_returns_in_the_next_window", ui_panel_layout_returns_in_the_next_window},
       {"ui_reset_panels_restores_first_launch_layout", ui_reset_panels_restores_first_launch_layout},
