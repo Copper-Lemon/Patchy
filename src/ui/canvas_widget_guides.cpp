@@ -12,6 +12,7 @@
 #include "core/document.hpp"
 #include "core/layer.hpp"
 #include "core/layer_render_utils.hpp"
+#include "core/pixel_grid.hpp"
 #include "core/smart_object.hpp"
 #include "ui/canvas_widget_shared.hpp"
 #include "ui/measurement_units.hpp"
@@ -891,6 +892,10 @@ void CanvasWidget::begin_guide_drag(int guide_index, QPoint widget_position) {
   guide_drag_position_32_ = guide.position_32;
   guide_drag_original_orientation_ = guide.orientation;
   guide_drag_original_position_32_ = guide.position_32;
+  guide_drag_press_widget_ = widget_position;
+  const auto press_point = document_position_f(QPointF(widget_position));
+  guide_drag_grab_offset_ = guide_position_pixels(guide) -
+                            (guide.orientation == GuideOrientation::Vertical ? press_point.x() : press_point.y());
   update_guide_drag(widget_position, Qt::NoModifier);
 }
 
@@ -906,6 +911,8 @@ void CanvasWidget::begin_new_guide_drag(QPoint widget_position) {
   guide_drag_original_orientation_ = guide_drag_orientation_;
   guide_drag_original_position_32_ = 0;
   guide_drag_position_32_ = 0;
+  guide_drag_press_widget_ = widget_position;
+  guide_drag_grab_offset_ = 0.0;
   update_guide_drag(widget_position, Qt::NoModifier);
 }
 
@@ -920,10 +927,26 @@ void CanvasWidget::update_guide_drag(QPoint widget_position, Qt::KeyboardModifie
   }
   guide_drag_orientation_ = orientation;
 
+  if (!creating_guide_ && widget_position == guide_drag_press_widget_ &&
+      orientation == guide_drag_original_orientation_) {
+    // No travel yet: the guide stays exactly where it was, fractional or not.
+    guide_drag_remove_ = false;
+    guide_drag_position_32_ = guide_drag_original_position_32_;
+    update();
+    update_drag_readout_region();
+    return;
+  }
+
   const auto document_point = document_position_f(QPointF(widget_position));
-  const auto axis_position = orientation == GuideOrientation::Vertical ? document_point.x() : document_point.y();
+  const auto grab_offset = orientation == guide_drag_original_orientation_ ? guide_drag_grab_offset_ : 0.0;
+  const auto axis_position =
+      (orientation == GuideOrientation::Vertical ? document_point.x() : document_point.y()) + grab_offset;
   const auto limit = static_cast<double>(orientation == GuideOrientation::Vertical ? document_->width() : document_->height());
-  auto snapped_position = axis_position;
+  // A free drag lands on a whole pixel (GitHub issue 197), rounded like every other
+  // pixel-grid placement (halves up, core/pixel_grid.hpp). The Shift ruler ticks and the
+  // snap targets below keep their exact lines: a grid line or an odd canvas's center can
+  // sit between pixels on purpose. New Guide keeps a typed decimal, as Photoshop does.
+  auto snapped_position = snap_to_pixel_grid(axis_position);
 
   if ((modifiers & Qt::ShiftModifier) != 0) {
     // Shift snaps to the ruler's minor ticks in the active ruler unit (a vertical
@@ -932,7 +955,7 @@ void CanvasWidget::update_guide_drag(QPoint widget_position, Qt::KeyboardModifie
     const auto pixels_per_unit = ruler_pixels_per_unit(horizontal_axis);
     const auto steps = ruler_tick_steps(ruler_unit_, pixels_per_unit * zoom_);
     const auto tick = std::max(1e-6, steps.major / steps.subdivisions * pixels_per_unit);
-    snapped_position = std::round(snapped_position / tick) * tick;
+    snapped_position = std::round(axis_position / tick) * tick;
   } else if (snap_enabled_) {
     const auto tolerance = kSnapToleranceScreenPixels / std::max(zoom_, 0.0001);
     double best = tolerance + 0.0001;

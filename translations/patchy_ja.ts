@@ -19458,14 +19458,6 @@ Clipped to the layer below</source>
         </translation>
     </message>
     <message>
-        <source>Rectangular Marquee: drag to select. Drag a handle to resize the selection, or drag inside it to move it.</source>
-        <translation>長方形選択: ドラッグして選択します。ハンドルをドラッグすると選択範囲のサイズを変更し、内側をドラッグすると移動します。</translation>
-    </message>
-    <message>
-        <source>Elliptical Marquee: drag to select. Drag a handle to resize the selection, or drag inside it to move it.</source>
-        <translation>楕円形選択: ドラッグして選択します。ハンドルをドラッグすると選択範囲のサイズを変更し、内側をドラッグすると移動します。</translation>
-    </message>
-    <message>
         <source>Snap transforms to the pixel grid</source>
         <translation>変形をピクセルグリッドにスナップ</translation>
     </message>
@@ -21751,6 +21743,38 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <translation>
             <numerusform>%n 個のテキストレイヤーに次のフォントがありません: %1。再レンダリングせず、既存のピクセルを変形します。続行しますか?</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Rectangular Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects. With nothing selected, Shift draws a square and %ALT% draws from the center.</source>
+        <translation>長方形選択: ドラッグして選択します。Shift+ドラッグで追加、%ALT%+ドラッグで削除、Shift+%ALT%+ドラッグで共通範囲を選択します。選択範囲がないときは、Shiftで正方形、%ALT%で中心から描きます。</translation>
+    </message>
+    <message>
+        <source>Elliptical Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects. With nothing selected, Shift draws a circle and %ALT% draws from the center.</source>
+        <translation>楕円形選択: ドラッグして選択します。Shift+ドラッグで追加、%ALT%+ドラッグで削除、Shift+%ALT%+ドラッグで共通範囲を選択します。選択範囲がないときは、Shiftで正円、%ALT%で中心から描きます。</translation>
+    </message>
+    <message>
+        <source>Lasso: drag around the area to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects.</source>
+        <translation>なげなわ: 範囲を囲むようにドラッグして選択します。Shift+ドラッグで追加、%ALT%+ドラッグで削除、Shift+%ALT%+ドラッグで共通範囲を選択します。</translation>
+    </message>
+    <message>
+        <source>Magnetic Lasso: click an edge and follow it; click to pin a point. Start with Shift+click to add, %ALT%+click to subtract, Shift+%ALT%+click to intersect. Backspace removes the last point, Enter closes, Esc cancels.</source>
+        <translation>マグネット選択: エッジをクリックしてなぞり、クリックでポイントを固定します。開始時にShift+クリックで追加、%ALT%+クリックで削除、Shift+%ALT%+クリックで共通範囲になります。Backspaceで最後のポイントを削除、Enterで閉じ、Escでキャンセルします。</translation>
+    </message>
+    <message>
+        <source>Magic Wand: click a color to select it. Shift+click adds, %ALT%+click subtracts, Shift+%ALT%+click intersects.</source>
+        <translation>自動選択: 色をクリックして選択します。Shift+クリックで追加、%ALT%+クリックで削除、Shift+%ALT%+クリックで共通範囲を選択します。</translation>
+    </message>
+    <message>
+        <source>Quick Select: paint over the area to select; later strokes add to it. Shift+drag adds, %ALT%+drag subtracts.</source>
+        <translation>クイック選択: 選択する範囲をなぞって塗ります。2回目以降のストロークは追加されます。Shift+ドラッグで追加、%ALT%+ドラッグで削除します。</translation>
+    </message>
+    <message>
+        <source>Object Selection: drag a box around an object or click it. Shift+drag adds, %ALT%+drag subtracts.</source>
+        <translation>オブジェクト選択: オブジェクトを囲むようにドラッグするか、クリックします。Shift+ドラッグで追加、%ALT%+ドラッグで削除します。</translation>
+    </message>
+    <message>
+        <source>Daily</source>
+        <translation>毎日</translation>
     </message>
 </context>
 <context>

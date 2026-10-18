@@ -28,7 +28,10 @@
 #include <QApplication>
 #include <QByteArray>
 #include <QCheckBox>
+#include <QAbstractItemView>
 #include <QComboBox>
+#include <QTime>
+#include <QTimeZone>
 #include <QDialog>
 #include <QCoreApplication>
 #include <QCryptographicHash>
@@ -1793,23 +1796,42 @@ void ui_update_check_interval_gates_the_startup_check() {
   constexpr qint64 kDay = 24 * 60 * 60;
   constexpr qint64 kNow = 1'800'000'000;
 
+  constexpr qint64 kHour = 60 * 60;
+  // kNow is 08:00 UTC; the gate counts calendar days in the given zone (GitHub issue 189).
+  const QTimeZone utc(QTimeZone::UTC);
+  CHECK(QDateTime::fromSecsSinceEpoch(kNow, utc).time() == QTime(8, 0));
+
   // Every launch is the default and always due.
   CHECK(patchy::ui::kDefaultUpdateCheckIntervalDays == 0);
-  CHECK(startup_update_check_due(0, kNow - 1, kNow));
-  CHECK(startup_update_check_due(0, kNow, kNow));
-  for (const int days : {7, 14, 30}) {
-    CHECK(!startup_update_check_due(days, kNow - 1, kNow));
-    CHECK(!startup_update_check_due(days, kNow - days * kDay + 1, kNow));
-    CHECK(startup_update_check_due(days, kNow - days * kDay, kNow));
-    CHECK(startup_update_check_due(days, kNow - days * kDay - 1, kNow));
+  CHECK(startup_update_check_due(0, kNow - 1, kNow, utc));
+  CHECK(startup_update_check_due(0, kNow, kNow, utc));
+  for (const int days : {1, 7, 14, 30}) {
+    CHECK(!startup_update_check_due(days, kNow - 1, kNow, utc));
+    // Earlier on the same day, or that many days back but still not that many dates.
+    CHECK(!startup_update_check_due(days, kNow - 8 * kHour, kNow, utc));
+    CHECK(!startup_update_check_due(days, kNow - (days - 1) * kDay - 8 * kHour, kNow, utc));
+    // The last minute of the day `days` dates back is enough, even short of days * 24 h.
+    CHECK(startup_update_check_due(days, kNow - (days - 1) * kDay - 8 * kHour - 60, kNow, utc));
+    CHECK(startup_update_check_due(days, kNow - days * kDay, kNow, utc));
     // Never checked, or a record from the future (the clock moved back).
-    CHECK(startup_update_check_due(days, 0, kNow));
-    CHECK(startup_update_check_due(days, kNow + kDay, kNow));
+    CHECK(startup_update_check_due(days, 0, kNow, utc));
+    CHECK(startup_update_check_due(days, kNow + kDay, kNow, utc));
   }
+  // Daily: a check at 23:00 the evening before makes a 07:00 launch due, a check at 01:00
+  // the same morning does not. The day boundary is the user's own: 07:00 UTC the same day
+  // is 16:00 in UTC+9, the same date as kNow (17:00 there), but 23:00 UTC the day before
+  // is 08:00 there, so UTC+9 still calls it today.
+  CHECK(startup_update_check_due(1, kNow - 9 * kHour, kNow - kHour, utc));
+  CHECK(!startup_update_check_due(1, kNow - 7 * kHour, kNow - kHour, utc));
+  const auto tokyo = QTimeZone::fromSecondsAheadOfUtc(9 * 60 * 60);
+  CHECK(!startup_update_check_due(1, kNow - kHour, kNow, tokyo));
+  CHECK(!startup_update_check_due(1, kNow - 9 * kHour, kNow, tokyo));
+  CHECK(startup_update_check_due(1, kNow - 9 * kHour, kNow, utc));
 
   for (const int days : patchy::ui::kUpdateCheckIntervalDays) {
     CHECK(patchy::ui::normalize_update_check_interval_days(days) == days);
   }
+  CHECK(patchy::ui::normalize_update_check_interval_days(1) == 1);
   CHECK(patchy::ui::normalize_update_check_interval_days(5) == 0);
   CHECK(patchy::ui::normalize_update_check_interval_days(-7) == 0);
 
@@ -1863,10 +1885,66 @@ void ui_update_startup_check_honors_stored_interval() {
   CHECK(process_events_until([&] { return patchy::ui::stored_update_last_check_secs() >= now; }, 15000));
   CHECK(server.requests() == 1);
 
+  // Daily: a check already made today waits for tomorrow, one two days back runs.
+  patchy::ui::set_stored_update_check_interval_days(1);
+  patchy::ui::set_stored_update_last_check_secs(QDateTime::currentSecsSinceEpoch());
+  const auto checked_today = patchy::ui::stored_update_last_check_secs();
+  window.begin_startup_update_check();
+  process_events_for(500);
+  CHECK(server.requests() == 1);
+  patchy::ui::set_stored_update_last_check_secs(checked_today - 2 * kDay);
+  window.begin_startup_update_check();
+  CHECK(process_events_until([&] { return patchy::ui::stored_update_last_check_secs() >= checked_today; }, 15000));
+  CHECK(server.requests() == 2);
+
   // The record is fresh now, but "every launch" checks regardless.
   patchy::ui::set_stored_update_check_interval_days(0);
   window.begin_startup_update_check();
-  CHECK(process_events_until([&] { return server.requests() == 2; }, 15000));
+  CHECK(process_events_until([&] { return server.requests() == 3; }, 15000));
+}
+
+// GitHub issue 189: "Daily" sits between "Every launch" and "Weekly", for people who start
+// Patchy several times a day. The capture shows the row and the open list.
+void ui_update_preference_offers_daily_interval() {
+  SettingsValueRestorer restore_update_check(QStringLiteral("updates/checkOnStartup"));
+  SettingsValueRestorer restore_interval(QStringLiteral("updates/checkIntervalDays"));
+  {
+    auto settings = patchy::ui::app_settings();
+    settings.setValue(QStringLiteral("updates/checkOnStartup"), true);
+    settings.remove(QStringLiteral("updates/checkIntervalDays"));
+    settings.sync();
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+
+  run_preferences_dialog(window, /*accept=*/true, [](QDialog& dialog) {
+    auto* row = dialog.findChild<QWidget*>(QStringLiteral("preferencesUpdateCheckRow"));
+    auto* combo = dialog.findChild<QComboBox*>(QStringLiteral("preferencesUpdateCheckIntervalCombo"));
+    CHECK(row != nullptr && combo != nullptr);
+    if (row == nullptr || combo == nullptr) {
+      return;
+    }
+    QList<QImage> strips;
+    auto* group = row->parentWidget();
+    strips << (group != nullptr ? group->grab(QRect(0, std::max(0, row->y() - 30), group->width(), row->height() + 60))
+                                : row->grab())
+                  .toImage();
+    combo->view()->setMinimumWidth(combo->view()->sizeHintForColumn(0) + 24);
+    combo->showPopup();
+    QApplication::processEvents();
+    strips << combo->view()->window()->grab().toImage();
+    combo->hidePopup();
+    QApplication::processEvents();
+    save_stacked_artifact("issue189_update_check_interval", strips);
+    const auto daily = combo->findData(1);
+    CHECK(daily == 1);
+    if (daily >= 0) {
+      CHECK(combo->itemText(daily) == QStringLiteral("Daily"));
+      combo->setCurrentIndex(daily);
+    }
+  });
+  CHECK(patchy::ui::stored_update_check_interval_days() == 1);
+  CHECK(patchy::ui::app_settings().value(QStringLiteral("updates/checkIntervalDays")).toInt() == 1);
 }
 
 void ui_update_preference_persists_check_interval() {
@@ -1895,7 +1973,7 @@ void ui_update_preference_persists_check_interval() {
     for (int index = 0; index < combo->count(); ++index) {
       days.push_back(combo->itemData(index).toInt());
     }
-    CHECK(days == QList<int>({0, 7, 14, 30}));
+    CHECK(days == QList<int>({0, 1, 7, 14, 30}));
     combo->setCurrentIndex(combo->findData(14));
   });
   CHECK(patchy::ui::stored_update_check_interval_days() == 14);
@@ -2343,6 +2421,7 @@ std::vector<patchy::test::TestCase> app_shell_tests_part2() {
       {"ui_update_check_interval_gates_the_startup_check", ui_update_check_interval_gates_the_startup_check},
       {"ui_update_startup_check_honors_stored_interval", ui_update_startup_check_honors_stored_interval},
       {"ui_update_preference_persists_check_interval", ui_update_preference_persists_check_interval},
+      {"ui_update_preference_offers_daily_interval", ui_update_preference_offers_daily_interval},
       {"ui_update_prompt_skip_version_silences_until_a_newer_one", ui_update_prompt_skip_version_silences_until_a_newer_one},
       {"ui_gui_scale_preference_persists_setting", ui_gui_scale_preference_persists_setting},
       {"ui_gui_scale_preference_persists_step_below_full_size", ui_gui_scale_preference_persists_step_below_full_size},

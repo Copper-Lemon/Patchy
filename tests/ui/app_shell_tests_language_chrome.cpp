@@ -34,6 +34,7 @@
 #include <QFileInfo>
 #include <QImage>
 #include <QLabel>
+#include <QMainWindow>
 #include <QLocalServer>
 #include <QLocalSocket>
 #include <QListWidget>
@@ -1785,6 +1786,68 @@ void ui_title_bar_drag_moves_window_only_past_threshold() {
   CHECK(window.pos() == before_controls);
 }
 
+// GitHub issue 196: the menu bar's 35 px of left padding makes room for the app badge the
+// frameless chrome draws there. Where the desktop draws the title bar (the Linux system
+// title bar) there is no badge, so the first menu starts at the edge like GIMP's and
+// Krita's, one item padding from it, which is half the space between two menu titles.
+// The bare bar below is that menu bar on any platform: configure_window_chrome leaves
+// it untouched when the chrome is off. The style's own menu-bar margin (5 px on Windows,
+// 0 with Fusion) applies to both, so the bars differ by exactly the badge's padding.
+void ui_menu_bar_reserves_badge_space_only_with_custom_chrome() {
+  constexpr int kBadgePadding = 35;
+  const auto menu_titles = {QStringLiteral("File"), QStringLiteral("Edit"), QStringLiteral("Image"),
+                            QStringLiteral("Layer")};
+  QList<QImage> strips;
+  std::optional<int> chrome_first;
+  int badge_right = 0;
+  bool chrome_has_badge = false;
+  int chrome_actions = 0;
+  {
+    patchy::ui::MainWindow window;
+    show_window_empty(window);
+    auto* bar = window.menuBar();
+    const auto actions = bar->actions();
+    chrome_actions = static_cast<int>(actions.size());
+    auto* badge = bar->findChild<QLabel*>(QStringLiteral("patchyBadge"));
+    chrome_has_badge = badge != nullptr;
+    if (patchy::ui::MainWindow::use_custom_window_chrome() && !actions.isEmpty()) {
+      chrome_first = bar->actionGeometry(actions.first()).left();
+      badge_right = badge != nullptr ? badge->geometry().right() + 1 : 0;
+      std::cout << "custom chrome: badge ends at " << badge_right << ", first menu at " << *chrome_first
+                << std::endl;
+      strips << bar->grab(QRect(0, 0, std::min(bar->width(), 360), bar->height())).toImage();
+    }
+  }
+
+  QMainWindow plain;
+  plain.setStyleSheet(patchy::ui::photoshop_style());
+  auto* plain_bar = new QMenuBar(&plain);
+  plain_bar->setNativeMenuBar(false);
+  plain.setMenuBar(plain_bar);
+  for (const auto& title : menu_titles) {
+    plain_bar->addMenu(title);
+  }
+  plain.setCentralWidget(new QWidget(&plain));
+  plain.resize(420, 120);
+  plain.show();
+  QApplication::processEvents();
+  const auto plain_actions = plain_bar->actions();
+  const auto plain_first = plain_actions.isEmpty() ? -1 : plain_bar->actionGeometry(plain_actions.first()).left();
+  std::cout << "system title bar: first menu at " << plain_first << std::endl;
+  strips << plain_bar->grab(QRect(0, 0, std::min(plain_bar->width(), 360), plain_bar->height())).toImage();
+  save_stacked_artifact("issue196_menu_bar_left_edge", strips);
+
+  CHECK(chrome_actions >= 2);
+  CHECK(plain_actions.size() == 4);
+  CHECK(chrome_has_badge == patchy::ui::MainWindow::use_custom_window_chrome());
+  CHECK(plain_first >= 0);
+  CHECK(plain_first < kBadgePadding / 2);
+  if (chrome_first.has_value()) {
+    CHECK(*chrome_first >= badge_right);
+    CHECK(*chrome_first - plain_first == kBadgePadding);
+  }
+}
+
 // GitHub issue 145: window/systemTitleBar (a compatibility contract) turns the Linux
 // frameless chrome off for the process, giving the desktop its own title bar and frame;
 // the key is stored but inert on Windows and macOS.
@@ -2257,6 +2320,8 @@ std::vector<patchy::test::TestCase> app_shell_tests_part3() {
       {"ui_maximized_title_bar_click_keeps_window_maximized", ui_maximized_title_bar_click_keeps_window_maximized},
       {"ui_window_chrome_controls_drive_window_state", ui_window_chrome_controls_drive_window_state},
       {"ui_title_bar_drag_moves_window_only_past_threshold", ui_title_bar_drag_moves_window_only_past_threshold},
+      {"ui_menu_bar_reserves_badge_space_only_with_custom_chrome",
+       ui_menu_bar_reserves_badge_space_only_with_custom_chrome},
       {"ui_system_title_bar_preference_disables_custom_chrome", ui_system_title_bar_preference_disables_custom_chrome},
       {"ui_system_title_bar_preference_defaults_off", ui_system_title_bar_preference_defaults_off},
       {"ui_system_title_bar_follows_global_menu_bar_until_set", ui_system_title_bar_follows_global_menu_bar_until_set},

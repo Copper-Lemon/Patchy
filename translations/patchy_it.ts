@@ -19513,14 +19513,6 @@ Y: %2
         </translation>
     </message>
     <message>
-        <source>Rectangular Marquee: drag to select. Drag a handle to resize the selection, or drag inside it to move it.</source>
-        <translation>Selezione rettangolare: trascina per selezionare. Trascina una maniglia per ridimensionare la selezione, oppure trascina all&apos;interno per spostarla.</translation>
-    </message>
-    <message>
-        <source>Elliptical Marquee: drag to select. Drag a handle to resize the selection, or drag inside it to move it.</source>
-        <translation>Selezione ellittica: trascina per selezionare. Trascina una maniglia per ridimensionare la selezione, oppure trascina all&apos;interno per spostarla.</translation>
-    </message>
-    <message>
         <source>Snap transforms to the pixel grid</source>
         <translation>Allinea le trasformazioni alla griglia di pixel</translation>
     </message>
@@ -21821,6 +21813,38 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
             <numerusform>Mancano i seguenti font per %n livello di testo: %1. I pixel esistenti verranno trasformati invece di essere renderizzati di nuovo. Continuare?</numerusform>
             <numerusform>Mancano i seguenti font per %n livelli di testo: %1. I pixel esistenti verranno trasformati invece di essere renderizzati di nuovo. Continuare?</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Rectangular Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects. With nothing selected, Shift draws a square and %ALT% draws from the center.</source>
+        <translation>Selezione rettangolare: trascina per selezionare. Maiusc+trascina aggiunge, %ALT%+trascina sottrae, Maiusc+%ALT%+trascina interseca. Senza selezione, Maiusc disegna un quadrato e %ALT% disegna dal centro.</translation>
+    </message>
+    <message>
+        <source>Elliptical Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects. With nothing selected, Shift draws a circle and %ALT% draws from the center.</source>
+        <translation>Selezione ellittica: trascina per selezionare. Maiusc+trascina aggiunge, %ALT%+trascina sottrae, Maiusc+%ALT%+trascina interseca. Senza selezione, Maiusc disegna un cerchio e %ALT% disegna dal centro.</translation>
+    </message>
+    <message>
+        <source>Lasso: drag around the area to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects.</source>
+        <translation>Lazo: trascina intorno all&apos;area per selezionarla. Maiusc+trascina aggiunge, %ALT%+trascina sottrae, Maiusc+%ALT%+trascina interseca.</translation>
+    </message>
+    <message>
+        <source>Magnetic Lasso: click an edge and follow it; click to pin a point. Start with Shift+click to add, %ALT%+click to subtract, Shift+%ALT%+click to intersect. Backspace removes the last point, Enter closes, Esc cancels.</source>
+        <translation>Lazo magnetico: fai clic su un bordo e seguilo; fai clic per fissare un punto. Inizia con Maiusc+clic per aggiungere, %ALT%+clic per sottrarre, Maiusc+%ALT%+clic per intersecare. Backspace rimuove l&apos;ultimo punto, Invio chiude, Esc annulla.</translation>
+    </message>
+    <message>
+        <source>Magic Wand: click a color to select it. Shift+click adds, %ALT%+click subtracts, Shift+%ALT%+click intersects.</source>
+        <translation>Bacchetta magica: fai clic su un colore per selezionarlo. Maiusc+clic aggiunge, %ALT%+clic sottrae, Maiusc+%ALT%+clic interseca.</translation>
+    </message>
+    <message>
+        <source>Quick Select: paint over the area to select; later strokes add to it. Shift+drag adds, %ALT%+drag subtracts.</source>
+        <translation>Selezione rapida: dipingi sull&apos;area da selezionare; i tratti successivi la ampliano. Maiusc+trascina aggiunge, %ALT%+trascina sottrae.</translation>
+    </message>
+    <message>
+        <source>Object Selection: drag a box around an object or click it. Shift+drag adds, %ALT%+drag subtracts.</source>
+        <translation>Selezione oggetto: trascina un riquadro intorno a un oggetto o fai clic su di esso. Maiusc+trascina aggiunge, %ALT%+trascina sottrae.</translation>
+    </message>
+    <message>
+        <source>Daily</source>
+        <translation>Ogni giorno</translation>
     </message>
 </context>
 <context>

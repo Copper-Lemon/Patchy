@@ -3,6 +3,7 @@
 #include <QByteArray>
 #include <QUrl>
 #include <QString>
+#include <QTimeZone>
 
 #include <functional>
 #include <optional>
@@ -83,9 +84,14 @@ using UpdateCheckResultCallback = std::function<void(UpdateCheckResult)>;
                                                         const QString& current_version);
 [[nodiscard]] std::optional<UpdateInfo> parse_update_manifest(const QByteArray& json, const QString& platform,
                                                               const QString& current_version);
-// The interval gate for the startup check (GitHub issue 92): true when `interval_days` is 0
-// (every launch), no check is recorded, the record lies in the future (the clock moved
-// back), or that many days have passed. Times are UTC seconds since the epoch.
+// The interval gate for the startup check (GitHub issues 92 and 189): true when
+// `interval_days` is 0 (every launch), no check is recorded, the record lies in the future
+// (the clock moved back), or that many calendar days have passed in `zone` since the
+// recorded check. Calendar days, not 24-hour spans, so "Daily" checks on the first launch of
+// each day however early it is. Times are UTC seconds since the epoch; the three-argument
+// form uses the local time zone.
+[[nodiscard]] bool startup_update_check_due(int interval_days, qint64 last_check_secs, qint64 now_secs,
+                                            const QTimeZone& zone);
 [[nodiscard]] bool startup_update_check_due(int interval_days, qint64 last_check_secs, qint64 now_secs);
 // Whether the startup check should raise the update prompt for `version`: not when the user
 // ticked "Don't ask again" for it (`skipped_version`) or for a later one. A stored value

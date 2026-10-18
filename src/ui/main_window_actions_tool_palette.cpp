@@ -311,12 +311,33 @@ const char* tool_activation_hint_source(CanvasTool tool) {
              "double-click a name to rename it. Arrows nudge.");
     case CanvasTool::PatchTool:
       return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Patch: draw around the area to fix, then drag the selection to a clean source area, or press Enter to remove the object automatically");
+    // The selection tools name their Shift / Alt combinations (GitHub issue 192); the
+    // cursor already shows the drag, resize and move gestures. Shift+Alt intersects
+    // everywhere except Quick Select and Object Selection, which treat it as Add.
     case CanvasTool::Marquee:
-      return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Rectangular Marquee: drag to select. Drag a handle to resize the selection, or drag "
-             "inside it to move it.");
+      return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Rectangular Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, "
+             "Shift+%ALT%+drag intersects. With nothing selected, Shift draws a square and %ALT% draws from the "
+             "center.");
     case CanvasTool::EllipticalMarquee:
-      return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Elliptical Marquee: drag to select. Drag a handle to resize the selection, or drag "
-             "inside it to move it.");
+      return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Elliptical Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, "
+             "Shift+%ALT%+drag intersects. With nothing selected, Shift draws a circle and %ALT% draws from the "
+             "center.");
+    case CanvasTool::Lasso:
+      return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Lasso: drag around the area to select. Shift+drag adds, %ALT%+drag subtracts, "
+             "Shift+%ALT%+drag intersects.");
+    case CanvasTool::MagneticLasso:
+      return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Magnetic Lasso: click an edge and follow it; click to pin a point. Start "
+             "with Shift+click to add, %ALT%+click to subtract, Shift+%ALT%+click to intersect. Backspace "
+             "removes the last point, Enter closes, Esc cancels.");
+    case CanvasTool::MagicWand:
+      return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Magic Wand: click a color to select it. Shift+click adds, %ALT%+click subtracts, "
+             "Shift+%ALT%+click intersects.");
+    case CanvasTool::QuickSelect:
+      return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Quick Select: paint over the area to select; later strokes add to it. "
+             "Shift+drag adds, %ALT%+drag subtracts.");
+    case CanvasTool::ObjectSelect:
+      return QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Object Selection: drag a box around an object or click it. Shift+drag "
+             "adds, %ALT%+drag subtracts.");
     default:
       return nullptr;
   }

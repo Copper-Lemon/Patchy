@@ -14970,14 +14970,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>Correção: desenhe ao redor da área a corrigir e arraste a seleção para uma área de origem limpa ou pressione Enter para remover o objeto automaticamente</translation>
     </message>
     <message>
-        <source>Rectangular Marquee: drag to select. Drag a handle to resize the selection, or drag inside it to move it.</source>
-        <translation>Seleção retangular: arraste para selecionar. Arraste uma alça para redimensionar a seleção ou arraste dentro dela para movê-la.</translation>
-    </message>
-    <message>
-        <source>Elliptical Marquee: drag to select. Drag a handle to resize the selection, or drag inside it to move it.</source>
-        <translation>Seleção elíptica: arraste para selecionar. Arraste uma alça para redimensionar a seleção ou arraste dentro dela para movê-la.</translation>
-    </message>
-    <message>
         <source>Marquee Tools</source>
         <translation>Ferramentas de seleção retangular e elíptica</translation>
     </message>
@@ -21821,6 +21813,38 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
             <numerusform>As seguintes fontes estão ausentes em %n camada de texto: %1. Os pixels existentes serão transformados em vez de renderizados novamente. Continuar?</numerusform>
             <numerusform>As seguintes fontes estão ausentes em %n camadas de texto: %1. Os pixels existentes serão transformados em vez de renderizados novamente. Continuar?</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Rectangular Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects. With nothing selected, Shift draws a square and %ALT% draws from the center.</source>
+        <translation>Seleção retangular: arraste para selecionar. Shift+arrastar adiciona, %ALT%+arrastar subtrai, Shift+%ALT%+arrastar faz a interseção. Sem seleção, Shift desenha um quadrado e %ALT% desenha a partir do centro.</translation>
+    </message>
+    <message>
+        <source>Elliptical Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects. With nothing selected, Shift draws a circle and %ALT% draws from the center.</source>
+        <translation>Seleção elíptica: arraste para selecionar. Shift+arrastar adiciona, %ALT%+arrastar subtrai, Shift+%ALT%+arrastar faz a interseção. Sem seleção, Shift desenha um círculo e %ALT% desenha a partir do centro.</translation>
+    </message>
+    <message>
+        <source>Lasso: drag around the area to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects.</source>
+        <translation>Laço: arraste em volta da área para selecioná-la. Shift+arrastar adiciona, %ALT%+arrastar subtrai, Shift+%ALT%+arrastar faz a interseção.</translation>
+    </message>
+    <message>
+        <source>Magnetic Lasso: click an edge and follow it; click to pin a point. Start with Shift+click to add, %ALT%+click to subtract, Shift+%ALT%+click to intersect. Backspace removes the last point, Enter closes, Esc cancels.</source>
+        <translation>Laço Magnético: clique em uma borda e siga-a; clique para fixar um ponto. Comece com Shift+clique para adicionar, %ALT%+clique para subtrair, Shift+%ALT%+clique para a interseção. Backspace remove o último ponto, Enter fecha, Esc cancela.</translation>
+    </message>
+    <message>
+        <source>Magic Wand: click a color to select it. Shift+click adds, %ALT%+click subtracts, Shift+%ALT%+click intersects.</source>
+        <translation>Varinha mágica: clique em uma cor para selecioná-la. Shift+clique adiciona, %ALT%+clique subtrai, Shift+%ALT%+clique faz a interseção.</translation>
+    </message>
+    <message>
+        <source>Quick Select: paint over the area to select; later strokes add to it. Shift+drag adds, %ALT%+drag subtracts.</source>
+        <translation>Seleção rápida: pinte sobre a área a selecionar; os traços seguintes a ampliam. Shift+arrastar adiciona, %ALT%+arrastar subtrai.</translation>
+    </message>
+    <message>
+        <source>Object Selection: drag a box around an object or click it. Shift+drag adds, %ALT%+drag subtracts.</source>
+        <translation>Seleção de objeto: arraste uma caixa em volta de um objeto ou clique nele. Shift+arrastar adiciona, %ALT%+arrastar subtrai.</translation>
+    </message>
+    <message>
+        <source>Daily</source>
+        <translation>Diariamente</translation>
     </message>
 </context>
 <context>

@@ -717,6 +717,9 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
     update_interval_combo = new QComboBox(update_row);
     update_interval_combo->setObjectName(QStringLiteral("preferencesUpdateCheckIntervalCombo"));
     update_interval_combo->addItem(tr("Every launch"), 0);
+    // At most once a calendar day, for people who start Patchy several times a day
+    // (GitHub issue 189).
+    update_interval_combo->addItem(tr("Daily"), 1);
     update_interval_combo->addItem(tr("Weekly"), 7);
     update_interval_combo->addItem(tr("Every 2 weeks"), 14);
     update_interval_combo->addItem(tr("Monthly"), 30);

@@ -55,7 +55,10 @@ usual restart notice (`preferencesSystemTitleBarMessageBox`). With it on, Linux 
 it did before the frameless chrome: Qt's client-side decoration on GNOME Wayland, the
 server-side title bar on X11 and KDE, native move and resize, no badge or controls in the
 menu bar, the blank menu-bar drag still a `startSystemMove`, and the menus in a global menu
-bar where the desktop has one. The key is stored but inert on Windows and macOS.
+bar where the desktop has one. The badge's 35 px of menu-bar padding keys on the
+`patchyBadgeChrome` property `configure_window_chrome()` sets, so this menu bar starts its
+first menu at the edge (GitHub issue 196, `ui_menu_bar_reserves_badge_space_only_with_custom_chrome`).
+The key is stored but inert on Windows and macOS.
 
 **Global menu desktops** (GitHub issue 161): the frameless chrome calls
 `setNativeMenuBar(false)`, which keeps the menus in the window even where KDE's Global

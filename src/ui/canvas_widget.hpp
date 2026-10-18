@@ -2754,6 +2754,11 @@ private:
   std::int32_t guide_drag_position_32_{0};
   GuideOrientation guide_drag_original_orientation_{GuideOrientation::Vertical};
   std::int32_t guide_drag_original_position_32_{0};
+  // Moving an existing guide: where the press landed on the guide's axis and how far the
+  // guide sat from it, so the guide keeps its grab point instead of jumping to the pointer
+  // and a press that never moves leaves a fractional (PSD-loaded) position alone.
+  QPoint guide_drag_press_widget_;
+  double guide_drag_grab_offset_{0.0};
   SelectionMode selection_operation_{SelectionMode::Replace};
   QBasicTimer selection_timer_;
   int selection_dash_offset_{0};

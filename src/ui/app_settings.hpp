@@ -64,13 +64,13 @@ void set_stored_recovery_enabled(bool enabled);
 [[nodiscard]] int stored_recovery_interval_minutes();
 void set_stored_recovery_interval_minutes(int minutes);
 
-// How often the startup update check runs (GitHub issue 92), in days; 0 checks on every
-// launch and is the default. Key `updates/checkIntervalDays`; a stored value outside the
+// How often the startup update check runs (GitHub issue 92; 1, "Daily", issue 189), in
+// calendar days; 0 checks on every launch and is the default. Key `updates/checkIntervalDays`; a stored value outside the
 // steps falls back to the default. `updates/lastCheckSecsSinceEpoch` is when a startup
 // check last got an answer (UTC seconds, 0 when never). `updates/skippedVersion` is the
 // version the user ticked "Don't ask again" for on the update prompt (empty when none).
 // All three keys are compatibility contracts. See docs/auto-update.md.
-inline constexpr std::array<int, 4> kUpdateCheckIntervalDays{0, 7, 14, 30};
+inline constexpr std::array<int, 5> kUpdateCheckIntervalDays{0, 1, 7, 14, 30};
 inline constexpr int kDefaultUpdateCheckIntervalDays = 0;
 [[nodiscard]] int normalize_update_check_interval_days(int stored);
 [[nodiscard]] int stored_update_check_interval_days();

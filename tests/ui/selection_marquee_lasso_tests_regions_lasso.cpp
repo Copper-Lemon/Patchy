@@ -7,9 +7,11 @@
 #include "core/layer_metadata.hpp"
 #include "ui/layer_list_widget.hpp"
 #include "ui/main_window.hpp"
+#include "ui/modifier_names.hpp"
 #include "ui/app_settings.hpp"
 #include "test_harness.hpp"
 #include "local_psd_fixtures.hpp"
+#include <QAction>
 #include <QApplication>
 #include <QComboBox>
 #include <QDialog>
@@ -1887,6 +1889,66 @@ void ui_marquee_handles_follow_move_and_vanish_after_other_edits() {
   CHECK(canvas->cursor().shape() != Qt::SizeHorCursor);
 }
 
+// GitHub issue 192: picking a selection tool puts its Shift / Alt combinations in the
+// status bar instead of the drag and resize gestures the cursor already shows. Each hint
+// names only what that tool does: Quick Select and Object Selection have no Intersect.
+void ui_selection_tool_hints_name_modifier_combinations() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  window.resize(1500, 780);
+  QApplication::processEvents();
+  struct ToolHint {
+    const char* action;
+    const char* prefix;
+    bool intersects;
+  };
+  const std::array<ToolHint, 7> tools{{
+      {"toolMarqueeAction", "Rectangular Marquee: drag to select.", true},
+      {"toolEllipticalMarqueeAction", "Elliptical Marquee: drag to select.", true},
+      {"toolLassoAction", "Lasso: drag around the area to select.", true},
+      {"toolMagneticLassoAction", "Magnetic Lasso: click an edge", true},
+      {"toolMagicWandAction", "Magic Wand: click a color to select it.", true},
+      {"toolQuickSelectAction", "Quick Select: paint over the area to select", false},
+      {"toolObjectSelectionAction", "Object Selection: drag a box around an object", false},
+  }};
+  const auto alt = patchy::ui::alt_key_name();
+  QList<QImage> strips;
+  std::vector<QString> messages;
+  for (const auto& tool : tools) {
+    auto* action = window.findChild<QAction*>(QString::fromLatin1(tool.action));
+    if (action == nullptr) {
+      messages.emplace_back();
+      continue;
+    }
+    // No processEvents between picks: Object Selection posts a one-time model offer that
+    // only runs while it is still the current tool.
+    action->trigger();
+    messages.push_back(window.statusBar()->currentMessage());
+    std::cout << tool.action << ": " << messages.back().toStdString() << std::endl;
+    strips << window.statusBar()->grab().toImage();
+  }
+  require_action(window, "toolMarqueeAction")->trigger();
+  QApplication::processEvents();
+  save_stacked_artifact("issue192_selection_tool_status_hints", strips);
+
+  for (std::size_t index = 0; index < tools.size(); ++index) {
+    const auto& tool = tools[index];
+    const auto& message = messages[index];
+    if (message.isEmpty() && std::string_view(tool.action) == "toolObjectSelectionAction") {
+      continue;  // a build without the segmentation model has no Object Selection tool
+    }
+    CHECK(!message.isEmpty());
+    CHECK(message.startsWith(QString::fromLatin1(tool.prefix)));
+    CHECK(message.contains(QStringLiteral("Shift+")));
+    CHECK(message.contains(alt + QStringLiteral("+")));
+    CHECK(message.contains(QStringLiteral("add")));
+    CHECK(message.contains(QStringLiteral("subtract")));
+    CHECK(message.contains(QStringLiteral("intersect")) == tool.intersects);
+    CHECK(!message.contains(QLatin1Char('%')));
+    CHECK(!message.contains(QStringLiteral("Drag a handle")));
+  }
+}
+
 void ui_marquee_handle_click_keeps_selection_and_hint_shows() {
   patchy::ui::MainWindow window;
   show_window(window);
@@ -1894,7 +1956,7 @@ void ui_marquee_handle_click_keeps_selection_and_hint_shows() {
   require_action(window, "toolMarqueeAction")->trigger();
   QApplication::processEvents();
   CHECK(window.statusBar()->currentMessage().startsWith(
-      QStringLiteral("Rectangular Marquee: drag to select. Drag a handle to resize")));
+      QStringLiteral("Rectangular Marquee: drag to select. Shift+drag adds")));
   canvas->set_snap_enabled(false);
 
   drag(*canvas, canvas->widget_position_for_document_point(QPoint(40, 40)),
@@ -2216,6 +2278,7 @@ std::vector<patchy::test::TestCase> selection_marquee_lasso_tests_part2() {
        ui_marquee_handles_follow_move_and_vanish_after_other_edits},
       {"ui_marquee_handle_click_keeps_selection_and_hint_shows",
        ui_marquee_handle_click_keeps_selection_and_hint_shows},
+      {"ui_selection_tool_hints_name_modifier_combinations", ui_selection_tool_hints_name_modifier_combinations},
       {"ui_lasso_drag_moves_selection", ui_lasso_drag_moves_selection},
       {"ui_selection_arrow_keys_nudge", ui_selection_arrow_keys_nudge},
       {"ui_selection_moves_coalesce_into_one_undo_step", ui_selection_moves_coalesce_into_one_undo_step},

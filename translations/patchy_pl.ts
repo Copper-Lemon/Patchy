@@ -15005,14 +15005,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>Łatka: narysuj obszar, który chcesz naprawić, a następnie przeciągnij zaznaczenie do czystego obszaru źródłowego lub naciśnij klawisz Enter, aby automatycznie usunąć obiekt</translation>
     </message>
     <message>
-        <source>Rectangular Marquee: drag to select. Drag a handle to resize the selection, or drag inside it to move it.</source>
-        <translation>Zaznaczenie prostokątne: przeciągnij, aby wybrać. Przeciągnij uchwyt, aby zmienić rozmiar zaznaczenia, lub przeciągnij wewnątrz niego, aby go przesunąć.</translation>
-    </message>
-    <message>
-        <source>Elliptical Marquee: drag to select. Drag a handle to resize the selection, or drag inside it to move it.</source>
-        <translation>Zaznaczenie eliptyczne: przeciągnij, aby wybrać. Przeciągnij uchwyt, aby zmienić rozmiar zaznaczenia, lub przeciągnij wewnątrz niego, aby go przesunąć.</translation>
-    </message>
-    <message>
         <source>Marquee Tools</source>
         <translation>Narzędzia do zaznaczania</translation>
     </message>
@@ -21891,6 +21883,38 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
             <numerusform>Brakuje następujących czcionek dla %n warstw tekstowych: %1. Istniejące piksele zostaną przekształcone zamiast ponownie wyrenderowane. Kontynuować?</numerusform>
             <numerusform>Brakuje następujących czcionek dla %n warstw tekstowych: %1. Istniejące piksele zostaną przekształcone zamiast ponownie wyrenderowane. Kontynuować?</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Rectangular Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects. With nothing selected, Shift draws a square and %ALT% draws from the center.</source>
+        <translation>Zaznaczenie prostokątne: przeciągnij, aby wybrać. Shift+przeciąganie dodaje, %ALT%+przeciąganie odejmuje, Shift+%ALT%+przeciąganie tworzy część wspólną. Bez zaznaczenia Shift rysuje kwadrat, a %ALT% rysuje od środka.</translation>
+    </message>
+    <message>
+        <source>Elliptical Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects. With nothing selected, Shift draws a circle and %ALT% draws from the center.</source>
+        <translation>Zaznaczenie eliptyczne: przeciągnij, aby wybrać. Shift+przeciąganie dodaje, %ALT%+przeciąganie odejmuje, Shift+%ALT%+przeciąganie tworzy część wspólną. Bez zaznaczenia Shift rysuje okrąg, a %ALT% rysuje od środka.</translation>
+    </message>
+    <message>
+        <source>Lasso: drag around the area to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects.</source>
+        <translation>Lasso: przeciągnij wokół obszaru, aby go zaznaczyć. Shift+przeciąganie dodaje, %ALT%+przeciąganie odejmuje, Shift+%ALT%+przeciąganie tworzy część wspólną.</translation>
+    </message>
+    <message>
+        <source>Magnetic Lasso: click an edge and follow it; click to pin a point. Start with Shift+click to add, %ALT%+click to subtract, Shift+%ALT%+click to intersect. Backspace removes the last point, Enter closes, Esc cancels.</source>
+        <translation>Lasso magnetyczne: kliknij krawędź i prowadź wzdłuż niej; kliknięcie przypina punkt. Zacznij od Shift+kliknięcia, aby dodać, %ALT%+kliknięcia, aby odjąć, lub Shift+%ALT%+kliknięcia, aby utworzyć część wspólną. Backspace usuwa ostatni punkt, Enter zamyka, Esc anuluje.</translation>
+    </message>
+    <message>
+        <source>Magic Wand: click a color to select it. Shift+click adds, %ALT%+click subtracts, Shift+%ALT%+click intersects.</source>
+        <translation>Różdżka: kliknij kolor, aby go zaznaczyć. Shift+kliknięcie dodaje, %ALT%+kliknięcie odejmuje, Shift+%ALT%+kliknięcie tworzy część wspólną.</translation>
+    </message>
+    <message>
+        <source>Quick Select: paint over the area to select; later strokes add to it. Shift+drag adds, %ALT%+drag subtracts.</source>
+        <translation>Szybkie zaznaczanie: zamaluj obszar do zaznaczenia; kolejne pociągnięcia dodają do niego. Shift+przeciąganie dodaje, %ALT%+przeciąganie odejmuje.</translation>
+    </message>
+    <message>
+        <source>Object Selection: drag a box around an object or click it. Shift+drag adds, %ALT%+drag subtracts.</source>
+        <translation>Zaznaczanie obiektu: przeciągnij ramkę wokół obiektu lub kliknij go. Shift+przeciąganie dodaje, %ALT%+przeciąganie odejmuje.</translation>
+    </message>
+    <message>
+        <source>Daily</source>
+        <translation>Codziennie</translation>
     </message>
 </context>
 <context>
