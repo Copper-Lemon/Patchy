@@ -2467,6 +2467,7 @@ private:
   QAction* window_reset_panels_separator_{nullptr};
   QAction* window_reset_panels_action_{nullptr};
   QStringList default_collapsed_panels_;
+  QStringList default_panel_order_;
   std::vector<QAction*> window_document_actions_;
   QAction* duplicate_layer_to_document_action_{nullptr};
   QAction* dock_document_action_{nullptr};

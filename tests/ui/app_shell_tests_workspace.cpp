@@ -1112,6 +1112,123 @@ void ui_panel_collapse_and_close_leave_no_gap() {
   save_widget_artifact("ui_panel_collapse_and_close_leave_no_gap", *column);
 }
 
+// Dragging a title row up or down moves its section in the column (the tab group by its
+// title row or its tab bar); a drop line shows where it lands, Escape cancels, and the
+// moved sections keep the column filled.
+void ui_panel_title_drag_reorders_sections() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* column = patchy::ui::MainWindowTestAccess::panel_column(window);
+  CHECK(column != nullptr);
+  if (column == nullptr) {
+    return;
+  }
+  auto* splitter = column->splitter();
+  const QStringList defaults = {QStringLiteral("layersDock"), QStringLiteral("historyDock"),
+                                QStringLiteral("propertiesDock"), QStringLiteral("infoDock"),
+                                QStringLiteral("paletteDock")};
+  CHECK(column->section_order() == defaults);
+  const auto check_filled = [&](const char* context) {
+    int expected_top = 0;
+    int last_bottom = -1;
+    for (int index = 0; index < splitter->count(); ++index) {
+      auto* section = splitter->widget(index);
+      if (section->isHidden()) {
+        continue;
+      }
+      if (section->y() != expected_top) {
+        std::printf("%s: section %s at y %d, expected %d\n", context, qPrintable(section->objectName()), section->y(),
+                    expected_top);
+      }
+      CHECK(section->y() == expected_top);
+      expected_top = section->geometry().bottom() + 1 + splitter->handleWidth();
+      last_bottom = section->geometry().bottom();
+    }
+    CHECK(last_bottom == splitter->height() - 1);
+  };
+  const auto header_of = [&window](const char* prefix) {
+    return window.findChild<QWidget*>(QLatin1String(prefix) + QStringLiteral("DockTitle"));
+  };
+  // Presses `handle` at `from`, crosses the drag distance, then moves to the column point
+  // `to` (and releases unless told not to).
+  const auto drag = [&](QWidget* handle, QPoint from, QPoint column_to, bool release) {
+    send_mouse(*handle, QEvent::MouseButtonPress, from, Qt::LeftButton, Qt::LeftButton);
+    send_mouse(*handle, QEvent::MouseMove, from + QPoint(0, QApplication::startDragDistance() + 2), Qt::NoButton,
+               Qt::LeftButton);
+    const auto to = handle->mapFromGlobal(column->mapToGlobal(column_to));
+    send_mouse(*handle, QEvent::MouseMove, to, Qt::NoButton, Qt::LeftButton);
+    QApplication::processEvents();
+    if (release) {
+      send_mouse(*handle, QEvent::MouseButtonRelease, to, Qt::LeftButton, Qt::NoButton);
+      QApplication::processEvents();
+      QApplication::processEvents();
+    }
+  };
+
+  // Info dragged by its title text (which passes the mouse up to the row, as a real click
+  // does) above the tab group: Info moves to the top, keeping its height.
+  auto* info_header = column->title_label(QStringLiteral("infoDock"));
+  CHECK(info_header != nullptr);
+  const auto info_height = column->section_widget(QStringLiteral("infoDock"))->height();
+  drag(info_header, QPoint(40, info_header->height() / 2), QPoint(20, 2), false);
+  auto* indicator = column->findChild<QWidget*>(QStringLiteral("panelDropIndicator"));
+  CHECK(indicator != nullptr && indicator->isVisible());
+  if (indicator != nullptr) {
+    if (indicator->y() > 2) {
+      std::printf("drop line at y %d, height %d, first section at y %d\n", indicator->y(), indicator->height(),
+                  splitter->widget(0)->mapTo(column, QPoint(0, 0)).y());
+    }
+    CHECK(indicator->y() <= 2);
+  }
+  save_widget_artifact("ui_panel_title_drag_reorders_sections_drop_line", *column);
+  send_mouse(*info_header, QEvent::MouseButtonRelease, info_header->mapFromGlobal(column->mapToGlobal(QPoint(20, 2))),
+             Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  QApplication::processEvents();
+  CHECK(!indicator->isVisible());
+  CHECK(column->section_order() == (QStringList{QStringLiteral("infoDock"), QStringLiteral("layersDock"),
+                                                QStringLiteral("historyDock"), QStringLiteral("propertiesDock"),
+                                                QStringLiteral("paletteDock")}));
+  CHECK(splitter->widget(0)->objectName() == QStringLiteral("infoDock"));
+  CHECK(column->section_widget(QStringLiteral("infoDock"))->height() == info_height);
+  check_filled("info to top");
+
+  // Escape cancels a drag: nothing moves.
+  auto* properties_header = header_of("properties");
+  const auto before_escape = column->section_order();
+  drag(properties_header, QPoint(40, properties_header->height() / 2), QPoint(20, column->height() - 2), false);
+  CHECK(indicator->isVisible());
+  QTest::keyClick(&window, Qt::Key_Escape);
+  CHECK(!indicator->isVisible());
+  send_mouse(*properties_header, QEvent::MouseButtonRelease, QPoint(40, 4), Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(column->section_order() == before_escape);
+
+  // A plain click on a title row moves nothing.
+  send_mouse(*properties_header, QEvent::MouseButtonPress, QPoint(40, 4), Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*properties_header, QEvent::MouseButtonRelease, QPoint(40, 4), Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(column->section_order() == before_escape);
+
+  // The tab group dragged by its tab bar to the bottom; a press there still picks a tab.
+  auto* tabs = column->tab_bar(QStringLiteral("layersDock"));
+  CHECK(tabs != nullptr);
+  const auto channels_tab = tabs->tabRect(1).center();
+  drag(tabs, channels_tab, QPoint(20, column->height() - 2), true);
+  CHECK(column->section_order().last() == QStringLiteral("layersDock"));
+  CHECK(splitter->widget(splitter->count() - 1)->objectName() == QStringLiteral("panelTabGroup"));
+  CHECK(column->panel_in_front(QStringLiteral("channelsDock")));
+  check_filled("group to bottom");
+
+  // move_section and set_section_order do the same without a mouse.
+  column->move_section(QStringLiteral("paletteDock"), 0);
+  CHECK(column->section_order().first() == QStringLiteral("paletteDock"));
+  column->set_section_order(defaults);
+  QApplication::processEvents();
+  CHECK(column->section_order() == defaults);
+  check_filled("defaults again");
+}
+
 // Right-clicking a panel's title row opens the panel menu (collapse or expand, close, the
 // panel toggles and Reset Panels); on the tab group's tab bar the close entry closes the
 // whole group.
@@ -1189,13 +1306,14 @@ void ui_panel_header_right_click_opens_panel_menu() {
 }
 
 // The saved panel layout: closed panels and toolbars, collapsed panels, the tab group's front
-// panel, the section heights and a picked column width come back in the next window; a
+// panel, the section order and heights and a picked column width come back in the next window; a
 // record from another layout version is ignored. Offscreen windows neither read nor write
 // it on their own.
 void ui_panel_layout_returns_in_the_next_window() {
   const QStringList keys = {QStringLiteral("window/panelLayoutVersion"), QStringLiteral("window/hiddenPanels"),
                             QStringLiteral("window/collapsedPanels"), QStringLiteral("window/frontPanel"),
-                            QStringLiteral("window/panelColumnWidth"), QStringLiteral("window/panelSplitterState")};
+                            QStringLiteral("window/panelColumnWidth"), QStringLiteral("window/panelSplitterState"),
+                            QStringLiteral("window/panelOrder")};
   std::vector<std::unique_ptr<SettingsValueRestorer>> restorers;
   for (const auto& key : keys) {
     restorers.push_back(std::make_unique<SettingsValueRestorer>(key));
@@ -1221,6 +1339,7 @@ void ui_panel_layout_returns_in_the_next_window() {
     column->set_panel_visible(history, false);
     require_action(window, "windowPanelChannelsAction")->trigger();
     window.findChild<QToolBar*>(QStringLiteral("Options"))->toggleViewAction()->trigger();
+    column->move_section(QStringLiteral("infoDock"), 0);
     QApplication::processEvents();
     picked_width = patchy::ui::MainWindowTestAccess::right_dock_content_minimum_width(window) + 40;
     patchy::ui::MainWindowTestAccess::set_right_dock_stack_width(window, picked_width);
@@ -1251,6 +1370,8 @@ void ui_panel_layout_returns_in_the_next_window() {
     emit window.findChild<QMenu*>(QStringLiteral("windowMenu"))->aboutToShow();
     CHECK(!require_action(window, "windowPanelHistoryAction")->isChecked());
     CHECK(column->panel_in_front(QStringLiteral("channelsDock")));
+    CHECK(column->section_order().first() == QStringLiteral("infoDock"));
+    CHECK(column->splitter()->widget(0)->objectName() == QStringLiteral("infoDock"));
   }
   {
     // A record from another layout version is ignored: the defaults stand.
@@ -1265,11 +1386,13 @@ void ui_panel_layout_returns_in_the_next_window() {
     CHECK(!window.findChild<QToolBar*>(QStringLiteral("Options"))->isHidden());
     CHECK(column->panel_expanded(properties) == properties_expanded_before);
     CHECK(patchy::ui::MainWindowTestAccess::right_dock_width_follows_content(window));
+    CHECK(column->section_order().first() == QStringLiteral("layersDock"));
   }
 }
 
 // Window > Reset Panels returns the first-launch layout: closed panels and toolbars back, the
-// default collapse states, Layers in front and the content-fit column width.
+// first-launch order, the default collapse states, Layers in front and the content-fit column
+// width.
 void ui_reset_panels_restores_first_launch_layout() {
   patchy::ui::MainWindow window;
   show_window(window);
@@ -1292,6 +1415,8 @@ void ui_reset_panels_restores_first_launch_layout() {
   require_action(window, "windowPanelChannelsAction")->trigger();
   column->set_panel_expanded(QStringLiteral("historyDock"), !column->panel_expanded(QStringLiteral("historyDock")));
   tool_palette->toggleViewAction()->trigger();
+  column->move_section(QStringLiteral("propertiesDock"), 0);
+  column->move_section(QStringLiteral("layersDock"), 5);
   patchy::ui::MainWindowTestAccess::set_right_dock_stack_width(
       window, patchy::ui::MainWindowTestAccess::right_dock_content_minimum_width(window) + 60);
   QApplication::processEvents();
@@ -2837,6 +2962,7 @@ std::vector<patchy::test::TestCase> app_shell_tests_part1() {
       {"ui_window_menu_lists_panels_and_toolbars", ui_window_menu_lists_panels_and_toolbars},
       {"ui_panel_close_and_reopen_keeps_full_width", ui_panel_close_and_reopen_keeps_full_width},
       {"ui_panel_collapse_and_close_leave_no_gap", ui_panel_collapse_and_close_leave_no_gap},
+      {"ui_panel_title_drag_reorders_sections", ui_panel_title_drag_reorders_sections},
       {"ui_panel_header_right_click_opens_panel_menu", ui_panel_header_right_click_opens_panel_menu},
       {"ui_panel_layout_returns_in_the_next_window", ui_panel_layout_returns_in_the_next_window},
       {"ui_reset_panels_restores_first_launch_layout", ui_reset_panels_restores_first_launch_layout},

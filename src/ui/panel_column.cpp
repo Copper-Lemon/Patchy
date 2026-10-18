@@ -1,11 +1,15 @@
 #include "ui/panel_column.hpp"
 
 #include "ui/main_window_shared.hpp"
+#include "ui/theme_qss.hpp"
 
+#include <QApplication>
 #include <QEvent>
 #include <QFrame>
 #include <QHBoxLayout>
+#include <QKeyEvent>
 #include <QLabel>
+#include <QMouseEvent>
 #include <QResizeEvent>
 #include <QScrollArea>
 #include <QScrollBar>
@@ -21,6 +25,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdlib>
+#include <utility>
 #include <vector>
 
 namespace patchy::ui {
@@ -127,6 +132,9 @@ struct PanelColumn::Section {
   QStackedWidget* stack{nullptr};
   std::vector<std::unique_ptr<Page>> pages;
   bool expanded{true};
+  // The first section added (the Layers group): it takes the column's spare height,
+  // wherever it has been moved.
+  bool fills{false};
   // How far lower_floors has lowered the expanded floor.
   int floor_reduction{0};
 
@@ -154,7 +162,11 @@ PanelColumn::PanelColumn(QWidget* parent) : QWidget(parent) {
   layout->addWidget(splitter_);
 }
 
-PanelColumn::~PanelColumn() = default;
+PanelColumn::~PanelColumn() {
+  if (dragging_) {
+    QApplication::restoreOverrideCursor();  // closed mid-drag
+  }
+}
 
 PanelColumn::Page* PanelColumn::build_page(Section& section, const PanelSpec& spec) {
   auto page = std::make_unique<Page>();
@@ -185,6 +197,8 @@ PanelColumn::Page* PanelColumn::build_page(Section& section, const PanelSpec& sp
   page->label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
   header_layout->addWidget(page->label, 1);
   layout->addWidget(page->header);
+  // A drag on the title row (the label passes its presses up) moves the section.
+  page->header->installEventFilter(this);
 
   if (auto* scroll = qobject_cast<QScrollArea*>(spec.content); scroll != nullptr) {
     page->body = scroll;
@@ -210,6 +224,7 @@ PanelColumn::Page* PanelColumn::build_page(Section& section, const PanelSpec& sp
 void PanelColumn::add_panel(const PanelSpec& spec, bool initially_expanded) {
   auto section = std::make_unique<Section>();
   section->expanded = initially_expanded;
+  section->fills = sections_.empty();
   auto* page = build_page(*section, spec);
   section->widget = page->widget;
   splitter_->addWidget(section->widget);
@@ -226,6 +241,7 @@ void PanelColumn::add_tab_group(const QString& group_name, const std::vector<Pan
   }
   auto section = std::make_unique<Section>();
   section->expanded = initially_expanded;
+  section->fills = sections_.empty();
   section->widget = new QWidget();
   section->widget->setObjectName(group_name);
   auto* layout = new QVBoxLayout(section->widget);
@@ -237,6 +253,8 @@ void PanelColumn::add_tab_group(const QString& group_name, const std::vector<Pan
   section->tabs->setDrawBase(false);
   section->tabs->setExpanding(false);
   section->tabs->setContextMenuPolicy(Qt::CustomContextMenu);
+  // The tab bar is the group's handle too: a press still switches tabs, a drag moves.
+  section->tabs->installEventFilter(this);
   section->stack = new QStackedWidget(section->widget);
   layout->addWidget(section->tabs);
   layout->addWidget(section->stack, 1);
@@ -609,15 +627,26 @@ void PanelColumn::apply_preferred_heights() {
   const auto total = std::max(0, splitter_->height() - handles);
   QList<int> sizes;
   int used = 0;
+  // The fill section (Layers) takes what is left, wherever it sits; else the first
+  // expanded one.
   int filler = -1;
+  for (int index = 0; index < static_cast<int>(sections_.size()); ++index) {
+    const auto& section = *sections_[static_cast<std::size_t>(index)];
+    if (section.expanded && section.widget->isVisibleTo(this) && (filler < 0 || section.fills)) {
+      filler = index;
+      if (section.fills) {
+        break;
+      }
+    }
+  }
   for (int index = 0; index < static_cast<int>(sections_.size()); ++index) {
     const auto& section = *sections_[static_cast<std::size_t>(index)];
     int size = 0;
     if (section.widget->isVisibleTo(this)) {
       if (!section.expanded) {
         size = collapsed_height(section);
-      } else if (filler < 0) {
-        filler = index;
+      } else if (index == filler) {
+        size = 0;
       } else {
         size = section_preferred(section);
       }
@@ -634,7 +663,19 @@ void PanelColumn::apply_preferred_heights() {
 
 int PanelColumn::lower_floors(int excess, int keep) {
   int lowered = 0;
-  for (auto it = sections_.rbegin(); it != sections_.rend() && excess > 0; ++it) {
+  // Bottom up, the fill section (Layers) last wherever it sits.
+  std::vector<Section*> order;
+  for (auto it = sections_.rbegin(); it != sections_.rend(); ++it) {
+    if (!(*it)->fills) {
+      order.push_back(it->get());
+    }
+  }
+  for (const auto& section : sections_) {
+    if (section->fills) {
+      order.push_back(section.get());
+    }
+  }
+  for (auto it = order.begin(); it != order.end() && excess > 0; ++it) {
     auto& section = **it;
     if (!section.expanded || !section.widget->isVisibleTo(this)) {
       continue;
@@ -664,6 +705,242 @@ void PanelColumn::restore_floors() {
       apply_section_state(*section);
     }
   }
+}
+
+QStringList PanelColumn::section_order() const {
+  QStringList ids;
+  for (const auto& section : sections_) {
+    ids << section->pages.front()->spec.id;
+  }
+  return ids;
+}
+
+void PanelColumn::set_section_order(const QStringList& ids) {
+  std::vector<std::unique_ptr<Section>> order;
+  auto remaining = std::move(sections_);
+  sections_.clear();
+  const auto take = [&remaining, &order](const Section* wanted) {
+    for (auto it = remaining.begin(); it != remaining.end(); ++it) {
+      if (it->get() == wanted) {
+        order.push_back(std::move(*it));
+        remaining.erase(it);
+        return;
+      }
+    }
+  };
+  for (const auto& id : ids) {
+    for (const auto& candidate : remaining) {
+      const auto named = std::any_of(candidate->pages.begin(), candidate->pages.end(),
+                                     [&id](const auto& page) { return page->spec.id == id; });
+      if (named) {
+        take(candidate.get());
+        break;
+      }
+    }
+  }
+  for (auto& rest : remaining) {
+    order.push_back(std::move(rest));
+  }
+  reorder_sections(std::move(order));
+}
+
+void PanelColumn::move_section(const QString& id, int slot) {
+  if (const auto* section = section_of(id); section != nullptr) {
+    move_section_index(section_index(section), slot);
+  }
+}
+
+void PanelColumn::move_section_index(int from, int slot) {
+  const auto count = static_cast<int>(sections_.size());
+  slot = std::clamp(slot, 0, count);
+  if (from < 0 || from >= count || slot == from || slot == from + 1) {
+    return;
+  }
+  auto order = std::move(sections_);
+  sections_.clear();
+  auto moved = std::move(order[static_cast<std::size_t>(from)]);
+  order.erase(order.begin() + from);
+  const auto to = slot > from ? slot - 1 : slot;
+  order.insert(order.begin() + to, std::move(moved));
+  reorder_sections(std::move(order));
+}
+
+void PanelColumn::reorder_sections(std::vector<std::unique_ptr<Section>> order) {
+  // Heights go with their sections: read them by widget before the splitter moves any.
+  const auto old_sizes = splitter_->sizes();
+  std::vector<std::pair<QWidget*, int>> heights;
+  for (int index = 0; index < splitter_->count(); ++index) {
+    heights.emplace_back(splitter_->widget(index), index < old_sizes.size() ? old_sizes[index] : 0);
+  }
+  sections_ = std::move(order);
+  bool changed = false;
+  QList<int> sizes;
+  for (int index = 0; index < static_cast<int>(sections_.size()); ++index) {
+    auto* widget = sections_[static_cast<std::size_t>(index)]->widget;
+    if (splitter_->widget(index) != widget) {
+      // An existing child moves to the new index.
+      splitter_->insertWidget(index, widget);
+      changed = true;
+    }
+    const auto found = std::find_if(heights.begin(), heights.end(), [widget](const auto& entry) { return entry.first == widget; });
+    sizes << (found != heights.end() ? found->second : 0);
+  }
+  if (!changed) {
+    return;
+  }
+  splitter_->setSizes(sizes);
+  emit section_order_changed();
+}
+
+PanelColumn::Section* PanelColumn::section_for_drag_handle(const QObject* handle) const {
+  for (const auto& section : sections_) {
+    if (section->tabs == handle) {
+      return section.get();
+    }
+    for (const auto& member : section->pages) {
+      if (member->header == handle) {
+        return section.get();
+      }
+    }
+  }
+  return nullptr;
+}
+
+int PanelColumn::drop_slot_at(const QPoint& column_position) const {
+  // Above a section's middle drops above it; below every middle drops at the bottom.
+  for (int index = 0; index < static_cast<int>(sections_.size()); ++index) {
+    const auto* widget = sections_[static_cast<std::size_t>(index)]->widget;
+    if (widget->isHidden()) {
+      continue;
+    }
+    const QRect rect(widget->mapTo(this, QPoint(0, 0)), widget->size());
+    if (column_position.y() < rect.center().y()) {
+      return index;
+    }
+  }
+  return static_cast<int>(sections_.size());
+}
+
+void PanelColumn::show_drop_indicator(int slot) {
+  drop_slot_ = slot;
+  if (drop_indicator_ == nullptr) {
+    drop_indicator_ = new QWidget(this);
+    drop_indicator_->setObjectName(QStringLiteral("panelDropIndicator"));
+    drop_indicator_->setAttribute(Qt::WA_TransparentForMouseEvents);
+    drop_indicator_->setAttribute(Qt::WA_StyledBackground, true);
+    // The Layers list's insertion line.
+    set_themed_style(*drop_indicator_, QStringLiteral(
+        "QWidget#panelDropIndicator { background: @drop_indicator_bg; "
+        "border: 1px solid @drop_indicator_border; border-radius: 2px; }"));
+  }
+  const auto from = section_index(drag_section_);
+  if (slot == from || slot == from + 1) {
+    drop_indicator_->hide();  // dropping here changes nothing
+    return;
+  }
+  constexpr int kThickness = 4;
+  int y = 0;
+  bool above_a_section = false;
+  for (int index = slot; index < static_cast<int>(sections_.size()); ++index) {
+    const auto* widget = sections_[static_cast<std::size_t>(index)]->widget;
+    if (!widget->isHidden()) {
+      // Centered on the divider above it (the top edge for the first section).
+      y = widget->mapTo(this, QPoint(0, 0)).y() - (splitter_->handleWidth() + kThickness) / 2;
+      above_a_section = true;
+      break;
+    }
+  }
+  if (!above_a_section) {
+    // The bottom: just inside the column's lower edge.
+    for (auto it = sections_.rbegin(); it != sections_.rend(); ++it) {
+      const auto* widget = (*it)->widget;
+      if (!widget->isHidden()) {
+        y = widget->mapTo(this, QPoint(0, widget->height())).y() - kThickness;
+        break;
+      }
+    }
+  }
+  y = std::clamp(y, 0, std::max(0, height() - kThickness));
+  drop_indicator_->setGeometry(2, y, std::max(0, width() - 4), kThickness);
+  drop_indicator_->show();
+  drop_indicator_->raise();
+}
+
+void PanelColumn::end_section_drag(bool apply) {
+  auto* section = drag_section_;
+  const auto slot = drop_slot_;
+  const auto was_dragging = dragging_;
+  drag_section_ = nullptr;
+  drop_slot_ = -1;
+  dragging_ = false;
+  if (drop_indicator_ != nullptr) {
+    drop_indicator_->hide();
+  }
+  if (!was_dragging) {
+    return;
+  }
+  QApplication::restoreOverrideCursor();
+  QApplication::instance()->removeEventFilter(this);
+  if (apply && section != nullptr && slot >= 0) {
+    move_section_index(section_index(section), slot);
+  }
+}
+
+bool PanelColumn::eventFilter(QObject* watched, QEvent* event) {
+  switch (event->type()) {
+    case QEvent::MouseButtonPress: {
+      const auto* mouse = static_cast<QMouseEvent*>(event);
+      if (dragging_) {
+        end_section_drag(false);
+        return true;
+      }
+      if (mouse->button() == Qt::LeftButton) {
+        drag_section_ = section_for_drag_handle(watched);
+        drag_press_global_ = mouse->globalPosition().toPoint();
+      }
+      break;
+    }
+    case QEvent::MouseMove: {
+      const auto* mouse = static_cast<QMouseEvent*>(event);
+      if (drag_section_ == nullptr || (mouse->buttons() & Qt::LeftButton) == 0 ||
+          (!dragging_ && section_for_drag_handle(watched) != drag_section_)) {
+        break;
+      }
+      const auto global = mouse->globalPosition().toPoint();
+      if (!dragging_) {
+        if ((global - drag_press_global_).manhattanLength() < QApplication::startDragDistance()) {
+          break;
+        }
+        dragging_ = true;
+        QApplication::setOverrideCursor(Qt::ClosedHandCursor);
+        // Escape cancels, whichever widget has the keyboard.
+        QApplication::instance()->installEventFilter(this);
+      }
+      show_drop_indicator(drop_slot_at(mapFromGlobal(global)));
+      return true;
+    }
+    case QEvent::MouseButtonRelease: {
+      const auto* mouse = static_cast<QMouseEvent*>(event);
+      if (mouse->button() != Qt::LeftButton) {
+        break;
+      }
+      if (dragging_) {
+        end_section_drag(true);
+        return true;
+      }
+      drag_section_ = nullptr;
+      break;
+    }
+    case QEvent::KeyPress:
+      if (dragging_ && static_cast<QKeyEvent*>(event)->key() == Qt::Key_Escape) {
+        end_section_drag(false);
+        return true;
+      }
+      break;
+    default:
+      break;
+  }
+  return QWidget::eventFilter(watched, event);
 }
 
 void PanelColumn::showEvent(QShowEvent* event) {

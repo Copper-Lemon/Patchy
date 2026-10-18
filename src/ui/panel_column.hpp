@@ -4,8 +4,9 @@
 // one tab group, then History, Properties, Info and Palette, each a section with a
 // title row (collapse toggle and title) over its panel. Sections sit in a vertical
 // QSplitter, so the dividers between them drag; a collapsed section is exactly its
-// title row. Patchy owns this layout: nothing floats, nothing is a QDockWidget, and
-// every size is set through plain layout and splitter calls.
+// title row. Dragging a title row (or the group's tab bar) up or down moves its
+// section within the column. Patchy owns this layout: nothing floats, nothing is a
+// QDockWidget, and every size is set through plain layout and splitter calls.
 
 #include <QByteArray>
 #include <QPoint>
@@ -91,20 +92,34 @@ public:
   // the first one (Layers) taking what is left. Before the first show it is applied
   // when the column gets its height.
   void apply_preferred_heights();
-  // Lowers expanded sections' floors by up to `excess` pixels (later sections first,
-  // the first section last, never below its title row plus `keep`). Returns how much
+  // Lowers expanded sections' floors by up to `excess` pixels (bottom up, the first
+  // section added (Layers) last wherever it sits, never below its title row plus `keep`). Returns how much
   // it lowered. The window calls it when the column's minimum would not fit the screen.
   int lower_floors(int excess, int keep = 48);
   // Puts every section's floor back to its spec (Reset Panels, a taller screen).
   void restore_floors();
+
+  // The sections top to bottom, each named by its first panel's id (the tab group by
+  // its first tab, "layersDock"), closed sections included.
+  [[nodiscard]] QStringList section_order() const;
+  // Reorders the sections to follow `ids` (any panel id names its section). Unknown ids
+  // are skipped; sections left unnamed keep their relative order after the named ones.
+  // Each section keeps its height.
+  void set_section_order(const QStringList& ids);
+  // Moves `id`'s section to sit just above the section now at `slot` (the section
+  // count: the bottom), as a title-row drag does.
+  void move_section(const QString& id, int slot);
 
 signals:
   // A right-click on a title row or a tab: the panel under the pointer.
   void header_context_menu_requested(const QString& panel_id, const QPoint& global_position, bool on_tab_bar);
   void panel_visibility_changed(const QString& panel_id, bool visible);
   void panel_expanded_changed(const QString& panel_id, bool expanded);
+  // A drag, move_section or set_section_order changed the order.
+  void section_order_changed();
 
 protected:
+  bool eventFilter(QObject* watched, QEvent* event) override;
   void showEvent(QShowEvent* event) override;
   void resizeEvent(QResizeEvent* event) override;
   void changeEvent(QEvent* event) override;
@@ -124,10 +139,22 @@ private:
   [[nodiscard]] int collapsed_height(const Section& section) const;
   [[nodiscard]] int section_floor(const Section& section) const;
   [[nodiscard]] int section_preferred(const Section& section) const;
+  [[nodiscard]] Section* section_for_drag_handle(const QObject* handle) const;
+  [[nodiscard]] int drop_slot_at(const QPoint& column_position) const;
+  void show_drop_indicator(int slot);
+  void end_section_drag(bool apply);
+  void move_section_index(int from, int slot);
+  void reorder_sections(std::vector<std::unique_ptr<Section>> order);
 
   QSplitter* splitter_{nullptr};
   std::vector<std::unique_ptr<Section>> sections_;
   bool preferred_heights_pending_{true};
+  // A title-row drag: the section pressed, where, and the slot it would drop into.
+  Section* drag_section_{nullptr};
+  QPoint drag_press_global_;
+  bool dragging_{false};
+  int drop_slot_{-1};
+  QWidget* drop_indicator_{nullptr};
 };
 
 }  // namespace patchy::ui

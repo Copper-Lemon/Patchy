@@ -1,6 +1,6 @@
 # Right panel column
 
-The right column holds Layers, Channels and Paths (one tab group), then History, Properties, Info and Palette. It is a `PanelColumn` (`src/ui/panel_column.hpp/.cpp`) that Patchy owns: a vertical `QSplitter` of sections, each a title row (collapse toggle and title) over its panel. Nothing in it is a `QDockWidget`, nothing floats, and panels cannot be dragged elsewhere. The central widget is the `workspaceSplitter` (`QSplitter`): the document tabs (`documentTabs`, stretch 1) and the column (stretch 0). Tests reach the tabs with `findChild<QTabWidget*>("documentTabs")`, never through `centralWidget()`. `create_docks` (`src/ui/main_window_docks.cpp`) builds each panel and hands it over as a `PanelSpec`.
+The right column holds Layers, Channels and Paths (one tab group), then History, Properties, Info and Palette. It is a `PanelColumn` (`src/ui/panel_column.hpp/.cpp`) that Patchy owns: a vertical `QSplitter` of sections, each a title row (collapse toggle and title) over its panel. Nothing in it is a `QDockWidget` and nothing floats; a panel can only move up or down within the column (see "Reordering"). The central widget is the `workspaceSplitter` (`QSplitter`): the document tabs (`documentTabs`, stretch 1) and the column (stretch 0). Tests reach the tabs with `findChild<QTabWidget*>("documentTabs")`, never through `centralWidget()`. `create_docks` (`src/ui/main_window_docks.cpp`) builds each panel and hands it over as a `PanelSpec`.
 
 Panel ids are the old dock object names (`layersDock`, `channelsDock`, `pathsDock`, `historyDock`, `propertiesDock`, `infoDock`, `paletteDock`). They name the panel's widget, and the saved layout stores them, so they never change. A title row is `<prefix>DockTitle` with `<prefix>DockTitleLabel` and `<prefix>DockCollapseButton` (`dockCollapseButton` property). The theme, the MCP allowlist and the tests rely on these names. The tab group's section is `panelTabGroup`, its bar `panelTabGroupTabBar` (`drawBase(false)`, so no Fusion base line: GitHub issue 123, `ui_dock_tab_bars_draw_no_native_base`). `MainWindowTestAccess::panel_column`/`panel_section`/`show_panel` reach it from tests.
 
@@ -20,14 +20,19 @@ Panel heights must never pin the window taller.
 - **Freed height.** QSplitter keeps a slot's remembered size after the section's maximum shrinks, which leaves a band under a collapsed header until a divider moves. Every collapse, expand, close and reopen ends in `settle_sizes`, which clamps each slot to its section's limits and gives the difference to the nearest expanded sections, the ones above first (`ui_panel_collapse_and_close_leave_no_gap`).
 - **Expanded.** An expanded section has its spec floor: Layers group 300, Channels and Paths 190, History 90 (prefers 190), Properties at most 230, Palette prefers 320. Expanding hands the section its preferred height through `QSplitter::setSizes`, synchronously, taken from the other expanded sections, tallest first and down to their floors (`grant_preferred_height`). There are no temporary minimums and no deferred releases.
 - **Tab group.** The group is one section, so it collapses and expands as one: its toggles stay in step, and a background tab's toggle expands the whole group (GitHub issue 101, `ui_tabbed_right_dock_group_collapses_as_one`).
-- **First show.** The first show distributes the heights with `apply_preferred_heights`; every section but the first takes its preferred height and the group takes the rest.
+- **First show.** The first show distributes the heights with `apply_preferred_heights`; every section but the group takes its preferred height and the group takes the rest.
+- **The fill section.** The first section added (the group, `Section::fills`) has stretch 1 and takes the column's spare height wherever it has been moved; `apply_preferred_heights` gives it the rest and `lower_floors` lowers it last.
 - **Dividers.** The dividers between sections are the column splitter's handles and drag (`ui_right_dock_separator_drags_between_docks`).
-- **Screen fit.** The window's minimum must fit `available_window_height()` (GitHub issue 108). `fit_right_dock_floors_to_screen` lowers the expanded sections' floors, later sections first and the group last, never below their title row plus 48 (`PanelColumn::lower_floors`). Then, if needed, it lowers the Layers list's 120 px and panel's 240 px floors (the list never below 48). Once shown, it activates the layout so a resize right after sees the lower minimum. It runs from the startup clamp, the column's first show, and every expand or visibility change. Panels that can outgrow their share scroll internally; never give a panel an unbounded minimum height (`ui_right_dock_floors_fit_the_screen_height`, `ui_right_dock_panels_expand_within_window_height`; the Wayland side is in [wayland.md](wayland.md)).
+- **Screen fit.** The window's minimum must fit `available_window_height()` (GitHub issue 108). `fit_right_dock_floors_to_screen` lowers the expanded sections' floors, bottom up and the group last, never below their title row plus 48 (`PanelColumn::lower_floors`). Then, if needed, it lowers the Layers list's 120 px and panel's 240 px floors (the list never below 48). Once shown, it activates the layout so a resize right after sees the lower minimum. It runs from the startup clamp, the column's first show, and every expand or visibility change. Panels that can outgrow their share scroll internally; never give a panel an unbounded minimum height (`ui_right_dock_floors_fit_the_screen_height`, `ui_right_dock_panels_expand_within_window_height`; the Wayland side is in [wayland.md](wayland.md)).
 
 ## Showing, hiding and the header menu
 
 - **Showing and hiding.** `PanelColumn::set_panel_visible` closes or reopens a panel. In the group it hides the tab, passes the front to the next open tab, and hides the section once no tab is open. A reopened section takes its preferred height back from its neighbors. Every section always spans the column's full width (`ui_panel_close_and_reopen_keeps_full_width`). The old dock column could re-dock a reopened panel narrower, with the window background beside it.
 - **Header menu.** Right-clicking a title row or a tab emits `header_context_menu_requested`, and `show_panel_header_menu` opens `panelHeaderMenu`. It holds Collapse Panel or Expand Panel, then Close Panel (Close Tab Group on the tab bar, which closes every tab of the group), the panel and toolbar toggles, and Reset Panels (`ui_panel_header_right_click_opens_panel_menu`). The palette-mode status chip calls `show_panel("paletteDock")`.
+
+## Reordering
+
+Dragging a title row, or the group's tab bar, up or down moves that section. `PanelColumn` filters the title rows and the tab bar (a press on the label reaches the row; the collapse button keeps its press, and a press on a tab still picks it). Past `startDragDistance` the drag starts: a closed-hand override cursor, the Layers list's insertion line (`panelDropIndicator`, `@drop_indicator_bg`) at the divider the section would land above, and an application event filter so Escape or any other press cancels. A drop above a section's middle lands above it; a drop that changes nothing hides the line. Release moves the section with `move_section_index` through `QSplitter::insertWidget`, each section keeping its height, and emits `section_order_changed`. Sections are named by their first panel's id (`section_order`, `set_section_order`, `move_section`), the group as `layersDock`. Tabs do not move between or out of the group (`ui_panel_title_drag_reorders_sections`).
 
 ## Window menu entries
 
@@ -48,6 +53,7 @@ The keys are compatibility contracts:
 - `window/hiddenPanels` (panel ids and the toolbar names `toolPalette`, `Options`).
 - `window/collapsedPanels`.
 - `window/frontPanel` (the group's front tab).
+- `window/panelOrder` (`section_order`, applied before the heights, which are by position; a record without it keeps the default order).
 - `window/panelSplitterState` (the column splitter's `saveState`).
 - `window/panelColumnWidth` (present only while the width is picked, not following the content).
 
@@ -55,6 +61,7 @@ Offscreen runs neither read nor write the record (`panel_layout_persists`). A UI
 
 Window > Reset Panels (`reset_panels`) does the following:
 - reopens every panel,
+- restores the first-launch order (`default_panel_order_`),
 - applies the collapse states captured right after `create_docks` (`default_collapsed_panels_`),
 - brings Layers to the front,
 - re-adds a moved toolbar to its first-launch area,

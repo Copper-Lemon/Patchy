@@ -585,6 +585,7 @@ QString collapsed_panels_key() { return QStringLiteral("window/collapsedPanels")
 QString front_panel_key() { return QStringLiteral("window/frontPanel"); }
 QString panel_column_width_key() { return QStringLiteral("window/panelColumnWidth"); }
 QString panel_heights_key() { return QStringLiteral("window/panelSplitterState"); }
+QString panel_order_key() { return QStringLiteral("window/panelOrder"); }
 
 // The two toolbars, by object name, with the area each starts in.
 struct DefaultToolbar {
@@ -663,6 +664,7 @@ void MainWindow::write_panel_layout() {
   settings.setValue(hidden_panels_key(), hidden);
   settings.setValue(collapsed_panels_key(), collapsed_panel_names());
   settings.setValue(front_panel_key(), front);
+  settings.setValue(panel_order_key(), panel_column_->section_order());
   settings.setValue(panel_heights_key(), panel_column_->save_heights());
   if (right_dock_width_follows_minimum_ || right_dock_pinned_width_ <= 0) {
     settings.remove(panel_column_width_key());
@@ -698,6 +700,11 @@ void MainWindow::read_panel_layout() {
       bar->hide();
     }
   }
+  // The order first: the heights state is by position. A record without one (saved
+  // before panels could move) keeps the default order.
+  if (const auto order = settings.value(panel_order_key()).toStringList(); !order.isEmpty()) {
+    panel_column_->set_section_order(order);
+  }
   panel_column_->restore_heights(settings.value(panel_heights_key()).toByteArray());
   // A picked width; without one the column keeps following the content-fit width. The
   // window's own size is restored first, so the clamp sees the real width.
@@ -710,13 +717,14 @@ void MainWindow::reset_panels() {
   if (panel_column_ == nullptr) {
     return;
   }
-  // Every panel open, the first-launch collapse states and heights, Layers in front.
-  // Nothing is re-parented, so the window keeps its size and place.
+  // Every panel open in the first-launch order, collapse states and heights, Layers in
+  // front. Nothing is re-parented, so the window keeps its size and place.
   // Floors a short screen lowered stay lowered: putting them back would ask for more
   // height than the window has and grow it past the screen.
   for (const auto& id : panel_column_->panel_ids()) {
     panel_column_->set_panel_visible(id, true);
   }
+  panel_column_->set_section_order(default_panel_order_);
   apply_collapsed_panels(default_collapsed_panels_);
   panel_column_->bring_to_front(QString::fromLatin1(kFirstPanel));
   for (const auto& toolbar : kDefaultToolbars) {
