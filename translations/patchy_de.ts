@@ -6195,10 +6195,6 @@ Textfluss: %6
         <translation>Ordnerebene</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>Textebene. Fehlende Schrift: %1. Eine andere Schrift wird ersatzweise verwendet, daher sieht der Text nicht so aus wie ursprünglich erstellt.</translation>
-    </message>
-    <message>
         <source>Text layer</source>
         <translation>Textebene</translation>
     </message>
@@ -8699,14 +8695,6 @@ RGB: %2, %3, %4</translation>
         <translation>Diese Schriftarten enthalten keine Glyphen für ihren Text: %1. Beim Bearbeiten dieser PSD-Rastervorschau werden Ersatzschriften verwendet. Fortfahren?</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. No glyphs for this text in: %2. Other fonts are being substituted, so the text does not look as it was authored.</source>
-        <translation>Textebene. Fehlende Schrift: %1. Keine Glyphen für diesen Text in: %2. Andere Schriften werden ersatzweise verwendet, daher sieht der Text nicht so aus wie ursprünglich erstellt.</translation>
-    </message>
-    <message>
-        <source>Text layer. No glyphs for this text in: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>Textebene. Keine Glyphen für diesen Text in: %1. Eine andere Schrift wird ersatzweise verwendet, daher sieht der Text nicht so aus wie ursprünglich erstellt.</translation>
-    </message>
-    <message>
         <source>UI language for this run only, not saved: en, de, es, fr, it, ja, ko, pl, pt_BR, ru, zh_CN, or zh_TW.</source>
         <translation>UI-Sprache nur für diesen Start, nicht gespeichert: en, de, es, fr, it, ja, ko, pl, pt_BR, ru, zh_CN oder zh_TW.</translation>
     </message>
@@ -10364,6 +10352,56 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
         <translation>Ein als Seitenordner importiertes PDF zeigt nur seine erste Seite; seine ausgeblendeten Seiten sind trotzdem Seiten.</translation>
+    </message>
+    <message>
+        <source>Missing Fonts</source>
+        <translation>Fehlende Schriftarten</translation>
+    </message>
+    <message>
+        <source>Some fonts used in this document are missing. Choose an installed font to replace each one in every text layer that uses it, or leave it unresolved.</source>
+        <translation>Einige in diesem Dokument verwendete Schriftarten fehlen. Wählen Sie für jede eine installierte Schriftart, die sie in allen Textebenen ersetzt, oder lassen Sie sie unaufgelöst.</translation>
+    </message>
+    <message>
+        <source>Resolve Fonts</source>
+        <translation>Schriftarten auflösen</translation>
+    </message>
+    <message numerus="yes">
+        <source>Installed, but has no glyphs for this text. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>Installiert, enthält aber keine Glyphen für diesen Text. Verwendet in %n Textebene.</numerusform>
+            <numerusform>Installiert, enthält aber keine Glyphen für diesen Text. Verwendet in %n Textebenen.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Not installed. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>Nicht installiert. Verwendet in %n Textebene.</numerusform>
+            <numerusform>Nicht installiert. Verwendet in %n Textebenen.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Replace with:</source>
+        <translation>Ersetzen durch:</translation>
+    </message>
+    <message>
+        <source>Don&apos;t show when opening documents</source>
+        <translation>Beim Öffnen von Dokumenten nicht anzeigen</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens this dialog at any time. Preferences can turn it back on for opened documents.</source>
+        <translation>Schrift &gt; Fehlende Schriftarten auflösen öffnet diesen Dialog jederzeit. In den Voreinstellungen lässt er sich für geöffnete Dokumente wieder einschalten.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1. No glyphs for this text in: %2.</source>
+        <translation>Textebene. Schrift fehlt auf diesem Computer: %1. Keine Glyphen für diesen Text in: %2.</translation>
+    </message>
+    <message>
+        <source>Text layer. No glyphs for this text in: %1.</source>
+        <translation>Textebene. Keine Glyphen für diesen Text in: %1.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1.</source>
+        <translation>Textebene. Schrift fehlt auf diesem Computer: %1.</translation>
     </message>
 </context>
 <context>
@@ -21682,6 +21720,51 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation>Seitenbild %1 von %2 wird vorbereitet...</translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts...</source>
+        <translation>Fehlende Schriftarten auflösen...</translation>
+    </message>
+    <message>
+        <source>This document has no missing fonts</source>
+        <translation>Dieses Dokument hat keine fehlenden Schriftarten</translation>
+    </message>
+    <message numerus="yes">
+        <source>Replaced missing fonts in %n text layer(s)</source>
+        <translation>
+            <numerusform>Fehlende Schriftarten in %n Textebene ersetzt</numerusform>
+            <numerusform>Fehlende Schriftarten in %n Textebenen ersetzt</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>(%n locked layer(s) kept their fonts)</source>
+        <translation>
+            <numerusform>(%n gesperrte Ebene behielt ihre Schriftarten)</numerusform>
+            <numerusform>(%n gesperrte Ebenen behielten ihre Schriftarten)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts</source>
+        <translation>Fehlende Schriftarten auflösen</translation>
+    </message>
+    <message>
+        <source>Show the Missing Fonts dialog when opening a document with missing fonts</source>
+        <translation>Dialog „Fehlende Schriftarten“ beim Öffnen eines Dokuments mit fehlenden Schriftarten anzeigen</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens the same dialog at any time.</source>
+        <translation>Schrift &gt; Fehlende Schriftarten auflösen öffnet denselben Dialog jederzeit.</translation>
+    </message>
+    <message>
+        <source>The following fonts are missing for text layer &quot;%1&quot;: %2. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>Folgende Schriften fehlen für die Textebene „%1“: %2. Die vorhandenen Pixel werden transformiert statt neu gerendert. Fortfahren?</translation>
+    </message>
+    <message numerus="yes">
+        <source>The following fonts are missing for %n text layer(s): %1. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>
+            <numerusform>Folgende Schriften fehlen für %n Textebene: %1. Die vorhandenen Pixel werden transformiert statt neu gerendert. Fortfahren?</numerusform>
+            <numerusform>Folgende Schriften fehlen für %n Textebenen: %1. Die vorhandenen Pixel werden transformiert statt neu gerendert. Fortfahren?</numerusform>
+        </translation>
     </message>
 </context>
 <context>

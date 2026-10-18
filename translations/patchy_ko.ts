@@ -6427,18 +6427,6 @@ Flow: %6
         <translation>폴더 펼치기(%ALT%-클릭: 하위 폴더 포함, %CTRL%+%ALT%-클릭: 모든 폴더)</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. No glyphs for this text in: %2. Other fonts are being substituted, so the text does not look as it was authored.</source>
-        <translation>텍스트 레이어. 누락된 글꼴: %1. %2에는 이 텍스트에 대한 문자가 없습니다. 다른 글꼴이 대체되어 텍스트가 작성된 것처럼 보이지 않습니다.</translation>
-    </message>
-    <message>
-        <source>Text layer. No glyphs for this text in: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>텍스트 레이어. %1에는 이 텍스트에 대한 문자가 없습니다. 다른 글꼴이 대체되어 텍스트가 작성된 대로 표시되지 않습니다.</translation>
-    </message>
-    <message>
-        <source>Text layer. Missing font: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>텍스트 레이어. 누락된 글꼴: %1. 다른 글꼴이 대체되어 텍스트가 작성된 대로 표시되지 않습니다.</translation>
-    </message>
-    <message>
         <source>Folder layer</source>
         <translation>폴더 레이어</translation>
     </message>
@@ -10332,6 +10320,54 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
         <translation>페이지 폴더로 가져온 PDF는 첫 페이지만 표시하지만, 숨겨진 페이지도 페이지입니다.</translation>
+    </message>
+    <message>
+        <source>Missing Fonts</source>
+        <translation>누락된 글꼴</translation>
+    </message>
+    <message>
+        <source>Some fonts used in this document are missing. Choose an installed font to replace each one in every text layer that uses it, or leave it unresolved.</source>
+        <translation>이 문서에 사용된 일부 글꼴이 없습니다. 해당 글꼴을 사용하는 모든 텍스트 레이어에서 각 글꼴을 대체할 설치된 글꼴을 선택하거나 해결하지 않은 상태로 두십시오.</translation>
+    </message>
+    <message>
+        <source>Resolve Fonts</source>
+        <translation>글꼴 해결</translation>
+    </message>
+    <message numerus="yes">
+        <source>Installed, but has no glyphs for this text. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>설치되어 있지만 이 텍스트의 글리프가 없습니다. 텍스트 레이어 %n개에서 사용됩니다.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Not installed. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>설치되지 않았습니다. 텍스트 레이어 %n개에서 사용됩니다.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Replace with:</source>
+        <translation>대체할 글꼴:</translation>
+    </message>
+    <message>
+        <source>Don&apos;t show when opening documents</source>
+        <translation>문서를 열 때 표시 안 함</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens this dialog at any time. Preferences can turn it back on for opened documents.</source>
+        <translation>문자 &gt; 누락된 글꼴 해결에서 언제든지 이 대화 상자를 열 수 있습니다. 환경설정에서 문서를 열 때 다시 표시하도록 설정할 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1. No glyphs for this text in: %2.</source>
+        <translation>텍스트 레이어. 이 컴퓨터에 없는 글꼴: %1. %2에는 이 텍스트에 대한 문자가 없습니다.</translation>
+    </message>
+    <message>
+        <source>Text layer. No glyphs for this text in: %1.</source>
+        <translation>텍스트 레이어. %1에는 이 텍스트에 대한 문자가 없습니다.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1.</source>
+        <translation>텍스트 레이어. 이 컴퓨터에 없는 글꼴: %1.</translation>
     </message>
 </context>
 <context>
@@ -21617,6 +21653,48 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation>페이지 이미지 %1/%2 준비 중...</translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts...</source>
+        <translation>누락된 글꼴 해결...</translation>
+    </message>
+    <message>
+        <source>This document has no missing fonts</source>
+        <translation>이 문서에는 누락된 글꼴이 없습니다</translation>
+    </message>
+    <message numerus="yes">
+        <source>Replaced missing fonts in %n text layer(s)</source>
+        <translation>
+            <numerusform>텍스트 레이어 %n개에서 누락된 글꼴을 대체했습니다</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>(%n locked layer(s) kept their fonts)</source>
+        <translation>
+            <numerusform>(잠긴 레이어 %n개는 글꼴을 유지했습니다)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts</source>
+        <translation>누락된 글꼴 해결</translation>
+    </message>
+    <message>
+        <source>Show the Missing Fonts dialog when opening a document with missing fonts</source>
+        <translation>누락된 글꼴이 있는 문서를 열 때 누락된 글꼴 대화 상자 표시</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens the same dialog at any time.</source>
+        <translation>문자 &gt; 누락된 글꼴 해결에서 언제든지 같은 대화 상자를 열 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>The following fonts are missing for text layer &quot;%1&quot;: %2. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>텍스트 레이어 &quot;%1&quot;에 다음 글꼴이 없습니다: %2. 다시 렌더링하지 않고 기존 픽셀을 변형합니다. 계속하시겠습니까?</translation>
+    </message>
+    <message numerus="yes">
+        <source>The following fonts are missing for %n text layer(s): %1. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>
+            <numerusform>텍스트 레이어 %n개에 다음 글꼴이 없습니다: %1. 다시 렌더링하지 않고 기존 픽셀을 변형합니다. 계속하시겠습니까?</numerusform>
+        </translation>
     </message>
 </context>
 <context>

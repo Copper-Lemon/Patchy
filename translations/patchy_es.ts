@@ -6195,10 +6195,6 @@ Flujo: %6
         <translation>Capa de carpeta</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>Capa de texto. Falta la fuente: %1. Se está sustituyendo por otra fuente, por lo que el texto no se ve como fue creado.</translation>
-    </message>
-    <message>
         <source>Text layer</source>
         <translation>Capa de texto</translation>
     </message>
@@ -8699,14 +8695,6 @@ RGB: %2, %3, %4</translation>
         <translation>Estas fuentes no tienen glifos para su texto: %1. Al editar esta previsualización rasterizada del PSD se sustituirán por otras fuentes. ¿Desea continuar?</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. No glyphs for this text in: %2. Other fonts are being substituted, so the text does not look as it was authored.</source>
-        <translation>Capa de texto. Falta la fuente: %1. Sin glifos para este texto en: %2. Se están sustituyendo por otras fuentes, por lo que el texto no se ve como fue creado.</translation>
-    </message>
-    <message>
-        <source>Text layer. No glyphs for this text in: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>Capa de texto. Sin glifos para este texto en: %1. Se está sustituyendo por otra fuente, por lo que el texto no se ve como fue creado.</translation>
-    </message>
-    <message>
         <source>UI language for this run only, not saved: en, de, es, fr, it, ja, ko, pl, pt_BR, ru, zh_CN, or zh_TW.</source>
         <translation>Idioma de la interfaz solo para esta ejecución, no se guarda: en, de, es, fr, it, ja, ko, pl, pt_BR, ru, zh_CN o zh_TW.</translation>
     </message>
@@ -10364,6 +10352,56 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
         <translation>Un PDF importado como carpetas de páginas solo muestra su primera página; sus páginas ocultas siguen siendo páginas.</translation>
+    </message>
+    <message>
+        <source>Missing Fonts</source>
+        <translation>Fuentes que faltan</translation>
+    </message>
+    <message>
+        <source>Some fonts used in this document are missing. Choose an installed font to replace each one in every text layer that uses it, or leave it unresolved.</source>
+        <translation>Faltan algunas fuentes usadas en este documento. Elija una fuente instalada para reemplazar cada una en todas las capas de texto que la usan, o déjela sin resolver.</translation>
+    </message>
+    <message>
+        <source>Resolve Fonts</source>
+        <translation>Resolver fuentes</translation>
+    </message>
+    <message numerus="yes">
+        <source>Installed, but has no glyphs for this text. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>Instalada, pero no tiene glifos para este texto. Se usa en %n capa de texto.</numerusform>
+            <numerusform>Instalada, pero no tiene glifos para este texto. Se usa en %n capas de texto.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Not installed. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>No instalada. Se usa en %n capa de texto.</numerusform>
+            <numerusform>No instalada. Se usa en %n capas de texto.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Replace with:</source>
+        <translation>Reemplazar con:</translation>
+    </message>
+    <message>
+        <source>Don&apos;t show when opening documents</source>
+        <translation>No mostrar al abrir documentos</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens this dialog at any time. Preferences can turn it back on for opened documents.</source>
+        <translation>Texto &gt; Resolver fuentes que faltan abre este cuadro de diálogo en cualquier momento. En Preferencias puede volver a activarlo para los documentos abiertos.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1. No glyphs for this text in: %2.</source>
+        <translation>Capa de texto. La fuente falta en este equipo: %1. Sin glifos para este texto en: %2.</translation>
+    </message>
+    <message>
+        <source>Text layer. No glyphs for this text in: %1.</source>
+        <translation>Capa de texto. Sin glifos para este texto en: %1.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1.</source>
+        <translation>Capa de texto. La fuente falta en este equipo: %1.</translation>
     </message>
 </context>
 <context>
@@ -21682,6 +21720,51 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation>Preparando la imagen de página %1 de %2...</translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts...</source>
+        <translation>Resolver fuentes que faltan...</translation>
+    </message>
+    <message>
+        <source>This document has no missing fonts</source>
+        <translation>Este documento no tiene fuentes que falten</translation>
+    </message>
+    <message numerus="yes">
+        <source>Replaced missing fonts in %n text layer(s)</source>
+        <translation>
+            <numerusform>Se reemplazaron las fuentes que faltan en %n capa de texto</numerusform>
+            <numerusform>Se reemplazaron las fuentes que faltan en %n capas de texto</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>(%n locked layer(s) kept their fonts)</source>
+        <translation>
+            <numerusform>(%n capa bloqueada conservó sus fuentes)</numerusform>
+            <numerusform>(%n capas bloqueadas conservaron sus fuentes)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts</source>
+        <translation>Resolver fuentes que faltan</translation>
+    </message>
+    <message>
+        <source>Show the Missing Fonts dialog when opening a document with missing fonts</source>
+        <translation>Mostrar el cuadro de diálogo Fuentes que faltan al abrir un documento con fuentes que faltan</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens the same dialog at any time.</source>
+        <translation>Texto &gt; Resolver fuentes que faltan abre el mismo cuadro de diálogo en cualquier momento.</translation>
+    </message>
+    <message>
+        <source>The following fonts are missing for text layer &quot;%1&quot;: %2. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>Faltan las siguientes fuentes para la capa de texto &quot;%1&quot;: %2. Se transformarán los píxeles existentes en lugar de volver a renderizarlos. ¿Continuar?</translation>
+    </message>
+    <message numerus="yes">
+        <source>The following fonts are missing for %n text layer(s): %1. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>
+            <numerusform>Faltan las siguientes fuentes para %n capa de texto: %1. Se transformarán los píxeles existentes en lugar de volver a renderizarlos. ¿Continuar?</numerusform>
+            <numerusform>Faltan las siguientes fuentes para %n capas de texto: %1. Se transformarán los píxeles existentes en lugar de volver a renderizarlos. ¿Continuar?</numerusform>
+        </translation>
     </message>
 </context>
 <context>

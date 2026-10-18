@@ -6190,10 +6190,6 @@ Flow: %6
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Text layer</source>
         <translation type="unfinished"></translation>
     </message>
@@ -8689,14 +8685,6 @@ RGB: %2, %3, %4</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. No glyphs for this text in: %2. Other fonts are being substituted, so the text does not look as it was authored.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Text layer. No glyphs for this text in: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>UI language for this run only, not saved: en, de, es, fr, it, ja, ko, pl, pt_BR, ru, zh_CN, or zh_TW.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -10347,6 +10335,56 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</source>
     </message>
     <message>
         <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Missing Fonts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Some fonts used in this document are missing. Choose an installed font to replace each one in every text layer that uses it, or leave it unresolved.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Resolve Fonts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <source>Installed, but has no glyphs for this text. Used in %n text layer(s).</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Not installed. Used in %n text layer(s).</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Replace with:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Don&apos;t show when opening documents</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens this dialog at any time. Preferences can turn it back on for opened documents.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1. No glyphs for this text in: %2.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Text layer. No glyphs for this text in: %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -21609,6 +21647,51 @@ Patchy can download the update, replace this AppImage, and start again. You will
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This document has no missing fonts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <source>Replaced missing fonts in %n text layer(s)</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>(%n locked layer(s) kept their fonts)</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show the Missing Fonts dialog when opening a document with missing fonts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens the same dialog at any time.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The following fonts are missing for text layer &quot;%1&quot;: %2. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message numerus="yes">
+        <source>The following fonts are missing for %n text layer(s): %1. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
     </message>
 </context>
 <context>

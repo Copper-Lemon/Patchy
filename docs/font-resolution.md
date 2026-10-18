@@ -141,6 +141,50 @@ The text engine's font lookup and the PSD reader's naming rules. The session mac
 
 Font lookup, style matching, fallback coverage and system-font registration live in `ui/text_font_service.{hpp,cpp}`. Its API has no MainWindow dependency; the PSD resolver, font picker and text document builder share it.
 
+## Missing fonts
+
+- **The substitution prompt** (`confirm_psd_raster_preview_font_substitution`) opens before a
+  session on a `psd_raster_preview` layer whose fonts `text_font_problems_for_layer` flags,
+  visible or hidden (GitHub issue 177: the hidden path substituted silently). Continue moves the
+  session onto the face that draws (`substituted_text_family`,
+  `substitute_missing_document_font_families`). CLI automation and Resolve Missing Fonts skip it.
+- **The badge follows an open session** (issue 178). `live_text_session_layer_id` names the layer
+  a visible session edits; its thumbnail drops the badge and its tooltip stops naming the font
+  while the session lasts, because the session already draws installed faces. Cancel brings both
+  back (the layer still names the missing font). The thumbnail cache keys on the badge state as
+  well as the render revision.
+- **The thumbnail tooltip names the font and nothing else** (issue 184): "Font is missing on this
+  computer: <name>" or "No glyphs for this text in: <name>". It never claims a substitution: until
+  an edit or a transform the layer shows the pixels it was saved with.
+- **Free Transform asks first and keeps the saved pixels** (issue 185, Photoshop's "the existing
+  pixel data will be used"). `CanvasWidget::commit_free_transform` hands every target to the
+  missing-font confirm callback before writing anything; Cancel cancels the session untouched.
+  On Continue the text render callback declines layers with a missing font, so they keep the
+  resampled pixels and their font name; the scale rides the stored text transform (no fold into
+  the point size), like imported type. Image Size and scripted transforms do not ask, and neither
+  does any automation (CLI, `--headless`, the connector, a running script outside an artist's
+  manual-edit pause): those go ahead as if Continue were pressed. The
+  settings key `text/warnMissingFontsOnTransform` (default true, no UI) turns the question off;
+  the UI test main does, since fixtures name fonts a test host may lack.
+- **New type takes the family the bar shows** (`text_options_bar_family`, issue 180). Mirroring a
+  layer set in a missing family leaves the combo's `currentFont()` on that name while it shows
+  another row; with no text layer to mirror, `sync_text_options_from_active_layer` puts
+  `currentFont()` back on the shown row, and `add_text_at` seeds new sessions from that row.
+- **Type > Resolve Missing Fonts** (issue 169; hotkey id `type.resolve_missing_fonts`;
+  `src/ui/missing_fonts_dialog.*`, `main_window_missing_fonts.cpp`). One row per family any text
+  layer cannot draw, hidden and grouped layers included, deduped by `text_font_replacement_key`
+  (the compact key). Rows start unchecked, Photoshop's "Don't Resolve": the file keeps the name,
+  so a machine with the font still shows the original. The picker starts on the face drawing the
+  text now. Resolve runs one hidden session per affected layer with `text_font_replacements_` set:
+  only the mapped families change (base family and runs), other missing families keep their
+  names, and all commits share one "Resolve Missing Fonts" undo step. A commit regenerates the
+  layer, so its TySh and the Txt2 object name the replacement on the next save. Locked layers and
+  protected text geometry are skipped and counted in the status message.
+- Every interactive open (`open_document_path`, never unattended automation) shows the dialog while
+  `imports/showMissingFontsDialog` (default true) allows. Its "Don't show when opening documents"
+  box and Preferences > Application set that key. The UI test main sets it false; tests that need
+  the dialog turn it on. Tests: the `missing_font` filter (tests/ui/missing_fonts_tests.cpp).
+
 ## Photoshop 5.x `tySh` faces
 
 A PS 5 type record names each face three ways: PostScript name, GDI family and style string

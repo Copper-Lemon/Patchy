@@ -6438,18 +6438,6 @@ Fluxo: %6
         <translation>Expandir pasta (%ALT%-clique inclui pastas aninhadas, %CTRL%+%ALT%-clique em todas as pastas)</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. No glyphs for this text in: %2. Other fonts are being substituted, so the text does not look as it was authored.</source>
-        <translation>Camada de texto. Fonte ausente: %1. Não há glifos para este texto em: %2. Fontes substitutas estão sendo usadas, por isso o texto difere da aparência original.</translation>
-    </message>
-    <message>
-        <source>Text layer. No glyphs for this text in: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>Camada de texto. Não há glifos para este texto em: %1. Uma fonte substituta está sendo usada, por isso o texto difere da aparência original.</translation>
-    </message>
-    <message>
-        <source>Text layer. Missing font: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>Camada de texto. Fonte ausente: %1. Uma fonte substituta está sendo usada, por isso o texto difere da aparência original.</translation>
-    </message>
-    <message>
         <source>Folder layer</source>
         <translation>Camada de pasta</translation>
     </message>
@@ -10364,6 +10352,56 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
         <translation>Um PDF importado como pastas de páginas mostra só a primeira página; as páginas ocultas continuam sendo páginas.</translation>
+    </message>
+    <message>
+        <source>Missing Fonts</source>
+        <translation>Fontes ausentes</translation>
+    </message>
+    <message>
+        <source>Some fonts used in this document are missing. Choose an installed font to replace each one in every text layer that uses it, or leave it unresolved.</source>
+        <translation>Algumas fontes usadas neste documento estão ausentes. Escolha uma fonte instalada para substituir cada uma em todas as camadas de texto que a usam, ou deixe-a sem resolver.</translation>
+    </message>
+    <message>
+        <source>Resolve Fonts</source>
+        <translation>Resolver fontes</translation>
+    </message>
+    <message numerus="yes">
+        <source>Installed, but has no glyphs for this text. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>Instalada, mas sem glifos para este texto. Usada em %n camada de texto.</numerusform>
+            <numerusform>Instalada, mas sem glifos para este texto. Usada em %n camadas de texto.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Not installed. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>Não instalada. Usada em %n camada de texto.</numerusform>
+            <numerusform>Não instalada. Usada em %n camadas de texto.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Replace with:</source>
+        <translation>Substituir por:</translation>
+    </message>
+    <message>
+        <source>Don&apos;t show when opening documents</source>
+        <translation>Não mostrar ao abrir documentos</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens this dialog at any time. Preferences can turn it back on for opened documents.</source>
+        <translation>Texto &gt; Resolver fontes ausentes abre esta caixa de diálogo a qualquer momento. Nas Preferências é possível reativá-la para documentos abertos.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1. No glyphs for this text in: %2.</source>
+        <translation>Camada de texto. A fonte está ausente neste computador: %1. Não há glifos para este texto em: %2.</translation>
+    </message>
+    <message>
+        <source>Text layer. No glyphs for this text in: %1.</source>
+        <translation>Camada de texto. Não há glifos para este texto em: %1.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1.</source>
+        <translation>Camada de texto. A fonte está ausente neste computador: %1.</translation>
     </message>
 </context>
 <context>
@@ -21682,6 +21720,51 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation>Preparando a imagem de página %1 de %2...</translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts...</source>
+        <translation>Resolver fontes ausentes...</translation>
+    </message>
+    <message>
+        <source>This document has no missing fonts</source>
+        <translation>Este documento não tem fontes ausentes</translation>
+    </message>
+    <message numerus="yes">
+        <source>Replaced missing fonts in %n text layer(s)</source>
+        <translation>
+            <numerusform>Fontes ausentes substituídas em %n camada de texto</numerusform>
+            <numerusform>Fontes ausentes substituídas em %n camadas de texto</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>(%n locked layer(s) kept their fonts)</source>
+        <translation>
+            <numerusform>(%n camada bloqueada manteve suas fontes)</numerusform>
+            <numerusform>(%n camadas bloqueadas mantiveram suas fontes)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts</source>
+        <translation>Resolver fontes ausentes</translation>
+    </message>
+    <message>
+        <source>Show the Missing Fonts dialog when opening a document with missing fonts</source>
+        <translation>Mostrar a caixa de diálogo Fontes ausentes ao abrir um documento com fontes ausentes</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens the same dialog at any time.</source>
+        <translation>Texto &gt; Resolver fontes ausentes abre a mesma caixa de diálogo a qualquer momento.</translation>
+    </message>
+    <message>
+        <source>The following fonts are missing for text layer &quot;%1&quot;: %2. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>As seguintes fontes estão ausentes na camada de texto &quot;%1&quot;: %2. Os pixels existentes serão transformados em vez de renderizados novamente. Continuar?</translation>
+    </message>
+    <message numerus="yes">
+        <source>The following fonts are missing for %n text layer(s): %1. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>
+            <numerusform>As seguintes fontes estão ausentes em %n camada de texto: %1. Os pixels existentes serão transformados em vez de renderizados novamente. Continuar?</numerusform>
+            <numerusform>As seguintes fontes estão ausentes em %n camadas de texto: %1. Os pixels existentes serão transformados em vez de renderizados novamente. Continuar?</numerusform>
+        </translation>
     </message>
 </context>
 <context>

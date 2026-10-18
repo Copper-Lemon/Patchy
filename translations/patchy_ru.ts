@@ -6449,18 +6449,6 @@ Flow: %6
         <translation>Развернуть папку (щелчок %ALT% включает вложенные папки, клик %CTRL%+%ALT% — все папки)</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. No glyphs for this text in: %2. Other fonts are being substituted, so the text does not look as it was authored.</source>
-        <translation>Текстовый слой. Отсутствует шрифт: %1. Для этого текста нет глифов в: %2. Подменяются другие шрифты, поэтому текст выглядит не так, как был написан.</translation>
-    </message>
-    <message>
-        <source>Text layer. No glyphs for this text in: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>Текстовый слой. Для этого текста нет глифов в: %1. Подменяется другой шрифт, поэтому текст выглядит не так, как был написан.</translation>
-    </message>
-    <message>
-        <source>Text layer. Missing font: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>Текстовый слой. Отсутствует шрифт: %1. Подменяется другой шрифт, поэтому текст выглядит не так, как был написан.</translation>
-    </message>
-    <message>
         <source>Folder layer</source>
         <translation>Слой папок</translation>
     </message>
@@ -10396,6 +10384,58 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
         <translation>PDF, импортированный папками страниц, показывает только первую страницу; скрытые страницы всё равно остаются страницами.</translation>
+    </message>
+    <message>
+        <source>Missing Fonts</source>
+        <translation>Отсутствующие шрифты</translation>
+    </message>
+    <message>
+        <source>Some fonts used in this document are missing. Choose an installed font to replace each one in every text layer that uses it, or leave it unresolved.</source>
+        <translation>Некоторые шрифты, используемые в этом документе, отсутствуют. Выберите установленный шрифт для замены каждого из них во всех текстовых слоях, где он используется, или оставьте его без изменений.</translation>
+    </message>
+    <message>
+        <source>Resolve Fonts</source>
+        <translation>Заменить шрифты</translation>
+    </message>
+    <message numerus="yes">
+        <source>Installed, but has no glyphs for this text. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>Установлен, но не содержит глифов для этого текста. Используется в %n текстовом слое.</numerusform>
+            <numerusform>Установлен, но не содержит глифов для этого текста. Используется в %n текстовых слоях.</numerusform>
+            <numerusform>Установлен, но не содержит глифов для этого текста. Используется в %n текстовых слоях.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Not installed. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>Не установлен. Используется в %n текстовом слое.</numerusform>
+            <numerusform>Не установлен. Используется в %n текстовых слоях.</numerusform>
+            <numerusform>Не установлен. Используется в %n текстовых слоях.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Replace with:</source>
+        <translation>Заменить на:</translation>
+    </message>
+    <message>
+        <source>Don&apos;t show when opening documents</source>
+        <translation>Не показывать при открытии документов</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens this dialog at any time. Preferences can turn it back on for opened documents.</source>
+        <translation>Текст &gt; Заменить отсутствующие шрифты открывает это окно в любой момент. В настройках его можно снова включить для открываемых документов.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1. No glyphs for this text in: %2.</source>
+        <translation>Текстовый слой. Шрифт отсутствует на этом компьютере: %1. Для этого текста нет глифов в: %2.</translation>
+    </message>
+    <message>
+        <source>Text layer. No glyphs for this text in: %1.</source>
+        <translation>Текстовый слой. Для этого текста нет глифов в: %1.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1.</source>
+        <translation>Текстовый слой. Шрифт отсутствует на этом компьютере: %1.</translation>
     </message>
 </context>
 <context>
@@ -21747,6 +21787,54 @@ Patchy может скачать обновление, заменить этот
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation>Подготовка изображения страницы %1 из %2...</translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts...</source>
+        <translation>Заменить отсутствующие шрифты...</translation>
+    </message>
+    <message>
+        <source>This document has no missing fonts</source>
+        <translation>В этом документе нет отсутствующих шрифтов</translation>
+    </message>
+    <message numerus="yes">
+        <source>Replaced missing fonts in %n text layer(s)</source>
+        <translation>
+            <numerusform>Отсутствующие шрифты заменены в %n текстовом слое</numerusform>
+            <numerusform>Отсутствующие шрифты заменены в %n текстовых слоях</numerusform>
+            <numerusform>Отсутствующие шрифты заменены в %n текстовых слоях</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>(%n locked layer(s) kept their fonts)</source>
+        <translation>
+            <numerusform>(%n заблокированный слой сохранил шрифты)</numerusform>
+            <numerusform>(%n заблокированных слоя сохранили шрифты)</numerusform>
+            <numerusform>(%n заблокированных слоев сохранили шрифты)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts</source>
+        <translation>Заменить отсутствующие шрифты</translation>
+    </message>
+    <message>
+        <source>Show the Missing Fonts dialog when opening a document with missing fonts</source>
+        <translation>Показывать окно «Отсутствующие шрифты» при открытии документа с отсутствующими шрифтами</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens the same dialog at any time.</source>
+        <translation>Текст &gt; Заменить отсутствующие шрифты открывает это же окно в любой момент.</translation>
+    </message>
+    <message>
+        <source>The following fonts are missing for text layer &quot;%1&quot;: %2. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>Для текстового слоя «%1» отсутствуют шрифты: %2. Существующие пиксели будут преобразованы без повторной отрисовки. Продолжить?</translation>
+    </message>
+    <message numerus="yes">
+        <source>The following fonts are missing for %n text layer(s): %1. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>
+            <numerusform>Для %n текстового слоя отсутствуют шрифты: %1. Существующие пиксели будут преобразованы без повторной отрисовки. Продолжить?</numerusform>
+            <numerusform>Для %n текстовых слоев отсутствуют шрифты: %1. Существующие пиксели будут преобразованы без повторной отрисовки. Продолжить?</numerusform>
+            <numerusform>Для %n текстовых слоев отсутствуют шрифты: %1. Существующие пиксели будут преобразованы без повторной отрисовки. Продолжить?</numerusform>
+        </translation>
     </message>
 </context>
 <context>

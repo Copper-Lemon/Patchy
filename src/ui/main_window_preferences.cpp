@@ -776,6 +776,13 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
          "(as-shot white balance, no adjustments)."));
   raw_develop_check->setChecked(settings.value(QStringLiteral("imports/showRawDevelopDialog"), true).toBool());
   application_form->addRow(raw_develop_check);
+  auto* missing_fonts_check =
+      new QCheckBox(tr("Show the Missing Fonts dialog when opening a document with missing fonts"), application_group);
+  missing_fonts_check->setObjectName(QStringLiteral("preferencesShowMissingFontsDialogCheck"));
+  missing_fonts_check->setToolTip(
+      tr("Type > Resolve Missing Fonts opens the same dialog at any time."));
+  missing_fonts_check->setChecked(settings.value(QStringLiteral("imports/showMissingFontsDialog"), true).toBool());
+  application_form->addRow(missing_fonts_check);
   auto* zoom_thumbnails_check =
       new QCheckBox(tr("Zoom layer thumbnails to the layer content"), application_group);
   zoom_thumbnails_check->setObjectName(QStringLiteral("preferencesZoomLayerThumbnailsCheck"));
@@ -1738,6 +1745,7 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
     }
     settings.setValue(QStringLiteral("imports/showPsdWarningsAndInfo"), psd_import_warnings_check->isChecked());
     settings.setValue(QStringLiteral("imports/showRawDevelopDialog"), raw_develop_check->isChecked());
+    settings.setValue(QStringLiteral("imports/showMissingFontsDialog"), missing_fonts_check->isChecked());
     settings.setValue(QStringLiteral("imports/adoptIndexedPalette"), indexed_open_combo->currentData().toString());
     settings.setValue(QStringLiteral("imports/afImageLayers"), af_image_layers_combo->currentData().toString());
     settings.setValue(QStringLiteral("saveOptions/pdfLayerPolicy"), pdf_layers_combo->currentData().toString());

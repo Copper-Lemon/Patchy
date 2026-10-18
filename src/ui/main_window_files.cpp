@@ -2517,6 +2517,8 @@ void MainWindow::open_document_path(QString path) {
     if (!unattended_automation()) {
       // Unattended runs must not block on the adoption offer.
       maybe_offer_indexed_palette_adoption();
+      // Photoshop's Missing Fonts dialog on open (GitHub issue 169); off in Preferences.
+      show_resolve_missing_fonts_dialog(true);
     }
     update_undo_redo_actions();
     if (!browser_transfer) {

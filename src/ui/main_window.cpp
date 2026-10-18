@@ -5963,7 +5963,16 @@ void MainWindow::configure_canvas(CanvasWidget* canvas) {
     if (layer == nullptr || !layer_is_text(*layer)) {
       return false;
     }
+    // A missing font keeps the resampled saved pixels, as Photoshop does after its warning
+    // (GitHub issue 185): re-rendering would silently swap in a substitute face.
+    if (!missing_text_families_for_layer(std::as_const(*layer)).isEmpty()) {
+      return false;
+    }
     return rerender_text_layer_through_stored_transform(*layer);
+  });
+  canvas->set_missing_font_transform_confirm_callback([this, canvas](const std::vector<LayerId>& ids) {
+    const auto* session = session_for_canvas(canvas);
+    return session == nullptr || confirm_missing_font_transform(session->document, ids);
   });
 }
 
@@ -6092,7 +6101,7 @@ void MainWindow::add_text_at(QPoint document_point, QRect requested_text_box, bo
   bool photoshop_text_layout = area_text.has_value();
   double text_size_display_scale = 1.0;
   std::optional<QPointF> initial_cursor_local_position;
-  QString family = text_font_combo_ != nullptr ? text_font_combo_->currentFont().family() : font().family();
+  QString family = text_font_combo_ != nullptr ? text_options_bar_family() : font().family();
   int document_text_size = text_size_spin_ != nullptr ? text_points_to_pixels(text_size_spin_->value(), document()) : 48;
   // New text starts on the face the style picker shows, the way Photoshop seeds new type from
   // its toolbar state. The flags carry the four standard faces; an exotic pick (Black, Demi)
@@ -6189,14 +6198,18 @@ void MainWindow::add_text_at(QPoint document_point, QRect requested_text_box, bo
           text_size_display_scale = vertical_scale;
         }
       }
+      bool source_raster_preview = false;
       if (const auto found = layer->metadata().find(kLayerMetadataTextRasterStatus);
           found != layer->metadata().end()) {
-        editing_layer_uses_source_raster_preview =
-            *editing_layer_was_visible && found->second == "psd_raster_preview";
+        source_raster_preview = found->second == "psd_raster_preview";
+        editing_layer_uses_source_raster_preview = *editing_layer_was_visible && source_raster_preview;
       }
-      if (editing_layer_uses_source_raster_preview && !cli_automation_mode_) {
+      // A hidden layer warns too (GitHub issue 177): the session substitutes the font all the
+      // same, and only the raster preview, not the prompt, depends on the layer being shown.
+      if (source_raster_preview && !cli_automation_mode_ && !text_font_replacements_.has_value()) {
         // Automation (run_cli_export) substitutes silently: the whole point of its edit
         // sessions is forcing Patchy's own render, and a prompt would block unattended runs.
+        // Resolve Missing Fonts already has the user's answer for every family it swaps.
         QStringList glyphless_fonts;
         const auto missing_fonts = missing_text_families_for_psd_raster_preview(
             family, initial_rich_text_runs, initial_text, &glyphless_fonts);
@@ -6209,7 +6222,14 @@ void MainWindow::add_text_at(QPoint document_point, QRect requested_text_box, bo
       // face that draws, so committing stores a font the layer really uses. The per-run families
       // are substituted on the built document below; this is the base family the editor, the
       // options bar and the commit all read.
-      family = substituted_text_family(family, initial_text);
+      if (text_font_replacements_.has_value()) {
+        if (const auto chosen = text_font_replacements_->value(text_font_replacement_key(family));
+            !chosen.isEmpty()) {
+          family = chosen;
+        }
+      } else {
+        family = substituted_text_family(family, initial_text);
+      }
       if (text_font_combo_ != nullptr) {
         QSignalBlocker blocker(text_font_combo_);
         text_font_combo_->setCurrentFont(text_font_combo_font_for_family(family));
@@ -6592,7 +6612,8 @@ void MainWindow::add_text_at(QPoint document_point, QRect requested_text_box, bo
   }
   // Whatever built the document above (runs, HTML or plain text), every run now names a family
   // that can actually draw it, so what the session renders is what the commit records.
-  substitute_missing_document_font_families(*editor->document());
+  substitute_missing_document_font_families(
+      *editor->document(), text_font_replacements_.has_value() ? &*text_font_replacements_ : nullptr);
   if (editing_layer.has_value() && editing_layer_uses_line_aware_box_preview && !editing_layer_is_warped_text) {
     // Warped layers skip the calibration: it band-matches a fresh unwarped render against
     // the layer raster, which holds the WARPED ink.
@@ -6797,6 +6818,11 @@ void MainWindow::add_text_at(QPoint document_point, QRect requested_text_box, bo
     }
   });
   refresh_options_bar();  // shows the session apply/cancel buttons
+  if (editing_layer.has_value()) {
+    // The session already draws the layer's missing fonts in installed faces: the panel's
+    // badge goes now, not at commit (GitHub issue 178), and comes back if the edit is canceled.
+    refresh_layer_thumbnails();
+  }
 }
 
 void MainWindow::cancel_text_editor(QTextEdit* editor, std::optional<LayerId> layer_id) {
@@ -9590,8 +9616,18 @@ void MainWindow::sync_text_options_from_active_layer() {
   const auto* layer = text_character_target_layer();
   if (layer == nullptr) {
     // Nothing to mirror: the bar keeps what it shows (the next new layer's seed), and the
-    // next text layer to become active is read afresh.
+    // next text layer to become active is read afresh. A missing family left over from the
+    // last mirrored layer is not what it shows: the combo displays another row, so put
+    // currentFont() back on that row before anything seeds new type from it (GitHub issue 180).
     text_options_layer_sync_key_.clear();
+    if (const auto shown = text_options_bar_family();
+        shown.compare(text_font_combo_->currentFont().family(), Qt::CaseInsensitive) != 0) {
+      {
+        QSignalBlocker blocker(text_font_combo_);
+        text_font_combo_->setCurrentFont(QFont(shown));
+      }
+      refresh_text_style_combo(shown, current_text_style_name());
+    }
     return;
   }
   const auto& metadata = layer->metadata();

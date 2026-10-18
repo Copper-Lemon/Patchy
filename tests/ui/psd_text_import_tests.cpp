@@ -3002,7 +3002,7 @@ void ui_text_layer_font_without_glyph_coverage_counts_as_missing() {
   // The font is installed, so the tooltip names the real cause instead of calling it missing.
   CHECK(naskh_thumbnail->toolTip().contains(family));
   CHECK(naskh_thumbnail->toolTip().contains(QStringLiteral("No glyphs for this text in")));
-  CHECK(!naskh_thumbnail->toolTip().contains(QStringLiteral("Missing font")));
+  CHECK(!naskh_thumbnail->toolTip().contains(QStringLiteral("Font is missing on this computer")));
   CHECK(arial_thumbnail->toolTip() == QStringLiteral("Text layer"));
   CHECK(naskh_thumbnail->pixmap().toImage() != arial_thumbnail->pixmap().toImage());
 
@@ -3081,7 +3081,7 @@ void ui_editing_past_the_missing_font_warning_substitutes_the_font() {
     auto* thumbnail = row == nullptr ? nullptr : row->findChild<QLabel*>(QStringLiteral("layerContentThumbnail"));
     return thumbnail == nullptr ? QString() : thumbnail->toolTip();
   };
-  CHECK(badge_tooltip().contains(QStringLiteral("Missing font")));
+  CHECK(badge_tooltip().contains(QStringLiteral("Font is missing on this computer")));
 
   patchy::ui::MainWindowTestAccess::document(window).set_active_layer(layer_id);
   require_action_by_text(window, QStringLiteral("Type"))->trigger();
@@ -3141,7 +3141,7 @@ void ui_editing_past_the_missing_font_warning_substitutes_the_font() {
   if (runs != committed->metadata().end()) {
     CHECK(!QString::fromStdString(runs->second).contains(missing));
   }
-  CHECK(!badge_tooltip().contains(QStringLiteral("Missing font")));
+  CHECK(!badge_tooltip().contains(QStringLiteral("Font is missing on this computer")));
 }
 
 // Issue 16 (Balmoral LET): the PSD reader used to store DirectWrite's derived "family + face"

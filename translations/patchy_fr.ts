@@ -6195,10 +6195,6 @@ Flux : %6
         <translation>Calque de dossier</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>Calque de texte. Police manquante : %1. Une autre police est utilisée à la place, le texte n&apos;a donc pas l&apos;aspect prévu à sa création.</translation>
-    </message>
-    <message>
         <source>Text layer</source>
         <translation>Calque de texte</translation>
     </message>
@@ -8699,14 +8695,6 @@ RVB : %2, %3, %4</translation>
         <translation>Ces polices n&apos;ont aucun glyphe pour leur texte : %1. La modification de cet aperçu pixellisé PSD remplacera ces polices par d&apos;autres. Continuer ?</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. No glyphs for this text in: %2. Other fonts are being substituted, so the text does not look as it was authored.</source>
-        <translation>Calque de texte. Police manquante : %1. Aucun glyphe pour ce texte dans : %2. D&apos;autres polices sont utilisées à la place, le texte n&apos;a donc pas l&apos;aspect prévu à sa création.</translation>
-    </message>
-    <message>
-        <source>Text layer. No glyphs for this text in: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>Calque de texte. Aucun glyphe pour ce texte dans : %1. Une autre police est utilisée à la place, le texte n&apos;a donc pas l&apos;aspect prévu à sa création.</translation>
-    </message>
-    <message>
         <source>UI language for this run only, not saved: en, de, es, fr, it, ja, ko, pl, pt_BR, ru, zh_CN, or zh_TW.</source>
         <translation>Langue de l&apos;interface pour cette exécution uniquement, non enregistrée : en, de, es, fr, it, ja, ko, pl, pt_BR, ru, zh_CN ou zh_TW.</translation>
     </message>
@@ -10364,6 +10352,56 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
         <translation>Un PDF importé en dossiers de pages n&apos;affiche que sa première page ; ses pages masquées restent des pages.</translation>
+    </message>
+    <message>
+        <source>Missing Fonts</source>
+        <translation>Polices manquantes</translation>
+    </message>
+    <message>
+        <source>Some fonts used in this document are missing. Choose an installed font to replace each one in every text layer that uses it, or leave it unresolved.</source>
+        <translation>Certaines polices utilisées dans ce document sont manquantes. Choisissez une police installée pour remplacer chacune d&apos;elles dans tous les calques de texte qui l&apos;utilisent, ou laissez-la non résolue.</translation>
+    </message>
+    <message>
+        <source>Resolve Fonts</source>
+        <translation>Résoudre les polices</translation>
+    </message>
+    <message numerus="yes">
+        <source>Installed, but has no glyphs for this text. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>Installée, mais sans glyphes pour ce texte. Utilisée dans %n calque de texte.</numerusform>
+            <numerusform>Installée, mais sans glyphes pour ce texte. Utilisée dans %n calques de texte.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Not installed. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>Non installée. Utilisée dans %n calque de texte.</numerusform>
+            <numerusform>Non installée. Utilisée dans %n calques de texte.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Replace with:</source>
+        <translation>Remplacer par :</translation>
+    </message>
+    <message>
+        <source>Don&apos;t show when opening documents</source>
+        <translation>Ne pas afficher à l&apos;ouverture des documents</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens this dialog at any time. Preferences can turn it back on for opened documents.</source>
+        <translation>Texte &gt; Résoudre les polices manquantes ouvre cette boîte de dialogue à tout moment. Les Préférences permettent de la réactiver pour les documents ouverts.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1. No glyphs for this text in: %2.</source>
+        <translation>Calque de texte. Police manquante sur cet ordinateur : %1. Aucun glyphe pour ce texte dans : %2.</translation>
+    </message>
+    <message>
+        <source>Text layer. No glyphs for this text in: %1.</source>
+        <translation>Calque de texte. Aucun glyphe pour ce texte dans : %1.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1.</source>
+        <translation>Calque de texte. Police manquante sur cet ordinateur : %1.</translation>
     </message>
 </context>
 <context>
@@ -21682,6 +21720,51 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation>Préparation de l&apos;image de page %1 sur %2...</translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts...</source>
+        <translation>Résoudre les polices manquantes...</translation>
+    </message>
+    <message>
+        <source>This document has no missing fonts</source>
+        <translation>Ce document n&apos;a aucune police manquante</translation>
+    </message>
+    <message numerus="yes">
+        <source>Replaced missing fonts in %n text layer(s)</source>
+        <translation>
+            <numerusform>Polices manquantes remplacées dans %n calque de texte</numerusform>
+            <numerusform>Polices manquantes remplacées dans %n calques de texte</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>(%n locked layer(s) kept their fonts)</source>
+        <translation>
+            <numerusform>(%n calque verrouillé a gardé ses polices)</numerusform>
+            <numerusform>(%n calques verrouillés ont gardé leurs polices)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts</source>
+        <translation>Résoudre les polices manquantes</translation>
+    </message>
+    <message>
+        <source>Show the Missing Fonts dialog when opening a document with missing fonts</source>
+        <translation>Afficher la boîte de dialogue Polices manquantes à l&apos;ouverture d&apos;un document dont des polices sont manquantes</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens the same dialog at any time.</source>
+        <translation>Texte &gt; Résoudre les polices manquantes ouvre la même boîte de dialogue à tout moment.</translation>
+    </message>
+    <message>
+        <source>The following fonts are missing for text layer &quot;%1&quot;: %2. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>Les polices suivantes sont manquantes pour le calque de texte « %1 » : %2. Les pixels existants seront transformés au lieu d&apos;être redessinés. Continuer ?</translation>
+    </message>
+    <message numerus="yes">
+        <source>The following fonts are missing for %n text layer(s): %1. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>
+            <numerusform>Les polices suivantes sont manquantes pour %n calque de texte : %1. Les pixels existants seront transformés au lieu d&apos;être redessinés. Continuer ?</numerusform>
+            <numerusform>Les polices suivantes sont manquantes pour %n calques de texte : %1. Les pixels existants seront transformés au lieu d&apos;être redessinés. Continuer ?</numerusform>
+        </translation>
     </message>
 </context>
 <context>

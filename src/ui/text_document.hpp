@@ -2,6 +2,7 @@
 // Text document construction and run formatting shared by editing and rendering.
 // No window or canvas ownership crosses this interface.
 #include "core/vector_shape.hpp"
+#include "ui/text_font_service.hpp"
 #include <QColor>
 #include <QFont>
 #include <QString>
@@ -60,7 +61,10 @@ void apply_patchy_text_runs_to_document(QTextDocument& document, const QString& 
                                         QColor fallback_color, double scale, int anti_alias);
 QString document_html_from_text_runs(const QString& text, const QString& rich_text_runs,
                                      const TextToolSettings& fallback, QColor fallback_color);
-void substitute_missing_document_font_families(QTextDocument& document);
+// `replacements` (Resolve Missing Fonts) swaps only the families it names and leaves every other
+// missing family as it is; without it each missing family moves to the face drawing it.
+void substitute_missing_document_font_families(QTextDocument& document,
+                                               const TextFontReplacements* replacements = nullptr);
 TextRenderDocument build_text_render_document(const TextToolSettings& settings, QColor color,
                                               std::int32_t max_width, const QString& paragraph_runs,
                                               const QString& rich_text_runs, double metric_scale,
