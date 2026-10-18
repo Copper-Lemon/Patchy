@@ -50,6 +50,7 @@
 #include <QMessageBox>
 #include <QObject>
 #include <QPointer>
+#include <QPushButton>
 #include <QSize>
 #include <QString>
 #include <QStringLiteral>
