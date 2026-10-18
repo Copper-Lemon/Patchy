@@ -1083,6 +1083,13 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
          "resampled."));
   transform_snap_check->setChecked(snap_transforms_to_pixel_grid_);
   tools_form->addRow(transform_snap_check);
+  auto* escape_commits_text_check = new QCheckBox(tr("Use Esc to commit text"), tools_group);
+  escape_commits_text_check->setObjectName(QStringLiteral("preferencesEscapeCommitsTextCheck"));
+  escape_commits_text_check->setToolTip(resolve_modifier_names(
+      tr("When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar's "
+         "Cancel button discards the edit. When off, Esc cancels the edit.")));
+  escape_commits_text_check->setChecked(escape_commits_text_);
+  tools_form->addRow(escape_commits_text_check);
   tools_layout->addWidget(tools_group);
 #if !defined(Q_OS_WASM)
   // Object Selection's downloaded High Quality model (docs/ai-selection.md): its status and a
@@ -1779,6 +1786,7 @@ void MainWindow::show_preferences(PreferencesPage page, const QString& hotkey_se
     shift_keeps_transform_aspect_ = transform_shift_aspect_check->isChecked();
     show_transform_drag_values_ = transform_values_check->isChecked();
     snap_transforms_to_pixel_grid_ = transform_snap_check->isChecked();
+    escape_commits_text_ = escape_commits_text_check->isChecked();
     if (zoom_layer_thumbnails_to_content_ != zoom_thumbnails_check->isChecked()) {
       zoom_layer_thumbnails_to_content_ = zoom_thumbnails_check->isChecked();
       // The mode is a shape input the revision-keyed cache does not track;
@@ -2313,6 +2321,7 @@ void MainWindow::load_pen_input_settings() {
   show_transform_drag_values_ = settings.value(QStringLiteral("view/showTransformValues"), true).toBool();
   snap_transforms_to_pixel_grid_ =
       settings.value(QStringLiteral("input/snapTransformsToPixelGrid"), true).toBool();
+  escape_commits_text_ = settings.value(QStringLiteral("input/escapeCommitsText"), false).toBool();
   apply_pen_input_settings(canvas_);
 }
 
@@ -2337,6 +2346,7 @@ void MainWindow::save_pen_input_settings() const {
   settings.setValue(QStringLiteral("input/shiftKeepsTransformAspect"), shift_keeps_transform_aspect_);
   settings.setValue(QStringLiteral("view/showTransformValues"), show_transform_drag_values_);
   settings.setValue(QStringLiteral("input/snapTransformsToPixelGrid"), snap_transforms_to_pixel_grid_);
+  settings.setValue(QStringLiteral("input/escapeCommitsText"), escape_commits_text_);
 }
 
 void MainWindow::load_view_settings() {

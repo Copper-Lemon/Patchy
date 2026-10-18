@@ -2877,6 +2877,9 @@ private:
   // input/snapTransformsToPixelGrid: numeric Free Transform entries land on whole
   // pixels (Photoshop's default). Persisted identifier.
   bool snap_transforms_to_pixel_grid_{true};
+  // input/escapeCommitsText: Esc applies a text edit instead of canceling it (Photoshop's
+  // "Use ESC key to commit text", GitHub issue 173). Persisted identifier.
+  bool escape_commits_text_{false};
   bool zoom_layer_thumbnails_to_content_{true};
   std::vector<std::pair<QWidget*, std::vector<CanvasTool>>> option_actions_;
   std::vector<QWidget*> transform_option_actions_;

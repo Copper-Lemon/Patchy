@@ -21610,6 +21610,14 @@ Patchy can download the update, replace this AppImage, and start again. You will
         <source>Preparing page image %1 of %2...</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Use Esc to commit text</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar&apos;s Cancel button discards the edit. When off, Esc cancels the edit.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

@@ -21683,6 +21683,14 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
         <source>Preparing page image %1 of %2...</source>
         <translation>Préparation de l&apos;image de page %1 sur %2...</translation>
     </message>
+    <message>
+        <source>Use Esc to commit text</source>
+        <translation>Utiliser Échap pour valider le texte</translation>
+    </message>
+    <message>
+        <source>When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar&apos;s Cancel button discards the edit. When off, Esc cancels the edit.</source>
+        <translation>Si cette option est activée, Échap applique le texte en cours de saisie, comme %CTRL%+Entrée, et le bouton Annuler de la barre d’options abandonne la modification. Si elle est désactivée, Échap annule la modification.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

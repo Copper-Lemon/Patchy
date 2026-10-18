@@ -5024,7 +5024,15 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
         layer_id = static_cast<LayerId>(editor->property("patchy.editingLayerId").toULongLong());
       }
       if (key_event->key() == Qt::Key_Escape) {
-        cancel_text_editor(editor, layer_id);
+        // Preferences > Tools "Use Esc to commit text" (GitHub issue 173); off, Esc cancels.
+        if (escape_commits_text_) {
+          commit_text_editor(editor,
+                             QPoint(editor->property("patchy.documentTextX").toInt(),
+                                    editor->property("patchy.documentTextY").toInt()),
+                             layer_id);
+        } else {
+          cancel_text_editor(editor, layer_id);
+        }
         key_event->accept();
         return true;
       }
@@ -6752,8 +6760,12 @@ void MainWindow::add_text_at(QPoint document_point, QRect requested_text_box, bo
   auto* cancel_shortcut = new QShortcut(QKeySequence(Qt::Key_Escape), editor);
   cancel_shortcut->setContext(Qt::WidgetWithChildrenShortcut);
   connect(cancel_shortcut, &QShortcut::activated, editor,
-          [this, editor = QPointer<QTextEdit>(editor), editing_layer, committed] {
+          [this, editor = QPointer<QTextEdit>(editor), editing_layer, committed, commit] {
             if (*committed || editor == nullptr) {
+              return;
+            }
+            if (escape_commits_text_) {
+              commit();
               return;
             }
             *committed = true;

@@ -21618,6 +21618,14 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <source>Preparing page image %1 of %2...</source>
         <translation>ページ画像 %1 / %2 を準備中...</translation>
     </message>
+    <message>
+        <source>Use Esc to commit text</source>
+        <translation>Esc キーでテキストを確定</translation>
+    </message>
+    <message>
+        <source>When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar&apos;s Cancel button discards the edit. When off, Esc cancels the edit.</source>
+        <translation>オンにすると、Esc キーで入力中のテキストを %CTRL%+Enter と同じように確定し、オプションバーのキャンセルボタンで編集を破棄します。オフにすると、Esc キーで編集をキャンセルします。</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

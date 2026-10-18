@@ -24,6 +24,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QByteArray>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDir>
 #include <QDoubleSpinBox>
@@ -38,6 +39,7 @@
 #include <QLineEdit>
 #include <QListView>
 #include <QListWidget>
+#include <QTabWidget>
 #include <QTemporaryDir>
 #include <QTextFragment>
 #include <QSizeGrip>
@@ -1876,6 +1878,125 @@ void ui_text_placeholder_survives_options_bar_changes() {
   }
 }
 
+// GitHub issue 173: Preferences > Tools > "Use Esc to commit text" (input/escapeCommitsText,
+// default off). Off, Esc cancels the session; on, Esc commits it like Ctrl+Enter.
+void ui_text_escape_commits_preference() {
+  SettingsValueRestorer restore_escape(QStringLiteral("input/escapeCommitsText"));
+  {
+    auto settings = patchy::ui::app_settings();
+    settings.remove(QStringLiteral("input/escapeCommitsText"));
+    settings.sync();
+  }
+  register_test_fonts(TestFontRole::UiDefault);
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* canvas = require_canvas(window);
+  canvas->set_zoom(1.0);
+  canvas->set_primary_color(QColor(20, 20, 20));
+  const auto live_editor = [&] { return canvas->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor")); };
+  auto& document = patchy::ui::MainWindowTestAccess::document(window);
+  const auto layer_count = [&] { return std::as_const(document).layers().size(); };
+  // The timer body records into locals and never CHECKs: a throw must not cross Qt's event
+  // dispatch (docs/testing.md).
+  const auto set_preference = [&](bool on) {
+    bool saw_dialog = false;
+    bool saw_check = false;
+    bool was_checked = !on;
+    QImage tools_page;
+    QTimer::singleShot(0, [&] {
+      auto* dialog = find_top_level_dialog(QStringLiteral("patchyPreferencesDialog"));
+      if (dialog == nullptr) {
+        return;
+      }
+      saw_dialog = true;
+      if (auto* tabs = dialog->findChild<QTabWidget*>(QStringLiteral("preferencesTabWidget")); tabs != nullptr) {
+        tabs->setCurrentIndex(1);  // Tools
+        QApplication::processEvents();
+      }
+      auto* tools_group = dialog->findChild<QWidget*>(QStringLiteral("preferencesToolsGroup"));
+      auto* check = tools_group != nullptr
+                        ? tools_group->findChild<QCheckBox*>(QStringLiteral("preferencesEscapeCommitsTextCheck"))
+                        : nullptr;
+      if (check != nullptr) {
+        saw_check = true;
+        was_checked = check->isChecked();
+        check->setChecked(on);
+      }
+      tools_page = dialog->grab().toImage();
+      dialog->accept();
+    });
+    require_action(window, "filePreferencesAction")->trigger();
+    QApplication::processEvents();
+    if (on && !tools_page.isNull()) {
+      // Issue 173 before/after picture of Preferences > Tools.
+      save_image_artifact("issue173_preferences_tools", tools_page);
+    }
+    CHECK(saw_dialog);
+    CHECK(saw_check);
+    CHECK(was_checked == !on);
+    CHECK(patchy::ui::app_settings().value(QStringLiteral("input/escapeCommitsText"), !on).toBool() == on);
+  };
+
+  // Default off: Esc cancels and the provisional layer goes away.
+  const auto before_cancel = layer_count();
+  {
+    auto* editor = open_point_text_session(window, *canvas, QPoint(40, 60));
+    const bool opened = editor != nullptr;
+    if (opened) {
+      editor->setPlainText(QStringLiteral("Dropped"));
+      send_key(*editor, Qt::Key_Escape);
+      process_events_for(100);
+    }
+    CHECK(opened);
+  }
+  CHECK(live_editor() == nullptr);
+  CHECK(layer_count() == before_cancel);
+
+  set_preference(true);
+  {
+    auto* editor = open_point_text_session(window, *canvas, QPoint(40, 160));
+    const bool opened = editor != nullptr;
+    if (opened) {
+      editor->setPlainText(QStringLiteral("Kept"));
+      send_key(*editor, Qt::Key_Escape);
+      process_events_for(150);
+    }
+    CHECK(opened);
+  }
+  CHECK(live_editor() == nullptr);
+  CHECK(layer_count() == before_cancel + 1);
+  CHECK(active_layer_text(window) == QStringLiteral("Kept"));
+
+  // The options bar's Cancel button still discards an edit while Esc commits.
+  {
+    auto* editor = open_point_text_session(window, *canvas, QPoint(40, 260));
+    auto* cancel_button = window.findChild<QPushButton*>(QStringLiteral("textCancelButton"));
+    const bool opened = editor != nullptr && cancel_button != nullptr;
+    if (opened) {
+      editor->setPlainText(QStringLiteral("Discarded"));
+      cancel_button->click();
+      process_events_for(100);
+    }
+    CHECK(opened);
+  }
+  CHECK(live_editor() == nullptr);
+  CHECK(layer_count() == before_cancel + 1);
+
+  set_preference(false);
+  {
+    auto* editor = open_point_text_session(window, *canvas, QPoint(40, 360));
+    const bool opened = editor != nullptr;
+    if (opened) {
+      editor->setPlainText(QStringLiteral("Dropped again"));
+      send_key(*editor, Qt::Key_Escape);
+      process_events_for(100);
+    }
+    CHECK(opened);
+  }
+  CHECK(live_editor() == nullptr);
+  CHECK(layer_count() == before_cancel + 1);
+}
+
 // GitHub issue 74: inside a session the first click places the caret, the second selects the
 // word, and a third click in quick succession selects that row; a fourth click is a plain
 // click again. The row comes from Patchy's own line plan, so it works per visual line.
@@ -2676,6 +2797,7 @@ std::vector<patchy::test::TestCase> text_editor_font_picker_tests() {
       {"ui_text_keypad_enter_commits_and_return_breaks_line", ui_text_keypad_enter_commits_and_return_breaks_line},
       {"ui_text_triple_click_selects_the_line", ui_text_triple_click_selects_the_line},
       {"ui_text_placeholder_survives_options_bar_changes", ui_text_placeholder_survives_options_bar_changes},
+      {"ui_text_escape_commits_preference", ui_text_escape_commits_preference},
       {"ui_expensive_text_style_preview_never_blanks_while_typing",
        ui_expensive_text_style_preview_never_blanks_while_typing},
       {"ui_text_editor_paste_uses_current_format_for_rich_emoji_clipboard",

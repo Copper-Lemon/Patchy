@@ -21748,6 +21748,14 @@ Patchy может скачать обновление, заменить этот
         <source>Preparing page image %1 of %2...</source>
         <translation>Подготовка изображения страницы %1 из %2...</translation>
     </message>
+    <message>
+        <source>Use Esc to commit text</source>
+        <translation>Подтверждать текст клавишей Esc</translation>
+    </message>
+    <message>
+        <source>When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar&apos;s Cancel button discards the edit. When off, Esc cancels the edit.</source>
+        <translation>Если включено, Esc применяет вводимый текст, как %CTRL%+Enter, а кнопка «Отмена» на панели параметров отменяет правку. Если выключено, Esc отменяет правку.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
