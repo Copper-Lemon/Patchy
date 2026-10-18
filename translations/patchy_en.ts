@@ -10343,6 +10343,7 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</source>
     </message>
     <message>
         <source>The settings of the last document created here: %1 x %2 px at %3 ppi</source>
+        <translation></translation>
     </message>
     <message>
         <source>Missing Fonts</source>
@@ -21674,7 +21675,6 @@ Patchy can download the update, replace this AppImage, and start again. You will
     <message>
         <source>Distribute spacing and choose what to align to</source>
         <translation type="unfinished"></translation>
-    </message>
     </message>
     <message>
         <source>Resolve Missing Fonts...</source>
