@@ -140,6 +140,13 @@ protected:
                                   QPointF(center_x + 3.0, center_y - 1.5)});
   }
 
+  void changeEvent(QEvent* event) override {
+    if (event->type() == QEvent::EnabledChange) {
+      setCursor(isEnabled() ? Qt::PointingHandCursor : Qt::ArrowCursor);
+    }
+    QWidget::changeEvent(event);
+  }
+
   void mousePressEvent(QMouseEvent* event) override {
     if (event->button() == Qt::LeftButton) {
       action_->trigger();
@@ -195,9 +202,11 @@ protected:
       return false;
     }
     if (watched == spin_) {
-      if (event->type() == QEvent::MouseButtonPress) {
+      if (event->type() == QEvent::EnabledChange && !spin_->isEnabled() && popup_ != nullptr) {
+        popup_->close();
+      } else if (event->type() == QEvent::MouseButtonPress) {
         const auto* mouse_event = static_cast<QMouseEvent*>(event);
-        if (mouse_event->button() == Qt::LeftButton &&
+        if (mouse_event->button() == Qt::LeftButton && popup_allowed() &&
             mouse_event->position().x() >= spin_->width() - kChevronAreaWidth) {
           action_->trigger();
           return true;
@@ -213,7 +222,7 @@ protected:
         update_chevron_geometry();
       } else if (event->type() == QEvent::MouseButtonPress) {
         const auto* mouse_event = static_cast<QMouseEvent*>(event);
-        if (mouse_event->button() == Qt::LeftButton &&
+        if (mouse_event->button() == Qt::LeftButton && popup_allowed() &&
             mouse_event->position().x() >=
                 editor_->width() - kChevronAreaWidth) {
           action_->trigger();
@@ -246,6 +255,13 @@ private:
     const auto local = window->mapFromGlobal(global);
     QCoreApplication::postEvent(window, new QMouseEvent(QEvent::MouseButtonPress, local, local, global,
                                                         press.button(), press.buttons(), press.modifiers()));
+  }
+
+  // A greyed-out or read-only field offers no value slider (GitHub issue 194: the
+  // marquee's Width and Height, greyed by Style: Normal, still opened it). Event filters
+  // see presses a disabled widget itself ignores, so this check has to be explicit.
+  [[nodiscard]] bool popup_allowed() const {
+    return spin_->isEnabled() && !spin_->isReadOnly();
   }
 
   void update_chevron_geometry() {
@@ -333,6 +349,9 @@ private:
   void show_popup() {
     if (popup_ != nullptr) {
       popup_->close();
+      return;
+    }
+    if (!popup_allowed()) {
       return;
     }
     if (popup_dismissed_ms_ >= 0 &&

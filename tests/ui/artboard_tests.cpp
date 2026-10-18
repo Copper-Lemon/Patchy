@@ -960,15 +960,33 @@ void ui_artboard_feature_interactions_match_photoshop() {
        }, {"note=selection [0,0,300,300]"}},
       {"copy_paste_same_artboard", [&](auto& w, auto a1, auto, auto) {
          Access::select_layers(w, {a1}, a1); select_rect(w, QRect(20, 20, 100, 100));
-         require_action(w, "editCopyAction")->trigger(); trigger(w, "edit.paste"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in A [100,100,200,200]"}},
+         require_action(w, "editCopyAction")->trigger(); trigger(w, "select.deselect");
+         trigger(w, "edit.paste"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in A [100,100,200,200]"}},
       {"copy_from_A_paste_with_B1_active", [&](auto& w, auto a1, auto b1, auto) {
          Access::select_layers(w, {a1}, a1); select_rect(w, QRect(20, 20, 100, 100));
-         require_action(w, "editCopyAction")->trigger(); Access::select_layers(w, {b1}, b1);
+         require_action(w, "editCopyAction")->trigger(); trigger(w, "select.deselect"); Access::select_layers(w, {b1}, b1);
          trigger(w, "edit.paste"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in B [500,75,600,175]"}},
       {"paste_in_place_with_B1_active", [&](auto& w, auto a1, auto b1, auto) {
          Access::select_layers(w, {a1}, a1); select_rect(w, QRect(20, 20, 100, 100));
-         require_action(w, "editCopyAction")->trigger(); Access::select_layers(w, {b1}, b1);
+         require_action(w, "editCopyAction")->trigger(); trigger(w, "select.deselect"); Access::select_layers(w, {b1}, b1);
          trigger(w, "edit.paste_in_place"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in B [420,20,520,120]"}},
+      // A marquee left active centers Paste on itself, on the artboard under it (GitHub issue 193).
+      {"copy_paste_same_artboard_marquee_kept", [&](auto& w, auto a1, auto, auto) {
+         Access::select_layers(w, {a1}, a1); select_rect(w, QRect(20, 20, 100, 100));
+         require_action(w, "editCopyAction")->trigger(); trigger(w, "edit.paste"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in A [20,20,120,120]"}},
+      {"copy_from_A_paste_with_B1_active_marquee_kept", [&](auto& w, auto a1, auto b1, auto) {
+         Access::select_layers(w, {a1}, a1); select_rect(w, QRect(20, 20, 100, 100));
+         require_action(w, "editCopyAction")->trigger(); Access::select_layers(w, {b1}, b1);
+         trigger(w, "edit.paste"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in A [20,20,120,120]"}},
+      {"paste_with_marquee_on_B", [&](auto& w, auto a1, auto b1, auto) {
+         Access::select_layers(w, {a1}, a1); select_rect(w, QRect(20, 20, 100, 100));
+         require_action(w, "editCopyAction")->trigger(); Access::select_layers(w, {b1}, b1);
+         select_rect(w, QRect(550, 100, 100, 100));
+         trigger(w, "edit.paste"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in B [550,100,650,200]"}},
+      {"paste_with_A1_active_marquee_off_artboards", [&](auto& w, auto a1, auto, auto) {
+         Access::select_layers(w, {a1}, a1); select_rect(w, QRect(20, 20, 100, 100));
+         require_action(w, "editCopyAction")->trigger(); select_rect(w, QRect(800, 400, 100, 100));
+         trigger(w, "edit.paste"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in root [800,400,900,500]"}},
       {"duplicate_artboard_B", [&](auto& w, auto, auto, auto bb) { Access::select_layers(w, {bb}, bb); trigger(w, "layer.duplicate"); return "duplicate " + active_where(w); }, {"AB B copy[800,0,1100,250]{B1820,20,920,120}"}},
   };
   for (const auto& entry : cases) {
