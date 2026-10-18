@@ -301,6 +301,11 @@ void offset_copied_layer_tree(Layer& layer, std::int32_t dx, std::int32_t dy, st
 // main_window.cpp; shared by the free-transform commit callback, Image Size, and
 // Convert to Layers.
 bool rerender_text_layer_through_stored_transform(Layer& layer);
+// Imported type whose font is missing: a transform keeps its resampled saved pixels (the
+// rerender above refuses it) instead of redrawing it in a substitute. Exactly the layers the
+// Free Transform missing-font warning asks about (GitHub issue 185). Patchy-made type with a
+// substituted font re-renders and is not one of them.
+bool text_transform_keeps_missing_font_pixels(const Layer& layer);
 
 // Photoshop-style "<name> copy" / "<name> copy N" naming (an existing
 // " copy"/" copy N" stem is stripped first so "X copy" duplicates to

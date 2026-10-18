@@ -156,15 +156,16 @@ Font lookup, style matching, fallback coverage and system-font registration live
 - **The thumbnail tooltip names the font and nothing else** (issue 184): "Font is missing on this
   computer: <name>" or "No glyphs for this text in: <name>". It never claims a substitution: until
   an edit or a transform the layer shows the pixels it was saved with.
-- **Free Transform asks first and keeps the saved pixels** (issue 185, Photoshop's "the existing
-  pixel data will be used"). `CanvasWidget::commit_free_transform` hands every target to the
-  missing-font confirm callback before writing anything; Cancel cancels the session untouched.
-  On Continue the text render callback declines layers with a missing font, so they keep the
-  resampled pixels and their font name; the scale rides the stored text transform (no fold into
-  the point size), like imported type. Image Size and scripted transforms do not ask, and neither
-  does any automation (CLI, `--headless`, the connector, a running script outside an artist's
-  manual-edit pause): those go ahead as if Continue were pressed. The
-  settings key `text/warnMissingFontsOnTransform` (default true, no UI) turns the question off;
+- **Free Transform asks first about imported type with a missing font** (issue 185, Photoshop's
+  "the existing pixel data will be used"). `CanvasWidget::commit_free_transform` hands every target
+  to the missing-font confirm callback before writing anything; Cancel cancels the session
+  untouched. It asks only about `text_transform_keeps_missing_font_pixels` layers (PSD-transform
+  type, not area text): `rerender_text_layer_through_stored_transform` keeps their resampled
+  pixels and font name. Patchy-made type with a substituted font (every Arial layer on Linux)
+  re-renders in the substitute with the scale folded into the point size, unasked, as before.
+  Image Size and scripted transforms do not ask, and neither does any automation (CLI,
+  `--headless`, the connector, a running script outside an artist's manual-edit pause): those go
+  ahead as if Continue were pressed. The settings key `text/warnMissingFontsOnTransform` (default true, no UI) turns the question off;
   the UI test main does, since fixtures name fonts a test host may lack.
 - **New type takes the family the bar shows** (`text_options_bar_family`, issue 180). Mirroring a
   layer set in a missing family leaves the combo's `currentFont()` on that name while it shows
