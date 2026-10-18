@@ -47,6 +47,11 @@ void collect_layer_descendant_ids(const Layer& layer, std::vector<LayerId>& ids)
 [[nodiscard]] std::optional<LayerId> only_layer_id(const std::vector<Layer>& layers);
 void collect_layer_group_ids(const std::vector<Layer>& layers, std::set<LayerId>& ids);
 void collect_initially_collapsed_layer_groups(const std::vector<Layer>& layers, std::set<LayerId>& ids);
+// Writes the Layers panel's open/closed folder state (`collapsed_ids`, the session's runtime
+// source of truth) into each group's expand metadata, which every layered writer reads (PSD
+// section divider type 1 open / 2 closed). Call it on the copy a save writes: only groups whose
+// metadata disagrees are touched, and without a content revision bump (expand state never renders).
+void apply_layer_group_disclosure(std::vector<Layer>& layers, const std::set<LayerId>& collapsed_ids);
 [[nodiscard]] bool collect_layer_ancestor_groups(const std::vector<Layer>& layers, LayerId id,
                                                  std::vector<LayerId>& ancestors);
 [[nodiscard]] const Layer* find_layer_in_tree(const std::vector<Layer>& layers, LayerId id);

@@ -74,7 +74,7 @@ public:
       job.mark = RecoveryMark{target_session->session_id, target_session->revision, target_session->history.current_state_id()};
       // A copy shares pixel storage with the live document until the user's next edit
       // detaches the live side; the worker only reads it (const Document&).
-      job.snapshot = std::as_const(*target_session).document;
+      job.snapshot = std::as_const(*target_session).document_for_write();
       job.entry.title = target_session->title.toStdString();
       job.entry.original_path =
           target_session->path.isEmpty() ? std::string() : path_to_utf8(to_filesystem_path(target_session->path));

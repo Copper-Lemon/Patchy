@@ -158,7 +158,7 @@ std::optional<DocumentSaveResult> DocumentSaveCoordinator::write_prepared(
         QFileInfo(path).absolutePath());
     // The writer reads a copy-on-write snapshot on a worker, so the window keeps painting
     // the Saving dialog through the composite (recovery writes the same way).
-    const Document snapshot = std::as_const(target->document);
+    const Document snapshot = std::as_const(*target).document_for_write();
     const bool psb = extension == QStringLiteral("psb");
     host_.run_write(path, /*on_worker*/ true, !quiet, [&snapshot, &path, psb](SaveProgress& progress) {
       psd::WriteOptions options{psb};
@@ -169,8 +169,9 @@ std::optional<DocumentSaveResult> DocumentSaveCoordinator::write_prepared(
     });
   } else if (extension == QStringLiteral("aseprite") || extension == QStringLiteral("ase")) {
     // Layered save: the Aseprite writer keeps the layer tree instead of flattening.
+    const Document written = std::as_const(*target).document_for_write();
     std::optional<Document> narrowed;
-    aseprite::DocumentIo::write_file(document_for_8bit_writer(target->document, narrowed), to_filesystem_path(path));
+    aseprite::DocumentIo::write_file(document_for_8bit_writer(written, narrowed), to_filesystem_path(path));
   } else if (extension == QStringLiteral("svg")) {
     // Structure-preserving vector write (never write_flat_image_file):
     // shape layers stay SVG vectors, the writer reports what it baked.

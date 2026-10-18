@@ -17,6 +17,7 @@
 #include "ui/layer_list_widget.hpp"
 #include "ui/localization.hpp"
 #include "ui/main_window.hpp"
+#include "ui/qt_paths.hpp"
 #include "ui/app_settings.hpp"
 #include "psd/psd_document_io.hpp"
 #include "synthetic_dng.hpp"
@@ -41,6 +42,7 @@
 #include <QScrollArea>
 #include <QTabBar>
 #include <QTabWidget>
+#include <QTemporaryDir>
 #include <QTest>
 #include <QTimer>
 #include <QToolButton>
@@ -1955,6 +1957,89 @@ void ui_layer_folders_open_with_saved_expansion_state() {
   save_widget_artifact("ui_layer_folder_saved_state", window);
 }
 
+// Issue 179: opening or closing a folder is panel state, so like Photoshop it does not mark
+// the document modified, but every layered save writes the folders as the panel shows them
+// (PSD section divider 1 open / 2 closed, the Aseprite "collapsed" flag), a plain Save of
+// the unmodified document included.
+void ui_layer_folder_toggle_saves_without_marking_modified() {
+  QTemporaryDir temp;
+  CHECK(temp.isValid());
+  const auto psd_path = temp.filePath(QStringLiteral("folders.psd"));
+  {
+    patchy::Document document(32, 32, patchy::PixelFormat::rgb8());
+    document.add_pixel_layer("Background",
+                             solid_pixels(32, 32, patchy::PixelFormat::rgb8(), QColor(245, 245, 245)));
+    patchy::Layer closed_group(document.allocate_layer_id(), "Closed Folder", patchy::LayerKind::Group);
+    patchy::set_layer_group_expanded(closed_group, false);
+    closed_group.add_child(patchy::Layer(document.allocate_layer_id(), "Closed Child",
+                                         solid_pixels(8, 8, patchy::PixelFormat::rgba8(), QColor(220, 40, 40))));
+    document.add_layer(std::move(closed_group));
+    patchy::Layer open_group(document.allocate_layer_id(), "Open Folder", patchy::LayerKind::Group);
+    open_group.add_child(patchy::Layer(document.allocate_layer_id(), "Open Child",
+                                       solid_pixels(8, 8, patchy::PixelFormat::rgba8(), QColor(40, 80, 220))));
+    document.add_layer(std::move(open_group));
+    patchy::psd::DocumentIo::write_layered_rgb8_file(document, patchy::ui::to_filesystem_path(psd_path));
+  }
+
+  patchy::ui::MainWindow window;
+  show_window(window);
+  patchy::ui::MainWindowTestAccess::open_document_path(window, psd_path);
+  QApplication::processEvents();
+  CHECK(!patchy::ui::MainWindowTestAccess::active_session_is_modified(window));
+
+  auto* layer_list = window.findChild<QListWidget*>(QStringLiteral("layerList"));
+  CHECK(layer_list != nullptr);
+  // Rows are rebuilt on every toggle, so refetch the disclosure button per click.
+  auto click_disclosure = [layer_list](const QString& name) {
+    auto* row_widget = layer_list->itemWidget(require_layer_item(*layer_list, name));
+    CHECK(row_widget != nullptr);
+    auto* disclosure = row_widget->findChild<QToolButton*>(QStringLiteral("layerFolderDisclosureButton"));
+    CHECK(disclosure != nullptr);
+    disclosure->click();
+    QApplication::processEvents();
+    QApplication::processEvents();
+  };
+  CHECK(!require_layer_item(*layer_list, QStringLiteral("Closed Folder"))->data(Qt::UserRole + 3).toBool());
+  CHECK(require_layer_item(*layer_list, QStringLiteral("Open Folder"))->data(Qt::UserRole + 3).toBool());
+  click_disclosure(QStringLiteral("Closed Folder"));
+  click_disclosure(QStringLiteral("Open Folder"));
+  CHECK(require_layer_item(*layer_list, QStringLiteral("Closed Folder"))->data(Qt::UserRole + 3).toBool());
+  CHECK(!require_layer_item(*layer_list, QStringLiteral("Open Folder"))->data(Qt::UserRole + 3).toBool());
+  CHECK(!patchy::ui::MainWindowTestAccess::active_session_is_modified(window));
+
+  const auto group_expanded = [](const patchy::Document& document, const std::string& name) {
+    for (const auto& layer : document.layers()) {
+      if (layer.name() == name) {
+        CHECK(layer.kind() == patchy::LayerKind::Group);
+        return patchy::layer_group_expanded(layer);
+      }
+    }
+    CHECK(false);
+    return false;
+  };
+  CHECK(patchy::ui::MainWindowTestAccess::save_document(window));
+  const auto saved = patchy::psd::DocumentIo::read_file(patchy::ui::to_filesystem_path(psd_path));
+  CHECK(group_expanded(saved, "Closed Folder"));
+  CHECK(!group_expanded(saved, "Open Folder"));
+
+  const auto aseprite_path = temp.filePath(QStringLiteral("folders.aseprite"));
+  CHECK(patchy::ui::MainWindowTestAccess::save_document_to_path(window, aseprite_path));
+  const auto aseprite = patchy::aseprite::DocumentIo::read_file(patchy::ui::to_filesystem_path(aseprite_path));
+  CHECK(group_expanded(aseprite, "Closed Folder"));
+  CHECK(!group_expanded(aseprite, "Open Folder"));
+
+  // A reopened file shows the folders as they were saved.
+  patchy::ui::MainWindow reopened;
+  show_window(reopened);
+  patchy::ui::MainWindowTestAccess::open_document_path(reopened, psd_path);
+  QApplication::processEvents();
+  auto* reopened_list = reopened.findChild<QListWidget*>(QStringLiteral("layerList"));
+  CHECK(reopened_list != nullptr);
+  CHECK(require_layer_item(*reopened_list, QStringLiteral("Closed Folder"))->data(Qt::UserRole + 3).toBool());
+  CHECK(require_layer_item(*reopened_list, QStringLiteral("Closed Child")) != nullptr);
+  CHECK(!require_layer_item(*reopened_list, QStringLiteral("Open Folder"))->data(Qt::UserRole + 3).toBool());
+}
+
 void ui_layer_folder_alt_click_toggles_nested_folders() {
   patchy::Document document(32, 32, patchy::PixelFormat::rgb8());
   document.add_pixel_layer("Background",
@@ -3831,6 +3916,7 @@ std::vector<patchy::test::TestCase> layer_panel_organization_tests() {
        ui_layer_add_mask_button_tracks_selection_and_adds_mask},
       {"ui_layer_folders_expand_and_contract_children", ui_layer_folders_expand_and_contract_children},
       {"ui_layer_folders_open_with_saved_expansion_state", ui_layer_folders_open_with_saved_expansion_state},
+      {"ui_layer_folder_toggle_saves_without_marking_modified", ui_layer_folder_toggle_saves_without_marking_modified},
       {"ui_move_auto_select_reveals_layers_in_collapsed_folders",
        ui_move_auto_select_reveals_layers_in_collapsed_folders},
       {"ui_folder_visibility_preserves_layer_panel_scroll", ui_folder_visibility_preserves_layer_panel_scroll},
