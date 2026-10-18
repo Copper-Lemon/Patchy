@@ -19401,10 +19401,6 @@ Y: %2
         <translation>Verschobene Ebenen an anderen Ebenen, Hilfslinien, dem Raster und der Arbeitsfläche ausrichten (Ansicht &gt; Ausrichten). Die Ziele wählen Sie unter Ansicht &gt; Ausrichten an.</translation>
     </message>
     <message>
-        <source>Distribute layers and choose what to align to</source>
-        <translation>Ebenen verteilen und festlegen, woran ausgerichtet wird</translation>
-    </message>
-    <message>
         <source>Finish the current drag before aligning layers</source>
         <translation>Beenden Sie das Ziehen, bevor Sie Ebenen ausrichten</translation>
     </message>
@@ -21682,6 +21678,22 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation>Seitenbild %1 von %2 wird vorbereitet...</translation>
+    </message>
+    <message>
+        <source>Layer</source>
+        <translation>Ebene</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>Gruppe</translation>
+    </message>
+    <message>
+        <source>What a click or a selection rectangle selects: the layer itself, or the outermost group that holds it</source>
+        <translation>Was ein Klick oder ein Auswahlrechteck auswählt: die Ebene selbst oder die äußerste Gruppe, die sie enthält</translation>
+    </message>
+    <message>
+        <source>Distribute spacing and choose what to align to</source>
+        <translation>Abstände verteilen und festlegen, woran ausgerichtet wird</translation>
     </message>
 </context>
 <context>

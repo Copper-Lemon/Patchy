@@ -13827,10 +13827,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>이동하는 레이어를 다른 레이어, 안내선, 격자 및 캔버스에 맞춥니다(보기 &gt; 스냅). 보기 &gt; 스냅 대상에서 대상을 선택하세요.</translation>
     </message>
     <message>
-        <source>Distribute layers and choose what to align to</source>
-        <translation>레이어를 분포하고 정렬할 항목을 선택하세요.</translation>
-    </message>
-    <message>
         <source>Pivot:</source>
         <translation>피벗:</translation>
     </message>
@@ -21617,6 +21613,22 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation>페이지 이미지 %1/%2 준비 중...</translation>
+    </message>
+    <message>
+        <source>Layer</source>
+        <translation>레이어</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>그룹</translation>
+    </message>
+    <message>
+        <source>What a click or a selection rectangle selects: the layer itself, or the outermost group that holds it</source>
+        <translation>클릭이나 선택 사각형으로 선택되는 항목: 레이어 자체 또는 그 레이어를 포함하는 가장 바깥쪽 그룹</translation>
+    </message>
+    <message>
+        <source>Distribute spacing and choose what to align to</source>
+        <translation>간격을 분포하고 정렬 대상을 선택합니다</translation>
     </message>
 </context>
 <context>

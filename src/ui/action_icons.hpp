@@ -36,6 +36,10 @@ QIcon up_direction_arrow_icon(int direction);
 // Layer > Arrange > Align glyphs (also the Move tool's options-bar buttons):
 // an anchor line with two bars of different length pushed against it.
 QIcon align_edge_icon(AlignEdge edge);
+// Layer > Arrange > Distribute glyphs (the feature modes are also Move tool
+// options-bar buttons): three bars on evenly spaced anchor lines, or three bars
+// with equal marked gaps for the spacing modes.
+QIcon distribute_mode_icon(DistributeMode mode);
 // Text alignment glyphs for the Type options bar: four lines of text pushed to the
 // start, center, or end. `alignment` is Qt::AlignLeft, Qt::AlignHCenter, or
 // Qt::AlignRight; `vertical` turns the lines into columns aligned top, center, or

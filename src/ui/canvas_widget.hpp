@@ -96,6 +96,16 @@ struct TransformLinkedMaskSource {
   PixelBuffer pixels{};  // copy-on-write; empty when the mask is uniformly its default
 };
 
+// What a Move-tool click or selection rectangle picks for the artwork under it
+// (Photoshop's Auto-Select Layer/Group choice): the leaf itself, or the outermost
+// group holding it (inside an artboard, the outermost group within it).
+enum class MoveAutoSelectTarget : std::uint8_t { Layer, Group };
+// Persisted under this settings key as "layer" or "group": permanent tokens. An
+// unknown token reads as Layer.
+inline constexpr char kMoveAutoSelectTargetSettingsKey[] = "tools/moveAutoSelectTarget";
+[[nodiscard]] QString move_auto_select_target_token(MoveAutoSelectTarget target);
+[[nodiscard]] MoveAutoSelectTarget move_auto_select_target_from_token(const QString& token);
+
 class CanvasWidget final : public QWidget {
   Q_OBJECT
 
@@ -277,6 +287,12 @@ public:
   void invalidate_mask_display();
   void set_auto_select_layer(bool enabled) noexcept;
   [[nodiscard]] bool auto_select_layer() const noexcept;
+  void set_auto_select_target(MoveAutoSelectTarget target) noexcept;
+  [[nodiscard]] MoveAutoSelectTarget auto_select_target() const noexcept;
+  // The layers (or groups, under MoveAutoSelectTarget::Group) a Move-tool
+  // selection rectangle would select if released now, in release order; empty
+  // when no rectangle is being dragged.
+  [[nodiscard]] std::vector<LayerId> move_layer_selection_preview_ids() const;
   void set_primary_color(QColor color);
   [[nodiscard]] QColor primary_color() const noexcept;
   void set_secondary_color(QColor color);
@@ -1580,6 +1596,26 @@ private:
   // kMinZoom/kMaxZoom bound the VIEW zoom; this clamps a logical scale to them.
   [[nodiscard]] double clamp_logical_zoom(double logical_zoom) const noexcept;
   void begin_move_layer_selection(QMouseEvent* event, const Layer* clicked_layer, bool rectangle_allowed);
+  // The layer a Move-tool click on `leaf` selects under the Auto-Select target.
+  [[nodiscard]] const Layer* auto_select_target_layer(const Layer* leaf) const;
+  struct MoveSelectionCandidate {
+    LayerId target{};
+    QRectF bounds;  // the leaf's Move rect
+  };
+  // Every leaf a selection rectangle can pick, with the target it selects; one
+  // walk of the tree on cached Move rects (no pixel work once they are cached).
+  [[nodiscard]] std::vector<MoveSelectionCandidate> collect_move_selection_candidates() const;
+  // The targets whose leaves intersect `box` (document space, already clipped to
+  // the document), deduplicated in candidate order.
+  [[nodiscard]] static std::vector<LayerId> move_selection_matches(
+      const std::vector<MoveSelectionCandidate>& candidates, const QRectF& box);
+  // The rectangle's document box clipped to the document (where the release
+  // matches), empty when it lies wholly on the pasteboard.
+  [[nodiscard]] QRectF move_layer_selection_box(QPointF anchor_document, QPointF current_document) const;
+  void update_move_layer_selection_preview();
+  // A leaf's Move rect, or for a group the union of its visible leaves' rects:
+  // the dashed outline the hover and the rectangle pre-selection draw.
+  [[nodiscard]] std::optional<QRect> move_target_outline_bounds(const Layer& layer) const;
   bool update_move_layer_selection(QMouseEvent* event);
   void finish_move_layer_selection(QMouseEvent* event);
   void cancel_move_layer_selection();
@@ -2420,6 +2456,7 @@ private:
   int fill_tolerance_{32};
   bool fill_contiguous_{true};
   bool auto_select_layer_{true};
+  MoveAutoSelectTarget auto_select_target_{MoveAutoSelectTarget::Layer};
   SelectionMode selection_mode_{SelectionMode::Replace};
   // Per-tool combine modes; selection_mode_ mirrors the active selection tool's
   // entry. Indexed by selection_tool_index().
@@ -2483,6 +2520,12 @@ private:
     bool rectangle_allowed{false};
     bool additive{false};
     bool dragging_rectangle{false};
+    // Live pre-selection (GitHub issue 171): collected once when the rectangle
+    // starts, then only rect tests per pointer move.
+    bool candidates_collected{false};
+    std::vector<MoveSelectionCandidate> candidates;
+    std::unordered_map<LayerId, QRect> target_outlines;  // document rect per target
+    std::vector<LayerId> preview_ids;
   };
   std::optional<MoveLayerSelectionGesture> move_layer_selection_gesture_;
   bool moving_layer_{false};

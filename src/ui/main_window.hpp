@@ -2282,6 +2282,7 @@ private:
   ToolPaletteFooter* tool_palette_footer_{nullptr};
   QDialog* color_dialog_{nullptr};
   QCheckBox* move_auto_select_check_{nullptr};
+  QComboBox* move_auto_select_target_combo_{nullptr};
   QCheckBox* move_show_transform_controls_check_{nullptr};
   // Mirrors View > Snap (view_snap_action_) on the Move tool's options bar.
   QCheckBox* move_snap_check_{nullptr};

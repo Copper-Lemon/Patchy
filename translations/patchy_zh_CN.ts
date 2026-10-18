@@ -19350,10 +19350,6 @@ Y: %2
         <translation>将移动的图层吸附到其他图层、参考线、网格和画布 (视图 &gt; 对齐)。在 视图 &gt; 对齐到 中选择目标。</translation>
     </message>
     <message>
-        <source>Distribute layers and choose what to align to</source>
-        <translation>分布图层并选择对齐目标</translation>
-    </message>
-    <message>
         <source>Finish the current drag before aligning layers</source>
         <translation>请先完成当前拖动，再对齐图层</translation>
     </message>
@@ -21617,6 +21613,22 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation>正在准备第 %1 页图像（共 %2 页）...</translation>
+    </message>
+    <message>
+        <source>Layer</source>
+        <translation>图层</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>编组</translation>
+    </message>
+    <message>
+        <source>What a click or a selection rectangle selects: the layer itself, or the outermost group that holds it</source>
+        <translation>单击或选择矩形选中的对象: 图层本身，或包含该图层的最外层编组</translation>
+    </message>
+    <message>
+        <source>Distribute spacing and choose what to align to</source>
+        <translation>分布间距并选择对齐目标</translation>
     </message>
 </context>
 <context>

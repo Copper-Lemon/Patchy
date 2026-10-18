@@ -721,6 +721,23 @@ bool CanvasWidget::auto_select_layer() const noexcept {
   return auto_select_layer_;
 }
 
+QString move_auto_select_target_token(MoveAutoSelectTarget target) {
+  return target == MoveAutoSelectTarget::Group ? QStringLiteral("group") : QStringLiteral("layer");
+}
+
+MoveAutoSelectTarget move_auto_select_target_from_token(const QString& token) {
+  return token == QStringLiteral("group") ? MoveAutoSelectTarget::Group : MoveAutoSelectTarget::Layer;
+}
+
+void CanvasWidget::set_auto_select_target(MoveAutoSelectTarget target) noexcept {
+  auto_select_target_ = target;
+  clear_move_hover_outline();
+}
+
+MoveAutoSelectTarget CanvasWidget::auto_select_target() const noexcept {
+  return auto_select_target_;
+}
+
 void CanvasWidget::set_primary_color(QColor color) {
   if (color.alpha() == 0) {
     color.setAlpha(255);

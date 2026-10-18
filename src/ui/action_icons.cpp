@@ -14,6 +14,7 @@
 #include <QPolygon>
 #include <QStyle>
 #include <QStyleOption>
+#include <QTransform>
 
 #include <algorithm>
 #include <cmath>
@@ -620,6 +621,58 @@ QIcon align_edge_icon(AlignEdge edge) {
     }
   };
   return themed_glyph_icon(QStringLiteral("align-edge-%1").arg(static_cast<int>(edge)), 22.0,
+                           &ThemePalette::icon_ink, std::move(glyph));
+}
+
+QIcon distribute_mode_icon(DistributeMode mode) {
+  // Drawn in a 22-unit square for the horizontal modes and transposed for the
+  // vertical ones. Feature modes: three bars of different length whose left
+  // edges, centers, or right edges sit on three evenly spaced anchor lines.
+  // Spacing modes: three bars of different width with two equal gaps, each
+  // gap marked by a short span underneath.
+  const bool vertical = mode == DistributeMode::Top || mode == DistributeMode::VerticalCenter ||
+                        mode == DistributeMode::Bottom || mode == DistributeMode::VerticalSpacing;
+  auto glyph = [mode, vertical](QPainter& painter, const QColor& ink) {
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    if (vertical) {
+      painter.setTransform(QTransform(0.0, 1.0, 1.0, 0.0, 0.0, 0.0), true);
+    }
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(ink);
+    if (mode == DistributeMode::HorizontalSpacing || mode == DistributeMode::VerticalSpacing) {
+      constexpr double kLefts[] = {2.0, 8.6, 16.6};
+      constexpr double kWidths[] = {3.0, 4.6, 3.4};
+      constexpr double kGap = 3.4;
+      for (int i = 0; i < 3; ++i) {
+        painter.drawRect(QRectF(kLefts[i], 3.0, kWidths[i], 11.0));
+      }
+      painter.setPen(QPen(ink, 1.2, Qt::SolidLine, Qt::FlatCap));
+      for (int i = 0; i < 2; ++i) {
+        const double start = kLefts[i] + kWidths[i];
+        painter.drawLine(QPointF(start, 18.0), QPointF(start + kGap, 18.0));
+        painter.drawLine(QPointF(start, 16.2), QPointF(start, 19.8));
+        painter.drawLine(QPointF(start + kGap, 16.2), QPointF(start + kGap, 19.8));
+      }
+      return;
+    }
+    constexpr double kAnchors[] = {4.0, 11.0, 18.0};
+    constexpr double kLengths[] = {9.0, 13.0, 7.0};
+    constexpr double kThickness = 2.8;
+    for (int i = 0; i < 3; ++i) {
+      double left = kAnchors[i] - kThickness / 2.0;
+      if (mode == DistributeMode::Left || mode == DistributeMode::Top) {
+        left = kAnchors[i] + 0.8;
+      } else if (mode == DistributeMode::Right || mode == DistributeMode::Bottom) {
+        left = kAnchors[i] - 0.8 - kThickness;
+      }
+      painter.drawRect(QRectF(left, 11.0 - kLengths[i] / 2.0, kThickness, kLengths[i]));
+    }
+    painter.setPen(QPen(ink, 1.2, Qt::SolidLine, Qt::FlatCap));
+    for (const double anchor : kAnchors) {
+      painter.drawLine(QPointF(anchor, 2.0), QPointF(anchor, 20.0));
+    }
+  };
+  return themed_glyph_icon(QStringLiteral("distribute-mode-%1").arg(static_cast<int>(mode)), 22.0,
                            &ThemePalette::icon_ink, std::move(glyph));
 }
 

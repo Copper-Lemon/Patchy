@@ -19401,10 +19401,6 @@ Y: %2
         <translation>Ajustar las capas movidas a otras capas, guías, la cuadrícula y el lienzo (Vista &gt; Ajustar). Elija los objetivos en Vista &gt; Ajustar a.</translation>
     </message>
     <message>
-        <source>Distribute layers and choose what to align to</source>
-        <translation>Distribuir capas y elegir con qué alinear</translation>
-    </message>
-    <message>
         <source>Finish the current drag before aligning layers</source>
         <translation>Termine el arrastre actual antes de alinear capas</translation>
     </message>
@@ -21682,6 +21678,22 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation>Preparando la imagen de página %1 de %2...</translation>
+    </message>
+    <message>
+        <source>Layer</source>
+        <translation>Capa</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>Grupo</translation>
+    </message>
+    <message>
+        <source>What a click or a selection rectangle selects: the layer itself, or the outermost group that holds it</source>
+        <translation>Qué selecciona un clic o un rectángulo de selección: la propia capa o el grupo más externo que la contiene</translation>
+    </message>
+    <message>
+        <source>Distribute spacing and choose what to align to</source>
+        <translation>Distribuir el espaciado y elegir con qué alinear</translation>
     </message>
 </context>
 <context>

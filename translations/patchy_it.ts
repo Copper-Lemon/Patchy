@@ -19401,10 +19401,6 @@ Y: %2
         <translation>Aggancia i livelli spostati ad altri livelli, alle guide, alla griglia e al quadro (Visualizza &gt; Effetto calamita). Scegli le destinazioni in Visualizza &gt; Effetto calamita su.</translation>
     </message>
     <message>
-        <source>Distribute layers and choose what to align to</source>
-        <translation>Distribuisci i livelli e scegli a cosa allineare</translation>
-    </message>
-    <message>
         <source>Finish the current drag before aligning layers</source>
         <translation>Completa il trascinamento in corso prima di allineare i livelli</translation>
     </message>
@@ -21682,6 +21678,22 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation>Preparazione dell&apos;immagine di pagina %1 di %2...</translation>
+    </message>
+    <message>
+        <source>Layer</source>
+        <translation>Livello</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>Gruppo</translation>
+    </message>
+    <message>
+        <source>What a click or a selection rectangle selects: the layer itself, or the outermost group that holds it</source>
+        <translation>Cosa seleziona un clic o un rettangolo di selezione: il livello stesso o il gruppo più esterno che lo contiene</translation>
+    </message>
+    <message>
+        <source>Distribute spacing and choose what to align to</source>
+        <translation>Distribuisci la spaziatura e scegli a cosa allineare</translation>
     </message>
 </context>
 <context>

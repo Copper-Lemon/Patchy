@@ -13860,10 +13860,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>Ajuste as camadas movidas a outras camadas, guias, grade e tela (Visualizar &gt; Ajustar). Escolha os alvos em Visualizar &gt; Ajustar para.</translation>
     </message>
     <message>
-        <source>Distribute layers and choose what to align to</source>
-        <translation>Distribua camadas e escolha o que alinhar</translation>
-    </message>
-    <message>
         <source>Pivot:</source>
         <translation>Pivô:</translation>
     </message>
@@ -21682,6 +21678,22 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation>Preparando a imagem de página %1 de %2...</translation>
+    </message>
+    <message>
+        <source>Layer</source>
+        <translation>Camada</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>Grupo</translation>
+    </message>
+    <message>
+        <source>What a click or a selection rectangle selects: the layer itself, or the outermost group that holds it</source>
+        <translation>O que um clique ou um retângulo de seleção seleciona: a própria camada ou o grupo mais externo que a contém</translation>
+    </message>
+    <message>
+        <source>Distribute spacing and choose what to align to</source>
+        <translation>Distribua o espaçamento e escolha o que alinhar</translation>
     </message>
 </context>
 <context>

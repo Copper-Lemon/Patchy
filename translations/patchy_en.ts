@@ -19354,10 +19354,6 @@ Y: %2
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Distribute layers and choose what to align to</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Finish the current drag before aligning layers</source>
         <translation type="unfinished"></translation>
     </message>
@@ -21608,6 +21604,22 @@ Patchy can download the update, replace this AppImage, and start again. You will
     </message>
     <message>
         <source>Preparing page image %1 of %2...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Layer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>What a click or a selection rectangle selects: the layer itself, or the outermost group that holds it</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Distribute spacing and choose what to align to</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

@@ -4,7 +4,11 @@
 #include "ui/app_settings.hpp"
 #include "test_harness.hpp"
 #include <QApplication>
+#include <QByteArray>
 #include <QCheckBox>
+#include <QIcon>
+#include <QImage>
+#include <QPixmap>
 #include <algorithm>
 #include <atomic>
 #include <array>
@@ -454,16 +458,37 @@ void ui_layer_distribute_requires_three_units_and_spaces_evenly() {
   QApplication::processEvents();
   CHECK(scene.bounds("B").y == 58);
 
-  // The "..." menu on the Move tool's options bar carries the same actions.
+  // The six feature modes are buttons on the Move tool's options bar (GitHub
+  // issue 172) that run the same one-shot commands; the spacing pair and Align
+  // To stay in the "..." menu.
   require_action_by_text(scene.window, QStringLiteral("Move"))->trigger();
   QApplication::processEvents();
+  auto* distribute_left = scene.window.findChild<QToolButton*>(QStringLiteral("moveDistributeLeftButton"));
+  CHECK(distribute_left != nullptr && distribute_left->isVisible() && distribute_left->isEnabled());
+  CHECK(distribute_left != nullptr && !distribute_left->icon().isNull());
+  CHECK(distribute_left != nullptr &&
+        distribute_left->toolTip().startsWith(require_action(scene.window, "layerDistributeLeftAction")->toolTip()));
+  // Left edges 10, 50, 100 -> B to 55, one undo entry.
+  const auto button_depth = patchy::ui::MainWindowTestAccess::active_session_undo_depth(scene.window);
+  if (distribute_left != nullptr) {
+    distribute_left->click();
+  }
+  QApplication::processEvents();
+  CHECK(scene.bounds("A").x == 10 && scene.bounds("B").x == 55 && scene.bounds("C").x == 100);
+  CHECK(patchy::ui::MainWindowTestAccess::active_session_undo_depth(scene.window) == button_depth + 1);
   auto* more_button = scene.window.findChild<QToolButton*>(QStringLiteral("moveAlignMoreButton"));
   CHECK(more_button != nullptr && more_button->isVisible() && more_button->menu() != nullptr);
   if (more_button != nullptr && more_button->menu() != nullptr) {
     const auto actions = more_button->menu()->actions();
+    CHECK(actions.contains(require_action(scene.window, "layerDistributeHSpacingAction")));
     CHECK(actions.contains(require_action(scene.window, "layerDistributeVSpacingAction")));
     CHECK(actions.contains(require_action(scene.window, "layerAlignToCanvasAction")));
+    CHECK(!actions.contains(require_action(scene.window, "layerDistributeLeftAction")));
   }
+  // The buttons follow their action's enabled state: two units cannot distribute.
+  select_layers(*scene.layer_list, {QStringLiteral("A"), QStringLiteral("B")});
+  QApplication::processEvents();
+  CHECK(distribute_left != nullptr && !distribute_left->isEnabled());
 }
 
 void ui_layer_align_refuses_during_transform_lock_and_gesture() {
@@ -543,7 +568,7 @@ void ui_layer_arrange_menu_hosts_align_and_distribute() {
   auto* options_bar = window.findChild<QToolBar*>(QStringLiteral("Options"));
   CHECK(options_bar != nullptr);
   // The Marquee row is a single 26 px control row; the Move row must not wrap
-  // or grow past it with the Snap check, the six align buttons, and "...".
+  // or grow past it with the Snap check, the align and distribute buttons, and "...".
   require_action_by_text(window, QStringLiteral("Marquee"))->trigger();
   QApplication::processEvents();
   const int marquee_height = options_bar->height();
@@ -552,13 +577,38 @@ void ui_layer_arrange_menu_hosts_align_and_distribute() {
   CHECK(options_bar->height() == marquee_height);
   for (const auto* name : {"moveAlignLeftButton", "moveAlignHCenterButton", "moveAlignRightButton",
                            "moveAlignTopButton", "moveAlignVCenterButton", "moveAlignBottomButton",
+                           "moveDistributeLeftButton", "moveDistributeHCenterButton", "moveDistributeRightButton",
+                           "moveDistributeTopButton", "moveDistributeVCenterButton", "moveDistributeBottomButton",
                            "moveAlignMoreButton"}) {
     auto* button = window.findChild<QToolButton*>(QLatin1String(name));
     CHECK(button != nullptr && button->isVisible());
+    if (button != nullptr && QByteArray(name) != "moveAlignMoreButton") {
+      CHECK(button->height() <= options_bar->height());
+    }
   }
   for (std::size_t i = 0; i < 6; ++i) {
     CHECK(!require_action(window, align_names[i])->icon().isNull());
   }
+  // Every Distribute glyph renders and the twelve Align/Distribute glyphs differ.
+  std::vector<QImage> glyphs;
+  for (const auto* name : align_names) {
+    const auto icon = require_action(window, name)->icon();
+    if (!icon.isNull()) {
+      glyphs.push_back(icon.pixmap(QSize(18, 18)).toImage());
+    }
+  }
+  for (const auto* name : distribute_names) {
+    const auto icon = require_action(window, name)->icon();
+    CHECK(!icon.isNull());
+    glyphs.push_back(icon.pixmap(QSize(18, 18)).toImage());
+  }
+  CHECK(glyphs.size() == 14U);
+  for (std::size_t i = 0; i < glyphs.size(); ++i) {
+    for (std::size_t j = i + 1; j < glyphs.size(); ++j) {
+      CHECK(glyphs[i] != glyphs[j]);
+    }
+  }
+  save_widget_artifact("ui_move_options_bar_align_distribute", *options_bar);
 }
 
 }  // namespace

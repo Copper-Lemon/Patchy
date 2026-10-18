@@ -19350,10 +19350,6 @@ Y：%2
         <translation>將移動的圖層靠齊至其他圖層、參考線、格點和版面 (檢視 &gt; 靠齊)。在 檢視 &gt; 靠齊至 中選擇目標。</translation>
     </message>
     <message>
-        <source>Distribute layers and choose what to align to</source>
-        <translation>分佈圖層並選擇對齊目標</translation>
-    </message>
-    <message>
         <source>Finish the current drag before aligning layers</source>
         <translation>請先完成目前的拖曳，再對齊圖層</translation>
     </message>
@@ -21617,6 +21613,22 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation>正在準備第 %1 頁影像（共 %2 頁）...</translation>
+    </message>
+    <message>
+        <source>Layer</source>
+        <translation>圖層</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>群組</translation>
+    </message>
+    <message>
+        <source>What a click or a selection rectangle selects: the layer itself, or the outermost group that holds it</source>
+        <translation>按一下或選取矩形選取的對象: 圖層本身，或包含該圖層的最外層群組</translation>
+    </message>
+    <message>
+        <source>Distribute spacing and choose what to align to</source>
+        <translation>分佈間距並選擇對齊目標</translation>
     </message>
 </context>
 <context>
