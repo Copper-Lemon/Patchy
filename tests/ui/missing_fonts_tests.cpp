@@ -142,6 +142,65 @@ int missing_font_row(QDialog& dialog, const QString& family) {
   return -1;
 }
 
+// A real type layer (a synthetic one carries no layout, so the writer stores no TySh) typed into a
+// new "Source" document of `window` in the suite's Latin font, saved as PSD, then its family
+// renamed in the bytes to one no machine has: same length, so every length prefix still holds.
+// ASCII and UTF-16BE cover EngineData, descriptors and Txt2. Empty on failure.
+std::vector<std::uint8_t> psd_with_missing_font(MainWindow& window, const QString& text) {
+  window.add_document_session(white_document(), QStringLiteral("Source"));
+  const auto family = patchy::test::visual_test_font().family();
+  auto* combo = window.findChild<QFontComboBox*>(QStringLiteral("textFontCombo"));
+  CHECK(combo != nullptr);
+  if (combo == nullptr) {
+    return {};
+  }
+  combo->setCurrentFont(QFont(family));
+  MainWindowTestAccess::add_text_at(window, QPoint(40, 60));
+  QApplication::processEvents();
+  auto* editor = require_canvas(window)->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor"));
+  CHECK(editor != nullptr);
+  if (editor == nullptr) {
+    return {};
+  }
+  QTest::keyClicks(editor, text);
+  require_action_by_text(window, QStringLiteral("Move"))->trigger();
+  process_events_for(150);
+  auto bytes = patchy::psd::DocumentIo::write_layered_rgb8(MainWindowTestAccess::document(window));
+  const auto stem = family.section(QLatin1Char(' '), 0, 0);
+  const auto renamed = QStringLiteral("Qzxqzxqzxqzxqzxqzx").left(stem.size());
+  std::size_t replaced = 0;
+  const auto replace_all = [&bytes, &replaced](const std::vector<std::uint8_t>& from, const std::vector<std::uint8_t>& to) {
+    for (auto it = std::search(bytes.begin(), bytes.end(), from.begin(), from.end()); it != bytes.end();
+         it = std::search(it + static_cast<std::ptrdiff_t>(to.size()), bytes.end(), from.begin(), from.end())) {
+      std::copy(to.begin(), to.end(), it);
+      ++replaced;
+    }
+  };
+  std::vector<std::uint8_t> ascii_from, ascii_to, wide_from, wide_to;
+  for (qsizetype index = 0; index < stem.size(); ++index) {
+    ascii_from.push_back(static_cast<std::uint8_t>(stem[index].unicode()));
+    ascii_to.push_back(static_cast<std::uint8_t>(renamed[index].unicode()));
+    wide_from.insert(wide_from.end(), {0, static_cast<std::uint8_t>(stem[index].unicode())});
+    wide_to.insert(wide_to.end(), {0, static_cast<std::uint8_t>(renamed[index].unicode())});
+  }
+  replace_all(ascii_from, ascii_to);
+  replace_all(wide_from, wide_to);
+  CHECK(replaced > 0);
+  return bytes;
+}
+
+std::optional<patchy::LayerId> first_text_layer_id(const std::vector<patchy::Layer>& layers) {
+  for (const auto& layer : layers) {
+    if (patchy::layer_is_text(layer)) {
+      return layer.id();
+    }
+    if (const auto child = first_text_layer_id(layer.children()); child.has_value()) {
+      return child;
+    }
+  }
+  return std::nullopt;
+}
+
 bool payload_names(const patchy::UnknownPsdBlock& block, const QString& name) {
   std::vector<std::uint8_t> needle;
   for (const auto ch : name) {
@@ -430,49 +489,12 @@ void ui_missing_fonts_dialog_shows_on_open_until_turned_off() {
 
   MainWindow window;
   show_window(window);
-  // A real type layer (a synthetic one carries no layout, so the writer stores no TySh), saved,
-  // then its family renamed in the bytes to one no machine has: same length, so every length
-  // prefix still holds. ASCII and UTF-16BE cover EngineData, descriptors and Txt2.
   {
-    window.add_document_session(white_document(), QStringLiteral("Source"));
-    const auto family = patchy::test::visual_test_font().family();
-    auto* combo = window.findChild<QFontComboBox*>(QStringLiteral("textFontCombo"));
-    CHECK(combo != nullptr);
-    if (combo == nullptr) {
+    const auto bytes = psd_with_missing_font(window, QStringLiteral("Missing"));
+    CHECK(!bytes.empty());
+    if (bytes.empty()) {
       return;
     }
-    combo->setCurrentFont(QFont(family));
-    MainWindowTestAccess::add_text_at(window, QPoint(40, 60));
-    QApplication::processEvents();
-    auto* editor = require_canvas(window)->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor"));
-    CHECK(editor != nullptr);
-    if (editor == nullptr) {
-      return;
-    }
-    QTest::keyClicks(editor, QStringLiteral("Missing"));
-    require_action_by_text(window, QStringLiteral("Move"))->trigger();
-    process_events_for(150);
-    auto bytes = patchy::psd::DocumentIo::write_layered_rgb8(MainWindowTestAccess::document(window));
-    const auto stem = family.section(QLatin1Char(' '), 0, 0);
-    const auto renamed = QStringLiteral("Qzxqzxqzxqzxqzxqzx").left(stem.size());
-    std::size_t replaced = 0;
-    const auto replace_all = [&bytes, &replaced](const std::vector<std::uint8_t>& from, const std::vector<std::uint8_t>& to) {
-      for (auto it = std::search(bytes.begin(), bytes.end(), from.begin(), from.end()); it != bytes.end();
-           it = std::search(it + static_cast<std::ptrdiff_t>(to.size()), bytes.end(), from.begin(), from.end())) {
-        std::copy(to.begin(), to.end(), it);
-        ++replaced;
-      }
-    };
-    std::vector<std::uint8_t> ascii_from, ascii_to, wide_from, wide_to;
-    for (qsizetype index = 0; index < stem.size(); ++index) {
-      ascii_from.push_back(static_cast<std::uint8_t>(stem[index].unicode()));
-      ascii_to.push_back(static_cast<std::uint8_t>(renamed[index].unicode()));
-      wide_from.insert(wide_from.end(), {0, static_cast<std::uint8_t>(stem[index].unicode())});
-      wide_to.insert(wide_to.end(), {0, static_cast<std::uint8_t>(renamed[index].unicode())});
-    }
-    replace_all(ascii_from, ascii_to);
-    replace_all(wide_from, wide_to);
-    CHECK(replaced > 0);
     QFile file(path);
     CHECK(file.open(QIODevice::WriteOnly));
     file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<qint64>(bytes.size()));
@@ -509,91 +531,73 @@ void ui_missing_fonts_dialog_shows_on_open_until_turned_off() {
   CHECK(*seen == 2);
 }
 
-// GitHub issue 185: Free Transform on a text layer whose font is missing re-rendered it in a
-// substitute face without a word. Photoshop asks first and keeps the saved pixels; so does
-// Patchy now. Cancel leaves the layer as it was; Continue scales its pixels and keeps the font.
+// GitHub issue 185: Free Transform on imported type whose font is missing gave no warning.
+// Photoshop asks and then transforms the saved pixels; so does Patchy now. Cancel leaves the layer
+// as it was; Continue scales its pixels and keeps the font. Patchy-made type whose font is
+// substituted is untouched by this: it re-renders in the substitute without a question, by design
+// (on Linux every Arial layer is one of those).
 void ui_transforming_missing_font_text_warns_and_keeps_its_pixels() {
   patchy::test::register_test_fonts(patchy::test::TestFontRole::UiDefault);
   SettingsValueRestorer restorer(QStringLiteral("text/warnMissingFontsOnTransform"));
   patchy::ui::app_settings().setValue(QStringLiteral("text/warnMissingFontsOnTransform"), true);
   MainWindow window;
   show_window(window);
-  window.add_document_session(white_document(), QStringLiteral("Transform"));
-  const auto family = patchy::test::visual_test_font().family();
-  auto* combo = window.findChild<QFontComboBox*>(QStringLiteral("textFontCombo"));
-  CHECK(combo != nullptr);
-  if (combo == nullptr) {
+  const auto bytes = psd_with_missing_font(window, QStringLiteral("Scale me"));
+  CHECK(!bytes.empty());
+  if (bytes.empty()) {
     return;
   }
-  combo->setCurrentFont(QFont(family));
-  MainWindowTestAccess::add_text_at(window, QPoint(40, 60));
-  QApplication::processEvents();
-  auto* canvas = require_canvas(window);
-  auto* editor = canvas->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor"));
-  CHECK(editor != nullptr);
-  if (editor == nullptr) {
-    return;
-  }
-  QTest::keyClicks(editor, QStringLiteral("Scale me"));
-  require_action_by_text(window, QStringLiteral("Move"))->trigger();
-  process_events_for(150);
-  const auto id = MainWindowTestAccess::document(window).active_layer_id();
+  auto imported = patchy::psd::DocumentIo::read(bytes);
+  const auto id = first_text_layer_id(std::as_const(imported).layers());
   CHECK(id.has_value());
   if (!id.has_value()) {
     return;
   }
-  // The same layer opened on a machine without its font.
-  {
-    auto* layer = MainWindowTestAccess::document(window).find_layer(*id);
-    CHECK(layer != nullptr);
-    if (layer == nullptr) {
-      return;
-    }
-    auto& metadata = layer->metadata();
-    metadata[patchy::kLayerMetadataTextFont] = kMissing.toStdString();
-    if (const auto runs = metadata.find(patchy::kLayerMetadataTextRuns); runs != metadata.end()) {
-      runs->second = QString::fromStdString(runs->second)
-                         .replace(QString::fromUtf8(QUrl::toPercentEncoding(family)), kMissing)
-                         .replace(family, kMissing)
-                         .toStdString();
-    }
-  }
-  MainWindowTestAccess::refresh_layer_ui(window);
+  imported.set_active_layer(*id);
+  window.add_document_session(std::move(imported), QStringLiteral("Imported"));
+  QApplication::processEvents();
+  auto* canvas = require_canvas(window);
   const auto* layer = std::as_const(MainWindowTestAccess::document(window)).find_layer(*id);
   CHECK(layer != nullptr && !patchy::ui::missing_text_families_for_layer(*layer).isEmpty());
-  const auto size_before = layer->metadata().at(patchy::kLayerMetadataTextSize);
-  const auto before = canvas->active_layer_document_rect();
-  CHECK(before.has_value());
-  if (!before.has_value()) {
+  CHECK(layer != nullptr && layer->metadata().contains(patchy::kLayerMetadataPsdTextTransform));
+  if (layer == nullptr) {
     return;
   }
-  const auto scale_and_commit = [&] {
+  const auto font_before = layer_font(window, *id);
+  const auto size_before = layer->metadata().at(patchy::kLayerMetadataTextSize);
+  const auto scale_and_commit = [&](int grow) {
+    const auto rect = canvas->active_layer_document_rect();
+    CHECK(rect.has_value());
     require_action(window, "editFreeTransformAction")->trigger();
     QApplication::processEvents();
     CHECK(canvas->free_transform_active());
-    const auto corner = canvas->widget_position_for_document_point(before->bottomRight() + QPoint(1, 1));
-    drag(*canvas, corner, corner + QPoint(120, 40));
+    if (rect.has_value()) {
+      const auto corner = canvas->widget_position_for_document_point(rect->bottomRight() + QPoint(1, 1));
+      drag(*canvas, corner, corner + QPoint(grow, grow / 3));
+    }
     QApplication::processEvents();
     send_key(*canvas, Qt::Key_Return);
     process_events_for(150);
   };
+  const auto before = canvas->active_layer_document_rect();
+  CHECK(before.has_value());
 
   auto answered = std::make_shared<int>(0);
   answer_message_box(QStringLiteral("missingFontTransformMessageBox"), false, answered);
-  scale_and_commit();
+  scale_and_commit(120);
   CHECK(*answered == 1);
   CHECK(!canvas->free_transform_active());
   CHECK(canvas->active_layer_document_rect() == before);
-  CHECK(layer_font(window, *id) == kMissing);
+  CHECK(layer_font(window, *id) == font_before);
 
   answer_message_box(QStringLiteral("missingFontTransformMessageBox"), true, answered);
-  scale_and_commit();
+  scale_and_commit(120);
   CHECK(*answered == 2);
   const auto after = canvas->active_layer_document_rect();
-  CHECK(after.has_value() && after->width() > before->width() + 40);
+  CHECK(before.has_value() && after.has_value() && after->width() > before->width() + 40);
   // Not re-rendered in a substitute: the font is still the one the file names, and the size was
-  // not folded into a new point size (the scale rides the transform, like imported type).
-  CHECK(layer_font(window, *id) == kMissing);
+  // not folded into a new point size (the scale rides the transform).
+  CHECK(layer_font(window, *id) == font_before);
   layer = std::as_const(MainWindowTestAccess::document(window)).find_layer(*id);
   CHECK(layer != nullptr && layer->metadata().at(patchy::kLayerMetadataTextSize) == size_before);
   save_widget_artifact("ui_transforming_missing_font_text_after", window);
@@ -603,21 +607,70 @@ void ui_transforming_missing_font_text_warns_and_keeps_its_pixels() {
   window.set_cli_automation_mode(true);
   const auto automated_before = canvas->active_layer_document_rect();
   answer_message_box(QStringLiteral("missingFontTransformMessageBox"), true, answered, 20);
-  require_action(window, "editFreeTransformAction")->trigger();
-  QApplication::processEvents();
-  if (automated_before.has_value()) {
-    const auto corner = canvas->widget_position_for_document_point(automated_before->bottomRight() + QPoint(1, 1));
-    drag(*canvas, corner, corner + QPoint(60, 20));
-  }
-  send_key(*canvas, Qt::Key_Return);
-  process_events_for(600);
+  scale_and_commit(60);
+  process_events_for(450);
   CHECK(*answered == 2);
   CHECK(!canvas->free_transform_active());
   const auto automated_after = canvas->active_layer_document_rect();
   CHECK(automated_before.has_value() && automated_after.has_value() &&
         automated_after->width() > automated_before->width());
-  CHECK(layer_font(window, *id) == kMissing);
+  CHECK(layer_font(window, *id) == font_before);
   window.set_cli_automation_mode(false);
+
+  // Patchy-made type whose font is substituted (here: renamed in place) keeps re-rendering through
+  // the transform as before: no question, and the scale folds into the point size.
+  window.add_document_session(white_document(), QStringLiteral("Patchy type"));
+  const auto family = patchy::test::visual_test_font().family();
+  if (auto* combo = window.findChild<QFontComboBox*>(QStringLiteral("textFontCombo")); combo != nullptr) {
+    combo->setCurrentFont(QFont(family));
+  }
+  MainWindowTestAccess::add_text_at(window, QPoint(40, 60));
+  QApplication::processEvents();
+  auto* patchy_canvas = require_canvas(window);
+  auto* editor = patchy_canvas->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor"));
+  CHECK(editor != nullptr);
+  if (editor == nullptr) {
+    return;
+  }
+  QTest::keyClicks(editor, QStringLiteral("Scale me"));
+  require_action_by_text(window, QStringLiteral("Move"))->trigger();
+  process_events_for(150);
+  const auto patchy_id = MainWindowTestAccess::document(window).active_layer_id();
+  CHECK(patchy_id.has_value());
+  if (!patchy_id.has_value()) {
+    return;
+  }
+  {
+    auto* patchy_layer = MainWindowTestAccess::document(window).find_layer(*patchy_id);
+    CHECK(patchy_layer != nullptr);
+    if (patchy_layer == nullptr) {
+      return;
+    }
+    auto& metadata = patchy_layer->metadata();
+    metadata[patchy::kLayerMetadataTextFont] = kMissing.toStdString();
+    if (const auto runs = metadata.find(patchy::kLayerMetadataTextRuns); runs != metadata.end()) {
+      runs->second = QString::fromStdString(runs->second)
+                         .replace(QString::fromUtf8(QUrl::toPercentEncoding(family)), kMissing)
+                         .replace(family, kMissing)
+                         .toStdString();
+    }
+  }
+  MainWindowTestAccess::refresh_layer_ui(window);
+  const auto* patchy_layer = std::as_const(MainWindowTestAccess::document(window)).find_layer(*patchy_id);
+  CHECK(patchy_layer != nullptr && !patchy::ui::missing_text_families_for_layer(*patchy_layer).isEmpty());
+  CHECK(patchy_layer != nullptr && !patchy_layer->metadata().contains(patchy::kLayerMetadataPsdTextTransform));
+  if (patchy_layer == nullptr) {
+    return;
+  }
+  const auto patchy_size_before = patchy_layer->metadata().at(patchy::kLayerMetadataTextSize);
+  canvas = patchy_canvas;
+  answer_message_box(QStringLiteral("missingFontTransformMessageBox"), false, answered, 20);
+  scale_and_commit(120);
+  process_events_for(450);
+  CHECK(*answered == 2);
+  CHECK(!patchy_canvas->free_transform_active());
+  patchy_layer = std::as_const(MainWindowTestAccess::document(window)).find_layer(*patchy_id);
+  CHECK(patchy_layer != nullptr && patchy_layer->metadata().at(patchy::kLayerMetadataTextSize) != patchy_size_before);
 }
 
 }  // namespace

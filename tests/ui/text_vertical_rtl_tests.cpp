@@ -1324,7 +1324,10 @@ void ui_typing_uncovered_characters_switches_their_font() {
   if (font_combo == nullptr) {
     return;
   }
-  font_combo->setCurrentFont(QFont(QStringLiteral("Arial")));
+  // The suite's registered Latin face (Arial on Windows and macOS, Liberation Sans on Linux): new
+  // type starts in the family the options bar shows, and a family the host lacks is not it.
+  const auto latin = patchy::test::visual_test_font().family();
+  font_combo->setCurrentFont(QFont(latin));
   patchy::ui::MainWindowTestAccess::add_text_at(window, QPoint(40, 60));
   auto* editor = canvas->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor"));
   CHECK(editor != nullptr);
@@ -1353,7 +1356,7 @@ void ui_typing_uncovered_characters_switches_their_font() {
   const auto runs = layer->metadata().at(patchy::kLayerMetadataTextRuns);
   std::printf("  runs:\n%s\n", runs.c_str());
   std::fflush(stdout);
-  // Two runs: Arial for "hey ", then the Japanese family from the first kana on (Photoshop keeps
+  // Two runs: the Latin face for "hey ", then the Japanese family from the first kana on (Photoshop keeps
   // the switched face for what follows, and so does the typing format here).
   int arial_runs = 0;
   int japanese_runs = 0;
@@ -1363,7 +1366,7 @@ void ui_typing_uncovered_characters_switches_their_font() {
       continue;
     }
     const auto family = QString::fromUtf8(QByteArray::fromPercentEncoding(fields[6].toLatin1()));
-    if (family == QStringLiteral("Arial")) {
+    if (family == latin) {
       ++arial_runs;
     } else if (QFontDatabase::families(QFontDatabase::Japanese).contains(family)) {
       ++japanese_runs;
@@ -1372,7 +1375,7 @@ void ui_typing_uncovered_characters_switches_their_font() {
   }
   CHECK(arial_runs == 1);
   CHECK(japanese_runs == 1);
-  // The PSD names two fonts, Arial and the substitute. Kept as an artifact for the Photoshop
+  // The PSD names two fonts, the Latin face and the substitute. Kept as an artifact for the Photoshop
   // re-render check by COM (the headless build sees no system fonts, so only this offscreen
   // run with a registered Japanese face produces a representative file).
   const auto bytes = patchy::psd::DocumentIo::write_layered_rgb8(live_document);

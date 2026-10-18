@@ -4252,6 +4252,14 @@ bool rerender_text_layer_through_stored_transform(Layer& layer) {
   return true;
 }
 
+bool text_transform_keeps_missing_font_pixels(const Layer& layer) {
+  // Mirrors rerender_text_layer_through_stored_transform: area text re-renders whatever its font,
+  // and only the imported (PSD-transform) branch keeps the pixels of a missing font.
+  return layer_is_text(layer) && !text_area_for_layer(layer).has_value() &&
+         layer.metadata().contains(kLayerMetadataPsdTextTransform) &&
+         !missing_text_families_for_layer(layer).isEmpty();
+}
+
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
   // Installed before the first statusBar() call so every showMessage goes through the
   // subclass that hosts the zoom percentage box (see ui/zoom_status_bar.hpp).
@@ -5975,11 +5983,6 @@ void MainWindow::configure_canvas(CanvasWidget* canvas) {
     }
     auto* layer = session->document.find_layer(id);
     if (layer == nullptr || !layer_is_text(*layer)) {
-      return false;
-    }
-    // A missing font keeps the resampled saved pixels, as Photoshop does after its warning
-    // (GitHub issue 185): re-rendering would silently swap in a substitute face.
-    if (!missing_text_families_for_layer(std::as_const(*layer)).isEmpty()) {
       return false;
     }
     return rerender_text_layer_through_stored_transform(*layer);

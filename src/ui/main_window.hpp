@@ -1963,9 +1963,9 @@ private:
   // already moved the layer's missing fonts onto installed faces, so the layer panel stops
   // flagging it while the session is open (GitHub issue 178).
   [[nodiscard]] std::optional<LayerId> live_text_session_layer_id() const;
-  // GitHub issue 185, Photoshop's warning before a transform: when any of `ids` is a text layer
-  // whose font is missing, asks whether to transform its saved pixels (the layer keeps naming the
-  // font and is not re-rendered in a substitute). False means Cancel. Unattended runs never ask.
+  // GitHub issue 185, Photoshop's warning before a transform: when any of `ids` is imported type
+  // whose font is missing (text_transform_keeps_missing_font_pixels), asks whether to transform its
+  // saved pixels (the layer keeps naming the font). False means Cancel. Unattended runs never ask.
   [[nodiscard]] bool confirm_missing_font_transform(const Document& document, const std::vector<LayerId>& ids);
   // The family new type starts in: the one the options-bar combo shows. A missing family the
   // combo was set to (mirroring a layer that uses it) has no row, so the combo displays

@@ -129,13 +129,10 @@ bool MainWindow::confirm_missing_font_transform(const Document& document, const 
   QStringList fonts;
   for (const auto id : ids) {
     const auto* layer = document.find_layer(id);
-    if (layer == nullptr || !layer_is_text(*layer)) {
+    if (layer == nullptr || !text_transform_keeps_missing_font_pixels(*layer)) {
       continue;
     }
     const auto missing = missing_text_families_for_layer(*layer);
-    if (missing.isEmpty()) {
-      continue;
-    }
     ++text_layers;
     single_layer = QString::fromStdString(layer->name());
     for (const auto& family : missing) {
