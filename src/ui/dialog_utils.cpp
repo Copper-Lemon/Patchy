@@ -187,6 +187,13 @@ public:
 
 protected:
   bool eventFilter(QObject* watched, QEvent* event) override {
+    if (watched == popup_ && event->type() == QEvent::MouseButtonPress) {
+      const auto* mouse_event = static_cast<QMouseEvent*>(event);
+      if (!popup_->rect().contains(mouse_event->position().toPoint())) {
+        replay_press_outside_popup(*mouse_event);
+      }
+      return false;
+    }
     if (watched == spin_) {
       if (event->type() == QEvent::MouseButtonPress) {
         const auto* mouse_event = static_cast<QMouseEvent*>(event);
@@ -218,6 +225,29 @@ protected:
   }
 
 private:
+  // Posted while the press is still being delivered to the popup; the popup closes
+  // during that delivery, so the replay arrives with no popup open and ahead of the
+  // release. A window a modal dialog blocks never gets it.
+  static void replay_press_outside_popup(const QMouseEvent& press) {
+    const auto global = press.globalPosition();
+    auto* target = QApplication::widgetAt(global.toPoint());
+    if (target == nullptr) {
+      return;
+    }
+    auto* top = target->window();
+    if (auto* modal = QApplication::activeModalWidget();
+        modal != nullptr && top != modal && !modal->isAncestorOf(top)) {
+      return;
+    }
+    auto* window = top->windowHandle();
+    if (window == nullptr) {
+      return;
+    }
+    const auto local = window->mapFromGlobal(global);
+    QCoreApplication::postEvent(window, new QMouseEvent(QEvent::MouseButtonPress, local, local, global,
+                                                        press.button(), press.buttons(), press.modifiers()));
+  }
+
   void update_chevron_geometry() {
     if (chevron_ == nullptr) {
       return;
@@ -313,6 +343,13 @@ private:
 
     auto* popup = new QFrame(spin_, Qt::Popup);
     popup->setAttribute(Qt::WA_DeleteOnClose);
+    // The press that closes the popup also goes to what is under it, so the first
+    // canvas press after picking a value paints. Qt's own replay does not reach the
+    // canvas, so it is off here and eventFilter re-posts the press the way Qt does
+    // (to the window, so the usual implicit grab follows). Where the window system
+    // swallows the outside press (Wayland), nothing arrives and nothing changes.
+    popup->setAttribute(Qt::WA_NoMouseReplay);
+    popup->installEventFilter(this);
     popup->setObjectName(base_name_ + QStringLiteral("Popup"));
     popup->setFrameShape(QFrame::StyledPanel);
     popup_ = popup;

@@ -2351,6 +2351,84 @@ void ui_brush_flow_popup_slider_updates_canvas() {
   popup->close();
   QApplication::processEvents();
 }
+// The press that closes an options-bar slider popup also reaches what is under it, so the
+// first press on the canvas after picking a value paints, for every slider popup. The
+// presses go through Qt's popup handling (QTest on the window handle, not sendEvent to the
+// canvas), as a real click outside the popup does. A press on the popup's own chevron
+// still only closes it.
+void ui_slider_popup_dismissing_press_paints() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  {
+    patchy::Document seed(200, 150, patchy::PixelFormat::rgba8());
+    seed.add_layer(patchy::Layer(seed.allocate_layer_id(), "Paper",
+                                 solid_pixels(200, 150, patchy::PixelFormat::rgba8(), QColor(255, 255, 255))));
+    window.add_document_session(std::move(seed), QStringLiteral("Popup paint"));
+  }
+  require_action_by_text(window, QStringLiteral("Brush"))->trigger();
+  auto* canvas = require_canvas(window);
+  canvas->set_zoom(1.0);
+  canvas->set_primary_color(QColor(0, 0, 0));
+  canvas->set_brush_size(9);
+  QApplication::processEvents();
+  auto* handle = window.windowHandle();
+  CHECK(handle != nullptr);
+  if (handle == nullptr) {
+    return;
+  }
+  const auto at = [&](QPoint document_point) {
+    return canvas->mapTo(&window, canvas->widget_position_for_document_point(document_point));
+  };
+  const auto open_popup = [&window](const QString& base_name) {
+    auto* action = window.findChild<QAction*>(base_name + QStringLiteral("PopupAction"));
+    CHECK(action != nullptr);
+    if (action != nullptr) {
+      action->trigger();
+      QApplication::processEvents();
+    }
+    auto* popup = window.findChild<QFrame*>(base_name + QStringLiteral("Popup"));
+    CHECK(popup != nullptr && popup->isVisible());
+  };
+  const auto pixel_at = [&window](QPoint document_point) {
+    const auto& document = std::as_const(patchy::ui::MainWindowTestAccess::document(window));
+    const auto* layer =
+        document.active_layer_id().has_value() ? document.find_layer(*document.active_layer_id()) : nullptr;
+    if (layer == nullptr) {
+      return 0;
+    }
+    const auto& bounds = layer->bounds();
+    return static_cast<int>(layer->pixels().pixel(document_point.x() - bounds.x, document_point.y() - bounds.y)[0]);
+  };
+
+  int row = 40;
+  for (const auto* base_name : {"brushSize", "brushOpacity"}) {
+    open_popup(QLatin1String(base_name));
+    QTest::mousePress(handle, Qt::LeftButton, Qt::NoModifier, at({40, row}));
+    QApplication::processEvents();
+    for (int x = 50; x <= 160; x += 10) {
+      QTest::mouseMove(handle, at({x, row}));
+      QApplication::processEvents();
+    }
+    QTest::mouseRelease(handle, Qt::LeftButton, Qt::NoModifier, at({160, row}));
+    QApplication::processEvents();
+    CHECK(window.findChild<QFrame*>(QLatin1String(base_name) + QStringLiteral("Popup")) == nullptr);
+    CHECK(pixel_at({100, row}) < 128);
+    row += 40;
+  }
+
+  // The chevron closes its own popup without reopening it.
+  open_popup(QStringLiteral("brushSize"));
+  auto* chevron = window.findChild<QWidget*>(QStringLiteral("brushSizePopupButton"));
+  CHECK(chevron != nullptr);
+  if (chevron != nullptr) {
+    const auto chevron_point = chevron->mapTo(&window, chevron->rect().center());
+    QTest::mousePress(handle, Qt::LeftButton, Qt::NoModifier, chevron_point);
+    QTest::mouseRelease(handle, Qt::LeftButton, Qt::NoModifier, chevron_point);
+    QApplication::processEvents();
+    const auto* reopened = window.findChild<QFrame*>(QStringLiteral("brushSizePopup"));
+    CHECK(reopened == nullptr || !reopened->isVisible());
+  }
+}
 // Size-like sliders use SliderCurve::FineLowEnd: the value grows with the
 // square of the handle position, so small sizes get most of the track.
 void ui_size_sliders_give_the_low_end_most_of_the_track() {
@@ -3227,6 +3305,7 @@ std::vector<patchy::test::TestCase> pickers_notices_hotkeys_tests() {
       {"ui_photoshop_shortcuts_are_registered", ui_photoshop_shortcuts_are_registered},
       {"ui_brush_flow_popup_slider_updates_canvas",
        ui_brush_flow_popup_slider_updates_canvas},
+      {"ui_slider_popup_dismissing_press_paints", ui_slider_popup_dismissing_press_paints},
       {"ui_size_sliders_give_the_low_end_most_of_the_track",
        ui_size_sliders_give_the_low_end_most_of_the_track},
       {"ui_hotkey_resolution_rules", ui_hotkey_resolution_rules},
