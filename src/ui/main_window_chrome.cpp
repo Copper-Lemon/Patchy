@@ -46,6 +46,7 @@
 #include <QString>
 #include <QStringLiteral>
 #include <QTimer>
+#include <QStyle>
 #include <QToolButton>
 #include <QWidget>
 #include <Qt>
@@ -889,6 +890,10 @@ void MainWindow::configure_window_chrome() {
   bar->setNativeMenuBar(false);
   bar->setFixedHeight(34);
   bar->installEventFilter(this);
+  // The stylesheet's badge padding keys on this; repolish in case the sheet is already set.
+  bar->setProperty("patchyBadgeChrome", true);
+  bar->style()->unpolish(bar);
+  bar->style()->polish(bar);
 
   auto* badge = new QLabel(bar);
   badge->setObjectName(QStringLiteral("patchyBadge"));

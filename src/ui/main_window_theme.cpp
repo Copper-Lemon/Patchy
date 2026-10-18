@@ -55,6 +55,10 @@ QString photoshop_style_template() {
       border-bottom: 1px solid @title_bar_border;
       min-height: 34px;
       max-height: 34px;
+    }
+    /* Room for the app badge (configure_window_chrome). Only the frameless chrome draws
+       one; under a desktop's own title bar the menus start at the edge (GitHub issue 196). */
+    QMenuBar[patchyBadgeChrome="true"] {
       padding-left: 35px;
     }
     QMenuBar::item {
