@@ -1024,6 +1024,10 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
       // The pasteboard picks like the canvas: a layer lying outside the document
       // is grabbed by its (unpainted) pixels there.
       clicked_layer = topmost_move_layer_at(document_point, true);
+      // Auto-Select Group (GitHub issue 168): a click picks the outermost group
+      // holding the artwork. Only clicks that select read it; with Auto-Select
+      // off the press drags the selection and never looks at clicked_layer.
+      clicked_layer = const_cast<Layer*>(auto_select_target_layer(clicked_layer));
     }
     if (event->modifiers().testFlag(Qt::ControlModifier)) {
       begin_move_layer_selection(event, clicked_layer, true);
@@ -1082,10 +1086,13 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
       layer_ids = selected_move_layer_ids;
     } else {
       hit_layer = clicked_layer;
+      // A group target (Auto-Select Group) is selected as itself, not through
+      // a selected ancestor or a selected child.
+      const auto& selected_targets =
+          hit_layer != nullptr && hit_layer->kind() == LayerKind::Group ? selected_layer_ids_ : selected_move_layer_ids;
       const auto hit_selected_layer =
           hit_layer != nullptr && !selected_layer_ids_.empty() &&
-          std::find(selected_move_layer_ids.begin(), selected_move_layer_ids.end(), hit_layer->id()) !=
-              selected_move_layer_ids.end();
+          std::find(selected_targets.begin(), selected_targets.end(), hit_layer->id()) != selected_targets.end();
       if (hit_selected_layer) {
         if (selected_layer_ids_.size() != 1U || selected_layer_ids_.front() != hit_layer->id()) {
           // Like a layer-row click, collapse only on release: a drag still
@@ -1099,7 +1106,11 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
         }
       } else if (hit_layer != nullptr) {
         activate_layer(*hit_layer);
-        layer_ids.push_back(hit_layer->id());
+        if (hit_layer->kind() == LayerKind::Group) {
+          collect_movable_leaf_ids(*hit_layer, kLayerLockNone, layer_ids);
+        } else {
+          layer_ids.push_back(hit_layer->id());
+        }
         transform_controls_layer = hit_layer;
       }
     }

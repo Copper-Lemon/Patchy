@@ -354,6 +354,39 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
     // directly and must not leak it into later windows.
     app_settings().setValue(QStringLiteral("tools/moveAutoSelect"), checked);
   });
+  // Photoshop's Auto-Select Layer/Group choice (GitHub issue 168). It also
+  // decides what a Ctrl/Cmd+click picks with Auto-Select off, so it stays enabled.
+  move_auto_select_target_combo_ = new QComboBox(toolbar);
+  move_auto_select_target_combo_->setObjectName(QStringLiteral("moveAutoSelectTargetCombo"));
+  move_auto_select_target_combo_->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+  move_auto_select_target_combo_->setMinimumWidth(72);
+  move_auto_select_target_combo_->addItem(tr("Layer"), move_auto_select_target_token(MoveAutoSelectTarget::Layer));
+  move_auto_select_target_combo_->addItem(tr("Group"), move_auto_select_target_token(MoveAutoSelectTarget::Group));
+  move_auto_select_target_combo_->setCurrentIndex(
+      canvas_defaults->auto_select_target() == MoveAutoSelectTarget::Group ? 1 : 0);
+  bind_tooltip(move_auto_select_target_combo_,
+               QT_TR_NOOP("What a click or a selection rectangle selects: the layer itself, or the outermost "
+                          "group that holds it"));
+  register_retranslation([this] {
+    if (move_auto_select_target_combo_ == nullptr || move_auto_select_target_combo_->count() < 2) {
+      return;
+    }
+    QSignalBlocker blocker(move_auto_select_target_combo_);
+    move_auto_select_target_combo_->setItemText(0, tr("Layer"));
+    move_auto_select_target_combo_->setItemText(1, tr("Group"));
+  });
+  add_option_widget(move_auto_select_target_combo_, {CanvasTool::Move});
+  connect(move_auto_select_target_combo_, &QComboBox::currentIndexChanged, this, [this](int index) {
+    if (index < 0 || move_auto_select_target_combo_ == nullptr) {
+      return;
+    }
+    const auto token = move_auto_select_target_combo_->itemData(index).toString();
+    if (canvas_ != nullptr) {
+      canvas_->set_auto_select_target(move_auto_select_target_from_token(token));
+    }
+    // Written by the user's choice, like tools/moveAutoSelect above.
+    app_settings().setValue(QLatin1String(kMoveAutoSelectTargetSettingsKey), token);
+  });
   move_show_transform_controls_check_ = new CheckGlyphBox(tr("Show Transform Controls"), toolbar);
   move_show_transform_controls_check_->setObjectName(QStringLiteral("moveShowTransformControlsCheck"));
   bind_tooltip(move_show_transform_controls_check_, QT_TR_NOOP("Show transform controls when selecting a layer with Move"));
@@ -426,6 +459,20 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
       }
     }
   }
+  // The six feature Distribute commands follow as buttons, like Photoshop's bar
+  // (GitHub issue 172); the two spacing modes stay in the "..." menu below.
+  add_option_separator({CanvasTool::Move});
+  {
+    const char* const distribute_button_names[] = {"moveDistributeLeftButton",   "moveDistributeHCenterButton",
+                                                   "moveDistributeRightButton",  "moveDistributeTopButton",
+                                                   "moveDistributeVCenterButton", "moveDistributeBottomButton"};
+    for (std::size_t i = 0; i < std::size(distribute_button_names); ++i) {
+      if (layer_distribute_actions_[i] != nullptr) {
+        add_option_action_mirror(layer_distribute_actions_[i], QLatin1String(distribute_button_names[i]),
+                                 {CanvasTool::Move});
+      }
+    }
+  }
   move_align_more_button_ = new QToolButton(toolbar);
   move_align_more_button_->setObjectName(QStringLiteral("moveAlignMoreButton"));
   // The brushSmoothingOptionsButton pattern: compact "..." text, InstantPopup,
@@ -433,17 +480,14 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   move_align_more_button_->setText(QStringLiteral("..."));
   move_align_more_button_->setProperty("optionsBarMenuButton", true);
   move_align_more_button_->setFocusPolicy(Qt::NoFocus);
-  bind_tooltip(move_align_more_button_, QT_TR_NOOP("Distribute layers and choose what to align to"));
+  bind_tooltip(move_align_more_button_, QT_TR_NOOP("Distribute spacing and choose what to align to"));
   move_align_more_button_->setPopupMode(QToolButton::InstantPopup);
   {
     auto* more_menu = new QMenu(move_align_more_button_);
     more_menu->setObjectName(QStringLiteral("moveAlignMoreMenu"));
-    for (std::size_t i = 0; i < layer_distribute_actions_.size(); ++i) {
-      if (i == static_cast<std::size_t>(DistributeMode::HorizontalSpacing)) {
-        more_menu->addSeparator();
-      }
-      if (layer_distribute_actions_[i] != nullptr) {
-        more_menu->addAction(layer_distribute_actions_[i]);
+    for (const auto mode : {DistributeMode::HorizontalSpacing, DistributeMode::VerticalSpacing}) {
+      if (auto* action = layer_distribute_actions_[static_cast<std::size_t>(mode)]; action != nullptr) {
+        more_menu->addAction(action);
       }
     }
     more_menu->addSeparator();

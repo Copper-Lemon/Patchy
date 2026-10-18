@@ -19350,10 +19350,6 @@ Clipped to the layer below</source>
         <translation>移動したレイヤーを他のレイヤー、ガイド、グリッド、カンバスにスナップします (表示 &gt; スナップ)。スナップ先は 表示 &gt; スナップ先 で選択します。</translation>
     </message>
     <message>
-        <source>Distribute layers and choose what to align to</source>
-        <translation>レイヤーを分布し、整列の基準を選択します</translation>
-    </message>
-    <message>
         <source>Finish the current drag before aligning layers</source>
         <translation>レイヤーを整列する前に現在のドラッグを終了してください</translation>
     </message>
@@ -21625,6 +21621,22 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
     <message>
         <source>When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar&apos;s Cancel button discards the edit. When off, Esc cancels the edit.</source>
         <translation>オンにすると、Esc キーで入力中のテキストを %CTRL%+Enter と同じように確定し、オプションバーのキャンセルボタンで編集を破棄します。オフにすると、Esc キーで編集をキャンセルします。</translation>
+    </message>
+    <message>
+        <source>Layer</source>
+        <translation>レイヤー</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>グループ</translation>
+    </message>
+    <message>
+        <source>What a click or a selection rectangle selects: the layer itself, or the outermost group that holds it</source>
+        <translation>クリックまたは選択の矩形で選択されるもの: レイヤー自体、またはそれを含む最も外側のグループ</translation>
+    </message>
+    <message>
+        <source>Distribute spacing and choose what to align to</source>
+        <translation>間隔を分布し、整列の基準を選択します</translation>
     </message>
 </context>
 <context>

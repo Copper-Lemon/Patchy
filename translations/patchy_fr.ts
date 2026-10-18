@@ -19401,10 +19401,6 @@ Y : %2
         <translation>Magnétiser les calques déplacés sur les autres calques, les repères, la grille et la zone de travail (Affichage &gt; Magnétisme). Choisissez les cibles dans Affichage &gt; Magnétisme sur.</translation>
     </message>
     <message>
-        <source>Distribute layers and choose what to align to</source>
-        <translation>Répartir les calques et choisir la référence d&apos;alignement</translation>
-    </message>
-    <message>
         <source>Finish the current drag before aligning layers</source>
         <translation>Terminez le déplacement en cours avant d&apos;aligner les calques</translation>
     </message>
@@ -21690,6 +21686,22 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
     <message>
         <source>When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar&apos;s Cancel button discards the edit. When off, Esc cancels the edit.</source>
         <translation>Si cette option est activée, Échap applique le texte en cours de saisie, comme %CTRL%+Entrée, et le bouton Annuler de la barre d’options abandonne la modification. Si elle est désactivée, Échap annule la modification.</translation>
+    </message>
+    <message>
+        <source>Layer</source>
+        <translation>Calque</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>Groupe</translation>
+    </message>
+    <message>
+        <source>What a click or a selection rectangle selects: the layer itself, or the outermost group that holds it</source>
+        <translation>Ce que sélectionne un clic ou un rectangle de sélection : le calque lui-même ou le groupe le plus externe qui le contient</translation>
+    </message>
+    <message>
+        <source>Distribute spacing and choose what to align to</source>
+        <translation>Répartir l&apos;espacement et choisir la référence d&apos;alignement</translation>
     </message>
 </context>
 <context>

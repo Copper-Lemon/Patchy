@@ -1881,6 +1881,195 @@ void ui_move_ctrl_hover_outlines_layer_with_auto_select_off() {
   CHECK(outline_pixels() == 0);
 }
 
+// Hover-outline pixels in a 5 px band along a document rect's top edge (the
+// dashed outline sits there; the layer fills never match its color).
+int move_outline_top_edge_pixels(const QImage& image, const patchy::ui::CanvasWidget& canvas, QRect document_rect) {
+  const QRect widget(canvas.widget_position_for_document_point(document_rect.topLeft()),
+                     canvas.widget_position_for_document_point(document_rect.topRight() + QPoint(1, 0)));
+  return count_pixels_close(image, QRect(widget.left(), widget.top() - 2, widget.width(), 5), QColor(95, 170, 255),
+                            18);
+}
+
+std::vector<patchy::LayerId> sorted_ids(std::vector<patchy::LayerId> ids) {
+  std::sort(ids.begin(), ids.end());
+  return ids;
+}
+
+// GitHub issue 171: while a Move-tool selection rectangle is dragged, the layers
+// releasing it would select carry the hover outline (the release's own rule: Move
+// rects meeting the document-clipped box). The selection changes only on release.
+void ui_move_rectangle_outlines_layers_before_release() {
+  MoveSelectionScene scene;
+  const QRect red_rect(20, 20, 18, 18);
+  const QRect blue_rect(65, 20, 18, 18);
+  const QRect green_rect(110, 70, 18, 18);
+  send_mouse(scene.canvas, QEvent::MouseButtonPress, scene.point(QPoint(5, 5)), Qt::LeftButton, Qt::LeftButton);
+  send_mouse(scene.canvas, QEvent::MouseMove, scene.point(QPoint(70, 30)), Qt::NoButton, Qt::LeftButton);
+  QApplication::processEvents();
+  CHECK(sorted_ids(scene.canvas.move_layer_selection_preview_ids()) == sorted_ids({scene.red, scene.blue}));
+  scene.expect({scene.green});
+  auto image = scene.canvas.grab().toImage();
+  CHECK(move_outline_top_edge_pixels(image, scene.canvas, red_rect) > 10);
+  CHECK(move_outline_top_edge_pixels(image, scene.canvas, blue_rect) > 10);
+  CHECK(move_outline_top_edge_pixels(image, scene.canvas, green_rect) < 4);
+  save_widget_artifact("ui_move_rectangle_preselection", scene.canvas);
+
+  // Shrinking the box drops Blue's outline; growing it over Green adds Green.
+  send_mouse(scene.canvas, QEvent::MouseMove, scene.point(QPoint(40, 40)), Qt::NoButton, Qt::LeftButton);
+  QApplication::processEvents();
+  CHECK(scene.canvas.move_layer_selection_preview_ids() == std::vector<patchy::LayerId>{scene.red});
+  image = scene.canvas.grab().toImage();
+  CHECK(move_outline_top_edge_pixels(image, scene.canvas, red_rect) > 10);
+  CHECK(move_outline_top_edge_pixels(image, scene.canvas, blue_rect) < 4);
+  send_mouse(scene.canvas, QEvent::MouseMove, scene.point(QPoint(130, 100)), Qt::NoButton, Qt::LeftButton);
+  QApplication::processEvents();
+  CHECK(sorted_ids(scene.canvas.move_layer_selection_preview_ids()) ==
+        sorted_ids({scene.red, scene.blue, scene.green}));
+  scene.expect({scene.green});
+
+  // Release selects exactly the outlined set and the outlines go with the box.
+  send_mouse(scene.canvas, QEvent::MouseButtonRelease, scene.point(QPoint(130, 100)), Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  scene.expect({scene.red, scene.blue, scene.green});
+  CHECK(scene.canvas.move_layer_selection_preview_ids().empty());
+
+  // Escape cancels the box: no outlines left behind, the selection unchanged.
+  scene.select({scene.green}, scene.green);
+  send_mouse(scene.canvas, QEvent::MouseButtonPress, scene.point(QPoint(5, 5)), Qt::LeftButton, Qt::LeftButton);
+  send_mouse(scene.canvas, QEvent::MouseMove, scene.point(QPoint(70, 30)), Qt::NoButton, Qt::LeftButton);
+  CHECK(scene.canvas.move_layer_selection_preview_ids().size() == 2U);
+  send_key(scene.canvas, Qt::Key_Escape);
+  QApplication::processEvents();
+  CHECK(scene.canvas.move_layer_selection_preview_ids().empty());
+  image = scene.canvas.grab().toImage();
+  CHECK(move_outline_top_edge_pixels(image, scene.canvas, red_rect) < 4);
+  CHECK(move_outline_top_edge_pixels(image, scene.canvas, blue_rect) < 4);
+  send_mouse(scene.canvas, QEvent::MouseButtonRelease, scene.point(QPoint(70, 30)), Qt::LeftButton, Qt::NoButton);
+  scene.expect({scene.green});
+  CHECK(scene.content_edits == 0);
+}
+
+// GitHub issue 168: Auto-Select Group picks the outermost group holding the
+// artwork (inside an artboard, the outermost group within it) for clicks, the
+// hover outline, the selection rectangle and a drag; Layer picks the leaf.
+void ui_move_auto_select_group_picks_outermost_group() {
+  MoveSelectionScene scene;
+  const auto leaf = [&](const char* name, QRect bounds, QColor color) {
+    patchy::Layer layer(scene.document.allocate_layer_id(), name,
+                        solid_pixels(bounds.width(), bounds.height(), patchy::PixelFormat::rgba8(), color));
+    layer.set_bounds({bounds.x(), bounds.y(), bounds.width(), bounds.height()});
+    return layer;
+  };
+  patchy::Layer outer(scene.document.allocate_layer_id(), "Outer", patchy::LayerKind::Group);
+  patchy::Layer inner(scene.document.allocate_layer_id(), "Inner", patchy::LayerKind::Group);
+  auto nested = leaf("Nested", QRect(20, 70, 14, 14), QColor(200, 120, 20));
+  auto sibling = leaf("Sibling", QRect(60, 70, 14, 14), QColor(120, 20, 200));
+  const auto outer_id = outer.id();
+  const auto nested_id = nested.id();
+  const auto sibling_id = sibling.id();
+  inner.add_child(std::move(nested));
+  outer.add_child(std::move(inner));
+  outer.add_child(std::move(sibling));
+  scene.document.add_layer(std::move(outer));
+  patchy::Layer board(scene.document.allocate_layer_id(), "Board", patchy::LayerKind::Group);
+  board.set_artboard(patchy::LayerArtboard{patchy::Rect{100, 0, 60, 60}});
+  patchy::Layer card(scene.document.allocate_layer_id(), "Card", patchy::LayerKind::Group);
+  auto card_leaf = leaf("Card Leaf", QRect(130, 10, 10, 10), QColor(20, 160, 160));
+  auto loose = leaf("Loose", QRect(130, 40, 10, 10), QColor(160, 160, 20));
+  const auto card_id = card.id();
+  const auto loose_id = loose.id();
+  card.add_child(std::move(card_leaf));
+  board.add_child(std::move(card));
+  board.add_child(std::move(loose));
+  scene.document.add_layer(std::move(board));
+  scene.canvas.force_refresh();
+  QApplication::processEvents();
+
+  scene.canvas.set_auto_select_target(patchy::ui::MoveAutoSelectTarget::Group);
+  CHECK(scene.canvas.auto_select_target() == patchy::ui::MoveAutoSelectTarget::Group);
+  scene.click(QPoint(26, 76), Qt::ControlModifier);
+  scene.expect({outer_id});
+  scene.click(QPoint(66, 76), Qt::ControlModifier);
+  scene.expect({outer_id});
+  scene.click(QPoint(26, 26), Qt::ControlModifier);  // a top-level leaf is its own target
+  scene.expect({scene.red});
+  scene.click(QPoint(134, 14), Qt::ControlModifier);  // the artboard is skipped
+  scene.expect({card_id});
+  scene.click(QPoint(134, 44), Qt::ControlModifier);
+  scene.expect({loose_id});
+
+  // The hover outline frames the whole group the click would pick.
+  send_mouse(scene.canvas, QEvent::MouseMove, scene.point(QPoint(26, 76)), Qt::NoButton, Qt::NoButton);
+  auto image = scene.canvas.grab().toImage();
+  CHECK(move_outline_top_edge_pixels(image, scene.canvas, QRect(40, 70, 16, 1)) > 6);
+  save_widget_artifact("ui_move_auto_select_group_hover", scene.canvas);
+
+  // A rectangle over one nested leaf pre-selects and selects the outer group.
+  send_mouse(scene.canvas, QEvent::MouseButtonPress, scene.point(QPoint(15, 92)), Qt::LeftButton, Qt::LeftButton);
+  send_mouse(scene.canvas, QEvent::MouseMove, scene.point(QPoint(28, 60)), Qt::NoButton, Qt::LeftButton);
+  CHECK(scene.canvas.move_layer_selection_preview_ids() == std::vector<patchy::LayerId>{outer_id});
+  image = scene.canvas.grab().toImage();
+  CHECK(move_outline_top_edge_pixels(image, scene.canvas, QRect(40, 70, 16, 1)) > 6);
+  send_mouse(scene.canvas, QEvent::MouseButtonRelease, scene.point(QPoint(28, 60)), Qt::LeftButton, Qt::NoButton);
+  scene.expect({outer_id});
+
+  // A plain drag on an unselected group's artwork activates the group and moves all of it.
+  scene.select({scene.red}, scene.red);
+  drag(scene.canvas, scene.point(QPoint(26, 76)), scene.point(QPoint(36, 76)));
+  QApplication::processEvents();
+  CHECK(scene.document.active_layer_id() == outer_id);
+  CHECK(std::as_const(scene.document).find_layer(nested_id)->bounds().x == 30);
+  CHECK(std::as_const(scene.document).find_layer(sibling_id)->bounds().x == 70);
+  CHECK(std::as_const(scene.document).find_layer(scene.red)->bounds().x == 20);
+
+  // Layer picks the leaf again.
+  scene.canvas.set_auto_select_target(patchy::ui::MoveAutoSelectTarget::Layer);
+  scene.click(QPoint(36, 76), Qt::ControlModifier);
+  scene.expect({nested_id});
+}
+
+// The Layer/Group choice is a combo on the Move options bar, remembered across
+// runs as tools/moveAutoSelectTarget ("layer" or "group", permanent tokens).
+void ui_move_auto_select_target_persists_across_windows() {
+  SettingsValueRestorer saved(QStringLiteral("tools/moveAutoSelectTarget"));
+  {
+    auto settings = patchy::ui::app_settings();
+    settings.setValue(QStringLiteral("tools/moveAutoSelectTarget"), QStringLiteral("group"));
+    settings.sync();
+  }
+  {
+    patchy::ui::MainWindow window;
+    show_window(window);
+    auto* canvas = require_canvas(window);
+    require_action_by_text(window, QStringLiteral("Move"))->trigger();
+    QApplication::processEvents();
+    auto* combo = window.findChild<QComboBox*>(QStringLiteral("moveAutoSelectTargetCombo"));
+    CHECK(combo != nullptr && combo->isVisible() && combo->count() == 2);
+    CHECK(canvas->auto_select_target() == patchy::ui::MoveAutoSelectTarget::Group);
+    CHECK(combo != nullptr && combo->currentIndex() == 1 && combo->currentText() == QStringLiteral("Group"));
+    if (combo != nullptr) {
+      combo->setCurrentIndex(0);
+    }
+    QApplication::processEvents();
+    CHECK(canvas->auto_select_target() == patchy::ui::MoveAutoSelectTarget::Layer);
+    // A new document picks up the bar's choice.
+    patchy::ui::MainWindowTestAccess::create_default_document(window);
+    QApplication::processEvents();
+    CHECK(require_canvas(window)->auto_select_target() == patchy::ui::MoveAutoSelectTarget::Layer);
+    window.close();
+    QApplication::processEvents();
+  }
+  {
+    auto settings = patchy::ui::app_settings();
+    CHECK(settings.value(QStringLiteral("tools/moveAutoSelectTarget")).toString() == QStringLiteral("layer"));
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+  CHECK(require_canvas(window)->auto_select_target() == patchy::ui::MoveAutoSelectTarget::Layer);
+  auto* combo = window.findChild<QComboBox*>(QStringLiteral("moveAutoSelectTargetCombo"));
+  CHECK(combo != nullptr && combo->currentIndex() == 0);
+}
+
 void ui_move_tool_hover_outlines_opaque_bounds() {
   patchy::Document document(180, 120, patchy::PixelFormat::rgba8());
   document.add_pixel_layer("Background", solid_pixels(180, 120, patchy::PixelFormat::rgba8(), QColor(Qt::white)));
@@ -4933,6 +5122,9 @@ std::vector<patchy::test::TestCase> move_tool_processing_overlay_tests() {
       {"ui_move_ctrl_click_selects_only_the_clicked_layer", ui_move_ctrl_click_selects_only_the_clicked_layer},
       {"ui_move_alt_drag_duplicates_layer", ui_move_alt_drag_duplicates_layer},
       {"ui_move_auto_select_persists_across_windows", ui_move_auto_select_persists_across_windows},
+      {"ui_move_auto_select_target_persists_across_windows", ui_move_auto_select_target_persists_across_windows},
+      {"ui_move_auto_select_group_picks_outermost_group", ui_move_auto_select_group_picks_outermost_group},
+      {"ui_move_rectangle_outlines_layers_before_release", ui_move_rectangle_outlines_layers_before_release},
       {"ui_move_ctrl_drag_selects_rectangle_without_moving", ui_move_ctrl_drag_selects_rectangle_without_moving},
       {"ui_move_ctrl_click_selects_layer_inside_collapsed_folder",
        ui_move_ctrl_click_selects_layer_inside_collapsed_folder},

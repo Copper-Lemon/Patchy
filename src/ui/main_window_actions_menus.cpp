@@ -1028,6 +1028,7 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
       auto* action = layer_distribute_menu->addAction(tr(spec.text));
       bind_action_text(action, spec.text);
       action->setObjectName(QLatin1String(spec.object_name));
+      action->setIcon(distribute_mode_icon(spec.mode));
       register_hotkey(action, spec.command_id);
       connect(action, &QAction::triggered, this, [this, mode = spec.mode] { distribute_selected_layers(mode); });
       register_document_action(action);

@@ -1029,13 +1029,25 @@ void CanvasWidget::paintEvent(QPaintEvent* event) {
       }
     }
   }
-  if (tool_ == CanvasTool::Move && !moving_layer_ && !draw_transform_overlay && move_hover_outline_rect_.has_value()) {
-    const auto outline_rect = *move_hover_outline_rect_;
+  const auto draw_hover_outline = [&](const QRect& outline_rect) {
     if (!outline_rect.isEmpty()) {
       painter.setPen(QPen(QColor(95, 170, 255), 1, Qt::DashLine));
       const QRect hover_target(widget_position(outline_rect.topLeft()),
                                widget_position(outline_rect.bottomRight() + QPoint(1, 1)));
       painter.drawRect(hover_target.normalized().adjusted(0, 0, -1, -1));
+    }
+  };
+  if (tool_ == CanvasTool::Move && !moving_layer_ && !draw_transform_overlay && move_hover_outline_rect_.has_value()) {
+    draw_hover_outline(*move_hover_outline_rect_);
+  }
+  // A selection rectangle outlines what releasing it would select, with the
+  // hover outline (GitHub issue 171).
+  if (tool_ == CanvasTool::Move && move_layer_selection_gesture_.has_value()) {
+    const auto& gesture = *move_layer_selection_gesture_;
+    for (const auto id : gesture.preview_ids) {
+      if (const auto found = gesture.target_outlines.find(id); found != gesture.target_outlines.end()) {
+        draw_hover_outline(found->second);
+      }
     }
   }
   if (transforming_layer_) {

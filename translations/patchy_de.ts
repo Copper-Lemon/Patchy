@@ -19401,10 +19401,6 @@ Y: %2
         <translation>Verschobene Ebenen an anderen Ebenen, Hilfslinien, dem Raster und der Arbeitsfläche ausrichten (Ansicht &gt; Ausrichten). Die Ziele wählen Sie unter Ansicht &gt; Ausrichten an.</translation>
     </message>
     <message>
-        <source>Distribute layers and choose what to align to</source>
-        <translation>Ebenen verteilen und festlegen, woran ausgerichtet wird</translation>
-    </message>
-    <message>
         <source>Finish the current drag before aligning layers</source>
         <translation>Beenden Sie das Ziehen, bevor Sie Ebenen ausrichten</translation>
     </message>
@@ -21690,6 +21686,22 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
     <message>
         <source>When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar&apos;s Cancel button discards the edit. When off, Esc cancels the edit.</source>
         <translation>Wenn aktiviert, übernimmt Esc den eingegebenen Text wie %CTRL%+Enter, und die Schaltfläche Abbrechen in der Optionsleiste verwirft die Bearbeitung. Wenn deaktiviert, bricht Esc die Bearbeitung ab.</translation>
+    </message>
+    <message>
+        <source>Layer</source>
+        <translation>Ebene</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>Gruppe</translation>
+    </message>
+    <message>
+        <source>What a click or a selection rectangle selects: the layer itself, or the outermost group that holds it</source>
+        <translation>Was ein Klick oder ein Auswahlrechteck auswählt: die Ebene selbst oder die äußerste Gruppe, die sie enthält</translation>
+    </message>
+    <message>
+        <source>Distribute spacing and choose what to align to</source>
+        <translation>Abstände verteilen und festlegen, woran ausgerichtet wird</translation>
     </message>
 </context>
 <context>

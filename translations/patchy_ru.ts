@@ -13893,10 +13893,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>Привязывать перемещаемые слои к другим слоям, направляющим, сетке и холсту (Вид &gt; Привязка). Цели выбираются в меню «Вид &gt; Привязать к».</translation>
     </message>
     <message>
-        <source>Distribute layers and choose what to align to</source>
-        <translation>Распределите слои и выберите, по чему выровнять</translation>
-    </message>
-    <message>
         <source>Pivot:</source>
         <translation>Центр вращения:</translation>
     </message>
@@ -21755,6 +21751,22 @@ Patchy может скачать обновление, заменить этот
     <message>
         <source>When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar&apos;s Cancel button discards the edit. When off, Esc cancels the edit.</source>
         <translation>Если включено, Esc применяет вводимый текст, как %CTRL%+Enter, а кнопка «Отмена» на панели параметров отменяет правку. Если выключено, Esc отменяет правку.</translation>
+    </message>
+    <message>
+        <source>Layer</source>
+        <translation>Слой</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>Группа</translation>
+    </message>
+    <message>
+        <source>What a click or a selection rectangle selects: the layer itself, or the outermost group that holds it</source>
+        <translation>Что выбирает щелчок или рамка выделения: сам слой или самую внешнюю группу, в которой он находится</translation>
+    </message>
+    <message>
+        <source>Distribute spacing and choose what to align to</source>
+        <translation>Распределите интервалы и выберите, по чему выровнять</translation>
     </message>
 </context>
 <context>

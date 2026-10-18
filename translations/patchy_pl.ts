@@ -13893,10 +13893,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>Przyciągaj przeniesione warstwy do innych warstw, linii pomocniczych, siatki i obszaru roboczego (Widok &gt; Przyciągaj). Wybierz cele w obszarze Widok &gt; Przyciągaj do.</translation>
     </message>
     <message>
-        <source>Distribute layers and choose what to align to</source>
-        <translation>Rozłóż warstwy i wybierz, do czego chcesz je wyrównać</translation>
-    </message>
-    <message>
         <source>Pivot:</source>
         <translation>Punkt obrotu:</translation>
     </message>
@@ -21755,6 +21751,22 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
     <message>
         <source>When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar&apos;s Cancel button discards the edit. When off, Esc cancels the edit.</source>
         <translation>Gdy włączone, Esc zatwierdza wpisywany tekst tak jak %CTRL%+Enter, a przycisk Anuluj na pasku opcji odrzuca edycję. Gdy wyłączone, Esc anuluje edycję.</translation>
+    </message>
+    <message>
+        <source>Layer</source>
+        <translation>Warstwa</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>Grupa</translation>
+    </message>
+    <message>
+        <source>What a click or a selection rectangle selects: the layer itself, or the outermost group that holds it</source>
+        <translation>Co zaznacza kliknięcie lub prostokąt zaznaczenia: samą warstwę albo najbardziej zewnętrzną grupę, która ją zawiera</translation>
+    </message>
+    <message>
+        <source>Distribute spacing and choose what to align to</source>
+        <translation>Rozłóż odstępy i wybierz, do czego chcesz wyrównać</translation>
     </message>
 </context>
 <context>
