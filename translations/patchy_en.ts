@@ -21124,6 +21124,22 @@ Patchy can download the update, replace this AppImage, and start again. You will
         <source>Reset Panels</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

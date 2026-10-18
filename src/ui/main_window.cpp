@@ -1,6 +1,7 @@
-#include <QDockWidget>
+#include <QSplitter>
 #include <QWindow>
 #include "ui/main_window.hpp"
+#include "ui/panel_column.hpp"
 #include "ui/brush_tip_library.hpp"
 #include "ui/gradient_stops_editor.hpp"
 #include <QMenuBar>
@@ -4320,7 +4321,13 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
       }
     });
   }
-  setCentralWidget(document_tabs_);
+  // The document tabs share the central area with the panel column, which
+  // create_docks adds as the splitter's second widget (docs/right-docks.md).
+  workspace_splitter_ = new QSplitter(Qt::Horizontal, this);
+  workspace_splitter_->setObjectName(QStringLiteral("workspaceSplitter"));
+  workspace_splitter_->setHandleWidth(7);
+  workspace_splitter_->addWidget(document_tabs_);
+  setCentralWidget(workspace_splitter_);
   connect(document_tabs_, &QTabWidget::currentChanged, this, [this](int index) { activate_document_tab(index); });
   connect(document_tabs_, &QTabWidget::tabCloseRequested, this, [this](int index) { close_document_tab(index); });
   start_panel_ = new StartPanel(document_tabs_);
@@ -4443,10 +4450,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
   palette_mode_chip_->setCursor(Qt::PointingHandCursor);
   palette_mode_chip_->setFocusPolicy(Qt::NoFocus);
   connect(palette_mode_chip_, &QToolButton::clicked, this, [this] {
-    if (palette_dock_ != nullptr) {
-      palette_dock_->show();
-      palette_dock_->raise();
-    }
+    show_panel(QStringLiteral("paletteDock"));
   });
   statusBar()->addPermanentWidget(palette_mode_chip_);
   palette_mode_chip_->hide();
@@ -5128,14 +5132,6 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
   }
 
   if (handle_right_dock_resize_event(watched, event)) {
-    return true;
-  }
-
-  if (handle_right_dock_title_drag_event(watched, event)) {
-    return true;
-  }
-
-  if (handle_dock_group_window_event(watched, event)) {
     return true;
   }
 

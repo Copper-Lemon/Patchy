@@ -12,7 +12,6 @@
 #include <QApplication>
 #include <QByteArray>
 #include <QContextMenuEvent>
-#include <QDockWidget>
 #include <QElapsedTimer>
 #include <QFile>
 #include <QFileDialog>
@@ -81,8 +80,8 @@ void ui_channels_panel_targets_and_alpha_edits() {
   auto* canvas = require_canvas(window);
   auto& active_document = patchy::ui::MainWindowTestAccess::document(window);
   auto* layer_list = window.findChild<QListWidget*>(QStringLiteral("layerList"));
-  auto* layers_dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
-  auto* channels_dock = window.findChild<QDockWidget*>(QStringLiteral("channelsDock"));
+  auto* layers_dock = window.findChild<QWidget*>(QStringLiteral("layersDock"));
+  auto* channels_dock = window.findChild<QWidget*>(QStringLiteral("channelsDock"));
   auto* channels_panel = window.findChild<QWidget*>(QStringLiteral("channelPanel"));
   auto* channels_toggle = window.findChild<QToolButton*>(QStringLiteral("channelsDockCollapseButton"));
   auto* channels = window.findChild<QListWidget*>(QStringLiteral("channelList"));
@@ -92,8 +91,9 @@ void ui_channels_panel_targets_and_alpha_edits() {
   CHECK(channels_panel != nullptr);
   CHECK(channels_toggle != nullptr);
   CHECK(channels != nullptr);
-  CHECK(window.tabPosition(Qt::RightDockWidgetArea) == QTabWidget::North);
-  CHECK(window.tabifiedDockWidgets(layers_dock).contains(channels_dock));
+  // Layers and Channels share the column's tab group, its tab bar above the panels.
+  CHECK(patchy::ui::MainWindowTestAccess::panel_column(window)->section_widget(QStringLiteral("layersDock")) ==
+        patchy::ui::MainWindowTestAccess::panel_column(window)->section_widget(QStringLiteral("channelsDock")));
   QTabBar* dock_tabs = nullptr;
   int layers_tab = -1;
   int channels_tab = -1;
@@ -139,10 +139,10 @@ void ui_channels_panel_targets_and_alpha_edits() {
   QApplication::processEvents();
   CHECK(dock_tabs->currentIndex() == channels_tab);
   CHECK(channels_panel->isVisible());
-  auto* channel_resize_handle = channels_dock->findChild<QWidget*>(
-      QStringLiteral("rightDockResizeHandle"), Qt::FindDirectChildrenOnly);
-  CHECK(channel_resize_handle != nullptr);
-  CHECK(channel_resize_handle->isVisible());
+  // The column edge stays grabbable whichever tab is in front.
+  auto* column_edge = window.findChild<QWidget*>(QStringLiteral("rightDockResizeHandle"));
+  CHECK(column_edge != nullptr);
+  CHECK(column_edge->isVisible());
   dock_tabs->setCurrentIndex(layers_tab);
   QApplication::processEvents();
   CHECK(dock_tabs->currentIndex() == layers_tab);
@@ -322,13 +322,13 @@ void ui_channel_ctrl_click_context_menu_and_compact_actions() {
   window.add_document_session(std::move(document), QStringLiteral("Channel Gestures"));
   show_window(window);
   auto* canvas = require_canvas(window);
-  auto* channels_dock = window.findChild<QDockWidget*>(QStringLiteral("channelsDock"));
+  auto* channels_dock = window.findChild<QWidget*>(QStringLiteral("channelsDock"));
   auto* panel = window.findChild<QWidget*>(QStringLiteral("channelPanel"));
   auto* channels = window.findChild<QListWidget*>(QStringLiteral("channelList"));
   CHECK(channels_dock != nullptr);
   CHECK(panel != nullptr);
   CHECK(channels != nullptr);
-  channels_dock->raise();
+  patchy::ui::MainWindowTestAccess::show_panel(window, QStringLiteral("channelsDock"));
   QApplication::processEvents();
   CHECK(channels->currentRow() == 0);
   CHECK(canvas->layer_edit_target() == patchy::ui::CanvasWidget::LayerEditTarget::Content);
@@ -563,11 +563,11 @@ void ui_channels_soft_selection_crud_history_and_layer_exit() {
   show_window(window);
   auto* canvas = require_canvas(window);
   auto& active_document = patchy::ui::MainWindowTestAccess::document(window);
-  auto* channels_dock = window.findChild<QDockWidget*>(QStringLiteral("channelsDock"));
+  auto* channels_dock = window.findChild<QWidget*>(QStringLiteral("channelsDock"));
   auto* channels = window.findChild<QListWidget*>(QStringLiteral("channelList"));
   CHECK(channels_dock != nullptr);
   CHECK(channels != nullptr);
-  channels_dock->raise();
+  patchy::ui::MainWindowTestAccess::show_panel(window, QStringLiteral("channelsDock"));
   QApplication::processEvents();
   CHECK(channels->isVisible());
 
@@ -671,6 +671,10 @@ void ui_channels_soft_selection_crud_history_and_layer_exit() {
   CHECK(canvas->layer_edit_target() == patchy::ui::CanvasWidget::LayerEditTarget::DocumentChannel);
   auto* layers = window.findChild<QListWidget*>(QStringLiteral("layerList"));
   CHECK(layers != nullptr);
+  // The Layers tab comes to the front first, as the user brings it there to click it.
+  patchy::ui::MainWindowTestAccess::show_panel(window, QStringLiteral("layersDock"));
+  QApplication::processEvents();
+  CHECK(canvas->layer_edit_target() == patchy::ui::CanvasWidget::LayerEditTarget::DocumentChannel);
   click_layer_row_thumbnail(*layers, QStringLiteral("Pixels"), QStringLiteral("layerContentThumbnail"));
   CHECK(canvas->layer_edit_target() == patchy::ui::CanvasWidget::LayerEditTarget::Content);
 }

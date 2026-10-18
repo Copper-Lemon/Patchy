@@ -21260,6 +21260,22 @@ Patchy может скачать обновление, заменить этот
         <source>Reset Panels</source>
         <translation>Сбросить панели</translation>
     </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation>Свернуть панель</translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation>Развернуть панель</translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation>Закрыть группу вкладок</translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
+        <translation>Закрыть панель</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

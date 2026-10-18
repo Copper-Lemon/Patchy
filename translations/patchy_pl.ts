@@ -21260,6 +21260,22 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
         <source>Reset Panels</source>
         <translation>Resetuj panele</translation>
     </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation>Zwiń panel</translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation>Rozwiń panel</translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation>Zamknij grupę kart</translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
+        <translation>Zamknij panel</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

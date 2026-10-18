@@ -21134,6 +21134,22 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
         <source>Reset Panels</source>
         <translation>重設面板</translation>
     </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation>摺疊面板</translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation>展開面板</translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation>關閉索引標籤群組</translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
+        <translation>關閉面板</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

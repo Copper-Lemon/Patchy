@@ -23,7 +23,6 @@
 #include <QDialog>
 #include <QDir>
 #include <QFontMetrics>
-#include <QDockWidget>
 #include <QEventLoop>
 #include <QFile>
 #include <QGuiApplication>
@@ -1009,11 +1008,11 @@ void ui_script_ui_staging_apis() {
   CHECK(window.statusBar()->currentMessage() == QStringLiteral("Staged by script"));
   CHECK(window.width() == 1200);
   CHECK(window.height() == 800);
-  auto* layers_dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
-  CHECK(layers_dock != nullptr);
-  // 420 stays above the measured stack minimum, which tracks the localized
+  auto* panel_column = patchy::ui::MainWindowTestAccess::panel_column(window);
+  CHECK(panel_column != nullptr);
+  // 420 stays above the measured column minimum, which tracks the localized
   // blend/opacity row and would clamp a smaller request.
-  CHECK(layers_dock->width() == 420);
+  CHECK(panel_column->width() == 420);
   const QImage captured(capture_path);
   CHECK(!captured.isNull());
   CHECK(captured.width() == 1200);

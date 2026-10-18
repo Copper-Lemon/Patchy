@@ -186,7 +186,7 @@ patchy::ui::CanvasWidget* active_canvas(patchy::ui::MainWindow& window) {
   if (auto* canvas = dynamic_cast<patchy::ui::CanvasWidget*>(window.centralWidget()); canvas != nullptr) {
     return canvas;
   }
-  if (auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget()); tabs != nullptr) {
+  if (auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs")); tabs != nullptr) {
     return dynamic_cast<patchy::ui::CanvasWidget*>(tabs->currentWidget());
   }
   return nullptr;

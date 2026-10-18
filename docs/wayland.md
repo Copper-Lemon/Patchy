@@ -2,9 +2,10 @@
 
 Patchy behavior that differs on a Wayland session (Qt's `wayland` platform plug-in). X11
 (`xcb`), Windows, macOS and the offscreen test platform take none of these paths, except
-the frameless window chrome below, which is the Linux rule for X11 too. The right-dock
-rule (panels stay in the column, GitHub issue 102) lives in [right-docks.md](right-docks.md);
-the KWin and GNOME test rigs for dock drags are in [testing.md](testing.md).
+the frameless window chrome below, which is the Linux rule for X11 too. The right panels
+never float on any platform (the column is Patchy's own widget, [right-docks.md](right-docks.md)),
+so the Wayland dock-drag problems of GitHub issue 102 no longer exist; the KWin and GNOME
+test rigs are in [testing.md](testing.md).
 
 ## The frameless window chrome (Linux, X11 and Wayland)
 
@@ -173,16 +174,14 @@ the screen: the available height less the decorations outside the client area (Q
 client-side title bar on GNOME, known only once the window is shown, hence the deferred
 first-show clamp on Wayland in `showEvent`) less `kWaylandShellPanelAllowance` (48 logical
 px) for the panel the compositor never reports. `fit_right_dock_floors_to_screen` lowers
-the expanded docks' explicit floors (the dock just expanded first, then Layers, including
-the Layers panel's own 240 px and the list's 120 px, then the rest of the column) until the
-window's minimum fits that budget; `clamp_window_to_available_screen` and
-`handle_right_dock_panel_toggled` call it, so an expand takes room from the column while
-the column has any to give. Qt re-derives a dock's minimum from its content at every layout
-activation (`QDockWidgetLayout` runs with `SetMinAndMaxSize`), so the floors that can yield
-are the explicit ones on the panels; once every panel is open, the content minimums alone
-(Info's four lines, the Properties scroll area) can still exceed a 1366x768 screen at 125%,
-and then the window grows to that irreducible minimum as before. Platform-neutral (a short
-Windows screen gets the same floors); only the panel allowance is Wayland-specific.
+the expanded sections' floors (later sections first, the Layers group last, then the
+Layers panel's own 240 px and the list's 120 px) until the window's minimum fits that
+budget; `clamp_window_to_available_screen` and every expand or visibility change call it,
+so an expand takes room from the column while the column has any to give. Once every
+panel is open, the content minimums alone (Info's four lines, the Properties scroll area)
+can still exceed a 1366x768 screen at 125%, and then the window grows to that irreducible
+minimum. Platform-neutral (a short Windows screen gets the same floors); only the panel
+allowance is Wayland-specific.
 `ui_right_dock_floors_fit_the_screen_height` covers it on the offscreen platform's 600 px
 screen. See [right-docks.md](right-docks.md).
 

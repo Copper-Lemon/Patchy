@@ -1049,7 +1049,7 @@ void ui_mcp_visible_idle_save_prompts_and_window_close() {
                   "if(!d.saveAs(" + path_json + ")) throw Error('save');");
   connection.edit("app.activeDocument.activeLayer.fill('#445566');");
   auto& host = window.script_engine_host();
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs && tabs->count() == 1);
 
   // Requests remain unattended, even though idle manual actions are interactive.

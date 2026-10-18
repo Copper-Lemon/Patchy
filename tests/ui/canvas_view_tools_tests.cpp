@@ -26,7 +26,6 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
-#include <QDockWidget>
 #include <QDoubleSpinBox>
 #include <QFormLayout>
 #include <QGridLayout>
@@ -54,6 +53,7 @@
 #include <QSpinBox>
 #include <QStringList>
 #include <QScrollArea>
+#include <QSplitter>
 #include <QScrollBar>
 #include <QSlider>
 #include <QStyle>
@@ -3042,9 +3042,10 @@ void ui_right_docks_collapse_layers_show_metadata_and_info_updates() {
   CHECK(!active_layer_adjustment->isVisible());
   CHECK(!active_layer_text->isVisible());
   CHECK(active_tool_info->text().contains(QStringLiteral("Brush")));
-  auto* layers_dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
-  auto* history_dock = window.findChild<QDockWidget*>(QStringLiteral("historyDock"));
-  auto* properties_dock = window.findChild<QDockWidget*>(QStringLiteral("propertiesDock"));
+  auto* panel_column = patchy::ui::MainWindowTestAccess::panel_column(window);
+  auto* layers_dock = patchy::ui::MainWindowTestAccess::panel_section(window, QStringLiteral("layersDock"));
+  auto* history_dock = patchy::ui::MainWindowTestAccess::panel_section(window, QStringLiteral("historyDock"));
+  auto* properties_dock = patchy::ui::MainWindowTestAccess::panel_section(window, QStringLiteral("propertiesDock"));
   auto* history_list = window.findChild<QListWidget*>(QStringLiteral("historyList"));
   auto* history_toggle = window.findChild<QToolButton*>(QStringLiteral("historyDockCollapseButton"));
   auto* properties_toggle = window.findChild<QToolButton*>(QStringLiteral("propertiesDockCollapseButton"));
@@ -3054,7 +3055,7 @@ void ui_right_docks_collapse_layers_show_metadata_and_info_updates() {
   CHECK(properties_dock != nullptr);
   CHECK(history_list != nullptr);
   // Opens at the content-fit width; the user can drag it narrower.
-  CHECK(layers_dock->width() >= 280);
+  CHECK(panel_column->width() >= 280);
   // The 300 px Layers floor holds unless the screen is too short for it, in
   // which case it yields exactly enough for the window to fit (GitHub issue 108).
   CHECK(layers_dock->minimumHeight() >= 300 ||
@@ -3081,7 +3082,7 @@ void ui_right_docks_collapse_layers_show_metadata_and_info_updates() {
   CHECK(history_toggle != nullptr);
   CHECK(properties_toggle != nullptr);
   CHECK(info_toggle != nullptr);
-  CHECK(window.findChild<QDockWidget*>(QStringLiteral("swatchesDock")) == nullptr);
+  CHECK(window.findChild<QWidget*>(QStringLiteral("swatchesDock")) == nullptr);
   CHECK(history_toggle->text() == QStringLiteral(">"));
   CHECK(properties_toggle->text() == QStringLiteral(">"));
   CHECK(info_toggle->text() == QStringLiteral(">"));
@@ -3096,7 +3097,7 @@ void ui_right_docks_collapse_layers_show_metadata_and_info_updates() {
   CHECK(history_row_height > 0);
   CHECK(history_toggle->text() == QStringLiteral("v"));
   // The expanded floor stays low so panel state cannot force the window
-  // taller; the 190px working height arrives through resizeDocks instead.
+  // taller; the 190px working height comes from its neighbors instead.
   CHECK(history_dock->minimumHeight() >= 90);
   CHECK(history_dock->minimumHeight() <= 120);
   CHECK(history_dock->height() >= 190);
@@ -3105,17 +3106,17 @@ void ui_right_docks_collapse_layers_show_metadata_and_info_updates() {
   history_toggle->setChecked(false);
   QApplication::processEvents();
   QApplication::processEvents();
-  // Collapsed docks all pin min == max to the title-bar height: none may show
-  // a dead strip under its header (History used to sit 8px taller).
-  auto* info_dock = window.findChild<QDockWidget*>(QStringLiteral("infoDock"));
-  auto* palette_dock = window.findChild<QDockWidget*>(QStringLiteral("paletteDock"));
+  // Collapsed sections are exactly their title rows: none may show a dead
+  // strip under its header (History used to sit 8px taller).
+  auto* info_dock = patchy::ui::MainWindowTestAccess::panel_section(window, QStringLiteral("infoDock"));
+  auto* palette_dock = patchy::ui::MainWindowTestAccess::panel_section(window, QStringLiteral("paletteDock"));
   CHECK(info_dock != nullptr);
   CHECK(palette_dock != nullptr);
   CHECK(history_dock->height() == properties_dock->height());
   CHECK(history_dock->height() == info_dock->height());
   CHECK(history_dock->height() == palette_dock->height());
-  CHECK(layers_dock->width() >= 260);
-  const auto dock_width_before_resize = layers_dock->width();
+  CHECK(panel_column->width() >= 260);
+  const auto dock_width_before_resize = panel_column->width();
   auto* dock_resize_handle = window.findChild<QWidget*>(QStringLiteral("rightDockResizeHandle"));
   CHECK(dock_resize_handle != nullptr);
   const auto dock_resize_point = dock_resize_handle->rect().center();
@@ -3124,12 +3125,11 @@ void ui_right_docks_collapse_layers_show_metadata_and_info_updates() {
              Qt::LeftButton);
   send_mouse(*dock_resize_handle, QEvent::MouseButtonRelease, dock_resize_point + QPoint(-90, 0), Qt::LeftButton,
              Qt::NoButton);
-  // The width lands on the column's bottom dock and reaches the rest of the
-  // stack in the next layout pass.
   QApplication::processEvents();
-  CHECK(layers_dock->width() > dock_width_before_resize + 40);
-  // The whole stack, palette included, follows the pinned width.
+  CHECK(panel_column->width() > dock_width_before_resize + 40);
+  // Every section, palette included, spans the column.
   CHECK(palette_dock->width() == layers_dock->width());
+  CHECK(layers_dock->width() == panel_column->width());
 
   auto* row_widget = layer_list->itemWidget(layer_list->item(0));
   CHECK(row_widget != nullptr);
@@ -3819,7 +3819,7 @@ void ui_right_dock_panels_expand_within_window_height() {
 
   int docks_height = 0;
   for (const auto* name : {"layersDock", "historyDock", "propertiesDock", "infoDock", "paletteDock"}) {
-    const auto* dock = window.findChild<QDockWidget*>(QLatin1String(name));
+    const auto* dock = patchy::ui::MainWindowTestAccess::panel_section(window, QLatin1String(name));
     CHECK(dock != nullptr);
     CHECK(dock->height() <= window.height());
     docks_height += dock->height();
@@ -3835,7 +3835,7 @@ void ui_right_dock_panels_expand_within_window_height() {
 void ui_right_dock_floors_fit_the_screen_height() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* layers_dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
+  auto* layers_dock = patchy::ui::MainWindowTestAccess::panel_section(window, QStringLiteral("layersDock"));
   CHECK(layers_dock != nullptr);
   if (layers_dock == nullptr) {
     return;
@@ -3845,8 +3845,7 @@ void ui_right_dock_floors_fit_the_screen_height() {
   const int real_budget = patchy::ui::MainWindowTestAccess::available_window_height(window);
   CHECK(real_budget > 0);
   CHECK(window.minimumSizeHint().height() <= real_budget);
-  // Qt re-derives a dock's explicit minimum from its content at every layout
-  // activation, so this reads as the 300 px floor or the content's minimum.
+  // The tab group's 300 px floor.
   const int layers_floor_before = layers_dock->minimumHeight();
   CHECK(layers_floor_before > 200);
   const int budget = window.minimumSizeHint().height() - 30;
@@ -3876,7 +3875,7 @@ void ui_right_dock_floors_fit_the_screen_height() {
     QApplication::processEvents();
     CHECK(window.height() == budget);
     CHECK(window.minimumSizeHint().height() <= budget);
-    const auto* properties_dock = window.findChild<QDockWidget*>(QStringLiteral("propertiesDock"));
+    const auto* properties_dock = patchy::ui::MainWindowTestAccess::panel_section(window, QStringLiteral("propertiesDock"));
     CHECK(properties_dock != nullptr && properties_dock->height() > 40);
     CHECK(layers_dock->height() < layers_floor_before);
   }
@@ -3894,13 +3893,13 @@ void ui_right_dock_floors_fit_the_screen_height() {
     QApplication::processEvents();
     QApplication::processEvents();
     CHECK(window.height() <= std::max(budget, window.minimumSizeHint().height()));
-    CHECK(layers_dock->minimumHeight() <= layers_dock->minimumSizeHint().height());
+    CHECK(layers_dock->minimumHeight() <= 300);
   }
   for (const auto* name : {"layersDock", "historyDock", "propertiesDock", "infoDock", "paletteDock"}) {
-    const auto* dock = window.findChild<QDockWidget*>(QLatin1String(name));
+    const auto* dock = patchy::ui::MainWindowTestAccess::panel_section(window, QLatin1String(name));
     CHECK(dock != nullptr);
     if (dock != nullptr) {
-      CHECK(dock->geometry().bottom() < window.height());
+      CHECK(QRect(dock->mapTo(&window, QPoint(0, 0)), dock->size()).bottom() < window.height());
     }
   }
   // Collapsing and re-expanding Layers re-asserts its 300 px floor, which must
@@ -3924,25 +3923,23 @@ void ui_right_dock_floors_fit_the_screen_height() {
 void ui_collapsed_right_docks_have_uniform_title_height() {
   patchy::ui::MainWindow window;
   show_window(window);
-  // History/Properties/Info/Palette all start collapsed: each renders as the
-  // bare title strip, pinned min == max, with no dead band under the header
-  // (History used to sit 8px taller than its neighbors) and at the shared
-  // stack width (Palette used to keep its own minimum and render as a
-  // shorter strip).
+  // History/Properties/Info/Palette all start collapsed: each section is exactly its
+  // title row (min == max), with no dead band under the header, at the column width.
   int first_height = -1;
-  int first_width = -1;
-  for (const auto* name : {"historyDock", "propertiesDock", "infoDock", "paletteDock"}) {
-    auto* dock = window.findChild<QDockWidget*>(QLatin1String(name));
-    CHECK(dock != nullptr);
-    CHECK(dock->titleBarWidget() != nullptr);
+  for (const auto* prefix : {"history", "properties", "info", "palette"}) {
+    auto* dock = patchy::ui::MainWindowTestAccess::panel_section(window, QLatin1String(prefix) + QStringLiteral("Dock"));
+    auto* title = window.findChild<QWidget*>(QLatin1String(prefix) + QStringLiteral("DockTitle"));
+    CHECK(dock != nullptr && title != nullptr);
+    if (dock == nullptr || title == nullptr) {
+      continue;
+    }
     CHECK(dock->minimumHeight() == dock->maximumHeight());
-    CHECK(dock->height() <= dock->titleBarWidget()->sizeHint().height() + 4);
+    CHECK(dock->height() <= title->sizeHint().height() + 4);
     if (first_height < 0) {
       first_height = dock->height();
-      first_width = dock->width();
     }
     CHECK(dock->height() == first_height);
-    CHECK(dock->width() == first_width);
+    CHECK(dock->width() == patchy::ui::MainWindowTestAccess::panel_column(window)->width());
   }
   save_widget_artifact("ui_collapsed_right_docks_uniform_titles", window);
 }
@@ -3953,38 +3950,38 @@ void ui_collapsed_right_docks_have_uniform_title_height() {
 void ui_tabbed_right_dock_group_collapses_as_one() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* layers = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
-  auto* channels = window.findChild<QDockWidget*>(QStringLiteral("channelsDock"));
-  auto* paths = window.findChild<QDockWidget*>(QStringLiteral("pathsDock"));
+  auto* column = patchy::ui::MainWindowTestAccess::panel_column(window);
+  auto* group = patchy::ui::MainWindowTestAccess::panel_section(window, QStringLiteral("layersDock"));
   auto* layers_toggle = window.findChild<QToolButton*>(QStringLiteral("layersDockCollapseButton"));
   auto* channels_toggle = window.findChild<QToolButton*>(QStringLiteral("channelsDockCollapseButton"));
   auto* paths_toggle = window.findChild<QToolButton*>(QStringLiteral("pathsDockCollapseButton"));
-  CHECK(layers != nullptr && channels != nullptr && paths != nullptr);
+  auto* tab_bar = column->tab_bar(QStringLiteral("layersDock"));
+  CHECK(group != nullptr && tab_bar != nullptr);
   CHECK(layers_toggle != nullptr && channels_toggle != nullptr && paths_toggle != nullptr);
-  if (layers == nullptr || channels == nullptr || paths == nullptr || layers_toggle == nullptr ||
-      channels_toggle == nullptr || paths_toggle == nullptr) {
+  if (group == nullptr || tab_bar == nullptr || layers_toggle == nullptr || channels_toggle == nullptr ||
+      paths_toggle == nullptr) {
     return;
   }
-  CHECK(window.tabifiedDockWidgets(layers).contains(channels));
+  CHECK(group == patchy::ui::MainWindowTestAccess::panel_section(window, QStringLiteral("channelsDock")));
+  CHECK(group == patchy::ui::MainWindowTestAccess::panel_section(window, QStringLiteral("pathsDock")));
   CHECK(layers_toggle->isChecked() && channels_toggle->isChecked() && paths_toggle->isChecked());
-  const int expanded_height = layers->height();
+  const int expanded_height = group->height();
+  auto* layers_title = window.findChild<QWidget*>(QStringLiteral("layersDockTitle"));
 
   layers_toggle->setChecked(false);
   QApplication::processEvents();
   QApplication::processEvents();
   CHECK(!channels_toggle->isChecked() && !paths_toggle->isChecked());
-  for (auto* dock : {layers, channels, paths}) {
-    CHECK(dock->minimumHeight() == dock->maximumHeight());
-  }
-  CHECK(layers->height() <= layers->titleBarWidget()->sizeHint().height() + 4);
-  CHECK(layers->height() < expanded_height);
+  CHECK(group->minimumHeight() == group->maximumHeight());
+  CHECK(group->height() <= tab_bar->sizeHint().height() + layers_title->sizeHint().height() + 4);
+  CHECK(group->height() < expanded_height);
 
   // Expanding a hidden tab's toggle (or the shown one's) brings the group back.
   channels_toggle->setChecked(true);
   QApplication::processEvents();
   QApplication::processEvents();
   CHECK(layers_toggle->isChecked() && paths_toggle->isChecked());
-  CHECK(layers->maximumHeight() > layers->titleBarWidget()->sizeHint().height());
+  CHECK(group->maximumHeight() > tab_bar->sizeHint().height() + layers_title->sizeHint().height());
   save_widget_artifact("ui_tabbed_right_dock_group_collapses_as_one", window);
 }
 
@@ -4045,51 +4042,6 @@ void ui_short_panel_scroll_bar_drags_by_handle() {
   CHECK(vbar->value() > before);
 }
 
-void ui_tabbed_right_dock_drags_out_by_tab() {
-  // Docks dropped onto each other tabify; without GroupedDragging Qt ignores
-  // tab drags entirely, so a dock could be dragged INTO a tab group but
-  // never back out.
-  patchy::ui::MainWindow window;
-  show_window(window);
-  auto* info_dock = window.findChild<QDockWidget*>(QStringLiteral("infoDock"));
-  auto* palette_dock = window.findChild<QDockWidget*>(QStringLiteral("paletteDock"));
-  auto* properties_dock = window.findChild<QDockWidget*>(QStringLiteral("propertiesDock"));
-  CHECK(info_dock != nullptr);
-  CHECK(palette_dock != nullptr);
-  CHECK(properties_dock != nullptr);
-  window.tabifyDockWidget(info_dock, palette_dock);
-  window.tabifyDockWidget(info_dock, properties_dock);
-  palette_dock->raise();
-  QApplication::processEvents();
-  CHECK(window.tabifiedDockWidgets(palette_dock).size() == 2);
-  CHECK((window.dockOptions() & QMainWindow::GroupedDragging) != 0);
-
-  QTabBar* palette_tab_bar = nullptr;
-  int palette_tab_index = -1;
-  for (auto* tab_bar : window.findChildren<QTabBar*>()) {
-    for (int index = 0; index < tab_bar->count(); ++index) {
-      if (tab_bar->tabText(index) == QStringLiteral("Palette")) {
-        palette_tab_bar = tab_bar;
-        palette_tab_index = index;
-        break;
-      }
-    }
-  }
-  CHECK(palette_tab_bar != nullptr);
-
-  const auto start = palette_tab_bar->tabRect(palette_tab_index).center();
-  send_mouse(*palette_tab_bar, QEvent::MouseButtonPress, start, Qt::LeftButton, Qt::LeftButton);
-  for (int step = 1; step <= 8; ++step) {
-    send_mouse(*palette_tab_bar, QEvent::MouseMove, start + QPoint(-30 * step, 20 * step), Qt::NoButton,
-               Qt::LeftButton);
-    QApplication::processEvents();
-  }
-  send_mouse(*palette_tab_bar, QEvent::MouseButtonRelease, start + QPoint(-240, 160), Qt::LeftButton,
-             Qt::NoButton);
-  QApplication::processEvents();
-  CHECK(window.tabifiedDockWidgets(palette_dock).empty());
-}
-
 // The column drags narrower than its panels' content (GitHub issue 96): the
 // width the user picks is kept and each panel scrolls sideways, with the
 // scroll bar at the bottom, instead of the drag stopping at the content width.
@@ -4097,13 +4049,14 @@ void ui_right_dock_drags_below_content_minimum_with_scroll() {
   patchy::ui::MainWindow window;
   show_window(window);
   QApplication::processEvents();
-  auto* layers_dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
-  auto* history_dock = window.findChild<QDockWidget*>(QStringLiteral("historyDock"));
+  QWidget* layers_dock = patchy::ui::MainWindowTestAccess::panel_column(window);
+  auto* history_dock = patchy::ui::MainWindowTestAccess::panel_section(window, QStringLiteral("historyDock"));
   auto* delete_button = window.findChild<QPushButton*>(QStringLiteral("layerDeleteButton"));
   CHECK(layers_dock != nullptr && history_dock != nullptr && delete_button != nullptr);
-  auto* overflow = layers_dock->findChild<QScrollArea*>(QStringLiteral("rightDockOverflowScroll"));
-  auto* handle =
-      layers_dock->findChild<QWidget*>(QStringLiteral("rightDockResizeHandle"), Qt::FindDirectChildrenOnly);
+  // The Layers panel's own scroll area: findChild from the column finds a shallower one first.
+  auto* overflow = window.findChild<QWidget*>(QStringLiteral("layersDock"))
+                       ->findChild<QScrollArea*>(QStringLiteral("rightDockOverflowScroll"));
+  auto* handle = window.findChild<QWidget*>(QStringLiteral("rightDockResizeHandle"));
   CHECK(overflow != nullptr && handle != nullptr);
   const auto content_minimum = patchy::ui::MainWindowTestAccess::right_dock_content_minimum_width(window);
   CHECK(layers_dock->width() == content_minimum);
@@ -4113,8 +4066,9 @@ void ui_right_dock_drags_below_content_minimum_with_scroll() {
   const auto start = handle->rect().center();
   const auto narrow_delta = content_minimum - 200;
   CHECK(narrow_delta > 0);
+  // One move: the splitter handle travels with the drag, so a second move in its own
+  // coordinates would overshoot.
   QTest::mousePress(handle, Qt::LeftButton, Qt::NoModifier, start);
-  QTest::mouseMove(handle, start + QPoint(narrow_delta / 2, 0));
   QTest::mouseMove(handle, start + QPoint(narrow_delta, 0));
   QTest::mouseRelease(handle, Qt::LeftButton, Qt::NoModifier, start + QPoint(narrow_delta, 0));
   QApplication::processEvents();
@@ -4146,10 +4100,9 @@ void ui_right_dock_drag_snaps_to_content_width() {
   patchy::ui::MainWindow window;
   show_window(window);
   QApplication::processEvents();
-  auto* layers_dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
+  QWidget* layers_dock = patchy::ui::MainWindowTestAccess::panel_column(window);
   CHECK(layers_dock != nullptr);
-  auto* handle =
-      layers_dock->findChild<QWidget*>(QStringLiteral("rightDockResizeHandle"), Qt::FindDirectChildrenOnly);
+  auto* handle = window.findChild<QWidget*>(QStringLiteral("rightDockResizeHandle"));
   CHECK(handle != nullptr);
   const auto content_minimum = patchy::ui::MainWindowTestAccess::right_dock_content_minimum_width(window);
   const auto drag_by = [&](int dx) {
@@ -4183,10 +4136,9 @@ void ui_right_dock_drag_works_during_preview_dialog() {
   patchy::ui::MainWindow window;
   show_window(window);
   QApplication::processEvents();
-  auto* layers_dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
+  QWidget* layers_dock = patchy::ui::MainWindowTestAccess::panel_column(window);
   CHECK(layers_dock != nullptr);
-  auto* handle =
-      layers_dock->findChild<QWidget*>(QStringLiteral("rightDockResizeHandle"), Qt::FindDirectChildrenOnly);
+  auto* handle = window.findChild<QWidget*>(QStringLiteral("rightDockResizeHandle"));
   CHECK(handle != nullptr);
   const auto width_before = layers_dock->width();
   bool saw_dialog = false;
@@ -4217,51 +4169,9 @@ void ui_right_dock_drag_works_during_preview_dialog() {
   CHECK(width_during == width_before - 60);
 }
 
-void ui_right_dock_contents_clear_width_handle() {
-  // The 7px width handle overlays every right dock's left edge (so the
-  // column divider is grabbable along its whole height); titles and panel
-  // contents must carry a left inset that keeps them clear of it instead of
-  // butting against the divider.
-  patchy::ui::MainWindow window;
-  show_window(window);
-  for (const auto* name : {"historyDockCollapseButton", "propertiesDockCollapseButton",
-                           "infoDockCollapseButton", "paletteDockCollapseButton"}) {
-    auto* toggle = window.findChild<QToolButton*>(QLatin1String(name));
-    CHECK(toggle != nullptr);
-    toggle->setChecked(true);
-    QApplication::processEvents();
-  }
-  QApplication::processEvents();
-  QApplication::processEvents();
-
-  const auto dock_left_inset = [&window](const char* dock_name, QWidget* content) {
-    auto* dock = window.findChild<QDockWidget*>(QLatin1String(dock_name));
-    CHECK(dock != nullptr);
-    CHECK(content != nullptr);
-    auto* handle =
-        dock->findChild<QWidget*>(QStringLiteral("rightDockResizeHandle"), Qt::FindDirectChildrenOnly);
-    CHECK(handle != nullptr);
-    CHECK(handle->width() >= 7);
-    return content->mapTo(&window, QPoint(0, 0)).x() - dock->mapTo(&window, QPoint(0, 0)).x();
-  };
-
-  CHECK(dock_left_inset("layersDock", window.findChild<QComboBox*>(QStringLiteral("layerBlendModeCombo"))) >= 13);
-  CHECK(dock_left_inset("historyDock", window.findChild<QListWidget*>(QStringLiteral("historyList"))) >= 7);
-  CHECK(dock_left_inset("propertiesDock", window.findChild<QLabel*>(QStringLiteral("documentInfoLabel"))) >= 13);
-  CHECK(dock_left_inset("infoDock", window.findChild<QLabel*>(QStringLiteral("canvasInfoLabel"))) >= 15);
-  CHECK(dock_left_inset("paletteDock", window.findChild<QComboBox*>(QStringLiteral("palettePresetCombo"))) >= 13);
-  CHECK(dock_left_inset("channelsDock", window.findChild<QListWidget*>(QStringLiteral("channelList"))) >= 13);
-  CHECK(dock_left_inset("pathsDock", window.findChild<QListWidget*>(QStringLiteral("pathsList"))) >= 13);
-  // The collapse toggle in the title bar clears the handle too.
-  CHECK(dock_left_inset("historyDock",
-                        window.findChild<QToolButton*>(QStringLiteral("historyDockCollapseButton"))) >= 14);
-}
-
 void ui_right_dock_separator_drags_between_docks() {
-  // The horizontal QMainWindow separators between the right docks stay
-  // draggable: the boost/release expand scheme leaves expanded docks at low
-  // floors, so adjacent separators keep travel, and the separator band
-  // between two docks is never covered by another widget.
+  // The dividers between the column's sections stay draggable: expanded sections
+  // keep low floors, so a divider keeps travel either way.
   patchy::ui::MainWindow window;
   show_window(window);
   auto* history_toggle = window.findChild<QToolButton*>(QStringLiteral("historyDockCollapseButton"));
@@ -4270,199 +4180,22 @@ void ui_right_dock_separator_drags_between_docks() {
   QApplication::processEvents();
   QApplication::processEvents();
 
-  auto* layers_dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
-  auto* history_dock = window.findChild<QDockWidget*>(QStringLiteral("historyDock"));
-  CHECK(layers_dock != nullptr);
-  CHECK(history_dock != nullptr);
-  const auto layers_rect = QRect(layers_dock->mapTo(&window, QPoint(0, 0)), layers_dock->size());
-  const auto history_rect = QRect(history_dock->mapTo(&window, QPoint(0, 0)), history_dock->size());
-  const auto gap = history_rect.top() - layers_rect.bottom() - 1;
-  CHECK(gap >= 5);
-
-  const QPoint start(layers_rect.center().x(), (layers_rect.bottom() + history_rect.top()) / 2 + 1);
-  CHECK(window.childAt(start) == nullptr);
+  auto* column = patchy::ui::MainWindowTestAccess::panel_column(window);
+  auto* layers_dock = patchy::ui::MainWindowTestAccess::panel_section(window, QStringLiteral("layersDock"));
+  auto* history_dock = patchy::ui::MainWindowTestAccess::panel_section(window, QStringLiteral("historyDock"));
+  CHECK(column != nullptr && layers_dock != nullptr && history_dock != nullptr);
+  auto* divider = column->splitter()->handle(1);
+  CHECK(divider != nullptr && divider->height() >= 5);
+  CHECK(divider->geometry().top() > layers_dock->geometry().bottom());
+  CHECK(divider->geometry().bottom() < history_dock->geometry().top());
   const auto layers_before = layers_dock->height();
-  send_mouse(window, QEvent::MouseButtonPress, start, Qt::LeftButton, Qt::LeftButton);
-  for (int step = 1; step <= 4; ++step) {
-    send_mouse(window, QEvent::MouseMove, start + QPoint(0, -12 * step), Qt::NoButton, Qt::LeftButton);
-    QApplication::processEvents();
-  }
-  send_mouse(window, QEvent::MouseButtonRelease, start + QPoint(0, -48), Qt::LeftButton, Qt::NoButton);
+  const auto start = divider->rect().center();
+  QTest::mousePress(divider, Qt::LeftButton, Qt::NoModifier, start);
+  QTest::mouseMove(divider, start + QPoint(0, -24));
+  QTest::mouseMove(divider, start + QPoint(0, -48));
+  QTest::mouseRelease(divider, Qt::LeftButton, Qt::NoModifier, start + QPoint(0, -48));
   QApplication::processEvents();
   CHECK(layers_dock->height() < layers_before);
-}
-
-void ui_floating_right_dock_auto_expands() {
-  // Floating panels are always expanded: a collapsed strip is pinned to
-  // min == max and Qt cannot plug that into a floating tab group, so pulling
-  // a panel out expands it, and the collapse toggle only shows while the
-  // panel sits in the main window's column.
-  patchy::ui::MainWindow window;
-  show_window(window);
-  auto* info_dock = window.findChild<QDockWidget*>(QStringLiteral("infoDock"));
-  auto* info_toggle = window.findChild<QToolButton*>(QStringLiteral("infoDockCollapseButton"));
-  CHECK(info_dock != nullptr);
-  CHECK(info_toggle != nullptr);
-  auto* handle =
-      info_dock->findChild<QWidget*>(QStringLiteral("rightDockResizeHandle"), Qt::FindDirectChildrenOnly);
-  CHECK(handle != nullptr);
-  CHECK(handle->isVisibleTo(info_dock));
-  CHECK(!info_toggle->isChecked());
-  CHECK(info_toggle->isVisibleTo(info_dock));
-  const auto collapsed_height = info_dock->height();
-
-  info_dock->setFloating(true);
-  QApplication::processEvents();
-  QApplication::processEvents();
-  QApplication::processEvents();
-  CHECK(info_dock->isFloating());
-  // Auto-expanded, toggle and column-width handle hidden while out.
-  CHECK(info_toggle->isChecked());
-  CHECK(!info_toggle->isVisibleTo(info_dock));
-  CHECK(!handle->isVisibleTo(info_dock));
-  auto* info_label = window.findChild<QLabel*>(QStringLiteral("canvasInfoLabel"));
-  CHECK(info_label != nullptr);
-  CHECK(info_label->isVisibleTo(info_dock));
-  CHECK(info_dock->height() > collapsed_height + 40);
-
-  // The floating dock gets the same widened chrome as a tab-group window:
-  // real frame margins, edge cursors, and strip presses resizing it.
-  CHECK(info_dock->contentsMargins().left() >= 8);
-  CHECK(info_dock->property("floatingChrome").toBool());
-  const QPointF strip_point(3, info_dock->height() / 2);
-  QHoverEvent strip_hover(QEvent::HoverMove, strip_point, QPointF(), strip_point - QPointF(0, 1));
-  QApplication::sendEvent(info_dock, &strip_hover);
-  CHECK(info_dock->cursor().shape() == Qt::SizeHorCursor);
-  const auto geometry_before_resize = info_dock->geometry();
-  const auto strip_local = strip_point.toPoint();
-  const auto strip_global = info_dock->mapToGlobal(strip_local);
-  QMouseEvent strip_press(QEvent::MouseButtonPress, strip_local, strip_global, Qt::LeftButton, Qt::LeftButton,
-                          Qt::NoModifier);
-  QApplication::sendEvent(info_dock, &strip_press);
-  QMouseEvent strip_move(QEvent::MouseMove, strip_local, strip_global + QPoint(-20, 0), Qt::NoButton,
-                         Qt::LeftButton, Qt::NoModifier);
-  QApplication::sendEvent(info_dock, &strip_move);
-  QMouseEvent strip_release(QEvent::MouseButtonRelease, strip_local, strip_global + QPoint(-20, 0),
-                            Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
-  QApplication::sendEvent(info_dock, &strip_release);
-  QApplication::processEvents();
-  CHECK(info_dock->geometry().width() == geometry_before_resize.width() + 20);
-  CHECK(info_dock->geometry().x() == geometry_before_resize.x() - 20);
-
-  // NOTE: interior (title/content) presses on a floating dock must pass
-  // through to QDockWidget, whose title drag is the only path that tracks
-  // drop targets and re-docks; the chrome handler claims only the frame
-  // strip. Qt's drop-plug does not complete under synthetic events, so that
-  // contract is verified manually; the strip-resize checks above pin the
-  // handler's half.
-  info_dock->setFloating(false);
-  QApplication::processEvents();
-  QApplication::processEvents();
-  QApplication::processEvents();
-  CHECK(!info_dock->isFloating());
-  CHECK(handle->isVisibleTo(info_dock));
-  CHECK(info_toggle->isVisibleTo(info_dock));
-  // The panel stays expanded after re-docking, and the floating chrome
-  // (frame margins, styling property) is fully removed.
-  CHECK(info_toggle->isChecked());
-  CHECK(info_label->isVisibleTo(info_dock));
-  CHECK(info_dock->contentsMargins().left() == 0);
-  CHECK(!info_dock->property("floatingChrome").toBool());
-}
-
-void ui_tabbed_dock_title_drag_floats_single_dock() {
-  // Dragging the collapsible title of a tabbed dock detaches that dock alone
-  // (like dragging its tab) with the grab point kept under the cursor.
-  // GroupedDragging would otherwise float the whole tab group, whose window
-  // is broken with custom title bars.
-  patchy::ui::MainWindow window;
-  show_window(window);
-  auto* layers_dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
-  auto* channels_dock = window.findChild<QDockWidget*>(QStringLiteral("channelsDock"));
-  auto* paths_dock = window.findChild<QDockWidget*>(QStringLiteral("pathsDock"));
-  CHECK(layers_dock != nullptr);
-  CHECK(channels_dock != nullptr);
-  CHECK(paths_dock != nullptr);
-  CHECK(window.tabifiedDockWidgets(layers_dock).size() == 2);
-
-  auto* title = layers_dock->titleBarWidget();
-  const auto press_in_dock = QPoint(title->geometry().center().x(), title->geometry().center().y());
-  const auto press_global = layers_dock->mapToGlobal(press_in_dock);
-  send_mouse(*layers_dock, QEvent::MouseButtonPress, press_in_dock, Qt::LeftButton, Qt::LeftButton);
-  QApplication::processEvents();
-  CHECK(!layers_dock->isFloating());
-
-  const auto target_global = press_global + QPoint(-260, 120);
-  for (int step = 1; step <= 6; ++step) {
-    const auto t = static_cast<double>(step) / 6.0;
-    const QPoint global(press_global.x() + (target_global.x() - press_global.x()) * t,
-                        press_global.y() + (target_global.y() - press_global.y()) * t);
-    QMouseEvent move(QEvent::MouseMove, layers_dock->mapFromGlobal(global), global, Qt::NoButton,
-                     Qt::LeftButton, Qt::NoModifier);
-    QApplication::sendEvent(layers_dock, &move);
-    QApplication::processEvents();
-  }
-  CHECK(layers_dock->isFloating());
-  // The single dock detached: the rest of the tab group stayed docked.
-  CHECK(!channels_dock->isFloating());
-  CHECK(!paths_dock->isFloating());
-  CHECK(window.tabifiedDockWidgets(layers_dock).isEmpty());
-  // No jump: the grab offset within the dock is preserved at the drop point.
-  CHECK((layers_dock->pos() - (target_global - press_in_dock)).manhattanLength() <= 2);
-
-  QMouseEvent release(QEvent::MouseButtonRelease, layers_dock->mapFromGlobal(target_global), target_global,
-                      Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
-  QApplication::sendEvent(layers_dock, &release);
-  QApplication::processEvents();
-  CHECK(layers_dock->isFloating());
-}
-
-// GitHub issue 102: on Wayland an app cannot place its own windows, and a panel turned
-// into a window mid-drag lost the button release, leaving Qt holding the mouse. There the
-// right-dock panels stay in the column (PATCHY_FIXED_PANELS=1 forces that here): neither
-// the title drag nor Qt's own drag can float or move them, and collapse still works.
-void ui_right_docks_stay_in_column_where_windows_cannot_be_placed() {
-  qputenv("PATCHY_FIXED_PANELS", "1");
-  const auto restore = qScopeGuard([] { qunsetenv("PATCHY_FIXED_PANELS"); });
-  patchy::ui::MainWindow window;
-  show_window(window);
-  auto* layers_dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
-  CHECK(layers_dock != nullptr);
-  if (layers_dock == nullptr) {
-    return;
-  }
-  for (const auto* name : {"layersDock", "channelsDock", "pathsDock", "historyDock", "propertiesDock", "infoDock",
-                           "paletteDock"}) {
-    auto* dock = window.findChild<QDockWidget*>(QLatin1String(name));
-    CHECK(dock != nullptr);
-    if (dock != nullptr) {
-      CHECK(!dock->features().testFlag(QDockWidget::DockWidgetFloatable));
-      CHECK(!dock->features().testFlag(QDockWidget::DockWidgetMovable));
-    }
-  }
-
-  auto* title = layers_dock->titleBarWidget();
-  const auto press_in_dock = title->geometry().center();
-  const auto press_global = layers_dock->mapToGlobal(press_in_dock);
-  send_mouse(*layers_dock, QEvent::MouseButtonPress, press_in_dock, Qt::LeftButton, Qt::LeftButton);
-  for (int step = 1; step <= 6; ++step) {
-    const QPoint global = press_global + QPoint(-40 * step, 20 * step);
-    QMouseEvent move(QEvent::MouseMove, layers_dock->mapFromGlobal(global), global, Qt::NoButton, Qt::LeftButton,
-                     Qt::NoModifier);
-    QApplication::sendEvent(layers_dock, &move);
-    QApplication::processEvents();
-  }
-  const QPoint end = press_global + QPoint(-240, 120);
-  QMouseEvent release(QEvent::MouseButtonRelease, layers_dock->mapFromGlobal(end), end, Qt::LeftButton,
-                      Qt::NoButton, Qt::NoModifier);
-  QApplication::sendEvent(layers_dock, &release);
-  QApplication::processEvents();
-  CHECK(!layers_dock->isFloating());
-  CHECK(window.tabifiedDockWidgets(layers_dock).size() == 2);
-  CHECK(QWidget::mouseGrabber() == nullptr);
-
-  auto* toggle = window.findChild<QToolButton*>(QStringLiteral("layersDockCollapseButton"));
-  CHECK(toggle != nullptr && toggle->isEnabled());
 }
 
 // Stands in for KDE's Breeze: polishing a widget installs an event filter on it,
@@ -4486,10 +4219,11 @@ private:
 };
 
 void ui_layer_action_button_foreign_drag_never_repolishes_in_filter() {
-  // GitHub issue 62: on Wayland a dock drag is a real QDrag, so the layer
-  // action buttons see drag events that carry no layers. Repolishing the
-  // button from inside its event filter froze Patchy under Breeze, whose
-  // polish() reinstalls filters and sends Qt's filter loop back to Patchy's.
+  // GitHub issue 62: the layer action buttons see drag events that carry no
+  // layers (on Wayland the old dock drags were real QDrags; any foreign drag
+  // still is). Repolishing the button from inside its event filter froze
+  // Patchy under Breeze, whose polish() reinstalls filters and sends Qt's
+  // filter loop back to Patchy's.
   FilterInstallingStyle style;
   patchy::ui::MainWindow window;
   show_window(window);
@@ -4502,7 +4236,7 @@ void ui_layer_action_button_foreign_drag_never_repolishes_in_filter() {
   style.polish_count = 0;
 
   QMimeData dock_drag;
-  dock_drag.setData(QStringLiteral("application/x-qt-mainwindowdrag-window"), QByteArray("1"));
+  dock_drag.setData(QStringLiteral("application/x-patchy-foreign-drag"), QByteArray("1"));
   QDragEnterEvent enter(button->rect().center(), Qt::MoveAction, &dock_drag, Qt::LeftButton, Qt::NoModifier);
   QApplication::sendEvent(button, &enter);
   QDragMoveEvent move(button->rect().center(), Qt::MoveAction, &dock_drag, Qt::LeftButton, Qt::NoModifier);
@@ -4514,104 +4248,6 @@ void ui_layer_action_button_foreign_drag_never_repolishes_in_filter() {
   QApplication::processEvents();
   CHECK(style.polish_count == 0);
   button->setStyle(nullptr);
-}
-
-void ui_dock_group_window_drags_by_blank_chrome() {
-  // Qt's floating dock tab-group window has no grabbable chrome: the blank
-  // strip beside the tabs must move the window, presses on the widened frame
-  // strip must resize it, and edge hovers must show a resize cursor. The
-  // private Qt class cannot be constructed here, so the handler's test seam
-  // (the patchy.dockGroupWindow property) stands in for it.
-  patchy::ui::MainWindow window;
-  show_window(window);
-
-  QWidget group;
-  group.setProperty("patchy.dockGroupWindow", true);
-  auto* tab_bar = new QTabBar(&group);
-  tab_bar->addTab(QStringLiteral("Paths"));
-  tab_bar->addTab(QStringLiteral("Channels"));
-  tab_bar->setGeometry(0, 0, tab_bar->tabRect(1).right() + 80, 24);
-  group.resize(300, 200);
-  group.move(100, 100);
-  group.show();
-  QApplication::processEvents();
-
-  const auto send_group_mouse = [](QWidget& target, QEvent::Type type, QPoint local, QPoint global,
-                                   Qt::MouseButton button, Qt::MouseButtons buttons) {
-    QMouseEvent event(type, local, global, button, buttons, Qt::NoModifier);
-    QApplication::sendEvent(&target, &event);
-    QApplication::processEvents();
-  };
-
-  // Blank-area drag moves the window by the mouse delta. The platform may
-  // have repositioned the shown window, so compare relative to its actual
-  // position.
-  const auto position_before_drag = group.pos();
-  const QPoint press_local(150, 100);
-  auto press_global = group.mapToGlobal(press_local);
-  send_group_mouse(group, QEvent::MouseButtonPress, press_local, press_global, Qt::LeftButton,
-                   Qt::LeftButton);
-  send_group_mouse(group, QEvent::MouseMove, press_local, press_global + QPoint(40, 30), Qt::NoButton,
-                   Qt::LeftButton);
-  send_group_mouse(group, QEvent::MouseButtonRelease, press_local, press_global + QPoint(40, 30),
-                   Qt::LeftButton, Qt::NoButton);
-  CHECK(group.pos() == position_before_drag + QPoint(40, 30));
-
-  // Edge presses resize by dragging the widened frame strip.
-  const auto geometry_before_resize = group.geometry();
-  const QPoint edge_local(3, 100);
-  auto edge_global = group.mapToGlobal(edge_local);
-  send_group_mouse(group, QEvent::MouseButtonPress, edge_local, edge_global, Qt::LeftButton, Qt::LeftButton);
-  send_group_mouse(group, QEvent::MouseMove, edge_local, edge_global + QPoint(-25, 0), Qt::NoButton,
-                   Qt::LeftButton);
-  send_group_mouse(group, QEvent::MouseButtonRelease, edge_local, edge_global + QPoint(-25, 0),
-                   Qt::LeftButton, Qt::NoButton);
-  CHECK(group.geometry().x() == geometry_before_resize.x() - 25);
-  CHECK(group.geometry().width() == geometry_before_resize.width() + 25);
-  CHECK(group.geometry().height() == geometry_before_resize.height());
-  const auto position_before_edge_press = group.pos();
-
-  // Edge hovers show the resize cursor; interior hovers restore the default.
-  // Probe points derive from the current size (the window was just resized).
-  const QPointF right_corner(group.width() - 3, group.height() - 3);
-  const QPointF center(group.width() / 2, group.height() / 2);
-  QHoverEvent left_hover(QEvent::HoverMove, QPointF(3, group.height() / 2), QPointF(),
-                         QPointF(3, group.height() / 2 - 1));
-  QApplication::sendEvent(&group, &left_hover);
-  CHECK(group.cursor().shape() == Qt::SizeHorCursor);
-  QHoverEvent corner_hover(QEvent::HoverMove, right_corner, QPointF(), right_corner - QPointF(1, 1));
-  QApplication::sendEvent(&group, &corner_hover);
-  CHECK(group.cursor().shape() == Qt::SizeFDiagCursor);
-  QHoverEvent center_hover(QEvent::HoverMove, center, QPointF(), center - QPointF(1, 1));
-  QApplication::sendEvent(&group, &center_hover);
-  CHECK(group.cursor().shape() == Qt::ArrowCursor);
-  // Enter events carry the cursor onto the thin frame strip even when hover
-  // synthesis misses it, and entering a child clears the inherited shape.
-  const QPointF right_edge(group.width() - 3, group.height() / 2);
-  QEnterEvent enter_edge(right_edge, right_edge, QPointF(group.mapToGlobal(right_edge.toPoint())));
-  QApplication::sendEvent(&group, &enter_edge);
-  CHECK(group.cursor().shape() == Qt::SizeHorCursor);
-  QEnterEvent enter_child(QPointF(10, 10), QPointF(10, 10), QPointF(tab_bar->mapToGlobal(QPoint(10, 10))));
-  QApplication::sendEvent(tab_bar, &enter_child);
-  CHECK(group.cursor().shape() == Qt::ArrowCursor);
-  const QPointF bottom_edge(group.width() / 2, group.height() - 3);
-  QEnterEvent enter_bottom(bottom_edge, bottom_edge, QPointF(group.mapToGlobal(bottom_edge.toPoint())));
-  QApplication::sendEvent(&group, &enter_bottom);
-  CHECK(group.cursor().shape() == Qt::SizeVerCursor);
-  QEvent leave_event(QEvent::Leave);
-  QApplication::sendEvent(&group, &leave_event);
-  CHECK(group.cursor().shape() == Qt::ArrowCursor);
-
-  // The blank stretch of the tab bar itself also drags the window.
-  const QPoint bar_local(tab_bar->tabRect(1).right() + 40, 12);
-  CHECK(tab_bar->tabAt(bar_local) < 0);
-  auto bar_global = tab_bar->mapToGlobal(bar_local);
-  send_group_mouse(*tab_bar, QEvent::MouseButtonPress, bar_local, bar_global, Qt::LeftButton, Qt::LeftButton);
-  send_group_mouse(*tab_bar, QEvent::MouseMove, bar_local, bar_global + QPoint(-30, 20), Qt::NoButton,
-                   Qt::LeftButton);
-  send_group_mouse(*tab_bar, QEvent::MouseButtonRelease, bar_local, bar_global + QPoint(-30, 20),
-                   Qt::LeftButton, Qt::NoButton);
-  CHECK(group.pos() == position_before_edge_press + QPoint(-30, 20));
 }
 
 void ui_menu_disabled_items_render_grayed() {
@@ -4729,20 +4365,13 @@ std::vector<patchy::test::TestCase> canvas_view_tools_tests() {
        ui_collapsed_right_docks_have_uniform_title_height},
       {"ui_tabbed_right_dock_group_collapses_as_one", ui_tabbed_right_dock_group_collapses_as_one},
       {"ui_right_dock_separator_drags_between_docks", ui_right_dock_separator_drags_between_docks},
-      {"ui_right_dock_contents_clear_width_handle", ui_right_dock_contents_clear_width_handle},
       {"ui_right_dock_drags_below_content_minimum_with_scroll",
        ui_right_dock_drags_below_content_minimum_with_scroll},
       {"ui_right_dock_drag_snaps_to_content_width", ui_right_dock_drag_snaps_to_content_width},
       {"ui_right_dock_drag_works_during_preview_dialog", ui_right_dock_drag_works_during_preview_dialog},
       {"ui_short_panel_scroll_bar_drags_by_handle", ui_short_panel_scroll_bar_drags_by_handle},
-      {"ui_tabbed_right_dock_drags_out_by_tab", ui_tabbed_right_dock_drags_out_by_tab},
-      {"ui_floating_right_dock_auto_expands", ui_floating_right_dock_auto_expands},
-      {"ui_tabbed_dock_title_drag_floats_single_dock", ui_tabbed_dock_title_drag_floats_single_dock},
-      {"ui_right_docks_stay_in_column_where_windows_cannot_be_placed",
-       ui_right_docks_stay_in_column_where_windows_cannot_be_placed},
       {"ui_layer_action_button_foreign_drag_never_repolishes_in_filter",
        ui_layer_action_button_foreign_drag_never_repolishes_in_filter},
-      {"ui_dock_group_window_drags_by_blank_chrome", ui_dock_group_window_drags_by_blank_chrome},
       {"ui_menu_disabled_items_render_grayed", ui_menu_disabled_items_render_grayed},
   };
 }

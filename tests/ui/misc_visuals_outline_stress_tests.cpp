@@ -80,7 +80,7 @@ void ui_transparency_checkerboard_and_copy_paste_preserve_alpha() {
   require_action(window, "editCopyAction")->trigger();
   QApplication::processEvents();
 
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   accept_new_document_dialog(220, 180);
   require_action_by_text(window, QStringLiteral("New"))->trigger();

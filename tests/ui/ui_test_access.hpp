@@ -10,6 +10,7 @@
 #include "ui/document_float_window.hpp"
 #include "ui/export_documents_folder_dialog.hpp"
 #include "ui/main_window.hpp"
+#include "ui/panel_column.hpp"
 
 #include <QPoint>
 #include <QRect>
@@ -262,6 +263,14 @@ public:
     window.set_right_dock_stack_width(width);
   }
 
+  // The right-hand panel column (panel_column.hpp).
+  static PanelColumn* panel_column(MainWindow& window) { return window.panel_column_; }
+  // Opens, raises and expands a panel, as the Window menu does for a closed one.
+  static void show_panel(MainWindow& window, const QString& id) { window.show_panel(id); }
+  // A panel's section widget: the panel itself, or the whole tab group for a tab.
+  static QWidget* panel_section(MainWindow& window, const QString& id) {
+    return window.panel_column_ != nullptr ? window.panel_column_->section_widget(id) : nullptr;
+  }
   // The saved panel layout without the offscreen gate (panel_layout_persists), so a test
   // can write one window's layout and read it into the next before that one is shown.
   static void write_panel_layout(MainWindow& window) { window.write_panel_layout(); }

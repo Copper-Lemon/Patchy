@@ -21197,6 +21197,22 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
         <source>Reset Panels</source>
         <translation>Restablecer paneles</translation>
     </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation>Contraer panel</translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation>Expandir panel</translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation>Cerrar grupo de pestañas</translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
+        <translation>Cerrar panel</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

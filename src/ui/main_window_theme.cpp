@@ -29,38 +29,24 @@ namespace {
 // ui_theme_qss_resolves_every_token fails if a token has no matching role.
 QString photoshop_style_template() {
   return QStringLiteral(R"(
-    QMainWindow, QMenuBar, QMenu, QDockWidget, QWidget {
+    QMainWindow, QMenuBar, QMenu, QWidget {
       background: @window_bg;
       color: @text_primary;
       font-size: 12px;
     }
     QMainWindow {
-      /* The main window's only exposed pixels are the dock-area separator
-         gaps (Qt paints ::separator itself only mid-drag), so this is what
-         makes the resting dividers between panels visible. */
       background: @dock_separator_bg;
       border: 1px solid @window_border;
     }
-    QMainWindow::separator {
-      background: @dock_separator_bg;
-      width: 7px;
-      height: 7px;
-    }
-    QMainWindow::separator:hover {
-      background: @splitter_hover_bg;
-    }
-    QWidget#rightDockResizeHandle {
+    /* The panel column's dividers: its edge beside the document tabs
+       (rightDockResizeHandle) and the strips between its sections. Styled
+       through ::handle so the platform style draws no grip dots on them. */
+    QSplitter#workspaceSplitter::handle,
+    QSplitter#panelColumnSplitter::handle {
       background: @dock_separator_bg;
     }
-    /* Floating dock windows, single and tab-grouped: the widened resize
-       frame paints as divider chrome, and the border keeps the window's
-       boundary readable over a same-value canvas backdrop. */
-    QDockWidgetGroupWindow,
-    QDockWidget[floatingChrome="true"] {
-      background: @dock_separator_bg;
-      border: 1px solid @panel_border_strong;
-    }
-    QWidget#rightDockResizeHandle:hover {
+    QSplitter#workspaceSplitter::handle:hover,
+    QSplitter#panelColumnSplitter::handle:hover {
       background: @splitter_hover_bg;
     }
     QMenuBar {
@@ -378,11 +364,6 @@ QString photoshop_style_template() {
       background: @accent_checked_bg;
       border-color: @accent_checked_border;
       color: @text_on_accent;
-    }
-    QDockWidget::title {
-      background: @dock_title_bg;
-      padding: 5px;
-      border-bottom: 1px solid @panel_border_strong;
     }
     QWidget#historyDockTitle, QWidget#channelsDockTitle, QWidget#propertiesDockTitle, QWidget#infoDockTitle,
     QWidget#layersDockTitle, QWidget#pathsDockTitle, QWidget#paletteDockTitle {
@@ -826,12 +807,11 @@ QString photoshop_style_template() {
     QTabWidget::pane {
       border-top: 1px solid @tab_pane_border;
     }
-    /* The tab bars QMainWindow creates for tabified docks (and a floating
-       dock group's bar) are plain QTabBars whose base line the platform style
-       draws: Fusion paints a palette-light 1px line along the bar beside the
-       tabs, a stray white line next to Layers / Channels / Paths on Linux
-       (GitHub issue 123). The ::tab rules draw everything the bar needs. */
-    QMainWindow > QTabBar, QDockWidgetGroupWindow > QTabBar {
+    /* The panel tab group's bar draws no base line: Fusion paints a
+       palette-light 1px line along the bar beside the tabs, a stray white
+       line next to Layers / Channels / Paths on Linux (GitHub issue 123).
+       The ::tab rules draw everything the bar needs. */
+    QTabBar#panelTabGroupTabBar {
       qproperty-drawBase: 0;
     }
     QTabBar::tab {

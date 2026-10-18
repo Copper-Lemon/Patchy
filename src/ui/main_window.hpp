@@ -76,10 +76,13 @@ class QMimeData;
 class QPushButton;
 namespace patchy::ui {
 class ColorWellSwatch;
+class PanelColumn;
+struct PanelSpec;
 class ToolPaletteFooter;
 }  // namespace patchy::ui
 class QShowEvent;
 class QSlider;
+class QSplitter;
 class QSpinBox;
 class QTabWidget;
 class QTextCharFormat;
@@ -485,25 +488,22 @@ private:
   // Wayland, a strip for a shell panel the compositor never reports. -1 with no
   // screen.
   [[nodiscard]] int available_window_height() const;
-  // Lowers the expanded right-dock floors (the Layers panel's 300 px first of
-  // all) until the window's minimum height fits available_window_height(), so
-  // a small screen or a large interface scale never leaves the bottom of the
-  // column off-screen (GitHub issue 108). yielding_dock, when given, gives up
-  // its expand demand before any other dock shrinks.
-  void fit_right_dock_floors_to_screen(QDockWidget* yielding_dock = nullptr);
+  // Lowers the expanded panel floors (later sections first, the Layers group last)
+  // until the window's minimum height fits available_window_height(), so a small
+  // screen or a large interface scale never leaves the bottom of the column
+  // off-screen (GitHub issue 108).
+  void fit_right_dock_floors_to_screen();
   void save_window_geometry() const;
   bool restore_window_geometry();
+  // The panel column's first show: measure the content-fit width once laid out.
   bool handle_right_dock_resize_event(QObject* watched, QEvent* event);
-  bool handle_right_dock_title_drag_event(QObject* watched, QEvent* event);
-  bool handle_dock_group_window_event(QObject* watched, QEvent* event);
-  void handle_right_dock_panel_toggled(QDockWidget* dock, bool expanded, int expanded_minimum_height);
-  void refresh_collapsed_right_dock_heights();
-  void install_right_dock_width_handle(QDockWidget* dock);
-  void update_right_dock_resize_handle_geometry(QWidget* host);
+  // A width the user or a script picks for the panel column (clamped, never snapped).
   void set_right_dock_stack_width(int width);
-  // The handle drag: set_right_dock_stack_width, snapped to the content-fit width nearby.
-  void drag_right_dock_stack_width(int width);
-  void pin_right_dock_stack_width(int target_width);
+  // Sets the workspace splitter so the panel column is exactly `width` wide.
+  void apply_right_column_width(int width);
+  // The column edge was dragged: snaps to the content-fit width nearby, else keeps the
+  // dragged width as picked.
+  void handle_right_column_moved();
   void reapply_right_dock_stack_width();
   void update_right_dock_minimum_width();
   bool handle_window_resize_event(QObject* watched, QEvent* event);
@@ -528,6 +528,15 @@ private:
   // text each time the menu opens (GitHub issue 163). Runs once, after create_docks.
   void install_window_panel_entries();
   void sort_window_panel_entries();
+  // The panel and toolbar toggles in the current language's alphabetical order.
+  [[nodiscard]] std::vector<QAction*> sorted_window_panel_actions() const;
+  // Photoshop's rule for a panel picked from the Window menu: one that is open, in
+  // front and expanded closes; any other opens, comes to the front and expands.
+  void toggle_window_panel(const QString& panel_id);
+  void show_panel(const QString& panel_id);
+  // Right-click on a panel's title row or tab: collapse/expand, close, the panel
+  // toggles and Reset Panels.
+  void show_panel_header_menu(const QString& panel_id, const QPoint& global_position, bool on_tab_bar);
   // The saved panel layout (docs/right-docks.md "Saved panel layout"): which panels and
   // toolbars are closed, which are collapsed, the tab group's front panel and a picked
   // column width. Read once after the window geometry, written on a consented close;
@@ -541,7 +550,7 @@ private:
   void apply_collapsed_panels(const QStringList& collapsed);
   // Window > Reset Panels: the first-launch layout, column width included.
   void reset_panels();
-  void create_palette_dock();
+  void create_palette_dock(std::vector<PanelSpec>& specs);
   // Palette (indexed) mode plumbing. Every document-palette mutation goes through
   // these so the undo snapshot, the revision bump (app-globally unique values,
   // keying the canvas LUT cache), the indexed_palette export mirror, and the UI
@@ -2093,9 +2102,7 @@ private:
   QListWidget* layer_list_{nullptr};
   QLineEdit* layer_name_filter_edit_{nullptr};
   ChannelPanel* channel_panel_{nullptr};
-  QDockWidget* channel_dock_{nullptr};
   PathsPanel* paths_panel_{nullptr};
-  QDockWidget* paths_dock_{nullptr};
   std::optional<patchy::DocumentPathId> active_document_path_id_;
   // True while Stroke Path replays synthetic brush input: the per-stroke undo
   // pushes from the canvas's before-edit callback are suppressed so the whole
@@ -2431,7 +2438,10 @@ private:
   QToolButton* mask_edit_mode_chip_{nullptr};
   // Palette (indexed) mode UI: dock panel, status chip, advisory compliance scan.
   PalettePanel* palette_panel_{nullptr};
-  QDockWidget* palette_dock_{nullptr};
+  // The right-hand panel column (panel_column.hpp) and the splitter that puts it
+  // beside the document tabs; the splitter is the central widget.
+  PanelColumn* panel_column_{nullptr};
+  QSplitter* workspace_splitter_{nullptr};
   QToolButton* palette_mode_chip_{nullptr};
   QTimer* palette_compliance_timer_{nullptr};
   bool palette_compliance_clean_{true};
@@ -2752,30 +2762,12 @@ private:
   bool pending_layer_opacity_edit_active_{false};
   bool pending_layer_fill_opacity_edit_active_{false};
   bool pending_layer_blend_edit_active_{false};
-  bool right_dock_resizing_{false};
-  QPoint right_dock_resize_start_global_;
-  int right_dock_resize_start_width_{0};
-  // Title-drag detach for tabbed right docks (see
-  // handle_right_dock_title_drag_event): the dock being tracked, where the
-  // press landed, and its offset within the dock so the float keeps the grab
-  // point under the cursor.
-  QPointer<QDockWidget> right_dock_title_drag_dock_;
-  QPoint right_dock_title_drag_press_global_;
-  QPoint right_dock_title_drag_offset_;
-  bool right_dock_title_drag_started_{false};
-  // Blank-area move and frame-strip resize of a floating dock tab-group
-  // window (see handle_dock_group_window_event). Empty edges = moving.
-  QPointer<QWidget> dock_group_drag_window_;
-  QPoint dock_group_drag_offset_;
-  QPoint dock_group_drag_press_global_;
-  QRect dock_group_drag_origin_rect_;
-  Qt::Edges dock_group_drag_edges_;
   // 0 until update_right_dock_minimum_width() measures the layers panel.
   int right_dock_minimum_width_{0};
-  // -1 until the chrome around the layers panel is measured from a laid-out
-  // dock; 0 is a valid measurement (frameless docks).
+  // -1 until the chrome around the layers panel is measured from the laid-out
+  // column; 0 is a valid measurement.
   int right_dock_chrome_width_{-1};
-  // 0 until the column is pinned to an exact width (the content-fit width at
+  // 0 until the column is set to an exact width (the content-fit width at
   // startup, or the width the user or a script picked).
   int right_dock_pinned_width_{0};
   // True until the user or a script picks a width: the column then tracks

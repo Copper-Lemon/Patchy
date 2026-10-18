@@ -21134,6 +21134,22 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <source>Reset Panels</source>
         <translation>パネルをリセット</translation>
     </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation>パネルを折りたたむ</translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation>パネルを展開</translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation>タブグループを閉じる</translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
+        <translation>パネルを閉じる</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

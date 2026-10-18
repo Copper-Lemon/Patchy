@@ -226,7 +226,7 @@ void ui_warped_smart_object_edit_commit_keeps_warp() {
   show_window(window);
   patchy::ui::MainWindowTestAccess::open_document_path(window, QString::fromStdWString(path.wstring()));
   QApplication::processEvents();
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   const auto parent_tab_index = tabs->currentIndex();
   const auto tab_count_before = tabs->count();

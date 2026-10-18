@@ -21197,6 +21197,22 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
         <source>Reset Panels</source>
         <translation>Redefinir painéis</translation>
     </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation>Recolher painel</translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation>Expandir painel</translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation>Fechar grupo de abas</translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
+        <translation>Fechar painel</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

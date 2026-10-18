@@ -128,7 +128,7 @@ TwoDocuments open_two_documents(patchy::ui::MainWindow& window, patchy::Document
 void ui_layer_drag_to_other_document_tab_copies_above_active() {
   patchy::ui::MainWindow window;
   show_window_empty(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   auto target = plain_document(kSourceWidth, kSourceHeight, QColor(40, 40, 40));
   target.add_pixel_layer("Top", opaque_pixels(kSourceWidth, kSourceHeight, QColor(0, 0, 0, 0)));

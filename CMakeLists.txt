@@ -1271,6 +1271,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/palette_convert_dialog.cpp
       src/ui/palette_panel.hpp
       src/ui/palette_panel.cpp
+      src/ui/panel_column.hpp
+      src/ui/panel_column.cpp
       src/ui/pattern_library.hpp
       src/ui/pattern_library.cpp
       src/ui/pattern_manager_dialog.hpp

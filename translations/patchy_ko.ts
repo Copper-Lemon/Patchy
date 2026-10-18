@@ -21134,6 +21134,22 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
         <source>Reset Panels</source>
         <translation>패널 초기화</translation>
     </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation>패널 접기</translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation>패널 펼치기</translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation>탭 그룹 닫기</translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
+        <translation>패널 닫기</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

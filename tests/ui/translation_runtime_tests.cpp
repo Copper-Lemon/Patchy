@@ -2,7 +2,6 @@
 #include "ui/main_window.hpp"
 #include <QAction>
 #include <QApplication>
-#include <QDockWidget>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
@@ -75,7 +74,6 @@ void collect_text(const QObject* object, const QString& path, Snapshot& result) 
   if (const auto* label = qobject_cast<const QLabel*>(object)) add("text", label->text());
   if (const auto* button = qobject_cast<const QAbstractButton*>(object)) add("text", button->text());
   if (const auto* menu = qobject_cast<const QMenu*>(object)) add("title", menu->title());
-  if (const auto* dock = qobject_cast<const QDockWidget*>(object)) add("title", dock->windowTitle());
   if (const auto* bar = qobject_cast<const QToolBar*>(object)) add("title", bar->windowTitle());
   if (const auto* group = qobject_cast<const QGroupBox*>(object)) add("title", group->title());
   if (const auto* edit = qobject_cast<const QLineEdit*>(object)) add("placeholder", edit->placeholderText());

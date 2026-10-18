@@ -1007,7 +1007,7 @@ void ui_psd_import_warning_dialog_is_hidden_by_default() {
   const auto psd_path = write_psd_import_warning_fixture(QStringLiteral("psd-import-warning-default.psd"));
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   const auto original_tab_count = tabs->count();
   const auto compatibility_report_done = std::make_shared<bool>(false);
@@ -1030,7 +1030,7 @@ void ui_psd_import_warning_dialog_shows_when_enabled() {
   const auto psd_path = write_psd_import_warning_fixture(QStringLiteral("psd-import-warning-enabled.psd"));
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   const auto original_tab_count = tabs->count();
   const auto compatibility_report_done = std::make_shared<bool>(false);

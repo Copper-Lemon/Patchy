@@ -529,7 +529,7 @@ void ui_raw_dialog_preview_matches_open_and_script() {
     }
   });
   reopen_timer.start(0);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   auto* tab_bar = tabs->findChild<QTabBar*>();
   CHECK(tab_bar != nullptr);
@@ -999,7 +999,7 @@ void ui_raw_file_drop_returns_before_dialog_and_preserves_batch() {
     for (const bool open_raw : {false, true}) {
       patchy::ui::MainWindow window;
       show_window_empty(window);
-      auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+      auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
       CHECK(tabs != nullptr);
       QWidget* target = drop_on_tabs ? static_cast<QWidget*>(tabs) : &window;
       bool drop_returned = false;

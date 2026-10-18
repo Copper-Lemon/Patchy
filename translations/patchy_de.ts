@@ -21197,6 +21197,22 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
         <source>Reset Panels</source>
         <translation>Bedienfelder zurücksetzen</translation>
     </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation>Bedienfeld einklappen</translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation>Bedienfeld ausklappen</translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation>Registerkartengruppe schließen</translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
+        <translation>Bedienfeld schließen</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

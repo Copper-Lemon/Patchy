@@ -34,7 +34,6 @@
 #include <QAction>
 #include <QApplication>
 #include <QByteArray>
-#include <QDockWidget>
 #include <QDir>
 #include <QEventLoop>
 #include <QFile>
@@ -103,7 +102,7 @@ void ui_layer_fx_and_smart_badges_stay_visible_in_narrow_panel() {
   shadow.size = 3.0F;
   layer->layer_style().drop_shadows.push_back(shadow);
 
-  auto* layers_dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
+  QWidget* layers_dock = patchy::ui::MainWindowTestAccess::panel_column(window);
   auto* layer_list = window.findChild<QListWidget*>(QStringLiteral("layerList"));
   CHECK(layers_dock != nullptr);
   CHECK(layer_list != nullptr);
@@ -166,7 +165,7 @@ void ui_layer_smart_object_badge_button_opens_contents() {
   patchy::ui::MainWindow window;
   show_window(window);
   open_smart_object_fixture(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   const auto tab_count_before = tabs->count();
 
@@ -298,7 +297,7 @@ void ui_smart_object_paint_prompt_edit_contents_choice() {
   CHECK(canvas != nullptr);
   require_action_by_text(window, QStringLiteral("Brush"))->trigger();
   canvas->set_primary_color(QColor(230, 20, 20));
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   const auto tab_count_before = tabs->count();
 
@@ -345,7 +344,7 @@ void ui_smart_object_paint_prompt_cancel_choice() {
   CHECK(canvas != nullptr);
   require_action_by_text(window, QStringLiteral("Brush"))->trigger();
   canvas->set_primary_color(QColor(230, 20, 20));
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   const auto tab_count_before = tabs->count();
   const auto undo_depth_before = patchy::ui::MainWindowTestAccess::active_session_undo_depth(window);
@@ -500,7 +499,7 @@ void ui_cmyk_smart_object_content_edits_keep_native_saves() {
     const auto id = found->id();
     const bool filtered = found->smart_filter_stack() != nullptr;
     parent.set_active_layer(id);
-    auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+    auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
     CHECK(tabs != nullptr);
     const auto parent_index = tabs->currentIndex();
     patchy::ui::MainWindowTestAccess::open_smart_object_contents(window);
@@ -543,7 +542,7 @@ void ui_smart_object_edit_contents_commit_rerenders_parent() {
   patchy::ui::MainWindow window;
   show_window(window);
   const auto layer_id = open_smart_object_fixture(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   const auto parent_tab_index = tabs->currentIndex();
   const auto tab_count_before = tabs->count();
@@ -679,7 +678,7 @@ void ui_smart_object_locked_refusal_and_parent_close_prompt() {
   patchy::ui::MainWindow window;
   show_window(window);
   const auto layer_id = open_smart_object_fixture(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   const auto tab_count_before = tabs->count();  // a fresh window may hold an Untitled tab too
   const auto parent_tab_index = tabs->currentIndex();
@@ -853,7 +852,7 @@ void ui_smart_object_nested_contents_edit_commits_up_the_chain() {
   patchy::ui::MainWindow window;
   show_window(window);
   const auto layer_id = open_smart_object_fixture(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   const auto base_tab_count = tabs->count();  // a fresh window may hold an Untitled tab too
   const auto parent_tab_index = tabs->currentIndex();
@@ -1287,7 +1286,7 @@ void ui_smart_object_edit_commit_keeps_canvas_transparency() {
   built.add_layer(std::move(shape));
   window.add_document_session(std::move(built), QStringLiteral("Transparent SO"));
   auto& document = patchy::ui::MainWindowTestAccess::document(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   const auto parent_tab_index = tabs->currentIndex();
 
@@ -1485,7 +1484,7 @@ void ui_smart_object_via_copy_diverges_and_transform_rerenders() {
   patchy::ui::MainWindow window;
   show_window(window);
   const auto layer_id = open_smart_object_fixture(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   const auto parent_tab_index = tabs->currentIndex();
   auto& document = patchy::ui::MainWindowTestAccess::document(window);
@@ -1676,7 +1675,7 @@ void ui_smart_object_external_edit_from_disk_saves_and_refreshes_parent() {
   patchy::ui::MainWindow window;
   show_window(window);
   const auto layer_id = open_smart_object_fixture(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   const auto parent_tab_index = tabs->currentIndex();
   auto& parent_document = patchy::ui::MainWindowTestAccess::document(window);
@@ -1900,7 +1899,7 @@ void ui_smart_object_relink_and_embed_linked_work() {
   patchy::psd::DocumentIo::write_layered_rgb8_file(
       document, std::filesystem::path("test-artifacts/ui_smart_object_embedded.psd"));
 
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   const auto tab_count_before = tabs->count();
   document.set_active_layer(layer_id);
@@ -2140,7 +2139,7 @@ void ui_smart_object_linked_svg_child_saves_vectors_without_warning() {
   patchy::ui::MainWindow window;
   show_window(window);
   add_linked_test_document(window, 300, 200);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   const auto parent_tab_index = tabs->currentIndex();
   const auto dir = linked_test_dir(QStringLiteral("svg-child"));

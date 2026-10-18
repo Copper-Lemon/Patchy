@@ -126,7 +126,7 @@ void ui_document_session_store_owns_lookups_and_removal() {
 void ui_float_document_window_hosts_canvas_and_redocks() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   window.add_document_session(make_float_test_document(QColor(50, 80, 140)), QStringLiteral("Floaty"));
   QApplication::processEvents();
@@ -237,7 +237,7 @@ void ui_float_window_preserves_channel_target_per_canvas() {
 void ui_float_window_edit_routes_to_owning_session() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   window.add_document_session(make_float_test_document(QColor(255, 255, 255)), QStringLiteral("Painted"));
   QApplication::processEvents();
@@ -275,7 +275,7 @@ void ui_float_window_edit_routes_to_owning_session() {
 void ui_float_activation_commits_text_editor_to_owning_document() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   auto* first_canvas = require_canvas(window);
   window.add_document_session(make_float_test_document(QColor(240, 240, 240)), QStringLiteral("Other"));
@@ -323,7 +323,7 @@ void ui_float_activation_commits_text_editor_to_owning_document() {
 void ui_float_window_close_prompts_and_closes_document() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   window.add_document_session(make_float_test_document(QColor(90, 90, 90)), QStringLiteral("Muta"));
   QApplication::processEvents();
@@ -378,7 +378,7 @@ void ui_float_window_close_prompts_and_closes_document() {
 void ui_close_all_documents_includes_floats() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   window.add_document_session(make_float_test_document(QColor(10, 60, 10)), QStringLiteral("Away"));
   QApplication::processEvents();
@@ -402,7 +402,7 @@ void ui_close_all_documents_includes_floats() {
 void ui_float_window_respects_preview_dialog_edit_lock() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   window.add_document_session(make_float_test_document(QColor(200, 200, 200)), QStringLiteral("Locked out"));
   QApplication::processEvents();
@@ -458,7 +458,7 @@ void ui_float_window_respects_preview_dialog_edit_lock() {
 void ui_float_only_document_keeps_actions_enabled() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   CHECK(tabs->count() == 1);
 
@@ -514,7 +514,7 @@ void ui_float_window_title_tracks_modified_state() {
 void ui_float_window_activation_switches_panels() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   auto* layer_list = window.findChild<QListWidget*>(QStringLiteral("layerList"));
   CHECK(tabs != nullptr);
   CHECK(layer_list != nullptr);
@@ -551,7 +551,7 @@ void ui_float_window_activation_switches_panels() {
 void ui_float_activation_survives_main_window_refocus() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   auto* tab_canvas = require_canvas(window);
   window.add_document_session(make_float_test_document(QColor(90, 90, 200)), QStringLiteral("Floated"));
@@ -620,7 +620,7 @@ void ui_float_activation_survives_main_window_refocus() {
 void ui_float_window_smart_object_child_commits_to_parent() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   CHECK(tabs->count() == 1);
   const auto parent_tab_index = tabs->currentIndex();
@@ -696,7 +696,7 @@ void ui_float_window_smart_object_child_commits_to_parent() {
 void ui_window_float_all_tile_and_cascade() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   window.add_document_session(make_float_test_document(QColor(200, 60, 60)), QStringLiteral("Two"));
   window.add_document_session(make_float_test_document(QColor(60, 200, 60)), QStringLiteral("Three"));
@@ -755,7 +755,7 @@ void ui_window_float_all_tile_and_cascade() {
 void ui_tab_drag_out_tears_off_document() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   window.add_document_session(make_float_test_document(QColor(120, 120, 220)), QStringLiteral("Torn"));
   QApplication::processEvents();
@@ -791,7 +791,7 @@ void ui_tab_drag_out_tears_off_document() {
 void ui_float_drag_over_tab_bar_docks() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   window.add_document_session(make_float_test_document(QColor(220, 160, 40)), QStringLiteral("Docker"));
   QApplication::processEvents();
@@ -836,7 +836,7 @@ void ui_float_drag_over_tab_bar_docks() {
 void ui_float_dock_highlight_tracks_drop_zone() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   window.add_document_session(make_float_test_document(QColor(90, 140, 200)), QStringLiteral("Hover"));
   QApplication::processEvents();
@@ -992,7 +992,7 @@ void ui_window_menu_lists_open_documents() {
 void ui_document_tab_looks_inactive_while_float_holds_the_active_document() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   window.add_document_session(make_float_test_document(QColor(30, 90, 30)), QStringLiteral("Second tab"));
   QApplication::processEvents();
@@ -1047,7 +1047,7 @@ void ui_float_window_accepts_file_drop() {
 
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   require_action(window, "windowFloatDocumentAction")->trigger();
   QApplication::processEvents();
