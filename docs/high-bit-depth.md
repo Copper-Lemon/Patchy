@@ -279,8 +279,9 @@ Code comments cite these phase numbers. Each phase lands as verified commits.
    Photoshop's Exposure and Gamma method: `tone_map_linear_document` maps pixel layers'
    linear color to (v * 2^exposure)^(1/gamma) before the conversion; Patchy's own
    reading of the method, not probed against Photoshop). New Document has a Bit Depth
-   row while deep editing is on (`newDocumentBitDepthCombo`); like Photoshop it starts
-   at 8 bits every time (the old `newDocument/lastBitDepth` key is no longer read).
+   row while deep editing is on (`newDocumentBitDepthCombo`); the preset cards start at
+   8 bits and the Last Used card restores the last accepted depth
+   (`newDocument/lastBitsPerChannel`; the old `newDocument/lastBitDepth` key is no longer read).
    32-bit documents show a status-bar preview exposure
    (`hdrPreviewExposureSpin`, `DocumentColorState::view_exposure_stops`): it scales
    linear values whenever a 32-bit composite narrows to display values (canvas,

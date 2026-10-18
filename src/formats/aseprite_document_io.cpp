@@ -5,6 +5,7 @@
 
 #include "formats/aseprite_document_io.hpp"
 #include "core/artboard.hpp"
+#include "core/layer_metadata.hpp"
 
 #include "core/palette.hpp"
 #include "formats/binary_le.hpp"
@@ -498,6 +499,9 @@ Document DocumentIo::read(std::span<const std::uint8_t> bytes, std::vector<std::
                                      }();
     built.set_visible(visible);
     built.set_blend_mode(blend.value_or(BlendMode::Normal));
+    if (is_group && (source.flags & 32U) != 0) {
+      set_layer_group_expanded(built, false);  // "displayed collapsed"
+    }
     if (is_group && header.layer_opacity_valid && header.group_opacity_valid) {
       built.set_opacity(static_cast<float>(source.opacity) / 255.0F);
     }
@@ -656,6 +660,9 @@ std::vector<std::uint8_t> DocumentIo::write(const Document& document) {
     LittleEndianWriter payload;
     std::uint16_t flags = entry.layer->visible() ? 1 : 0;
     flags |= 2;  // editable
+    if (entry.layer->kind() == LayerKind::Group && !layer_group_expanded(*entry.layer)) {
+      flags |= 32;  // group displayed collapsed
+    }
     payload.write_u16(flags);
     payload.write_u16(entry.layer->kind() == LayerKind::Group ? 1 : 0);
     payload.write_u16(entry.child_level);

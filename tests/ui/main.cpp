@@ -34,12 +34,16 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QLockFile>
+#include <QMessageBox>
+#include <QMetaObject>
 #include <QSettings>
 #include <QString>
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
+#include <future>
 #include <iostream>
 #include <iterator>
 #include <string>
@@ -150,7 +154,42 @@ LONG WINAPI report_access_violation(EXCEPTION_POINTERS* info) {
   fflush(stderr);
   return EXCEPTION_CONTINUE_SEARCH;
 }
-#else
+#endif
+
+// Names the windows open when a test times out (test_harness.hpp TestWatchdog); a
+// modal dialog nobody answers is the usual cause. The list is built on the GUI thread,
+// which a modal exec() still serves, so the blocking dialog names itself. A GUI thread
+// that never answers is busy or deadlocked rather than waiting in an event loop.
+void report_open_windows() {
+  auto listing = std::make_shared<std::promise<std::string>>();
+  auto answer = listing->get_future();
+  QMetaObject::invokeMethod(
+      qApp,
+      [listing] {
+        std::string text;
+        for (auto* widget : QApplication::topLevelWidgets()) {
+          if (!widget->isVisible()) {
+            continue;
+          }
+          text += std::string("  open window: ") + widget->metaObject()->className() + " objectName='" +
+                  widget->objectName().toStdString() + "' title='" + widget->windowTitle().toStdString() + "'" +
+                  (widget->isModal() ? " modal" : "") + '\n';
+        }
+        if (auto* modal = QApplication::activeModalWidget(); modal != nullptr) {
+          text += std::string("  active modal: ") + modal->metaObject()->className() + " objectName='" +
+                  modal->objectName().toStdString() + "'\n";
+        }
+        listing->set_value(text.empty() ? std::string("  no visible windows\n") : text);
+      },
+      Qt::QueuedConnection);
+  if (answer.wait_for(std::chrono::seconds(5)) == std::future_status::ready) {
+    fputs(answer.get().c_str(), stderr);
+  } else {
+    fputs("  the GUI thread did not answer within 5 s: busy or deadlocked, not waiting in an event loop\n", stderr);
+  }
+}
+
+#ifndef Q_OS_WIN
 // POSIX counterpart of report_access_violation above: on SIGSEGV/SIGBUS print the
 // faulting address and a raw backtrace, then re-raise the default action so the process
 // still dies with the correct signal status. backtrace_symbols_fd writes straight to
@@ -308,6 +347,10 @@ int main(int argc, char* argv[]) {
     settings.remove(QStringLiteral("preferences/language"));
     settings.remove(QStringLiteral("preferences/colorScheme"));
     settings.setValue(QStringLiteral("updates/checkOnStartup"), false);
+    // Many fixtures name fonts a test host lacks; the Missing Fonts dialog would block every
+    // interactive open of them. The tests that cover it turn it on themselves.
+    settings.setValue(QStringLiteral("imports/showMissingFontsDialog"), false);
+    settings.setValue(QStringLiteral("text/warnMissingFontsOnTransform"), false);
     settings.sync();
   }
   patchy::ui::LocalizationManager::instance().set_language(QStringLiteral("en"), false);
@@ -323,6 +366,7 @@ int main(int argc, char* argv[]) {
            app_shell_tests,
            localization_tests,
            font_coverage_tests,
+           missing_fonts_tests,
            filter_catalog_dialog_tests,
            layer_style_gradient_tests,
            destructive_filters_gallery_tests,
@@ -412,7 +456,20 @@ int main(int argc, char* argv[]) {
     start = comma + 1;
   }
 
+  // Proves the per-test timeout fires on a dialog nobody answers: run with
+  // PATCHY_TEST_TIMEOUT_SELFTEST=1 and a short PATCHY_TEST_TIMEOUT_SECONDS; the run must
+  // end with this test's timeout [FAIL] line naming timeoutSelftestDialog.
+  if (qgetenv("PATCHY_TEST_TIMEOUT_SELFTEST") == "1") {
+    tests.push_back({"ui_test_harness_timeout_selftest", [] {
+                       QMessageBox box(QMessageBox::Information, QStringLiteral("Unanswered"),
+                                       QStringLiteral("Nobody answers this dialog."));
+                       box.setObjectName(QStringLiteral("timeoutSelftestDialog"));
+                       box.exec();
+                     }});
+  }
+
   int failures = 0;
+  patchy::test::TestWatchdog watchdog(patchy::test::test_timeout_seconds(600), report_open_windows);
   for (const auto& test : tests) {
     const bool selected =
         filters.empty() || std::any_of(filters.begin(), filters.end(), [&test](const std::string& item) {
@@ -421,6 +478,7 @@ int main(int argc, char* argv[]) {
     if (!selected) {
       continue;
     }
+    watchdog.begin(test.name);
     cleanup_after_visual_test();
     try {
       test.run();
@@ -430,6 +488,7 @@ int main(int argc, char* argv[]) {
       std::cerr << "[FAIL] " << test.name << ": " << error.what() << std::endl;
     }
     cleanup_after_visual_test();
+    watchdog.end();
   }
 
   // Detached preview/render workers capture the QApplication pointer; wait

@@ -488,7 +488,7 @@ bool MainWindow::commit_smart_object_child_session(DocumentSession& child_sessio
     psd::WriteOptions write_options;
     write_options.large_document = source->filetype == "8BPB";
     try {
-      encoded = psd::DocumentIo::write_layered_rgb8(child_session.document, write_options);
+      encoded = psd::DocumentIo::write_layered_rgb8(std::as_const(child_session).document_for_write(), write_options);
     } catch (const std::exception& error) {
       show_critical_message(this, tr("Save failed"), translate_data_text(error.what()),
                             QStringLiteral("smartObjectCommitFailedMessageBox"));

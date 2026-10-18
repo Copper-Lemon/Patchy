@@ -8,6 +8,7 @@
 
 #include "core/document.hpp"
 #include "core/layer.hpp"
+#include "core/layer_tree.hpp"
 #include "ui/session_history.hpp"
 #include "ui/canvas_types.hpp"
 #include "ui/image_save_options.hpp"
@@ -85,6 +86,14 @@ struct DocumentSession {
   std::int64_t revision{0};
   std::int64_t saved_revision{0};
 
+  // The document as a layered save writes it: a copy-on-write copy whose groups carry the
+  // Layers panel's open/closed state (`collapsed_layer_groups`, which layer metadata only
+  // seeds at open), so the file reopens with the folders the user left open (issue 179).
+  [[nodiscard]] Document document_for_write() const {
+    Document copy = document;
+    apply_layer_group_disclosure(copy.layers(), collapsed_layer_groups);
+    return copy;
+  }
 };
 
 }  // namespace patchy::ui

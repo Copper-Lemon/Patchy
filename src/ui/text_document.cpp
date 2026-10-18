@@ -1001,7 +1001,7 @@ void resolve_document_font_styles(QTextDocument& document) {
 // fragment: rich_text_runs_from_document still emits a separator run from it, so a missed one
 // leaves the whole layer flagged. Patch-then-apply like resolve_document_font_styles -- mutating
 // while iterating invalidates the fragment iterators.
-void substitute_missing_document_font_families(QTextDocument& document) {
+void substitute_missing_document_font_families(QTextDocument& document, const TextFontReplacements* replacements) {
   struct FamilyPatch {
     int position{0};
     int length{0};
@@ -1011,13 +1011,17 @@ void substitute_missing_document_font_families(QTextDocument& document) {
   std::vector<FamilyPatch> patches;
   // One substitute per requested family, so a layer never splits one missing font across two faces.
   QHash<QString, QString> substitutes;
-  const auto substitute_for = [&substitutes](const QString& family, const QString& demanded) {
+  const auto substitute_for = [&substitutes, replacements](const QString& family, const QString& demanded) {
     QStringList missing;
     append_missing_text_family(missing, family, demanded);
     if (missing.isEmpty()) {
       return QString();
     }
-    const auto key = family.trimmed().toCaseFolded();
+    const auto key = text_font_replacement_key(family);
+    if (replacements != nullptr) {
+      const auto chosen = replacements->value(key);
+      return chosen.compare(family.trimmed(), Qt::CaseInsensitive) == 0 ? QString() : chosen;
+    }
     auto found = substitutes.constFind(key);
     if (found == substitutes.constEnd()) {
       found = substitutes.insert(key, substituted_text_family(family, demanded));

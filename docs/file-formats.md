@@ -30,7 +30,7 @@ Everything reads and writes except camera raw, HEIF/HEIC and .af (read-only); JP
 - BMP: includes 32-bit `BI_RGB`/compression 0, whose 4th byte Patchy keeps (feeds document-alpha import below).
 - ICO/CUR: every embedded size imports as a hidden layer named "WxH"; the writer reuses a matching "WxH" pixel layer verbatim, so sizes round-trip. 256px entries are PNG-compressed via `ico::set_png_codec` (installed in the MainWindow ctor). CUR hotspots ride layer metadata `patchy.cursor_hotspot`.
 - TGA: types 1/2/3/9/10/11, both origin flags; 15/16-bit rejected; palette-mode documents write type 1 indexed.
-- Aseprite: frame 1 only; layer tree/blend modes/opacity round-trip; zlib cels via vendored `src/formats/miniz/`; verified against the real Aseprite CLI. Aseprite is the layered alternative in Save As.
+- Aseprite: frame 1 only; layer tree/blend modes/opacity/closed folders (layer flag 32) round-trip; zlib cels via vendored `src/formats/miniz/`; verified against the real Aseprite CLI. Aseprite is the layered alternative in Save As.
 - PCX: 8-bit indexed EOF-palette plus 24-bit 3-plane RLE.
 - ILBM/PBM: ByteRun1 via the shared `psd::decode_packbits`/`encode_packbits_row` (psd_descriptor.{hpp,cpp}); EHB supported, HAM rejected; writer emits planar ILBM with masking type 2.
 - GIF and animated WebP: [animation.md](animation.md) owns import, export, timing, loop counts, codec isolation and scripted animation.

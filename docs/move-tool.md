@@ -1,0 +1,21 @@
+# Move tool: options bar and Auto-Select
+
+The Move tool's options-bar row and what a click or selection rectangle picks. Canvas click, drag and rectangle selection rules live in the "Move tool on the canvas" section of [layer-panel.md](layer-panel.md); snapping and Align/Distribute in [alignment.md](alignment.md), whose legal boundaries ([legal-constraints.md](legal-constraints.md), Alignment guides) bind everything here: the buttons only trigger the one-shot commands, nothing joins the drag path.
+
+## Options-bar row
+
+Order: Auto-Select (`moveAutoSelectCheck`, `tools/moveAutoSelect`), the Layer/Group combo (`moveAutoSelectTargetCombo`), Show Transform Controls, Snap, a separator, the six Align buttons, a separator, the six feature Distribute buttons (`moveDistributeLeftButton` ... `moveDistributeBottomButton`, GitHub issue 172), then "..." (`moveAlignMoreButton`) holding Distribute Horizontal/Vertical Spacing and the Align To pair, then Auto-Nest Layers. The Align and Distribute buttons mirror their Layer > Arrange QActions (icon, tooltip, enabled state; [alignment.md](alignment.md) explains why they are not default-action wrappers). Distribute glyphs come from `distribute_mode_icon` (action_icons.cpp): three bars on evenly spaced anchor lines, or three bars with two marked equal gaps for the spacing pair; the vertical modes are the horizontal glyphs transposed. The row must stay one line at 1366 px (`ui_options_bar_keeps_one_height_across_tools`).
+
+## Auto-Select target (Layer / Group)
+
+GitHub issue 168, Photoshop's Auto-Select dropdown. `MoveAutoSelectTarget` on the canvas; the combo writes `tools/moveAutoSelectTarget` (`kMoveAutoSelectTargetSettingsKey`) as `"layer"` or `"group"` on the user's change only, like `tools/moveAutoSelect` (tests flip the canvas directly and must not leak into later windows). Both tokens and the key are permanent; an unknown token reads as Layer. `load_tool_settings` reads it, the options-bar sync mirrors it under `QSignalBlocker`, and new sessions copy the combo's value.
+
+- Group maps the hit leaf to its outermost group (`CanvasWidget::auto_select_target_layer`). An artboard is skipped: inside one, the outermost group within it is the target, and a direct child of the artboard is its own target. A top-level leaf is always its own target.
+- Every path that selects by clicking reads it: a plain Auto-Select click and drag (the group is activated and its movable leaves move), Ctrl/Cmd+click (also with Auto-Select off, so the combo stays enabled), Shift+click toggles, Alt-drag duplication of the hit root, the hover outline (the union of the group's visible leaves' Move rects, `move_target_outline_bounds`), and selection rectangles. A press with Auto-Select off that drags the selection never maps anything.
+- A group target counts as selected only when the group itself is in the selection, not through a selected child.
+
+## Rectangle pre-selection
+
+GitHub issue 171: while a selection rectangle is dragged, the targets releasing it would select carry the hover outline (blue dashed, drawn beside the hover outline in `paintEvent`). `collect_move_selection_candidates` walks the tree once when the rectangle starts (visible, unlocked leaves with a Move rect, each tagged with its target and unioned into a per-target outline); each pointer move then runs `move_selection_matches` (rect intersection against the document-clipped box, deduplicated in stack order) and repaints only the outlines that appear or disappear. Nothing proportional to layer pixels runs per move or per repaint: Move rects come from the `pixel_revision`-keyed alpha-bounds cache ([performance.md](performance.md)). Release re-collects and matches with the same functions, so the outline and the result cannot disagree. Escape and every other cancel clear the outlines with the box; the panel selection changes only on release.
+
+Coverage: `ui_move_rectangle_outlines_layers_before_release`, `ui_move_auto_select_group_picks_outermost_group`, `ui_move_auto_select_target_persists_across_windows`, plus the distribute-button checks in `ui_layer_distribute_requires_three_units_and_spaces_evenly` and `ui_layer_arrange_menu_hosts_align_and_distribute`.

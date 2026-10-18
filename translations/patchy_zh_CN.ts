@@ -6185,10 +6185,6 @@ Flow: %6
         <translation>文件夹图层</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>文字图层。缺少字体：%1。已替换为其他字体，因此文字外观与创作时不同。</translation>
-    </message>
-    <message>
         <source>Text layer</source>
         <translation>文字图层</translation>
     </message>
@@ -8672,14 +8668,6 @@ RGB：%2, %3, %4</translation>
         <translation>以下字体没有其文字所需的字形：%1。编辑此 PSD 栅格预览将替换为其他字体。是否继续？</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. No glyphs for this text in: %2. Other fonts are being substituted, so the text does not look as it was authored.</source>
-        <translation>文字图层。缺少字体：%1。以下字体没有此文字所需的字形：%2。已替换为其他字体，因此文字外观与创作时不同。</translation>
-    </message>
-    <message>
-        <source>Text layer. No glyphs for this text in: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>文字图层。以下字体没有此文字所需的字形：%1。已替换为其他字体，因此文字外观与创作时不同。</translation>
-    </message>
-    <message>
         <source>UI language for this run only, not saved: en, de, es, fr, it, ja, ko, pl, pt_BR, ru, zh_CN, or zh_TW.</source>
         <translation>仅本次运行使用的界面语言，不会保存：en、de、es、fr、it、ja、ko、pl、pt_BR、ru、zh_CN 或 zh_TW。</translation>
     </message>
@@ -10360,6 +10348,62 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>Hide drop shadows, glows, and strokes where the vector mask hides the layer, instead of letting the vector mask shape them</source>
         <translation>在矢量蒙版隐藏图层的地方隐藏投影、发光和描边，而不是让矢量蒙版塑造它们的形状</translation>
+    </message>
+    <message>
+        <source>Last Used</source>
+        <translation>上次使用</translation>
+    </message>
+    <message>
+        <source>The settings of the last document created here: %1 x %2 px at %3 ppi</source>
+        <translation>上次在此创建的文档的设置：%1 x %2 px，%3 ppi</translation>
+    </message>
+    <message>
+        <source>Missing Fonts</source>
+        <translation>缺少的字体</translation>
+    </message>
+    <message>
+        <source>Some fonts used in this document are missing. Choose an installed font to replace each one in every text layer that uses it, or leave it unresolved.</source>
+        <translation>此文档使用的部分字体缺失。请为每种字体选择一种已安装的字体，在使用它的所有文字图层中替换，或保持不解析。</translation>
+    </message>
+    <message>
+        <source>Resolve Fonts</source>
+        <translation>解析字体</translation>
+    </message>
+    <message numerus="yes">
+        <source>Installed, but has no glyphs for this text. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>已安装，但没有此文本的字形。用于 %n 个文字图层。</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Not installed. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>未安装。用于 %n 个文字图层。</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Replace with:</source>
+        <translation>替换为：</translation>
+    </message>
+    <message>
+        <source>Don&apos;t show when opening documents</source>
+        <translation>打开文档时不显示</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens this dialog at any time. Preferences can turn it back on for opened documents.</source>
+        <translation>文字 &gt; 解析缺少的字体 可随时打开此对话框。可在首选项中为打开的文档重新启用。</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1. No glyphs for this text in: %2.</source>
+        <translation>文字图层。此计算机上缺少字体：%1。以下字体没有此文字所需的字形：%2。</translation>
+    </message>
+    <message>
+        <source>Text layer. No glyphs for this text in: %1.</source>
+        <translation>文字图层。以下字体没有此文字所需的字形：%1。</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1.</source>
+        <translation>文字图层。此计算机上缺少字体：%1。</translation>
     </message>
 </context>
 <context>
@@ -19378,10 +19422,6 @@ Y: %2
         <translation>将移动的图层吸附到其他图层、参考线、网格和画布 (视图 &gt; 对齐)。在 视图 &gt; 对齐到 中选择目标。</translation>
     </message>
     <message>
-        <source>Distribute layers and choose what to align to</source>
-        <translation>分布图层并选择对齐目标</translation>
-    </message>
-    <message>
         <source>Finish the current drag before aligning layers</source>
         <translation>请先完成当前拖动，再对齐图层</translation>
     </message>
@@ -21645,6 +21685,72 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation>正在准备第 %1 页图像（共 %2 页）...</translation>
+    </message>
+    <message>
+        <source>Use Esc to commit text</source>
+        <translation>使用 Esc 键提交文本</translation>
+    </message>
+    <message>
+        <source>When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar&apos;s Cancel button discards the edit. When off, Esc cancels the edit.</source>
+        <translation>开启时，Esc 键会像 %CTRL%+Enter 一样应用正在输入的文本，选项栏的“取消”按钮会放弃编辑。关闭时，Esc 键会取消编辑。</translation>
+    </message>
+    <message>
+        <source>Layer</source>
+        <translation>图层</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>编组</translation>
+    </message>
+    <message>
+        <source>What a click or a selection rectangle selects: the layer itself, or the outermost group that holds it</source>
+        <translation>单击或选择矩形选中的对象: 图层本身，或包含该图层的最外层编组</translation>
+    </message>
+    <message>
+        <source>Distribute spacing and choose what to align to</source>
+        <translation>分布间距并选择对齐目标</translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts...</source>
+        <translation>解析缺少的字体...</translation>
+    </message>
+    <message>
+        <source>This document has no missing fonts</source>
+        <translation>此文档没有缺少的字体</translation>
+    </message>
+    <message numerus="yes">
+        <source>Replaced missing fonts in %n text layer(s)</source>
+        <translation>
+            <numerusform>已替换 %n 个文字图层中缺少的字体</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>(%n locked layer(s) kept their fonts)</source>
+        <translation>
+            <numerusform>（%n 个锁定的图层保留了其字体）</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts</source>
+        <translation>解析缺少的字体</translation>
+    </message>
+    <message>
+        <source>Show the Missing Fonts dialog when opening a document with missing fonts</source>
+        <translation>打开缺少字体的文档时显示“缺少的字体”对话框</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens the same dialog at any time.</source>
+        <translation>文字 &gt; 解析缺少的字体 可随时打开同一对话框。</translation>
+    </message>
+    <message>
+        <source>The following fonts are missing for text layer &quot;%1&quot;: %2. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>文字图层“%1”缺少以下字体：%2。将变换现有像素，而不是重新渲染。是否继续？</translation>
+    </message>
+    <message numerus="yes">
+        <source>The following fonts are missing for %n text layer(s): %1. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>
+            <numerusform>%n 个文字图层缺少以下字体：%1。将变换现有像素，而不是重新渲染。是否继续？</numerusform>
+        </translation>
     </message>
 </context>
 <context>

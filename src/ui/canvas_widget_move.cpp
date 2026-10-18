@@ -421,6 +421,162 @@ bool CanvasWidget::add_move_layer_menu_entries(QMenu& menu, QPoint widget_point)
   return true;
 }
 
+const Layer* CanvasWidget::auto_select_target_layer(const Layer* leaf) const {
+  if (leaf == nullptr || document_ == nullptr || auto_select_target_ != MoveAutoSelectTarget::Group) {
+    return leaf;
+  }
+  const auto& layers = std::as_const(*document_).layers();
+  std::vector<LayerId> ancestors;  // innermost first
+  if (!collect_layer_ancestor_groups(layers, leaf->id(), ancestors)) {
+    return leaf;
+  }
+  // The outermost group, skipping an artboard: an artboard is a canvas, not a
+  // group the user built, so its own children are the top level there.
+  for (auto it = ancestors.rbegin(); it != ancestors.rend(); ++it) {
+    const auto* group = find_layer_in_tree(layers, *it);
+    if (group == nullptr) {
+      return leaf;
+    }
+    if (!group->artboard().has_value()) {
+      return group;
+    }
+  }
+  return leaf;
+}
+
+std::optional<QRect> CanvasWidget::move_target_outline_bounds(const Layer& layer) const {
+  if (layer.kind() != LayerKind::Group) {
+    const auto bounds = move_layer_outline_bounds(layer);
+    if (!bounds.has_value()) {
+      return std::nullopt;
+    }
+    return QRect(bounds->x, bounds->y, bounds->width, bounds->height);
+  }
+  QRect united;
+  const auto unite = [&](const auto& self, const std::vector<Layer>& children) -> void {
+    for (const auto& child : children) {
+      if (!child.visible() || child.opacity() <= 0.0F) {
+        continue;
+      }
+      if (child.kind() == LayerKind::Group) {
+        self(self, child.children());
+      } else if (const auto bounds = move_layer_outline_bounds(child); bounds.has_value()) {
+        united = united.united(QRect(bounds->x, bounds->y, bounds->width, bounds->height));
+      }
+    }
+  };
+  unite(unite, layer.children());
+  if (united.isEmpty()) {
+    return std::nullopt;
+  }
+  return united;
+}
+
+std::vector<CanvasWidget::MoveSelectionCandidate> CanvasWidget::collect_move_selection_candidates() const {
+  std::vector<MoveSelectionCandidate> candidates;
+  if (document_ == nullptr) {
+    return candidates;
+  }
+  const bool group_targets = auto_select_target_ == MoveAutoSelectTarget::Group;
+  // Visible, unlocked leaves by their Move rect, top of the stack first; under
+  // Group a leaf selects its outermost non-artboard group (auto_select_target_layer).
+  const auto collect = [&](const auto& self, const std::vector<Layer>& layers, LayerLockFlags ancestor_flags,
+                           std::optional<LayerId> group_target) -> void {
+    for (auto it = layers.rbegin(); it != layers.rend(); ++it) {
+      const auto& layer = *it;
+      const auto flags = ancestor_flags | patchy::layer_lock_flags(layer);
+      if (!layer.visible() || layer.opacity() <= 0.0F || (flags & kLayerLockPosition) != kLayerLockNone) {
+        continue;
+      }
+      if (layer.kind() == LayerKind::Group) {
+        auto target = group_target;
+        if (group_targets && !target.has_value() && !layer.artboard().has_value()) {
+          target = layer.id();
+        }
+        self(self, layer.children(), flags, target);
+      } else if (const auto bounds = move_layer_outline_bounds(layer); bounds.has_value()) {
+        candidates.push_back(MoveSelectionCandidate{group_target.value_or(layer.id()),
+                                                    QRectF(bounds->x, bounds->y, bounds->width, bounds->height)});
+      }
+    }
+  };
+  collect(collect, std::as_const(*document_).layers(), kLayerLockNone, std::nullopt);
+  return candidates;
+}
+
+std::vector<LayerId> CanvasWidget::move_selection_matches(const std::vector<MoveSelectionCandidate>& candidates,
+                                                          const QRectF& box) {
+  std::vector<LayerId> matches;
+  QSet<LayerId> seen;
+  for (const auto& candidate : candidates) {
+    if (box.intersects(candidate.bounds) && !seen.contains(candidate.target)) {
+      seen.insert(candidate.target);
+      matches.push_back(candidate.target);
+    }
+  }
+  return matches;
+}
+
+QRectF CanvasWidget::move_layer_selection_box(QPointF anchor_document, QPointF current_document) const {
+  if (document_ == nullptr) {
+    return {};
+  }
+  return QRectF(anchor_document, current_document).normalized()
+      .intersected(QRectF(0, 0, document_->width(), document_->height()));
+}
+
+std::vector<LayerId> CanvasWidget::move_layer_selection_preview_ids() const {
+  if (!move_layer_selection_gesture_ || !move_layer_selection_gesture_->dragging_rectangle) {
+    return {};
+  }
+  return move_layer_selection_gesture_->preview_ids;
+}
+
+void CanvasWidget::update_move_layer_selection_preview() {
+  if (!move_layer_selection_gesture_ || !move_layer_selection_gesture_->dragging_rectangle) {
+    return;
+  }
+  auto& gesture = *move_layer_selection_gesture_;
+  if (!gesture.candidates_collected) {
+    // Once per rectangle: Move rects come from the pixel_revision-keyed bounds
+    // cache, so pointer moves below are rect tests only (docs/performance.md).
+    gesture.candidates_collected = true;
+    gesture.candidates = collect_move_selection_candidates();
+    for (const auto& candidate : gesture.candidates) {
+      auto& outline = gesture.target_outlines[candidate.target];
+      outline = outline.united(candidate.bounds.toAlignedRect());
+    }
+  }
+  const auto box = move_layer_selection_box(gesture.anchor_document, gesture.current_document);
+  auto next = box.isEmpty() ? std::vector<LayerId>{} : move_selection_matches(gesture.candidates, box);
+  if (next == gesture.preview_ids) {
+    return;
+  }
+  // Repaint only the outlines that appear or disappear.
+  const QSet<LayerId> before(gesture.preview_ids.begin(), gesture.preview_ids.end());
+  const QSet<LayerId> after(next.begin(), next.end());
+  QRegion dirty;
+  const auto add_outline = [&](LayerId id) {
+    if (const auto found = gesture.target_outlines.find(id); found != gesture.target_outlines.end()) {
+      dirty += widget_rect_for_document_rect(found->second);
+    }
+  };
+  for (const auto id : gesture.preview_ids) {
+    if (!after.contains(id)) {
+      add_outline(id);
+    }
+  }
+  for (const auto id : next) {
+    if (!before.contains(id)) {
+      add_outline(id);
+    }
+  }
+  gesture.preview_ids = std::move(next);
+  if (!dirty.isEmpty()) {
+    update(dirty);
+  }
+}
+
 void CanvasWidget::begin_move_layer_selection(QMouseEvent* event, const Layer* clicked_layer,
                                              bool rectangle_allowed) {
   event->accept();
@@ -475,9 +631,10 @@ bool CanvasWidget::update_move_layer_selection(QMouseEvent* event) {
     const auto old_rect = move_layer_selection_widget_rect();
     gesture.dragging_rectangle = true;
     gesture.current_document = document_position_f(event->position());
-    // Only the rectangle changes while dragging; bounds collection and the
-    // panel round-trip happen once, on release.
+    // The rectangle and the outlines of the layers it would select repaint;
+    // the panel round-trip happens once, on release.
     update(old_rect.united(move_layer_selection_widget_rect()));
+    update_move_layer_selection_preview();
     return true;
   }
 
@@ -513,8 +670,7 @@ void CanvasWidget::finish_move_layer_selection(QMouseEvent* event) {
   auto ids = gesture.selected_ids;
   auto active = gesture.active_id;
   if (rectangle) {
-    const auto box = QRectF(gesture.anchor_document, document_position_f(event->position())).normalized()
-                         .intersected(QRectF(0, 0, document_->width(), document_->height()));
+    const auto box = move_layer_selection_box(gesture.anchor_document, document_position_f(event->position()));
     if (box.isEmpty()) {
       // A rectangle drawn entirely on the pasteboard keeps the selection:
       // matching is clipped to the document, so the box may well enclose
@@ -522,24 +678,8 @@ void CanvasWidget::finish_move_layer_selection(QMouseEvent* event) {
       // rectangles and empty clicks deselect (below).
       return;
     }
-    std::vector<LayerId> matches;
-    const auto collect = [&](const auto& self, const std::vector<Layer>& layers,
-                             LayerLockFlags ancestor_flags) -> void {
-      for (auto it = layers.rbegin(); it != layers.rend(); ++it) {
-        const auto& layer = *it;
-        const auto flags = ancestor_flags | patchy::layer_lock_flags(layer);
-        if (!layer.visible() || layer.opacity() <= 0.0F || (flags & kLayerLockPosition) != kLayerLockNone) {
-          continue;
-        }
-        if (layer.kind() == LayerKind::Group) {
-          self(self, layer.children(), flags);
-        } else if (const auto bounds = move_layer_outline_bounds(layer); bounds.has_value() &&
-                   box.intersects(QRectF(bounds->x, bounds->y, bounds->width, bounds->height))) {
-          matches.push_back(layer.id());
-        }
-      }
-    };
-    collect(collect, std::as_const(*document_).layers(), kLayerLockNone);
+    // The same rule the drag previews (update_move_layer_selection_preview).
+    const auto matches = move_selection_matches(collect_move_selection_candidates(), box);
     if (matches.empty()) {
       if (!gesture.additive) {
         request_layer_deselection();
@@ -595,7 +735,13 @@ void CanvasWidget::cancel_move_layer_selection() {
   if (!move_layer_selection_gesture_) {
     return;
   }
-  const auto dirty = move_layer_selection_widget_rect();
+  QRegion dirty(move_layer_selection_widget_rect());
+  for (const auto id : move_layer_selection_gesture_->preview_ids) {
+    if (const auto found = move_layer_selection_gesture_->target_outlines.find(id);
+        found != move_layer_selection_gesture_->target_outlines.end()) {
+      dirty += widget_rect_for_document_rect(found->second);
+    }
+  }
   move_layer_selection_gesture_.reset();
   if (!dirty.isEmpty()) {
     update(dirty);
@@ -924,7 +1070,7 @@ std::optional<QRect> CanvasWidget::move_hover_outline_rect_at(QPoint widget_posi
   // artwork on it: the canvas clips what is painted, not what can be grabbed
   // (Seth, October 2026).
   const auto document_point = document_position(widget_position);
-  auto* hit_layer = topmost_move_layer_at(document_point, true);
+  const Layer* hit_layer = topmost_move_layer_at(document_point, true);
   if (hit_layer == nullptr) {
     return std::nullopt;
   }
@@ -938,6 +1084,9 @@ std::optional<QRect> CanvasWidget::move_hover_outline_rect_at(QPoint widget_posi
         selected_move_layer_ids.end()) {
       return std::nullopt;
     }
+  } else {
+    // Auto-Select Group outlines the group the click would pick.
+    hit_layer = auto_select_target_layer(hit_layer);
   }
   if (show_transform_controls_ && click_selects) {
     if (!selected_layer_ids_.empty()) {
@@ -949,12 +1098,8 @@ std::optional<QRect> CanvasWidget::move_hover_outline_rect_at(QPoint widget_posi
     }
   }
 
-  const auto bounds = move_layer_outline_bounds(*hit_layer);
-  if (!bounds.has_value()) {
-    return std::nullopt;
-  }
-  const QRect outline(bounds->x, bounds->y, bounds->width, bounds->height);
-  if (outline.isEmpty()) {
+  const auto outline = move_target_outline_bounds(*hit_layer);
+  if (!outline.has_value() || outline->isEmpty()) {
     return std::nullopt;
   }
   return outline;

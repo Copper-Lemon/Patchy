@@ -143,6 +143,10 @@ void MainWindow::add_document_session(Document document, QString title, QString 
   if (move_auto_select_check_ != nullptr) {
     session->canvas->set_auto_select_layer(move_auto_select_check_->isChecked());
   }
+  if (move_auto_select_target_combo_ != nullptr) {
+    session->canvas->set_auto_select_target(move_auto_select_target_from_token(
+        move_auto_select_target_combo_->currentData().toString()));
+  }
   if (move_show_transform_controls_check_ != nullptr) {
     session->canvas->set_show_transform_controls(move_show_transform_controls_check_->isChecked());
   }

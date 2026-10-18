@@ -4,6 +4,7 @@
 // Platform registration and caches live in the implementation; this interface owns no UI.
 #include <QFont>
 #include <QFontDatabase>
+#include <QHash>
 #include <QString>
 #include <QStringList>
 #include <optional>
@@ -26,6 +27,12 @@ struct TextFontProblems {
   [[nodiscard]] bool empty() const { return not_installed.isEmpty() && no_glyphs.isEmpty(); }
 };
 
+
+// Resolve Missing Fonts: each missing family the user replaced, mapped to the installed family
+// chosen for it, keyed by text_font_replacement_key. A missing family absent from the map is left
+// unresolved.
+using TextFontReplacements = QHash<QString, QString>;
+QString text_font_replacement_key(const QString& family);
 
 std::optional<QString> available_text_family_match(const QString& family);
 std::optional<AvailableTextFamilyStyle> available_text_family_style_match(const QString& family,

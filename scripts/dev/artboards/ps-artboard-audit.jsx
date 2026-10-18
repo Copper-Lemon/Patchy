@@ -197,6 +197,47 @@ var CASE_TABLE = {
     doc.paste();
     return "pasted " + where(doc.activeLayer);
   },
+  copy_paste_same_artboard_marquee_kept: function (doc) {
+    doc.activeLayer = layerNamed(doc, "A1");
+    doc.selection.select([[20, 20], [120, 20], [120, 120], [20, 120]]);
+    doc.selection.copy();
+    doc.paste();
+    return "pasted " + where(doc.activeLayer);
+  },
+  copy_from_A_paste_with_B1_active_marquee_kept: function (doc) {
+    doc.activeLayer = layerNamed(doc, "A1");
+    doc.selection.select([[20, 20], [120, 20], [120, 120], [20, 120]]);
+    doc.selection.copy();
+    doc.activeLayer = layerNamed(doc, "B1");
+    doc.paste();
+    return "pasted " + where(doc.activeLayer);
+  },
+  paste_with_marquee_on_B: function (doc) {
+    doc.activeLayer = layerNamed(doc, "A1");
+    doc.selection.select([[20, 20], [120, 20], [120, 120], [20, 120]]);
+    doc.selection.copy();
+    doc.activeLayer = layerNamed(doc, "B1");
+    doc.selection.select([[550, 100], [650, 100], [650, 200], [550, 200]]);
+    doc.paste();
+    return "pasted " + where(doc.activeLayer);
+  },
+  paste_loose_with_marquee: function (doc) {
+    doc.activeLayer = layerNamed(doc, "A1");
+    doc.selection.select([[20, 20], [120, 20], [120, 120], [20, 120]]);
+    doc.selection.copy();
+    doc.activeLayer = layerNamed(doc, "Loose");
+    doc.selection.select([[800, 400], [900, 400], [900, 500], [800, 500]]);
+    doc.paste();
+    return "pasted " + where(doc.activeLayer);
+  },
+  paste_with_A1_active_marquee_off_artboards: function (doc) {
+    doc.activeLayer = layerNamed(doc, "A1");
+    doc.selection.select([[20, 20], [120, 20], [120, 120], [20, 120]]);
+    doc.selection.copy();
+    doc.selection.select([[800, 400], [900, 400], [900, 500], [800, 500]]);
+    doc.paste();
+    return "pasted " + where(doc.activeLayer);
+  },
   paste_in_place_with_B1_active: function (doc) {
     doc.activeLayer = layerNamed(doc, "A1");
     doc.selection.select([[20, 20], [120, 20], [120, 120], [20, 120]]);

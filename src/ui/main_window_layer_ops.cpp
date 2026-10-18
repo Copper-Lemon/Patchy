@@ -30,6 +30,7 @@
 #include <QPoint>
 #include <QPointF>
 #include <QPointer>
+#include <QPolygonF>
 #include <QProgressDialog>
 #include <QPushButton>
 #include <QRect>
@@ -1006,6 +1007,7 @@ bool MainWindow::copy_selected_pixels(bool cutting) {
 
   clipboard_ = ClipboardPayload{std::move(copied), QPoint(copy_rect.x, copy_rect.y)};
   clipboard_->source_artboard_origin = artboard_origin_at(std::as_const(document()), copy_rect);
+  clipboard_->source_session_id = session().session_id;
   set_system_clipboard_image(display_qimage_from_pixel_buffer(clipboard_->pixels));
   statusBar()->showMessage(
       tr("Copied %1 layer(s), %2 x %3 px")
@@ -1051,6 +1053,7 @@ void MainWindow::copy_merged() {
   }
   clipboard_ = ClipboardPayload{std::move(copied), QPoint(copy_rect.x, copy_rect.y)};
   clipboard_->source_artboard_origin = artboard_origin_at(std::as_const(document()), copy_rect);
+  clipboard_->source_session_id = session().session_id;
   set_system_clipboard_image(display_qimage_from_pixel_buffer(clipboard_->pixels));
   statusBar()->showMessage(tr("Copied merged %1 x %2 px").arg(copy_rect.width).arg(copy_rect.height));
 }
@@ -1249,8 +1252,10 @@ void MainWindow::paste_clipboard(bool in_place) {
     pixels = convert_pixel_buffer_depth(pixels, depth, SampleKind::Color);
   }
 
-  const auto view_center = canvas_->document_point_for_widget_position(
-      QPointF(canvas_->width() / 2.0, canvas_->height() / 2.0));
+  const auto view_point = [this](double x, double y) {
+    return canvas_->document_point_for_widget_position(QPointF(x, y));
+  };
+  const auto view_center = view_point(canvas_->width() / 2.0, canvas_->height() / 2.0);
   const auto place_axis = [](double desired, int content_size, int canvas_size) {
     // Keep pixels at their original size. Oversized content cannot fit, so
     // center its overflow; otherwise keep the entire pasted rectangle inside.
@@ -1259,22 +1264,48 @@ void MainWindow::paste_clipboard(bool in_place) {
     }
     return static_cast<int>(std::lround(std::clamp(desired, 0.0, static_cast<double>(canvas_size - content_size))));
   };
-  // On an artboard (the selected layer's, or the selected artboard) Photoshop centers the
-  // paste on that artboard, and Paste in Place keeps the pixels' place on their artboard;
-  // the view center or the document position could land them where the artboard clips
-  // them away (docs/artboards.md, "Feature interactions").
+  // Placement (docs/tools.md, "Clipboard pixel placement"). A marquee left active centers Paste on
+  // itself, on the artboard under its center or at the root (Photoshop 2026), so the marquee
+  // that made a copy brings it back in place. Without one, on an artboard (the selected
+  // layer's, or the selected artboard) Photoshop centers the paste on that artboard, and Paste
+  // in Place keeps the pixels' place on their artboard; the view center or the document
+  // position could land them where the artboard clips them away. Elsewhere, pixels copied
+  // from this document go back to their place while it is in view (GitHub issue 193), and
+  // to the view center otherwise.
+  const auto& doc = std::as_const(document());
+  const auto selection_rect = in_place ? std::nullopt : canvas_->selected_document_rect();
+  const auto* target = anchor_id.has_value() ? artboard_owning_layer(doc, *anchor_id) : nullptr;
   QPointF center = view_center;
-  if (const auto* target = anchor_id.has_value() ? artboard_owning_layer(std::as_const(document()), *anchor_id)
-                                                 : nullptr;
-      target != nullptr) {
+  bool source_place_in_view = false;
+  // A marquee outside every artboard with a layer on one selected: the root, right above
+  // that artboard (insert_layer_after_anchor would put it inside an artboard anchor).
+  std::optional<LayerId> root_anchor;
+  if (selection_rect.has_value() && !selection_rect->isEmpty()) {
+    center = QPointF(selection_rect->x() + selection_rect->width() / 2.0,
+                     selection_rect->y() + selection_rect->height() / 2.0);
+    const auto* under = artboard_at(doc, static_cast<std::int32_t>(std::floor(center.x())),
+                                    static_cast<std::int32_t>(std::floor(center.y())));
+    if (under != nullptr && under != target) {
+      anchor_id = under->id();
+    } else if (under == nullptr && target != nullptr) {
+      root_anchor = target->id();
+    }
+  } else if (target != nullptr) {
     const auto rect = target->artboard()->rect;
     center = QPointF(rect.x + rect.width / 2.0, rect.y + rect.height / 2.0);
     if (in_place && source_origin.has_value() && clipboard_.has_value() &&
         clipboard_->source_artboard_origin.has_value()) {
       *source_origin += QPoint(rect.x, rect.y) - *clipboard_->source_artboard_origin;
     }
+  } else if (!in_place && source_origin.has_value() && clipboard_.has_value() &&
+             clipboard_->source_session_id == session().session_id) {
+    const QPolygonF view{view_point(0.0, 0.0), view_point(canvas_->width(), 0.0),
+                         view_point(canvas_->width(), canvas_->height()), view_point(0.0, canvas_->height())};
+    source_place_in_view = view.containsPoint(
+        QPointF(source_origin->x() + pixels.width() / 2.0, source_origin->y() + pixels.height() / 2.0),
+        Qt::OddEvenFill);
   }
-  const bool use_source_origin = in_place && source_origin.has_value();
+  const bool use_source_origin = source_origin.has_value() && (in_place || source_place_in_view);
   const QPoint origin(
       place_axis(use_source_origin ? source_origin->x() : center.x() - pixels.width() / 2.0,
                  pixels.width(), document().width()),
@@ -1289,7 +1320,14 @@ void MainWindow::paste_clipboard(bool in_place) {
   pasted.set_bounds(Rect{origin.x(), origin.y(), std::as_const(pasted).pixels().width(),
                          std::as_const(pasted).pixels().height()});
   const auto pasted_id = pasted.id();
-  insert_layer_after_anchor(document(), std::move(pasted), anchor_id);
+  auto& top_level = document().layers();
+  if (const auto above = std::find_if(top_level.begin(), top_level.end(),
+                                      [&](const Layer& layer) { return root_anchor == layer.id(); });
+      above != top_level.end()) {
+    top_level.insert(std::next(above), std::move(pasted));
+  } else {
+    insert_layer_after_anchor(document(), std::move(pasted), anchor_id);
+  }
   document().set_active_layer(pasted_id);
   if (move_tool_action_ != nullptr) {
     move_tool_action_->trigger();

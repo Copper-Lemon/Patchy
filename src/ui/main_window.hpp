@@ -30,6 +30,7 @@
 #include <QColor>
 #include <QDialog>
 #include <QElapsedTimer>
+#include <QHash>
 #include <QKeySequence>
 #include <QListWidget>
 #include <QMainWindow>
@@ -412,6 +413,9 @@ private:
     // Pixel copies: the top-left of the artboard they were copied from, so Paste in Place
     // onto another artboard keeps their place on the artboard (docs/artboards.md).
     std::optional<QPoint> source_artboard_origin{};
+    // Pixel copies: the session they were copied from, so Paste can put them back in place
+    // in that document (GitHub issue 193, docs/tools.md "Clipboard pixel placement").
+    std::int64_t source_session_id{0};
   };
 
   // Defaults match the Round startup preset (brush_presets.cpp); load_tool_settings()
@@ -1803,6 +1807,9 @@ private:
   // fine; the tiles re-render from a 28 px sampling walk.
   struct LayerThumbnailCacheEntry {
     std::uint64_t content_render_revision{0};
+    // The content tile was drawn with the missing-font badge (left out while a session edits
+    // the layer, GitHub issue 178).
+    bool content_font_badge{true};
     std::int32_t document_width{0};
     std::int32_t document_height{0};
     QPixmap content;
@@ -1905,6 +1912,13 @@ private:
   void toggle_text_italic_face();
   void apply_text_color_to_active_editor();
   void apply_text_color_to_editor(QTextEdit& editor, QColor color);
+  // An options-bar pick during a live session hands the keyboard back to the editor, as
+  // Photoshop does, so the next keystroke types (replacing a still-selected "Type"
+  // placeholder) instead of landing on the control or a tool shortcut (GitHub issue 175).
+  void return_keyboard_to_text_editor();
+  // The Character and Paragraph panels follow the same rule: Enter in a field, a checkbox
+  // click or a combo pick hands the keyboard back to a live session.
+  void return_keyboard_after_text_panel_edits(QWidget& panel);
   // The text color panel is live; with no session each change would commit every selected
   // layer, so the layer edit waits for the picker to settle on `color`.
   void apply_text_color_to_selected_layers_debounced(QColor color);
@@ -1924,6 +1938,8 @@ private:
   // text layer (committing any open inline edit first) with live preview; OK is one
   // undo step, Cancel restores the pre-dialog pixels and metadata.
   void request_warp_text_dialog();
+  // False when the dialog never opened (no text layer, locked pixels, faux bold).
+  bool run_warp_text_dialog_on_active_layer();
   // Character changes apply to the inline selection, or the selected text layer
   // through a hidden session committed immediately without an unwarped preview.
   void open_text_character_dialog();
@@ -1934,6 +1950,27 @@ private:
   [[nodiscard]] std::vector<LayerId> text_character_target_layer_ids() const;
   [[nodiscard]] const Layer* text_character_target_layer() const;
   void apply_text_character_edit(const std::function<bool(QTextEdit&)>& edit);
+  // Type > Resolve Missing Fonts (GitHub issue 169), also shown after an interactive open
+  // when imports/showMissingFontsDialog allows (`on_open`). Lists every family the active
+  // document's text layers name but cannot draw, and replaces each one the user maps to an
+  // installed family in every text layer that uses it, as one undo step.
+  void show_resolve_missing_fonts_dialog(bool on_open = false);
+  // The replacement pass behind the dialog: keys are text_font_replacement_key(missing),
+  // values the installed family. Returns the number of layers changed; locked layers are
+  // skipped and counted in `skipped_locked`.
+  int resolve_missing_fonts(const QHash<QString, QString>& replacements, int* skipped_locked = nullptr);
+  // The layer a visible (not hidden, not finished) text session is editing. That session has
+  // already moved the layer's missing fonts onto installed faces, so the layer panel stops
+  // flagging it while the session is open (GitHub issue 178).
+  [[nodiscard]] std::optional<LayerId> live_text_session_layer_id() const;
+  // GitHub issue 185, Photoshop's warning before a transform: when any of `ids` is a text layer
+  // whose font is missing, asks whether to transform its saved pixels (the layer keeps naming the
+  // font and is not re-rendered in a substitute). False means Cancel. Unattended runs never ask.
+  [[nodiscard]] bool confirm_missing_font_transform(const Document& document, const std::vector<LayerId>& ids);
+  // The family new type starts in: the one the options-bar combo shows. A missing family the
+  // combo was set to (mirroring a layer that uses it) has no row, so the combo displays
+  // another family while currentFont() still names the missing one (GitHub issue 180).
+  [[nodiscard]] QString text_options_bar_family() const;
   void apply_text_character_leading_to_active_editor();
   void apply_text_character_tracking_to_active_editor();
   void apply_text_character_glyph_scales_to_active_editor();
@@ -2282,6 +2319,7 @@ private:
   ToolPaletteFooter* tool_palette_footer_{nullptr};
   QDialog* color_dialog_{nullptr};
   QCheckBox* move_auto_select_check_{nullptr};
+  QComboBox* move_auto_select_target_combo_{nullptr};
   QCheckBox* move_show_transform_controls_check_{nullptr};
   // Mirrors View > Snap (view_snap_action_) on the Move tool's options bar.
   QCheckBox* move_snap_check_{nullptr};
@@ -2422,6 +2460,9 @@ private:
   // single snapshot: the first commit that reaches a push site takes it, the later commits
   // are told to skip theirs.
   bool text_commit_snapshot_suppressed_{false};
+  // Set only while resolve_missing_fonts runs its hidden sessions: add_text_at skips the
+  // missing-font prompt and swaps exactly these families instead of substituting.
+  std::optional<QHash<QString, QString>> text_font_replacements_;
   // Those hidden sessions rewrite the options-bar widgets from each layer they open (and
   // the commits refresh the bar); the widget slots must not start a nested layer edit from
   // those writes.
@@ -2873,6 +2914,9 @@ private:
   // input/snapTransformsToPixelGrid: numeric Free Transform entries land on whole
   // pixels (Photoshop's default). Persisted identifier.
   bool snap_transforms_to_pixel_grid_{true};
+  // input/escapeCommitsText: Esc applies a text edit instead of canceling it (Photoshop's
+  // "Use ESC key to commit text", GitHub issue 173). Persisted identifier.
+  bool escape_commits_text_{false};
   bool zoom_layer_thumbnails_to_content_{true};
   std::vector<std::pair<QWidget*, std::vector<CanvasTool>>> option_actions_;
   std::vector<QWidget*> transform_option_actions_;

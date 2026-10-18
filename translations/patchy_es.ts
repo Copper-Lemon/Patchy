@@ -6195,10 +6195,6 @@ Flujo: %6
         <translation>Capa de carpeta</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>Capa de texto. Falta la fuente: %1. Se está sustituyendo por otra fuente, por lo que el texto no se ve como fue creado.</translation>
-    </message>
-    <message>
         <source>Text layer</source>
         <translation>Capa de texto</translation>
     </message>
@@ -8699,14 +8695,6 @@ RGB: %2, %3, %4</translation>
         <translation>Estas fuentes no tienen glifos para su texto: %1. Al editar esta previsualización rasterizada del PSD se sustituirán por otras fuentes. ¿Desea continuar?</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. No glyphs for this text in: %2. Other fonts are being substituted, so the text does not look as it was authored.</source>
-        <translation>Capa de texto. Falta la fuente: %1. Sin glifos para este texto en: %2. Se están sustituyendo por otras fuentes, por lo que el texto no se ve como fue creado.</translation>
-    </message>
-    <message>
-        <source>Text layer. No glyphs for this text in: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>Capa de texto. Sin glifos para este texto en: %1. Se está sustituyendo por otra fuente, por lo que el texto no se ve como fue creado.</translation>
-    </message>
-    <message>
         <source>UI language for this run only, not saved: en, de, es, fr, it, ja, ko, pl, pt_BR, ru, zh_CN, or zh_TW.</source>
         <translation>Idioma de la interfaz solo para esta ejecución, no se guarda: en, de, es, fr, it, ja, ko, pl, pt_BR, ru, zh_CN o zh_TW.</translation>
     </message>
@@ -10392,6 +10380,64 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>Hide drop shadows, glows, and strokes where the vector mask hides the layer, instead of letting the vector mask shape them</source>
         <translation>Oculta las sombras paralelas, los resplandores y los trazos donde la máscara vectorial oculta la capa, en lugar de dejar que la máscara vectorial les dé forma</translation>
+    </message>
+    <message>
+        <source>Last Used</source>
+        <translation>Último usado</translation>
+    </message>
+    <message>
+        <source>The settings of the last document created here: %1 x %2 px at %3 ppi</source>
+        <translation>Los ajustes del último documento creado aquí: %1 x %2 px a %3 ppp</translation>
+    </message>
+    <message>
+        <source>Missing Fonts</source>
+        <translation>Fuentes que faltan</translation>
+    </message>
+    <message>
+        <source>Some fonts used in this document are missing. Choose an installed font to replace each one in every text layer that uses it, or leave it unresolved.</source>
+        <translation>Faltan algunas fuentes usadas en este documento. Elija una fuente instalada para reemplazar cada una en todas las capas de texto que la usan, o déjela sin resolver.</translation>
+    </message>
+    <message>
+        <source>Resolve Fonts</source>
+        <translation>Resolver fuentes</translation>
+    </message>
+    <message numerus="yes">
+        <source>Installed, but has no glyphs for this text. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>Instalada, pero no tiene glifos para este texto. Se usa en %n capa de texto.</numerusform>
+            <numerusform>Instalada, pero no tiene glifos para este texto. Se usa en %n capas de texto.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Not installed. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>No instalada. Se usa en %n capa de texto.</numerusform>
+            <numerusform>No instalada. Se usa en %n capas de texto.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Replace with:</source>
+        <translation>Reemplazar con:</translation>
+    </message>
+    <message>
+        <source>Don&apos;t show when opening documents</source>
+        <translation>No mostrar al abrir documentos</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens this dialog at any time. Preferences can turn it back on for opened documents.</source>
+        <translation>Texto &gt; Resolver fuentes que faltan abre este cuadro de diálogo en cualquier momento. En Preferencias puede volver a activarlo para los documentos abiertos.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1. No glyphs for this text in: %2.</source>
+        <translation>Capa de texto. La fuente falta en este equipo: %1. Sin glifos para este texto en: %2.</translation>
+    </message>
+    <message>
+        <source>Text layer. No glyphs for this text in: %1.</source>
+        <translation>Capa de texto. Sin glifos para este texto en: %1.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1.</source>
+        <translation>Capa de texto. La fuente falta en este equipo: %1.</translation>
     </message>
 </context>
 <context>
@@ -19429,10 +19475,6 @@ Y: %2
         <translation>Ajustar las capas movidas a otras capas, guías, la cuadrícula y el lienzo (Vista &gt; Ajustar). Elija los objetivos en Vista &gt; Ajustar a.</translation>
     </message>
     <message>
-        <source>Distribute layers and choose what to align to</source>
-        <translation>Distribuir capas y elegir con qué alinear</translation>
-    </message>
-    <message>
         <source>Finish the current drag before aligning layers</source>
         <translation>Termine el arrastre actual antes de alinear capas</translation>
     </message>
@@ -21710,6 +21752,75 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation>Preparando la imagen de página %1 de %2...</translation>
+    </message>
+    <message>
+        <source>Use Esc to commit text</source>
+        <translation>Usar Esc para confirmar el texto</translation>
+    </message>
+    <message>
+        <source>When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar&apos;s Cancel button discards the edit. When off, Esc cancels the edit.</source>
+        <translation>Si está activado, Esc aplica el texto que escribe, como %CTRL%+Intro, y el botón Cancelar de la barra de opciones descarta la edición. Si está desactivado, Esc cancela la edición.</translation>
+    </message>
+    <message>
+        <source>Layer</source>
+        <translation>Capa</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>Grupo</translation>
+    </message>
+    <message>
+        <source>What a click or a selection rectangle selects: the layer itself, or the outermost group that holds it</source>
+        <translation>Qué selecciona un clic o un rectángulo de selección: la propia capa o el grupo más externo que la contiene</translation>
+    </message>
+    <message>
+        <source>Distribute spacing and choose what to align to</source>
+        <translation>Distribuir el espaciado y elegir con qué alinear</translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts...</source>
+        <translation>Resolver fuentes que faltan...</translation>
+    </message>
+    <message>
+        <source>This document has no missing fonts</source>
+        <translation>Este documento no tiene fuentes que falten</translation>
+    </message>
+    <message numerus="yes">
+        <source>Replaced missing fonts in %n text layer(s)</source>
+        <translation>
+            <numerusform>Se reemplazaron las fuentes que faltan en %n capa de texto</numerusform>
+            <numerusform>Se reemplazaron las fuentes que faltan en %n capas de texto</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>(%n locked layer(s) kept their fonts)</source>
+        <translation>
+            <numerusform>(%n capa bloqueada conservó sus fuentes)</numerusform>
+            <numerusform>(%n capas bloqueadas conservaron sus fuentes)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts</source>
+        <translation>Resolver fuentes que faltan</translation>
+    </message>
+    <message>
+        <source>Show the Missing Fonts dialog when opening a document with missing fonts</source>
+        <translation>Mostrar el cuadro de diálogo Fuentes que faltan al abrir un documento con fuentes que faltan</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens the same dialog at any time.</source>
+        <translation>Texto &gt; Resolver fuentes que faltan abre el mismo cuadro de diálogo en cualquier momento.</translation>
+    </message>
+    <message>
+        <source>The following fonts are missing for text layer &quot;%1&quot;: %2. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>Faltan las siguientes fuentes para la capa de texto &quot;%1&quot;: %2. Se transformarán los píxeles existentes en lugar de volver a renderizarlos. ¿Continuar?</translation>
+    </message>
+    <message numerus="yes">
+        <source>The following fonts are missing for %n text layer(s): %1. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>
+            <numerusform>Faltan las siguientes fuentes para %n capa de texto: %1. Se transformarán los píxeles existentes en lugar de volver a renderizarlos. ¿Continuar?</numerusform>
+            <numerusform>Faltan las siguientes fuentes para %n capas de texto: %1. Se transformarán los píxeles existentes en lugar de volver a renderizarlos. ¿Continuar?</numerusform>
+        </translation>
     </message>
 </context>
 <context>

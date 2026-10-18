@@ -6195,10 +6195,6 @@ Flux : %6
         <translation>Calque de dossier</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>Calque de texte. Police manquante : %1. Une autre police est utilisée à la place, le texte n&apos;a donc pas l&apos;aspect prévu à sa création.</translation>
-    </message>
-    <message>
         <source>Text layer</source>
         <translation>Calque de texte</translation>
     </message>
@@ -8699,14 +8695,6 @@ RVB : %2, %3, %4</translation>
         <translation>Ces polices n&apos;ont aucun glyphe pour leur texte : %1. La modification de cet aperçu pixellisé PSD remplacera ces polices par d&apos;autres. Continuer ?</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. No glyphs for this text in: %2. Other fonts are being substituted, so the text does not look as it was authored.</source>
-        <translation>Calque de texte. Police manquante : %1. Aucun glyphe pour ce texte dans : %2. D&apos;autres polices sont utilisées à la place, le texte n&apos;a donc pas l&apos;aspect prévu à sa création.</translation>
-    </message>
-    <message>
-        <source>Text layer. No glyphs for this text in: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>Calque de texte. Aucun glyphe pour ce texte dans : %1. Une autre police est utilisée à la place, le texte n&apos;a donc pas l&apos;aspect prévu à sa création.</translation>
-    </message>
-    <message>
         <source>UI language for this run only, not saved: en, de, es, fr, it, ja, ko, pl, pt_BR, ru, zh_CN, or zh_TW.</source>
         <translation>Langue de l&apos;interface pour cette exécution uniquement, non enregistrée : en, de, es, fr, it, ja, ko, pl, pt_BR, ru, zh_CN ou zh_TW.</translation>
     </message>
@@ -10392,6 +10380,64 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>Hide drop shadows, glows, and strokes where the vector mask hides the layer, instead of letting the vector mask shape them</source>
         <translation>Masquer les ombres portées, les lueurs et les contours là où le masque vectoriel masque le calque, au lieu de laisser le masque vectoriel les façonner</translation>
+    </message>
+    <message>
+        <source>Last Used</source>
+        <translation>Derniers réglages</translation>
+    </message>
+    <message>
+        <source>The settings of the last document created here: %1 x %2 px at %3 ppi</source>
+        <translation>Les paramètres du dernier document créé ici : %1 x %2 px à %3 ppp</translation>
+    </message>
+    <message>
+        <source>Missing Fonts</source>
+        <translation>Polices manquantes</translation>
+    </message>
+    <message>
+        <source>Some fonts used in this document are missing. Choose an installed font to replace each one in every text layer that uses it, or leave it unresolved.</source>
+        <translation>Certaines polices utilisées dans ce document sont manquantes. Choisissez une police installée pour remplacer chacune d&apos;elles dans tous les calques de texte qui l&apos;utilisent, ou laissez-la non résolue.</translation>
+    </message>
+    <message>
+        <source>Resolve Fonts</source>
+        <translation>Résoudre les polices</translation>
+    </message>
+    <message numerus="yes">
+        <source>Installed, but has no glyphs for this text. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>Installée, mais sans glyphes pour ce texte. Utilisée dans %n calque de texte.</numerusform>
+            <numerusform>Installée, mais sans glyphes pour ce texte. Utilisée dans %n calques de texte.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Not installed. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>Non installée. Utilisée dans %n calque de texte.</numerusform>
+            <numerusform>Non installée. Utilisée dans %n calques de texte.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Replace with:</source>
+        <translation>Remplacer par :</translation>
+    </message>
+    <message>
+        <source>Don&apos;t show when opening documents</source>
+        <translation>Ne pas afficher à l&apos;ouverture des documents</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens this dialog at any time. Preferences can turn it back on for opened documents.</source>
+        <translation>Texte &gt; Résoudre les polices manquantes ouvre cette boîte de dialogue à tout moment. Les Préférences permettent de la réactiver pour les documents ouverts.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1. No glyphs for this text in: %2.</source>
+        <translation>Calque de texte. Police manquante sur cet ordinateur : %1. Aucun glyphe pour ce texte dans : %2.</translation>
+    </message>
+    <message>
+        <source>Text layer. No glyphs for this text in: %1.</source>
+        <translation>Calque de texte. Aucun glyphe pour ce texte dans : %1.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1.</source>
+        <translation>Calque de texte. Police manquante sur cet ordinateur : %1.</translation>
     </message>
 </context>
 <context>
@@ -19429,10 +19475,6 @@ Y : %2
         <translation>Magnétiser les calques déplacés sur les autres calques, les repères, la grille et la zone de travail (Affichage &gt; Magnétisme). Choisissez les cibles dans Affichage &gt; Magnétisme sur.</translation>
     </message>
     <message>
-        <source>Distribute layers and choose what to align to</source>
-        <translation>Répartir les calques et choisir la référence d&apos;alignement</translation>
-    </message>
-    <message>
         <source>Finish the current drag before aligning layers</source>
         <translation>Terminez le déplacement en cours avant d&apos;aligner les calques</translation>
     </message>
@@ -21710,6 +21752,75 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation>Préparation de l&apos;image de page %1 sur %2...</translation>
+    </message>
+    <message>
+        <source>Use Esc to commit text</source>
+        <translation>Utiliser Échap pour valider le texte</translation>
+    </message>
+    <message>
+        <source>When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar&apos;s Cancel button discards the edit. When off, Esc cancels the edit.</source>
+        <translation>Si cette option est activée, Échap applique le texte en cours de saisie, comme %CTRL%+Entrée, et le bouton Annuler de la barre d’options abandonne la modification. Si elle est désactivée, Échap annule la modification.</translation>
+    </message>
+    <message>
+        <source>Layer</source>
+        <translation>Calque</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>Groupe</translation>
+    </message>
+    <message>
+        <source>What a click or a selection rectangle selects: the layer itself, or the outermost group that holds it</source>
+        <translation>Ce que sélectionne un clic ou un rectangle de sélection : le calque lui-même ou le groupe le plus externe qui le contient</translation>
+    </message>
+    <message>
+        <source>Distribute spacing and choose what to align to</source>
+        <translation>Répartir l&apos;espacement et choisir la référence d&apos;alignement</translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts...</source>
+        <translation>Résoudre les polices manquantes...</translation>
+    </message>
+    <message>
+        <source>This document has no missing fonts</source>
+        <translation>Ce document n&apos;a aucune police manquante</translation>
+    </message>
+    <message numerus="yes">
+        <source>Replaced missing fonts in %n text layer(s)</source>
+        <translation>
+            <numerusform>Polices manquantes remplacées dans %n calque de texte</numerusform>
+            <numerusform>Polices manquantes remplacées dans %n calques de texte</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>(%n locked layer(s) kept their fonts)</source>
+        <translation>
+            <numerusform>(%n calque verrouillé a gardé ses polices)</numerusform>
+            <numerusform>(%n calques verrouillés ont gardé leurs polices)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts</source>
+        <translation>Résoudre les polices manquantes</translation>
+    </message>
+    <message>
+        <source>Show the Missing Fonts dialog when opening a document with missing fonts</source>
+        <translation>Afficher la boîte de dialogue Polices manquantes à l&apos;ouverture d&apos;un document dont des polices sont manquantes</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens the same dialog at any time.</source>
+        <translation>Texte &gt; Résoudre les polices manquantes ouvre la même boîte de dialogue à tout moment.</translation>
+    </message>
+    <message>
+        <source>The following fonts are missing for text layer &quot;%1&quot;: %2. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>Les polices suivantes sont manquantes pour le calque de texte « %1 » : %2. Les pixels existants seront transformés au lieu d&apos;être redessinés. Continuer ?</translation>
+    </message>
+    <message numerus="yes">
+        <source>The following fonts are missing for %n text layer(s): %1. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>
+            <numerusform>Les polices suivantes sont manquantes pour %n calque de texte : %1. Les pixels existants seront transformés au lieu d&apos;être redessinés. Continuer ?</numerusform>
+            <numerusform>Les polices suivantes sont manquantes pour %n calques de texte : %1. Les pixels existants seront transformés au lieu d&apos;être redessinés. Continuer ?</numerusform>
+        </translation>
     </message>
 </context>
 <context>

@@ -10,10 +10,10 @@ Keep this file at or below 30,000 bytes. Implementation knowledge belongs in `do
 
 - Every PSD/PSB Patchy writes, including script and MCP output, must open in Adobe Photoshop without warnings or errors. Custom metadata is allowed only when Photoshop accepts the file without warning, repair, or data-discard prompts. Follow the compatibility contract in [docs/ps-compat.md](docs/ps-compat.md).
 - When adding or changing user-facing text, make it extractable (`tr()`, a literal-context `translate`, `QT_TR_NOOP`/`QT_TRANSLATE_NOOP` for bound text, `PATCHY_TRANSLATE_NOOP` in Qt-free code), run `scripts\update-translations.ps1`, and fill the new entries in every `translations/patchy_<code>.ts` in the same change. Never hand-edit catalog structure. See [docs/localization.md](docs/localization.md).
-- Tests that need files outside the project must first copy them into `local-test-fixtures`; never add hardcoded external paths such as `C:\temp` or `D:\projects` to test code.
-- Commit automatically only after a finished piece of work is verified and its required handoff is complete. Do not commit failing or half-finished states. Never push unless Seth explicitly asks in the current request. A push go-ahead covers only that commit; every later commit waits for its own. A release request covers build and test only: stop for an explicit go-ahead before any upload, push, publish, or update announcement.
-- Never post, reply, or comment on GitHub issues, pull requests, or discussions unless the user explicitly asks in the current request; offer a draft reply instead. Read the whole thread first (`gh issue view N --comments`): Seth may already have replied; continue from it, never repeat it.
-- Never add AI attribution, generated-with text, or an OpenAI/Codex/Claude co-author to commits or pull requests. Keep commit messages to a concise subject and at most one short supporting line. Cite issues as `#NN` (GitHub links it); `Fixes #NN` also closes the issue once it reaches main, so use it only for a complete fix.
+- Tests that need files outside the project must first copy them into `local-test-fixtures`; never hardcode external paths (`C:\temp`, `D:\projects`) in tests.
+- Commit automatically only finished, verified work with its handoff done, never failing or half-finished states. Never push unless Seth explicitly asks in the current request. A push go-ahead covers only that commit. A release request covers build and test only: stop for an explicit go-ahead before any upload, push, publish, or update announcement.
+- Never post or comment on GitHub issues, PRs, or discussions unless asked in the current request; offer a draft reply. Read the whole thread first (`gh issue view N --json body,comments`; piped `--comments` drops the body): continue from any reply Seth already made.
+- Never add AI attribution, generated-with text, or an OpenAI/Codex/Claude co-author to commits or pull requests. Keep commit messages to a concise subject and at most one short supporting line. Cite issues as `(#NN)`, never after a closing keyword (any form of fix, close, resolve) in a commit or PR: a push to main closes the issue, but issues close only when the fix ships; label it `fixed in main`.
 - Automation confined to Patchy is authorized: scripted clicks, typing, and direct captures of its windows and hosted plug-in windows (including KPT) need no further permission. Desktop screenshots (even cropped afterward), global mouse/keyboard input (`SendInput`), Computer Use, and control of other apps require explicit authorization in the current request. Adobe Photoshop COM (`DoJavaScript`, Action Manager) is always authorized for capture, verification, and acceptance. Use task-owned instances for unattended work; protect unsaved documents and unrelated processes. See [docs/testing.md](docs/testing.md).
 - Build/test housekeeping needs no further confirmation: create, rename, replace, or delete generated build artifacts, temporary executable backups, test-owned socket files, logs, and scratch files inside this repository's build or test-output directories after verifying exact paths and ownership. Stopping processes launched for the current run is authorized. Not covered: user documents, fixtures, sources, unrelated files/processes, or a running user app/connector.
 - **Destructive deletes.** No recursive or wildcard delete (`rm -rf`, `rmdir /s`, `del /s`, `Remove-Item -Recurse`, `remove_all`, `removeRecursively`) anywhere may target a bare variable or rely on the current directory. Spell a literal part of the path at the delete (`${ROOT:?}/build/flatpak-publish`, `%REPO%\build\package\installer`, a `patchy-` mktemp prefix) after checking each variable is set and right (the repo root holds `CMakeLists.txt`). `QDir("")` is the cwd. Tests delete folders only through `remove_test_scratch_dir`/`remove_test_scratch_tree` (tests/test_scratch_remove.hpp). Agents `rm` only a checked full literal path. Stop processes by PID, not name.
@@ -36,17 +36,12 @@ Required release handoff steps:
    cmd /s /c 'scripts\vs-env.bat -arch=x64 -host_arch=x64 >nul && scripts\run-throttled.bat "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" --build --preset release -j 20'
    ```
 
-   The throttling is mandatory: `-j 20` caps ninja for local Windows builds (remote builds use every core but four) and `scripts\run-throttled.bat` runs the build at below-normal priority. Run tests through it too, batch files as-is. Never use an unthrottled build or a bare `start "" /b /wait /belownormal` (it reports 0 once the program launched; the helper returns the real code). It refuses a `cmake --build` (exit 3) while another build runs here: wait, or use `scripts\remote\remote-build.ps1 -Target windows`; `PATCHY_ALLOW_CONCURRENT_BUILD=1` only when Seth says. Never edit it mid-run (cmd rereads it).
-
-   Run from the repository root in PowerShell or real cmd, never Git Bash: nested quoting can exit 0 without building. Require compile/link lines or `ninja: no work to do`, not just exit 0. Iterate with `--target <the test/app you run>`; a full build is five LTCG links (~12 min, docs/building.md). The version uses generated `patchy_version.hpp` (`cmake/patchy_version.hpp.in`), included only where used; never make it a target-wide define, which recompiles all of `patchy_ui`.
-
-   Call `scripts\vs-env.bat`, never VsDevCmd.bat directly. See [docs/release-process.md](docs/release-process.md).
-
-   CMakeLists.txt owns the MSVC Release codegen flags (LTCG, `patchy.pdb` for crash dumps); never hand-edit `build\release\CMakeCache.txt`. See [docs/building.md](docs/building.md).
-
-   A git worktree has no `.deps`: configure its release preset once with `--preset release -DCMAKE_PREFIX_PATH=<main-checkout>/.deps/Qt/6.8.3/msvc2022_64`; the build command is unchanged.
-
-   A running `build\release\patchy.exe` or `patchy-mcp.exe` does not block the link (PRE_LINK renames it aside as `<name>.stale-<stamp>.exe`). Never kill either process (Seth may have unsaved work) and never package a `.stale-` file. Batch files compare exit codes against 0, never `if errorlevel 1` (a failed link exits negative). See [docs/release-process.md](docs/release-process.md).
+   Rules (reasons and details: "Local Windows release build" in [docs/building.md](docs/building.md)):
+   - Builds, tests and batch files run only through `scripts\run-throttled.bat`, builds with `-j 20`. It refuses a second `cmake --build` on the box (exit 3): wait, or offload with `scripts\remote\remote-build.ps1 -Target windows`.
+   - Run from the repository root in PowerShell or real cmd, never Git Bash. Require compile/link lines or `ninja: no work to do`, not just exit 0.
+   - Iterate with `--target <the test/app you run>`; the full build (five LTCG links, about 12 minutes) runs once, at handoff.
+   - A worktree configures once with `--preset release -DCMAKE_PREFIX_PATH=<main-checkout>/.deps/Qt/6.8.3/msvc2022_64`.
+   - Never kill a running `patchy.exe` or `patchy-mcp.exe` (the link renames it aside), never package a `.stale-` file, never hand-edit `build\release\CMakeCache.txt`, never make the version a target-wide define.
 
 2. Run release test binaries from `build\release`, scoped to the change:
 
@@ -99,12 +94,13 @@ Read these before acting in the named area:
 | Patents, licensing, trademarks, bundled assets, or a feature adjacent to a legal boundary | [docs/legal-constraints.md](docs/legal-constraints.md), which links every patent research record (`docs/patent-research*.md`) |
 | PSD descriptors, layer styles, write/corruption rules | [docs/ps-compat.md](docs/ps-compat.md) |
 | Photoshop COM captures and acceptance runs, the unknown-data prompt check | [docs/photoshop-com.md](docs/photoshop-com.md) |
-| Font resolution (display names, DirectWrite lookup, GDI names, exact sizes) | [docs/font-resolution.md](docs/font-resolution.md) |
+| Font resolution (display names, DirectWrite lookup, GDI names, exact sizes, missing fonts) | [docs/font-resolution.md](docs/font-resolution.md) |
 | Adjustment/auto-adjustment calibration (Brightness/Contrast, Curves, Hue/Saturation) | [docs/adjustments-calibration.md](docs/adjustments-calibration.md) |
 | Layer-effect render calibration (Blend If, Satin, Stroke, shadows/glows, interior effects, Bevel/Emboss, Pattern Overlay, Shape Burst) | [docs/layer-effects-render.md](docs/layer-effects-render.md) |
 | Native Smart Filter descriptors, FEid cache, per-filter render semantics | [docs/smart-filters-native.md](docs/smart-filters-native.md) |
 | Contributor pull-request review | [docs/pr-review.md](docs/pr-review.md) |
 | Release/version/package/upload work | [docs/release-process.md](docs/release-process.md) |
+| Build scripts, `run-throttled.bat`, presets, the version header, batch-file exit codes | [docs/building.md](docs/building.md) |
 | Update prompt, one-click update, installer update mode | [docs/auto-update.md](docs/auto-update.md) |
 
 ## Cross-cutting implementation rules
@@ -155,7 +151,7 @@ Read the linked document before working on a feature; it owns the constraints.
 - **Selection tools:** [docs/selection-tools.md](docs/selection-tools.md) and [docs/legal-constraints.md](docs/legal-constraints.md). ML Select Subject and Object Selection: [docs/ai-selection.md](docs/ai-selection.md); one prompt per solve, no negative points or mask feedback. Select Subject/Background and Remove Background are held back (CMake `PATCHY_ENABLE_SELECT_SUBJECT`, default off) pending patent review of US 12051225.
 - **Shape tools, the Fill tool and Fill command, Free Transform modifiers, pixel-grid snapping (Photoshop's whole-pixel rule, `core/pixel_grid.hpp`), Merge Down, and the Background lock:** [docs/tools.md](docs/tools.md); vector merges and Flatten Image in [docs/layer-merging.md](docs/layer-merging.md); the Crop tool in [docs/crop-tool.md](docs/crop-tool.md); tool palette layout, flyouts and icons in [docs/tool-palette.md](docs/tool-palette.md).
 - **Zoom tool, Scrubby Zoom, pen and wheel zoom:** [docs/view-navigation.md](docs/view-navigation.md).
-- **Move-tool alignment guides and Layer > Arrange > Align / Distribute:** [docs/alignment.md](docs/alignment.md) and [docs/legal-constraints.md](docs/legal-constraints.md).
+- **Move-tool alignment guides and Layer > Arrange > Align / Distribute:** [docs/alignment.md](docs/alignment.md) and [docs/legal-constraints.md](docs/legal-constraints.md); options bar, Auto-Select: [docs/move-tool.md](docs/move-tool.md).
 - **Vector tools, shape layers, vector masks, and Paths:** [docs/vector-tools.md](docs/vector-tools.md) (PSD fixtures in [docs/vector-fixtures.md](docs/vector-fixtures.md)) and [docs/legal-constraints.md](docs/legal-constraints.md).
 - **Point-editing UI (anchor tools, hints, path context menu) and vector commands:** [docs/vector-commands.md](docs/vector-commands.md).
 - **SVG import/export:** [docs/svg.md](docs/svg.md).

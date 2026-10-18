@@ -128,6 +128,33 @@ void collect_initially_collapsed_layer_groups(const std::vector<Layer>& layers, 
   }
 }
 
+namespace {
+
+void collect_layer_group_disclosure_changes(const std::vector<Layer>& layers, const std::set<LayerId>& collapsed_ids,
+                                            std::vector<std::pair<LayerId, bool>>& changes) {
+  for (const auto& layer : layers) {
+    if (layer.kind() == LayerKind::Group) {
+      const bool expanded = !collapsed_ids.contains(layer.id());
+      if (layer_group_expanded(layer) != expanded) {
+        changes.emplace_back(layer.id(), expanded);
+      }
+    }
+    collect_layer_group_disclosure_changes(layer.children(), collapsed_ids, changes);
+  }
+}
+
+}  // namespace
+
+void apply_layer_group_disclosure(std::vector<Layer>& layers, const std::set<LayerId>& collapsed_ids) {
+  std::vector<std::pair<LayerId, bool>> changes;
+  collect_layer_group_disclosure_changes(std::as_const(layers), collapsed_ids, changes);
+  for (const auto& [id, expanded] : changes) {
+    if (auto* group = find_layer_in_tree(layers, id); group != nullptr) {
+      group->metadata_without_content_bump()[kLayerMetadataGroupExpanded] = expanded ? "true" : "false";
+    }
+  }
+}
+
 bool collect_layer_ancestor_groups(const std::vector<Layer>& layers, LayerId id, std::vector<LayerId>& ancestors) {
   for (const auto& layer : layers) {
     if (layer.id() == id) {

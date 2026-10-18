@@ -4948,6 +4948,12 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
     wasm_files::restore_qt_dom_focus();
   }
 #endif
+  // The type size field's slider popup leaves the keyboard on the field when it closes; a live
+  // session gets it back like any other options-bar pick (GitHub issue 175).
+  if (event->type() == QEvent::Hide && watched->isWidgetType() &&
+      watched->objectName() == QStringLiteral("textSizePopup")) {
+    QTimer::singleShot(0, this, [this] { return_keyboard_to_text_editor(); });
+  }
   if (handle_spacebar_canvas_pan_event(watched, event)) {
     return true;
   }
@@ -5024,7 +5030,15 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
         layer_id = static_cast<LayerId>(editor->property("patchy.editingLayerId").toULongLong());
       }
       if (key_event->key() == Qt::Key_Escape) {
-        cancel_text_editor(editor, layer_id);
+        // Preferences > Tools "Use Esc to commit text" (GitHub issue 173); off, Esc cancels.
+        if (escape_commits_text_) {
+          commit_text_editor(editor,
+                             QPoint(editor->property("patchy.documentTextX").toInt(),
+                                    editor->property("patchy.documentTextY").toInt()),
+                             layer_id);
+        } else {
+          cancel_text_editor(editor, layer_id);
+        }
         key_event->accept();
         return true;
       }
@@ -5963,7 +5977,16 @@ void MainWindow::configure_canvas(CanvasWidget* canvas) {
     if (layer == nullptr || !layer_is_text(*layer)) {
       return false;
     }
+    // A missing font keeps the resampled saved pixels, as Photoshop does after its warning
+    // (GitHub issue 185): re-rendering would silently swap in a substitute face.
+    if (!missing_text_families_for_layer(std::as_const(*layer)).isEmpty()) {
+      return false;
+    }
     return rerender_text_layer_through_stored_transform(*layer);
+  });
+  canvas->set_missing_font_transform_confirm_callback([this, canvas](const std::vector<LayerId>& ids) {
+    const auto* session = session_for_canvas(canvas);
+    return session == nullptr || confirm_missing_font_transform(session->document, ids);
   });
 }
 
@@ -6092,7 +6115,7 @@ void MainWindow::add_text_at(QPoint document_point, QRect requested_text_box, bo
   bool photoshop_text_layout = area_text.has_value();
   double text_size_display_scale = 1.0;
   std::optional<QPointF> initial_cursor_local_position;
-  QString family = text_font_combo_ != nullptr ? text_font_combo_->currentFont().family() : font().family();
+  QString family = text_font_combo_ != nullptr ? text_options_bar_family() : font().family();
   int document_text_size = text_size_spin_ != nullptr ? text_points_to_pixels(text_size_spin_->value(), document()) : 48;
   // New text starts on the face the style picker shows, the way Photoshop seeds new type from
   // its toolbar state. The flags carry the four standard faces; an exotic pick (Black, Demi)
@@ -6189,14 +6212,18 @@ void MainWindow::add_text_at(QPoint document_point, QRect requested_text_box, bo
           text_size_display_scale = vertical_scale;
         }
       }
+      bool source_raster_preview = false;
       if (const auto found = layer->metadata().find(kLayerMetadataTextRasterStatus);
           found != layer->metadata().end()) {
-        editing_layer_uses_source_raster_preview =
-            *editing_layer_was_visible && found->second == "psd_raster_preview";
+        source_raster_preview = found->second == "psd_raster_preview";
+        editing_layer_uses_source_raster_preview = *editing_layer_was_visible && source_raster_preview;
       }
-      if (editing_layer_uses_source_raster_preview && !cli_automation_mode_) {
+      // A hidden layer warns too (GitHub issue 177): the session substitutes the font all the
+      // same, and only the raster preview, not the prompt, depends on the layer being shown.
+      if (source_raster_preview && !cli_automation_mode_ && !text_font_replacements_.has_value()) {
         // Automation (run_cli_export) substitutes silently: the whole point of its edit
         // sessions is forcing Patchy's own render, and a prompt would block unattended runs.
+        // Resolve Missing Fonts already has the user's answer for every family it swaps.
         QStringList glyphless_fonts;
         const auto missing_fonts = missing_text_families_for_psd_raster_preview(
             family, initial_rich_text_runs, initial_text, &glyphless_fonts);
@@ -6209,7 +6236,14 @@ void MainWindow::add_text_at(QPoint document_point, QRect requested_text_box, bo
       // face that draws, so committing stores a font the layer really uses. The per-run families
       // are substituted on the built document below; this is the base family the editor, the
       // options bar and the commit all read.
-      family = substituted_text_family(family, initial_text);
+      if (text_font_replacements_.has_value()) {
+        if (const auto chosen = text_font_replacements_->value(text_font_replacement_key(family));
+            !chosen.isEmpty()) {
+          family = chosen;
+        }
+      } else {
+        family = substituted_text_family(family, initial_text);
+      }
       if (text_font_combo_ != nullptr) {
         QSignalBlocker blocker(text_font_combo_);
         text_font_combo_->setCurrentFont(text_font_combo_font_for_family(family));
@@ -6592,7 +6626,8 @@ void MainWindow::add_text_at(QPoint document_point, QRect requested_text_box, bo
   }
   // Whatever built the document above (runs, HTML or plain text), every run now names a family
   // that can actually draw it, so what the session renders is what the commit records.
-  substitute_missing_document_font_families(*editor->document());
+  substitute_missing_document_font_families(
+      *editor->document(), text_font_replacements_.has_value() ? &*text_font_replacements_ : nullptr);
   if (editing_layer.has_value() && editing_layer_uses_line_aware_box_preview && !editing_layer_is_warped_text) {
     // Warped layers skip the calibration: it band-matches a fresh unwarped render against
     // the layer raster, which holds the WARPED ink.
@@ -6752,8 +6787,12 @@ void MainWindow::add_text_at(QPoint document_point, QRect requested_text_box, bo
   auto* cancel_shortcut = new QShortcut(QKeySequence(Qt::Key_Escape), editor);
   cancel_shortcut->setContext(Qt::WidgetWithChildrenShortcut);
   connect(cancel_shortcut, &QShortcut::activated, editor,
-          [this, editor = QPointer<QTextEdit>(editor), editing_layer, committed] {
+          [this, editor = QPointer<QTextEdit>(editor), editing_layer, committed, commit] {
             if (*committed || editor == nullptr) {
+              return;
+            }
+            if (escape_commits_text_) {
+              commit();
               return;
             }
             *committed = true;
@@ -6797,6 +6836,11 @@ void MainWindow::add_text_at(QPoint document_point, QRect requested_text_box, bo
     }
   });
   refresh_options_bar();  // shows the session apply/cancel buttons
+  if (editing_layer.has_value()) {
+    // The session already draws the layer's missing fonts in installed faces: the panel's
+    // badge goes now, not at commit (GitHub issue 178), and comes back if the edit is canceled.
+    refresh_layer_thumbnails();
+  }
 }
 
 void MainWindow::cancel_text_editor(QTextEdit* editor, std::optional<LayerId> layer_id) {
@@ -7729,6 +7773,7 @@ void MainWindow::open_text_character_dialog() {
   // Sub-control gotcha: the spin-button style must land AFTER all children exist.
   append_themed_style(*dialog, dialog_spinbox_button_style());
   sync_text_character_dialog_from_editor();
+  return_keyboard_after_text_panel_edits(*dialog);
   run_non_modal_dialog(*dialog);
   // WA_DeleteOnClose destroyed the dialog when the nested loop unwound.
   text_character_hint_label_ = nullptr;
@@ -8153,6 +8198,7 @@ void MainWindow::open_text_paragraph_dialog() {
   append_themed_style(*dialog, dialog_spinbox_button_style());
   sync_text_paragraph_dialog_from_editor();
   sync_text_orientation_controls_from_editor();
+  return_keyboard_after_text_panel_edits(*dialog);
   run_non_modal_dialog(*dialog);
   // WA_DeleteOnClose destroyed the dialog when the nested loop unwound.
   text_paragraph_hint_label_ = nullptr;
@@ -8495,25 +8541,54 @@ void MainWindow::request_warp_text_dialog() {
   if (canvas_ == nullptr) {
     return;
   }
-  // The dialog operates on the committed layer; finish any open inline edit first.
+  // The dialog operates on the committed layer, so an open inline edit commits first. Photoshop
+  // keeps the type in edit mode across Warp Text, so a live session reopens afterwards with its
+  // selection: a still-selected "Type" placeholder stays replaceable (GitHub issue 175).
+  std::optional<std::pair<int, int>> resume_selection;
+  if (const auto* live = canvas_->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor"));
+      live != nullptr && !live->property(kTextEditorFinishedProperty).toBool() && live->isVisible()) {
+    resume_selection = std::pair{live->textCursor().anchor(), live->textCursor().position()};
+  }
   commit_active_text_editor();
+  const bool dialog_ran = run_warp_text_dialog_on_active_layer();
+  if (!dialog_ran || !resume_selection.has_value() || canvas_ == nullptr || !has_active_document()) {
+    return;
+  }
+  const auto active = document().active_layer_id();
+  const auto* layer = active.has_value() ? std::as_const(document()).find_layer(*active) : nullptr;
+  if (layer == nullptr || !layer_is_text(*layer)) {
+    return;
+  }
+  edit_text_layer(*active);
+  if (auto* editor = canvas_->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor"));
+      editor != nullptr && editor->property("patchy.editingLayerId").toULongLong() == *active) {
+    const int end = std::max(0, editor->document()->characterCount() - 1);
+    QTextCursor cursor(editor->document());
+    cursor.setPosition(std::clamp(resume_selection->first, 0, end));
+    cursor.setPosition(std::clamp(resume_selection->second, 0, end), QTextCursor::KeepAnchor);
+    editor->setTextCursor(cursor);
+    return_keyboard_to_text_editor();  // the modal dialog took the window's activation with it
+  }
+}
+
+bool MainWindow::run_warp_text_dialog_on_active_layer() {
   auto& doc = document();
   select_only_layer_if_none_active();
   const auto active_id = doc.active_layer_id();
   Layer* layer = active_id.has_value() ? doc.find_layer(*active_id) : nullptr;
   if (layer == nullptr || !layer_is_text(*layer)) {
     show_status_error(tr("Select a text layer to warp."));
-    return;
+    return false;
   }
   if (layer_id_locks_image_pixels(layer->id())) {
     show_status_error(tr("Layer pixels are locked."));
-    return;
+    return false;
   }
   if (text_layer_uses_faux_bold(*layer)) {
     // Photoshop parity: it refuses to warp type with Faux Bold anywhere in the layer, so
     // Patchy must not author a PSD Photoshop itself would not create. Faux italic warps fine.
     show_status_error(tr("Faux bold text cannot be warped. Turn off faux bold in the Character panel first."));
-    return;
+    return false;
   }
   const auto layer_id = layer->id();
   const auto original_pixels = layer->pixels();
@@ -8557,7 +8632,7 @@ void MainWindow::request_warp_text_dialog() {
   if (!result.has_value() || warp_settings_equal(*result, initial)) {
     canvas_->document_changed();
     refresh_layer_list();
-    return;
+    return true;
   }
   push_undo_snapshot(tr("Warp Text"));
   bool applied = false;
@@ -8573,6 +8648,7 @@ void MainWindow::request_warp_text_dialog() {
   canvas_->document_changed();
   refresh_layer_list();
   refresh_layer_controls();
+  return true;
 }
 
 // SVG post-open pass. The Qt-free SVG reader stores each <text> element's
@@ -9590,8 +9666,18 @@ void MainWindow::sync_text_options_from_active_layer() {
   const auto* layer = text_character_target_layer();
   if (layer == nullptr) {
     // Nothing to mirror: the bar keeps what it shows (the next new layer's seed), and the
-    // next text layer to become active is read afresh.
+    // next text layer to become active is read afresh. A missing family left over from the
+    // last mirrored layer is not what it shows: the combo displays another row, so put
+    // currentFont() back on that row before anything seeds new type from it (GitHub issue 180).
     text_options_layer_sync_key_.clear();
+    if (const auto shown = text_options_bar_family();
+        shown.compare(text_font_combo_->currentFont().family(), Qt::CaseInsensitive) != 0) {
+      {
+        QSignalBlocker blocker(text_font_combo_);
+        text_font_combo_->setCurrentFont(QFont(shown));
+      }
+      refresh_text_style_combo(shown, current_text_style_name());
+    }
     return;
   }
   const auto& metadata = layer->metadata();
@@ -10994,6 +11080,39 @@ void MainWindow::apply_text_color_to_active_editor() {
   refresh_text_color_button();
 }
 
+void MainWindow::return_keyboard_to_text_editor() {
+  if (canvas_ == nullptr || applying_text_options_to_layers_) {
+    return;
+  }
+  auto* editor = canvas_->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor"));
+  if (editor == nullptr || editor->property(kTextEditorFinishedProperty).toBool() || !editor->isVisible()) {
+    return;
+  }
+  // From a Character/Paragraph panel the keyboard sits in another window; give the canvas's
+  // window the keyboard back too, or the keys would keep going to the panel.
+  if (auto* window = editor->window(); window != nullptr && !window->isActiveWindow()) {
+    window->activateWindow();
+  }
+  editor->setFocus(Qt::OtherFocusReason);
+}
+
+void MainWindow::return_keyboard_after_text_panel_edits(QWidget& panel) {
+  for (auto* spin : panel.findChildren<QAbstractSpinBox*>()) {
+    // Enter, not focus loss: leaving the field already put the keyboard somewhere on purpose.
+    connect(spin, &QAbstractSpinBox::editingFinished, this, [this, spin = QPointer<QAbstractSpinBox>(spin)] {
+      if (spin != nullptr && spin->hasFocus() && QApplication::activePopupWidget() == nullptr) {
+        return_keyboard_to_text_editor();
+      }
+    });
+  }
+  for (auto* check : panel.findChildren<QCheckBox*>()) {
+    connect(check, &QCheckBox::clicked, this, [this](bool) { return_keyboard_to_text_editor(); });
+  }
+  for (auto* combo : panel.findChildren<QComboBox*>()) {
+    connect(combo, QOverload<int>::of(&QComboBox::activated), this, [this](int) { return_keyboard_to_text_editor(); });
+  }
+}
+
 void MainWindow::apply_text_color_to_editor(QTextEdit& editor, QColor color) {
   QTextCharFormat format;
   format.setForeground(QBrush(color));
@@ -11103,7 +11222,9 @@ bool MainWindow::is_text_option_widget(QWidget* widget) const {
          // The font picker popup is a Qt::Popup window, so isAncestorOf-based ownership stops
          // at its boundary; without the name match, focusing its search box would auto-commit
          // an open inline text editor.
-         in_named_ancestor(QString::fromLatin1(kFontPickerPopupObjectName));
+         in_named_ancestor(QString::fromLatin1(kFontPickerPopupObjectName)) ||
+         // The size field's slider popup is a Qt::Popup too (parentWidget still reaches it).
+         in_named_ancestor(QStringLiteral("textSizePopup"));
 }
 
 MainWindow::PreviewDialogEditLock MainWindow::lock_preview_dialog_edits() {

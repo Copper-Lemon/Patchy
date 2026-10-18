@@ -370,7 +370,11 @@ void ui_options_bar_keeps_one_height_across_tools() {
     window.resize(width, 738);
     settle();
     int common_height = options_bar->height();
-    CHECK(common_height == single_row_height);  // Move fits one row everywhere
+    // Move fits one row at 1366 px; with the Align and Distribute buttons (GitHub
+    // issue 172) it wraps in narrower windows like the Brush row.
+    if (width == 1366) {
+      CHECK(common_height == single_row_height);
+    }
     for (auto* action : tools) {
       action->trigger();
       settle();

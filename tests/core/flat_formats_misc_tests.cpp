@@ -2,6 +2,7 @@
 #include "formats/animation_timing.hpp"
 #include "formats/webp_animation_io.hpp"
 #include "core/document.hpp"
+#include "core/layer_metadata.hpp"
 #include "formats/acv_curves_io.hpp"
 #include "formats/bmp_document_io.hpp"
 #include "formats/aseprite_document_io.hpp"
@@ -1184,6 +1185,16 @@ void aseprite_write_read_round_trips_layers_and_palette() {
   CHECK(read_back.layers()[2].children().size() == 1);
   CHECK(!read_back.layers()[2].children()[0].visible());
   CHECK(read_back.layers()[1].pixels().pixel(2, 2)[0] == 220);
+  CHECK(patchy::layer_group_expanded(read_back.layers()[2]));
+
+  // Issue 179: a closed folder writes Aseprite's "displayed collapsed" layer flag (32).
+  {
+    auto folded = document;
+    patchy::set_layer_group_expanded(folded.layers()[2], false);
+    const auto folded_read = patchy::aseprite::DocumentIo::read(patchy::aseprite::DocumentIo::write(folded));
+    CHECK(folded_read.layers()[2].kind() == patchy::LayerKind::Group);
+    CHECK(!patchy::layer_group_expanded(folded_read.layers()[2]));
+  }
 
   // Palette-mode documents round trip as indexed with the document palette.
   patchy::Document indexed_doc(8, 4, patchy::PixelFormat::rgb8());

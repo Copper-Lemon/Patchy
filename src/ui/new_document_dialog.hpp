@@ -40,10 +40,12 @@ struct NewDocumentSettings {
 // Shows the New Document dialog (category chips + clickable preset card grid on the
 // left, the width/height/resolution/background details pane on the right) and
 // returns the accepted settings, or nullopt on cancel. Remembers the last accepted
-// non-clipboard settings (preset, size, PPI, background, the W/H unit and the
-// resolution unit) in the "newDocument" settings group and restores them the next
-// time it opens; a clipboard image preselects the Clipboard card instead. On a first
-// run the W/H unit follows the ruler unit preference (`view/rulerUnits`).
+// settings (size, PPI, background, bit depth, Artboards, the W/H unit and the
+// resolution unit) in the "newDocument" settings group and opens on a Last Used card
+// that restores them; a Clipboard create remembers only its size and PPI. Before the
+// first create there is no Last Used card and Default is selected. A clipboard image
+// never preselects the Clipboard card. On a first run the W/H unit follows the ruler
+// unit preference (`view/rulerUnits`).
 [[nodiscard]] std::optional<NewDocumentSettings> request_new_document_settings(QWidget* parent);
 
 // The New Document size presets an artboard can take (every screen and print card but

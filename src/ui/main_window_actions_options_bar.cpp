@@ -10,6 +10,7 @@
 #include "ui/canvas_types.hpp"
 #include "ui/main_window.hpp"
 #include "ui/gradient_stops_editor.hpp"
+#include <QApplication>
 #include <QStatusBar>
 #include "ui/canvas_widget.hpp"
 #include "ui/appearance_edits.hpp"
@@ -353,6 +354,39 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
     // directly and must not leak it into later windows.
     app_settings().setValue(QStringLiteral("tools/moveAutoSelect"), checked);
   });
+  // Photoshop's Auto-Select Layer/Group choice (GitHub issue 168). It also
+  // decides what a Ctrl/Cmd+click picks with Auto-Select off, so it stays enabled.
+  move_auto_select_target_combo_ = new QComboBox(toolbar);
+  move_auto_select_target_combo_->setObjectName(QStringLiteral("moveAutoSelectTargetCombo"));
+  move_auto_select_target_combo_->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+  move_auto_select_target_combo_->setMinimumWidth(72);
+  move_auto_select_target_combo_->addItem(tr("Layer"), move_auto_select_target_token(MoveAutoSelectTarget::Layer));
+  move_auto_select_target_combo_->addItem(tr("Group"), move_auto_select_target_token(MoveAutoSelectTarget::Group));
+  move_auto_select_target_combo_->setCurrentIndex(
+      canvas_defaults->auto_select_target() == MoveAutoSelectTarget::Group ? 1 : 0);
+  bind_tooltip(move_auto_select_target_combo_,
+               QT_TR_NOOP("What a click or a selection rectangle selects: the layer itself, or the outermost "
+                          "group that holds it"));
+  register_retranslation([this] {
+    if (move_auto_select_target_combo_ == nullptr || move_auto_select_target_combo_->count() < 2) {
+      return;
+    }
+    QSignalBlocker blocker(move_auto_select_target_combo_);
+    move_auto_select_target_combo_->setItemText(0, tr("Layer"));
+    move_auto_select_target_combo_->setItemText(1, tr("Group"));
+  });
+  add_option_widget(move_auto_select_target_combo_, {CanvasTool::Move});
+  connect(move_auto_select_target_combo_, &QComboBox::currentIndexChanged, this, [this](int index) {
+    if (index < 0 || move_auto_select_target_combo_ == nullptr) {
+      return;
+    }
+    const auto token = move_auto_select_target_combo_->itemData(index).toString();
+    if (canvas_ != nullptr) {
+      canvas_->set_auto_select_target(move_auto_select_target_from_token(token));
+    }
+    // Written by the user's choice, like tools/moveAutoSelect above.
+    app_settings().setValue(QLatin1String(kMoveAutoSelectTargetSettingsKey), token);
+  });
   move_show_transform_controls_check_ = new CheckGlyphBox(tr("Show Transform Controls"), toolbar);
   move_show_transform_controls_check_->setObjectName(QStringLiteral("moveShowTransformControlsCheck"));
   bind_tooltip(move_show_transform_controls_check_, QT_TR_NOOP("Show transform controls when selecting a layer with Move"));
@@ -425,6 +459,20 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
       }
     }
   }
+  // The six feature Distribute commands follow as buttons, like Photoshop's bar
+  // (GitHub issue 172); the two spacing modes stay in the "..." menu below.
+  add_option_separator({CanvasTool::Move});
+  {
+    const char* const distribute_button_names[] = {"moveDistributeLeftButton",   "moveDistributeHCenterButton",
+                                                   "moveDistributeRightButton",  "moveDistributeTopButton",
+                                                   "moveDistributeVCenterButton", "moveDistributeBottomButton"};
+    for (std::size_t i = 0; i < std::size(distribute_button_names); ++i) {
+      if (layer_distribute_actions_[i] != nullptr) {
+        add_option_action_mirror(layer_distribute_actions_[i], QLatin1String(distribute_button_names[i]),
+                                 {CanvasTool::Move});
+      }
+    }
+  }
   move_align_more_button_ = new QToolButton(toolbar);
   move_align_more_button_->setObjectName(QStringLiteral("moveAlignMoreButton"));
   // The brushSmoothingOptionsButton pattern: compact "..." text, InstantPopup,
@@ -432,17 +480,14 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   move_align_more_button_->setText(QStringLiteral("..."));
   move_align_more_button_->setProperty("optionsBarMenuButton", true);
   move_align_more_button_->setFocusPolicy(Qt::NoFocus);
-  bind_tooltip(move_align_more_button_, QT_TR_NOOP("Distribute layers and choose what to align to"));
+  bind_tooltip(move_align_more_button_, QT_TR_NOOP("Distribute spacing and choose what to align to"));
   move_align_more_button_->setPopupMode(QToolButton::InstantPopup);
   {
     auto* more_menu = new QMenu(move_align_more_button_);
     more_menu->setObjectName(QStringLiteral("moveAlignMoreMenu"));
-    for (std::size_t i = 0; i < layer_distribute_actions_.size(); ++i) {
-      if (i == static_cast<std::size_t>(DistributeMode::HorizontalSpacing)) {
-        more_menu->addSeparator();
-      }
-      if (layer_distribute_actions_[i] != nullptr) {
-        more_menu->addAction(layer_distribute_actions_[i]);
+    for (const auto mode : {DistributeMode::HorizontalSpacing, DistributeMode::VerticalSpacing}) {
+      if (auto* action = layer_distribute_actions_[static_cast<std::size_t>(mode)]; action != nullptr) {
+        more_menu->addAction(action);
       }
     }
     more_menu->addSeparator();
@@ -3233,6 +3278,10 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   text_color_button_->setObjectName(QStringLiteral("textColorButton"));
   bind_tooltip(text_color_button_, QT_TR_NOOP("Text color"));
   text_color_button_->setFixedSize(30, 26);
+  // Qt::NoFocus like the session buttons below: keyboard focus stays in the editor, so typing
+  // after a color pick replaces the selected "Type" placeholder (GitHub issue 175). The
+  // alignment buttons follow the same rule.
+  text_color_button_->setFocusPolicy(Qt::NoFocus);
   add_option_widget(text_color_button_, {CanvasTool::Text});
   // Ragged-lines glyphs instead of L / C / R letters, which needed an "Align:" label to
   // read; sync_text_orientation_controls_from_editor swaps in the column glyphs for
@@ -3246,6 +3295,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   text_align_left_button_->setChecked(true);
   bind_tooltip(text_align_left_button_, QT_TR_NOOP("Align Left"));
   text_align_left_button_->setFixedSize(30, 26);
+  text_align_left_button_->setFocusPolicy(Qt::NoFocus);
   text_alignment_group->addButton(text_align_left_button_);
   add_option_widget(text_align_left_button_, {CanvasTool::Text});
   text_align_center_button_ = new QPushButton(toolbar);
@@ -3254,6 +3304,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   text_align_center_button_->setCheckable(true);
   bind_tooltip(text_align_center_button_, QT_TR_NOOP("Align Center"));
   text_align_center_button_->setFixedSize(30, 26);
+  text_align_center_button_->setFocusPolicy(Qt::NoFocus);
   text_alignment_group->addButton(text_align_center_button_);
   add_option_widget(text_align_center_button_, {CanvasTool::Text});
   text_align_right_button_ = new QPushButton(toolbar);
@@ -3262,6 +3313,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   text_align_right_button_->setCheckable(true);
   bind_tooltip(text_align_right_button_, QT_TR_NOOP("Align Right"));
   text_align_right_button_->setFixedSize(30, 26);
+  text_align_right_button_->setFocusPolicy(Qt::NoFocus);
   text_alignment_group->addButton(text_align_right_button_);
   add_option_widget(text_align_right_button_, {CanvasTool::Text});
   // Photoshop's "Toggle text orientation": one Type tool with a vertical switch instead of a
@@ -3278,6 +3330,9 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   bind_widget_text(text_warp_button_, QT_TR_NOOP("Warp..."));
   text_warp_button_->setObjectName(QStringLiteral("textWarpButton"));
   bind_tooltip(text_warp_button_, QT_TR_NOOP("Warp Text (Photoshop-style styles: arc, flag, fish, ...)"));
+  // Qt::NoFocus so the press does not auto-commit the session before request_warp_text_dialog
+  // can note its selection and reopen it afterwards (GitHub issue 175).
+  text_warp_button_->setFocusPolicy(Qt::NoFocus);
   add_option_widget(text_warp_button_, {CanvasTool::Text});
   // Character panel: works on the LIVE editor session, so Qt::NoFocus is load-bearing here
   // exactly like the session apply/cancel buttons (a focus-taking button would fire the
@@ -3317,6 +3372,18 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
             refresh_document_info();
           });
   connect(text_color_button_, &QPushButton::clicked, this, [this] { choose_text_color(); });
+  // The controls that need the keyboard while in use hand it back to a live session once the
+  // pick lands: a popup choice, or Enter in the size field. editingFinished on focus loss finds
+  // the spin no longer focused, except when its slider popup opens: Qt sends that FocusOut while
+  // the field still holds focus, and an active popup tells the two apart.
+  for (QComboBox* combo : {static_cast<QComboBox*>(text_font_combo_), text_style_combo_, text_smoothing_combo_}) {
+    connect(combo, QOverload<int>::of(&QComboBox::activated), this, [this](int) { return_keyboard_to_text_editor(); });
+  }
+  connect(text_size_spin_, &QAbstractSpinBox::editingFinished, this, [this] {
+    if (text_size_spin_->hasFocus() && QApplication::activePopupWidget() == nullptr) {
+      return_keyboard_to_text_editor();
+    }
+  });
   connect(text_align_left_button_, &QPushButton::clicked, this,
           [this] { apply_text_alignment_to_active_editor(Qt::AlignLeft); });
   connect(text_align_center_button_, &QPushButton::clicked, this,

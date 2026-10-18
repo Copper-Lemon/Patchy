@@ -3263,10 +3263,6 @@ Flow: %6
         <translation>テキストレイヤー</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>テキストレイヤー。フォントが見つかりません: %1。別のフォントで代替しているため、作成時の見た目とは異なります。</translation>
-    </message>
-    <message>
         <source>Folder layer</source>
         <translation>フォルダーレイヤー</translation>
     </message>
@@ -8672,14 +8668,6 @@ Mixed selection</source>
         <translation>次のフォントにはテキストのグリフがありません: %1。この PSD ラスタープレビューを編集すると別のフォントで代用します。続行しますか?</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. No glyphs for this text in: %2. Other fonts are being substituted, so the text does not look as it was authored.</source>
-        <translation>テキストレイヤー。フォントが見つかりません: %1。このテキストのグリフがないフォント: %2。別のフォントで代替しているため、作成時の見た目とは異なります。</translation>
-    </message>
-    <message>
-        <source>Text layer. No glyphs for this text in: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>テキストレイヤー。このテキストのグリフがないフォント: %1。別のフォントで代替しているため、作成時の見た目とは異なります。</translation>
-    </message>
-    <message>
         <source>UI language for this run only, not saved: en, de, es, fr, it, ja, ko, pl, pt_BR, ru, zh_CN, or zh_TW.</source>
         <translation>この実行のみに適用される UI 言語 (保存されません): en、de、es、fr、it、ja、ko、pl、pt_BR、ru、zh_CN、zh_TW。</translation>
     </message>
@@ -10360,6 +10348,62 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>Hide drop shadows, glows, and strokes where the vector mask hides the layer, instead of letting the vector mask shape them</source>
         <translation>ベクトルマスクで効果の形を作る代わりに、ベクトルマスクがレイヤーを隠す部分のドロップシャドウ、光彩、境界線を隠します</translation>
+    </message>
+    <message>
+        <source>Last Used</source>
+        <translation>前回の設定</translation>
+    </message>
+    <message>
+        <source>The settings of the last document created here: %1 x %2 px at %3 ppi</source>
+        <translation>ここで最後に作成したドキュメントの設定: %1 x %2 px、%3 ppi</translation>
+    </message>
+    <message>
+        <source>Missing Fonts</source>
+        <translation>見つからないフォント</translation>
+    </message>
+    <message>
+        <source>Some fonts used in this document are missing. Choose an installed font to replace each one in every text layer that uses it, or leave it unresolved.</source>
+        <translation>このドキュメントで使用されている一部のフォントが見つかりません。それぞれを使用しているすべてのテキストレイヤーで置き換えるインストール済みフォントを選択するか、未解決のままにしてください。</translation>
+    </message>
+    <message>
+        <source>Resolve Fonts</source>
+        <translation>フォントを解決</translation>
+    </message>
+    <message numerus="yes">
+        <source>Installed, but has no glyphs for this text. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>インストール済みですが、このテキストのグリフがありません。%n 個のテキストレイヤーで使用されています。</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Not installed. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>インストールされていません。%n 個のテキストレイヤーで使用されています。</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Replace with:</source>
+        <translation>置き換え先：</translation>
+    </message>
+    <message>
+        <source>Don&apos;t show when opening documents</source>
+        <translation>ドキュメントを開くときに表示しない</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens this dialog at any time. Preferences can turn it back on for opened documents.</source>
+        <translation>文字 &gt; 見つからないフォントを解決 で、このダイアログをいつでも開けます。開いたドキュメントで再び表示するには環境設定で有効にしてください。</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1. No glyphs for this text in: %2.</source>
+        <translation>テキストレイヤー。このコンピューターにフォントがありません: %1。このテキストのグリフがないフォント: %2。</translation>
+    </message>
+    <message>
+        <source>Text layer. No glyphs for this text in: %1.</source>
+        <translation>テキストレイヤー。このテキストのグリフがないフォント: %1。</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1.</source>
+        <translation>テキストレイヤー。このコンピューターにフォントがありません: %1。</translation>
     </message>
 </context>
 <context>
@@ -19378,10 +19422,6 @@ Clipped to the layer below</source>
         <translation>移動したレイヤーを他のレイヤー、ガイド、グリッド、カンバスにスナップします (表示 &gt; スナップ)。スナップ先は 表示 &gt; スナップ先 で選択します。</translation>
     </message>
     <message>
-        <source>Distribute layers and choose what to align to</source>
-        <translation>レイヤーを分布し、整列の基準を選択します</translation>
-    </message>
-    <message>
         <source>Finish the current drag before aligning layers</source>
         <translation>レイヤーを整列する前に現在のドラッグを終了してください</translation>
     </message>
@@ -21645,6 +21685,72 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation>ページ画像 %1 / %2 を準備中...</translation>
+    </message>
+    <message>
+        <source>Use Esc to commit text</source>
+        <translation>Esc キーでテキストを確定</translation>
+    </message>
+    <message>
+        <source>When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar&apos;s Cancel button discards the edit. When off, Esc cancels the edit.</source>
+        <translation>オンにすると、Esc キーで入力中のテキストを %CTRL%+Enter と同じように確定し、オプションバーのキャンセルボタンで編集を破棄します。オフにすると、Esc キーで編集をキャンセルします。</translation>
+    </message>
+    <message>
+        <source>Layer</source>
+        <translation>レイヤー</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>グループ</translation>
+    </message>
+    <message>
+        <source>What a click or a selection rectangle selects: the layer itself, or the outermost group that holds it</source>
+        <translation>クリックまたは選択の矩形で選択されるもの: レイヤー自体、またはそれを含む最も外側のグループ</translation>
+    </message>
+    <message>
+        <source>Distribute spacing and choose what to align to</source>
+        <translation>間隔を分布し、整列の基準を選択します</translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts...</source>
+        <translation>見つからないフォントを解決...</translation>
+    </message>
+    <message>
+        <source>This document has no missing fonts</source>
+        <translation>このドキュメントに見つからないフォントはありません</translation>
+    </message>
+    <message numerus="yes">
+        <source>Replaced missing fonts in %n text layer(s)</source>
+        <translation>
+            <numerusform>%n 個のテキストレイヤーで見つからないフォントを置き換えました</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>(%n locked layer(s) kept their fonts)</source>
+        <translation>
+            <numerusform>(ロックされた %n 個のレイヤーはフォントを保持しました)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts</source>
+        <translation>見つからないフォントを解決</translation>
+    </message>
+    <message>
+        <source>Show the Missing Fonts dialog when opening a document with missing fonts</source>
+        <translation>見つからないフォントがあるドキュメントを開くときに「見つからないフォント」ダイアログを表示</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens the same dialog at any time.</source>
+        <translation>文字 &gt; 見つからないフォントを解決 で、同じダイアログをいつでも開けます。</translation>
+    </message>
+    <message>
+        <source>The following fonts are missing for text layer &quot;%1&quot;: %2. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>テキストレイヤー「%1」に次のフォントがありません: %2。再レンダリングせず、既存のピクセルを変形します。続行しますか?</translation>
+    </message>
+    <message numerus="yes">
+        <source>The following fonts are missing for %n text layer(s): %1. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>
+            <numerusform>%n 個のテキストレイヤーに次のフォントがありません: %1。再レンダリングせず、既存のピクセルを変形します。続行しますか?</numerusform>
+        </translation>
     </message>
 </context>
 <context>

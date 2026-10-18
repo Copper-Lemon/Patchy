@@ -6438,18 +6438,6 @@ Fluxo: %6
         <translation>Expandir pasta (%ALT%-clique inclui pastas aninhadas, %CTRL%+%ALT%-clique em todas as pastas)</translation>
     </message>
     <message>
-        <source>Text layer. Missing font: %1. No glyphs for this text in: %2. Other fonts are being substituted, so the text does not look as it was authored.</source>
-        <translation>Camada de texto. Fonte ausente: %1. Não há glifos para este texto em: %2. Fontes substitutas estão sendo usadas, por isso o texto difere da aparência original.</translation>
-    </message>
-    <message>
-        <source>Text layer. No glyphs for this text in: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>Camada de texto. Não há glifos para este texto em: %1. Uma fonte substituta está sendo usada, por isso o texto difere da aparência original.</translation>
-    </message>
-    <message>
-        <source>Text layer. Missing font: %1. Another font is being substituted, so the text does not look as it was authored.</source>
-        <translation>Camada de texto. Fonte ausente: %1. Uma fonte substituta está sendo usada, por isso o texto difere da aparência original.</translation>
-    </message>
-    <message>
         <source>Folder layer</source>
         <translation>Camada de pasta</translation>
     </message>
@@ -10393,6 +10381,64 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>Hide drop shadows, glows, and strokes where the vector mask hides the layer, instead of letting the vector mask shape them</source>
         <translation>Oculta sombras projetadas, brilhos e traçados onde a máscara vetorial oculta a camada, em vez de deixar a máscara vetorial dar forma a eles</translation>
     </message>
+    <message>
+        <source>Last Used</source>
+        <translation>Último usado</translation>
+    </message>
+    <message>
+        <source>The settings of the last document created here: %1 x %2 px at %3 ppi</source>
+        <translation>As configurações do último documento criado aqui: %1 x %2 px a %3 ppi</translation>
+    </message>
+    <message>
+        <source>Missing Fonts</source>
+        <translation>Fontes ausentes</translation>
+    </message>
+    <message>
+        <source>Some fonts used in this document are missing. Choose an installed font to replace each one in every text layer that uses it, or leave it unresolved.</source>
+        <translation>Algumas fontes usadas neste documento estão ausentes. Escolha uma fonte instalada para substituir cada uma em todas as camadas de texto que a usam, ou deixe-a sem resolver.</translation>
+    </message>
+    <message>
+        <source>Resolve Fonts</source>
+        <translation>Resolver fontes</translation>
+    </message>
+    <message numerus="yes">
+        <source>Installed, but has no glyphs for this text. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>Instalada, mas sem glifos para este texto. Usada em %n camada de texto.</numerusform>
+            <numerusform>Instalada, mas sem glifos para este texto. Usada em %n camadas de texto.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Not installed. Used in %n text layer(s).</source>
+        <translation>
+            <numerusform>Não instalada. Usada em %n camada de texto.</numerusform>
+            <numerusform>Não instalada. Usada em %n camadas de texto.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Replace with:</source>
+        <translation>Substituir por:</translation>
+    </message>
+    <message>
+        <source>Don&apos;t show when opening documents</source>
+        <translation>Não mostrar ao abrir documentos</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens this dialog at any time. Preferences can turn it back on for opened documents.</source>
+        <translation>Texto &gt; Resolver fontes ausentes abre esta caixa de diálogo a qualquer momento. Nas Preferências é possível reativá-la para documentos abertos.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1. No glyphs for this text in: %2.</source>
+        <translation>Camada de texto. A fonte está ausente neste computador: %1. Não há glifos para este texto em: %2.</translation>
+    </message>
+    <message>
+        <source>Text layer. No glyphs for this text in: %1.</source>
+        <translation>Camada de texto. Não há glifos para este texto em: %1.</translation>
+    </message>
+    <message>
+        <source>Text layer. Font is missing on this computer: %1.</source>
+        <translation>Camada de texto. A fonte está ausente neste computador: %1.</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>
@@ -13886,10 +13932,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
     <message>
         <source>Snap moved layers to other layers, guides, the grid, and the canvas (View &gt; Snap). Choose the targets under View &gt; Snap To.</source>
         <translation>Ajuste as camadas movidas a outras camadas, guias, grade e tela (Visualizar &gt; Ajustar). Escolha os alvos em Visualizar &gt; Ajustar para.</translation>
-    </message>
-    <message>
-        <source>Distribute layers and choose what to align to</source>
-        <translation>Distribua camadas e escolha o que alinhar</translation>
     </message>
     <message>
         <source>Pivot:</source>
@@ -21710,6 +21752,75 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
     <message>
         <source>Preparing page image %1 of %2...</source>
         <translation>Preparando a imagem de página %1 de %2...</translation>
+    </message>
+    <message>
+        <source>Use Esc to commit text</source>
+        <translation>Usar Esc para confirmar o texto</translation>
+    </message>
+    <message>
+        <source>When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar&apos;s Cancel button discards the edit. When off, Esc cancels the edit.</source>
+        <translation>Quando ativado, Esc aplica o texto que você está digitando, como %CTRL%+Enter, e o botão Cancelar da barra de opções descarta a edição. Quando desativado, Esc cancela a edição.</translation>
+    </message>
+    <message>
+        <source>Layer</source>
+        <translation>Camada</translation>
+    </message>
+    <message>
+        <source>Group</source>
+        <translation>Grupo</translation>
+    </message>
+    <message>
+        <source>What a click or a selection rectangle selects: the layer itself, or the outermost group that holds it</source>
+        <translation>O que um clique ou um retângulo de seleção seleciona: a própria camada ou o grupo mais externo que a contém</translation>
+    </message>
+    <message>
+        <source>Distribute spacing and choose what to align to</source>
+        <translation>Distribua o espaçamento e escolha o que alinhar</translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts...</source>
+        <translation>Resolver fontes ausentes...</translation>
+    </message>
+    <message>
+        <source>This document has no missing fonts</source>
+        <translation>Este documento não tem fontes ausentes</translation>
+    </message>
+    <message numerus="yes">
+        <source>Replaced missing fonts in %n text layer(s)</source>
+        <translation>
+            <numerusform>Fontes ausentes substituídas em %n camada de texto</numerusform>
+            <numerusform>Fontes ausentes substituídas em %n camadas de texto</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>(%n locked layer(s) kept their fonts)</source>
+        <translation>
+            <numerusform>(%n camada bloqueada manteve suas fontes)</numerusform>
+            <numerusform>(%n camadas bloqueadas mantiveram suas fontes)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Resolve Missing Fonts</source>
+        <translation>Resolver fontes ausentes</translation>
+    </message>
+    <message>
+        <source>Show the Missing Fonts dialog when opening a document with missing fonts</source>
+        <translation>Mostrar a caixa de diálogo Fontes ausentes ao abrir um documento com fontes ausentes</translation>
+    </message>
+    <message>
+        <source>Type &gt; Resolve Missing Fonts opens the same dialog at any time.</source>
+        <translation>Texto &gt; Resolver fontes ausentes abre a mesma caixa de diálogo a qualquer momento.</translation>
+    </message>
+    <message>
+        <source>The following fonts are missing for text layer &quot;%1&quot;: %2. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>As seguintes fontes estão ausentes na camada de texto &quot;%1&quot;: %2. Os pixels existentes serão transformados em vez de renderizados novamente. Continuar?</translation>
+    </message>
+    <message numerus="yes">
+        <source>The following fonts are missing for %n text layer(s): %1. The existing pixels will be transformed instead of re-rendered. Continue?</source>
+        <translation>
+            <numerusform>As seguintes fontes estão ausentes em %n camada de texto: %1. Os pixels existentes serão transformados em vez de renderizados novamente. Continuar?</numerusform>
+            <numerusform>As seguintes fontes estão ausentes em %n camadas de texto: %1. Os pixels existentes serão transformados em vez de renderizados novamente. Continuar?</numerusform>
+        </translation>
     </message>
 </context>
 <context>

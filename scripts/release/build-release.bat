@@ -213,9 +213,16 @@ set "PATCHY_INSTALL_MANIFEST=%STAGE_DIR%\PatchyInstallManifest.txt"
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$stage = [IO.Path]::GetFullPath($env:PATCHY_STAGE_DIR).TrimEnd('\') + '\'; $manifest = [IO.Path]::GetFullPath($env:PATCHY_INSTALL_MANIFEST); $files = Get-ChildItem -LiteralPath $env:PATCHY_STAGE_DIR -Recurse -File | Where-Object { [IO.Path]::GetFullPath($_.FullName) -ne $manifest } | ForEach-Object { $_.FullName.Substring($stage.Length) } | Sort-Object; $files = @($files) + 'PatchyInstallManifest.txt'; Set-Content -LiteralPath $manifest -Value $files -Encoding ASCII"
 if not "!ERRORLEVEL!"=="0" goto fail
 
+rem The connector check just ran patchy-mcp.exe and antivirus scans freshly copied
+rem executables, so a staged .exe can stay locked for a moment. Wait until each one
+rem opens for reading (up to two minutes) before zipping, and make any archive error
+rem fail the step: Compress-Archive reports a locked file as a non-terminating error
+rem and would otherwise leave a zip with the file missing.
 echo Creating zip package...
 set "PATCHY_ZIP_PATH=%ZIP_PATH%"
-powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Test-Path -LiteralPath $env:PATCHY_ZIP_PATH) { Remove-Item -LiteralPath $env:PATCHY_ZIP_PATH -Force }; Compress-Archive -Path $env:PATCHY_STAGE_DIR -DestinationPath $env:PATCHY_ZIP_PATH -Force"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$deadline = (Get-Date).AddSeconds(120); foreach ($f in Get-ChildItem -LiteralPath $env:PATCHY_STAGE_DIR -Recurse -File -Filter *.exe) { while ($true) { try { $s = [IO.File]::Open($f.FullName, 'Open', 'Read', 'Read'); $s.Close(); break } catch { if ((Get-Date) -gt $deadline) { Write-Host ('Still locked: ' + $f.FullName); exit 1 }; Start-Sleep -Milliseconds 500 } } }"
+if not "!ERRORLEVEL!"=="0" goto fail
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; if (Test-Path -LiteralPath $env:PATCHY_ZIP_PATH) { Remove-Item -LiteralPath $env:PATCHY_ZIP_PATH -Force }; Compress-Archive -Path $env:PATCHY_STAGE_DIR -DestinationPath $env:PATCHY_ZIP_PATH -Force"
 if not "!ERRORLEVEL!"=="0" goto fail
 if exist "%LEGACY_ZIP_PATH%" del /q "%LEGACY_ZIP_PATH%"
 

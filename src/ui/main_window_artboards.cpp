@@ -652,6 +652,9 @@ void MainWindow::sync_artboard_controls() {
     }
   }
   const auto* artboard = selected.has_value() ? doc->find_layer(*selected) : nullptr;
+  // W/H mirror the active layer's artboard, which a paint press can make the last-edited
+  // one. Display only: new artboards never take their size from these fields
+  // (add_artboard_beside; docs/legal-constraints.md, "Artboards").
   const auto size = artboard != nullptr ? QSize(artboard->artboard()->rect.width, artboard->artboard()->rect.height)
                                         : current_artboard_size();
   if (canvas_ != nullptr) {
@@ -770,6 +773,8 @@ void MainWindow::add_artboard_beside() {
   if (!has_active_document()) {
     return;
   }
+  // The size is the saved new-artboard setting, never the options-bar W/H (which mirror the
+  // active artboard) nor the active or last-edited artboard (docs/legal-constraints.md).
   const auto size = current_artboard_size();
   const auto background = current_artboard_background();
   const auto rect = to_q(artboard_rect_beside(std::as_const(document()), size.width(), size.height()));

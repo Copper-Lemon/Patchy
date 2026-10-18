@@ -1155,6 +1155,15 @@ void MainWindow::build_tool_palette(ActionBuildContext& ctx) {
     }
   });
   ctx.type_menu->addAction(type_tool_action_);
+  ctx.type_menu->addSeparator();
+  // Photoshop's Type > Resolve Missing Fonts (GitHub issue 169).
+  auto* resolve_fonts_action = ctx.type_menu->addAction(QString());
+  bind_action_text(resolve_fonts_action, QT_TR_NOOP("Resolve Missing Fonts..."));
+  resolve_fonts_action->setObjectName(QStringLiteral("typeResolveMissingFontsAction"));
+  resolve_fonts_action->setMenuRole(QAction::NoRole);
+  register_hotkey(resolve_fonts_action, "type.resolve_missing_fonts");
+  connect(resolve_fonts_action, &QAction::triggered, this, [this] { show_resolve_missing_fonts_dialog(); });
+  register_document_action(resolve_fonts_action);
 
   // The color well and Quick Mask live in a footer pinned to the bar's bottom,
   // outside the toolbar layout, so they never fold into the extension and stay

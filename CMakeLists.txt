@@ -1227,6 +1227,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/main_window_ai_selection.cpp
       src/ui/main_window_layer_panel.cpp
       src/ui/main_window_palette.cpp
+      src/ui/main_window_missing_fonts.cpp
       src/ui/main_window_plugins.cpp
       src/ui/legacy_plugin_run_dialog.hpp
       src/ui/legacy_plugin_run_dialog.cpp
@@ -1299,6 +1300,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/export_documents_folder_dialog.cpp
       src/ui/multipage_pdf_export_dialog.hpp
       src/ui/multipage_pdf_export_dialog.cpp
+      src/ui/missing_fonts_dialog.hpp
+      src/ui/missing_fonts_dialog.cpp
       src/ui/text_layer_painter.hpp
       src/ui/pdf_import.hpp
       src/ui/photo_pattern_presets.hpp
@@ -2100,6 +2103,7 @@ if(PATCHY_BUILD_TESTS)
       tests/ui/localization_tests.cpp
       tests/ui/translation_runtime_tests.cpp
       tests/ui/font_coverage_tests.cpp
+      tests/ui/missing_fonts_tests.cpp
       tests/ui/filter_catalog_dialog_tests.cpp
       tests/ui/layer_style_gradient_tests.cpp
       tests/ui/layer_style_gradient_tests_effects.cpp

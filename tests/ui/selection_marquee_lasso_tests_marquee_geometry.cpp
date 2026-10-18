@@ -8,15 +8,19 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDoubleSpinBox>
+#include <QFrame>
 #include <QImage>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPainter>
 #include <QPushButton>
 #include <QSpinBox>
 #include <QStyle>
 #include <QStyleOptionSpinBox>
 #include <QTabWidget>
+#include <QTest>
 #include <QTimer>
+#include <QToolBar>
 #include <QWidget>
 #include <algorithm>
 #include <atomic>
@@ -616,6 +620,83 @@ void ui_marquee_fixed_size_and_ratio_options_work() {
   CHECK(canvas->selected_document_region().contains(QPoint(230, 64)));
   CHECK(!canvas->selected_document_region().contains(QPoint(230, 130)));
   save_widget_artifact("ui_marquee_fixed_size_ratio", *canvas);
+}
+
+// Style: Normal greys out the marquee's Width and Height, and a click on a greyed field's
+// chevron must not open its value slider (GitHub issue 194); Fixed Size enables both again.
+// The artifact draws the options bar with any open value popup where it sits.
+void ui_marquee_disabled_size_fields_open_no_value_popup() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  require_action_by_text(window, QStringLiteral("Marquee"))->trigger();
+  QApplication::processEvents();
+  auto* style = window.findChild<QComboBox*>(QStringLiteral("selectionStyleCombo"));
+  auto* bar = window.findChild<QToolBar*>(QStringLiteral("Options"));
+  CHECK(style != nullptr);
+  CHECK(bar != nullptr);
+  style->setCurrentText(QStringLiteral("Normal"));
+  QApplication::processEvents();
+  const auto click_chevron = [](QSpinBox& spin) {
+    auto* editor = spin.findChild<QLineEdit*>();
+    CHECK(editor != nullptr);
+    QTest::mouseClick(editor, Qt::LeftButton, Qt::NoModifier, QPoint(editor->width() - 2, editor->height() / 2));
+    QApplication::processEvents();
+  };
+  const auto popup_of = [&window](const char* base) {
+    return window.findChild<QFrame*>(QString::fromLatin1(base) + QStringLiteral("Popup"));
+  };
+  const auto save_bar_with_popup = [bar](const std::string& name, QWidget* popup) {
+    const auto bar_image = bar->grab().toImage();
+    QImage image(bar_image.width(), bar_image.height() + 120, QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+    QPainter painter(&image);
+    painter.drawImage(0, 0, bar_image);
+    if (popup != nullptr && popup->isVisible()) {
+      painter.drawImage(popup->mapToGlobal(QPoint()) - bar->mapToGlobal(QPoint()), popup->grab().toImage());
+    }
+    painter.end();
+    save_image_artifact(name, image);
+  };
+
+  for (const char* base : {"selectionFixedWidth", "selectionFixedHeight"}) {
+    auto* spin = window.findChild<QSpinBox*>(QString::fromLatin1(base) + QStringLiteral("Spin"));
+    CHECK(spin != nullptr);
+    CHECK(!spin->isEnabled());
+    const auto value = spin->value();
+    click_chevron(*spin);
+    auto* popup = popup_of(base);
+    if (std::string(base) == "selectionFixedWidth") {
+      save_bar_with_popup("ui_marquee_disabled_size_fields_open_no_value_popup", popup);
+    }
+    CHECK(popup == nullptr || !popup->isVisible());
+    if (popup != nullptr) {
+      popup->close();
+      QApplication::processEvents();
+    }
+    CHECK(spin->value() == value);
+  }
+
+  auto* width = window.findChild<QSpinBox*>(QStringLiteral("selectionFixedWidthSpin"));
+  auto* height = window.findChild<QSpinBox*>(QStringLiteral("selectionFixedHeightSpin"));
+  const auto disabled_widths = std::make_pair(width->width(), height->width());
+  style->setCurrentText(QStringLiteral("Fixed Size"));
+  QApplication::processEvents();
+  CHECK(width->isEnabled());
+  // Greying out keeps each field at its enabled width.
+  CHECK(std::make_pair(width->width(), height->width()) == disabled_widths);
+  click_chevron(*width);
+  auto* popup = popup_of("selectionFixedWidth");
+  CHECK(popup != nullptr && popup->isVisible());
+  // Greying the field out while its popup is open closes the popup.
+  style->setCurrentText(QStringLiteral("Normal"));
+  QApplication::processEvents();
+  popup = popup_of("selectionFixedWidth");
+  CHECK(popup == nullptr || !popup->isVisible());
+  if (popup != nullptr) {
+    popup->close();
+  }
+  style->setCurrentText(QStringLiteral("Normal"));
+  QApplication::processEvents();
 }
 
 void ui_shape_fill_and_corner_radius_apply_to_new_documents() {
@@ -2090,6 +2171,7 @@ std::vector<patchy::test::TestCase> selection_marquee_lasso_tests_part1() {
        ui_feathered_selection_add_keeps_existing_selection},
       {"ui_marquee_corner_radius_rounds_selection", ui_marquee_corner_radius_rounds_selection},
       {"ui_marquee_fixed_size_and_ratio_options_work", ui_marquee_fixed_size_and_ratio_options_work},
+      {"ui_marquee_disabled_size_fields_open_no_value_popup", ui_marquee_disabled_size_fields_open_no_value_popup},
       {"ui_shape_fill_and_corner_radius_apply_to_new_documents",
        ui_shape_fill_and_corner_radius_apply_to_new_documents},
       {"ui_shape_tool_fixed_size_and_ratio_options_work", ui_shape_tool_fixed_size_and_ratio_options_work},

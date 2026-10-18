@@ -1440,6 +1440,9 @@ void MainWindow::choose_text_color() {
     if (color_dialog_ == dialog) {
       color_dialog_ = nullptr;
     }
+    // Back to the session's text with its selection intact, so the first keystroke replaces
+    // a still-selected "Type" placeholder in the new color (GitHub issue 175).
+    QTimer::singleShot(0, this, [this] { return_keyboard_to_text_editor(); });
   });
   dialog->show();
   dialog->raise();
@@ -1742,6 +1745,8 @@ void MainWindow::load_tool_settings() {
       settings.value(QStringLiteral("tools/showTransformControls"), true).toBool());
   // Auto-Select is remembered across runs (GitHub issue 73).
   canvas_->set_auto_select_layer(settings.value(QStringLiteral("tools/moveAutoSelect"), true).toBool());
+  canvas_->set_auto_select_target(move_auto_select_target_from_token(
+      settings.value(QLatin1String(kMoveAutoSelectTargetSettingsKey)).toString()));
   const auto transform_interpolation =
       settings.value(QStringLiteral("tools/transformInterpolation"),
                      static_cast<int>(CanvasWidget::TransformInterpolation::Bicubic))
@@ -2092,8 +2097,9 @@ void MainWindow::save_tool_settings() const {
   settings.setValue(QStringLiteral("tools/magneticLassoEdgeContrast"), canvas_->magnetic_lasso_edge_contrast());
   settings.setValue(QStringLiteral("tools/magneticLassoFrequency"), canvas_->magnetic_lasso_frequency());
   settings.setValue(QStringLiteral("tools/showTransformControls"), canvas_->show_transform_controls());
-  // tools/moveAutoSelect is written by the options-bar checkbox itself, not here:
-  // tests flip the canvas flag directly and must not leak it into later windows.
+  // tools/moveAutoSelect and tools/moveAutoSelectTarget are written by their
+  // options-bar controls, not here: tests flip the canvas flags directly and
+  // must not leak them into later windows.
   settings.setValue(QStringLiteral("tools/transformInterpolation"), static_cast<int>(canvas_->transform_interpolation()));
   settings.setValue(QStringLiteral("tools/cloneAligned"), canvas_->clone_aligned());
   settings.setValue(QStringLiteral("tools/retouchSampleAllLayers"), canvas_->retouch_sample_all_layers());
@@ -2700,6 +2706,11 @@ void MainWindow::refresh_options_bar() {
   if (move_auto_select_check_ != nullptr && canvas_ != nullptr) {
     QSignalBlocker blocker(move_auto_select_check_);
     move_auto_select_check_->setChecked(canvas_->auto_select_layer());
+  }
+  if (move_auto_select_target_combo_ != nullptr && canvas_ != nullptr) {
+    QSignalBlocker blocker(move_auto_select_target_combo_);
+    move_auto_select_target_combo_->setCurrentIndex(
+        canvas_->auto_select_target() == MoveAutoSelectTarget::Group ? 1 : 0);
   }
   if (move_show_transform_controls_check_ != nullptr && canvas_ != nullptr) {
     QSignalBlocker blocker(move_show_transform_controls_check_);

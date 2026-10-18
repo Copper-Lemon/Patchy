@@ -40,8 +40,8 @@ unstretched condensed line a third wider than the caret layout
 (`ui_title02_tracked_legacy_text_caret_matches_glyphs_if_available`,
 `ui_psd_text_tracking_click_lands_on_glyphs`).
 
-Mouse hit-testing goes through the same plan; `QTextEdit::cursorForPosition` must never resolve a
-click inside a session (the widget hit-tests its own integer-pixel, Qt-spaced layout).
+Mouse hit-testing goes through the same plan, never `QTextEdit::cursorForPosition` (the widget's
+own integer-pixel, Qt-spaced layout).
 `MainWindow::handle_text_editor_viewport_mouse_event` intercepts left press/drag/double-click for
 the flat case and `TransformedTextEditOverlay::cursor_position_for_overlay_point` the transformed
 one; both end at `TextLineGeometry::position_at`; right-click, middle click and release fall
@@ -50,8 +50,7 @@ selects the word; a third click inside the double-click interval selects the vis
 (`TextLineGeometry::line_range_at`, trailing whitespace trimmed; tracked via the
 `patchy.textTripleClick*` properties; GitHub issue 74, `ui_text_triple_click_selects_the_line`). The editor widget
 is SIZED from that layout too, never `QTextDocument::size()`: its rect is its hit area, and a
-line past a too-short bottom edge clicks through to the canvas, whose focus-loss auto-commit ends
-the session (`ui_transformed_text_click_returns_to_the_caret_it_drew`).
+line past a too-short bottom edge clicks through to the canvas (focus-loss auto-commit) (`ui_transformed_text_click_returns_to_the_caret_it_drew`).
 
 The Type-tool press that OPENS a session on an existing layer goes to the canvas, so Qt delivers
 that gesture's drag there, not to the new editor. The canvas forwards it
@@ -87,9 +86,9 @@ An edit session must never produce a frame with no glyphs in it:
 `kTextEditorPreviewPaintProperty` means "the glyphs come from somewhere other than this widget",
 true for any previewed session (`ui_expensive_text_style_preview_never_blanks_while_typing`).
 
-Re-editing an existing layer must not MOVE its text: each such session renders live through
-`render_text_pixels`, plain text included (`kTextEditorForceBakedPreviewProperty`), because the
-editor widget's own rasterization differs from the layer's. `ui_text_edit_entry_leaves_the_pixels_alone`
+Re-editing a layer must not MOVE its text: each such session renders live through
+`render_text_pixels`, plain text included (`kTextEditorForceBakedPreviewProperty`); the editor
+widget rasterizes differently. `ui_text_edit_entry_leaves_the_pixels_alone`
 pins it: enter, do nothing, and the preview and a re-commit are byte-identical at the same origin.
 
 **Every session previews, including the one that creates the text.** A new session renders over
@@ -104,7 +103,7 @@ back BEFORE `remove_text_editor_preview`, in commit and cancel.
 - A Type-tool click inserts a provisional 1x1 text layer (marker `patchy.internal.provisional_text`); `commit_text_editor` removes it via the marker-checked `MainWindow::take_provisional_text_layer`, then snapshots and recreates the committed layer under the same id; cancel/empty-commit leaves history and modified state untouched.
 - **Commit invalidation must cover old ∪ preview ∪ new.** The restore/remove teardown pair invalidates its regions BEFORE the layer mutates, so `commit_text_editor` captures the old layer and preview render bounds up front and unions them into the post-mutation `document_changed_effect_bounds`, or the old render stays baked in the canvas cache wherever the new bounds do not cover it (routine on warped layers). Same rule for `hide_text_editor_source_layer`: it returns the vacated rect and never invalidates itself, so every caller must consume the return.
 - **Warped text layers get a warp-aware session**: entry resolves a Move-corrected unwarped transform and gates off every raster-derived anchor. See Warp Text in [warp.md](warp.md).
-- Commit keys (`MainWindow::eventFilter`): Ctrl/Cmd+Return and the bare keypad Enter (`Key_Enter` + `KeypadModifier`, also Mac fn+Return); plain Return is a line break, Escape cancels (GitHub issue 71, `ui_text_keypad_enter_commits_and_return_breaks_line`).
+- Commit keys (`MainWindow::eventFilter`): Ctrl/Cmd+Return and the bare keypad Enter (`Key_Enter` + `KeypadModifier`, also Mac fn+Return); plain Return is a line break, Escape cancels (GitHub issue 71, `ui_text_keypad_enter_commits_and_return_breaks_line`); Preferences > Tools "Use Esc to commit text" (`input/escapeCommitsText`, default off) makes it commit (issue 173, `ui_text_escape_commits_preference`).
 - Clicking off commits through the focus-loss handler, which arms `swallow_next_canvas_left_press_` so the press that caused the commit cannot start the next session; a release clears a stale flag. The canvas event filter must leave that flag alone during a blocking processing wait: on wasm the mouseup arrives re-entrantly inside the commit's undo-snapshot wait ([wasm.md](wasm.md); `ui_text_click_off_commit_ignores_reentrant_release_during_wait`).
 - Mutating actions that take no focus (layer lock buttons) call `finish_active_text_editor()` first, or they act on a half-committed session.
 
@@ -121,9 +120,8 @@ auto-commit reads that as clicking off. The overlay path is reached from the SEC
 imported layer on (committing writes a patchy transform that moves the next session off the
 PSD-frame path, where the QTextEdit takes focus itself). Focus landing on the overlay is exempt
 from the auto-commit (`is_text_option_widget` objectName match); `mousePressEvent` hands focus
-back to the editor. Do NOT use a focus proxy: clearing one while it holds focus makes Qt reassign
-the application focus widget, so the session commits out from under whoever was mid-call, and
-`configure()` runs on every cursor move. Tests asking whether a real click reaches the right
+back to the editor. No focus proxy: clearing one while it holds focus makes Qt reassign the focus widget, committing
+the session mid-call (`configure()` runs on every cursor move). Tests asking whether a real click reaches the right
 widget use `click_widget_like_a_user` (tests/ui/ui_test_support.cpp), which applies the focus
 policy walk before routing the press; `send_mouse` straight to the canvas asks something else.
 
@@ -132,14 +130,15 @@ policy walk before routing the press; `send_mouse` straight to the canvas asks s
 - The options bar shows session apply/cancel buttons (`textApplyButton`/`textCancelButton`) while an editor is open; they must keep `Qt::NoFocus`, or the focus-loss auto-commit fires on mouse press and Cancel commits instead of canceling.
 - The font combo is a `FontPickerCombo` (src/ui/font_picker.*, a QFontComboBox whose overridden showPopup opens a searchable list + writing-system preview); its popup objectName `textFontPickerPopup` must stay matched by `is_text_option_widget` (a Qt::Popup is a window, so isAncestorOf-based ownership misses it and focusing the search box would auto-commit the session).
 - **A popup pick must apply even when its row is already current.** A family the database lacks has no row, so a control set to one parks on another family while `currentFont()` names the missing one; the commit sets the index, then pushes the family through `setCurrentFont` when `currentFont().families().value(0)` still disagrees.
-- New UI that must coexist with an open text session needs the same `is_text_option_widget` exemption.
+- New UI that must coexist with an open text session needs the same `is_text_option_widget` exemption (`textCharacterDialog`, `textParagraphDialog` and their buttons have it).
+- **The keyboard returns to the session** (issue 175), so the next key replaces a selected "Type" placeholder: color, alignment and Warp buttons are `Qt::NoFocus`; a combo pick (`activated`, emitted by the font popup too), Enter in the size field, closing its slider popup or the text color panel, and Enter, checkbox or combo edits in the Character/Paragraph panels call `return_keyboard_to_text_editor`. Warp Text commits for its dialog, then reopens the session with its selection (`ui_text_placeholder_survives_*`).
 - The inline editor claims the standard Bold and Italic shortcuts in `ShortcutOverride` before the app-level Ctrl+B Color Balance and Ctrl+I Invert actions can consume them. The key press routes to `toggle_text_bold_face` / `toggle_text_italic_face` (see the style picker section below).
 
 ## Boxed-text render clipping
 
 Every boxed render path gates whole LINES against the frame, never raster rows: a line straddling
-the frame bottom draws completely (its clip band extends below the frame by the descent bleed)
-and lines wholly past the frame stay hidden. The editor, Photoshop-layout and metadata re-render
+the frame bottom draws completely (clip band extended by the descent bleed); lines wholly past it
+stay hidden. The editor, Photoshop-layout and metadata re-render
 paths share this rule in `render_text_pixels_with_local_rect` (skipping the line plan cuts the
 straddling line mid-glyph; Affinity and Photoshop draw it whole). The metadata path keeps the
 buffer origin and width at the frame's and grows only the bottom: pixels-only callers place
@@ -221,8 +220,8 @@ to `mergeCurrentCharFormat`, which only formats the NEXT typed character.
 
 ## Auto leading handed to Photoshop
 
-The PSD writer sends Photoshop one paragraph `/AutoLeading` fraction per layer
-(`kLayerMetadataTextAutoLeading`, recorded by `text_layout_metrics_for_plan` at render time):
+The PSD writer sends one paragraph `/AutoLeading` fraction per layer
+(`kLayerMetadataTextAutoLeading`, from `text_layout_metrics_for_plan` at render time):
 Qt's baseline pitch between the first paragraph's first two lines (else the first line's height)
 over the largest run size on those same lines, never the layer's largest run (a large spacer
 paragraph elsewhere would shrink the fraction and Photoshop would stack the other lines too
@@ -230,23 +229,22 @@ tightly). Test: `ui_script_text_auto_leading_ignores_spacer_paragraphs`.
 
 ## Font resolution
 
-Lives in [font-resolution.md](font-resolution.md) (display name to Qt font, flag flattening, the PSD reader's GDI-name rule, the exact-size rule). Read it before touching `render_text_font_for_display_family`, `available_text_family_style_match`, or `psd_text_read.cpp`'s DirectWrite resolver.
+[font-resolution.md](font-resolution.md) (display name to Qt font, flag flattening, GDI names, exact sizes); read it before touching `render_text_font_for_display_family`, `available_text_family_style_match`, or `psd_text_read.cpp`'s DirectWrite resolver.
 
 ## Character panel
 
-- Opened via options bar > Character... while the Text tool is active; edits leading auto/fixed, tracking, H/V glyph scales, faux bold and faux italic. The leading field is never locked: a typed value turns Auto leading off. Number fields apply on Enter, focus loss or +/-. During inline editing it applies to the text selection, or the whole object with a bare caret. Otherwise it applies to every selected unlocked text layer (see the no-session section above), warped text included, and remains usable after switching tools.
+- Options bar > Character... (Text tool); edits leading auto/fixed, tracking, H/V glyph scales, faux bold and faux italic. The leading field is never locked: a typed value turns Auto leading off. Number fields apply on Enter, focus loss or +/-. During inline editing it applies to the text selection, or the whole object with a bare caret. Otherwise it applies to every selected unlocked text layer (see the no-session section above), warped text included, and remains usable after switching tools.
 - **Faux bold is refused on warped layers** (Photoshop parity, [warp.md](warp.md)): the checkbox shows a status error and reverts when ENABLING on a session whose layer carries an active Warp Text; unchecking stays allowed so imported faux+warp files can be fixed. Ctrl+B's faux fallback refuses the same way; a family with a real Bold face keeps toggling. Faux italic is unrestricted (PS warps it fine).
-- Without an inline session, the panel reads the first character's format from the active layer's stored runs (transform vertical scale and document resolution applied to displayed leading). A change opens a hidden session per target layer through `add_text_at(..., show_editor=false)` and commits through the normal Type undo/render path, without an unwarped preview or keyboard focus; mixed run sizes and colors survive. Opening the panel alone mutates nothing. The scripting `text` setter rides the same session ([scripting.md](scripting.md)).
-- Controls disable when neither a live session nor an editable text layer is available (pixel locks, active transform sessions). `refresh_options_bar` and `refresh_layer_controls` synchronize the panel on session, selection, lock and history changes. Tests: `ui_text_character_panel_tracks_session_and_layer`, `ui_text_character_panel_edits_selected_layer_without_session`.
-- Double-clicking a text layer's T thumbnail activates the Type tool and opens the layer with all text selected, preserving zoom and pan; the deferred callback re-checks the session because entry may rebuild the rows (`ui_text_thumbnail_double_click_selects_all_without_zoom`).
-- `textCharacterDialog` is exempted from the focus-loss auto-commit via `is_text_option_widget`.
-- Setting fixed leading opts the layer into the Photoshop layout marker at commit (explicit leading does not render under Qt-natural layout).
+- Without an inline session, the panel reads the first character's format from the active layer's stored runs (transform vertical scale and document resolution applied to displayed leading). A change opens a hidden session per target layer (`add_text_at(..., show_editor=false)`) and commits through the normal Type undo/render path, without preview or focus; mixed run sizes and colors survive. Opening the panel alone mutates nothing. The scripting `text` setter rides the same session ([scripting.md](scripting.md)).
+- Controls disable with neither a live session nor an editable text layer (pixel locks, transform sessions); `refresh_options_bar` and `refresh_layer_controls` resync the panel on session, selection, lock and history changes. Tests: `ui_text_character_panel_tracks_session_and_layer`, `ui_text_character_panel_edits_selected_layer_without_session`.
+- Double-clicking a T thumbnail opens the layer with all text selected (Type tool, zoom and pan kept); the deferred callback re-checks the session since entry may rebuild the rows (`ui_text_thumbnail_double_click_selects_all_without_zoom`).
+- Fixed leading opts the layer into the Photoshop layout marker at commit (Qt-natural layout ignores it).
 
 ## Paragraph panel
 
 - Opened via options bar > Paragraph... while the Text tool is active; edits alignment (Left, Center, Right, Justify with the last line left, the only justify variant the paragraph runs model) plus Photoshop's five metrics: first line indent, left indent, right indent, space before, space after. The fields show points at the document's text PPI and store document pixels, as `patchy.text.paragraph_runs` (v2 columns 4 to 8) and the TySh EngineData carry them. A negative first line indent with a positive left indent is a hanging indent (`/Hanging true` in the EngineData).
 - Same session model as the Character panel: during inline editing a change merges into the block formats of the paragraphs the selection touches (a bare caret edits its own paragraph); with no session it applies to every paragraph of every selected unlocked text layer through the hidden-session path, one Type undo step. Block margins live in editor pixels (document px times the canvas zoom, divided by a PSD-frame session's display scale, the same conversion leading uses).
-- The panel reads the caret's paragraph in a session, else the active layer's first paragraph from a 1:1 render document. `textParagraphDialog` and `textParagraphButton` are exempt from the focus-loss auto-commit via `is_text_option_widget`; `sync_text_character_dialog_from_editor` and the alignment-button sync also refresh it.
+- The panel reads the caret's paragraph in a session, else the active layer's first paragraph from a 1:1 render document. `sync_text_character_dialog_from_editor` and the alignment-button sync also refresh it.
 - Scripting: `layer.textParagraph` (read the first paragraph, set merges into every paragraph) and the `paragraph` option of `addTextLayer`, document pixels ([scripting.md](scripting.md)). Tests: `ui_text_paragraph_panel_sets_indents_and_spacing`, `ui_script_text_paragraph_reads_and_sets_metrics`.
 - Lists (bullets, numbering) are not modeled: Photoshop stores them only in its Txt2 block, and Patchy's Txt2 writer authors no list style ([txt2.md](txt2.md), "Lists"). Scripted posters type a bullet character into the line instead.
 
@@ -321,6 +319,5 @@ commit composes the signed delta, the crisp re-render draws THROUGH the mirrored
 drag preview's source blit applies the scale signs like the proxy path
 (`ui_point_text_flip_transform_mirrors_and_survives_reedit`: flip, re-edit, flip back).
 
-Committing empty text to an existing unlocked text layer clears its stored text
-and raster with an undoable Type edit. Canceling a new empty text session still
-removes only its provisional layer.
+Committing empty text to an existing unlocked text layer clears its text and raster (undoable
+Type edit); canceling a new empty session removes only its provisional layer.

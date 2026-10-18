@@ -328,8 +328,7 @@ void ui_artboard_layers_panel_rows_and_properties_panel() {
 // holding "Layer 1".
 void ui_artboard_new_document_option() {
   SettingsValueRestorer option_restorer(QStringLiteral("newDocument/artboards"));
-  // An image left on the clipboard by an earlier test would preselect the Clipboard card,
-  // which makes a document from the clipboard instead.
+  // Start without an image an earlier test left on the clipboard.
   QGuiApplication::clipboard()->clear();
   patchy::ui::MainWindow window;
   show_window(window);
@@ -692,6 +691,73 @@ void ui_artboard_paint_switches_to_the_clicked_artboards_layer() {
   CHECK(c_after != nullptr && c_after->children().empty());
 }
 
+// Add Artboard sizes the new artboard from the saved new-artboard setting, never from the
+// options-bar W/H, which mirror the active artboard, here the one last painted on
+// (docs/legal-constraints.md, "Artboards").
+void ui_artboard_add_button_uses_the_saved_size_not_the_last_edited_artboard() {
+  SettingsValueRestorer width_restorer(QStringLiteral("tools/artboardWidth"));
+  SettingsValueRestorer height_restorer(QStringLiteral("tools/artboardHeight"));
+  patchy::ui::app_settings().setValue(QStringLiteral("tools/artboardWidth"), 120);
+  patchy::ui::app_settings().setValue(QStringLiteral("tools/artboardHeight"), 90);
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto document = board_document(420, 200);
+  const auto board_a = add_board(document, "A", patchy::Rect{0, 0, 150, 150}, patchy::ArtboardBackground::White,
+                                 QColor());
+  const auto board_b = add_board(document, "B", patchy::Rect{200, 0, 200, 100}, patchy::ArtboardBackground::White,
+                                 QColor());
+  const auto add_art = [&document](patchy::LayerId board_id, const char* name, patchy::Rect rect) {
+    patchy::Layer art(document.allocate_layer_id(), name,
+                      solid_pixels(rect.width, rect.height, patchy::PixelFormat::rgba8(), QColor(Qt::transparent)));
+    art.set_bounds(rect);
+    const auto id = art.id();
+    document.find_layer(board_id)->add_child(std::move(art));
+    return id;
+  };
+  const auto art_a = add_art(board_a, "A Art", patchy::Rect{0, 0, 150, 150});
+  const auto art_b = add_art(board_b, "B Art", patchy::Rect{200, 0, 200, 100});
+  window.add_document_session(std::move(document), QStringLiteral("Add boards"));
+  QApplication::processEvents();
+  using Access = patchy::ui::MainWindowTestAccess;
+  Access::select_layers(window, {art_a}, art_a);
+  auto* canvas = require_canvas(window);
+  canvas->set_zoom(1.0);
+  require_action_by_text(window, QStringLiteral("Brush"))->trigger();
+  canvas->set_primary_color(QColor(220, 30, 30));
+  canvas->set_brush_size(12);
+  QApplication::processEvents();
+  const auto& doc = std::as_const(Access::document(window));
+
+  // Painting on B makes it the active, last-edited artboard.
+  canvas_drag(*canvas, QPoint(230, 50), QPoint(320, 50));
+  CHECK(doc.active_layer_id() == art_b);
+  require_hotkey_action(window, QStringLiteral("tools.artboard"))->trigger();
+  QApplication::processEvents();
+  auto* width = window.findChild<QSpinBox*>(QStringLiteral("artboardWidthSpin"));
+  auto* height = window.findChild<QSpinBox*>(QStringLiteral("artboardHeightSpin"));
+  auto* add = window.findChild<QPushButton*>(QStringLiteral("artboardAddButton"));
+  CHECK(width != nullptr && height != nullptr && add != nullptr);
+  if (width == nullptr || height == nullptr || add == nullptr) {
+    return;
+  }
+  CHECK(width->value() == 200 && height->value() == 100);
+
+  add->click();
+  QApplication::processEvents();
+  const auto artboards = patchy::document_artboards(std::as_const(Access::document(window)));
+  CHECK(artboards.size() == 3U);
+  const patchy::Layer* added = nullptr;
+  for (const auto* artboard : artboards) {
+    if (artboard->id() != board_a && artboard->id() != board_b) {
+      added = artboard;
+    }
+  }
+  CHECK(added != nullptr);
+  if (added != nullptr) {
+    CHECK(added->artboard()->rect.width == 120 && added->artboard()->rect.height == 90);
+  }
+}
+
 
 // Save As to .pdf shows the one PDF Options dialog (docs/pdf.md) after the file name: the
 // pages of this document only (no open-documents source), starting on its artboards; the
@@ -894,15 +960,33 @@ void ui_artboard_feature_interactions_match_photoshop() {
        }, {"note=selection [0,0,300,300]"}},
       {"copy_paste_same_artboard", [&](auto& w, auto a1, auto, auto) {
          Access::select_layers(w, {a1}, a1); select_rect(w, QRect(20, 20, 100, 100));
-         require_action(w, "editCopyAction")->trigger(); trigger(w, "edit.paste"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in A [100,100,200,200]"}},
+         require_action(w, "editCopyAction")->trigger(); trigger(w, "select.deselect");
+         trigger(w, "edit.paste"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in A [100,100,200,200]"}},
       {"copy_from_A_paste_with_B1_active", [&](auto& w, auto a1, auto b1, auto) {
          Access::select_layers(w, {a1}, a1); select_rect(w, QRect(20, 20, 100, 100));
-         require_action(w, "editCopyAction")->trigger(); Access::select_layers(w, {b1}, b1);
+         require_action(w, "editCopyAction")->trigger(); trigger(w, "select.deselect"); Access::select_layers(w, {b1}, b1);
          trigger(w, "edit.paste"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in B [500,75,600,175]"}},
       {"paste_in_place_with_B1_active", [&](auto& w, auto a1, auto b1, auto) {
          Access::select_layers(w, {a1}, a1); select_rect(w, QRect(20, 20, 100, 100));
-         require_action(w, "editCopyAction")->trigger(); Access::select_layers(w, {b1}, b1);
+         require_action(w, "editCopyAction")->trigger(); trigger(w, "select.deselect"); Access::select_layers(w, {b1}, b1);
          trigger(w, "edit.paste_in_place"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in B [420,20,520,120]"}},
+      // A marquee left active centers Paste on itself, on the artboard under it (GitHub issue 193).
+      {"copy_paste_same_artboard_marquee_kept", [&](auto& w, auto a1, auto, auto) {
+         Access::select_layers(w, {a1}, a1); select_rect(w, QRect(20, 20, 100, 100));
+         require_action(w, "editCopyAction")->trigger(); trigger(w, "edit.paste"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in A [20,20,120,120]"}},
+      {"copy_from_A_paste_with_B1_active_marquee_kept", [&](auto& w, auto a1, auto b1, auto) {
+         Access::select_layers(w, {a1}, a1); select_rect(w, QRect(20, 20, 100, 100));
+         require_action(w, "editCopyAction")->trigger(); Access::select_layers(w, {b1}, b1);
+         trigger(w, "edit.paste"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in A [20,20,120,120]"}},
+      {"paste_with_marquee_on_B", [&](auto& w, auto a1, auto b1, auto) {
+         Access::select_layers(w, {a1}, a1); select_rect(w, QRect(20, 20, 100, 100));
+         require_action(w, "editCopyAction")->trigger(); Access::select_layers(w, {b1}, b1);
+         select_rect(w, QRect(550, 100, 100, 100));
+         trigger(w, "edit.paste"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in B [550,100,650,200]"}},
+      {"paste_with_A1_active_marquee_off_artboards", [&](auto& w, auto a1, auto, auto) {
+         Access::select_layers(w, {a1}, a1); select_rect(w, QRect(20, 20, 100, 100));
+         require_action(w, "editCopyAction")->trigger(); select_rect(w, QRect(800, 400, 100, 100));
+         trigger(w, "edit.paste"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in root [800,400,900,500]"}},
       {"duplicate_artboard_B", [&](auto& w, auto, auto, auto bb) { Access::select_layers(w, {bb}, bb); trigger(w, "layer.duplicate"); return "duplicate " + active_where(w); }, {"AB B copy[800,0,1100,250]{B1820,20,920,120}"}},
   };
   for (const auto& entry : cases) {
@@ -944,6 +1028,8 @@ std::vector<patchy::test::TestCase> artboard_ui_tests() {
       {"ui_artboard_drag_across_artboards_previews_the_release", ui_artboard_drag_across_artboards_previews_the_release},
       {"ui_artboard_paint_switches_to_the_clicked_artboards_layer",
        ui_artboard_paint_switches_to_the_clicked_artboards_layer},
+      {"ui_artboard_add_button_uses_the_saved_size_not_the_last_edited_artboard",
+       ui_artboard_add_button_uses_the_saved_size_not_the_last_edited_artboard},
       {"ui_save_as_pdf_uses_the_pdf_options_dialog", ui_save_as_pdf_uses_the_pdf_options_dialog},
       {"ui_save_shows_progress_with_artboard_names", ui_save_shows_progress_with_artboard_names},
       {"ui_artboard_feature_interactions_match_photoshop", ui_artboard_feature_interactions_match_photoshop},
