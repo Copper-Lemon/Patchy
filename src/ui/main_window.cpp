@@ -10994,6 +10994,17 @@ void MainWindow::apply_text_color_to_active_editor() {
   refresh_text_color_button();
 }
 
+void MainWindow::return_keyboard_to_text_editor() {
+  if (canvas_ == nullptr || applying_text_options_to_layers_) {
+    return;
+  }
+  auto* editor = canvas_->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor"));
+  if (editor == nullptr || editor->property(kTextEditorFinishedProperty).toBool() || !editor->isVisible()) {
+    return;
+  }
+  editor->setFocus(Qt::OtherFocusReason);
+}
+
 void MainWindow::apply_text_color_to_editor(QTextEdit& editor, QColor color) {
   QTextCharFormat format;
   format.setForeground(QBrush(color));

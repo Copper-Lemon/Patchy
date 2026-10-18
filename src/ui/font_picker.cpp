@@ -560,6 +560,7 @@ void FontPickerCombo::showPopup() {
       setCurrentFont(font);
     }
     setFocus(Qt::OtherFocusReason);  // land focus on a text-option widget, not a dying popup
+    emit activated(currentIndex());  // a user pick, like the stock popup's
   };
   connect(list, &QListView::clicked, popup, commit);
   connect(search, &QLineEdit::returnPressed, popup, [list, commit] { commit(list->currentIndex()); });

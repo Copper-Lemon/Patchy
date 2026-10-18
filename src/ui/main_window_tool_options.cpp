@@ -1440,6 +1440,9 @@ void MainWindow::choose_text_color() {
     if (color_dialog_ == dialog) {
       color_dialog_ = nullptr;
     }
+    // Back to the session's text with its selection intact, so the first keystroke replaces
+    // a still-selected "Type" placeholder in the new color (GitHub issue 175).
+    QTimer::singleShot(0, this, [this] { return_keyboard_to_text_editor(); });
   });
   dialog->show();
   dialog->raise();

@@ -39,6 +39,7 @@
 #include <QListView>
 #include <QListWidget>
 #include <QTemporaryDir>
+#include <QTextFragment>
 #include <QSizeGrip>
 #include <QMouseEvent>
 #include <QMimeData>
@@ -1677,6 +1678,204 @@ void ui_text_keypad_enter_commits_and_return_breaks_line() {
   CHECK(live_editor() == nullptr);
 }
 
+// The plain text of the document's active layer ("" when it is not a text layer).
+QString active_layer_text(patchy::ui::MainWindow& window) {
+  auto& document = patchy::ui::MainWindowTestAccess::document(window);
+  const auto* layer = std::as_const(document).find_layer(document.active_layer_id().value_or(patchy::LayerId{}));
+  if (layer == nullptr || !patchy::layer_is_text(*layer)) {
+    return {};
+  }
+  const auto found = layer->metadata().find(patchy::kLayerMetadataText);
+  return found == layer->metadata().end() ? QString() : QString::fromStdString(found->second);
+}
+
+// GitHub issue 175: an options-bar change while a new session's "Type" placeholder is selected
+// styles what will be typed and leaves the placeholder selected with the keyboard in the editor,
+// so the first keystroke replaces it, as in Photoshop. The color and alignment buttons used to
+// take focus and the combos kept it, so the next key went to the control (or a tool shortcut)
+// and "Type" ended up as the layer's text. Keys go to whatever QApplication::focusWidget() is,
+// the way a real keyboard routes them.
+void ui_text_placeholder_survives_options_bar_changes() {
+  register_test_fonts(TestFontRole::UiDefault);
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* canvas = require_canvas(window);
+  canvas->set_zoom(1.0);
+  canvas->set_primary_color(QColor(20, 20, 20));
+  require_action_by_text(window, QStringLiteral("Type"))->trigger();
+  QApplication::processEvents();
+  auto* text_color = window.findChild<QPushButton*>(QStringLiteral("textColorButton"));
+  auto* align_center = window.findChild<QPushButton*>(QStringLiteral("textAlignCenterButton"));
+  auto* smoothing = window.findChild<QComboBox*>(QStringLiteral("textSmoothingCombo"));
+  auto* size = window.findChild<QDoubleSpinBox*>(QStringLiteral("textSizeSpin"));
+  auto* font_picker = window.findChild<patchy::ui::FontPickerCombo*>(QStringLiteral("textFontCombo"));
+  CHECK(text_color != nullptr);
+  CHECK(align_center != nullptr);
+  CHECK(smoothing != nullptr);
+  CHECK(size != nullptr);
+  CHECK(font_picker != nullptr);
+  if (text_color == nullptr || align_center == nullptr || smoothing == nullptr || size == nullptr ||
+      font_picker == nullptr) {
+    return;
+  }
+  const auto live_editor = [&] { return canvas->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor")); };
+  const auto placeholder_selected = [](const QTextEdit& editor) {
+    const auto cursor = editor.textCursor();
+    return editor.toPlainText() == QStringLiteral("Type") && cursor.selectionStart() == 0 &&
+           cursor.selectionEnd() == 4;
+  };
+  const auto type_into_focus = [](const QString& text) {
+    if (auto* focus = QApplication::focusWidget(); focus != nullptr) {
+      QTest::keyClicks(focus, text);
+    }
+    QApplication::processEvents();
+  };
+  const auto commit = [&](QTextEdit& editor) {
+    send_key(editor, Qt::Key_Enter, Qt::KeypadModifier);
+    process_events_for(150);
+  };
+
+  // Color: the button keeps the keyboard in the editor; closing the panel hands it back with the
+  // placeholder still selected, and the replacement text takes the new color.
+  // A failing CHECK while an editor is alive aborts the suite during unwind, so each session
+  // records into locals and asserts after it ends.
+  {
+    auto* editor = open_point_text_session(window, *canvas, QPoint(40, 60));
+    const bool opened = editor != nullptr;
+    bool starts_selected = false;
+    bool focus_kept_on_click = false;
+    bool panel_seen = false;
+    bool focus_back = false;
+    bool still_selected = false;
+    QString typed;
+    QColor typed_color;
+    if (opened) {
+      starts_selected = placeholder_selected(*editor);
+      click_widget_like_a_user(*text_color, text_color->rect().center());
+      focus_kept_on_click = QApplication::focusWidget() != text_color;
+      process_events_for(50);
+      for (auto* widget : QApplication::topLevelWidgets()) {
+        if (widget->objectName() != QStringLiteral("patchyColorDialog") || !widget->isVisible()) {
+          continue;
+        }
+        if (auto* picker =
+                widget->findChild<patchy::ui::PatchyColorPicker*>(QStringLiteral("patchyAdvancedColorPicker"));
+            picker != nullptr) {
+          picker->setCurrentColor(QColor(200, 30, 40));
+          QApplication::processEvents();
+        }
+        widget->close();
+        panel_seen = true;
+        break;
+      }
+      // The window system re-activates the main window when the panel closes.
+      window.activateWindow();
+      process_events_for(100);
+      focus_back = QApplication::focusWidget() == editor;
+      still_selected = placeholder_selected(*editor);
+      type_into_focus(QStringLiteral("Hello"));
+      process_events_for(150);
+      // Issue 175 before/after picture: "Hello" in the new color, not a committed "Type".
+      save_image_artifact("issue175_color_then_type", window.grab().toImage());
+      const bool still_open = live_editor() == editor;
+      typed = still_open ? editor->toPlainText() : active_layer_text(window);
+      const auto fragment = still_open ? editor->document()->begin().begin().fragment() : QTextFragment();
+      if (fragment.isValid()) {
+        typed_color = fragment.charFormat().foreground().color();
+      }
+      if (live_editor() == editor) {
+        commit(*editor);
+      }
+    }
+    CHECK(opened);
+    CHECK(starts_selected);
+    CHECK(focus_kept_on_click);
+    CHECK(panel_seen);
+    CHECK(focus_back);
+    CHECK(still_selected);
+    CHECK(typed == QStringLiteral("Hello"));
+    CHECK(typed_color == QColor(200, 30, 40));
+    CHECK(live_editor() == nullptr);
+    CHECK(active_layer_text(window) == QStringLiteral("Hello"));
+  }
+
+  // Alignment button, smoothing pick, size typed + Enter, and a font picker pick: after each,
+  // the keyboard is back in the editor with the placeholder selected.
+  {
+    auto* editor = open_point_text_session(window, *canvas, QPoint(40, 200));
+    const bool opened = editor != nullptr;
+    bool align_kept = false;
+    bool smoothing_back = false;
+    bool size_back = false;
+    bool font_back = false;
+    bool still_selected = false;
+    QString typed;
+    if (opened) {
+      click_widget_like_a_user(*align_center, align_center->rect().center());
+      QApplication::processEvents();
+      align_kept = QApplication::focusWidget() == editor && placeholder_selected(*editor);
+
+      // A popup pick: focus sits on the combo, the choice lands, then activated fires.
+      smoothing->setFocus(Qt::MouseFocusReason);
+      const auto crisp = smoothing->findData(2);
+      smoothing->setCurrentIndex(crisp);
+      emit smoothing->activated(crisp);
+      process_events_for(20);
+      smoothing_back = QApplication::focusWidget() == editor && placeholder_selected(*editor);
+
+      size->setFocus(Qt::MouseFocusReason);
+      size->setValue(size->value() + 6.0);
+      send_key(*size, Qt::Key_Return);
+      process_events_for(20);
+      size_back = QApplication::focusWidget() == editor && placeholder_selected(*editor);
+
+      // The real popup: Return in its search box picks the current row.
+      font_picker->showPopup();
+      QApplication::processEvents();
+      if (auto* popup = find_font_picker_popup(); popup != nullptr) {
+        if (auto* search = popup->findChild<QLineEdit*>(QStringLiteral("textFontPickerSearchEdit"));
+            search != nullptr) {
+          search->setFocus();
+          send_key(*search, Qt::Key_Return);
+        }
+      }
+      process_events_for(20);
+      font_back = QApplication::focusWidget() == editor;
+      still_selected = placeholder_selected(*editor);
+      type_into_focus(QStringLiteral("Ok"));
+      const bool still_open = live_editor() == editor;
+      typed = still_open ? editor->toPlainText() : active_layer_text(window);
+      if (still_open) {
+        commit(*editor);
+      }
+    }
+    CHECK(opened);
+    CHECK(align_kept);
+    CHECK(smoothing_back);
+    CHECK(size_back);
+    CHECK(font_back);
+    CHECK(still_selected);
+    CHECK(typed == QStringLiteral("Ok"));
+    CHECK(live_editor() == nullptr);
+    CHECK(active_layer_text(window) == QStringLiteral("Ok"));
+  }
+
+  // Committing an untouched placeholder keeps it as the text, as before (Photoshop commits its
+  // placeholder too).
+  {
+    auto* editor = open_point_text_session(window, *canvas, QPoint(40, 340));
+    const bool opened = editor != nullptr;
+    if (opened) {
+      click_widget_like_a_user(*align_center, align_center->rect().center());
+      QApplication::processEvents();
+      commit(*editor);
+    }
+    CHECK(opened);
+    CHECK(live_editor() == nullptr);
+    CHECK(active_layer_text(window) == QStringLiteral("Type"));
+  }
+}
+
 // GitHub issue 74: inside a session the first click places the caret, the second selects the
 // word, and a third click in quick succession selects that row; a fourth click is a plain
 // click again. The row comes from Patchy's own line plan, so it works per visual line.
@@ -2476,6 +2675,7 @@ std::vector<patchy::test::TestCase> text_editor_font_picker_tests() {
        ui_text_press_drag_from_outside_session_selects_range},
       {"ui_text_keypad_enter_commits_and_return_breaks_line", ui_text_keypad_enter_commits_and_return_breaks_line},
       {"ui_text_triple_click_selects_the_line", ui_text_triple_click_selects_the_line},
+      {"ui_text_placeholder_survives_options_bar_changes", ui_text_placeholder_survives_options_bar_changes},
       {"ui_expensive_text_style_preview_never_blanks_while_typing",
        ui_expensive_text_style_preview_never_blanks_while_typing},
       {"ui_text_editor_paste_uses_current_format_for_rich_emoji_clipboard",

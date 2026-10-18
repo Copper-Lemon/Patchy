@@ -1905,6 +1905,10 @@ private:
   void toggle_text_italic_face();
   void apply_text_color_to_active_editor();
   void apply_text_color_to_editor(QTextEdit& editor, QColor color);
+  // An options-bar pick during a live session hands the keyboard back to the editor, as
+  // Photoshop does, so the next keystroke types (replacing a still-selected "Type"
+  // placeholder) instead of landing on the control or a tool shortcut (GitHub issue 175).
+  void return_keyboard_to_text_editor();
   // The text color panel is live; with no session each change would commit every selected
   // layer, so the layer edit waits for the picker to settle on `color`.
   void apply_text_color_to_selected_layers_debounced(QColor color);
