@@ -272,14 +272,19 @@ void show_critical_message(QWidget* parent, const QString& title, const QString&
 // it for filters whose pattern list is too long for the dropdown (the all-formats open
 // filter); short per-format filters stay Shown so users can see the expected extension.
 enum class FilterNameDetails { Shown, Hidden };
+// `browsed_directory`, when given, receives the folder the dialog showed last, whether the
+// user picked files or cancelled, so a cancelled Open still remembers where it was
+// (GitHub issue 183). It stays empty when there is no folder to report (the browser picker).
 [[nodiscard]] QString get_open_file_name(QWidget* parent, const QString& caption, const QString& dir,
                                           const QString& filter, QString* selected_filter = nullptr,
                                           const QString& object_name = QString(),
-                                          FilterNameDetails filter_details = FilterNameDetails::Shown);
+                                          FilterNameDetails filter_details = FilterNameDetails::Shown,
+                                          QString* browsed_directory = nullptr);
 [[nodiscard]] QStringList get_open_file_names(QWidget* parent, const QString& caption, const QString& dir,
                                               const QString& filter, QString* selected_filter = nullptr,
                                               const QString& object_name = QString(),
-                                              FilterNameDetails filter_details = FilterNameDetails::Shown);
+                                              FilterNameDetails filter_details = FilterNameDetails::Shown,
+                                              QString* browsed_directory = nullptr);
 [[nodiscard]] QString get_save_file_name(QWidget* parent, const QString& caption, const QString& dir,
                                           const QString& filter, QString* selected_filter = nullptr,
                                           const QString& object_name = QString(),

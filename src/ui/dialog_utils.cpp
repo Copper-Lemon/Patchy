@@ -1368,6 +1368,53 @@ private:
   SpinBox* spin_;
 };
 
+// Esc while typing in an options-bar field puts back the value it had when the edit began
+// (GitHub issue 186). The field applies values as they are typed, so the value at focus-in
+// (or at the last Enter) is the one to restore. An Esc with nothing to undo is left alone,
+// so it still reaches the window's own Esc handling.
+template <typename SpinBox>
+class ToolbarSpinboxEscapeReverter final : public QObject {
+public:
+  explicit ToolbarSpinboxEscapeReverter(SpinBox* spin) : QObject(spin), spin_(spin) {
+    remember();
+    spin_->installEventFilter(this);
+    QObject::connect(spin_, &QAbstractSpinBox::editingFinished, this, [this] { remember(); });
+  }
+
+protected:
+  bool eventFilter(QObject* watched, QEvent* event) override {
+    if (watched != spin_) {
+      return QObject::eventFilter(watched, event);
+    }
+    if (event->type() == QEvent::FocusIn) {
+      remember();
+    } else if (event->type() == QEvent::ShortcutOverride || event->type() == QEvent::KeyPress) {
+      auto* key_event = static_cast<QKeyEvent*>(event);
+      if (key_event->key() == Qt::Key_Escape && key_event->modifiers() == Qt::NoModifier && edited()) {
+        // Claim the key from window shortcuts first, then revert on the press itself.
+        key_event->accept();
+        if (event->type() == QEvent::KeyPress) {
+          spin_->setValue(value_);
+          spin_->selectAll();
+        }
+        return true;
+      }
+    }
+    return QObject::eventFilter(watched, event);
+  }
+
+private:
+  void remember() {
+    value_ = spin_->value();
+    text_ = spin_->text();
+  }
+  bool edited() const { return spin_->text() != text_ || spin_->value() != value_; }
+
+  SpinBox* spin_;
+  decltype(std::declval<SpinBox&>().value()) value_{};
+  QString text_;
+};
+
 template <typename SpinBox>
 void configure_toolbar_spinbox_impl(SpinBox* spin, int width) {
   spin->setButtonSymbols(QAbstractSpinBox::NoButtons);
@@ -1377,6 +1424,7 @@ void configure_toolbar_spinbox_impl(SpinBox* spin, int width) {
   if (!spin->property(kToolbarSpinboxRefresherProperty).toBool()) {
     spin->setProperty(kToolbarSpinboxRefresherProperty, true);
     new ToolbarSpinboxWidthRefresher<SpinBox>(spin);
+    new ToolbarSpinboxEscapeReverter<SpinBox>(spin);
   }
   install_numeric_popup(spin);
   // A click into a toolbar field selects its value so typing replaces it
@@ -2462,7 +2510,8 @@ void show_critical_message(QWidget* parent, const QString& title, const QString&
 }
 
 QString get_open_file_name(QWidget* parent, const QString& caption, const QString& dir, const QString& filter,
-                           QString* selected_filter, const QString& object_name, FilterNameDetails filter_details) {
+                           QString* selected_filter, const QString& object_name, FilterNameDetails filter_details,
+                           QString* browsed_directory) {
 #ifdef Q_OS_WASM
   // The browser owns real file access: the picker copies the pick into MEMFS
   // and returns its path so the path-based open pipeline runs unchanged
@@ -2472,6 +2521,7 @@ QString get_open_file_name(QWidget* parent, const QString& caption, const QStrin
   Q_UNUSED(selected_filter);
   Q_UNUSED(object_name);
   Q_UNUSED(filter_details);
+  Q_UNUSED(browsed_directory);
   return wasm_files::pick_open_file(parent, caption, filter);
 #else
   QFileDialog dialog(parent, caption, QString(), filter);
@@ -2481,7 +2531,11 @@ QString get_open_file_name(QWidget* parent, const QString& caption, const QStrin
     dialog.setOption(QFileDialog::HideNameFilterDetails, true);
   }
   configure_file_dialog(dialog, object_name, dir, QFileDialog::AcceptOpen, QFileDialog::ExistingFile, selected_filter);
-  if (exec_dialog(dialog) != QDialog::Accepted) {
+  const auto result = exec_dialog(dialog);
+  if (browsed_directory != nullptr) {
+    *browsed_directory = dialog.directory().absolutePath();
+  }
+  if (result != QDialog::Accepted) {
     return {};
   }
   if (selected_filter != nullptr) {
@@ -2493,11 +2547,13 @@ QString get_open_file_name(QWidget* parent, const QString& caption, const QStrin
 }
 
 QStringList get_open_file_names(QWidget* parent, const QString& caption, const QString& dir, const QString& filter,
-                                QString* selected_filter, const QString& object_name, FilterNameDetails filter_details) {
+                                QString* selected_filter, const QString& object_name, FilterNameDetails filter_details,
+                                QString* browsed_directory) {
 #ifdef Q_OS_WASM
   // Qt for wasm has no multi-file content picker, so multi-pick degrades to a
   // single pick; every caller handles a one-element list sensibly.
-  auto path = get_open_file_name(parent, caption, dir, filter, selected_filter, object_name, filter_details);
+  auto path =
+      get_open_file_name(parent, caption, dir, filter, selected_filter, object_name, filter_details, browsed_directory);
   return path.isEmpty() ? QStringList() : QStringList{std::move(path)};
 #else
   QFileDialog dialog(parent, caption, QString(), filter);
@@ -2507,7 +2563,11 @@ QStringList get_open_file_names(QWidget* parent, const QString& caption, const Q
     dialog.setOption(QFileDialog::HideNameFilterDetails, true);
   }
   configure_file_dialog(dialog, object_name, dir, QFileDialog::AcceptOpen, QFileDialog::ExistingFiles, selected_filter);
-  if (exec_dialog(dialog) != QDialog::Accepted) {
+  const auto result = exec_dialog(dialog);
+  if (browsed_directory != nullptr) {
+    *browsed_directory = dialog.directory().absolutePath();
+  }
+  if (result != QDialog::Accepted) {
     return {};
   }
   if (selected_filter != nullptr) {

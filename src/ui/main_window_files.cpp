@@ -685,14 +685,17 @@ void remember_open_filter(const QString& filter) {
   settings.setValue(QStringLiteral("lastOpenFilter"), filter);
 }
 
-void remember_open_directory_for_path(const QString& path) {
-  const QFileInfo info(path);
-  const auto directory = info.absoluteDir();
-  if (!directory.exists()) {
+void remember_open_directory(const QString& directory) {
+  const QFileInfo info(directory);
+  if (directory.isEmpty() || !info.isDir()) {
     return;
   }
   auto settings = app_settings();
-  settings.setValue(QStringLiteral("lastOpenDirectory"), directory.absolutePath());
+  settings.setValue(QStringLiteral("lastOpenDirectory"), info.absoluteFilePath());
+}
+
+void remember_open_directory_for_path(const QString& path) {
+  remember_open_directory(QFileInfo(path).absolutePath());
 }
 
 QString extension_for_path(const QString& path) {
@@ -1752,10 +1755,16 @@ void MainWindow::open_document() {
   // Multi-select: every picked file becomes its own document, in dialog order,
   // exactly as a multi-file drop does; the last one opened ends up active.
   auto selected_filter = remembered_open_filter();
+  QString browsed_directory;
   const auto paths = get_open_file_names(this, tr("Open"), last_open_directory(), open_file_filter(),
                                          &selected_filter, QStringLiteral("openFileDialog"),
-                                         FilterNameDetails::Hidden);
+                                         FilterNameDetails::Hidden, &browsed_directory);
   remember_open_filter(paths.isEmpty() ? QString() : selected_filter);
+  // A cancelled Open still remembers the folder it was showing (GitHub issue 183); a pick
+  // remembers its file's folder in open_document_path.
+  if (paths.isEmpty()) {
+    remember_open_directory(browsed_directory);
+  }
   for (const auto& path : paths) {
     open_document_path(path);
   }
@@ -2139,10 +2148,14 @@ void MainWindow::import_files_as_layers() {
     show_preview_dialog_edit_lock_message();
     return;
   }
+  QString browsed_directory;
   const auto paths = get_open_file_names(this, tr("Files as Layers"), last_open_directory(), open_file_filter(),
                                          nullptr, QStringLiteral("importFilesAsLayersFileDialog"),
-                                         FilterNameDetails::Hidden);
+                                         FilterNameDetails::Hidden, &browsed_directory);
   if (paths.isEmpty()) {
+    if (!unattended_automation()) {
+      remember_open_directory(browsed_directory);
+    }
     return;
   }
   if (!unattended_automation()) {

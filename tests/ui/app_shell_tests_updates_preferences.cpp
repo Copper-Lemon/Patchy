@@ -493,6 +493,41 @@ void ui_open_dialog_hides_name_filter_details() {
   CHECK(saw_save_dialog);
 }
 
+// A cancelled File > Open still remembers the folder it was showing, so the next Open
+// starts there (GitHub issue 183).
+void ui_open_dialog_cancel_remembers_the_folder() {
+  ensure_artifact_dir();
+  SettingsValueRestorer last_open_directory_restorer(QStringLiteral("lastOpenDirectory"));
+  const auto start = QFileInfo(QStringLiteral("test-artifacts")).absoluteFilePath();
+  const auto browsed = start + QStringLiteral("/open-cancel-folder");
+  CHECK(QDir().mkpath(browsed));
+  patchy::ui::app_settings().setValue(QStringLiteral("lastOpenDirectory"), start);
+
+  patchy::ui::MainWindow window;
+  show_window(window);
+  const auto sessions_before = patchy::ui::MainWindowTestAccess::session_count(window);
+  bool answered = false;
+  QTimer::singleShot(0, [&] {
+    auto* dialog = qobject_cast<QFileDialog*>(find_top_level_dialog(QStringLiteral("openFileDialog")));
+    CHECK(dialog != nullptr);
+    if (dialog == nullptr) {
+      return;
+    }
+    dialog->setDirectory(browsed);
+    QApplication::processEvents();
+    answered = true;
+    dialog->reject();
+  });
+  require_action(window, "fileOpenAction")->trigger();
+  QApplication::processEvents();
+  CHECK(answered);
+  CHECK(patchy::ui::MainWindowTestAccess::session_count(window) == sessions_before);
+  auto settings = patchy::ui::app_settings();
+  settings.sync();
+  CHECK(QFileInfo(settings.value(QStringLiteral("lastOpenDirectory")).toString()).absoluteFilePath() ==
+        QFileInfo(browsed).absoluteFilePath());
+}
+
 void ui_open_dialog_opens_every_selected_file() {
   // File > Open is multi-select: every picked file opens as its own document in
   // dialog order and the last one ends up active, the same loop a multi-file
@@ -2280,6 +2315,7 @@ std::vector<patchy::test::TestCase> app_shell_tests_part2() {
       {"ui_recent_history_checks_in_background_and_skips_network_paths", ui_recent_history_checks_in_background_and_skips_network_paths},
       {"ui_open_dialog_hides_name_filter_details", ui_open_dialog_hides_name_filter_details},
       {"ui_open_dialog_opens_every_selected_file", ui_open_dialog_opens_every_selected_file},
+      {"ui_open_dialog_cancel_remembers_the_folder", ui_open_dialog_cancel_remembers_the_folder},
       {"update_manifest_parser_handles_supported_cases", update_manifest_parser_handles_supported_cases},
       {"ui_background_worker_wait_is_bounded", ui_background_worker_wait_is_bounded},
       {"ui_update_manifest_url_honors_environment_override", ui_update_manifest_url_honors_environment_override},

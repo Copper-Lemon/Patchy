@@ -2429,6 +2429,43 @@ void ui_slider_popup_dismissing_press_paints() {
     CHECK(reopened == nullptr || !reopened->isVisible());
   }
 }
+// Esc while typing in an options-bar field puts back the value from before the edit, and
+// the tool follows it back (GitHub issue 186); Enter keeps the typed value, after which Esc
+// has nothing to undo.
+void ui_options_bar_field_escape_reverts_the_edit() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  require_action_by_text(window, QStringLiteral("Brush"))->trigger();
+  auto* canvas = require_canvas(window);
+  auto* size = window.findChild<QSpinBox*>(QStringLiteral("brushSizeSpin"));
+  CHECK(size != nullptr);
+  if (size == nullptr) {
+    return;
+  }
+  size->setValue(25);
+  QApplication::processEvents();
+  size->setFocus(Qt::OtherFocusReason);
+  QApplication::processEvents();
+  size->selectAll();
+  QTest::keyClicks(size, QStringLiteral("80"));
+  QApplication::processEvents();
+  CHECK(size->value() == 80);
+  QTest::keyClick(size, Qt::Key_Escape);
+  QApplication::processEvents();
+  CHECK(size->value() == 25);
+  CHECK(canvas->brush_size() == 25);
+  CHECK(size->text().startsWith(QStringLiteral("25")));
+
+  size->selectAll();
+  QTest::keyClicks(size, QStringLiteral("60"));
+  QTest::keyClick(size, Qt::Key_Return);
+  QApplication::processEvents();
+  CHECK(size->value() == 60);
+  QTest::keyClick(size, Qt::Key_Escape);
+  QApplication::processEvents();
+  CHECK(size->value() == 60);
+  CHECK(canvas->brush_size() == 60);
+}
 // Size-like sliders use SliderCurve::FineLowEnd: the value grows with the
 // square of the handle position, so small sizes get most of the track.
 void ui_size_sliders_give_the_low_end_most_of_the_track() {
@@ -3306,6 +3343,7 @@ std::vector<patchy::test::TestCase> pickers_notices_hotkeys_tests() {
       {"ui_brush_flow_popup_slider_updates_canvas",
        ui_brush_flow_popup_slider_updates_canvas},
       {"ui_slider_popup_dismissing_press_paints", ui_slider_popup_dismissing_press_paints},
+      {"ui_options_bar_field_escape_reverts_the_edit", ui_options_bar_field_escape_reverts_the_edit},
       {"ui_size_sliders_give_the_low_end_most_of_the_track",
        ui_size_sliders_give_the_low_end_most_of_the_track},
       {"ui_hotkey_resolution_rules", ui_hotkey_resolution_rules},
