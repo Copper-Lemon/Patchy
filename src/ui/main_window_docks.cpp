@@ -1527,6 +1527,12 @@ void MainWindow::read_panel_layout() {
 }
 
 void MainWindow::reset_panels() {
+  // Re-adding the docks briefly asks for the whole column's height at once, and Qt grows
+  // the window to that minimum before the floors below are fitted to the screen: the
+  // window ended up taller than the screen, its bottom off it. The panels change, the
+  // window does not, so its geometry is put back once the layout settles.
+  const auto geometry_before = geometry();
+  const bool keep_geometry = isVisible() && !isMaximized() && !isFullScreen();
   // Back into the right column in the first-launch order and grouping: floated,
   // rearranged and closed panels alike.
   std::vector<QDockWidget*> docks;
@@ -1573,6 +1579,24 @@ void MainWindow::reset_panels() {
     fit_right_dock_floors_to_screen(nullptr);
   }
   sort_window_panel_entries();
+  if (!keep_geometry) {
+    return;
+  }
+  // After the expand releases handle_right_dock_panel_toggled posted (timers run in order).
+  QTimer::singleShot(0, this, [this, geometry_before] {
+    fit_right_dock_floors_to_screen(nullptr);
+    if (layout() != nullptr) {
+      layout()->activate();
+    }
+    if (geometry() != geometry_before) {
+      setGeometry(geometry_before);
+    }
+    // Still taller than before only when the column's minimum will not fit: keep the
+    // window on its screen then.
+    if (height() > geometry_before.height()) {
+      clamp_window_to_available_screen();
+    }
+  });
 }
 
 void MainWindow::create_docks() {

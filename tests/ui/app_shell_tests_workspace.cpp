@@ -1103,6 +1103,43 @@ void ui_reset_panels_restores_first_launch_layout() {
   CHECK(require_action(window, "windowPanelPaletteAction")->isChecked());
 }
 
+// Reset Panels re-adds every dock, and the column's minimum briefly asked for more height
+// than the window had: the window grew past the bottom of the screen. It keeps its size and
+// place, on a short screen too.
+void ui_reset_panels_keeps_the_window_geometry() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  const int short_screen = 720;
+  patchy::ui::MainWindowTestAccess::set_available_window_height(window, short_screen);
+  patchy::ui::MainWindowTestAccess::fit_right_dock_floors_to_screen(window);
+  window.resize(1100, short_screen);
+  QApplication::processEvents();
+  // Expanded panels ask for the most height.
+  for (const char* prefix : {"layers", "history", "properties", "info", "palette"}) {
+    if (auto* toggle = window.findChild<QToolButton*>(QLatin1String(prefix) + QStringLiteral("DockCollapseButton"));
+        toggle != nullptr) {
+      toggle->setChecked(true);
+    }
+  }
+  QApplication::processEvents();
+  QApplication::processEvents();
+  window.resize(1100, short_screen);
+  QApplication::processEvents();
+  const auto before = window.geometry();
+  require_action(window, "windowPanelHistoryAction")->trigger();
+  require_action(window, "windowPanelHistoryAction")->trigger();
+  QApplication::processEvents();
+  require_action(window, "windowResetPanelsAction")->trigger();
+  for (int pass = 0; pass < 4; ++pass) {
+    QApplication::processEvents();
+  }
+  // Before the fix: 735 px tall going in, 943 px after, the bottom far off the screen.
+  CHECK(window.geometry() == before);
+  // The column still fits that screen once the layout settles.
+  CHECK(window.minimumSizeHint().height() <= before.height());
+  patchy::ui::MainWindowTestAccess::set_available_window_height(window, 0);
+}
+
 void ui_main_window_renders_color_controls() {
   patchy::ui::MainWindow window;
   show_window(window);
@@ -2580,6 +2617,7 @@ std::vector<patchy::test::TestCase> app_shell_tests_part1() {
       {"ui_window_menu_lists_panels_and_toolbars", ui_window_menu_lists_panels_and_toolbars},
       {"ui_panel_layout_returns_in_the_next_window", ui_panel_layout_returns_in_the_next_window},
       {"ui_reset_panels_restores_first_launch_layout", ui_reset_panels_restores_first_launch_layout},
+      {"ui_reset_panels_keeps_the_window_geometry", ui_reset_panels_keeps_the_window_geometry},
       {"ui_tool_palette_overflow_hides_quick_mask_before_swatches", ui_tool_palette_overflow_hides_quick_mask_before_swatches},
       {"ui_tool_palette_extension_survives_resize_cycles", ui_tool_palette_extension_survives_resize_cycles},
       {"ui_tool_palette_extension_button_expands_palette", ui_tool_palette_extension_button_expands_palette},
