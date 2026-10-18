@@ -36,17 +36,12 @@ Required release handoff steps:
    cmd /s /c 'scripts\vs-env.bat -arch=x64 -host_arch=x64 >nul && scripts\run-throttled.bat "C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" --build --preset release -j 20'
    ```
 
-   The throttling is mandatory: `-j 20` caps ninja for local Windows builds (remote builds use every core but four) and `scripts\run-throttled.bat` runs the build at below-normal priority. Run tests through it too, batch files as-is. Never use an unthrottled build or a bare `start "" /b /wait /belownormal` (it reports 0 once the program launched; the helper returns the real code). It refuses a `cmake --build` (exit 3) while another build runs here: wait, or use `scripts\remote\remote-build.ps1 -Target windows`; `PATCHY_ALLOW_CONCURRENT_BUILD=1` only when Seth says. Never edit it mid-run (cmd rereads it).
-
-   Run from the repository root in PowerShell or real cmd, never Git Bash: nested quoting can exit 0 without building. Require compile/link lines or `ninja: no work to do`, not just exit 0. Iterate with `--target <the test/app you run>`; a full build is five LTCG links (~12 min, docs/building.md). The version uses generated `patchy_version.hpp` (`cmake/patchy_version.hpp.in`), included only where used; never make it a target-wide define, which recompiles all of `patchy_ui`.
-
-   Call `scripts\vs-env.bat`, never VsDevCmd.bat directly. See [docs/release-process.md](docs/release-process.md).
-
-   CMakeLists.txt owns the MSVC Release codegen flags (LTCG, `patchy.pdb` for crash dumps); never hand-edit `build\release\CMakeCache.txt`. See [docs/building.md](docs/building.md).
-
-   A git worktree has no `.deps`: configure its release preset once with `--preset release -DCMAKE_PREFIX_PATH=<main-checkout>/.deps/Qt/6.8.3/msvc2022_64`; the build command is unchanged.
-
-   A running `build\release\patchy.exe` or `patchy-mcp.exe` does not block the link (PRE_LINK renames it aside as `<name>.stale-<stamp>.exe`). Never kill either process (Seth may have unsaved work) and never package a `.stale-` file. Batch files compare exit codes against 0, never `if errorlevel 1` (a failed link exits negative). See [docs/release-process.md](docs/release-process.md).
+   Rules (reasons and details: "Local Windows release build" in [docs/building.md](docs/building.md)):
+   - Builds, tests and batch files run only through `scripts\run-throttled.bat`, builds with `-j 20`. It refuses a second `cmake --build` on the box (exit 3): wait, or offload with `scripts\remote\remote-build.ps1 -Target windows`.
+   - Run from the repository root in PowerShell or real cmd, never Git Bash. Require compile/link lines or `ninja: no work to do`, not just exit 0.
+   - Iterate with `--target <the test/app you run>`; the full build (five LTCG links, about 12 minutes) runs once, at handoff.
+   - A worktree configures once with `--preset release -DCMAKE_PREFIX_PATH=<main-checkout>/.deps/Qt/6.8.3/msvc2022_64`.
+   - Never kill a running `patchy.exe` or `patchy-mcp.exe` (the link renames it aside), never package a `.stale-` file, never hand-edit `build\release\CMakeCache.txt`, never make the version a target-wide define.
 
 2. Run release test binaries from `build\release`, scoped to the change:
 
@@ -105,6 +100,7 @@ Read these before acting in the named area:
 | Native Smart Filter descriptors, FEid cache, per-filter render semantics | [docs/smart-filters-native.md](docs/smart-filters-native.md) |
 | Contributor pull-request review | [docs/pr-review.md](docs/pr-review.md) |
 | Release/version/package/upload work | [docs/release-process.md](docs/release-process.md) |
+| Build scripts, `run-throttled.bat`, presets, the version header, batch-file exit codes | [docs/building.md](docs/building.md) |
 | Update prompt, one-click update, installer update mode | [docs/auto-update.md](docs/auto-update.md) |
 
 ## Cross-cutting implementation rules

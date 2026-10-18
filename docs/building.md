@@ -105,6 +105,19 @@ macOS produces `build/mac-release/Patchy.app`; Linux produces
 ([appimage.md](appimage.md)) create the distributable artifacts. Both test suites
 run offscreen on all three platforms (`QT_QPA_PLATFORM=offscreen`).
 
+## Local Windows release build
+
+AGENTS.md gives the handoff command and the short rules; these are the details behind them.
+
+- `scripts\run-throttled.bat` runs the build (and tests, and batch files as-is) at below-normal priority and returns the program's real exit code. A bare `start "" /b /wait /belownormal` reports 0 once the program launched, so never use it. `-j 20` caps ninja on the dev box; remote builds use every core but four.
+- It refuses a `cmake --build` (exit 3) while another build runs on the box. Wait, or offload with `scripts\remote\remote-build.ps1 -Target windows` (host order and the busy check are in `agents_local.md`). `PATCHY_ALLOW_CONCURRENT_BUILD=1` only when Seth says. Never edit the helper while a build runs: cmd rereads a batch file as it executes.
+- Git Bash's nested quoting can drop the inner command and still exit 0, which is why the build runs from PowerShell or real cmd and why only compile/link lines or `ninja: no work to do` prove it built.
+- Call `scripts\vs-env.bat`, never VsDevCmd.bat directly ([release-process.md](release-process.md)).
+- The version comes from the generated `patchy_version.hpp` (`cmake/patchy_version.hpp.in`), included only where used. Never make it a target-wide define: that recompiles all of `patchy_ui` on every version change.
+- A running `build\release\patchy.exe` or `patchy-mcp.exe` does not block the link: a PRE_LINK step renames it aside as `<name>.stale-<stamp>.exe`. Never kill either process (Seth may have unsaved work) and never package a `.stale-` file.
+- Batch files compare exit codes against 0, never `if errorlevel 1`: a failed link exits negative.
+- A git worktree has no `.deps`: configure its release preset once with `--preset release -DCMAKE_PREFIX_PATH=<main-checkout>/.deps/Qt/6.8.3/msvc2022_64`; the build command is unchanged.
+
 ## MSVC Release codegen
 
 CMakeLists.txt owns the MSVC Release codegen flags (`/Zi /GL` on compiles, `/DEBUG:FULL /INCREMENTAL:NO /LTCG` on links), so every configure emits `patchy.pdb` (for symbolizing WER dumps from `%LOCALAPPDATA%\CrashDumps`) and link-time optimized binaries. Never hand-edit `build\release\CMakeCache.txt`. To symbolize a dump from an older build, rebuild that commit in a temporary worktree; full links reproduce the binary layout.
