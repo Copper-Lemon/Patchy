@@ -21620,6 +21620,7 @@ Patchy can download the update, replace this AppImage, and start again. You will
     </message>
     <message>
         <source>When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar&apos;s Cancel button discards the edit. When off, Esc cancels the edit.</source>
+        <translation></translation>
     </message>
     <message>
         <source>Layer</source>
