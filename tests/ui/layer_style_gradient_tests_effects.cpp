@@ -1997,11 +1997,93 @@ void ui_layer_style_dialog_fits_a_short_screen() {
   CHECK(inspected);
 }
 
+void ui_layer_style_knockout_and_vector_mask_hides_effects_commit() {
+  // GitHub issue 191: Blending Options gains Photoshop's Knockout (None,
+  // Shallow, Deep) and Vector Mask Hides Effects. The layer carries the None
+  // 'knko' block Photoshop writes on every layer; committing Deep patches it
+  // in place, and the vector flag lands in the layer style.
+  patchy::Document document(96, 72, patchy::PixelFormat::rgba8());
+  patchy::Layer layer(document.allocate_layer_id(), "Knockout",
+                      solid_pixels(48, 36, patchy::PixelFormat::rgba8(), QColor(80, 140, 220, 255)));
+  const auto layer_id = layer.id();
+  layer.unknown_psd_blocks().push_back({"knko", {0, 0, 0, 0}});
+  document.add_layer(std::move(layer));
+  document.set_active_layer(layer_id);
+
+  patchy::ui::MainWindow window;
+  window.add_document_session(std::move(document), QStringLiteral("Knockout"));
+  show_window(window);
+  bool inspected = false;
+  QTimer::singleShot(0, &window, [&] {
+    auto* dialog = qobject_cast<QDialog*>(find_top_level_dialog(QStringLiteral("patchyLayerStyleDialog")));
+    CHECK(dialog != nullptr);
+    if (dialog == nullptr) {
+      return;
+    }
+    auto* knockout = dialog->findChild<QComboBox*>(QStringLiteral("layerStyleKnockoutCombo"));
+    auto* vector_hides = dialog->findChild<QCheckBox*>(QStringLiteral("layerStyleVectorMaskHidesEffectsCheck"));
+    CHECK(knockout != nullptr);
+    CHECK(vector_hides != nullptr);
+    if (knockout == nullptr || vector_hides == nullptr) {
+      dialog->reject();
+      return;
+    }
+    CHECK(knockout->isEnabled());
+    CHECK(knockout->count() == 3);
+    CHECK(knockout->currentData().toInt() == 0);
+    CHECK(!vector_hides->isChecked());
+    knockout->setCurrentIndex(knockout->findData(2));
+    vector_hides->setChecked(true);
+    QTest::qWait(80);
+    // The live preview already renders the knockout from the patched block.
+    const auto* preview_layer = patchy::ui::MainWindowTestAccess::document(window).find_layer(layer_id);
+    CHECK(preview_layer != nullptr);
+    if (preview_layer != nullptr) {
+      CHECK(patchy::layer_knockout_setting(*preview_layer) == std::optional<std::uint8_t>{std::uint8_t{2}});
+    }
+    if (auto* stack = dialog->findChild<QWidget*>(QStringLiteral("layerStyleOptionsStack")); stack != nullptr) {
+      save_widget_artifact("ui_layer_style_blending_options_knockout", *stack);
+    }
+    inspected = true;
+    dialog->accept();
+  });
+  require_action(window, "layerBlendingOptionsAction")->trigger();
+  QApplication::processEvents();
+  CHECK(inspected);
+  const auto* committed = patchy::ui::MainWindowTestAccess::document(window).find_layer(layer_id);
+  CHECK(committed != nullptr);
+  if (committed != nullptr) {
+    CHECK(committed->layer_style().vector_mask_hides_effects);
+    CHECK(patchy::layer_knockout_setting(*committed) == std::optional<std::uint8_t>{std::uint8_t{2}});
+    CHECK(committed->unknown_psd_blocks().size() == 1U);
+  }
+
+  // A knko payload Patchy cannot interpret leaves the control disabled and
+  // the commit cannot change it.
+  patchy::Document other(96, 72, patchy::PixelFormat::rgba8());
+  patchy::Layer unknown(other.allocate_layer_id(), "Unknown Knockout",
+                        solid_pixels(48, 36, patchy::PixelFormat::rgba8(), QColor(80, 140, 220, 255)));
+  unknown.unknown_psd_blocks().push_back({"knko", {9, 0, 0, 0}});
+  QTimer::singleShot(0, [] {
+    auto* dialog = qobject_cast<QDialog*>(find_top_level_dialog(QStringLiteral("patchyLayerStyleDialog")));
+    CHECK(dialog != nullptr);
+    if (dialog == nullptr) {
+      return;
+    }
+    auto* knockout = dialog->findChild<QComboBox*>(QStringLiteral("layerStyleKnockoutCombo"));
+    CHECK(knockout != nullptr && !knockout->isEnabled());
+    dialog->accept();
+  });
+  CHECK(patchy::ui::request_layer_style_settings(nullptr, unknown, {}).has_value());
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> layer_style_gradient_tests_part1() {
   return {
       {"ui_layer_style_dialog_fits_a_short_screen", ui_layer_style_dialog_fits_a_short_screen},
+      {"ui_layer_style_knockout_and_vector_mask_hides_effects_commit",
+       ui_layer_style_knockout_and_vector_mask_hides_effects_commit},
       {"ui_layer_style_shadow_distances_accept_photoshop_30000",
        ui_layer_style_shadow_distances_accept_photoshop_30000},
       {"ui_layer_style_dialog_coalesces_rapid_slider_preview_callbacks",

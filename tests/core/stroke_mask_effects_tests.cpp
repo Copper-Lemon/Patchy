@@ -49,6 +49,7 @@ namespace {
 using patchy::test::find_layer_named;
 using patchy::test::psd_first_layer_extra_data;
 using patchy::test::psd_layer_block_payload;
+using patchy::test::rgb_diff_metrics;
 using patchy::test::solid_rgb;
 using patchy::test::solid_rgba;
 
@@ -116,6 +117,163 @@ void psd_layer_mask_hides_effects_round_trip() {
     CHECK(read.layers().size() == 1);
     CHECK(read.layers().front().layer_style().layer_mask_hides_effects == hides);
   }
+}
+
+void psd_vector_mask_hides_effects_round_trip() {
+  // "Vector Mask Hides Effects" ('vmgm'). Photoshop 2026 writes the block only
+  // when the option is on, so absence is the off state on both sides.
+  for (const auto hides : {false, true}) {
+    patchy::Document document(4, 2, patchy::PixelFormat::rgb8());
+    auto& layer = document.add_pixel_layer("Styled", solid_rgba(4, 2, 10, 20, 30, 255));
+    patchy::LayerDropShadow shadow;
+    shadow.enabled = true;
+    layer.layer_style().drop_shadows.push_back(shadow);
+    layer.layer_style().vector_mask_hides_effects = hides;
+
+    const auto bytes = patchy::psd::DocumentIo::write_layered_rgb8(document);
+    const auto payload = psd_layer_block_payload(psd_first_layer_extra_data(bytes), "vmgm");
+    CHECK(payload.has_value() == hides);
+    if (payload.has_value()) {
+      CHECK(payload->size() == 4U);
+      CHECK((*payload)[0] == 1U);
+    }
+
+    const auto read = patchy::psd::DocumentIo::read(bytes);
+    CHECK(read.layers().size() == 1);
+    CHECK(read.layers().front().layer_style().vector_mask_hides_effects == hides);
+    CHECK(!read.layers().front().layer_style().layer_mask_hides_effects);
+  }
+}
+
+void psd_photoshop_vector_mask_hides_effects_fixture_matches_render() {
+  // Photoshop 2026 authored photoshop-vector-mask-hides-effects.psd/.bmp via
+  // COM (October 2026, GitHub issue 191). Four 200 px arms, each a red square
+  // (cell x 70..130, y 40..100) with a 5 px Outside stroke and a hard drop
+  // shadow 15 px to the right; the vector mask hides cell x >= 100 and, in
+  // arms 3 and 4, a raster mask hides y >= 70. Each mask either shapes the
+  // effects (its "Hides Effects" option off: the stroke follows the cut and
+  // the shadow spills past it) or hides their output (option on: no stroke at
+  // the cut, no shadow beyond it), independently of the other mask.
+  const auto psd_path = patchy::test::committed_psd_fixture_path("photoshop-vector-mask-hides-effects.psd");
+  const auto bmp_path = psd_path.parent_path() / "photoshop-vector-mask-hides-effects.bmp";
+  CHECK(std::filesystem::exists(psd_path));
+  CHECK(std::filesystem::exists(bmp_path));
+  const auto document = patchy::psd::DocumentIo::read_file(psd_path);
+  struct Arm {
+    const char* name;
+    bool vector_hides;
+    bool layer_hides;
+  };
+  for (const auto& arm : {Arm{"vmgm off", false, false}, Arm{"vmgm on", true, false},
+                          Arm{"vmgm on lmgm off", true, false}, Arm{"vmgm off lmgm on", false, true}}) {
+    const auto* layer = find_layer_named(document.layers(), arm.name);
+    CHECK(layer != nullptr);
+    if (layer != nullptr) {
+      CHECK(layer->vector_mask() != nullptr);
+      CHECK(layer->layer_style().vector_mask_hides_effects == arm.vector_hides);
+      CHECK(layer->layer_style().layer_mask_hides_effects == arm.layer_hides);
+    }
+  }
+  const auto reference = patchy::Compositor{}.flatten_rgb8(patchy::bmp::DocumentIo::read_file(bmp_path));
+  const auto flat = patchy::Compositor{}.flatten_rgb8(document);
+  struct Probe {
+    int x;
+    int y;
+    int red;
+    int green;
+    int blue;
+  };
+  const Probe probes[] = {
+      {110, 70, 0, 0, 0},        // arm 1: the shadow spills past the vector cut
+      {102, 70, 0, 200, 0},      // arm 1: the stroke follows the vector cut
+      {310, 70, 255, 255, 255},  // arm 2: no shadow beyond the cut
+      {302, 70, 255, 255, 255},  // arm 2: no stroke along the cut
+      {267, 70, 0, 200, 0},      // arm 2: the stroke keeps the square's left edge
+      {480, 72, 0, 200, 0},      // arm 3: the raster mask still shapes the stroke
+      {502, 50, 255, 255, 255},  // arm 3: the vector mask hides the right side
+      {710, 50, 0, 0, 0},        // arm 4: the vector cut casts a shadow
+      {702, 50, 0, 200, 0},      // arm 4: and gets a stroke
+      {680, 72, 255, 255, 255},  // arm 4: the raster mask hides everything below
+      {710, 80, 255, 255, 255},  // arm 4: shadow included
+  };
+  for (const auto& probe : probes) {
+    const auto* pixel = flat.pixel(probe.x, probe.y);
+    CHECK(std::abs(static_cast<int>(pixel[0]) - probe.red) <= 2);
+    CHECK(std::abs(static_cast<int>(pixel[1]) - probe.green) <= 2);
+    CHECK(std::abs(static_cast<int>(pixel[2]) - probe.blue) <= 2);
+  }
+  const auto metrics = rgb_diff_metrics(reference, flat);
+  std::cout << "vector mask hides effects fixture: max delta " << metrics.max_channel_delta << ", mean "
+            << metrics.mean_abs_channel_delta << '\n';
+  CHECK(metrics.max_channel_delta <= 160);  // anti-aliased stroke corners
+  CHECK(metrics.mean_abs_channel_delta <= 0.25);
+}
+
+void layer_knockout_setting_patches_the_native_block() {
+  // Knockout lives in the native 'knko' block the compositor renders from
+  // (GitHub issue 191). Photoshop writes one on every layer (None included),
+  // so an edit patches the mode byte in place; a layer without the block gets
+  // one only for a non-None mode, keeping default output byte-identical.
+  patchy::Document document(4, 2, patchy::PixelFormat::rgb8());
+  auto& fresh = document.add_pixel_layer("Fresh", solid_rgba(4, 2, 10, 20, 30, 255));
+  CHECK(patchy::layer_knockout_setting(fresh) == std::optional<std::uint8_t>{std::uint8_t{0}});
+  patchy::set_layer_knockout(fresh, 0);
+  CHECK(std::as_const(fresh).unknown_psd_blocks().empty());
+  patchy::set_layer_knockout(fresh, 2);
+  CHECK(patchy::layer_knockout_setting(fresh) == std::optional<std::uint8_t>{std::uint8_t{2}});
+  CHECK(std::as_const(fresh).unknown_psd_blocks().size() == 1U);
+
+  auto bytes = patchy::psd::DocumentIo::write_layered_rgb8(document);
+  auto payload = psd_layer_block_payload(psd_first_layer_extra_data(bytes), "knko");
+  CHECK(payload.has_value());
+  if (payload.has_value()) {
+    CHECK((*payload == std::vector<std::uint8_t>{2, 0, 0, 0}));
+  }
+  auto read = patchy::psd::DocumentIo::read(bytes);
+  CHECK(patchy::layer_knockout_setting(read.layers().front()) == std::optional<std::uint8_t>{std::uint8_t{2}});
+
+  // A Photoshop-style None block between other blocks is patched where it sits.
+  patchy::Document imported(4, 2, patchy::PixelFormat::rgb8());
+  auto& layer = imported.add_pixel_layer("Imported", solid_rgba(4, 2, 10, 20, 30, 255));
+  layer.unknown_psd_blocks().push_back({"tsly", {0, 0, 0, 0}});
+  layer.unknown_psd_blocks().push_back({"knko", {0, 0, 0, 0}});
+  layer.unknown_psd_blocks().push_back({"lyid", {0, 0, 0, 9}});
+  patchy::set_layer_knockout(layer, 1);
+  const auto& blocks = std::as_const(layer).unknown_psd_blocks();
+  CHECK(blocks.size() == 3U);
+  CHECK(blocks[1].key == "knko");
+  CHECK((blocks[1].payload == std::vector<std::uint8_t>{1, 0, 0, 0}));
+  const auto revision = std::as_const(layer).content_revision();
+  patchy::set_layer_knockout(layer, 1);  // unchanged: no revision bump
+  CHECK(std::as_const(layer).content_revision() == revision);
+
+  // A payload Patchy cannot interpret stays raw and is not editable.
+  auto& unknown = imported.add_pixel_layer("Unknown", solid_rgba(4, 2, 10, 20, 30, 255));
+  unknown.unknown_psd_blocks().push_back({"knko", {9, 0, 0, 0}});
+  CHECK(!patchy::layer_knockout_setting(unknown).has_value());
+  patchy::set_layer_knockout(unknown, 2);
+  CHECK((std::as_const(unknown).unknown_psd_blocks().front().payload == std::vector<std::uint8_t>{9, 0, 0, 0}));
+}
+
+void psd_transparency_shapes_layer_block_survives_style_edits() {
+  // "Transparency Shapes Layer" ('tsly', Photoshop writes it only when off)
+  // is not rendered yet (GitHub issue 191), but a file that has it must keep
+  // it: an effects edit regenerates lfx2 and must not drop the block.
+  patchy::Document document(4, 2, patchy::PixelFormat::rgb8());
+  auto& layer = document.add_pixel_layer("Shapes Off", solid_rgba(4, 2, 10, 20, 30, 255));
+  layer.unknown_psd_blocks().push_back({"tsly", {0, 0, 0, 0}});
+  auto read = patchy::psd::DocumentIo::read(patchy::psd::DocumentIo::write_layered_rgb8(document));
+  CHECK(read.layers().size() == 1U);
+  patchy::LayerColorOverlay overlay;
+  overlay.enabled = true;
+  read.layers().front().layer_style().color_overlays.push_back(overlay);
+  const auto bytes = patchy::psd::DocumentIo::write_layered_rgb8(read);
+  const auto payload = psd_layer_block_payload(psd_first_layer_extra_data(bytes), "tsly");
+  CHECK(payload.has_value());
+  if (payload.has_value()) {
+    CHECK((*payload == std::vector<std::uint8_t>{0, 0, 0, 0}));
+  }
+  CHECK(psd_layer_block_payload(psd_first_layer_extra_data(bytes), "lfx2").has_value());
 }
 
 void psd_blend_interior_elements_round_trip() {
@@ -1203,6 +1361,12 @@ std::vector<patchy::test::TestCase> stroke_mask_effects_tests() {
   return {
       {"layer_mask_shapes_effects_regardless_of_link", layer_mask_shapes_effects_regardless_of_link},
       {"psd_layer_mask_hides_effects_round_trip", psd_layer_mask_hides_effects_round_trip},
+      {"psd_vector_mask_hides_effects_round_trip", psd_vector_mask_hides_effects_round_trip},
+      {"psd_photoshop_vector_mask_hides_effects_fixture_matches_render",
+       psd_photoshop_vector_mask_hides_effects_fixture_matches_render},
+      {"layer_knockout_setting_patches_the_native_block", layer_knockout_setting_patches_the_native_block},
+      {"psd_transparency_shapes_layer_block_survives_style_edits",
+       psd_transparency_shapes_layer_block_survives_style_edits},
       {"psd_blend_interior_elements_round_trip", psd_blend_interior_elements_round_trip},
       {"psd_blend_clipped_elements_round_trip", psd_blend_clipped_elements_round_trip},
       {"psd_channel_restrictions_round_trip", psd_channel_restrictions_round_trip},

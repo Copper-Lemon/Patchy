@@ -10397,6 +10397,34 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
         <translation>PDF zaimportowany jako foldery stron pokazuje tylko pierwszą stronę; ukryte strony nadal są stronami.</translation>
     </message>
+    <message>
+        <source>Shallow</source>
+        <translation>Płytkie</translation>
+    </message>
+    <message>
+        <source>Deep</source>
+        <translation>Głębokie</translation>
+    </message>
+    <message>
+        <source>Shallow cuts through the layers below to the bottom of this layer&apos;s group; Deep cuts through to the Background, or to transparency without one</source>
+        <translation>Płytkie wycina warstwy poniżej aż do dołu grupy tej warstwy; Głębokie wycina aż do tła, a bez tła aż do przezroczystości</translation>
+    </message>
+    <message>
+        <source>This layer preserves a Photoshop knockout setting Patchy cannot edit</source>
+        <translation>Ta warstwa zachowuje ustawienie wycinania z Photoshopa, którego Patchy nie może edytować</translation>
+    </message>
+    <message>
+        <source>Knockout:</source>
+        <translation>Wycinanie:</translation>
+    </message>
+    <message>
+        <source>Vector Mask Hides Effects</source>
+        <translation>Maska wektorowa ukrywa efekty</translation>
+    </message>
+    <message>
+        <source>Hide drop shadows, glows, and strokes where the vector mask hides the layer, instead of letting the vector mask shape them</source>
+        <translation>Ukrywa cienie, poświaty i obrysy tam, gdzie maska wektorowa ukrywa warstwę, zamiast pozwalać masce wektorowej je kształtować</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

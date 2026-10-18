@@ -249,6 +249,7 @@ struct LayerRecord {
   std::optional<double> text_box_baseline_inset;
   std::uint32_t protection_flags{0};
   bool layer_mask_hides_effects{false};
+  bool vector_mask_hides_effects{false};
   bool blend_interior_elements{false};
   bool blend_clipped_elements{true};
   // 'brst' channel blending restrictions: the big-endian u32 channel indices

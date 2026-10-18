@@ -49,7 +49,7 @@ db8521b6d451c1b9 photoshop-interior-exterior-blending.psd
 c8926331038af20d photoshop-invert.psd
 06da65d32c1f1835 photoshop-layer-style-4a-roundtrip.psd
 b1dec0f0e70cf53e photoshop-lmfx-multi-stroke.psd
-18033d013b69341f photoshop-mask-hides-effects.psd
+13214ca379dcfee0 photoshop-mask-hides-effects.psd
 bba7929db0b2f2fc photoshop-outer-glow-range.psd
 4f1b4c4465ef0d85 photoshop-outer-glow.psd
 849ec64ba0dc8195 photoshop-overlay-zorder.psd
@@ -122,6 +122,7 @@ f84f7f9f950868f7 photoshop-unlinked-mask-shadow.psd
 c9ed9f931e26309d photoshop-unlinked-mask.psd
 da91974395df9164 photoshop-user-mask-params.psd
 171bf4c158a24080 photoshop-vector-mask-feather.psd
+ce9b7512bd9a35ab photoshop-vector-mask-hides-effects.psd
 e7e0a37d1a1cedd2 photoshop-vector-mask-on-pixel.psd
 d2caa64e76f47c25 photoshop-warp-text.psd
 884a8fc8c58935b0 qual_rca_pinout.psd

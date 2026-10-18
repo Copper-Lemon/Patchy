@@ -757,7 +757,8 @@ std::optional<LayerStyleSettings> request_layer_style_settings(
       layer.blend_if(),
       false,
       static_cast<int>(std::round(layer.fill_opacity() * 100.0F)),
-      layer.channel_restriction_supported() ? layer.restricted_channels() : std::uint8_t{0}};
+      layer.channel_restriction_supported() ? layer.restricted_channels() : std::uint8_t{0},
+      layer_knockout_setting(layer).value_or(0U)};
   auto batch_edits = std::make_shared<AppearanceEdits<LayerStyleSettings>>();
   std::optional<LayerStyleSettings> last_displayed;
   std::vector<std::string> explicit_fields;
@@ -1242,6 +1243,23 @@ std::optional<LayerStyleSettings> request_layer_style_settings(
   channel_blue->setChecked((initial_restricted_channels & kRestrictBlue) == 0U);
   channels_layout->addStretch(1);
   blending_form->addRow(QObject::tr("Channels:"), channels_row);
+  // Advanced Blending "Knockout" (the native 'knko' mode the compositor
+  // renders, docs/blend-modes.md): the layer's shape cuts through the layers
+  // below it to its group's backdrop (Shallow) or to the Background (Deep).
+  auto* knockout = new QComboBox(blending_group);
+  knockout->setObjectName(QStringLiteral("layerStyleKnockoutCombo"));
+  knockout->addItem(QObject::tr("None"), 0);
+  knockout->addItem(QObject::tr("Shallow"), 1);
+  knockout->addItem(QObject::tr("Deep"), 2);
+  const auto knockout_setting = layer_knockout_setting(layer);
+  knockout->setCurrentIndex(std::max(0, knockout->findData(static_cast<int>(knockout_setting.value_or(0U)))));
+  knockout->setEnabled(knockout_setting.has_value());
+  knockout->setToolTip(
+      knockout_setting.has_value()
+          ? QObject::tr("Shallow cuts through the layers below to the bottom of this layer's group; "
+                        "Deep cuts through to the Background, or to transparency without one")
+          : QObject::tr("This layer preserves a Photoshop knockout setting Patchy cannot edit"));
+  blending_form->addRow(QObject::tr("Knockout:"), knockout);
   const auto current_restricted_channels = [=]() -> std::uint8_t {
     if (!channel_restriction_supported) {
       return 0;
@@ -1269,6 +1287,13 @@ std::optional<LayerStyleSettings> request_layer_style_settings(
       QObject::tr("Clip drop shadows, glows, and strokes with the layer mask "
                   "instead of only shaping them"));
   blending_form->addRow(QString(), mask_hides_effects);
+  auto* vector_mask_hides_effects = new QCheckBox(QObject::tr("Vector Mask Hides Effects"), blending_group);
+  vector_mask_hides_effects->setObjectName(QStringLiteral("layerStyleVectorMaskHidesEffectsCheck"));
+  vector_mask_hides_effects->setChecked(style.vector_mask_hides_effects);
+  vector_mask_hides_effects->setToolTip(
+      QObject::tr("Hide drop shadows, glows, and strokes where the vector mask hides the layer, "
+                  "instead of letting the vector mask shape them"));
+  blending_form->addRow(QString(), vector_mask_hides_effects);
   auto* blend_interior = new QCheckBox(QObject::tr("Blend Interior Effects as Group"), blending_group);
   blend_interior->setObjectName(QStringLiteral("layerStyleBlendInteriorCheck"));
   blend_interior->setChecked(style.blend_interior_elements);
@@ -1954,6 +1979,7 @@ std::optional<LayerStyleSettings> request_layer_style_settings(
     LayerStyle result = style;
     result.effects_visible = show_effects->isChecked();
     result.layer_mask_hides_effects = mask_hides_effects->isChecked();
+    result.vector_mask_hides_effects = vector_mask_hides_effects->isChecked();
     result.blend_interior_elements = blend_interior->isChecked();
     result.blend_clipped_elements = blend_clipped->isChecked();
     apply_enabled_states(result);
@@ -1966,7 +1992,8 @@ std::optional<LayerStyleSettings> request_layer_style_settings(
     }
     return LayerStyleSettings{opacity->value(), static_cast<BlendMode>(blend->currentData().toInt()),
                               std::move(result), blend_if, replace_unsupported_blend_if,
-                              fill_opacity->value(), current_restricted_channels()};
+                              fill_opacity->value(), current_restricted_channels(),
+                              static_cast<std::uint8_t>(knockout->currentData().toInt())};
   };
   auto build_current_settings = [&]() {
     return build_current_settings_for_item(categories->currentItem());
@@ -2601,6 +2628,9 @@ std::optional<LayerStyleSettings> request_layer_style_settings(
   QObject::connect(preview_check, &QCheckBox::toggled, &dialog, [&emit_preview](bool) { emit_preview(true); });
   QObject::connect(show_effects, &QCheckBox::toggled, &dialog, [&emit_preview](bool) { emit_preview(true); });
   QObject::connect(mask_hides_effects, &QCheckBox::toggled, &dialog, [&emit_preview](bool) { emit_preview(true); });
+  QObject::connect(vector_mask_hides_effects, &QCheckBox::toggled, &dialog,
+                   [&emit_preview](bool) { emit_preview(true); });
+  QObject::connect(knockout, &QComboBox::currentIndexChanged, &dialog, [&emit_preview](int) { emit_preview(true); });
   QObject::connect(blend_interior, &QCheckBox::toggled, &dialog, [&emit_preview](bool) { emit_preview(true); });
   QObject::connect(blend_clipped, &QCheckBox::toggled, &dialog, [&emit_preview](bool) { emit_preview(true); });
   for (auto* channel_check : {channel_red, channel_green, channel_blue}) {
@@ -2777,6 +2807,7 @@ std::optional<LayerStyleSettings> request_layer_style_settings(
     // Presets replace the effects; the dialog-level blending pieces a preset
     // does not carry stay as the user set them.
     applied.layer_mask_hides_effects = mask_hides_effects->isChecked();
+    applied.vector_mask_hides_effects = vector_mask_hides_effects->isChecked();
     applied.blend_interior_elements = blend_interior->isChecked();
     applied.blend_clipped_elements = blend_clipped->isChecked();
     applied.effects_visible = true;
@@ -2804,6 +2835,7 @@ std::optional<LayerStyleSettings> request_layer_style_settings(
       batch_edits->append({{}, [recipe, blending](LayerStyleSettings& target) {
         auto replacement = recipe;
         replacement.layer_mask_hides_effects = target.style.layer_mask_hides_effects;
+        replacement.vector_mask_hides_effects = target.style.vector_mask_hides_effects;
         replacement.blend_interior_elements = target.style.blend_interior_elements;
         replacement.blend_clipped_elements = target.style.blend_clipped_elements;
         target.style = std::move(replacement);
@@ -2829,6 +2861,7 @@ std::optional<LayerStyleSettings> request_layer_style_settings(
     LayerStyle cleared;
     cleared.effects_visible = show_effects->isChecked();
     cleared.layer_mask_hides_effects = mask_hides_effects->isChecked();
+    cleared.vector_mask_hides_effects = vector_mask_hides_effects->isChecked();
     cleared.blend_interior_elements = blend_interior->isChecked();
     cleared.blend_clipped_elements = blend_clipped->isChecked();
     style = std::move(cleared);
@@ -2836,6 +2869,7 @@ std::optional<LayerStyleSettings> request_layer_style_settings(
       LayerStyle empty;
       empty.effects_visible = target.style.effects_visible;
       empty.layer_mask_hides_effects = target.style.layer_mask_hides_effects;
+      empty.vector_mask_hides_effects = target.style.vector_mask_hides_effects;
       empty.blend_interior_elements = target.style.blend_interior_elements;
       empty.blend_clipped_elements = target.style.blend_clipped_elements;
       target.style = std::move(empty);
@@ -3179,6 +3213,8 @@ std::optional<LayerStyleSettings> request_layer_style_settings(
     global(fill_opacity, "fill_opacity");
     global(show_effects, "style.effects_visible");
     global(mask_hides_effects, "style.layer_mask_hides_effects");
+    global(vector_mask_hides_effects, "style.vector_mask_hides_effects");
+    global(knockout, "knockout");
     global(blend_interior, "style.blend_interior_elements");
     global(blend_clipped, "style.blend_clipped_elements");
     global(channel_red, "restricted_channels.0");

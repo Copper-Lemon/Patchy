@@ -25,6 +25,24 @@ inline float layer_mask_alpha_for_render(const Layer& layer, std::int32_t x, std
   return mask_bounds.has_value() ? layer_mask_alpha_at(layer, x, y, *mask_bounds) : layer_mask_alpha_at(layer, x, y);
 }
 
+// The masks that shape an effect's contour: those whose "Hides Effects"
+// option is off (layer_effect_source_masks).
+inline float effect_source_mask_alpha_for_render(const Layer& layer, std::int32_t x, std::int32_t y,
+                                                 std::optional<Rect> mask_bounds) {
+  const auto parts = layer_effect_source_masks(layer);
+  return mask_bounds.has_value() ? layer_mask_alpha_at(layer, x, y, *mask_bounds, parts)
+                                 : layer_mask_alpha_at(layer, x, y, parts);
+}
+
+// The masks that hide effect output where it lands: those whose "Hides
+// Effects" option is on. Applied only where layer_mask_clips_effect_output.
+inline float effect_output_mask_alpha_for_render(const Layer& layer, std::int32_t x, std::int32_t y,
+                                                 std::optional<Rect> mask_bounds) {
+  const auto parts = layer_effect_output_masks(layer);
+  return mask_bounds.has_value() ? layer_mask_alpha_at(layer, x, y, *mask_bounds, parts)
+                                 : layer_mask_alpha_at(layer, x, y, parts);
+}
+
 // The extra planes stroke_alpha_mask produces beside its over-draw mask when asked.
 struct StrokeMaskPlanes {
   std::vector<float>* shape_burst_positions{nullptr};

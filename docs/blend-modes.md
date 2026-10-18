@@ -144,8 +144,10 @@ every blend-if, masked, non-pass-through, or faded group through it
 
 The CPU compositor and canvas renderer interpret native `knko` mode bytes
 0/1/2 (None/Shallow/Deep), with the four-byte block preserved verbatim on save.
-Unsupported payloads stay raw and do not activate rendering. There is no knockout
-editing control. Photoshop's [knockout guide](https://helpx.adobe.com/photoshop/using/knockout-reveal-content-layers.html)
+Unsupported payloads stay raw and do not activate rendering. Blending Options'
+Knockout combo edits the mode through `set_layer_knockout` (core/layer.hpp): it
+patches the byte in place (PS writes `knko` on every layer) or appends a block for
+a non-None mode; an unknown payload disables the combo. Photoshop's [knockout guide](https://helpx.adobe.com/photoshop/using/knockout-reveal-content-layers.html)
 describes the general behavior; Photoshop 2026 COM captures pin these details:
 
 - At document level both modes reveal the real Background, or transparency if

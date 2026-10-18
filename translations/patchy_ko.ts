@@ -10333,6 +10333,34 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
         <translation>페이지 폴더로 가져온 PDF는 첫 페이지만 표시하지만, 숨겨진 페이지도 페이지입니다.</translation>
     </message>
+    <message>
+        <source>Shallow</source>
+        <translation>얕게</translation>
+    </message>
+    <message>
+        <source>Deep</source>
+        <translation>깊게</translation>
+    </message>
+    <message>
+        <source>Shallow cuts through the layers below to the bottom of this layer&apos;s group; Deep cuts through to the Background, or to transparency without one</source>
+        <translation>얕게는 이 레이어 그룹의 맨 아래까지 아래 레이어를 뚫고, 깊게는 배경까지(배경이 없으면 투명까지) 뚫습니다</translation>
+    </message>
+    <message>
+        <source>This layer preserves a Photoshop knockout setting Patchy cannot edit</source>
+        <translation>이 레이어에는 Patchy에서 편집할 수 없는 Photoshop 녹아웃 설정이 보존되어 있습니다</translation>
+    </message>
+    <message>
+        <source>Knockout:</source>
+        <translation>녹아웃:</translation>
+    </message>
+    <message>
+        <source>Vector Mask Hides Effects</source>
+        <translation>벡터 마스크로 효과 숨기기</translation>
+    </message>
+    <message>
+        <source>Hide drop shadows, glows, and strokes where the vector mask hides the layer, instead of letting the vector mask shape them</source>
+        <translation>벡터 마스크가 효과의 모양을 만드는 대신, 벡터 마스크가 레이어를 숨기는 곳에서 그림자, 광선, 획을 숨깁니다</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

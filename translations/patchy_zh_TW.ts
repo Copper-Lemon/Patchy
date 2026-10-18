@@ -10333,6 +10333,34 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
         <translation>以頁面資料夾匯入的 PDF 只顯示第一頁；隱藏的頁面仍然是頁面。</translation>
     </message>
+    <message>
+        <source>Shallow</source>
+        <translation>淺</translation>
+    </message>
+    <message>
+        <source>Deep</source>
+        <translation>深</translation>
+    </message>
+    <message>
+        <source>Shallow cuts through the layers below to the bottom of this layer&apos;s group; Deep cuts through to the Background, or to transparency without one</source>
+        <translation>淺：穿透下方圖層直到此圖層所在群組的底部；深：穿透到背景，沒有背景時穿透到透明</translation>
+    </message>
+    <message>
+        <source>This layer preserves a Photoshop knockout setting Patchy cannot edit</source>
+        <translation>此圖層保留了 Patchy 無法編輯的 Photoshop 穿透設定</translation>
+    </message>
+    <message>
+        <source>Knockout:</source>
+        <translation>穿透:</translation>
+    </message>
+    <message>
+        <source>Vector Mask Hides Effects</source>
+        <translation>向量遮色片隱藏效果</translation>
+    </message>
+    <message>
+        <source>Hide drop shadows, glows, and strokes where the vector mask hides the layer, instead of letting the vector mask shape them</source>
+        <translation>在向量遮色片隱藏圖層的地方隱藏陰影、光暈和筆畫，而不是讓向量遮色片塑造它們的形狀</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

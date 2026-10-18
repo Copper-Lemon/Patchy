@@ -529,9 +529,13 @@ struct LayerPatternOverlay {
 
 struct LayerStyle {
   bool effects_visible{true};
-  // Photoshop's "Layer Mask Hides Effects" blending option: the layer mask also
-  // clips effect output where it lands, instead of only shaping effect sources.
+  // Photoshop's "Layer Mask Hides Effects" blending option ('lmgm'): the raster
+  // mask hides effect output where it lands instead of shaping the effects.
   bool layer_mask_hides_effects{false};
+  // Photoshop's "Vector Mask Hides Effects" blending option ('vmgm'), the same
+  // switch for the vector mask. Each mask either shapes the effects or hides
+  // their output on its own (layer_effect_source_masks / _output_masks).
+  bool vector_mask_hides_effects{false};
   // Photoshop's "Blend Interior Effects as Group" blending option ('infx', off by
   // default): on, the interior effects fold into the layer's own color and the
   // layer's blend mode carries the whole result; off, the layer's blend mode
@@ -716,5 +720,15 @@ photoshop_layer_id(const Layer& layer) noexcept;
 void set_photoshop_layer_id(Layer& layer, std::uint32_t id);
 [[nodiscard]] std::uint32_t
 next_photoshop_layer_id(const std::vector<Layer>& layers);
+
+// Photoshop's Knockout blending option lives in the native 'knko' block (one
+// mode byte, three padding bytes): 0 None, 1 Shallow, 2 Deep. The compositor
+// renders straight from that block (layer_knockout_mode, docs/blend-modes.md).
+// nullopt marks a payload Patchy cannot interpret: it stays raw, not editable.
+[[nodiscard]] std::optional<std::uint8_t> layer_knockout_setting(const Layer& layer) noexcept;
+// Patches the mode byte of the layer's 'knko' block in place (Photoshop writes
+// one on every layer, None included) or appends one. None on a layer without
+// the block leaves it absent, so default output stays byte-identical.
+void set_layer_knockout(Layer& layer, std::uint8_t mode);
 
 }  // namespace patchy

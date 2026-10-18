@@ -96,6 +96,17 @@ void retarget_preview_scaled_layer_bounds(Layer& scaled, const Layer& real, int 
 // so headers do not need the complete LayerVectorMask type).
 [[nodiscard]] bool layer_has_enabled_vector_mask(const Layer& layer) noexcept;
 [[nodiscard]] bool layer_vector_mask_hides_effects(const Layer& layer) noexcept;
+// Which of a layer's masks a mask sample includes. Layer effects split them by
+// the "Layer Mask Hides Effects" / "Vector Mask Hides Effects" options: a mask
+// with its option off shapes the effect sources, one with it on hides the
+// effect output where it lands instead (Photoshop 2026 COM captures, October
+// 2026, docs/layer-effects-render.md).
+struct LayerMaskParts {
+  bool raster{true};
+  bool vector{true};
+};
+[[nodiscard]] LayerMaskParts layer_effect_source_masks(const Layer& layer) noexcept;
+[[nodiscard]] LayerMaskParts layer_effect_output_masks(const Layer& layer) noexcept;
 // Photoshop's mask feather (raster and vector alike, PS 27.9 calibration in
 // docs/vector-tools.md) is a gaussian of sigma = feather pixels. These are its
 // deterministic three-box approximation: the box radii for a sigma, and the
@@ -121,6 +132,10 @@ void sync_layer_mask_feather_canvas(Layer& layer, Rect canvas);
 // Both overloads fold in the raster mask's density and feather.
 [[nodiscard]] float layer_mask_alpha_at(const Layer& layer, std::int32_t x, std::int32_t y);
 [[nodiscard]] float layer_mask_alpha_at(const Layer& layer, std::int32_t x, std::int32_t y, Rect mask_bounds);
+// The same samples limited to `parts` (both parts: identical to the above).
+[[nodiscard]] float layer_mask_alpha_at(const Layer& layer, std::int32_t x, std::int32_t y, LayerMaskParts parts);
+[[nodiscard]] float layer_mask_alpha_at(const Layer& layer, std::int32_t x, std::int32_t y, Rect mask_bounds,
+                                        LayerMaskParts parts);
 [[nodiscard]] std::vector<float> layer_alpha_mask(const PixelBuffer& source, const Layer& layer, Rect bounds,
                                                   Rect mask_bounds, std::int32_t sample_offset_x = 0,
                                                   std::int32_t sample_offset_y = 0,

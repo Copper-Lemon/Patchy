@@ -139,7 +139,7 @@ bool should_skip_layer_block(const EncodedLayer& encoded, const UnknownPsdBlock&
   // per-layer keys make Photoshop warn that editable data will be discarded.
   if (block.key == "pvcl" || block.key == "pvfi" ||
       block.key == "luni" || block.key == "plFX" || block.key == "lspf" || block.key == "lmgm" ||
-      block.key == "infx" || block.key == "clbl" ||
+      block.key == "vmgm" || block.key == "infx" || block.key == "clbl" ||
       (block.key == "plAD" && encoded.kind == EncodedLayerKind::Adjustment)) {
     return true;
   }
@@ -770,6 +770,11 @@ LayerRecord read_layer_record(BigEndianReader& reader, bool large_document,
         // "Layer Mask Hides Effects" blending option (first byte is the bool).
         record.layer_mask_hides_effects = record.additional_blocks.back().payload[0] != 0;
       }
+      if (key == "vmgm" && !record.additional_blocks.back().payload.empty()) {
+        // "Vector Mask Hides Effects" blending option (first byte is the bool;
+        // Photoshop 2026 writes the block only when the option is on).
+        record.vector_mask_hides_effects = record.additional_blocks.back().payload[0] != 0;
+      }
       if (key == "infx" && !record.additional_blocks.back().payload.empty()) {
         // "Blend Interior Effects as Group" blending option (first byte is the bool).
         record.blend_interior_elements = record.additional_blocks.back().payload[0] != 0;
@@ -1170,6 +1175,15 @@ void write_layer_record(BigEndianWriter& writer, const EncodedLayer& encoded, bo
       mask_hides.write_u8(0);
       mask_hides.write_u16(0);
       write_additional_layer_block(extra, {'l', 'm', 'g', 'm'}, mask_hides.bytes(), large_document);
+    }
+
+    if (encoded.layer->layer_style().vector_mask_hides_effects) {
+      // "Vector Mask Hides Effects" blending option; absence means off.
+      BigEndianWriter vector_mask_hides;
+      vector_mask_hides.write_u8(1);
+      vector_mask_hides.write_u8(0);
+      vector_mask_hides.write_u16(0);
+      write_additional_layer_block(extra, {'v', 'm', 'g', 'm'}, vector_mask_hides.bytes(), large_document);
     }
 
     if (encoded.layer->layer_style().blend_interior_elements) {
