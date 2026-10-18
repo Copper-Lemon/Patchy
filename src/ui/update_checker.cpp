@@ -197,11 +197,17 @@ bool update_version_is_newer(const QString& latest_version, const QString& curre
   return false;
 }
 
-bool startup_update_check_due(int interval_days, qint64 last_check_secs, qint64 now_secs) {
+bool startup_update_check_due(int interval_days, qint64 last_check_secs, qint64 now_secs, const QTimeZone& zone) {
   if (interval_days <= 0 || last_check_secs <= 0 || last_check_secs > now_secs) {
     return true;
   }
-  return now_secs - last_check_secs >= qint64{interval_days} * 24 * 60 * 60;
+  const auto last_day = QDateTime::fromSecsSinceEpoch(last_check_secs, zone).date();
+  const auto today = QDateTime::fromSecsSinceEpoch(now_secs, zone).date();
+  return last_day.daysTo(today) >= interval_days;
+}
+
+bool startup_update_check_due(int interval_days, qint64 last_check_secs, qint64 now_secs) {
+  return startup_update_check_due(interval_days, last_check_secs, now_secs, QTimeZone(QTimeZone::LocalTime));
 }
 
 bool update_prompt_wanted(const QString& version, const QString& skipped_version) {

@@ -21794,6 +21794,10 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
             <numerusform>As seguintes fontes estão ausentes em %n camadas de texto: %1. Os pixels existentes serão transformados em vez de renderizados novamente. Continuar?</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Daily</source>
+        <translation>Diariamente</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

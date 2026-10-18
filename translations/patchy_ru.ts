@@ -21864,6 +21864,10 @@ Patchy может скачать обновление, заменить этот
             <numerusform>Для %n текстовых слоев отсутствуют шрифты: %1. Существующие пиксели будут преобразованы без повторной отрисовки. Продолжить?</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Daily</source>
+        <translation>Ежедневно</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

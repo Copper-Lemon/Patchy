@@ -21794,6 +21794,10 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
             <numerusform>Mancano i seguenti font per %n livelli di testo: %1. I pixel esistenti verranno trasformati invece di essere renderizzati di nuovo. Continuare?</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Daily</source>
+        <translation>Ogni giorno</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

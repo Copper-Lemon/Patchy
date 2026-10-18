@@ -18,6 +18,7 @@
 #include <QColor>
 #include <QEvent>
 #include <QImage>
+#include <QList>
 #include <QObject>
 #include <QPaintEvent>
 #include <QPointingDevice>
@@ -325,6 +326,9 @@ private:
 };
 
 void save_widget_artifact(const std::string& name, QWidget& widget);
+// Saves several captures stacked top to bottom (a 6 px gap between them) as one artifact,
+// for before/after shots that cover more than one widget or state.
+void save_stacked_artifact(const std::string& name, const QList<QImage>& strips);
 
 void send_mouse(QWidget& widget, QEvent::Type type, QPoint position, Qt::MouseButton button, Qt::MouseButtons buttons,
                 Qt::KeyboardModifiers modifiers = Qt::NoModifier);

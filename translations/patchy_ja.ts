@@ -21724,6 +21724,10 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
             <numerusform>%n 個のテキストレイヤーに次のフォントがありません: %1。再レンダリングせず、既存のピクセルを変形します。続行しますか?</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Daily</source>
+        <translation>毎日</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

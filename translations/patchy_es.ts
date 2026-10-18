@@ -21794,6 +21794,10 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
             <numerusform>Faltan las siguientes fuentes para %n capas de texto: %1. Se transformarán los píxeles existentes en lugar de volver a renderizarlos. ¿Continuar?</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Daily</source>
+        <translation>Diariamente</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

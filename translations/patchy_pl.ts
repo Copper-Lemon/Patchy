@@ -21864,6 +21864,10 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
             <numerusform>Brakuje następujących czcionek dla %n warstw tekstowych: %1. Istniejące piksele zostaną przekształcone zamiast ponownie wyrenderowane. Kontynuować?</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Daily</source>
+        <translation>Codziennie</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

@@ -188,6 +188,29 @@ void save_widget_artifact(const std::string& name, QWidget& widget) {
   CHECK(pixmap.save(path));
 }
 
+void save_stacked_artifact(const std::string& name, const QList<QImage>& strips) {
+  ensure_artifact_dir();
+  constexpr int kGap = 6;
+  int width = 0;
+  int height = 0;
+  for (const auto& strip : strips) {
+    width = std::max(width, strip.width());
+    height += strip.height() + (height > 0 ? kGap : 0);
+  }
+  CHECK(width > 0 && height > 0);
+  QImage sheet(std::max(width, 1), std::max(height, 1), QImage::Format_ARGB32_Premultiplied);
+  sheet.fill(QColor(128, 128, 128));
+  QPainter painter(&sheet);
+  int y = 0;
+  for (const auto& strip : strips) {
+    painter.drawImage(0, y, strip);
+    y += strip.height() + kGap;
+  }
+  painter.end();
+  const auto path = QString::fromStdString((std::filesystem::path("test-artifacts") / (name + ".png")).string());
+  CHECK(sheet.save(path));
+}
+
 void send_mouse(QWidget& widget, QEvent::Type type, QPoint position, Qt::MouseButton button, Qt::MouseButtons buttons, Qt::KeyboardModifiers modifiers) {
   QMouseEvent event(type, position, widget.mapToGlobal(position), button, buttons, modifiers);
   QApplication::sendEvent(&widget, &event);

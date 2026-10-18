@@ -21724,6 +21724,10 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
             <numerusform>텍스트 레이어 %n개에 다음 글꼴이 없습니다: %1. 다시 렌더링하지 않고 기존 픽셀을 변형합니다. 계속하시겠습니까?</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Daily</source>
+        <translation>매일</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

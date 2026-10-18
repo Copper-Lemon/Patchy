@@ -21794,6 +21794,10 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
             <numerusform>Folgende Schriften fehlen für %n Textebenen: %1. Die vorhandenen Pixel werden transformiert statt neu gerendert. Fortfahren?</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Daily</source>
+        <translation>Täglich</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

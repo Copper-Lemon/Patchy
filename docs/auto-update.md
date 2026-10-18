@@ -17,10 +17,12 @@ does not carry the pinned keys.
 this order. Every key is permanent; accessors live in `src/ui/app_settings.hpp`.
 
 - `updates/checkOnStartup` (bool, default true) is the master switch.
-- `updates/checkIntervalDays` (int: 0, 7, 14 or 30; anything else reads as 0) is the
-  Preferences choice beside the checkbox (GitHub issue 92). 0 is "Every launch" and stays
-  the default. `startup_update_check_due` (`update_checker.hpp`) compares it with
-  `updates/lastCheckSecsSinceEpoch` and is also true with no record or one in the future.
+- `updates/checkIntervalDays` (int: 0, 1, 7, 14 or 30; anything else reads as 0) is the
+  Preferences choice beside the checkbox (GitHub issue 92; 1 is "Daily", issue 189). 0 is
+  "Every launch" and stays the default. `startup_update_check_due` (`update_checker.hpp`)
+  counts local calendar days from `updates/lastCheckSecsSinceEpoch`, not 24-hour spans, so
+  "Daily" checks on the first launch of each day; it is also true with no record or one in
+  the future.
 - The record is written when a check gets an answer, never on `NetworkError`, so a launch
   without a network tries again next time.
 - `updates/skippedVersion` holds the version from the prompt's "Don't ask again about
@@ -219,7 +221,8 @@ had not loaded yet would be the new build.
   `ui_update_connector_restart_notice_names_the_apps` and
   `connector_update_notice_reports_a_replaced_executable` cover the connector notices.
   `ui_update_check_interval_gates_the_startup_check`,
-  `ui_update_startup_check_honors_stored_interval` (a loopback manifest server) and
+  `ui_update_startup_check_honors_stored_interval` (a loopback manifest server),
+  `ui_update_preference_offers_daily_interval` and
   `ui_update_prompt_skip_version_silences_until_a_newer_one` cover the interval and the
   skipped version.
 - `scripts\release\verify-windows-package.ps1` runs `InstallPatchy.ps1 -UpdateCheckRoot`:

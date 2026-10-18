@@ -21721,6 +21721,10 @@ Patchy can download the update, replace this AppImage, and start again. You will
             <numerusform></numerusform>
         </translation>
     </message>
+    <message>
+        <source>Daily</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

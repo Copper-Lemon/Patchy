@@ -21794,6 +21794,10 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
             <numerusform>Les polices suivantes sont manquantes pour %n calques de texte : %1. Les pixels existants seront transformés au lieu d&apos;être redessinés. Continuer ?</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Daily</source>
+        <translation>Chaque jour</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

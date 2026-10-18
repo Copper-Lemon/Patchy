@@ -21724,6 +21724,10 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
             <numerusform>%n 个文字图层缺少以下字体：%1。将变换现有像素，而不是重新渲染。是否继续？</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Daily</source>
+        <translation>每天</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
