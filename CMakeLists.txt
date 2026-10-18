@@ -1239,6 +1239,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/session_history.cpp
       src/ui/document_save_coordinator.cpp
       src/ui/document_save_coordinator.hpp
+      src/ui/save_progress.cpp
+      src/ui/save_progress.hpp
       src/ui/session_history.hpp
       src/ui/main_window_shared.hpp
       src/ui/main_window_shared.cpp

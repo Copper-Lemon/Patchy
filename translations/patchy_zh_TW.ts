@@ -11945,6 +11945,14 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>Select a pixel layer to sample the current layer, or sample all layers</source>
         <translation>請選取像素圖層以取樣目前圖層，或取樣全部圖層</translation>
     </message>
+    <message>
+        <source>Painting on %1 in %2</source>
+        <translation>正在 %2 的 %1 上繪畫</translation>
+    </message>
+    <message>
+        <source>Added %1 to %2 to paint on</source>
+        <translation>已向 %2 加入 %1 用於繪畫</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21513,6 +21521,46 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
     <message>
         <source>Could not complete the Copy Merged command because the selected area is empty.</source>
         <translation>無法完成「合併拷貝」指令，因為選取的區域是空的。</translation>
+    </message>
+    <message>
+        <source>Export</source>
+        <translation>匯出</translation>
+    </message>
+    <message>
+        <source>PDF Options</source>
+        <translation>PDF 選項</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>儲存</translation>
+    </message>
+    <message>
+        <source>Saving %1...</source>
+        <translation>正在儲存 %1...</translation>
+    </message>
+    <message>
+        <source>Saving %1</source>
+        <translation>儲存 %1</translation>
+    </message>
+    <message>
+        <source>Compositing the image...</source>
+        <translation>正在合成影像...</translation>
+    </message>
+    <message>
+        <source>Writing %1...</source>
+        <translation>正在寫入 %1...</translation>
+    </message>
+    <message>
+        <source>Saving layer %1 of %2: %3</source>
+        <translation>正在儲存第 %1 個圖層（共 %2 個）：%3</translation>
+    </message>
+    <message>
+        <source>Saving layer %1 of %2...</source>
+        <translation>正在儲存第 %1 個圖層（共 %2 個）...</translation>
+    </message>
+    <message>
+        <source>Crop does not apply to a document with artboards; resize an artboard with the Artboard tool</source>
+        <translation>裁切不適用於含工作區域的文件；請使用工作區域工具調整工作區域大小</translation>
     </message>
 </context>
 <context>

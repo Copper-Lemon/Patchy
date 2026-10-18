@@ -1,4 +1,5 @@
 #include "ui/document_save_coordinator.hpp"
+#include "ui/save_progress.hpp"
 
 #include "core/layer_metadata.hpp"
 #include "core/vector_shape.hpp"
@@ -155,8 +156,17 @@ std::optional<DocumentSaveResult> DocumentSaveCoordinator::write_prepared(
         target->document.metadata().smart_objects,
         target->path.isEmpty() ? QString() : QFileInfo(target->path).absolutePath(),
         QFileInfo(path).absolutePath());
-    psd::DocumentIo::write_layered_rgb8_file(target->document, to_filesystem_path(path),
-                                             psd::WriteOptions{extension == QStringLiteral("psb")});
+    // The writer reads a copy-on-write snapshot on a worker, so the window keeps painting
+    // the Saving dialog through the composite (recovery writes the same way).
+    const Document snapshot = std::as_const(target->document);
+    const bool psb = extension == QStringLiteral("psb");
+    host_.run_write(path, /*on_worker*/ true, !quiet, [&snapshot, &path, psb](SaveProgress& progress) {
+      psd::WriteOptions options{psb};
+      options.progress = [&progress](int done, int total, const std::string& label) {
+        progress.report(done, total, SaveProgress::Kind::Layers, QString::fromStdString(label));
+      };
+      psd::DocumentIo::write_layered_rgb8_file(snapshot, to_filesystem_path(path), options);
+    });
   } else if (extension == QStringLiteral("aseprite") || extension == QStringLiteral("ase")) {
     // Layered save: the Aseprite writer keeps the layer tree instead of flattening.
     std::optional<Document> narrowed;
@@ -168,8 +178,17 @@ std::optional<DocumentSaveResult> DocumentSaveCoordinator::write_prepared(
     svg::DocumentIo::write_file(document_for_8bit_writer(target->document, narrowed), to_filesystem_path(path),
                                 &writer_notices);
   } else {
-    // Editable PDF keeps layers and reports what it baked, like the SVG writer.
-    write_flat_image_file(target->document, path, extension, effective_image_options, &writer_notices);
+    // Editable PDF keeps layers and reports what it baked, like the SVG writer. PDF writes
+    // on this thread (its editable pages paint text through Qt) and reports each page;
+    // the raster formats write a snapshot on a worker.
+    const bool pdf = extension == QStringLiteral("pdf");
+    const Document snapshot = pdf ? Document{} : Document(std::as_const(target->document));
+    const Document& source = pdf ? std::as_const(target->document) : snapshot;
+    host_.run_write(path, /*on_worker*/ !pdf, !quiet,
+                    [&source, &path, &extension, &effective_image_options, &writer_notices](SaveProgress& progress) {
+                      const ScopedSaveProgress scope(progress);
+                      write_flat_image_file(source, path, extension, effective_image_options, &writer_notices);
+                    });
   }
   host_.offer_download(path);
   target = host_.find_session(session_id);

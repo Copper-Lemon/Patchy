@@ -342,6 +342,33 @@ void ui_brush_stroke_off_a_small_layer_ends_with_exact_bounds() {
   CHECK(painted[3] == 255 && painted[0] > 180);
 }
 
+// Zoomed out, the canvas shows display mips of the render cache. A brush dab patches a few
+// pixels; rebuilding every mip level from the whole cache per mouse move cost a fifth of a
+// second on a 23-page artboard grid (and turned fast strokes into straight lines). The
+// chain is patched in place instead (patch_display_mips) and must equal a rebuild.
+void ui_zoomed_out_brush_patches_display_mips_exactly() {
+  patchy::Document document(1203, 801, patchy::PixelFormat::rgba8());
+  auto background = solid_pixels(1203, 801, patchy::PixelFormat::rgba8(), QColor(Qt::white));
+  fill_pixel_rect(background, QRect(100, 100, 400, 300), QColor(20, 120, 220, 160));
+  document.add_pixel_layer("Background", std::move(background));
+  patchy::ui::CanvasWidget canvas;
+  canvas.resize(700, 500);
+  canvas.set_document(&document);
+  canvas.set_zoom(0.2);
+  canvas.set_tool(patchy::ui::CanvasTool::Brush);
+  canvas.set_primary_color(QColor(220, 30, 30, 200));
+  canvas.set_brush_size(23);
+  canvas.show();
+  QApplication::processEvents();
+  static_cast<void>(canvas.grab());  // paint once: builds the mip chain
+  const auto levels = canvas.display_mip_levels_for_testing();
+  CHECK(levels >= 2);
+  drag_document_path(canvas, {QPoint(37, 41), QPoint(611, 377), QPoint(1180, 790)}, 12);
+  QApplication::processEvents();
+  CHECK(canvas.display_mip_levels_for_testing() == levels);  // patched, not dropped
+  CHECK(canvas.display_mips_match_rebuild_for_testing());
+}
+
 void ui_open_clipboard_shortcut_keeps_existing_document_and_uses_current_image() {
   patchy::ui::MainWindow window;
   show_window(window);
@@ -2906,6 +2933,7 @@ std::vector<patchy::test::TestCase> clipboard_free_transform_tests() {
       {"ui_layer_via_copy_finds_a_layer_on_an_artboard", ui_layer_via_copy_finds_a_layer_on_an_artboard},
       {"ui_brush_stroke_off_a_small_layer_ends_with_exact_bounds",
        ui_brush_stroke_off_a_small_layer_ends_with_exact_bounds},
+      {"ui_zoomed_out_brush_patches_display_mips_exactly", ui_zoomed_out_brush_patches_display_mips_exactly},
       {"ui_open_clipboard_shortcut_keeps_existing_document_and_uses_current_image",
        ui_open_clipboard_shortcut_keeps_existing_document_and_uses_current_image},
       {"ui_open_clipboard_rejects_empty_and_non_image_data_without_creating_tabs",

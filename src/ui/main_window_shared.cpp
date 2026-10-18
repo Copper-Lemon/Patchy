@@ -1160,6 +1160,13 @@ void insert_layer_after_anchor(Document& document, Layer layer, std::optional<La
   if (anchor_id.has_value() && layer_is_artboard(std::as_const(layer))) {
     // Artboards never nest (docs/artboards.md): above the anchor's top-level layer.
     anchor_id = top_level_ancestor_id(std::as_const(document), *anchor_id);
+  } else if (anchor_id.has_value()) {
+    // A selected artboard takes the new layer inside, on top of its children (Photoshop's
+    // New Layer and Paste, docs/artboards.md "Feature interactions").
+    if (auto* anchor = document.find_layer(*anchor_id); anchor != nullptr && layer_is_artboard(std::as_const(*anchor))) {
+      anchor->add_child(std::move(layer));
+      return;
+    }
   }
   if (anchor_id.has_value()) {
     std::size_t index = 0;

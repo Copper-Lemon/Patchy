@@ -11945,6 +11945,14 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>Select a pixel layer to sample the current layer, or sample all layers</source>
         <translation>현재 레이어를 샘플링하려면 픽셀 레이어를 선택하거나 모든 레이어를 샘플링하세요</translation>
     </message>
+    <message>
+        <source>Painting on %1 in %2</source>
+        <translation>%2의 %1에 그리는 중</translation>
+    </message>
+    <message>
+        <source>Added %1 to %2 to paint on</source>
+        <translation>그리기 위해 %2에 %1을(를) 추가했습니다</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21513,6 +21521,46 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
     <message>
         <source>Could not complete the Copy Merged command because the selected area is empty.</source>
         <translation>선택한 영역이 비어 있어 병합하여 복사 명령을 완료할 수 없습니다.</translation>
+    </message>
+    <message>
+        <source>Export</source>
+        <translation>내보내기</translation>
+    </message>
+    <message>
+        <source>PDF Options</source>
+        <translation>PDF 옵션</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>저장</translation>
+    </message>
+    <message>
+        <source>Saving %1...</source>
+        <translation>%1 저장 중...</translation>
+    </message>
+    <message>
+        <source>Saving %1</source>
+        <translation>%1 저장</translation>
+    </message>
+    <message>
+        <source>Compositing the image...</source>
+        <translation>이미지 합성 중...</translation>
+    </message>
+    <message>
+        <source>Writing %1...</source>
+        <translation>%1 쓰는 중...</translation>
+    </message>
+    <message>
+        <source>Saving layer %1 of %2: %3</source>
+        <translation>레이어 %1/%2 저장 중: %3</translation>
+    </message>
+    <message>
+        <source>Saving layer %1 of %2...</source>
+        <translation>레이어 %1/%2 저장 중...</translation>
+    </message>
+    <message>
+        <source>Crop does not apply to a document with artboards; resize an artboard with the Artboard tool</source>
+        <translation>대지가 있는 문서에는 자르기가 적용되지 않습니다. 대지 도구로 대지의 크기를 조정하세요</translation>
     </message>
 </context>
 <context>

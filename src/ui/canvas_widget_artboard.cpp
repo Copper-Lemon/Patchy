@@ -9,7 +9,10 @@
 #include "ui/canvas_widget.hpp"
 
 #include "core/artboard.hpp"
+#include "core/layer_metadata.hpp"
 #include "core/layer_tree.hpp"
+#include "core/pixel_depth.hpp"
+#include "core/vector_shape.hpp"
 #include "ui/canvas_types.hpp"
 #include "ui/canvas_widget_shared.hpp"
 #include "ui/image_document_io.hpp"
@@ -760,6 +763,88 @@ void CanvasWidget::draw_artboard_overlay(QPainter& painter) const {
     }
   }
   painter.restore();
+}
+
+namespace {
+
+// The topmost visible pixel layer in `layers` (visible folders searched) that a brush can
+// paint: not locked, not a procedural (text, shape, Smart Object) raster.
+const Layer* topmost_paintable_pixel_layer(const std::vector<Layer>& layers, const std::vector<Layer>& roots) {
+  for (auto it = layers.rbegin(); it != layers.rend(); ++it) {
+    if (!it->visible()) {
+      continue;
+    }
+    if (it->kind() == LayerKind::Group) {
+      if (const auto* found = topmost_paintable_pixel_layer(it->children(), roots); found != nullptr) {
+        return found;
+      }
+      continue;
+    }
+    if (it->kind() == LayerKind::Pixel && !layer_pixels_are_procedural(*it) && !layer_locks_image_pixels(*it) &&
+        !layer_is_effectively_locked(roots, it->id())) {
+      return &*it;
+    }
+  }
+  return nullptr;
+}
+
+}  // namespace
+
+std::optional<LayerId> CanvasWidget::retarget_paint_to_clicked_artboard(QPoint document_point) {
+  if (document_ == nullptr || quick_mask_active_ || layer_edit_target_ != LayerEditTarget::Content ||
+      !document_has_artboards(std::as_const(*document_))) {
+    return std::nullopt;
+  }
+  const auto& document = std::as_const(*document_);
+  const auto* clicked = artboard_at(document, document_point.x(), document_point.y());
+  if (clicked == nullptr) {
+    return std::nullopt;
+  }
+  const auto active = document.active_layer_id();
+  if (active.has_value() && *active != clicked->id()) {
+    if (const auto* owner = artboard_owning_layer(document, *active); owner != nullptr && owner->id() == clicked->id()) {
+      return std::nullopt;  // the active layer is already on the clicked artboard
+    }
+  }
+  const auto artboard_name = QString::fromStdString(clicked->name());
+  if (const auto* target = topmost_paintable_pixel_layer(clicked->children(), document.layers()); target != nullptr) {
+    const auto target_id = target->id();
+    const auto target_name = QString::fromStdString(target->name());
+    request_layer_selection({target_id}, target_id);
+    if (status_callback_) {
+      status_callback_(tr("Painting on %1 in %2").arg(target_name, artboard_name));
+    }
+    return std::nullopt;
+  }
+  return clicked->id();
+}
+
+void CanvasWidget::add_paint_layer_on_artboard(std::optional<LayerId> artboard_id) {
+  if (!artboard_id.has_value() || document_ == nullptr) {
+    return;
+  }
+  auto* artboard = document_->find_layer(*artboard_id);
+  if (artboard == nullptr || !layer_is_artboard(std::as_const(*artboard))) {
+    return;
+  }
+  // The artboard's size, not the canvas: a grid of imported pages can be a 100+ Mpx canvas.
+  const auto rect = std::as_const(*artboard).artboard()->rect;
+  PixelBuffer pixels(std::max(1, rect.width), std::max(1, rect.height),
+                     with_bit_depth(PixelFormat::rgba8(), std::as_const(*document_).color_state().bit_depth));
+  pixels.clear(0);
+  const auto name = default_new_layer_name(std::as_const(*document_));
+  Layer layer(document_->allocate_layer_id(), name.toStdString(), std::move(pixels));
+  layer.set_bounds(rect);
+  const auto layer_id = layer.id();
+  artboard->add_child(std::move(layer));
+  document_->set_active_layer(layer_id);
+  if (layers_moved_callback_) {
+    layers_moved_callback_({layer_id});  // the host refreshes its panels for the new row
+  }
+  request_layer_selection({layer_id}, layer_id);
+  if (status_callback_) {
+    status_callback_(tr("Added %1 to %2 to paint on").arg(name, QString::fromStdString(std::as_const(*artboard).name())));
+  }
 }
 
 }  // namespace patchy::ui

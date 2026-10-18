@@ -960,7 +960,7 @@ void ui_script_ui_view_zoom() {
   )JS")));
   CHECK(backlog_contains(window, QStringLiteral("half=50")));
   CHECK(backlog_contains(window, QStringLiteral("max=12800")));
-  CHECK(backlog_contains(window, QStringLiteral("min=5")));
+  CHECK(backlog_contains(window, QStringLiteral("min=0.01")));
   CHECK(backlog_contains(window, QStringLiteral("fits=true")));
   CHECK(backlog_contains(window, QStringLiteral("after=200")));
   CHECK(!run_script(window, QStringLiteral("patchy.ui.zoom = NaN;")));

@@ -12009,6 +12009,14 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>Select a pixel layer to sample the current layer, or sample all layers</source>
         <translation>Выберите пиксельный слой, чтобы брать образец с текущего слоя, или берите образец со всех слоёв</translation>
     </message>
+    <message>
+        <source>Painting on %1 in %2</source>
+        <translation>Рисование на %1 в %2</translation>
+    </message>
+    <message>
+        <source>Added %1 to %2 to paint on</source>
+        <translation>Для рисования в %2 добавлен %1</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21643,6 +21651,46 @@ Patchy может скачать обновление, заменить этот
     <message>
         <source>Could not complete the Copy Merged command because the selected area is empty.</source>
         <translation>Не удалось выполнить команду «Скопировать совмещённые данные»: выделенная область пуста.</translation>
+    </message>
+    <message>
+        <source>Export</source>
+        <translation>Экспорт</translation>
+    </message>
+    <message>
+        <source>PDF Options</source>
+        <translation>Параметры PDF</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Сохранить</translation>
+    </message>
+    <message>
+        <source>Saving %1...</source>
+        <translation>Сохранение %1...</translation>
+    </message>
+    <message>
+        <source>Saving %1</source>
+        <translation>Сохранение %1</translation>
+    </message>
+    <message>
+        <source>Compositing the image...</source>
+        <translation>Сведение изображения...</translation>
+    </message>
+    <message>
+        <source>Writing %1...</source>
+        <translation>Запись %1...</translation>
+    </message>
+    <message>
+        <source>Saving layer %1 of %2: %3</source>
+        <translation>Сохранение слоя %1 из %2: %3</translation>
+    </message>
+    <message>
+        <source>Saving layer %1 of %2...</source>
+        <translation>Сохранение слоя %1 из %2...</translation>
+    </message>
+    <message>
+        <source>Crop does not apply to a document with artboards; resize an artboard with the Artboard tool</source>
+        <translation>Кадрирование не применяется к документу с монтажными областями; измените размер монтажной области инструментом «Монтажная область»</translation>
     </message>
 </context>
 <context>

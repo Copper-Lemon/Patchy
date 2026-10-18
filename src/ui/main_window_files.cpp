@@ -55,6 +55,7 @@
 #include "ui/app_settings.hpp"
 #include "ui/image_save_option_keys.hpp"
 #include "ui/background_workers.hpp"
+#include "ui/save_progress.hpp"
 #include "ui/brush_dynamics_popup.hpp"
 #include "ui/brush_tip_manager_dialog.hpp"
 #include "ui/cli_exit.hpp"
@@ -3858,9 +3859,105 @@ public:
   void mark_saved(std::int64_t id) override {
     if (auto* target = find_session(id)) window_.set_session_saved(*target);
   }
+  void run_write(const QString& path, bool on_worker, bool show_progress,
+                 const std::function<void(SaveProgress&)>& write) override {
+    window_.run_save_write(path, on_worker, show_progress, write);
+  }
 private:
   MainWindow& window_;
 };
+
+namespace {
+
+// A save quicker than this never shows the Saving dialog (PATCHY_SAVE_PROGRESS_DELAY_MS
+// overrides it for tests).
+constexpr int kSaveProgressDelayMs = 400;
+
+int save_progress_delay_ms() noexcept {
+  bool ok = false;
+  const auto value = qEnvironmentVariableIntValue("PATCHY_SAVE_PROGRESS_DELAY_MS", &ok);
+  return ok ? std::max(0, value) : kSaveProgressDelayMs;
+}
+
+}  // namespace
+
+void MainWindow::run_save_write(const QString& path, bool on_worker, bool show_progress,
+                                const std::function<void(SaveProgress&)>& write) {
+  SaveProgress progress;
+  if (!show_progress || unattended_automation()) {
+    write(progress);
+    return;
+  }
+  const auto file_name = QFileInfo(path).fileName();
+  std::unique_ptr<QProgressDialog> dialog;
+  QElapsedTimer clock;
+  clock.start();
+  const auto refresh = [&] {
+    if (dialog == nullptr) {
+      if (clock.elapsed() < save_progress_delay_ms()) {
+        return;
+      }
+      dialog = std::make_unique<QProgressDialog>(tr("Saving %1...").arg(file_name), QString(), 0, 0, this);
+      dialog->setObjectName(QStringLiteral("saveProgressDialog"));
+      dialog->setWindowTitle(tr("Saving %1").arg(file_name));
+      dialog->setWindowModality(Qt::WindowModal);
+      dialog->setMinimumDuration(0);
+      dialog->setCancelButton(nullptr);
+      dialog->setAutoClose(false);
+      dialog->setAutoReset(false);
+      remember_dialog_position(*dialog);
+      dialog->show();
+    }
+    const auto state = progress.state();
+    QString text;
+    if (state.total <= 0) {
+      text = tr("Saving %1...").arg(file_name);
+    } else if (state.kind == SaveProgress::Kind::Pages) {
+      text = tr("Writing page %1 of %2...").arg(state.done).arg(state.total);
+    } else if (state.done <= 0) {
+      text = tr("Compositing the image...");
+    } else if (state.done >= state.total) {
+      text = tr("Writing %1...").arg(file_name);
+    } else if (!state.label.isEmpty()) {
+      text = tr("Saving layer %1 of %2: %3").arg(state.done).arg(state.total - 1).arg(state.label);
+    } else {
+      text = tr("Saving layer %1 of %2...").arg(state.done).arg(state.total - 1);
+    }
+    if (state.total > 0) {
+      dialog->setRange(0, state.total);
+      dialog->setValue(std::clamp(state.done, 0, state.total));
+    } else {
+      dialog->setRange(0, 0);  // busy
+    }
+    dialog->setLabelText(text);
+  };
+  // Input waits until the save is done (the document must not change under the writer);
+  // paint and timers keep running, so the dialog animates.
+  const auto pump = [&] {
+    refresh();
+    QApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 15);
+  };
+  const auto close_dialog = qScopeGuard([&dialog] {
+    if (dialog != nullptr) {
+      dialog->close();
+    }
+  });
+  Q_UNUSED(close_dialog);
+#if defined(Q_OS_WASM)
+  // A browser main thread must not spin on a future (see the open path); write here.
+  on_worker = false;
+#endif
+  if (!on_worker || kBackgroundWorkRunsInline) {
+    progress.set_pump(pump);
+    write(progress);
+    return;
+  }
+  auto future = launch_async([&write, &progress] { write(progress); });
+  while (future.wait_for(std::chrono::milliseconds(15)) != std::future_status::ready) {
+    pump();
+  }
+  future.get();  // rethrows the writer's failure
+}
 
 bool MainWindow::save_document() {
   if (!has_active_document()) {
@@ -3908,14 +4005,18 @@ bool MainWindow::save_document_as() {
   const bool linked_external_child =
       session().smart_object_link.has_value() && session().smart_object_link->external;
   std::optional<ImageSaveOptions> image_options;
-  std::optional<bool> pdf_editable_layers;
-  if (discards_layers) {
-    if (is_pdf_extension(extension) && !linked_external_child) {
-      pdf_editable_layers = resolve_pdf_layer_choice(/*for_export*/ false, /*allow_prompt*/ true);
-      if (!pdf_editable_layers.has_value()) {
-        return false;
-      }
-    } else if ((extension == QStringLiteral("gif") || extension == QStringLiteral("webp") ||
+  if (is_pdf_extension(extension) && !linked_external_child) {
+    // PDF Options answers everything a PDF save asks, the flatten-or-editable question
+    // included (docs/pdf.md).
+    const auto choice = prompt_pdf_options(path, /*export_pages*/ false);
+    if (!choice.has_value() || !still_saving_same_session()) {
+      return false;
+    }
+    auto pdf_options = image_save_defaults_for_document();
+    apply_pdf_choice_to_save_options(*choice, pdf_options);
+    image_options = std::move(pdf_options);
+  } else if (discards_layers) {
+    if ((extension == QStringLiteral("gif") || extension == QStringLiteral("webp") ||
                 extension == QStringLiteral("jxl")) &&
                std::as_const(document()).layers().size() >= 2) {
       // GIF asks animation-or-flatten instead of the plain flatten warning; an explicit
@@ -3942,7 +4043,6 @@ bool MainWindow::save_document_as() {
   if (!image_options.has_value() && !is_photoshop_document_extension(extension) &&
       image_save_options_apply_to_extension(extension)) {
     auto defaults = image_save_defaults_for_document();
-    defaults.pdf_editable_layers = pdf_editable_layers.value_or(false);
     image_options = prompt_image_save_options(this, extension, defaults, /*for_export*/ false, QSize(),
                                               &std::as_const(document()));
     if (!image_options.has_value()) {
@@ -4059,6 +4159,61 @@ bool MainWindow::open_cmyk_source_in_proof_mode(DocumentSession& session) {
 // (saveOptions/pdfLayerPolicy: "ask" / "flatten" / "editable", also in Preferences)
 // answers without a dialog; the dialog's "Remember this choice" sets it. Returns the
 // choice (true = keep layers editable) or nullopt for Cancel.
+std::optional<MultiPagePdfExportChoice> MainWindow::prompt_pdf_options(const QString& path, bool export_pages) {
+  if (!has_active_document()) {
+    return std::nullopt;
+  }
+  const auto& doc = std::as_const(document());
+  PdfOptionsDialogContext context;
+  context.active_session_id = session().session_id;
+  for (const auto& layer : doc.layers()) {
+    if (layer.kind() == LayerKind::Group && !layer_is_artboard(layer)) {
+      ++context.top_level_group_count;
+      context.hidden_group_count += layer.visible() ? 0 : 1;
+    }
+  }
+  context.artboard_count = static_cast<int>(document_artboards(doc).size());
+  const auto carries_source = [](const Document& candidate) {
+    return candidate.metadata().pdf_source_page != nullptr || !candidate.metadata().pdf_page_source_pages.empty();
+  };
+  context.original_image_data_available = carries_source(doc);
+  if (export_pages) {
+    context.documents.reserve(sessions_.size());
+    for (const auto& candidate : sessions_) {
+      if (candidate == nullptr) {
+        continue;
+      }
+      context.documents.push_back(
+          {candidate->title.isEmpty() ? tr("Untitled") : candidate->title, candidate->session_id});
+      context.original_image_data_available =
+          context.original_image_data_available || carries_source(std::as_const(candidate->document));
+    }
+    context.title = tr("Export Multi-Page PDF");
+    context.accept_text = tr("Export");
+  } else {
+    // A flat document has nothing to keep editable. The page source starts where Save As
+    // always started: artboards, an imported PDF's page folders, else the canvas.
+    context.layered = flat_save_discards_layers(doc);
+    const auto defaults = image_save_defaults_for_document();
+    context.default_source = defaults.pdf_pages == QStringLiteral("artboards") ? MultiPagePdfSource::Artboards
+                             : defaults.pdf_pages == QStringLiteral("groups")  ? MultiPagePdfSource::TopLevelGroups
+                                                                               : MultiPagePdfSource::Canvas;
+    context.title = tr("PDF Options");
+    context.accept_text = tr("Save");
+  }
+  // The flatten-or-editable preference (Preferences, "Saving layered documents as PDF")
+  // sets the check; "ask" starts from the last answer.
+  const auto policy =
+      app_settings().value(QStringLiteral("saveOptions/pdfLayerPolicy"), QStringLiteral("ask")).toString();
+  if (policy == QStringLiteral("editable")) {
+    context.editable_default = true;
+  } else if (policy == QStringLiteral("flatten")) {
+    context.editable_default = false;
+  }
+  context.file_name = QFileInfo(path).fileName();
+  return run_pdf_options_dialog(this, context);
+}
+
 std::optional<bool> MainWindow::resolve_pdf_layer_choice(bool for_export, bool allow_prompt) {
   auto settings = app_settings();
   const auto policy = settings.value(QStringLiteral("saveOptions/pdfLayerPolicy"), QStringLiteral("ask")).toString();
@@ -4278,18 +4433,19 @@ void MainWindow::export_flat_image() {
     const auto extension = extension_for_path(path);
     const bool svg_export = extension == QStringLiteral("svg");
     std::optional<ImageSaveOptions> image_options;
-    if (!is_photoshop_document_extension(extension) && !svg_export) {
+    if (is_pdf_extension(extension)) {
+      // The one PDF Options dialog (docs/pdf.md), like Save As.
+      const auto choice = prompt_pdf_options(path, /*export_pages*/ false);
+      if (!choice.has_value()) {
+        return;
+      }
+      auto pdf_options = image_save_defaults_for_document();
+      apply_pdf_choice_to_save_options(*choice, pdf_options);
+      image_options = std::move(pdf_options);
+    } else if (!is_photoshop_document_extension(extension) && !svg_export) {
       auto defaults = image_save_defaults_for_document();
       defaults.offer_animation = std::as_const(document()).layers().size() >= 2;
       defaults.has_visible_frames = has_visible_top_level_layer(std::as_const(document()));
-      if (is_pdf_extension(extension) && flat_save_discards_layers(std::as_const(document()))) {
-        // Flatten or keep layers editable: the remembered policy or the question.
-        const auto pdf_editable_layers = resolve_pdf_layer_choice(/*for_export*/ true, /*allow_prompt*/ true);
-        if (!pdf_editable_layers.has_value()) {
-          return;
-        }
-        defaults.pdf_editable_layers = *pdf_editable_layers;
-      }
       // for_export adds the shared Export section (resize, pixel-art scale, transparency,
       // trim, reveal) to every raster format's options (a section-only dialog for formats
       // with no other options). SVG has no raster options: vectors scale client-side.
@@ -4322,7 +4478,16 @@ void MainWindow::export_flat_image() {
       export_notes_suffix = export_notes_suffix_for(svg_notices);
     } else {
       std::vector<std::string> writer_notices;
-      write_flat_image_file(document(), path, extension, effective_image_options, &writer_notices);
+      // The Saving dialog, like Save: a raster export writes a snapshot on a worker, a PDF
+      // writes here and reports its pages.
+      const bool pdf = is_pdf_extension(extension);
+      const Document snapshot = pdf ? Document{} : Document(std::as_const(document()));
+      const Document& source = pdf ? std::as_const(document()) : snapshot;
+      run_save_write(path, /*on_worker*/ !pdf, /*show_progress*/ true,
+                     [&source, &path, &extension, &effective_image_options, &writer_notices](SaveProgress& progress) {
+                       const ScopedSaveProgress scope(progress);
+                       write_flat_image_file(source, path, extension, effective_image_options, &writer_notices);
+                     });
       export_notes_suffix = export_notes_suffix_for(writer_notices);
     }
     offer_browser_download_for_saved_file(path);
@@ -4349,44 +4514,21 @@ void MainWindow::export_multipage_pdf() {
     return;
   }
   finish_active_text_editor();
-  std::vector<MultiPagePdfDocumentEntry> entries;
-  entries.reserve(sessions_.size());
-  for (const auto& candidate : sessions_) {
-    if (candidate != nullptr) {
-      entries.push_back({candidate->title.isEmpty() ? tr("Untitled") : candidate->title, candidate->session_id});
-    }
-  }
-  int group_count = 0;
-  int hidden_group_count = 0;
-  for (const auto& layer : std::as_const(document()).layers()) {
-    if (layer.kind() == LayerKind::Group && !layer_is_artboard(layer)) {
-      ++group_count;
-      hidden_group_count += layer.visible() ? 0 : 1;
-    }
-  }
-  const bool original_image_data_available =
-      std::any_of(sessions_.begin(), sessions_.end(), [](const auto& candidate) {
-        return candidate != nullptr && (std::as_const(candidate->document).metadata().pdf_source_page != nullptr ||
-                                        !std::as_const(candidate->document).metadata().pdf_page_source_pages.empty());
-      });
-  const auto artboard_count = static_cast<int>(document_artboards(std::as_const(document())).size());
-  const auto choice = run_multipage_pdf_export_dialog(this, entries, session().session_id, group_count,
-                                                      original_image_data_available, artboard_count,
-                                                      hidden_group_count);
-  if (!choice.has_value()) {
-    return;
-  }
-
+  // The file first, then PDF Options, the same order as Save As.
   const auto base_name = QFileInfo(session().title.isEmpty() ? tr("Untitled") : session().title).completeBaseName();
   auto path = get_save_file_name(this, tr("Export Multi-Page PDF"),
                                  file_dialog_initial_path(QString(), base_name + QStringLiteral(".pdf")),
                                  QStringLiteral("%1 (*.pdf)").arg(QCoreApplication::translate("QObject", "PDF Document")),
                                  nullptr, QStringLiteral("exportMultiPagePdfFileDialog"));
-  if (path.isEmpty()) {
+  if (path.isEmpty() || !has_active_document()) {
     return;
   }
   if (!path.endsWith(QStringLiteral(".pdf"), Qt::CaseInsensitive)) {
     path += QStringLiteral(".pdf");
+  }
+  const auto choice = prompt_pdf_options(path, /*export_pages*/ true);
+  if (!choice.has_value() || !has_active_document()) {
+    return;
   }
 
   try {
@@ -4405,6 +4547,8 @@ void MainWindow::export_multipage_pdf() {
       for (const auto& page : group_pages) {
         pages.push_back(&page);
       }
+    } else if (choice->source == MultiPagePdfSource::Canvas) {
+      pages.push_back(&std::as_const(document()));
     } else {
       for (const auto session_id : choice->session_ids) {
         if (const auto* page_session = session_with_id(session_id); page_session != nullptr) {
@@ -4412,6 +4556,11 @@ void MainWindow::export_multipage_pdf() {
         }
       }
     }
+    // The sources above are already one document per page; only an open document may
+    // still split into its artboards (the Canvas source is the whole canvas, unsplit).
+    auto write_options = choice->options;
+    write_options.pages =
+        choice->source == MultiPagePdfSource::Canvas ? PdfPageSource::Canvas : PdfPageSource::Artboards;
     const int page_count = static_cast<int>(pages.size());
     QProgressDialog progress(tr("Writing page %1 of %2...").arg(1).arg(page_count), tr("Cancel"), 0, page_count,
                              this);
@@ -4425,7 +4574,7 @@ void MainWindow::export_multipage_pdf() {
     progress.setValue(0);
     std::vector<std::string> writer_notices;
     const bool completed =
-        write_multipage_pdf_file(pages, path, choice->options, &writer_notices, [&progress](int page, int count) {
+        write_multipage_pdf_file(pages, path, write_options, &writer_notices, [&progress](int page, int count) {
           progress.setLabelText(tr("Writing page %1 of %2...").arg(page).arg(count));
           progress.setValue(page - 1);
           QApplication::processEvents(QEventLoop::AllEvents);

@@ -22,6 +22,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QByteArray>
+#include <QDir>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
@@ -1515,7 +1516,8 @@ void ui_multipage_pdf_dialog_lists_documents_and_groups() {
   CHECK(session_count >= 2);
   // The second (group-less) document is active now; the groups source must be off.
   auto seen = std::make_shared<int>(0);
-  QTimer::singleShot(0, [&window, seen] {
+  // The file first, then PDF Options (the order Save As uses).
+  accept_save_file_dialog_then(QStringLiteral("exportMultiPagePdfFileDialog"), QDir::current().absoluteFilePath(QStringLiteral("test-artifacts/multipage_unused.pdf")), [&window, seen] {
     auto* dialog = find_top_level_dialog(QStringLiteral("multiPagePdfExportDialog"));
     CHECK(dialog != nullptr);
     if (dialog == nullptr) {
@@ -1569,7 +1571,7 @@ void ui_multipage_pdf_dialog_lists_documents_and_groups() {
   QApplication::processEvents();
   CHECK(&patchy::ui::MainWindowTestAccess::document(window) ==
         &patchy::ui::MainWindowTestAccess::session_document(window, 0));
-  QTimer::singleShot(0, [seen] {
+  accept_save_file_dialog_then(QStringLiteral("exportMultiPagePdfFileDialog"), QDir::current().absoluteFilePath(QStringLiteral("test-artifacts/multipage_unused.pdf")), [seen] {
     auto* dialog = find_top_level_dialog(QStringLiteral("multiPagePdfExportDialog"));
     CHECK(dialog != nullptr);
     if (dialog == nullptr) {

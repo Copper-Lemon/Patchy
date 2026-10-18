@@ -4,6 +4,7 @@
 
 #include <filesystem>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -28,6 +29,10 @@ struct WriteOptions {
   // Layered saves retain imported 8/16-bit CMYK/gray/Lab when all layer color content
   // is unchanged. False explicitly requests the RGB conversion path.
   bool preserve_source_color_mode{true};
+  // Called on the writing thread as the save advances (the Saving dialog): (0, total, "")
+  // before the composite, (i, total, name) as top-level layer i (an artboard, say) is
+  // encoded, (total, total, "") before the bytes are assembled. Never changes the output.
+  std::function<void(int done, int total, const std::string& label)> progress{};
 };
 
 class DocumentIo {

@@ -2713,6 +2713,8 @@ void write_flat_image_file(const Document& document, const QString& path, const 
                                  options.pdf_jpeg_quality};
     pdf_options.keep_original_image_data = options.pdf_keep_original_images;
     pdf_options.pages = pdf_page_source_from_token(options.pdf_pages).value_or(PdfPageSource::Artboards);
+    pdf_options.include_ungrouped_layers = options.pdf_include_ungrouped_layers;
+    pdf_options.include_hidden_groups = options.pdf_include_hidden_groups;
     write_pdf_document_file(document, path, pdf_options, notices);
     return;
   }
@@ -2853,6 +2855,8 @@ void write_flat_image_file(const Document& document, const QString& path, const 
     PdfExportOptions pdf_options{options.pdf_lossless, false, false, options.pdf_jpeg_quality};
     pdf_options.keep_original_image_data = options.pdf_keep_original_images;
     pdf_options.pages = pdf_page_source_from_token(options.pdf_pages).value_or(PdfPageSource::Artboards);
+    pdf_options.include_ungrouped_layers = options.pdf_include_ungrouped_layers;
+    pdf_options.include_hidden_groups = options.pdf_include_hidden_groups;
     if (options.export_cmyk) {
       pdf_options.cmyk_space = cmyk_export_space();
       pdf_options.cmyk_black_ink_only = options.export_black_ink_only;

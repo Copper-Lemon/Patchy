@@ -30,7 +30,7 @@ The CPU group branch intersects `clip` with the rect and paints `artboard_backgr
 
 - **Affinity**: top-level artboards import as native artboards (the mask rect; a plain solid "<name> Background" shape becomes the White, Black or Custom background and is removed), [af-format.md](af-format.md).
 - **SVG, Aseprite, editable PDF**: `convert_artboards_to_plain_groups` on a copy (Normal group, rectangular vector mask, a bottom "<name> Background" solid shape), which composites the same.
-- **PDF export**: `PdfExportOptions::artboard_pages` (default on) makes Save As, Export and `write_multipage_pdf_file` write one page per visible artboard via `documents_for_artboards` / `document_for_artboard` (`ui/pdf_export.cpp`): a copy holding that artboard only (loose layers dropped unless asked), cropped to the rect over transparency, a background nothing can show through dropped, and a then-plain Transparent artboard unwrapped so a scanned page stays one image and passes through. Multi-Page PDF has an Artboards source ([pdf.md](pdf.md)).
+- **PDF export**: `PdfExportOptions::pages` (`PdfPageSource::Artboards` by default, chosen in PDF Options, [pdf.md](pdf.md)) makes Save As, Export and `write_multipage_pdf_file` write one page per visible artboard via `documents_for_artboards` / `document_for_artboard` (`ui/pdf_export.cpp`): a copy holding that artboard only (loose layers dropped unless asked), cropped to the rect over transparency, a background nothing can show through dropped, and a then-plain Transparent artboard unwrapped so a scanned page stays one image and passes through. Multi-Page PDF has an Artboards source ([pdf.md](pdf.md)).
 - **PDF import** to "Artboards in one document": one artboard per page, page 1 on top, grid layout; see [pdf.md](pdf.md). `attach_pdf_page_source` stamps each page's source image against the page `document_for_artboard` derives, so an untouched artboard re-exports its original bytes.
 
 ## UI
@@ -45,6 +45,32 @@ The CPU group branch intersects `clip` with the rect and paints `artboard_backgr
 - **New Document**: the Artboards check (`newDocument/artboards`) starts the document as "Artboard 1" the canvas size, holding "Layer 1".
 - **Artboards to Files**: the Documents to Folder dialog in Artboards mode (`ExportDocumentsFolderSource::Artboards`, `exportArtboardsDialog`): the rows are artboards, files are prefix (default "<document> - ") plus the artboard name, Add gives a taken name " 2", " 3". It shares `export_page_documents_to_folder` with Documents to Folder.
 - **Print**: "Each Artboard as a Page" (`PrintAreaMode::Artboards`) prints `print_artboard_pages`; "Match each artboard" (`printMatchArtboardCheck`) makes every sheet the artboard's print size with no margins at actual size. Only a PDF can change sheet mid-job (Qt refuses a new layout for an active native print job), so Save PDF honors it per page and a printer keeps the chosen paper.
+
+## Feature interactions
+
+Photoshop 2026's behavior, captured on one scene (A 0,0,300,300 with A1; B 400,0,300x250 with B1; a loose layer) by `scripts\dev\artboards\ps-artboard-audit.ps1`, and pinned for Patchy by `ui_artboard_feature_interactions_match_photoshop`:
+
+| Command | Photoshop | Patchy |
+|---|---|---|
+| Canvas Size, growing | artboards and content move by the anchor offset | same |
+| Canvas Size, shrinking | never clips an artboard: the canvas grows back around them | same (`grow_canvas_to_artboards` after `resize_canvas_to_frame`); Photoshop's regrown size differs, Patchy's is the tight fit |
+| Image Size | rects and content scale | same |
+| Rotate 90, flip | rects and content transform | same (`transform_document_vector_data`) |
+| Crop (Image > Crop, Crop tool) | no effect | refused with a status line (`refuse_crop_with_artboards`); resize artboards with the Artboard tool |
+| Trim, Reveal All | trims or reveals to artboards plus loose content | no such commands |
+| Flatten Image | artboards composite (with paper) into Background | same |
+| Merge Visible | merges everything into one layer, artboards gone | Patchy's command stamps a merged copy and keeps the layers |
+| New Layer | inside the selected layer's artboard, or inside the selected artboard on top | same (`insert_layer_after_anchor`) |
+| Select All | the active layer's artboard | same (`CanvasWidget::select_all`) |
+| Paste | into the target artboard, centered on it | same (pixel paste; the view center otherwise) |
+| Paste in Place onto another artboard | keeps the place on the artboard | same (`ClipboardPayload::source_artboard_origin`) |
+| Duplicate artboard | 100 px right of the original | 100 px right of the rightmost artboard (`place_duplicated_artboards`; the same spot here); canvas growth amounts differ |
+| Save As a flat format | shrinkwraps the canvas to artboards plus loose content first | writes the canvas as it is; Image > Fit Canvas to Artboards does the shrinkwrap |
+| Painting outside every artboard | refused ("does not overlap the canvas") | allowed on the active layer; a press on another artboard paints there (below) |
+
+## Painting across artboards
+
+A paint press (Brush, Eraser, Mixer Brush, Pattern Stamp, Smudge, Clone, Healing, the local adjustment brushes, Fill) on an artboard that does not own the active layer would paint into that layer, where its own artboard clips the paint away (Photoshop does exactly that). Patchy paints on the clicked artboard instead (`CanvasWidget::retarget_paint_to_clicked_artboard`): its topmost visible, unlocked, non-procedural pixel layer becomes active, with a status line; an artboard with none gets an empty artboard-sized "Layer N" after the stroke's undo snapshot (`add_paint_layer_on_artboard`), so one Undo removes stroke and layer. A press outside every artboard, or on the active layer's own artboard, changes nothing. Test: `ui_artboard_paint_switches_to_the_clicked_artboards_layer`.
 
 ## Fast paths (previews and partial renders)
 

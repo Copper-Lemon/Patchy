@@ -165,24 +165,6 @@ QByteArray clipboard_image_signature(const QImage& image) {
   return signature;
 }
 
-QString default_new_layer_name(const Document& document) {
-  std::set<std::string> existing_names;
-  std::function<void(const std::vector<Layer>&)> collect_names = [&](const std::vector<Layer>& layers) {
-    for (const auto& layer : layers) {
-      existing_names.insert(layer.name());
-      collect_names(layer.children());
-    }
-  };
-  collect_names(document.layers());
-
-  int suffix = static_cast<int>(document.layers().size()) + 1;
-  QString name;
-  do {
-    name = QObject::tr("Layer %1").arg(suffix++);
-  } while (existing_names.contains(name.toStdString()));
-  return name;
-}
-
 EditOptions edit_options(CanvasWidget& canvas) {
   EditOptions options;
   options.primary = edit_color(canvas.primary_color());
@@ -487,6 +469,16 @@ std::vector<const Layer*> find_layers_top_to_bottom(const std::vector<Layer>& la
   return found_layers;
 }
 
+// The top-left of the artboard under the center of `rect`, if any.
+std::optional<QPoint> artboard_origin_at(const Document& document, Rect rect) {
+  const auto* artboard = artboard_at(document, rect.x + rect.width / 2, rect.y + rect.height / 2);
+  if (artboard == nullptr) {
+    return std::nullopt;
+  }
+  const auto origin = artboard->artboard()->rect;
+  return QPoint(origin.x, origin.y);
+}
+
 bool has_visible_pixels(const PixelBuffer& pixels) {
   if (pixels.empty()) {
     return false;
@@ -562,7 +554,8 @@ std::optional<LayerCopyPixels> collect_layer_copy_pixels(const Document& documen
     }
     const ScopedDocumentDepthRender depth_render;
     const auto image =
-        qimage_from_document(selected_document, true).copy(QRect(copy_rect.x, copy_rect.y, copy_rect.width, copy_rect.height));
+        qimage_from_document_rect(selected_document, QRect(copy_rect.x, copy_rect.y, copy_rect.width, copy_rect.height),
+                                  true);
     copied = pixels_from_image_at_depth(image, document.color_state().bit_depth);
     apply_selection_mask(copied, copy_rect, canvas);
   }
@@ -999,7 +992,8 @@ bool MainWindow::copy_selected_pixels(bool cutting) {
     }
     const ScopedDocumentDepthRender depth_render;
     const auto image =
-        qimage_from_document(selected_document, true).copy(QRect(copy_rect.x, copy_rect.y, copy_rect.width, copy_rect.height));
+        qimage_from_document_rect(selected_document, QRect(copy_rect.x, copy_rect.y, copy_rect.width, copy_rect.height),
+                                  true);
     copied = pixels_from_image_at_depth(image, std::as_const(document()).color_state().bit_depth);
     apply_selection_mask(copied, copy_rect, *canvas_);
   }
@@ -1011,6 +1005,7 @@ bool MainWindow::copy_selected_pixels(bool cutting) {
   }
 
   clipboard_ = ClipboardPayload{std::move(copied), QPoint(copy_rect.x, copy_rect.y)};
+  clipboard_->source_artboard_origin = artboard_origin_at(std::as_const(document()), copy_rect);
   set_system_clipboard_image(display_qimage_from_pixel_buffer(clipboard_->pixels));
   statusBar()->showMessage(
       tr("Copied %1 layer(s), %2 x %3 px")
@@ -1041,7 +1036,10 @@ void MainWindow::copy_merged() {
   QImage image;
   {
     const ScopedDocumentDepthRender depth_render;
-    image = qimage_from_document(document(), true).copy(QRect(copy_rect.x, copy_rect.y, copy_rect.width, copy_rect.height));
+    // Only the selected rect: compositing the whole canvas first took 20 s on a grid of
+    // imported PDF pages as artboards.
+    image = qimage_from_document_rect(document(), QRect(copy_rect.x, copy_rect.y, copy_rect.width, copy_rect.height),
+                                      true);
   }
   auto copied = pixels_from_image_at_depth(image, depth);
   // The selection's shape, not just its bounding box (a lasso or Object Selection), with soft
@@ -1052,6 +1050,7 @@ void MainWindow::copy_merged() {
     return;
   }
   clipboard_ = ClipboardPayload{std::move(copied), QPoint(copy_rect.x, copy_rect.y)};
+  clipboard_->source_artboard_origin = artboard_origin_at(std::as_const(document()), copy_rect);
   set_system_clipboard_image(display_qimage_from_pixel_buffer(clipboard_->pixels));
   statusBar()->showMessage(tr("Copied merged %1 x %2 px").arg(copy_rect.width).arg(copy_rect.height));
 }
@@ -1260,11 +1259,26 @@ void MainWindow::paste_clipboard(bool in_place) {
     }
     return static_cast<int>(std::lround(std::clamp(desired, 0.0, static_cast<double>(canvas_size - content_size))));
   };
+  // On an artboard (the selected layer's, or the selected artboard) Photoshop centers the
+  // paste on that artboard, and Paste in Place keeps the pixels' place on their artboard;
+  // the view center or the document position could land them where the artboard clips
+  // them away (docs/artboards.md, "Feature interactions").
+  QPointF center = view_center;
+  if (const auto* target = anchor_id.has_value() ? artboard_owning_layer(std::as_const(document()), *anchor_id)
+                                                 : nullptr;
+      target != nullptr) {
+    const auto rect = target->artboard()->rect;
+    center = QPointF(rect.x + rect.width / 2.0, rect.y + rect.height / 2.0);
+    if (in_place && source_origin.has_value() && clipboard_.has_value() &&
+        clipboard_->source_artboard_origin.has_value()) {
+      *source_origin += QPoint(rect.x, rect.y) - *clipboard_->source_artboard_origin;
+    }
+  }
   const bool use_source_origin = in_place && source_origin.has_value();
   const QPoint origin(
-      place_axis(use_source_origin ? source_origin->x() : view_center.x() - pixels.width() / 2.0,
+      place_axis(use_source_origin ? source_origin->x() : center.x() - pixels.width() / 2.0,
                  pixels.width(), document().width()),
-      place_axis(use_source_origin ? source_origin->y() : view_center.y() - pixels.height() / 2.0,
+      place_axis(use_source_origin ? source_origin->y() : center.y() - pixels.height() / 2.0,
                  pixels.height(), document().height()));
 
   push_undo_snapshot(in_place ? tr("Paste in Place") : tr("Paste"));
@@ -4652,7 +4666,7 @@ void MainWindow::crop_to_selection() {
     show_status_error(tr("Make a rectangular selection before cropping"));
     return;
   }
-  if (refuse_document_geometry_change()) {
+  if (refuse_crop_with_artboards() || refuse_document_geometry_change()) {
     return;
   }
 
@@ -4679,12 +4693,20 @@ void MainWindow::crop_to_selection() {
   statusBar()->showMessage(tr("Cropped to selection"));
 }
 
+bool MainWindow::refuse_crop_with_artboards() {
+  if (!has_active_document() || !document_has_artboards(std::as_const(document()))) {
+    return false;
+  }
+  show_status_error(tr("Crop does not apply to a document with artboards; resize an artboard with the Artboard tool"));
+  return true;
+}
+
 void MainWindow::commit_crop_rect(QRect rect, double angle_degrees) {
   if (rect.isEmpty()) {
     return;
   }
   // A refusal leaves the crop session alive so the user can still adjust or Esc.
-  if (refuse_document_geometry_change()) {
+  if (refuse_crop_with_artboards() || refuse_document_geometry_change()) {
     return;
   }
 

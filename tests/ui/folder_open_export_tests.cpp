@@ -78,6 +78,7 @@
 #include <utility>
 #include <vector>
 
+using patchy::test::ui::accept_save_file_dialog_then;
 using patchy::test::ui::find_top_level_dialog;
 using patchy::test::ui::require_action;
 using patchy::test::ui::save_widget_artifact;
@@ -642,7 +643,7 @@ void ui_document_order_auto_sort_and_reverse() {
   CHECK(MainWindowTestAccess::session_count(window) == base + 3);
 
   bool seen = false;
-  QTimer::singleShot(0, [&seen, base] {
+  accept_save_file_dialog_then(QStringLiteral("exportMultiPagePdfFileDialog"), QDir::current().absoluteFilePath(QStringLiteral("test-artifacts/multipage_unused.pdf")), [&seen, base] {
     auto* dialog = find_top_level_dialog(QStringLiteral("multiPagePdfExportDialog"));
     CHECK(dialog != nullptr);
     if (dialog == nullptr) {

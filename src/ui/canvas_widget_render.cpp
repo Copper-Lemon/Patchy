@@ -57,6 +57,7 @@
 #include <QtGlobal>
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -143,13 +144,81 @@ int mip_dimension(int size, int level) noexcept {
   return std::max(1, size);
 }
 
+// Display mips (docs/performance.md, "Display mips"): each pixel is the alpha-weighted
+// average of its 2x2 block one level up, the last row or column repeated on an odd size.
+// The kernel is exact and local, so a patched rect re-derives only its footprint
+// (CanvasWidget::patch_display_mips) and matches a rebuilt chain byte for byte. Straight
+// RGBA8888 (the render cache) and the premultiplied 32-bit formats; anything else falls
+// back to Qt's smooth scaling and is rebuilt whole.
+bool display_mip_format_supported(QImage::Format format) noexcept {
+  return format == QImage::Format_RGBA8888 || format == QImage::Format_ARGB32_Premultiplied ||
+         format == QImage::Format_RGBA8888_Premultiplied;
+}
+
+void write_display_mip_rect(const QImage& source, QImage& target, QRect rect) {
+  const bool straight = source.format() == QImage::Format_RGBA8888;
+  const int last_x = source.width() - 1;
+  const int last_y = source.height() - 1;
+  for (int y = rect.top(); y <= rect.bottom(); ++y) {
+    const auto* row0 = source.constScanLine(std::min(2 * y, last_y));
+    const auto* row1 = source.constScanLine(std::min(2 * y + 1, last_y));
+    auto* out = target.scanLine(y);
+    for (int x = rect.left(); x <= rect.right(); ++x) {
+      const auto x0 = static_cast<std::size_t>(std::min(2 * x, last_x)) * 4U;
+      const auto x1 = static_cast<std::size_t>(std::min(2 * x + 1, last_x)) * 4U;
+      const std::array<const uchar*, 4> samples{row0 + x0, row0 + x1, row1 + x0, row1 + x1};
+      auto* pixel = out + static_cast<std::size_t>(x) * 4U;
+      if (!straight) {
+        for (int channel = 0; channel < 4; ++channel) {
+          int sum = 2;
+          for (const auto* sample : samples) {
+            sum += sample[channel];
+          }
+          pixel[channel] = static_cast<uchar>(sum >> 2);
+        }
+        continue;
+      }
+      int alpha_sum = 0;
+      for (const auto* sample : samples) {
+        alpha_sum += sample[3];
+      }
+      pixel[3] = static_cast<uchar>((alpha_sum + 2) >> 2);
+      for (int channel = 0; channel < 3; ++channel) {
+        if (alpha_sum == 0) {
+          pixel[channel] = 0;
+          continue;
+        }
+        int weighted = 0;
+        for (const auto* sample : samples) {
+          weighted += sample[channel] * sample[3];
+        }
+        pixel[channel] = static_cast<uchar>((weighted + alpha_sum / 2) / alpha_sum);
+      }
+    }
+  }
+}
+
+// The next level of a display mip chain (half the size, rounded up).
+QImage next_display_mip(const QImage& previous) {
+  const QSize next_size(std::max(1, (previous.width() + 1) / 2), std::max(1, (previous.height() + 1) / 2));
+  if (!display_mip_format_supported(previous.format())) {
+    return previous.scaled(next_size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
+        .convertToFormat(previous.format());
+  }
+  QImage next(next_size, previous.format());
+  if (!next.isNull()) {
+    write_display_mip_rect(previous, next, next.rect());
+  }
+  return next;
+}
+
 QImage downscaled_to_mip_level(QImage image, int level) {
   for (int i = 0; i < level && !image.isNull(); ++i) {
     const QSize next_size(std::max(1, (image.width() + 1) / 2), std::max(1, (image.height() + 1) / 2));
     if (next_size == image.size()) {
       break;
     }
-    image = image.scaled(next_size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).convertToFormat(image.format());
+    image = next_display_mip(image);
   }
   return image;
 }
@@ -1493,8 +1562,56 @@ bool CanvasWidget::patch_render_cache_patches(const std::vector<RenderedDocument
   }
   render_cache_dirty_ = false;
   render_cache_diagnostics_.partial_patches += static_cast<int>(patches.size());
-  invalidate_display_mip_cache();
+  patch_display_mips(patches);
   refresh_curves_clipping_preview();
+  return true;
+}
+
+void CanvasWidget::patch_display_mips(const std::vector<RenderedDocumentPatch>& patches) {
+  // A zoomed-out brush stroke patches a few pixels per dab; rebuilding the whole chain
+  // from a 100+ Mpx render cache cost a fifth of a second per mouse move.
+  tiling_tile_pixmap_ = QPixmap();
+  tiling_tile_pixmap_size_ = QSize();
+  if (display_mip_cache_.empty()) {
+    return;
+  }
+  if (display_mip_source_size_ != render_cache_.size() || !display_mip_format_supported(render_cache_.format())) {
+    invalidate_display_mip_cache();
+    return;
+  }
+  for (const auto& patch : patches) {
+    auto rect = patch.document_rect;
+    const QImage* source = &render_cache_;
+    for (auto& mip : display_mip_cache_) {
+      if (mip.format() != source->format()) {
+        invalidate_display_mip_cache();
+        return;
+      }
+      rect = QRect(QPoint(rect.left() / 2, rect.top() / 2), QPoint(rect.right() / 2, rect.bottom() / 2))
+                 .intersected(mip.rect());
+      if (rect.isEmpty()) {
+        break;
+      }
+      write_display_mip_rect(*source, mip, rect);
+      source = &mip;
+    }
+  }
+}
+
+int CanvasWidget::display_mip_levels_for_testing() const noexcept {
+  return static_cast<int>(display_mip_cache_.size());
+}
+
+bool CanvasWidget::display_mips_match_rebuild_for_testing() const {
+  const QImage* previous = &render_cache_;
+  QImage rebuilt;
+  for (const auto& mip : display_mip_cache_) {
+    rebuilt = next_display_mip(*previous);
+    if (rebuilt != mip) {
+      return false;
+    }
+    previous = &mip;
+  }
   return true;
 }
 
@@ -1810,7 +1927,7 @@ const QImage& CanvasWidget::display_image_for_zoom() {
       break;
     }
     display_mip_cache_.push_back(
-        previous.scaled(next_size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).convertToFormat(previous.format()));
+        next_display_mip(previous));
   }
 
   const auto level = std::min<int>(target_level, static_cast<int>(display_mip_cache_.size()));
@@ -1843,8 +1960,7 @@ const QImage& CanvasWidget::curves_clipping_display_image_for_zoom() {
       break;
     }
     curves_clipping_display_mip_cache_.push_back(
-        previous.scaled(next_size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
-            .convertToFormat(previous.format()));
+        next_display_mip(previous));
   }
 
   const auto level =
@@ -1883,7 +1999,7 @@ const QImage& CanvasWidget::move_base_display_image_for_zoom() {
       break;
     }
     move_base_display_mip_cache_.push_back(
-        previous.scaled(next_size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).convertToFormat(previous.format()));
+        next_display_mip(previous));
   }
 
   const auto level = std::min<int>(target_level, static_cast<int>(move_base_display_mip_cache_.size()));
@@ -1920,7 +2036,7 @@ const QImage& CanvasWidget::transform_base_display_image_for_zoom() {
       break;
     }
     transform_base_display_mip_cache_.push_back(
-        previous.scaled(next_size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).convertToFormat(previous.format()));
+        next_display_mip(previous));
   }
 
   const auto level = std::min<int>(target_level, static_cast<int>(transform_base_display_mip_cache_.size()));
@@ -1954,7 +2070,7 @@ const QImage& CanvasWidget::warp_base_display_image_for_zoom() {
       break;
     }
     warp_base_display_mip_cache_.push_back(
-        previous.scaled(next_size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).convertToFormat(previous.format()));
+        next_display_mip(previous));
   }
 
   const auto level = std::min<int>(target_level, static_cast<int>(warp_base_display_mip_cache_.size()));

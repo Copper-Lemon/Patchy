@@ -11945,6 +11945,14 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>Select a pixel layer to sample the current layer, or sample all layers</source>
         <translation>現在のレイヤーを対象にするにはピクセルレイヤーを選択するか、すべてのレイヤーを対象にしてください</translation>
     </message>
+    <message>
+        <source>Painting on %1 in %2</source>
+        <translation>%2 の %1 に描画中</translation>
+    </message>
+    <message>
+        <source>Added %1 to %2 to paint on</source>
+        <translation>描画用に %1 を %2 に追加しました</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21513,6 +21521,46 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
     <message>
         <source>Could not complete the Copy Merged command because the selected area is empty.</source>
         <translation>選択範囲が空のため、「結合部分をコピー」を完了できませんでした。</translation>
+    </message>
+    <message>
+        <source>Export</source>
+        <translation>書き出し</translation>
+    </message>
+    <message>
+        <source>PDF Options</source>
+        <translation>PDF オプション</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>保存</translation>
+    </message>
+    <message>
+        <source>Saving %1...</source>
+        <translation>%1 を保存中...</translation>
+    </message>
+    <message>
+        <source>Saving %1</source>
+        <translation>%1 を保存</translation>
+    </message>
+    <message>
+        <source>Compositing the image...</source>
+        <translation>画像を合成中...</translation>
+    </message>
+    <message>
+        <source>Writing %1...</source>
+        <translation>%1 を書き込み中...</translation>
+    </message>
+    <message>
+        <source>Saving layer %1 of %2: %3</source>
+        <translation>レイヤー %1 / %2 を保存中: %3</translation>
+    </message>
+    <message>
+        <source>Saving layer %1 of %2...</source>
+        <translation>レイヤー %1 / %2 を保存中...</translation>
+    </message>
+    <message>
+        <source>Crop does not apply to a document with artboards; resize an artboard with the Artboard tool</source>
+        <translation>アートボードのあるドキュメントには切り抜きは適用されません。アートボードのサイズはアートボードツールで変更してください</translation>
     </message>
 </context>
 <context>

@@ -3,6 +3,7 @@
 #include "ui/image_save_options.hpp"
 #include <QString>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <vector>
@@ -10,6 +11,7 @@
 namespace patchy { class Document; }
 namespace patchy::ui {
 struct DocumentSession;
+class SaveProgress;
 
 // Classification shared by Save routing and the dialog preflight.
 [[nodiscard]] bool is_photoshop_document_extension(const QString& extension);
@@ -30,6 +32,12 @@ public:
   virtual void persist_defaults(const ImageSaveOptions& options) = 0;
   virtual void add_recent(const QString& path) = 0;
   virtual void mark_saved(std::int64_t id) = 0;
+  // Runs `write` with the Saving dialog (docs/file-formats.md, "Save progress"): on a
+  // worker thread when `on_worker` (the writer then reads only its own snapshot), else
+  // on this thread. `show_progress` false (scripted and unattended saves) never shows
+  // the dialog. Rethrows what `write` throws.
+  virtual void run_write(const QString& path, bool on_worker, bool show_progress,
+                         const std::function<void(SaveProgress&)>& write) = 0;
 };
 
 struct DocumentSaveResult {

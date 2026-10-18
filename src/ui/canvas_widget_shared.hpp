@@ -194,6 +194,9 @@ bool uses_pixel_aligned_view(double zoom) noexcept;
 bool uses_deep_zoom_pixel_renderer(double zoom) noexcept;
 bool uses_smooth_display_scaling(double zoom, bool deep_pixel_renderer) noexcept;
 int display_mip_level_for_zoom(double zoom) noexcept;
+// "Layer N", one past the top-level count and not taken anywhere in the tree (New Layer,
+// and the layer a paint press adds to an empty artboard).
+[[nodiscard]] QString default_new_layer_name(const Document& document);
 // Mip level for PREVIEW-ONLY display-resolution compositing (move drags): the
 // display mip level clamped to [0, 3].
 int preview_composite_level_for_zoom(double zoom) noexcept;

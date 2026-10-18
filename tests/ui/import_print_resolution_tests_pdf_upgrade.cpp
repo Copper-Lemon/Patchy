@@ -22,6 +22,7 @@
 #include <QApplication>
 #include <QBuffer>
 #include <QCheckBox>
+#include <QClipboard>
 #include <QComboBox>
 #include <QDialog>
 #include <QFile>
@@ -33,16 +34,20 @@
 #endif
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QStatusBar>
 #include <QStandardItemModel>
 #include <QTextEdit>
+#include <QTimer>
 #include <QTransform>
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -770,6 +775,93 @@ void ui_pdf_import_artboard_pages_pass_through() {
 // The real scanned document (85 pages of JPEG 2000; the first 5 here) round-trips both
 // ways: imported as page folders and exported by groups, and imported as artboards and
 // exported by artboards, every page comes back with its original image bytes, in order.
+// Copy Merged on a grid of scanned pages as artboards (Seth's report: 20 s frozen before
+// the empty-area warning). It composites only the selected rect: blank space between the
+// pages refuses at once, and a rect on a page copies that page's pixels.
+void ui_pdf_local_scans_copy_merged_renders_only_the_selection_if_available() {
+  const auto fixture = QString::fromStdString(
+      patchy::test::local_format_fixture_path("pdf", "C2_Kyoto_House_Plans_Compressed.pdf").string());
+  if (!QFileInfo::exists(fixture)) {
+    std::printf("[SKIP] ui_pdf_local_scans_copy_merged_renders_only_the_selection_if_available (no local fixture)\n");
+    return;
+  }
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto step = std::make_shared<std::function<bool()>>();
+  *step = [] {
+    auto* dialog = find_top_level_dialog(QStringLiteral("pdfImportDialog"));
+    if (dialog == nullptr) {
+      return false;
+    }
+    auto* pages = dialog->findChild<QListWidget*>(QStringLiteral("pdfImportPagesList"));
+    auto* resolution = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportResolutionCombo"));
+    auto* mode = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportModeCombo"));
+    auto* pages_target = dialog->findChild<QComboBox*>(QStringLiteral("pdfImportPagesTargetCombo"));
+    auto* import_button = dialog->findChild<QPushButton*>(QStringLiteral("pdfImportButton"));
+    if (pages == nullptr || resolution == nullptr || mode == nullptr || pages_target == nullptr ||
+        import_button == nullptr) {
+      return false;
+    }
+    mode->setCurrentIndex(mode->findData(QStringLiteral("editable")));
+    pages_target->setCurrentIndex(pages_target->findData(QStringLiteral("artboards")));
+    resolution->setCurrentText(QStringLiteral("150"));
+    pages->clearSelection();
+    for (int row = 0; row < 15 && row < pages->count(); ++row) {
+      pages->item(row)->setSelected(true);
+    }
+    import_button->click();
+    return true;
+  };
+  drive_modal_dialog(step);
+  patchy::ui::MainWindowTestAccess::open_document_path(window, fixture);
+  reset_pdf_pages_target();
+  const auto& document = std::as_const(patchy::ui::MainWindowTestAccess::document(window));
+  const auto boards = patchy::document_artboards(document);
+  CHECK(boards.size() == 15U);
+  if (boards.size() < 2U) {
+    return;
+  }
+  auto* canvas = require_canvas(window);
+  const auto select = [&](QRect rect) {
+    patchy::PixelBuffer coverage(document.width(), document.height(), patchy::PixelFormat::gray8());
+    coverage.clear(0);
+    for (int y = rect.top(); y <= rect.bottom(); ++y) {
+      std::memset(coverage.pixel(rect.left(), y), 255, static_cast<std::size_t>(rect.width()));
+    }
+    canvas->apply_grayscale_to_selection(coverage);
+    QApplication::processEvents();
+  };
+  // The gutter between the first two pages: nothing composites there.
+  const auto first = boards[0]->artboard()->rect;
+  int boxes = 0;
+  QTimer answer;
+  answer.setInterval(20);
+  QObject::connect(&answer, &QTimer::timeout, [&boxes] {
+    auto* box = qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("copyEmptySelectionMessageBox")));
+    if (box != nullptr && box->isVisible()) {
+      ++boxes;
+      box->button(QMessageBox::Ok)->click();
+    }
+  });
+  answer.start();
+  select(QRect(first.x + first.width + 20, first.y + 100, 40, 200));
+  const auto started = std::chrono::steady_clock::now();
+  require_action(window, "editCopyMergedAction")->trigger();
+  QApplication::processEvents();
+  const auto elapsed_ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count();
+  CHECK(boxes == 1);
+  CHECK(elapsed_ms < 2000);
+  // A rect on page 1 copies its pixels.
+  select(QRect(first.x + 200, first.y + 200, 300, 200));
+  QApplication::clipboard()->clear();
+  require_action(window, "editCopyMergedAction")->trigger();
+  QApplication::processEvents();
+  CHECK(boxes == 1);
+  CHECK(QApplication::clipboard()->image().size() == QSize(300, 200));
+  QApplication::clipboard()->clear();
+}
+
 void ui_pdf_local_scans_round_trip_as_folders_and_artboards_if_available() {
   const auto fixture = QString::fromStdString(
       patchy::test::local_format_fixture_path("pdf", "C2_Kyoto_House_Plans_Compressed.pdf").string());
@@ -870,6 +962,8 @@ std::vector<patchy::test::TestCase> import_print_resolution_tests_part4() {
       {"ui_pdf_import_page_folders_export_back_by_groups", ui_pdf_import_page_folders_export_back_by_groups},
       {"ui_pdf_local_scans_round_trip_as_folders_and_artboards_if_available",
        ui_pdf_local_scans_round_trip_as_folders_and_artboards_if_available},
+      {"ui_pdf_local_scans_copy_merged_renders_only_the_selection_if_available",
+       ui_pdf_local_scans_copy_merged_renders_only_the_selection_if_available},
 #endif
   };
 }

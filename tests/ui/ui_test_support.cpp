@@ -59,6 +59,7 @@
 #include <QTabWidget>
 #include <QTabletEvent>
 #include <QTextEdit>
+#include <QFileDialog>
 #include <QTimer>
 #include <QToolButton>
 #include <QWheelEvent>
@@ -782,6 +783,19 @@ QDialog* find_top_level_dialog(const QString& object_name) {
     }
   }
   return nullptr;
+}
+
+void accept_save_file_dialog_then(const QString& object_name, const QString& path, std::function<void()> next) {
+  QTimer::singleShot(0, [object_name, path, next = std::move(next)] {
+    auto* save = qobject_cast<QFileDialog*>(find_top_level_dialog(object_name));
+    CHECK(save != nullptr);
+    if (save == nullptr) {
+      return;
+    }
+    QTimer::singleShot(0, next);  // runs inside the next dialog's event loop
+    save->selectFile(path);
+    static_cast<QDialog*>(save)->accept();  // QFileDialog::accept is protected
+  });
 }
 
 void accept_missing_psd_text_font_warning_if_present() {

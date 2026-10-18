@@ -1,4 +1,5 @@
 #include "ui/pdf_export.hpp"
+#include "ui/save_progress.hpp"
 
 #include "formats/metadata/metadata_edit.hpp"
 #include "core/artboard.hpp"
@@ -194,6 +195,7 @@ bool write_image_pages(std::span<const Document* const> pages, const QString& pa
   for (std::size_t index = 0; index < pages.size(); ++index) {
     const Document& document = *pages[index];
     const std::string profile_detail = "page=" + std::to_string(index + 1);
+    report_save_progress(static_cast<int>(index) + 1, static_cast<int>(pages.size()), SaveProgress::Kind::Pages);
     if (progress && !progress(static_cast<int>(index) + 1, static_cast<int>(pages.size()))) {
       pending.clear();  // each future joins its worker
       writer.abort();
@@ -549,8 +551,10 @@ bool write_multipage_pdf_file(std::span<const Document* const> requested_pages, 
         continue;
       }
       const auto first = artboard_pages.size();
-      for (auto& derived : options.pages == PdfPageSource::Groups ? documents_for_top_level_groups(*page, false)
-                                                                  : documents_for_artboards(*page)) {
+      for (auto& derived : options.pages == PdfPageSource::Groups
+                               ? documents_for_top_level_groups(*page, options.include_ungrouped_layers,
+                                                                options.include_hidden_groups)
+                               : documents_for_artboards(*page)) {
         artboard_pages.push_back(std::move(derived));
       }
       // Every artboard hidden: the document is one page of its canvas, like Save As.
@@ -598,6 +602,7 @@ bool write_multipage_pdf_file(std::span<const Document* const> requested_pages, 
     const Document& document = *pages[index];
     const std::string profile_detail = "page=" + std::to_string(index + 1);
     const UiProfileScope page_scope("pdf_export.page", profile_detail);
+    report_save_progress(static_cast<int>(index) + 1, static_cast<int>(pages.size()), SaveProgress::Kind::Pages);
     if (progress && !progress(static_cast<int>(index) + 1, static_cast<int>(pages.size()))) {
       painter.end();
       return false;  // `output` removes the partial temporary; the destination is untouched

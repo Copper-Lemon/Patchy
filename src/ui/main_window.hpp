@@ -18,6 +18,7 @@
 #include "ui/channel_panel.hpp"
 #include "ui/hotkey_registry.hpp"
 #include "ui/image_save_options.hpp"
+#include "ui/multipage_pdf_export_dialog.hpp"
 #include "ui/script_stroke.hpp"
 #include "ui/stress_test.hpp"
 #include "ui/text_paragraph_metrics.hpp"
@@ -75,6 +76,8 @@ class QMenu;
 class QMimeData;
 class QPushButton;
 namespace patchy::ui {
+
+class SaveProgress;
 class ColorWellSwatch;
 class ToolPaletteFooter;
 }  // namespace patchy::ui
@@ -389,6 +392,9 @@ private:
     // Pattern tiles referenced by copied layers' styles (Pattern Overlay / Bevel
     // Texture), adopted the same way on paste (implicitly shared pixels).
     std::vector<PatternResource> pattern_resources{};
+    // Pixel copies: the top-left of the artboard they were copied from, so Paste in Place
+    // onto another artboard keeps their place on the artboard (docs/artboards.md).
+    std::optional<QPoint> source_artboard_origin{};
   };
 
   // Defaults match the Round startup preset (brush_presets.cpp); load_tool_settings()
@@ -687,6 +693,9 @@ private:
   // allowed; native Smart Filter caches and unparsed placements still cannot follow.
   // Shows the matching status error and returns true when the caller must abort.
   [[nodiscard]] bool refuse_document_geometry_change();
+  // Crop on a document with artboards: Photoshop leaves the document as it is, and so does
+  // Patchy, with a status line (docs/artboards.md, "Feature interactions").
+  [[nodiscard]] bool refuse_crop_with_artboards();
   // Re-renders every editable embedded and every resolvable linked smart object in
   // `target` from its immutable source after a geometry change that RESAMPLED the
   // previews (Image Size). Photoshop's Image Size stays non-destructive; without this
@@ -881,6 +890,18 @@ private:
   // allow_prompt false (scripted/CLI/already-confirmed saves) answers from the
   // preference alone and never shows the question.
   std::optional<bool> resolve_pdf_layer_choice(bool for_export, bool allow_prompt);
+  // PDF Options (run_pdf_options_dialog, docs/pdf.md) for the active document, after the
+  // file name `path` is chosen: Save As and Export Flat Image page the active document
+  // only; `export_pages` (File > Export > Multi-Page PDF) also offers the open documents.
+  // nullopt = cancelled.
+  std::optional<MultiPagePdfExportChoice> prompt_pdf_options(const QString& path, bool export_pages);
+  // The Saving dialog around a writer (docs/file-formats.md, "Save progress"): appears
+  // when a save runs past kSaveProgressDelayMs, names the step (compositing, layer or
+  // artboard N of M, page N of M, writing), and blocks input while it runs. `on_worker`
+  // runs `write` on a worker thread (it must read only its own snapshot); otherwise the
+  // writer's reports pump the dialog. Never shows when !show_progress or unattended.
+  void run_save_write(const QString& path, bool on_worker, bool show_progress,
+                      const std::function<void(SaveProgress&)>& write);
   void export_flat_image();
   void export_multipage_pdf();
   // File > Export Documents to Folder: the checked open documents as numbered

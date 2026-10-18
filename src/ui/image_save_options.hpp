@@ -49,6 +49,10 @@ struct ImageSaveOptions {
   // (artboards when it has them, groups for a PDF imported as page folders, else the
   // canvas). The *_available flags are per save and show the choices in PDF Options.
   QString pdf_pages{QStringLiteral("artboards")};
+  // With pdf_pages "groups": the visible ungrouped root layers draw on every page, and
+  // hidden groups are pages too (PdfExportOptions of the same names).
+  bool pdf_include_ungrouped_layers{false};
+  bool pdf_include_hidden_groups{true};
   bool pdf_artboards_available{false};
   bool pdf_groups_available{false};
   // PDF: keep layers as editable objects (paths, real text, images) instead of one

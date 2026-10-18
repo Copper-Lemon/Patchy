@@ -1483,10 +1483,38 @@ void psd_xmp_dates_repair_basic_timezones_without_discarding_metadata() {
   CHECK(document.metadata().raw_psd_image_resources == resources.bytes());
 }
 
+
+// The Saving dialog's progress (psd::WriteOptions::progress): the composite, then each
+// top-level layer by name, then the assembly; reporting never changes the bytes.
+void psd_write_progress_reports_layers_and_keeps_bytes() {
+  patchy::Document document(64, 48, patchy::PixelFormat::rgba8());
+  patchy::PixelBuffer lower(64, 48, patchy::PixelFormat::rgba8());
+  lower.clear(200);
+  document.add_pixel_layer("Lower", std::move(lower));
+  patchy::Layer folder(document.allocate_layer_id(), "Page 2", patchy::LayerKind::Group);
+  patchy::PixelBuffer inner(64, 48, patchy::PixelFormat::rgba8());
+  inner.clear(90);
+  folder.add_child(patchy::Layer(document.allocate_layer_id(), "Inner", std::move(inner)));
+  document.add_layer(std::move(folder));
+
+  const auto plain = patchy::psd::DocumentIo::write_layered_rgb8(document, patchy::psd::WriteOptions{});
+  std::vector<std::tuple<int, int, std::string>> reports;
+  patchy::psd::WriteOptions options;
+  options.progress = [&reports](int done, int total, const std::string& label) {
+    reports.emplace_back(done, total, label);
+  };
+  const auto reported = patchy::psd::DocumentIo::write_layered_rgb8(document, options);
+  CHECK(reported == plain);
+  const std::vector<std::tuple<int, int, std::string>> expected{
+      {0, 3, ""}, {1, 3, "Lower"}, {2, 3, "Page 2"}, {3, 3, ""}};
+  CHECK(reports == expected);
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> psd_writer_stability_tests() {
   return {
+      {"psd_write_progress_reports_layers_and_keeps_bytes", psd_write_progress_reports_layers_and_keeps_bytes},
       {"psd_xmp_dates_repair_basic_timezones_without_discarding_metadata",
        psd_xmp_dates_repair_basic_timezones_without_discarding_metadata},
       {"psb_write_accepts_over_30k_dimension_psd_rejects",

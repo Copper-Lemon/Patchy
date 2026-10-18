@@ -835,7 +835,9 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
                                                          : tr("%ALT%-click to set a clone source")));
       return;
     }
+    const auto paint_layer_artboard = retarget_paint_to_clicked_artboard(document_point);
     if (begin_edit(healing ? tr("Healing brush") : tr("Clone stamp"))) {
+      add_paint_layer_on_artboard(paint_layer_artboard);
       arm_paint_stroke_history();
       clone_source_cache_ = retouch_source_snapshot();
       clone_source_deep_ = document_->color_state().bit_depth != BitDepth::UInt8 ? retouch_source_deep()
@@ -902,7 +904,9 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
       default:
         break;
     }
+    const auto paint_layer_artboard = retarget_paint_to_clicked_artboard(document_point);
     if (begin_edit(label)) {
+      add_paint_layer_on_artboard(paint_layer_artboard);
       arm_paint_stroke_history();
       clear_brush_stroke_tracking();
       if (auto* layer = active_pixel_layer(); layer != nullptr && document_->active_layer_id().has_value()) {
@@ -1291,7 +1295,9 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
   }
 
   if (tool_ == CanvasTool::Fill) {
+    const auto paint_layer_artboard = retarget_paint_to_clicked_artboard(document_point);
     if (begin_edit(tr("Fill"))) {
+      add_paint_layer_on_artboard(paint_layer_artboard);
       const auto processing = !editing_smart_filter_mask();
       if (processing) {
         begin_processing_operation();
@@ -1333,7 +1339,9 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
     } else if (effective_tool == CanvasTool::Smudge) {
       label = tr("Smudge");
     }
+    const auto paint_layer_artboard = retarget_paint_to_clicked_artboard(document_point);
     if (begin_edit(label)) {
+      add_paint_layer_on_artboard(paint_layer_artboard);
       arm_paint_stroke_history();
       clear_brush_stroke_tracking();
       smudge_state_ = {};

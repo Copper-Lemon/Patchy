@@ -31,7 +31,7 @@ namespace patchy::ui {
 
 namespace {
 
-constexpr double kMinZoom = 0.05;
+constexpr double kMinZoom = 0.0001;  // 0.01%, Photoshop's floor: a grid of artboards fits the window
 constexpr double kMaxZoom = 128.0;
 // One pixel of drag-zoom travel (the pen ZoomCanvas button vertically, Scrubby
 // Zoom horizontally) multiplies the zoom by this: about 70 px doubles it.

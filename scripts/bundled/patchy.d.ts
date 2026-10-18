@@ -586,6 +586,7 @@ interface PatchySelection {
   readonly exists: boolean;
   /** Bounding box, or undefined when there is no selection. */
   readonly bounds: PatchyRect | undefined;
+  /** Select > All: the canvas, or the active layer's artboard when it is on one. */
   selectAll(): void;
   deselect(): void;
   /** Sides are limited to 30000; larger values throw. */
@@ -1265,7 +1266,7 @@ interface PatchyUi {
   setStatusMessage(message: string): void;
   /**
    * The active document's view zoom in percent, as the status bar shows it.
-   * Reads 0 with no document. Setting clamps to 5..12800 and throws for NaN,
+   * Reads 0 with no document. Setting clamps to 0.01..12800 and throws for NaN,
    * non-positive values, or with no document. Use doc.activate() first to
    * target another document. Only window captures (captureWindow, the
    * connector's window preview) see the view; document previews never do.

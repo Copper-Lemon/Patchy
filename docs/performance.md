@@ -40,6 +40,10 @@ A snapshot undo/redo step diffs the two documents per layer (globally-unique rev
 
 Layer's mutable accessors bump render/content revisions on ACCESS, so read-only code must go through const layers (`std::as_const`), or it silently invalidates every revision-keyed cache (a lookup walk like `Document::find_layer` would bump thousands of layers per frame; it walks const). Hunt regressions with `PATCHY_REV_TRACE=1` (stderr REVBUMP lines per accessor+layer).
 
+## Display mips
+
+Zoomed out, paint draws the render cache through a chain of half-size mips (`display_image_for_zoom`). Each level is an exact, local 2x2 alpha-weighted box average (`next_display_mip`, `write_display_mip_rect`; an odd last row or column repeats), and every move/transform/warp base chain and patch downscale uses the same kernel, so they line up. A render-cache patch re-derives only its footprint through the built levels (`patch_display_mips`) instead of dropping the chain: rebuilding it from a 119 Mpx artboard grid cost about 220 ms per brush move and made fast strokes straight lines. Pinned by `ui_zoomed_out_brush_patches_display_mips_exactly` (patched chain equals a rebuild).
+
 ## Layer growth under a stroke
 
 Every new pixel layer is canvas-sized except a pasted one, which is its pixels' size; a dab outside a layer grows it (`expand_layer_to_include_rect`). Growth re-copies the layer, so per dab it is quadratic over a stroke that leaves a small layer (it froze the app). Interactive strokes open a `LayerGrowthReserve` (core/pixel_tools.hpp) in `arm_paint_stroke_history` for a layer smaller than the canvas: growth then takes headroom (half the old size, at least 256 px, clamped to the canvas), and the release and `finish_paint_stroke_history` close it, trimming the layer to exactly the bounds and bytes per-dab growth gives, before the stroke is reported or recorded. Same-format growth copies rows with `memcpy`. Pinned by `tool_small_layer_grows_cheaply_under_a_long_stroke` (core; a 3000 px stroke from a 64 px layer runs in about 70 ms reserved, about 1.9 s exact) and `ui_brush_stroke_off_a_small_layer_ends_with_exact_bounds`.

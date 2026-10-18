@@ -27,6 +27,8 @@
 #include <QComboBox>
 #include <QDialog>
 #include <QDir>
+#include <QProgressDialog>
+#include <QLabel>
 #include <QFile>
 #include <QFileInfo>
 #include <QGuiApplication>
@@ -42,7 +44,10 @@
 #include <QPdfDocument>
 #endif
 
+#include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <cstring>
 #include <functional>
 #include <memory>
 #include <string>
@@ -449,7 +454,8 @@ void ui_artboard_multipage_pdf_source() {
   window.add_document_session(std::move(seed), QStringLiteral("Pages"));
   QApplication::processEvents();
   auto seen = std::make_shared<bool>(false);
-  QTimer::singleShot(0, [seen] {
+  // The file first, then PDF Options.
+  accept_save_file_dialog_then(QStringLiteral("exportMultiPagePdfFileDialog"), QDir::current().absoluteFilePath(QStringLiteral("test-artifacts/multipage_unused.pdf")), [seen] {
     auto* dialog = find_top_level_dialog(QStringLiteral("multiPagePdfExportDialog"));
     CHECK(dialog != nullptr);
     if (dialog == nullptr) {
@@ -622,6 +628,306 @@ void ui_artboard_drag_across_artboards_previews_the_release() {
   }
 }
 
+
+// Painting on an artboard that does not own the active layer (docs/artboards.md, "Painting
+// across artboards"): the stroke moves to that artboard's topmost pixel layer instead of
+// landing, clipped away, in the active one (Seth's 23-page PDF import). An artboard with
+// no pixel layer gets an empty one inside the stroke's undo step.
+void ui_artboard_paint_switches_to_the_clicked_artboards_layer() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto document = board_document(560, 200);
+  const auto board_a = add_board(document, "A", patchy::Rect{0, 0, 150, 150}, patchy::ArtboardBackground::White,
+                                 QColor());
+  const auto board_b = add_board(document, "B", patchy::Rect{200, 0, 150, 150}, patchy::ArtboardBackground::White,
+                                 QColor());
+  const auto board_c = add_board(document, "C", patchy::Rect{400, 0, 150, 150}, patchy::ArtboardBackground::White,
+                                 QColor());
+  const auto add_art = [&document](patchy::LayerId board_id, const char* name, int x) {
+    patchy::Layer art(document.allocate_layer_id(), name,
+                      solid_pixels(150, 150, patchy::PixelFormat::rgba8(), QColor(Qt::transparent)));
+    art.set_bounds(patchy::Rect{x, 0, 150, 150});
+    const auto id = art.id();
+    document.find_layer(board_id)->add_child(std::move(art));
+    return id;
+  };
+  const auto art_a = add_art(board_a, "A Art", 0);
+  const auto art_b = add_art(board_b, "B Art", 200);
+  window.add_document_session(std::move(document), QStringLiteral("Paint boards"));
+  QApplication::processEvents();
+  using Access = patchy::ui::MainWindowTestAccess;
+  Access::select_layers(window, {art_a}, art_a);
+  auto* canvas = require_canvas(window);
+  canvas->set_zoom(1.0);
+  require_action_by_text(window, QStringLiteral("Brush"))->trigger();
+  canvas->set_primary_color(QColor(220, 30, 30));
+  canvas->set_brush_size(12);
+  QApplication::processEvents();
+  const auto& doc = std::as_const(Access::document(window));
+  const auto undo_before = Access::active_session_undo_depth(window);
+
+  canvas_drag(*canvas, QPoint(230, 75), QPoint(320, 75));
+  CHECK(doc.active_layer_id() == art_b);
+  CHECK(Access::active_session_undo_depth(window) == undo_before + 1);
+  const auto* b_art = doc.find_layer(art_b);
+  CHECK(b_art != nullptr && b_art->pixels().pixel(275 - 200, 75)[3] == 255);
+  const auto* a_art = doc.find_layer(art_a);
+  CHECK(a_art != nullptr && a_art->bounds() == (patchy::Rect{0, 0, 150, 150}));
+  CHECK(color_close(canvas_pixel(*canvas, QPoint(275, 75)), QColor(220, 30, 30), 45));
+
+  // C has no layer: one is added on it, painted, and Undo takes both back.
+  canvas_drag(*canvas, QPoint(430, 75), QPoint(520, 75));
+  const auto* c = doc.find_layer(board_c);
+  CHECK(c != nullptr && c->children().size() == 1U);
+  if (c != nullptr && c->children().size() == 1U) {
+    CHECK(doc.active_layer_id() == c->children().front().id());
+    CHECK(c->children().front().bounds() == (patchy::Rect{400, 0, 150, 150}));
+    CHECK(c->children().front().pixels().pixel(475 - 400, 75)[3] == 255);
+  }
+  CHECK(Access::active_session_undo_depth(window) == undo_before + 2);
+  require_hotkey_action(window, QStringLiteral("edit.undo"))->trigger();
+  QApplication::processEvents();
+  const auto& undone = std::as_const(Access::document(window));
+  const auto* c_after = undone.find_layer(board_c);
+  CHECK(c_after != nullptr && c_after->children().empty());
+}
+
+
+// Save As to .pdf shows the one PDF Options dialog (docs/pdf.md) after the file name: the
+// pages of this document only (no open-documents source), starting on its artboards; the
+// whole-canvas choice writes a single page.
+void ui_save_as_pdf_uses_the_pdf_options_dialog() {
+  SettingsValueRestorer source_restorer(QStringLiteral("exportOptions/multiPagePdfSource"));
+  QTemporaryDir temp;
+  CHECK(temp.isValid());
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto seed = board_document(300, 200);
+  add_board(seed, "One", patchy::Rect{0, 0, 100, 100}, patchy::ArtboardBackground::White, QColor(0, 0, 255));
+  add_board(seed, "Two", patchy::Rect{150, 0, 100, 60}, patchy::ArtboardBackground::White, QColor(255, 0, 0));
+  window.add_document_session(std::move(seed), QStringLiteral("Boards"));
+  QApplication::processEvents();
+  const auto path = temp.filePath(QStringLiteral("boards.pdf"));
+  auto seen = std::make_shared<bool>(false);
+  accept_save_file_dialog_then(QStringLiteral("saveAsFileDialog"), path, [seen] {
+    auto* dialog = find_top_level_dialog(QStringLiteral("multiPagePdfExportDialog"));
+    CHECK(dialog != nullptr);
+    if (dialog == nullptr) {
+      return;
+    }
+    CHECK(dialog->windowTitle() == QStringLiteral("PDF Options"));
+    auto* documents = dialog->findChild<QRadioButton*>(QStringLiteral("multiPagePdfDocumentsRadio"));
+    auto* artboards = dialog->findChild<QRadioButton*>(QStringLiteral("multiPagePdfArtboardsRadio"));
+    auto* canvas = dialog->findChild<QRadioButton*>(QStringLiteral("multiPagePdfCanvasRadio"));
+    auto* summary = dialog->findChild<QLabel*>(QStringLiteral("multiPagePdfSummaryLabel"));
+    auto* save = dialog->findChild<QPushButton*>(QStringLiteral("multiPagePdfExportButton"));
+    CHECK(documents != nullptr && artboards != nullptr && canvas != nullptr && summary != nullptr && save != nullptr);
+    if (documents == nullptr || artboards == nullptr || canvas == nullptr || summary == nullptr || save == nullptr) {
+      dialog->reject();
+      return;
+    }
+    CHECK(!documents->isVisible());
+    CHECK(artboards->isChecked());
+    CHECK(summary->text().contains(QStringLiteral("2")));
+    CHECK(save->text() == QStringLiteral("Save"));
+    canvas->setChecked(true);
+    QApplication::processEvents();
+    CHECK(summary->text().contains(QStringLiteral("1")));
+    *seen = true;
+    save->click();
+  });
+  require_action(window, "fileSaveAsAction")->trigger();
+  QApplication::processEvents();
+  CHECK(*seen);
+  CHECK(QFileInfo::exists(path));
+#if defined(PATCHY_HAVE_QT_PDF)
+  QPdfDocument reader;
+  CHECK(reader.load(path) == QPdfDocument::Error::None);
+  CHECK(reader.pageCount() == 1);
+#endif
+}
+
+
+// A slow save shows the Saving dialog (docs/file-formats.md, "Save progress"): the PSD
+// writer runs on a worker and names each artboard as it is written. The delay is forced to
+// zero so this small document shows it too.
+void ui_save_shows_progress_with_artboard_names() {
+  EnvironmentVariableRestorer delay_restorer("PATCHY_SAVE_PROGRESS_DELAY_MS");
+  qputenv("PATCHY_SAVE_PROGRESS_DELAY_MS", QByteArray("0"));
+  QTemporaryDir temp;
+  CHECK(temp.isValid());
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto seed = board_document(4400, 1500);
+  add_board(seed, "North", patchy::Rect{0, 0, 1400, 1400}, patchy::ArtboardBackground::White, QColor(0, 0, 255));
+  add_board(seed, "South", patchy::Rect{1500, 0, 1400, 1400}, patchy::ArtboardBackground::White, QColor(255, 0, 0));
+  add_board(seed, "West", patchy::Rect{3000, 0, 1400, 1400}, patchy::ArtboardBackground::White, QColor(0, 160, 0));
+  window.add_document_session(std::move(seed), QStringLiteral("Boards"));
+  QApplication::processEvents();
+
+  QStringList labels;
+  QTimer watch;
+  watch.setInterval(1);
+  QObject::connect(&watch, &QTimer::timeout, [&labels] {
+    auto* dialog = qobject_cast<QProgressDialog*>(find_top_level_dialog(QStringLiteral("saveProgressDialog")));
+    if (dialog != nullptr && dialog->isVisible() && !labels.contains(dialog->labelText())) {
+      labels.push_back(dialog->labelText());
+    }
+  });
+  watch.start();
+  const auto path = temp.filePath(QStringLiteral("boards.psd"));
+  CHECK(patchy::ui::MainWindowTestAccess::save_document_to_path(window, path));
+  watch.stop();
+  CHECK(QFileInfo::exists(path));
+  CHECK(!labels.isEmpty());
+  const bool named = std::any_of(labels.begin(), labels.end(), [](const QString& label) {
+    return label.startsWith(QStringLiteral("Saving layer")) || label.startsWith(QStringLiteral("Compositing")) ||
+           label.startsWith(QStringLiteral("Writing"));
+  });
+  CHECK(named);
+  QApplication::processEvents();
+  auto* left_open = find_top_level_dialog(QStringLiteral("saveProgressDialog"));
+  CHECK(left_open == nullptr || !left_open->isVisible());
+}
+
+
+// The artboard feature-interaction audit (docs/artboards.md, "Feature interactions"):
+// Photoshop's results, captured by scripts/dev/artboards/ps-artboard-audit.ps1 on the same
+// scene, against Patchy's, in the script's one-line form.
+std::string audit_describe(const patchy::Document& document) {
+  const auto rect_text = [](patchy::Rect r) {
+    return std::to_string(r.x) + "," + std::to_string(r.y) + "," + std::to_string(r.x + r.width) + "," +
+           std::to_string(r.y + r.height);
+  };
+  std::string out = "canvas=" + std::to_string(document.width()) + "x" + std::to_string(document.height());
+  for (auto it = document.layers().rbegin(); it != document.layers().rend(); ++it) {
+    if (it->artboard().has_value()) {
+      out += " | AB " + it->name() + "[" + rect_text(it->artboard()->rect) + "]{";
+      bool first = true;
+      for (auto child = it->children().rbegin(); child != it->children().rend(); ++child) {
+        out += (first ? "" : ";") + child->name() + rect_text(child->bounds());
+        first = false;
+      }
+      out += "}";
+    } else {
+      out += std::string(" | ") + (it->kind() == patchy::LayerKind::Group ? "GRP " : "LYR ") + it->name() + "[" +
+             rect_text(it->bounds()) + "]";
+    }
+  }
+  return out;
+}
+
+void ui_artboard_feature_interactions_match_photoshop() {
+  using Access = patchy::ui::MainWindowTestAccess;
+  const auto build = [](patchy::Document& doc, patchy::LayerId& a1, patchy::LayerId& b1, patchy::LayerId& board_b) {
+    add_board(doc, "A", patchy::Rect{0, 0, 300, 300}, patchy::ArtboardBackground::White, QColor());
+    board_b = add_board(doc, "B", patchy::Rect{400, 0, 300, 250}, patchy::ArtboardBackground::White, QColor());
+    auto put = [&doc](const char* board, const char* name, QRect rect, QColor color) {
+      patchy::Layer layer(doc.allocate_layer_id(), name,
+                          solid_pixels(rect.width(), rect.height(), patchy::PixelFormat::rgba8(), color));
+      layer.set_bounds(patchy::Rect{rect.x(), rect.y(), rect.width(), rect.height()});
+      const auto id = layer.id();
+      if (board == nullptr) {
+        doc.add_layer(std::move(layer));
+      } else {
+        for (auto& top : doc.layers()) {
+          if (top.name() == board) top.add_child(std::move(layer));
+        }
+      }
+      return id;
+    };
+    a1 = put("A", "A1", QRect(20, 20, 100, 100), QColor(0, 0, 255));
+    b1 = put("B", "B1", QRect(420, 20, 100, 100), QColor(255, 0, 0));
+    put(nullptr, "Loose", QRect(800, 400, 100, 100), QColor(0, 160, 0));
+  };
+  struct Case {
+    const char* name;
+    std::function<std::string(patchy::ui::MainWindow&, patchy::LayerId, patchy::LayerId, patchy::LayerId)> run;
+    // Pieces Photoshop's result shows that Patchy's must too.
+    std::vector<std::string> expected;
+  };
+  const auto select_rect = [](patchy::ui::MainWindow& window, QRect rect) {
+    auto* canvas = require_canvas(window);
+    const auto& doc = std::as_const(Access::document(window));
+    patchy::PixelBuffer coverage(doc.width(), doc.height(), patchy::PixelFormat::gray8());
+    coverage.clear(0);
+    for (int y = rect.top(); y <= rect.bottom(); ++y) {
+      std::memset(coverage.pixel(rect.left(), y), 255, static_cast<std::size_t>(rect.width()));
+    }
+    canvas->apply_grayscale_to_selection(coverage);
+    QApplication::processEvents();
+  };
+  const auto active_where = [](patchy::ui::MainWindow& window) {
+    const auto& doc = std::as_const(Access::document(window));
+    const auto id = doc.active_layer_id().value_or(0);
+    const auto* layer = doc.find_layer(id);
+    if (layer == nullptr) return std::string("none");
+    const auto* owner = patchy::artboard_owning_layer(doc, id);
+    const auto b = layer->bounds();
+    return layer->name() + " in " + (owner != nullptr ? owner->name() : std::string("root")) + " [" +
+           std::to_string(b.x) + "," + std::to_string(b.y) + "," + std::to_string(b.x + b.width) + "," +
+           std::to_string(b.y + b.height) + "]";
+  };
+  const auto trigger = [](patchy::ui::MainWindow& window, const char* id) {
+    require_hotkey_action(window, QString::fromLatin1(id))->trigger();
+    QApplication::processEvents();
+  };
+  const std::vector<Case> cases = {
+      {"canvas_grow_topleft", [](auto& w, auto, auto, auto) { Access::apply_canvas_size(w, patchy::Rect{0, 0, 1200, 800}); return std::string(); }, {"canvas=1200x800", "AB A[0,0,300,300]{A120,20,120,120}"}},
+      {"canvas_grow_center", [](auto& w, auto, auto, auto) { Access::apply_canvas_size(w, patchy::Rect{-100, -100, 1200, 800}); return std::string(); }, {"canvas=1200x800", "AB A[100,100,400,400]{A1120,120,220,220}", "AB B[500,100,800,350]", "Loose[900,500,1000,600]"}},
+      {"canvas_grow_bottomright", [](auto& w, auto, auto, auto) { Access::apply_canvas_size(w, patchy::Rect{-200, -200, 1200, 800}); return std::string(); }, {"AB A[200,200,500,500]{A1220,220,320,320}", "Loose[1000,600,1100,700]"}},
+      {"canvas_shrink_center", [](auto& w, auto, auto, auto) { Access::apply_canvas_size(w, patchy::Rect{100, 100, 800, 400}); return std::string(); }, {"AB A[0,0,300,300]{A120,20,120,120}", "AB B[400,0,700,250]{B1420,20,520,120}"}},
+      {"image_size_half", [](auto& w, auto, auto, auto) { Access::resize_document_image(w, 500, 300); return std::string(); }, {"canvas=500x300", "AB A[0,0,150,150]{A110,10,60,60}", "AB B[200,0,350,125]{B1210,10,260,60}", "Loose[400,200,450,250]"}},
+      {"crop", [&](auto& w, auto, auto, auto) { select_rect(w, QRect(100, 50, 500, 350)); trigger(w, "image.crop_to_selection"); return std::string(); }, {"canvas=1000x600", "AB A[0,0,300,300]{A120,20,120,120}", "Loose[800,400,900,500]"}},
+      {"rotate_90", [&](auto& w, auto, auto, auto) { trigger(w, "image.rotate_cw"); return std::string(); }, {"canvas=600x1000", "AB A[300,0,600,300]{A1480,20,580,120}", "AB B[350,400,600,700]{B1480,420,580,520}", "Loose[100,800,200,900]"}},
+      {"flip_horizontal", [&](auto& w, auto, auto, auto) { trigger(w, "image.flip_horizontal"); return std::string(); }, {"AB A[700,0,1000,300]{A1880,20,980,120}", "AB B[300,0,600,250]{B1480,20,580,120}", "Loose[100,400,200,500]"}},
+      {"flatten", [&](auto& w, auto, auto, auto) { trigger(w, "image.flatten"); return std::string(); }, {"canvas=1000x600 | LYR Background[0,0,1000,600]"}},
+      {"merge_visible", [&](auto& w, auto, auto, auto) { trigger(w, "layer.merge_visible"); return std::string(); }, {}},
+      {"new_layer_with_B1_active", [&](auto& w, auto, auto b1, auto) { Access::select_layers(w, {b1}, b1); trigger(w, "layer.new"); return "new " + active_where(w); }, {"note=new Layer 4 in B"}},
+      {"new_layer_with_artboard_B_active", [&](auto& w, auto, auto, auto bb) { Access::select_layers(w, {bb}, bb); trigger(w, "layer.new"); return "new " + active_where(w); }, {"note=new Layer 4 in B"}},
+      {"select_all_bounds", [&](auto& w, auto a1, auto, auto) {
+         Access::select_layers(w, {a1}, a1);
+         trigger(w, "select.all");
+         const auto r = require_canvas(w)->selected_document_rect().value_or(QRect());
+         return "selection [" + std::to_string(r.x()) + "," + std::to_string(r.y()) + "," +
+                std::to_string(r.x() + r.width()) + "," + std::to_string(r.y() + r.height()) + "]";
+       }, {"note=selection [0,0,300,300]"}},
+      {"copy_paste_same_artboard", [&](auto& w, auto a1, auto, auto) {
+         Access::select_layers(w, {a1}, a1); select_rect(w, QRect(20, 20, 100, 100));
+         require_action(w, "editCopyAction")->trigger(); trigger(w, "edit.paste"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in A [100,100,200,200]"}},
+      {"copy_from_A_paste_with_B1_active", [&](auto& w, auto a1, auto b1, auto) {
+         Access::select_layers(w, {a1}, a1); select_rect(w, QRect(20, 20, 100, 100));
+         require_action(w, "editCopyAction")->trigger(); Access::select_layers(w, {b1}, b1);
+         trigger(w, "edit.paste"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in B [500,75,600,175]"}},
+      {"paste_in_place_with_B1_active", [&](auto& w, auto a1, auto b1, auto) {
+         Access::select_layers(w, {a1}, a1); select_rect(w, QRect(20, 20, 100, 100));
+         require_action(w, "editCopyAction")->trigger(); Access::select_layers(w, {b1}, b1);
+         trigger(w, "edit.paste_in_place"); return "pasted " + active_where(w); }, {"note=pasted Pasted Layer in B [420,20,520,120]"}},
+      {"duplicate_artboard_B", [&](auto& w, auto, auto, auto bb) { Access::select_layers(w, {bb}, bb); trigger(w, "layer.duplicate"); return "duplicate " + active_where(w); }, {"AB B copy[800,0,1100,250]{B1820,20,920,120}"}},
+  };
+  for (const auto& entry : cases) {
+    patchy::ui::MainWindow window;
+    show_window(window);
+    auto doc = board_document(1000, 600);
+    patchy::LayerId a1 = 0;
+    patchy::LayerId b1 = 0;
+    patchy::LayerId board_b = 0;
+    build(doc, a1, b1, board_b);
+    window.add_document_session(std::move(doc), QStringLiteral("Audit"));
+    QApplication::processEvents();
+    const auto note = entry.run(window, a1, b1, board_b);
+    QApplication::processEvents();
+    const auto after = audit_describe(std::as_const(Access::document(window))) + (note.empty() ? "" : " | note=" + note);
+    for (const auto& piece : entry.expected) {
+      if (after.find(piece) == std::string::npos) {
+        std::printf("  %s: expected \"%s\" in: %s\n", entry.name, piece.c_str(), after.c_str());
+        CHECK(false);
+      }
+    }
+  }
+  QApplication::clipboard()->clear();
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> artboard_ui_tests() {
@@ -636,5 +942,10 @@ std::vector<patchy::test::TestCase> artboard_ui_tests() {
       {"ui_artboard_commands_and_hotkeys_registered", ui_artboard_commands_and_hotkeys_registered},
       {"ui_script_artboards_add_move_and_export", ui_script_artboards_add_move_and_export},
       {"ui_artboard_drag_across_artboards_previews_the_release", ui_artboard_drag_across_artboards_previews_the_release},
+      {"ui_artboard_paint_switches_to_the_clicked_artboards_layer",
+       ui_artboard_paint_switches_to_the_clicked_artboards_layer},
+      {"ui_save_as_pdf_uses_the_pdf_options_dialog", ui_save_as_pdf_uses_the_pdf_options_dialog},
+      {"ui_save_shows_progress_with_artboard_names", ui_save_shows_progress_with_artboard_names},
+      {"ui_artboard_feature_interactions_match_photoshop", ui_artboard_feature_interactions_match_photoshop},
   };
 }

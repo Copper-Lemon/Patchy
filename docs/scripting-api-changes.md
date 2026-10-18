@@ -8,6 +8,12 @@ Remove Object, Align/Distribute and smart objects) are in
 [scripting-api-changes-through-2026-09-30.md](scripting-api-changes-through-2026-09-30.md).
 Every entry below is API 1.
 
+2026-10-18 (behavioral): `patchy.ui.zoom` clamps to 0.01..12800 (was 5..12800), Photoshop's
+range, as the view now zooms out to 0.01%. Pinned by `ui_script_ui_view_zoom`.
+2026-10-18 (behavioral, Photoshop parity): `selection.selectAll()` selects the active
+layer's artboard when that layer is on one (the whole canvas otherwise), and pixel paste
+lands on the target artboard, centered on it (docs/artboards.md, "Feature interactions").
+Pinned by `ui_artboard_feature_interactions_match_photoshop`.
 2026-10-18 (additive plus behavioral): `.pdf` save options and `app.exportPdf` take `pages`
 (`"artboards"`, the default, `"groups"`, `"canvas"`); `artboardPages` stays as its true/false
 spelling. Exporting by groups now includes hidden top-level groups and crops a PDF import's

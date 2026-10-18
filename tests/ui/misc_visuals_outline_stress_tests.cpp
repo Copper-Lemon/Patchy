@@ -37,6 +37,8 @@
 #include <string_view>
 #include <utility>
 #include <vector>
+#include <QMessageBox>
+#include <QTimer>
 #include "ui_test_access.hpp"
 #include "ui_test_groups.hpp"
 #include "ui_test_support.hpp"
@@ -76,9 +78,21 @@ void ui_transparency_checkerboard_and_copy_paste_preserve_alpha() {
   CHECK(std::abs(transparent_preview.green() - transparent_preview.blue()) <= 4);
   save_widget_artifact("ui_transparency_checkerboard", window);
 
+  // White to Transparent left nothing visible, so Copy refuses as Photoshop does ("the
+  // selected area is empty", docs/clipboard.md) instead of copying an invisible layer.
   require_action(window, "editSelectAllAction")->trigger();
+  auto refused = std::make_shared<bool>(false);
+  QTimer::singleShot(0, [refused] {
+    auto* box = qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("copyEmptySelectionMessageBox")));
+    CHECK(box != nullptr);
+    if (box != nullptr) {
+      *refused = true;
+      box->button(QMessageBox::Ok)->click();
+    }
+  });
   require_action(window, "editCopyAction")->trigger();
   QApplication::processEvents();
+  CHECK(*refused);
 
   auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
   CHECK(tabs != nullptr);

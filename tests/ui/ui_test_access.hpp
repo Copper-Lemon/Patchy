@@ -251,6 +251,14 @@ public:
     window.import_files_as_layers_with_paths(paths);
   }
 
+  // Image > Canvas Size with `frame` as the new canvas (the dialog's apply).
+  static void apply_canvas_size(MainWindow& window, Rect frame) {
+    window.apply_canvas_size(frame, QColor(Qt::white), false, false, QStringLiteral("Canvas size"));
+  }
+  // Image > Image Size (the dialog's apply), Bicubic.
+  static bool resize_document_image(MainWindow& window, int width, int height) {
+    return window.resize_document_image(window.session(), width, height, ResampleMethod::Bicubic);
+  }
   static void paste_clipboard(MainWindow& window) {
     window.paste_clipboard();
   }

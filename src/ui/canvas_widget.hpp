@@ -543,6 +543,10 @@ public:
   // Pins the marching-ants dash phase and stops its animation timer so tests
   // can grab deterministic frames at chosen phases.
   void set_selection_dash_offset_for_testing(int offset);
+  // Built display mip levels (0 when the chain was dropped), and whether every built
+  // level equals one rebuilt from the render cache now (patch_display_mips exactness).
+  [[nodiscard]] int display_mip_levels_for_testing() const noexcept;
+  [[nodiscard]] bool display_mips_match_rebuild_for_testing() const;
   // Run a selection-changing command (Select All, Deselect, Invert, ...) and push
   // an undo entry for it if the selection actually changed.
   void run_selection_command(QString label, const std::function<void()>& command);
@@ -1337,6 +1341,9 @@ private:
   void refresh_render_cache_region(const QRegion& document_region);
   bool patch_render_cache_rect(QRect document_rect, const QImage& partial);
   bool patch_render_cache_patches(const std::vector<RenderedDocumentPatch>& patches);
+  // Re-derives the patched rects through every built display mip level instead of
+  // dropping the chain (falls back to invalidating it when the formats do not allow).
+  void patch_display_mips(const std::vector<RenderedDocumentPatch>& patches);
   void invalidate_display_mip_cache() noexcept;
   void refresh_curves_clipping_preview();
   void ensure_move_base_cache();
@@ -1577,6 +1584,13 @@ private:
   // growth) on release and by finish_paint_stroke_history, before the stroke is reported.
   void open_stroke_growth_reserve();
   void close_stroke_growth_reserve();
+  // Painting across artboards (docs/artboards.md): a paint press on an artboard that does
+  // not own the active layer makes that artboard's topmost paintable pixel layer active
+  // instead of painting where its own artboard clips the paint away. Returns the artboard
+  // when it has no such layer: add_paint_layer_on_artboard, called right after begin_edit
+  // (inside the stroke's undo step), gives it an empty one.
+  [[nodiscard]] std::optional<LayerId> retarget_paint_to_clicked_artboard(QPoint document_point);
+  void add_paint_layer_on_artboard(std::optional<LayerId> artboard_id);
   [[nodiscard]] CanvasTool effective_tool_for_input() const noexcept;
   void clear_brush_stroke_tracking() noexcept;
   void begin_axis_constrained_stroke(QPointF document_point) noexcept;

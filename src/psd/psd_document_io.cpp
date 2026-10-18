@@ -2306,6 +2306,10 @@ std::vector<std::uint8_t> DocumentIo::write_layered_rgb8(const Document& documen
     }
   };
   count_records(count_records, document.layers());
+  const auto progress_total = static_cast<int>(document.layers().size()) + 1;
+  if (options.progress) {
+    options.progress(0, progress_total, {});
+  }
 
   // 16 and 32-bit documents (docs/high-bit-depth.md): channels at the document's depth,
   // the layer records in the Lr16/Lr32 block, descriptor colors linear for 32 bits.
@@ -2364,9 +2368,16 @@ std::vector<std::uint8_t> DocumentIo::write_layered_rgb8(const Document& documen
   encoded_layers.reserve(document.layers().size());
   // Photoshop stores layer records in stack order from bottom to top. Patchy's
   // document model uses the same order, so write it directly instead of reversing.
+  int progress_done = 0;
   for (const auto& layer : document.layers()) {
+    if (options.progress) {
+      options.progress(++progress_done, progress_total, layer.name());
+    }
     append_encoded_layers(layer, encoded_layers, options.large_document,
                           Rect::from_size(document.width(), document.height()), depth);
+  }
+  if (options.progress) {
+    options.progress(progress_total, progress_total, {});
   }
   if (native_composite) restore_native_layer_colors(encoded_layers, output_mode, options.large_document,
                                                     document.metadata().smart_objects);

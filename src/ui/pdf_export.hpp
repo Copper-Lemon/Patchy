@@ -75,6 +75,10 @@ struct PdfExportOptions {
   // the document has artboards, one page per top-level group (documents_for_top_level_groups)
   // when it has groups, else, or with Canvas, one page of the whole canvas.
   PdfPageSource pages{PdfPageSource::Artboards};
+  // With Groups (documents_for_top_level_groups): ungrouped root layers on every page,
+  // and hidden groups as pages.
+  bool include_ungrouped_layers{false};
+  bool include_hidden_groups{true};
 };
 
 // The "did this page change since import" fingerprint: the size and RGBA bytes of

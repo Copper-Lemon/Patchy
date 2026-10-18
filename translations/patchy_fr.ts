@@ -11977,6 +11977,14 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>Select a pixel layer to sample the current layer, or sample all layers</source>
         <translation>Sélectionnez un calque de pixels pour échantillonner le calque actif, ou échantillonnez tous les calques</translation>
     </message>
+    <message>
+        <source>Painting on %1 in %2</source>
+        <translation>Peinture sur %1 dans %2</translation>
+    </message>
+    <message>
+        <source>Added %1 to %2 to paint on</source>
+        <translation>%1 ajouté à %2 pour y peindre</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21578,6 +21586,46 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
     <message>
         <source>Could not complete the Copy Merged command because the selected area is empty.</source>
         <translation>Impossible d&apos;exécuter la commande Copier avec fusion, car la zone sélectionnée est vide.</translation>
+    </message>
+    <message>
+        <source>Export</source>
+        <translation>Exporter</translation>
+    </message>
+    <message>
+        <source>PDF Options</source>
+        <translation>Options PDF</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Enregistrer</translation>
+    </message>
+    <message>
+        <source>Saving %1...</source>
+        <translation>Enregistrement de %1...</translation>
+    </message>
+    <message>
+        <source>Saving %1</source>
+        <translation>Enregistrement de %1</translation>
+    </message>
+    <message>
+        <source>Compositing the image...</source>
+        <translation>Composition de l&apos;image...</translation>
+    </message>
+    <message>
+        <source>Writing %1...</source>
+        <translation>Écriture de %1...</translation>
+    </message>
+    <message>
+        <source>Saving layer %1 of %2: %3</source>
+        <translation>Enregistrement du calque %1 sur %2 : %3</translation>
+    </message>
+    <message>
+        <source>Saving layer %1 of %2...</source>
+        <translation>Enregistrement du calque %1 sur %2...</translation>
+    </message>
+    <message>
+        <source>Crop does not apply to a document with artboards; resize an artboard with the Artboard tool</source>
+        <translation>Le recadrage ne s&apos;applique pas à un document avec des plans de travail ; redimensionnez un plan de travail avec l&apos;outil Plan de travail</translation>
     </message>
 </context>
 <context>

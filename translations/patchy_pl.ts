@@ -12009,6 +12009,14 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>Select a pixel layer to sample the current layer, or sample all layers</source>
         <translation>Wybierz warstwę pikseli, aby próbkować bieżącą warstwę, albo próbkuj wszystkie warstwy</translation>
     </message>
+    <message>
+        <source>Painting on %1 in %2</source>
+        <translation>Malowanie na %1 w %2</translation>
+    </message>
+    <message>
+        <source>Added %1 to %2 to paint on</source>
+        <translation>Dodano %1 do %2, aby na nim malować</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21643,6 +21651,46 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
     <message>
         <source>Could not complete the Copy Merged command because the selected area is empty.</source>
         <translation>Nie można wykonać polecenia Kopiuj scalone, ponieważ zaznaczony obszar jest pusty.</translation>
+    </message>
+    <message>
+        <source>Export</source>
+        <translation>Eksport</translation>
+    </message>
+    <message>
+        <source>PDF Options</source>
+        <translation>Opcje PDF</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Zapisz</translation>
+    </message>
+    <message>
+        <source>Saving %1...</source>
+        <translation>Zapisywanie %1...</translation>
+    </message>
+    <message>
+        <source>Saving %1</source>
+        <translation>Zapisywanie %1</translation>
+    </message>
+    <message>
+        <source>Compositing the image...</source>
+        <translation>Składanie obrazu...</translation>
+    </message>
+    <message>
+        <source>Writing %1...</source>
+        <translation>Zapisywanie pliku %1...</translation>
+    </message>
+    <message>
+        <source>Saving layer %1 of %2: %3</source>
+        <translation>Zapisywanie warstwy %1 z %2: %3</translation>
+    </message>
+    <message>
+        <source>Saving layer %1 of %2...</source>
+        <translation>Zapisywanie warstwy %1 z %2...</translation>
+    </message>
+    <message>
+        <source>Crop does not apply to a document with artboards; resize an artboard with the Artboard tool</source>
+        <translation>Kadrowanie nie dotyczy dokumentu z obszarami roboczymi; zmień rozmiar obszaru roboczego narzędziem Obszar roboczy</translation>
     </message>
 </context>
 <context>

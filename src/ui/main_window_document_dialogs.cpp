@@ -1495,6 +1495,9 @@ void MainWindow::crop_to_selection_advanced() {
   // untouched canvas frame defers to a marquee selection (it stays after Esc or
   // Select commands). The dialog resizes through `resize_canvas_to_frame`, which
   // has no rotation, so a rotated box is refused rather than silently ignored.
+  if (refuse_crop_with_artboards()) {
+    return;
+  }
   auto selection = canvas_->selected_document_rect();
   if (canvas_->crop_session_active() && canvas_->crop_session_has_changes()) {
     if (canvas_->crop_session_angle() != 0.0) {
@@ -1534,6 +1537,9 @@ void MainWindow::apply_canvas_size(Rect frame, QColor extension_color, bool crop
   const auto deleted_layers =
       delete_off_canvas_layers ? remove_layers_outside_canvas(doc, frame) : std::size_t{0};
   resize_canvas_to_frame(doc, frame, edit_color(extension_color), crop_layers);
+  // A smaller canvas never clips an artboard: Photoshop grows it back around them
+  // (docs/artboards.md, "Feature interactions").
+  static_cast<void>(grow_canvas_to_artboards(doc));
   canvas_->clear_selection();
   const auto previous_channel_target = canvas_->layer_edit_target();
   const auto previous_channel_id = canvas_->active_document_channel_id();
@@ -1554,7 +1560,7 @@ void MainWindow::apply_canvas_size(Rect frame, QColor extension_color, bool crop
                                  .arg(static_cast<int>(deleted_layers)));
     return;
   }
-  statusBar()->showMessage(tr("Canvas %1 x %2").arg(frame.width).arg(frame.height));
+  statusBar()->showMessage(tr("Canvas %1 x %2").arg(doc.width()).arg(doc.height()));
 }
 
 void MainWindow::rotate_canvas_arbitrary() {

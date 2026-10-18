@@ -553,7 +553,7 @@ doc.exportArtboards("out", {format: "png"});
 | Member | Meaning |
 | --- | --- |
 | `doc.selection.exists` / `doc.selection.bounds` | Whether something is selected, and its box. |
-| `selectAll()` / `deselect()` | The classics. |
+| `selectAll()` / `deselect()` | The classics. On a layer inside an artboard, All is that artboard. |
 | `selectRect(x, y, w, h)` / `selectEllipse(x, y, w, h)` | Shape selections (sides up to 30000). |
 | `selectSubject(options?)` | Select > Subject: the main subject from the bundled model, one pass over the merged document (several seconds on the CPU). Options: `operation` (`"replace"`, `"add"`, `"subtract"`, `"intersect"`), `feather`, `antialias`. |
 | `selectBackground(options?)` | Select > Select Background: everything `selectSubject` would not select. Same options. `selectSubject`, `selectBackground` and `layer.removeBackground` also take `sampleAllLayers` (default true; false analyzes the active layer alone). |
@@ -576,7 +576,7 @@ doc.exportArtboards("out", {format: "png"});
 | `patchy.ui.captureWindow(path)` | Saves a PNG screenshot without raising or focusing the window. Waits up to 60 seconds for enabled Dynamic Vector Preview to settle; returns false on timeout or write failure. |
 | `patchy.ui.setStatusMessage(text)` | Shows a message in the status bar. Handy for progress readouts in long batches. |
 | `patchy.ui.proofColors`, `patchy.ui.gamutWarning` | View > Proof Colors and View > Gamut Warning (read/write booleans). They change how every canvas is displayed, through the working CMYK profile: a soft proof of the print, and flat gray over colors the profile cannot reproduce. Pixels, previews, saves and exports are unchanged, so only window captures see them. `app.colorInCmykGamut(color)` answers the gamut question for one color. |
-| `patchy.ui.zoom` | The active document's view zoom in percent (read/write, 0 with no document). Setting clamps to 5..12800; throws for NaN, non-positive values, or with no document. Only window captures see it. |
+| `patchy.ui.zoom` | The active document's view zoom in percent (read/write, 0 with no document). Setting clamps to 0.01..12800; throws for NaN, non-positive values, or with no document. Only window captures see it. |
 | `patchy.ui.fitOnScreen()` | View > Fit on Screen for the active document. Throws with no document. |
 | `app.runCommand("view.vector_preview")` | Toggles View > Dynamic Vector Preview, also available in Preferences > Application. Vector shapes and masks stay sharp alongside pixel content; saved/exported pixels keep document resolution. This is a persisted application view option. Connector sessions refuse `runCommand`. |
 

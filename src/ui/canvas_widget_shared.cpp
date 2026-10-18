@@ -31,6 +31,8 @@
 #include <QtGlobal>
 
 #include <algorithm>
+#include <string>
+#include <set>
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -650,6 +652,24 @@ bool uses_smooth_display_scaling(double zoom, bool deep_pixel_renderer) noexcept
   return zoom < 1.0;
 }
 
+QString default_new_layer_name(const Document& document) {
+  std::set<std::string> existing_names;
+  std::function<void(const std::vector<Layer>&)> collect_names = [&](const std::vector<Layer>& layers) {
+    for (const auto& layer : layers) {
+      existing_names.insert(layer.name());
+      collect_names(layer.children());
+    }
+  };
+  collect_names(document.layers());
+
+  int suffix = static_cast<int>(document.layers().size()) + 1;
+  QString name;
+  do {
+    name = QObject::tr("Layer %1").arg(suffix++);
+  } while (existing_names.contains(name.toStdString()));
+  return name;
+}
+
 int display_mip_level_for_zoom(double zoom) noexcept {
   if (zoom >= 1.0 || zoom <= 0.0 || !std::isfinite(zoom)) {
     return 0;
@@ -685,8 +705,10 @@ QRect rect_aligned_to_mip_grid(QRect rect, int level) noexcept {
 double next_zoom_ladder_step(double view_zoom, bool zoom_in) noexcept {
   // Photoshop's ladder, as fractions: 0.56%, 1%, 1.5%, 2%, 3%, 4%, 5%, 6.25%,
   // 8.33%, 12.5%, 16.67%, 25%, 33.33%, 50%, 66.67%, 100%, 200% ... 800%, 1200%,
-  // 1600%, 3200%, 6400%, 12800%.
-  static constexpr double kLadder[] = {0.0056, 0.01,      0.015,     0.02,      0.03,      0.04,      0.05,
+  // 1600%, 3200%, 6400%, 12800%. Below 0.56%, down to the 0.01% floor, Patchy's own
+  // 1-2-5 rungs.
+  static constexpr double kLadder[] = {0.0001, 0.0002, 0.0005, 0.001, 0.002, 0.003, 0.004,
+                                       0.0056, 0.01,      0.015,     0.02,      0.03,      0.04,      0.05,
                                        0.0625, 1.0 / 12.0, 0.125,    1.0 / 6.0, 0.25,      1.0 / 3.0, 0.5,
                                        2.0 / 3.0, 1.0,    2.0,       3.0,       4.0,       5.0,       6.0,
                                        7.0,    8.0,       12.0,      16.0,      32.0,      64.0,      128.0};

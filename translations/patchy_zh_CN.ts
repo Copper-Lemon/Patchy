@@ -11945,6 +11945,14 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>Select a pixel layer to sample the current layer, or sample all layers</source>
         <translation>请选择像素图层以对当前图层取样，或对所有图层取样</translation>
     </message>
+    <message>
+        <source>Painting on %1 in %2</source>
+        <translation>正在 %2 的 %1 上绘画</translation>
+    </message>
+    <message>
+        <source>Added %1 to %2 to paint on</source>
+        <translation>已向 %2 添加 %1 用于绘画</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21513,6 +21521,46 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
     <message>
         <source>Could not complete the Copy Merged command because the selected area is empty.</source>
         <translation>无法完成“合并拷贝”命令，因为选中的区域是空的。</translation>
+    </message>
+    <message>
+        <source>Export</source>
+        <translation>导出</translation>
+    </message>
+    <message>
+        <source>PDF Options</source>
+        <translation>PDF 选项</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>存储</translation>
+    </message>
+    <message>
+        <source>Saving %1...</source>
+        <translation>正在存储 %1...</translation>
+    </message>
+    <message>
+        <source>Saving %1</source>
+        <translation>存储 %1</translation>
+    </message>
+    <message>
+        <source>Compositing the image...</source>
+        <translation>正在合成图像...</translation>
+    </message>
+    <message>
+        <source>Writing %1...</source>
+        <translation>正在写入 %1...</translation>
+    </message>
+    <message>
+        <source>Saving layer %1 of %2: %3</source>
+        <translation>正在存储第 %1 个图层（共 %2 个）：%3</translation>
+    </message>
+    <message>
+        <source>Saving layer %1 of %2...</source>
+        <translation>正在存储第 %1 个图层（共 %2 个）...</translation>
+    </message>
+    <message>
+        <source>Crop does not apply to a document with artboards; resize an artboard with the Artboard tool</source>
+        <translation>裁剪不适用于含画板的文档；请使用画板工具调整画板大小</translation>
     </message>
 </context>
 <context>

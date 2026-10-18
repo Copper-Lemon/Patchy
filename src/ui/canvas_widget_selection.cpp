@@ -284,7 +284,16 @@ void CanvasWidget::select_all() {
   if (document_ == nullptr) {
     return;
   }
-  set_selection_from_region(QRegion(QRect(0, 0, document_->width(), document_->height())));
+  // With the active layer on an artboard, All is that artboard (Photoshop; docs/artboards.md,
+  // "Feature interactions").
+  QRect all(0, 0, document_->width(), document_->height());
+  if (const auto active = document_->active_layer_id(); active.has_value()) {
+    if (const auto* artboard = artboard_owning_layer(std::as_const(*document_), *active); artboard != nullptr) {
+      const auto rect = artboard->artboard()->rect;
+      all = all.intersected(QRect(rect.x, rect.y, rect.width, rect.height));
+    }
+  }
+  set_selection_from_region(QRegion(all));
   selection_edges_visible_ = true;
   update();
 }

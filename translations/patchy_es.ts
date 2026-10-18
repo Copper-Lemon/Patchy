@@ -11977,6 +11977,14 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>Select a pixel layer to sample the current layer, or sample all layers</source>
         <translation>Seleccione una capa de píxeles para muestrear la capa actual, o muestree todas las capas</translation>
     </message>
+    <message>
+        <source>Painting on %1 in %2</source>
+        <translation>Pintando en %1 de %2</translation>
+    </message>
+    <message>
+        <source>Added %1 to %2 to paint on</source>
+        <translation>Se añadió %1 a %2 para pintar</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::ChannelPanel</name>
@@ -21578,6 +21586,46 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
     <message>
         <source>Could not complete the Copy Merged command because the selected area is empty.</source>
         <translation>No se pudo completar el comando Copiar combinado porque el área seleccionada está vacía.</translation>
+    </message>
+    <message>
+        <source>Export</source>
+        <translation>Exportar</translation>
+    </message>
+    <message>
+        <source>PDF Options</source>
+        <translation>Opciones de PDF</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Guardar</translation>
+    </message>
+    <message>
+        <source>Saving %1...</source>
+        <translation>Guardando %1...</translation>
+    </message>
+    <message>
+        <source>Saving %1</source>
+        <translation>Guardando %1</translation>
+    </message>
+    <message>
+        <source>Compositing the image...</source>
+        <translation>Componiendo la imagen...</translation>
+    </message>
+    <message>
+        <source>Writing %1...</source>
+        <translation>Escribiendo %1...</translation>
+    </message>
+    <message>
+        <source>Saving layer %1 of %2: %3</source>
+        <translation>Guardando la capa %1 de %2: %3</translation>
+    </message>
+    <message>
+        <source>Saving layer %1 of %2...</source>
+        <translation>Guardando la capa %1 de %2...</translation>
+    </message>
+    <message>
+        <source>Crop does not apply to a document with artboards; resize an artboard with the Artboard tool</source>
+        <translation>Recortar no se aplica a un documento con mesas de trabajo; cambie el tamaño de una mesa de trabajo con la herramienta Mesa de trabajo</translation>
     </message>
 </context>
 <context>

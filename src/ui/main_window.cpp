@@ -1477,7 +1477,7 @@ protected:
 
 private:
   [[nodiscard]] double zoom() const noexcept {
-    return canvas_ == nullptr ? 1.0 : std::max(0.05, canvas_->zoom());
+    return canvas_ == nullptr ? 1.0 : std::max(0.0001, canvas_->zoom());
   }
 
   [[nodiscard]] QPointF document_origin_on_canvas() const {
@@ -7885,7 +7885,7 @@ void MainWindow::sync_text_character_dialog_from_editor() {
   double display_scale = 1.0;
   if (session_open) {
     format = text_editor_reference_format(*editor);
-    zoom = std::max(0.01, canvas_->zoom());
+    zoom = std::max(0.0001, canvas_->zoom());
     display_scale = text_editor_size_display_scale(*editor);
   } else {
     const auto built = build_text_render_document(inputs->settings, inputs->color, inputs->max_width,
@@ -7951,7 +7951,7 @@ void MainWindow::apply_text_character_leading_to_active_editor() {
   const bool auto_leading = text_character_auto_leading_->isChecked();
   const auto leading_pt = text_character_leading_spin_->value();
   apply_text_character_edit([this, auto_leading, leading_pt](QTextEdit& editor) {
-    const auto zoom = std::max(0.01, canvas_->zoom());
+    const auto zoom = std::max(0.0001, canvas_->zoom());
     const auto display_scale = text_editor_size_display_scale(editor);
     const auto leading_editor_px =
         auto_leading ? 0.0
@@ -8165,7 +8165,7 @@ void MainWindow::sync_text_paragraph_dialog_from_editor() {
     // The caret's paragraph, the one a bare-caret edit changes.
     format = editor->textCursor().blockFormat();
     alignment_name = paragraph_alignment_name(editor->alignment());
-    zoom = std::max(0.01, canvas_->zoom());
+    zoom = std::max(0.0001, canvas_->zoom());
     display_scale = text_editor_size_display_scale(*editor);
   } else {
     const auto built = build_text_render_document(inputs->settings, inputs->color, inputs->max_width,
@@ -8245,7 +8245,7 @@ void MainWindow::apply_text_paragraph_metrics_to_editor(QTextEdit& editor, const
   }
   // Block margins live in editor pixels (document px * zoom, the scale apply_paragraph_runs_to_document
   // opened the session with); a PSD-frame session divides by its display scale like leading does.
-  const auto zoom = canvas_ != nullptr ? std::max(0.01, canvas_->zoom()) : 1.0;
+  const auto zoom = canvas_ != nullptr ? std::max(0.0001, canvas_->zoom()) : 1.0;
   const auto display_scale = text_editor_size_display_scale(editor);
   const auto to_editor_px = [zoom, display_scale](double document_px) {
     return (std::isfinite(document_px) ? document_px : 0.0) / display_scale * zoom;
@@ -9631,7 +9631,7 @@ void MainWindow::relayout_text_editor(QTextEdit* editor, bool allow_point_auto_e
     }
   } guard{editor};
   editor->setProperty("patchy.relayoutingTextEditor", true);
-  const auto zoom = std::max(0.05, canvas_->zoom());
+  const auto zoom = std::max(0.0001, canvas_->zoom());
   const auto boxed = text_flow_is_box(editor->property("patchy.documentTextFlow").toString());
   const QPoint document_point(editor->property("patchy.documentTextX").toInt(),
                               editor->property("patchy.documentTextY").toInt());
@@ -9863,7 +9863,7 @@ bool MainWindow::handle_text_editor_resize_event(QWidget* handle, QTextEdit* edi
       }
       const auto start_global = handle->property("patchy.dragStartGlobal").toPoint();
       const auto delta = mouse_event->globalPosition().toPoint() - start_global;
-      const auto zoom = std::max(0.05, canvas_->zoom());
+      const auto zoom = std::max(0.0001, canvas_->zoom());
       const auto delta_x = static_cast<int>(std::round(static_cast<double>(delta.x()) / zoom));
       const auto delta_y = static_cast<int>(std::round(static_cast<double>(delta.y()) / zoom));
       const auto start_x = handle->property("patchy.dragStartX").toInt();

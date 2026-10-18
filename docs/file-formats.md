@@ -75,6 +75,14 @@ Paths reach the Qt-free readers and writers through `to_filesystem_path` (the AG
 
 Everything except PSD/Aseprite flat-exports through `write_flat_image_file`. `ImageSaveOptions` carries the EXPORT-only transforms, never Save/Save As: the shared dialog section (every export form except ICO/CUR) persists them under its own `saveOptions/export*` keys so defaults never inherit one (JPEG forces the fill without persisting it; PDF editable layers disable the section). `export_stand_in_document` applies them in order: trim (alpha != 0 bounds; an all-transparent image keeps its size plus a notice), resize (`resample_pixels`, always Bilinear; `export_width/height` describe the FULL canvas, one zero side follows the aspect), nearest-neighbor `export_scale`, then the background fill (straight-alpha matte, opaque result). The stand-in keeps the doc-alpha mask structure and palette metadata unless matted; all-default options take the old byte-identical path; PPI copies verbatim. The animated GIF, WebP and JPEG XL writers apply the same per frame, trimming to the union of all frames' bounds. Metadata rides `metadata_policy`: [file-info.md](file-info.md).
 
+## Save progress
+
+Save, Save As and Export Flat Image run their writer through `MainWindow::run_save_write` (`SaveHost::run_write` from `DocumentSaveCoordinator::write_prepared`). A save that passes 400 ms (`PATCHY_SAVE_PROGRESS_DELAY_MS` overrides it for tests) shows `saveProgressDialog`. While it runs, user input waits, but paint and timers keep going. PSD/PSB and the raster formats write a copy-on-write snapshot on a worker thread (`launch_async`, inline on wasm), which is how recovery writes. The writer reports through `SaveProgress`:
+- PSD: `psd::WriteOptions::progress` reports compositing, then each top-level layer by name (an artboard's name on an artboard document), then writing. It never changes the bytes (`psd_write_progress_reports_layers_and_keeps_bytes`).
+- PDF: writes on the UI thread, because its editable pages paint text through Qt, and reports each page through `report_save_progress` (`ScopedSaveProgress`); each report pumps the dialog.
+
+Scripted and unattended saves never show the dialog. Test: `ui_save_shows_progress_with_artboard_names`.
+
 ## PSD adjustment layers, clipping, blending, and layer styles
 
 - Curves presets (`.acv`) via `formats/acv_curves_io`: big-endian, 2..19 ordered byte points per curve, output-before-input; reads v4, both legacy v1 shapes, and the indexed `Crv ` extension; export writes PS 2026's v4 five-curve RGB shape with the trailing identity curve. Native PSD Curves shares the v1 body parser.

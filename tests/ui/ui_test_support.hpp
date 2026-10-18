@@ -482,6 +482,10 @@ void process_events_for(int milliseconds);
 bool process_events_until(const std::function<bool()>& condition, int timeout_ms = 3000);
 
 QDialog* find_top_level_dialog(const QString& object_name);
+// Once the save dialog `object_name` is up, chooses `path` in it and accepts, then runs
+// `next` for the dialog that follows (PDF Options after its file dialog). Call before
+// triggering the command.
+void accept_save_file_dialog_then(const QString& object_name, const QString& path, std::function<void()> next);
 
 void accept_missing_psd_text_font_warning_if_present();
 
