@@ -605,10 +605,26 @@ void ui_marquee_fixed_size_and_ratio_options_work() {
   CHECK(canvas->selected_document_region().contains(QPoint(105, 75)));
   CHECK(!canvas->selected_document_region().contains(QPoint(112, 84)));
 
+  // Fixed Ratio swaps in its own unitless pair, 1 : 1 by default, and hides the pixel
+  // fields; Fixed Size keeps its pixels (GitHub issue 201).
+  CHECK(width->isVisible() && height->isVisible());
   style->setCurrentText(QStringLiteral("Fixed Ratio"));
-  width->setValue(2);
-  height->setValue(1);
   QApplication::processEvents();
+  auto* ratio_width = window.findChild<QDoubleSpinBox*>(QStringLiteral("selectionRatioWidthSpin"));
+  auto* ratio_height = window.findChild<QDoubleSpinBox*>(QStringLiteral("selectionRatioHeightSpin"));
+  CHECK(ratio_width != nullptr && ratio_height != nullptr);
+  if (ratio_width == nullptr || ratio_height == nullptr) {
+    return;
+  }
+  CHECK(ratio_width->isVisible() && ratio_height->isVisible());
+  CHECK(!width->isVisible() && !height->isVisible());
+  CHECK(ratio_width->value() == 1.0 && ratio_height->value() == 1.0);
+  CHECK(ratio_width->suffix().isEmpty() && !ratio_width->text().contains(QStringLiteral("px")));
+  save_widget_artifact("ui_marquee_fixed_ratio_options_bar", *window.findChild<QToolBar*>(QStringLiteral("Options")));
+  ratio_width->setValue(2);
+  ratio_height->setValue(1);
+  QApplication::processEvents();
+  CHECK(width->value() == 80 && height->value() == 50);
   CHECK(canvas->marquee_style() == patchy::ui::CanvasWidget::MarqueeStyle::FixedRatio);
   drag(*canvas, canvas->widget_position_for_document_point(QPoint(180, 40)),
        canvas->widget_position_for_document_point(QPoint(300, 140)));
@@ -620,6 +636,12 @@ void ui_marquee_fixed_size_and_ratio_options_work() {
   CHECK(canvas->selected_document_region().contains(QPoint(230, 64)));
   CHECK(!canvas->selected_document_region().contains(QPoint(230, 130)));
   save_widget_artifact("ui_marquee_fixed_size_ratio", *canvas);
+
+  // Back to Fixed Size: the pixel pair returns with its values, the ratio pair hides.
+  style->setCurrentText(QStringLiteral("Fixed Size"));
+  QApplication::processEvents();
+  CHECK(width->isVisible() && height->isVisible() && width->value() == 80);
+  CHECK(!ratio_width->isVisible() && !ratio_height->isVisible());
 }
 
 // Style: Normal greys out the marquee's Width and Height, and a click on a greyed field's

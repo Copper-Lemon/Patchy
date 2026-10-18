@@ -21916,6 +21916,30 @@ Patchy может скачать обновление, заменить этот
         <source>Daily</source>
         <translation>Ежедневно</translation>
     </message>
+    <message>
+        <source>Width part of the selection&apos;s aspect ratio</source>
+        <translation>Ширина в пропорциях выделения</translation>
+    </message>
+    <message>
+        <source>Height part of the selection&apos;s aspect ratio</source>
+        <translation>Высота в пропорциях выделения</translation>
+    </message>
+    <message>
+        <source>Duplicate Group</source>
+        <translation>Создать дубликат группы</translation>
+    </message>
+    <message>
+        <source>Duplicate Group to Document...</source>
+        <translation>Дублировать группу в документ...</translation>
+    </message>
+    <message>
+        <source>Rename Group...</source>
+        <translation>Переименовать группу...</translation>
+    </message>
+    <message>
+        <source>Delete Group</source>
+        <translation>Удалить группу</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

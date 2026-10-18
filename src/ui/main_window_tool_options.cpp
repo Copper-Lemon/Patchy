@@ -2436,6 +2436,28 @@ bool MainWindow::crop_option_widget_visible(QWidget* widget) const {
   return true;
 }
 
+bool MainWindow::marquee_option_widget_visible(QWidget* widget) const {
+  const auto in = [widget](const std::vector<QWidget*>& widgets) {
+    return std::find(widgets.begin(), widgets.end(), widget) != widgets.end();
+  };
+  const bool ratio = current_marquee_style_ == CanvasWidget::MarqueeStyle::FixedRatio;
+  if (in(marquee_ratio_option_widgets_)) {
+    return ratio;
+  }
+  if (in(marquee_size_option_widgets_)) {
+    return !ratio;
+  }
+  return true;
+}
+
+QSize MainWindow::marquee_fixed_size_for_canvas() const {
+  if (current_marquee_style_ == CanvasWidget::MarqueeStyle::FixedRatio) {
+    return QSize(std::max(1, static_cast<int>(std::lround(current_marquee_ratio_w_ * 1000.0))),
+                 std::max(1, static_cast<int>(std::lround(current_marquee_ratio_h_ * 1000.0))));
+  }
+  return QSize(current_marquee_width_, current_marquee_height_);
+}
+
 void MainWindow::sync_crop_ratio_preset_combo() {
   if (crop_ratio_preset_combo_ == nullptr || canvas_ == nullptr ||
       crop_ratio_preset_combo_->count() < 3) {
@@ -2503,7 +2525,7 @@ void MainWindow::refresh_options_bar_rows(bool live_shape) {
       const bool tool_matches =
           widget_tools.empty() || std::find(widget_tools.begin(), widget_tools.end(), tool) != widget_tools.end();
       if (widget != nullptr && tool_matches && vector_option_widget_visible(rules, widget, tool) &&
-          crop_option_widget_visible(widget)) {
+          crop_option_widget_visible(widget) && marquee_option_widget_visible(widget)) {
         row.insert(widget);
       }
     }
@@ -2571,7 +2593,7 @@ void MainWindow::refresh_options_bar() {
     // wrapping the bar onto a second row (which shifted the canvas down).
     const auto tool_matches = tools.empty() || std::find(tools.begin(), tools.end(), current_tool_) != tools.end();
     return tool_matches && !transform_session_active && vector_option_widget_visible(mode_rules, widget) &&
-           crop_option_widget_visible(widget) &&
+           crop_option_widget_visible(widget) && marquee_option_widget_visible(widget) &&
            !(collapse_sliders && widget->property(kOptionsBarCollapsibleProperty).toBool());
   };
   for (const auto& [widget, tools] : option_actions_) {

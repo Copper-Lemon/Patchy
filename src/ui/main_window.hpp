@@ -2189,6 +2189,11 @@ private:
   // the box's current proportion when the link button is down.
   void handle_crop_size_value_changed(bool horizontal, int value);
   [[nodiscard]] bool crop_option_widget_visible(QWidget* widget) const;
+  // The marquee's Fixed Ratio pair shows only for Fixed Ratio, the pixel pair otherwise.
+  [[nodiscard]] bool marquee_option_widget_visible(QWidget* widget) const;
+  // What CanvasWidget::set_marquee_fixed_size takes for the current style: the pixel
+  // size, or for Fixed Ratio the ratio scaled to integers (the canvas reads only W / H).
+  [[nodiscard]] QSize marquee_fixed_size_for_canvas() const;
   // Hands the Options bar every tool's row so it can keep one height across tool
   // switches (GitHub issue 91).
   void refresh_options_bar_rows(bool live_shape);
@@ -2782,6 +2787,11 @@ private:
   MarqueeStyle current_marquee_style_{MarqueeStyle::Normal};
   int current_marquee_width_{1024};
   int current_marquee_height_{768};
+  // Fixed Ratio's unitless pair, separate from the Fixed Size pixels (issue 201).
+  double current_marquee_ratio_w_{1.0};
+  double current_marquee_ratio_h_{1.0};
+  std::vector<QWidget*> marquee_ratio_option_widgets_;
+  std::vector<QWidget*> marquee_size_option_widgets_;
   int current_marquee_corner_radius_{0};
   // Feather and Anti-alias per selection tool (indexed by CanvasWidget::selection_tool_index),
   // persisted as tools/<tool>Feather and tools/<tool>AntiAlias. current_selection_* mirror

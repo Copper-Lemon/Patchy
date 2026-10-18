@@ -3009,11 +3009,23 @@ void MainWindow::show_layer_context_menu(QPoint position) {
   auto* new_adjustment_menu = new_menu->addMenu(simple_icon(QStringLiteral("ADJ"), QColor(190, 220, 255)),
                                                 tr("New Adjustment Layer"));
   populate_new_adjustment_layer_menu(new_adjustment_menu);
-  auto* duplicate_action = menu.addAction(simple_icon(QStringLiteral("dup")), tr("Duplicate Layer"));
+  // A right-clicked group (every selected row a group) gets Photoshop's group wording
+  // for the commands that act on it (GitHub issue 203).
+  const bool group_target =
+      active_layer != nullptr && active_layer->kind() == LayerKind::Group &&
+      std::all_of(ids.begin(), ids.end(), [this](LayerId id) {
+        const auto* layer = std::as_const(document()).find_layer(id);
+        return layer != nullptr && layer->kind() == LayerKind::Group;
+      });
+  auto* duplicate_action = menu.addAction(simple_icon(QStringLiteral("dup")),
+                                          group_target ? tr("Duplicate Group") : tr("Duplicate Layer"));
   auto* duplicate_to_document_action =
-      menu.addAction(simple_icon(QStringLiteral("dup")), tr("Duplicate Layer to Document..."));
-  auto* rename_action = menu.addAction(simple_icon(QStringLiteral("RN")), tr("Rename Layer..."));
-  auto* delete_action = menu.addAction(simple_icon(QStringLiteral("trash")), tr("Delete Layer"));
+      menu.addAction(simple_icon(QStringLiteral("dup")),
+                     group_target ? tr("Duplicate Group to Document...") : tr("Duplicate Layer to Document..."));
+  auto* rename_action = menu.addAction(simple_icon(QStringLiteral("RN")),
+                                       group_target ? tr("Rename Group...") : tr("Rename Layer..."));
+  auto* delete_action = menu.addAction(simple_icon(QStringLiteral("trash")),
+                                       group_target ? tr("Delete Group") : tr("Delete Layer"));
   QAction* ungroup_action = nullptr;
   if (active_layer != nullptr && active_layer->kind() == LayerKind::Group) {
     ungroup_action = menu.addAction(simple_icon(QStringLiteral("dir"), QColor(245, 205, 105)),

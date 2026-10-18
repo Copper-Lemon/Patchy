@@ -711,6 +711,71 @@ void ui_layer_style_color_overlay_patch_double_click_opens_picker() {
   CHECK(saw_dialog);
 }
 
+// A right-clicked group gets group wording for the commands that act on it (Duplicate,
+// Duplicate to Document, Rename, Delete), as Photoshop does; a plain layer keeps the
+// layer wording (GitHub issue 203).
+void ui_layer_context_menu_names_groups_as_groups() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  patchy::Document seed(120, 80, patchy::PixelFormat::rgba8());
+  const auto paper =
+      seed.add_pixel_layer("Paper", solid_pixels(120, 80, patchy::PixelFormat::rgba8(), QColor(255, 255, 255))).id();
+  patchy::Layer group(seed.allocate_layer_id(), "Shapes", patchy::LayerKind::Group);
+  const auto group_id = group.id();
+  patchy::Layer child(seed.allocate_layer_id(), "Dot", solid_pixels(10, 10, patchy::PixelFormat::rgba8(), QColor(200, 30, 30)));
+  group.add_child(std::move(child));
+  seed.add_layer(std::move(group));
+  window.add_document_session(std::move(seed), QStringLiteral("Groups"));
+  QApplication::processEvents();
+  auto* layer_list = window.findChild<QListWidget*>(QStringLiteral("layerList"));
+  CHECK(layer_list != nullptr);
+  if (layer_list == nullptr) {
+    return;
+  }
+  const auto menu_texts = [layer_list]() {
+    QStringList texts;
+    QTimer::singleShot(0, [&texts] {
+      for (auto* widget : QApplication::topLevelWidgets()) {
+        auto* menu = qobject_cast<QMenu*>(widget);
+        if (menu == nullptr || menu->objectName() != QStringLiteral("layerContextMenu")) {
+          continue;
+        }
+        for (auto* action : menu->actions()) {
+          texts << action->text().remove('&');
+        }
+        menu->close();
+        return;
+      }
+    });
+    auto* item = layer_list->currentItem();
+    CHECK(item != nullptr);
+    if (item == nullptr) {
+      return texts;
+    }
+    const auto point = layer_list->visualItemRect(item).center();
+    QContextMenuEvent event(QContextMenuEvent::Mouse, point, layer_list->viewport()->mapToGlobal(point));
+    QApplication::sendEvent(layer_list->viewport(), &event);
+    QApplication::processEvents();
+    return texts;
+  };
+
+  patchy::ui::MainWindowTestAccess::select_layers(window, {group_id}, group_id);
+  QApplication::processEvents();
+  const auto group_texts = menu_texts();
+  for (const auto* expected : {"Duplicate Group", "Duplicate Group to Document...", "Rename Group...", "Delete Group"}) {
+    CHECK(group_texts.contains(QLatin1String(expected)));
+  }
+  CHECK(!group_texts.contains(QStringLiteral("Delete Layer")));
+
+  patchy::ui::MainWindowTestAccess::select_layers(window, {paper}, paper);
+  QApplication::processEvents();
+  const auto layer_texts = menu_texts();
+  for (const auto* expected : {"Duplicate Layer", "Duplicate Layer to Document...", "Rename Layer...", "Delete Layer"}) {
+    CHECK(layer_texts.contains(QLatin1String(expected)));
+  }
+  CHECK(!layer_texts.contains(QStringLiteral("Delete Group")));
+}
+
 void ui_layer_context_menu_exposes_blending_options_dialog() {
   patchy::ui::MainWindow window;
   show_window(window);
@@ -2854,6 +2919,7 @@ std::vector<patchy::test::TestCase> layer_context_lifecycle_tests() {
        ui_layer_style_color_overlay_patch_double_click_opens_picker},
       {"ui_layer_context_menu_exposes_blending_options_dialog",
        ui_layer_context_menu_exposes_blending_options_dialog},
+      {"ui_layer_context_menu_names_groups_as_groups", ui_layer_context_menu_names_groups_as_groups},
       {"ui_layer_row_double_click_opens_blending_options_dialog",
        ui_layer_row_double_click_opens_blending_options_dialog},
       {"ui_layer_fx_badge_button_opens_layer_style_dialog", ui_layer_fx_badge_button_opens_layer_style_dialog},

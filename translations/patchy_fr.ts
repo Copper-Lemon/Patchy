@@ -21846,6 +21846,30 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
         <source>Daily</source>
         <translation>Chaque jour</translation>
     </message>
+    <message>
+        <source>Width part of the selection&apos;s aspect ratio</source>
+        <translation>Largeur du rapport d&apos;aspect de la sélection</translation>
+    </message>
+    <message>
+        <source>Height part of the selection&apos;s aspect ratio</source>
+        <translation>Hauteur du rapport d&apos;aspect de la sélection</translation>
+    </message>
+    <message>
+        <source>Duplicate Group</source>
+        <translation>Dupliquer le groupe</translation>
+    </message>
+    <message>
+        <source>Duplicate Group to Document...</source>
+        <translation>Dupliquer le groupe vers un document...</translation>
+    </message>
+    <message>
+        <source>Rename Group...</source>
+        <translation>Renommer le groupe...</translation>
+    </message>
+    <message>
+        <source>Delete Group</source>
+        <translation>Supprimer le groupe</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

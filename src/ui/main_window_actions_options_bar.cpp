@@ -994,23 +994,52 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
     selection_style_combo->setItemText(2, QObject::tr("Fixed Size"));
   });
   add_option_widget(style_combo, {CanvasTool::Marquee, CanvasTool::EllipticalMarquee});
-  add_option_label(QT_TR_NOOP("Width:"), {CanvasTool::Marquee, CanvasTool::EllipticalMarquee});
+  // Fixed Ratio has its own unitless pair (1 : 1 by default, as Photoshop); Normal and
+  // Fixed Size show the pixel fields (GitHub issue 201). marquee_option_widget_visible
+  // swaps the two sets.
+  marquee_ratio_option_widgets_.push_back(
+      add_option_label(QT_TR_NOOP("Width:"), {CanvasTool::Marquee, CanvasTool::EllipticalMarquee}));
+  auto* ratio_width = new QDoubleSpinBox(toolbar);
+  ratio_width->setObjectName(QStringLiteral("selectionRatioWidthSpin"));
+  ratio_width->setRange(0.01, 1000.0);
+  ratio_width->setDecimals(2);
+  ratio_width->setValue(current_marquee_ratio_w_);
+  bind_tooltip(ratio_width, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Width part of the selection's aspect ratio"));
+  configure_toolbar_spinbox(ratio_width, 56);
+  marquee_ratio_option_widgets_.push_back(
+      add_option_widget(ratio_width, {CanvasTool::Marquee, CanvasTool::EllipticalMarquee}));
+  marquee_ratio_option_widgets_.push_back(
+      add_option_label(QT_TR_NOOP("Height:"), {CanvasTool::Marquee, CanvasTool::EllipticalMarquee}));
+  auto* ratio_height = new QDoubleSpinBox(toolbar);
+  ratio_height->setObjectName(QStringLiteral("selectionRatioHeightSpin"));
+  ratio_height->setRange(0.01, 1000.0);
+  ratio_height->setDecimals(2);
+  ratio_height->setValue(current_marquee_ratio_h_);
+  bind_tooltip(ratio_height, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Height part of the selection's aspect ratio"));
+  configure_toolbar_spinbox(ratio_height, 56);
+  marquee_ratio_option_widgets_.push_back(
+      add_option_widget(ratio_height, {CanvasTool::Marquee, CanvasTool::EllipticalMarquee}));
+  marquee_size_option_widgets_.push_back(
+      add_option_label(QT_TR_NOOP("Width:"), {CanvasTool::Marquee, CanvasTool::EllipticalMarquee}));
   auto* fixed_width = new UnitIntSpinBox(SpinUnit::Pixels, toolbar);
   fixed_width->set_context_provider(document_axis_context(true));
   fixed_width->setObjectName(QStringLiteral("selectionFixedWidthSpin"));
   fixed_width->setRange(1, 30000);
   fixed_width->setValue(has_active_document() ? document().width() : 1024);
   configure_toolbar_spinbox(fixed_width, 78);
-  add_option_widget(fixed_width, {CanvasTool::Marquee, CanvasTool::EllipticalMarquee});
-  add_option_label(QT_TR_NOOP("Height:"), {CanvasTool::Marquee, CanvasTool::EllipticalMarquee});
+  marquee_size_option_widgets_.push_back(
+      add_option_widget(fixed_width, {CanvasTool::Marquee, CanvasTool::EllipticalMarquee}));
+  marquee_size_option_widgets_.push_back(
+      add_option_label(QT_TR_NOOP("Height:"), {CanvasTool::Marquee, CanvasTool::EllipticalMarquee}));
   auto* fixed_height = new UnitIntSpinBox(SpinUnit::Pixels, toolbar);
   fixed_height->set_context_provider(document_axis_context(false));
   fixed_height->setObjectName(QStringLiteral("selectionFixedHeightSpin"));
   fixed_height->setRange(1, 30000);
   fixed_height->setValue(has_active_document() ? document().height() : 768);
   configure_toolbar_spinbox(fixed_height, 78);
-  add_option_widget(fixed_height, {CanvasTool::Marquee, CanvasTool::EllipticalMarquee});
-  const auto apply_marquee_settings = [this, style_combo, fixed_width, fixed_height] {
+  marquee_size_option_widgets_.push_back(
+      add_option_widget(fixed_height, {CanvasTool::Marquee, CanvasTool::EllipticalMarquee}));
+  const auto apply_marquee_settings = [this, style_combo, fixed_width, fixed_height, ratio_width, ratio_height] {
     // Normal ignores the size fields, so they grey out (Fixed Ratio reads
     // them as the ratio, Fixed Size as the size).
     fixed_width->setEnabled(style_combo->currentIndex() != 0);
@@ -1028,12 +1057,22 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
     }
     current_marquee_width_ = fixed_width->value();
     current_marquee_height_ = fixed_height->value();
+    current_marquee_ratio_w_ = ratio_width->value();
+    current_marquee_ratio_h_ = ratio_height->value();
     if (canvas_ != nullptr) {
       canvas_->set_marquee_style(current_marquee_style_);
-      canvas_->set_marquee_fixed_size(current_marquee_width_, current_marquee_height_);
+      const auto fixed = marquee_fixed_size_for_canvas();
+      canvas_->set_marquee_fixed_size(fixed.width(), fixed.height());
     }
   };
-  connect(style_combo, &QComboBox::currentIndexChanged, this, [apply_marquee_settings](int) {
+  connect(style_combo, &QComboBox::currentIndexChanged, this, [this, apply_marquee_settings](int) {
+    apply_marquee_settings();
+    refresh_options_bar();
+  });
+  connect(ratio_width, &QDoubleSpinBox::valueChanged, this, [apply_marquee_settings](double) {
+    apply_marquee_settings();
+  });
+  connect(ratio_height, &QDoubleSpinBox::valueChanged, this, [apply_marquee_settings](double) {
     apply_marquee_settings();
   });
   connect(fixed_width, &QSpinBox::valueChanged, this, [apply_marquee_settings](int) {

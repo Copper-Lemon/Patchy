@@ -21776,6 +21776,30 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
         <source>Daily</source>
         <translation>每天</translation>
     </message>
+    <message>
+        <source>Width part of the selection&apos;s aspect ratio</source>
+        <translation>選取範圍長寬比的寬度部分</translation>
+    </message>
+    <message>
+        <source>Height part of the selection&apos;s aspect ratio</source>
+        <translation>選取範圍長寬比的高度部分</translation>
+    </message>
+    <message>
+        <source>Duplicate Group</source>
+        <translation>複製群組</translation>
+    </message>
+    <message>
+        <source>Duplicate Group to Document...</source>
+        <translation>複製群組至文件...</translation>
+    </message>
+    <message>
+        <source>Rename Group...</source>
+        <translation>重新命名群組...</translation>
+    </message>
+    <message>
+        <source>Delete Group</source>
+        <translation>刪除群組</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

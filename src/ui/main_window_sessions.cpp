@@ -189,7 +189,7 @@ void MainWindow::add_document_session(Document document, QString title, QString 
   apply_selection_modes_to_canvas(session->canvas);
   session->canvas->set_tool(current_tool_);
   session->canvas->set_marquee_style(current_marquee_style_);
-  session->canvas->set_marquee_fixed_size(current_marquee_width_, current_marquee_height_);
+  session->canvas->set_marquee_fixed_size(marquee_fixed_size_for_canvas().width(), marquee_fixed_size_for_canvas().height());
   session->canvas->set_marquee_corner_radius(current_marquee_corner_radius_);
   session->canvas->set_selection_feather_radius(current_selection_feather_radius_);
   session->canvas->set_selection_antialias(current_selection_antialias_);
@@ -405,7 +405,7 @@ void MainWindow::activate_document_canvas(CanvasWidget* canvas, const std::funct
   apply_selection_modes_to_canvas(canvas_);
   canvas_->set_tool(current_tool_);
   canvas_->set_marquee_style(current_marquee_style_);
-  canvas_->set_marquee_fixed_size(current_marquee_width_, current_marquee_height_);
+  canvas_->set_marquee_fixed_size(marquee_fixed_size_for_canvas().width(), marquee_fixed_size_for_canvas().height());
   canvas_->set_marquee_corner_radius(current_marquee_corner_radius_);
   canvas_->set_selection_feather_radius(current_selection_feather_radius_);
   canvas_->set_selection_antialias(current_selection_antialias_);

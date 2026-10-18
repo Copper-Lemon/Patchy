@@ -21776,6 +21776,30 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
         <source>Daily</source>
         <translation>매일</translation>
     </message>
+    <message>
+        <source>Width part of the selection&apos;s aspect ratio</source>
+        <translation>선택 영역 종횡비의 너비 값</translation>
+    </message>
+    <message>
+        <source>Height part of the selection&apos;s aspect ratio</source>
+        <translation>선택 영역 종횡비의 높이 값</translation>
+    </message>
+    <message>
+        <source>Duplicate Group</source>
+        <translation>그룹 복제</translation>
+    </message>
+    <message>
+        <source>Duplicate Group to Document...</source>
+        <translation>문서에 그룹 복제...</translation>
+    </message>
+    <message>
+        <source>Rename Group...</source>
+        <translation>그룹 이름 바꾸기...</translation>
+    </message>
+    <message>
+        <source>Delete Group</source>
+        <translation>그룹 삭제</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

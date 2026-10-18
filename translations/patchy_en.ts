@@ -21773,6 +21773,30 @@ Patchy can download the update, replace this AppImage, and start again. You will
         <source>Daily</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Width part of the selection&apos;s aspect ratio</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Height part of the selection&apos;s aspect ratio</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Duplicate Group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Duplicate Group to Document...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rename Group...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Delete Group</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

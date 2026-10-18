@@ -21916,6 +21916,30 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
         <source>Daily</source>
         <translation>Codziennie</translation>
     </message>
+    <message>
+        <source>Width part of the selection&apos;s aspect ratio</source>
+        <translation>Szerokość w proporcjach zaznaczenia</translation>
+    </message>
+    <message>
+        <source>Height part of the selection&apos;s aspect ratio</source>
+        <translation>Wysokość w proporcjach zaznaczenia</translation>
+    </message>
+    <message>
+        <source>Duplicate Group</source>
+        <translation>Powiel grupę</translation>
+    </message>
+    <message>
+        <source>Duplicate Group to Document...</source>
+        <translation>Powiel grupę do dokumentu...</translation>
+    </message>
+    <message>
+        <source>Rename Group...</source>
+        <translation>Zmień nazwę grupy...</translation>
+    </message>
+    <message>
+        <source>Delete Group</source>
+        <translation>Usuń grupę</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

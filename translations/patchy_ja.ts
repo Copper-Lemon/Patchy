@@ -21776,6 +21776,30 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <source>Daily</source>
         <translation>毎日</translation>
     </message>
+    <message>
+        <source>Width part of the selection&apos;s aspect ratio</source>
+        <translation>選択範囲の縦横比の幅</translation>
+    </message>
+    <message>
+        <source>Height part of the selection&apos;s aspect ratio</source>
+        <translation>選択範囲の縦横比の高さ</translation>
+    </message>
+    <message>
+        <source>Duplicate Group</source>
+        <translation>グループを複製</translation>
+    </message>
+    <message>
+        <source>Duplicate Group to Document...</source>
+        <translation>グループを別のドキュメントに複製...</translation>
+    </message>
+    <message>
+        <source>Rename Group...</source>
+        <translation>グループ名を変更...</translation>
+    </message>
+    <message>
+        <source>Delete Group</source>
+        <translation>グループを削除</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
