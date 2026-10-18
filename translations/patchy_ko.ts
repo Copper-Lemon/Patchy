@@ -14907,14 +14907,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>패치: 수정할 영역 주위를 그린 다음 선택 항목을 깨끗한 소스 영역으로 드래그하거나 Enter 키를 눌러 개체를 자동으로 제거합니다.</translation>
     </message>
     <message>
-        <source>Rectangular Marquee: drag to select. Drag a handle to resize the selection, or drag inside it to move it.</source>
-        <translation>사각형 선택 윤곽: 드래그하여 선택합니다. 핸들을 드래그하면 선택 영역의 크기가 바뀌고, 영역 안을 드래그하면 이동합니다.</translation>
-    </message>
-    <message>
-        <source>Elliptical Marquee: drag to select. Drag a handle to resize the selection, or drag inside it to move it.</source>
-        <translation>타원형 선택 윤곽: 드래그하여 선택합니다. 핸들을 드래그하면 선택 영역의 크기가 바뀌고, 영역 안을 드래그하면 이동합니다.</translation>
-    </message>
-    <message>
         <source>Marquee Tools</source>
         <translation>선택 윤곽 도구</translation>
     </message>
@@ -21723,6 +21715,34 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
         <translation>
             <numerusform>텍스트 레이어 %n개에 다음 글꼴이 없습니다: %1. 다시 렌더링하지 않고 기존 픽셀을 변형합니다. 계속하시겠습니까?</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Rectangular Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects. With nothing selected, Shift draws a square and %ALT% draws from the center.</source>
+        <translation>사각형 선택 윤곽: 드래그하여 선택합니다. Shift+드래그로 추가, %ALT%+드래그로 빼기, Shift+%ALT%+드래그로 교차 영역을 선택합니다. 선택 영역이 없으면 Shift는 정사각형을, %ALT%는 중심에서 그립니다.</translation>
+    </message>
+    <message>
+        <source>Elliptical Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects. With nothing selected, Shift draws a circle and %ALT% draws from the center.</source>
+        <translation>타원형 선택 윤곽: 드래그하여 선택합니다. Shift+드래그로 추가, %ALT%+드래그로 빼기, Shift+%ALT%+드래그로 교차 영역을 선택합니다. 선택 영역이 없으면 Shift는 정원을, %ALT%는 중심에서 그립니다.</translation>
+    </message>
+    <message>
+        <source>Lasso: drag around the area to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects.</source>
+        <translation>올가미: 영역 주위를 드래그하여 선택합니다. Shift+드래그로 추가, %ALT%+드래그로 빼기, Shift+%ALT%+드래그로 교차 영역을 선택합니다.</translation>
+    </message>
+    <message>
+        <source>Magnetic Lasso: click an edge and follow it; click to pin a point. Start with Shift+click to add, %ALT%+click to subtract, Shift+%ALT%+click to intersect. Backspace removes the last point, Enter closes, Esc cancels.</source>
+        <translation>자석 올가미: 가장자리를 클릭하고 따라가며, 클릭하면 점이 고정됩니다. 시작할 때 Shift+클릭은 추가, %ALT%+클릭은 빼기, Shift+%ALT%+클릭은 교차입니다. Backspace는 마지막 점을 지우고, Enter는 닫고, Esc는 취소합니다.</translation>
+    </message>
+    <message>
+        <source>Magic Wand: click a color to select it. Shift+click adds, %ALT%+click subtracts, Shift+%ALT%+click intersects.</source>
+        <translation>자동 선택: 색을 클릭하여 선택합니다. Shift+클릭으로 추가, %ALT%+클릭으로 빼기, Shift+%ALT%+클릭으로 교차 영역을 선택합니다.</translation>
+    </message>
+    <message>
+        <source>Quick Select: paint over the area to select; later strokes add to it. Shift+drag adds, %ALT%+drag subtracts.</source>
+        <translation>빠른 선택: 선택할 영역 위를 칠합니다. 이후의 획은 선택에 추가됩니다. Shift+드래그로 추가, %ALT%+드래그로 뺍니다.</translation>
+    </message>
+    <message>
+        <source>Object Selection: drag a box around an object or click it. Shift+drag adds, %ALT%+drag subtracts.</source>
+        <translation>개체 선택: 개체 주위로 상자를 드래그하거나 개체를 클릭합니다. Shift+드래그로 추가, %ALT%+드래그로 뺍니다.</translation>
     </message>
     <message>
         <source>Daily</source>

@@ -14977,14 +14977,6 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>Заплатка: обведите область, которую нужно исправить, затем перетащите выделение в чистую исходную область или нажмите Enter, чтобы удалить объект автоматически.</translation>
     </message>
     <message>
-        <source>Rectangular Marquee: drag to select. Drag a handle to resize the selection, or drag inside it to move it.</source>
-        <translation>Прямоугольная область: протяните указатель для выделения. Маркеры изменяют размер выделения; перетаскивание внутри перемещает его.</translation>
-    </message>
-    <message>
-        <source>Elliptical Marquee: drag to select. Drag a handle to resize the selection, or drag inside it to move it.</source>
-        <translation>Овальная область: протяните указатель для выделения. Маркеры изменяют размер выделения; перетаскивание внутри перемещает его.</translation>
-    </message>
-    <message>
         <source>Marquee Tools</source>
         <translation>Инструменты выделения</translation>
     </message>
@@ -21863,6 +21855,34 @@ Patchy может скачать обновление, заменить этот
             <numerusform>Для %n текстовых слоев отсутствуют шрифты: %1. Существующие пиксели будут преобразованы без повторной отрисовки. Продолжить?</numerusform>
             <numerusform>Для %n текстовых слоев отсутствуют шрифты: %1. Существующие пиксели будут преобразованы без повторной отрисовки. Продолжить?</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Rectangular Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects. With nothing selected, Shift draws a square and %ALT% draws from the center.</source>
+        <translation>Прямоугольная область: протяните указатель для выделения. Shift+перетаскивание добавляет, %ALT%+перетаскивание вычитает, Shift+%ALT%+перетаскивание оставляет пересечение. Без выделения Shift рисует квадрат, а %ALT% рисует от центра.</translation>
+    </message>
+    <message>
+        <source>Elliptical Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects. With nothing selected, Shift draws a circle and %ALT% draws from the center.</source>
+        <translation>Овальная область: протяните указатель для выделения. Shift+перетаскивание добавляет, %ALT%+перетаскивание вычитает, Shift+%ALT%+перетаскивание оставляет пересечение. Без выделения Shift рисует круг, а %ALT% рисует от центра.</translation>
+    </message>
+    <message>
+        <source>Lasso: drag around the area to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects.</source>
+        <translation>Лассо: обведите область, чтобы выделить её. Shift+перетаскивание добавляет, %ALT%+перетаскивание вычитает, Shift+%ALT%+перетаскивание оставляет пересечение.</translation>
+    </message>
+    <message>
+        <source>Magnetic Lasso: click an edge and follow it; click to pin a point. Start with Shift+click to add, %ALT%+click to subtract, Shift+%ALT%+click to intersect. Backspace removes the last point, Enter closes, Esc cancels.</source>
+        <translation>Магнитное лассо: щёлкните по краю и ведите вдоль него; щелчок закрепляет точку. Начните с Shift+щелчка, чтобы добавить, %ALT%+щелчка, чтобы вычесть, или Shift+%ALT%+щелчка для пересечения. Backspace удаляет последнюю точку, Enter замыкает контур, Esc отменяет.</translation>
+    </message>
+    <message>
+        <source>Magic Wand: click a color to select it. Shift+click adds, %ALT%+click subtracts, Shift+%ALT%+click intersects.</source>
+        <translation>Волшебная палочка: щёлкните по цвету, чтобы выделить его. Shift+щелчок добавляет, %ALT%+щелчок вычитает, Shift+%ALT%+щелчок оставляет пересечение.</translation>
+    </message>
+    <message>
+        <source>Quick Select: paint over the area to select; later strokes add to it. Shift+drag adds, %ALT%+drag subtracts.</source>
+        <translation>Быстрое выделение: закрасьте область, которую нужно выделить; следующие мазки добавляют к ней. Shift+перетаскивание добавляет, %ALT%+перетаскивание вычитает.</translation>
+    </message>
+    <message>
+        <source>Object Selection: drag a box around an object or click it. Shift+drag adds, %ALT%+drag subtracts.</source>
+        <translation>Выделение объектов: обведите объект рамкой или щёлкните по нему. Shift+перетаскивание добавляет, %ALT%+перетаскивание вычитает.</translation>
     </message>
     <message>
         <source>Daily</source>

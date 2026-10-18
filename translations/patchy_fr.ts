@@ -19485,14 +19485,6 @@ Y : %2
         </translation>
     </message>
     <message>
-        <source>Rectangular Marquee: drag to select. Drag a handle to resize the selection, or drag inside it to move it.</source>
-        <translation>Rectangle de sélection : faites glisser pour sélectionner. Faites glisser une poignée pour redimensionner la sélection, ou faites glisser à l&apos;intérieur pour la déplacer.</translation>
-    </message>
-    <message>
-        <source>Elliptical Marquee: drag to select. Drag a handle to resize the selection, or drag inside it to move it.</source>
-        <translation>Ellipse de sélection : faites glisser pour sélectionner. Faites glisser une poignée pour redimensionner la sélection, ou faites glisser à l&apos;intérieur pour la déplacer.</translation>
-    </message>
-    <message>
         <source>Snap transforms to the pixel grid</source>
         <translation>Aligner les transformations sur la grille de pixels</translation>
     </message>
@@ -21793,6 +21785,34 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
             <numerusform>Les polices suivantes sont manquantes pour %n calque de texte : %1. Les pixels existants seront transformés au lieu d&apos;être redessinés. Continuer ?</numerusform>
             <numerusform>Les polices suivantes sont manquantes pour %n calques de texte : %1. Les pixels existants seront transformés au lieu d&apos;être redessinés. Continuer ?</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Rectangular Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects. With nothing selected, Shift draws a square and %ALT% draws from the center.</source>
+        <translation>Rectangle de sélection : faites glisser pour sélectionner. Maj+glisser ajoute, %ALT%+glisser soustrait, Maj+%ALT%+glisser crée une intersection. Sans sélection, Maj trace un carré et %ALT% trace depuis le centre.</translation>
+    </message>
+    <message>
+        <source>Elliptical Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects. With nothing selected, Shift draws a circle and %ALT% draws from the center.</source>
+        <translation>Ellipse de sélection : faites glisser pour sélectionner. Maj+glisser ajoute, %ALT%+glisser soustrait, Maj+%ALT%+glisser crée une intersection. Sans sélection, Maj trace un cercle et %ALT% trace depuis le centre.</translation>
+    </message>
+    <message>
+        <source>Lasso: drag around the area to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects.</source>
+        <translation>Lasso : faites glisser autour de la zone pour la sélectionner. Maj+glisser ajoute, %ALT%+glisser soustrait, Maj+%ALT%+glisser crée une intersection.</translation>
+    </message>
+    <message>
+        <source>Magnetic Lasso: click an edge and follow it; click to pin a point. Start with Shift+click to add, %ALT%+click to subtract, Shift+%ALT%+click to intersect. Backspace removes the last point, Enter closes, Esc cancels.</source>
+        <translation>Lasso magnétique : cliquez sur un bord et suivez-le ; cliquez pour fixer un point. Commencez par Maj+clic pour ajouter, %ALT%+clic pour soustraire, Maj+%ALT%+clic pour une intersection. Retour arrière retire le dernier point, Entrée ferme, Échap annule.</translation>
+    </message>
+    <message>
+        <source>Magic Wand: click a color to select it. Shift+click adds, %ALT%+click subtracts, Shift+%ALT%+click intersects.</source>
+        <translation>Baguette magique : cliquez sur une couleur pour la sélectionner. Maj+clic ajoute, %ALT%+clic soustrait, Maj+%ALT%+clic crée une intersection.</translation>
+    </message>
+    <message>
+        <source>Quick Select: paint over the area to select; later strokes add to it. Shift+drag adds, %ALT%+drag subtracts.</source>
+        <translation>Sélection rapide : peignez sur la zone à sélectionner ; les tracés suivants l&apos;agrandissent. Maj+glisser ajoute, %ALT%+glisser soustrait.</translation>
+    </message>
+    <message>
+        <source>Object Selection: drag a box around an object or click it. Shift+drag adds, %ALT%+drag subtracts.</source>
+        <translation>Sélection d&apos;objet : tracez un cadre autour d&apos;un objet ou cliquez dessus. Maj+glisser ajoute, %ALT%+glisser soustrait.</translation>
     </message>
     <message>
         <source>Daily</source>

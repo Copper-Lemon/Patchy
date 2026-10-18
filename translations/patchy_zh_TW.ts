@@ -19430,14 +19430,6 @@ Y：%2
         </translation>
     </message>
     <message>
-        <source>Rectangular Marquee: drag to select. Drag a handle to resize the selection, or drag inside it to move it.</source>
-        <translation>矩形選取畫面:拖曳以選取。拖曳控制點可調整選取範圍大小，在選取範圍內拖曳可移動它。</translation>
-    </message>
-    <message>
-        <source>Elliptical Marquee: drag to select. Drag a handle to resize the selection, or drag inside it to move it.</source>
-        <translation>橢圓選取畫面:拖曳以選取。拖曳控制點可調整選取範圍大小，在選取範圍內拖曳可移動它。</translation>
-    </message>
-    <message>
         <source>Snap transforms to the pixel grid</source>
         <translation>將變形對齊至像素格線</translation>
     </message>
@@ -21723,6 +21715,34 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
         <translation>
             <numerusform>%n 個文字圖層遺失下列字體：%1。將變形現有像素，而非重新算繪。是否繼續？</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Rectangular Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects. With nothing selected, Shift draws a square and %ALT% draws from the center.</source>
+        <translation>矩形選取畫面：拖曳以選取。Shift+拖曳加入，%ALT%+拖曳減去，Shift+%ALT%+拖曳取交集。沒有選取範圍時，Shift 繪製正方形，%ALT% 從中心繪製。</translation>
+    </message>
+    <message>
+        <source>Elliptical Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects. With nothing selected, Shift draws a circle and %ALT% draws from the center.</source>
+        <translation>橢圓選取畫面：拖曳以選取。Shift+拖曳加入，%ALT%+拖曳減去，Shift+%ALT%+拖曳取交集。沒有選取範圍時，Shift 繪製正圓，%ALT% 從中心繪製。</translation>
+    </message>
+    <message>
+        <source>Lasso: drag around the area to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects.</source>
+        <translation>套索：沿區域周圍拖曳以選取。Shift+拖曳加入，%ALT%+拖曳減去，Shift+%ALT%+拖曳取交集。</translation>
+    </message>
+    <message>
+        <source>Magnetic Lasso: click an edge and follow it; click to pin a point. Start with Shift+click to add, %ALT%+click to subtract, Shift+%ALT%+click to intersect. Backspace removes the last point, Enter closes, Esc cancels.</source>
+        <translation>磁性套索：按一下邊緣並沿著它移動，按一下可固定一個點。以 Shift+點按開始為加入，以 %ALT%+點按開始為減去，以 Shift+%ALT%+點按開始為取交集。Backspace 刪除最後一個點，Enter 封閉，Esc 取消。</translation>
+    </message>
+    <message>
+        <source>Magic Wand: click a color to select it. Shift+click adds, %ALT%+click subtracts, Shift+%ALT%+click intersects.</source>
+        <translation>魔術棒：按一下顏色以選取它。Shift+點按加入，%ALT%+點按減去，Shift+%ALT%+點按取交集。</translation>
+    </message>
+    <message>
+        <source>Quick Select: paint over the area to select; later strokes add to it. Shift+drag adds, %ALT%+drag subtracts.</source>
+        <translation>快速選取：在要選取的區域上塗抹，之後的筆畫會加入選取範圍。Shift+拖曳加入，%ALT%+拖曳減去。</translation>
+    </message>
+    <message>
+        <source>Object Selection: drag a box around an object or click it. Shift+drag adds, %ALT%+drag subtracts.</source>
+        <translation>物件選取：在物件周圍拖曳出方框，或按一下物件。Shift+拖曳加入，%ALT%+拖曳減去。</translation>
     </message>
     <message>
         <source>Daily</source>

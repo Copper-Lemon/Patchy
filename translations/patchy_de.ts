@@ -19485,14 +19485,6 @@ Y: %2
         </translation>
     </message>
     <message>
-        <source>Rectangular Marquee: drag to select. Drag a handle to resize the selection, or drag inside it to move it.</source>
-        <translation>Auswahlrechteck: Ziehen, um auszuwählen. Griff ziehen, um die Auswahlgröße zu ändern, oder innerhalb ziehen, um sie zu verschieben.</translation>
-    </message>
-    <message>
-        <source>Elliptical Marquee: drag to select. Drag a handle to resize the selection, or drag inside it to move it.</source>
-        <translation>Auswahlellipse: Ziehen, um auszuwählen. Griff ziehen, um die Auswahlgröße zu ändern, oder innerhalb ziehen, um sie zu verschieben.</translation>
-    </message>
-    <message>
         <source>Snap transforms to the pixel grid</source>
         <translation>Transformationen am Pixelraster ausrichten</translation>
     </message>
@@ -21793,6 +21785,34 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
             <numerusform>Folgende Schriften fehlen für %n Textebene: %1. Die vorhandenen Pixel werden transformiert statt neu gerendert. Fortfahren?</numerusform>
             <numerusform>Folgende Schriften fehlen für %n Textebenen: %1. Die vorhandenen Pixel werden transformiert statt neu gerendert. Fortfahren?</numerusform>
         </translation>
+    </message>
+    <message>
+        <source>Rectangular Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects. With nothing selected, Shift draws a square and %ALT% draws from the center.</source>
+        <translation>Auswahlrechteck: Ziehen, um auszuwählen. Umschalt+Ziehen fügt hinzu, %ALT%+Ziehen zieht ab, Umschalt+%ALT%+Ziehen bildet die Schnittmenge. Ohne Auswahl zeichnet Umschalt ein Quadrat und %ALT% vom Mittelpunkt aus.</translation>
+    </message>
+    <message>
+        <source>Elliptical Marquee: drag to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects. With nothing selected, Shift draws a circle and %ALT% draws from the center.</source>
+        <translation>Auswahlellipse: Ziehen, um auszuwählen. Umschalt+Ziehen fügt hinzu, %ALT%+Ziehen zieht ab, Umschalt+%ALT%+Ziehen bildet die Schnittmenge. Ohne Auswahl zeichnet Umschalt einen Kreis und %ALT% vom Mittelpunkt aus.</translation>
+    </message>
+    <message>
+        <source>Lasso: drag around the area to select. Shift+drag adds, %ALT%+drag subtracts, Shift+%ALT%+drag intersects.</source>
+        <translation>Lasso: Um den Bereich ziehen, um ihn auszuwählen. Umschalt+Ziehen fügt hinzu, %ALT%+Ziehen zieht ab, Umschalt+%ALT%+Ziehen bildet die Schnittmenge.</translation>
+    </message>
+    <message>
+        <source>Magnetic Lasso: click an edge and follow it; click to pin a point. Start with Shift+click to add, %ALT%+click to subtract, Shift+%ALT%+click to intersect. Backspace removes the last point, Enter closes, Esc cancels.</source>
+        <translation>Magnetisches Lasso: Auf eine Kante klicken und ihr folgen; ein Klick setzt einen Punkt. Mit Umschalt+Klick beginnen, um hinzuzufügen, mit %ALT%+Klick, um abzuziehen, mit Umschalt+%ALT%+Klick für die Schnittmenge. Rücktaste entfernt den letzten Punkt, Eingabe schließt, Esc bricht ab.</translation>
+    </message>
+    <message>
+        <source>Magic Wand: click a color to select it. Shift+click adds, %ALT%+click subtracts, Shift+%ALT%+click intersects.</source>
+        <translation>Zauberstab: Auf eine Farbe klicken, um sie auszuwählen. Umschalt+Klick fügt hinzu, %ALT%+Klick zieht ab, Umschalt+%ALT%+Klick bildet die Schnittmenge.</translation>
+    </message>
+    <message>
+        <source>Quick Select: paint over the area to select; later strokes add to it. Shift+drag adds, %ALT%+drag subtracts.</source>
+        <translation>Schnellauswahl: Über den Bereich malen, um ihn auszuwählen; weitere Striche fügen hinzu. Umschalt+Ziehen fügt hinzu, %ALT%+Ziehen zieht ab.</translation>
+    </message>
+    <message>
+        <source>Object Selection: drag a box around an object or click it. Shift+drag adds, %ALT%+drag subtracts.</source>
+        <translation>Objektauswahl: Einen Rahmen um ein Objekt ziehen oder darauf klicken. Umschalt+Ziehen fügt hinzu, %ALT%+Ziehen zieht ab.</translation>
     </message>
     <message>
         <source>Daily</source>
