@@ -627,6 +627,81 @@ void ui_start_panel_recent_row_remove_button_and_menu() {
   CHECK(settings.value(QStringLiteral("recentFolders")).toStringList() == QStringList{folder_b});
 }
 
+// Seth's case: the Open Recent list's x keeps the list where it was, as the start panel's
+// does. The scroll position stays and the highlight moves to the entry that took the
+// removed row, or to the new last row when the bottom entry went.
+void ui_open_recent_menu_remove_keeps_place() {
+  ensure_artifact_dir();
+  QStringList recent_files;
+  for (int index = 0; index < 20; ++index) {
+    recent_files << QFileInfo(QStringLiteral("test-artifacts/open_recent_keep_place_%1.png").arg(index))
+                        .absoluteFilePath();
+    QImage image(8, 8, QImage::Format_RGB32);
+    image.fill(QColor(40 + index * 10, 90, 160));
+    CHECK(image.save(recent_files.last()));
+  }
+  {
+    auto settings = patchy::ui::app_settings();
+    settings.setValue(QStringLiteral("recentFiles"), recent_files);
+    settings.sync();
+  }
+  patchy::ui::MainWindow window;
+  show_window_empty(window);
+  auto* recent_menu = window.findChild<QMenu*>(QStringLiteral("fileOpenRecentMenu"));
+  CHECK(recent_menu != nullptr);
+  if (recent_menu == nullptr) {
+    return;
+  }
+  auto* file_menu = qobject_cast<QMenu*>(recent_menu->parentWidget());
+  CHECK(file_menu != nullptr);
+  QMetaObject::invokeMethod(file_menu, "aboutToShow");
+  QApplication::processEvents();
+  auto* list = dynamic_cast<patchy::ui::RecentFileList*>(
+      recent_menu->findChild<QListWidget*>(QStringLiteral("fileOpenRecentList")));
+  CHECK(list != nullptr && list->count() == 20);
+  if (list == nullptr) {
+    return;
+  }
+  list->resize(list->sizeHint());
+  QApplication::processEvents();
+  auto* scroll_bar = list->verticalScrollBar();
+  CHECK(scroll_bar->maximum() > 0);
+  const auto click_remove = [list](int row) {
+    const auto button =
+        patchy::ui::RecentFileList::remove_button_rect(list->visualItemRect(list->item(row))).center();
+    send_mouse(*list->viewport(), QEvent::MouseMove, button, Qt::NoButton, Qt::NoButton);
+    send_mouse(*list->viewport(), QEvent::MouseButtonPress, button, Qt::LeftButton, Qt::LeftButton);
+    send_mouse(*list->viewport(), QEvent::MouseButtonRelease, button, Qt::LeftButton, Qt::NoButton);
+    QApplication::processEvents();
+    QApplication::processEvents();
+  };
+  const auto row_path = [list](int row) { return list->item(row)->data(patchy::ui::kRecentPathRole).toString(); };
+
+  // Scrolled down a few rows, a middle entry goes.
+  const auto row_height = list->visualItemRect(list->item(0)).height();
+  scroll_bar->setValue(row_height * 4);
+  QApplication::processEvents();
+  const auto scrolled = scroll_bar->value();
+  CHECK(scrolled > 0);
+  click_remove(8);
+  CHECK(list->count() == 19);
+  CHECK(row_path(8) == recent_files[9]);
+  CHECK(list->currentRow() == 8);
+  if (scroll_bar->value() != scrolled) {
+    std::printf("scroll after remove %d, before %d\n", scroll_bar->value(), scrolled);
+  }
+  CHECK(scroll_bar->value() == scrolled);
+
+  // The bottom entry goes: the highlight lands on the new last row.
+  scroll_bar->setValue(scroll_bar->maximum());
+  QApplication::processEvents();
+  click_remove(list->count() - 1);
+  CHECK(list->count() == 18);
+  CHECK(list->currentRow() == 17);
+  CHECK(row_path(17) == recent_files[18]);
+  save_widget_artifact("ui_open_recent_menu_remove_keeps_place", *list);
+}
+
 // With no document open (the Home screen), every menu-bar command that needs a
 // document is disabled: Image > Crop to Selection (Advanced) and Layer > Edit
 // Adjustment crashed there, and Layer > Smart Objects stayed enabled (GitHub
@@ -2754,6 +2829,7 @@ std::vector<patchy::test::TestCase> app_shell_tests_part1() {
       {"ui_large_document_session_keeps_loading_responsive", ui_large_document_session_keeps_loading_responsive},
       {"ui_start_panel_recent_files_scroll_and_context_menu", ui_start_panel_recent_files_scroll_and_context_menu},
       {"ui_start_panel_recent_row_remove_button_and_menu", ui_start_panel_recent_row_remove_button_and_menu},
+      {"ui_open_recent_menu_remove_keeps_place", ui_open_recent_menu_remove_keeps_place},
       {"ui_empty_workspace_disables_document_commands", ui_empty_workspace_disables_document_commands},
       {"ui_start_panel_recent_filter_narrows_rows_and_opens_match", ui_start_panel_recent_filter_narrows_rows_and_opens_match},
       {"ui_start_panel_shows_about_info_and_update_status", ui_start_panel_shows_about_info_and_update_status},

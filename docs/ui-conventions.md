@@ -155,4 +155,4 @@ refresh. Network paths (UNC, and `DRIVE_REMOTE` drive letters on Windows) are ne
 and missing entries stay stored so an unplugged drive's entries return. A click on a
 vanished entry reports "Recent file is missing" and removes it. Rebuilds occur only when the
 displayed list changes, preserving a live start-panel filter. A row's context menu and its
-hover x (both lists) drop one entry (`remove_recent_path`, issue 157).
+hover x (both lists) drop one entry and keep the list's place (`remove_recent_path`, issue 157).

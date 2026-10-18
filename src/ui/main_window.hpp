@@ -1928,7 +1928,7 @@ private:
   };
   [[nodiscard]] const QStringList& recent_list_paths(const RecentListMenu& ui) const;
   bool build_recent_list_menu(RecentListMenu& ui, QMenu* menu);
-  void apply_recent_list_filter(RecentListMenu& ui, const QString& filter_text);
+  void apply_recent_list_filter(RecentListMenu& ui, const QString& filter_text, int keep_row = -1);
   bool handle_recent_list_filter_key(RecentListMenu& ui, QKeyEvent& event);
   void open_recent_list_path(const RecentListMenu& ui, const QString& path);
   void open_recent_folder(const QString& dir);

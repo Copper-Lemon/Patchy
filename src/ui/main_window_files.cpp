@@ -105,6 +105,7 @@
 #include <QProcess>
 #include <QProgressDialog>
 #include <QPushButton>
+#include <QScrollBar>
 #include <QRect>
 #include <QScopeGuard>
 #include <QSet>
@@ -5049,11 +5050,23 @@ bool MainWindow::build_recent_list_menu(RecentListMenu& ui, QMenu* menu) {
     }
   });
   // The hovered row's x removes that entry (GitHub issue 157) and keeps the menu
-  // open: the list refills in place, and the menu rebuilds on the next File open.
+  // open: the list refills in place, keeping its scroll position with the highlight
+  // on the entry that moved up into the removed row (as on the start panel), and the
+  // menu rebuilds on the next File open.
   list->set_remove_handler(
       [this, state](const QString& path) {
+        int removed_row = -1;
+        if (state->list != nullptr) {
+          for (int row = 0; row < state->list->count(); ++row) {
+            if (state->list->item(row)->data(kRecentPathRole).toString() == path) {
+              removed_row = row;
+              break;
+            }
+          }
+        }
         remove_recent_path(path, state->folders, /*rebuild_menus=*/false);
-        apply_recent_list_filter(*state, state->filter_edit != nullptr ? state->filter_edit->text() : QString());
+        apply_recent_list_filter(*state, state->filter_edit != nullptr ? state->filter_edit->text() : QString(),
+                                 removed_row);
       },
       state->folders ? tr("Remove from Recent Folders") : tr("Remove from Recent Files"));
   connect(list, &QListWidget::customContextMenuRequested, this, [this, state, list](const QPoint& position) {
@@ -5068,12 +5081,23 @@ bool MainWindow::build_recent_list_menu(RecentListMenu& ui, QMenu* menu) {
   return true;
 }
 
-void MainWindow::apply_recent_list_filter(RecentListMenu& ui, const QString& filter_text) {
+// `keep_row` >= 0 refills after a removal: the scroll position stays, and the highlight
+// lands on that row (the next entry), or the last one when the bottom entry went.
+void MainWindow::apply_recent_list_filter(RecentListMenu& ui, const QString& filter_text, int keep_row) {
   if (ui.list == nullptr) {
     return;
   }
+  const auto scroll = ui.list->verticalScrollBar()->value();
   const auto placeholder = ui.folders ? tr("No matching recent folders") : tr("No matching recent files");
   const auto rows = fill_recent_file_list(*ui.list, recent_list_paths(ui), filter_text, placeholder);
+  if (keep_row >= 0) {
+    // Lay the refilled rows out now: the scroll range is stale until then and would
+    // clamp the restored position.
+    ui.list->doItemsLayout();
+    ui.list->setCurrentRow(rows > 0 ? std::min(keep_row, rows - 1) : -1);
+    ui.list->verticalScrollBar()->setValue(scroll);
+    return;
+  }
   // The highlight starts on the best match, so Enter opens it.
   ui.list->setCurrentRow(rows > 0 ? 0 : -1);
   ui.list->scrollToTop();
