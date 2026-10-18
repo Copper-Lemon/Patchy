@@ -286,6 +286,7 @@ void CanvasWidget::set_document_internal(Document* document, bool preserve_frame
   invalidate_vector_preview();
   cancel_pointer_gestures();
   painting_ = false;
+  sync_stroke_input_compression();
   // An armed stroke ends with the outgoing document (the host validates the
   // entry before shrinking it).
   finish_paint_stroke_history();
@@ -1032,6 +1033,7 @@ void CanvasWidget::clear_smart_filter_mask_edit_target() {
   cancel_smart_filter_mask_edit();
   if (painting_) {
     painting_ = false;
+    sync_stroke_input_compression();
     reset_brush_smoothing();
     reset_axis_constrained_stroke();
   }

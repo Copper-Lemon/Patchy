@@ -2,6 +2,7 @@
 
 #include "ui/script_stroke.hpp"
 #include "ui/canvas_types.hpp"
+#include "ui/coalesced_pointer_input.hpp"
 
 #include "color/color_management.hpp"
 
@@ -18,6 +19,7 @@
 #include "ui/image_document_io.hpp"
 #include "ui/measurement_units.hpp"
 #include "ui/selection_outline.hpp"
+#include "ui/stroke_pixel_map.hpp"
 #include "ui/vector_preview_renderer.hpp"
 
 #include <QBasicTimer>
@@ -878,6 +880,12 @@ public:
   [[nodiscard]] QPointF preview_point_handle(int index) const;                  // document space
   [[nodiscard]] QPointF preview_point_handle_widget_position(int index) const;  // for tests and input
 
+  // Where a paint stroke gets the mouse positions the platform folded into a
+  // move event (coalesced_mouse_positions by default). Tests install a
+  // provider to feed a burst of samples through one event.
+  using CoalescedMousePositionsProvider = std::function<std::vector<QPointF>(const QMouseEvent&)>;
+  void set_coalesced_mouse_positions_provider(CoalescedMousePositionsProvider provider);
+
   [[nodiscard]] bool processing_overlay_visible() const noexcept;
   [[nodiscard]] bool processing_operation_active() const noexcept;
   // delay_ms_override < 0 uses the standard delay (processing_overlay_delay_ms,
@@ -1316,6 +1324,7 @@ private:
   bool patch_render_cache_rect(QRect document_rect, const QImage& partial);
   bool patch_render_cache_patches(const std::vector<RenderedDocumentPatch>& patches);
   void invalidate_display_mip_cache() noexcept;
+  void patch_display_mip_cache(const std::vector<RenderedDocumentPatch>& patches);
   void refresh_curves_clipping_preview();
   void ensure_move_base_cache();
   bool request_move_preview();
@@ -1547,6 +1556,14 @@ private:
                                                      Qt::KeyboardModifiers modifiers) noexcept;
   [[nodiscard]] QPoint axis_constrained_move_delta(QPoint raw_delta,
                                                    Qt::KeyboardModifiers modifiers) noexcept;
+  // One sample of a paint stroke (Brush, Eraser, Clone, Healing, Smudge, the
+  // local adjustment brushes, Mixer): stamps from the previous sample to this
+  // one and returns the document rect it wrote.
+  QRect advance_paint_stroke(QPoint document_point, QPointF document_point_f, Qt::KeyboardModifiers modifiers,
+                             CanvasTool effective_tool);
+  [[nodiscard]] std::vector<QPointF> coalesced_stroke_positions(const QMouseEvent& event);
+  // Keeps queued X11 motion uncompressed exactly while painting_ is set.
+  void sync_stroke_input_compression();
   void begin_brush_smoothing(QPointF document_point) noexcept;
   void reset_brush_smoothing() noexcept;
   // Stroke Smoothing (the taut-leash stabilizer). It applies between the axis
@@ -2351,6 +2368,9 @@ private:
   QPoint spacebar_reposition_start_selection_start_{};
   QPoint spacebar_reposition_start_selection_current_{};
   bool painting_{false};
+  CoalescedMouseState coalesced_mouse_state_{};
+  CoalescedMousePositionsProvider coalesced_mouse_positions_provider_{};
+  UncompressedPointerInputScope stroke_input_scope_{};
   QBasicTimer airbrush_timer_;
   bool brush_adjust_dragging_{false};
   QPoint brush_adjust_origin_widget_{};
@@ -2637,10 +2657,10 @@ private:
   bool processing_operation_owns_overlay_{false};
   QString processing_overlay_message_{};
   int processing_animation_frame_{0};
-  std::unordered_set<std::uint64_t> brush_stroke_pixels_;
-  std::unordered_map<std::uint64_t, float> brush_stroke_alpha_caps_;  // mask brush + clone max-cap
-  std::unordered_map<std::uint64_t, float> brush_stroke_accumulated_alpha_;
-  std::unordered_map<std::uint64_t, float> brush_stroke_union_coverage_;
+  StrokePixelMap<std::uint8_t> brush_stroke_pixels_;
+  StrokePixelMap<float> brush_stroke_alpha_caps_;  // mask brush + clone max-cap
+  StrokePixelMap<float> brush_stroke_accumulated_alpha_;
+  StrokePixelMap<float> brush_stroke_union_coverage_;
   std::unordered_map<std::uint64_t, EditColor> brush_stroke_wet_edge_primary_;
   QRect brush_stroke_wet_edge_pending_rect_{};
   std::optional<QPointF> brush_stroke_last_stamp_position_;

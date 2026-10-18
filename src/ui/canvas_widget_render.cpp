@@ -149,7 +149,7 @@ QImage downscaled_to_mip_level(QImage image, int level) {
     if (next_size == image.size()) {
       break;
     }
-    image = image.scaled(next_size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).convertToFormat(image.format());
+    image = halved_display_mip(image);
   }
   return image;
 }
@@ -668,12 +668,15 @@ void CanvasWidget::document_changed_impl(QRegion document_region, bool includes_
     end_processing_operation();
   }
   notify_document_changed(reason);
-  if (zoom_ < 1.0) {
-    update();
-  } else {
+  {
+    // Zoomed out, the patched display mip changes only the blocks under the
+    // region (patch_display_mip_cache); the margin covers the smooth scale's
+    // one-pixel reach into the neighbours. A whole-widget repaint here made
+    // every brush frame redraw the full view (GitHub issue 165).
+    const int margin = zoom_ < 1.0 ? 2 : 0;
     QRegion widget_region;
     for (const auto& rect : document_region) {
-      widget_region += widget_rect_for_document_rect(rect);
+      widget_region += widget_rect_for_document_rect(rect).adjusted(-margin, -margin, margin, margin);
     }
     if (tiling_ghosts_visible(rect())) {
       // Seamless tiling mode: the ghost copies of the dirty region must repaint too.
@@ -687,7 +690,8 @@ void CanvasWidget::document_changed_impl(QRegion document_region, bool includes_
       for (const auto offset : offsets) {
         const QPoint delta(offset.x() * document_->width(), offset.y() * document_->height());
         for (const auto& rect : document_region) {
-          widget_region += widget_rect_for_document_rect(rect.translated(delta));
+          widget_region += widget_rect_for_document_rect(rect.translated(delta))
+                               .adjusted(-margin, -margin, margin, margin);
         }
       }
     }
@@ -1475,9 +1479,36 @@ bool CanvasWidget::patch_render_cache_patches(const std::vector<RenderedDocument
   }
   render_cache_dirty_ = false;
   render_cache_diagnostics_.partial_patches += static_cast<int>(patches.size());
-  invalidate_display_mip_cache();
+  patch_display_mip_cache(patches);
   refresh_curves_clipping_preview();
   return true;
+}
+
+void CanvasWidget::patch_display_mip_cache(const std::vector<RenderedDocumentPatch>& patches) {
+  // Rebuilding the chain here cost the whole composite on the next zoomed-out
+  // paint: once per brush frame (GitHub issue 165). Each level instead
+  // recomputes only the blocks under the patches, bit-identical to a rebuild.
+  // PATCHY_DISPLAY_MIP_PATCH=0 restores the rebuild for diagnosis.
+  static const bool patching_disabled = qEnvironmentVariableIntValue("PATCHY_DISPLAY_MIP_PATCH") == 0 &&
+                                        qEnvironmentVariableIsSet("PATCHY_DISPLAY_MIP_PATCH");
+  if (patching_disabled || display_mip_cache_.empty() || display_mip_source_size_ != render_cache_.size()) {
+    invalidate_display_mip_cache();
+    return;
+  }
+  tiling_tile_pixmap_ = QPixmap();
+  tiling_tile_pixmap_size_ = QSize();
+  for (const auto& patch : patches) {
+    auto rect = patch.document_rect.intersected(render_cache_.rect());
+    const QImage* source = &render_cache_;
+    for (auto& level : display_mip_cache_) {
+      rect = halved_display_mip_rect(rect);
+      if (rect.isEmpty()) {
+        break;
+      }
+      refresh_halved_display_mip(*source, level, rect);
+      source = &level;
+    }
+  }
 }
 
 void CanvasWidget::invalidate_display_mip_cache() noexcept {
@@ -1781,6 +1812,9 @@ const QImage& CanvasWidget::display_image_for_zoom() {
     return render_cache_;
   }
 
+  if (display_mip_cache_.empty()) {
+    ++render_cache_diagnostics_.display_mip_rebuilds;
+  }
   while (static_cast<int>(display_mip_cache_.size()) < target_level) {
     const auto& previous = display_mip_cache_.empty() ? render_cache_ : display_mip_cache_.back();
     const QSize next_size(std::max(1, (previous.width() + 1) / 2),
@@ -1789,7 +1823,7 @@ const QImage& CanvasWidget::display_image_for_zoom() {
       break;
     }
     display_mip_cache_.push_back(
-        previous.scaled(next_size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).convertToFormat(previous.format()));
+        halved_display_mip(previous));
   }
 
   const auto level = std::min<int>(target_level, static_cast<int>(display_mip_cache_.size()));
@@ -1822,8 +1856,7 @@ const QImage& CanvasWidget::curves_clipping_display_image_for_zoom() {
       break;
     }
     curves_clipping_display_mip_cache_.push_back(
-        previous.scaled(next_size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
-            .convertToFormat(previous.format()));
+        halved_display_mip(previous));
   }
 
   const auto level =
@@ -1862,7 +1895,7 @@ const QImage& CanvasWidget::move_base_display_image_for_zoom() {
       break;
     }
     move_base_display_mip_cache_.push_back(
-        previous.scaled(next_size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).convertToFormat(previous.format()));
+        halved_display_mip(previous));
   }
 
   const auto level = std::min<int>(target_level, static_cast<int>(move_base_display_mip_cache_.size()));
@@ -1899,7 +1932,7 @@ const QImage& CanvasWidget::transform_base_display_image_for_zoom() {
       break;
     }
     transform_base_display_mip_cache_.push_back(
-        previous.scaled(next_size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).convertToFormat(previous.format()));
+        halved_display_mip(previous));
   }
 
   const auto level = std::min<int>(target_level, static_cast<int>(transform_base_display_mip_cache_.size()));
@@ -1933,7 +1966,7 @@ const QImage& CanvasWidget::warp_base_display_image_for_zoom() {
       break;
     }
     warp_base_display_mip_cache_.push_back(
-        previous.scaled(next_size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation).convertToFormat(previous.format()));
+        halved_display_mip(previous));
   }
 
   const auto level = std::min<int>(target_level, static_cast<int>(warp_base_display_mip_cache_.size()));

@@ -121,7 +121,7 @@ Read these before acting in the named area:
 - Every gradient descriptor Patchy writes carries at least two transparency stops, and a file that already has none heals on save. An empty `Trns` list makes Photoshop discard the layer behind its "unknown data" prompt; `scripts\dev\photoshop-open-check.ps1` detects that prompt per file. See [docs/ps-compat.md](docs/ps-compat.md).
 - Never leave a Qt host lookup pending at quit: `~QCoreApplication` waits for `QHostInfo`'s thread pool with no timeout (GitHub issue 48, a macOS quit freeze). `update_checker.cpp` resolves the host on a detached thread first; any new network client does the same. The tracked-worker wait after `app.exec()` is bounded (`finish_after_event_loop`): a worker still blocked after 10 s ends the process without destructors after dropping the recovery folder, so never rely on a destructor for anything the user could lose.
 - Never rely on Qt's automatic quit: inactive before `app.exec()` (startup pumps events for command-line opens and the update check), and inside exec a shown window deletes its posted event. `main.cpp` skips exec for a window closed during startup; the update close calls `QCoreApplication::exit(0)`.
-- Claude Code's Bash tool rewrites backslash escapes in heredocs; write a file and run it.
+- Bash heredocs rewrite backslash escapes (write a file and run it); Windows Python text mode writes CRLF (use `newline=''`).
 
 ## Feature index
 
