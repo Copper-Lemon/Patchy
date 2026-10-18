@@ -315,6 +315,17 @@ void MainWindow::fit_right_dock_floors_to_screen() {
   if (budget <= 0 || layout() == nullptr || panel_column_ == nullptr) {
     return;
   }
+  // The Layers panel's fixed 240 px floor overrides its layout's minimum, so on
+  // font metrics where the content needs more (241 px on macOS) the panel could be
+  // squeezed below its own controls. Keep the floor at least that minimum.
+  if (auto* layers_panel = findChild<QWidget*>(QStringLiteral("layersPanel"));
+      layers_panel != nullptr && layers_panel->layout() != nullptr && layers_panel->minimumHeight() > 0) {
+    const int content_floor = layers_panel->layout()->minimumSize().height();
+    if (layers_panel->minimumHeight() < content_floor) {
+      layers_panel->setMinimumHeight(content_floor);
+      layers_panel->updateGeometry();
+    }
+  }
   // The workspace splitter does not pass the column's size changes on to the window's
   // layout by itself; without this the minimum read below (and the activation at the
   // end) would use a stale column size.
