@@ -15,13 +15,18 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
+#include <QDialogButtonBox>
 #include <QElapsedTimer>
 #include <QEventLoop>
 #include <QGroupBox>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QPainter>
+#include <QPainterPath>
 #include <QPushButton>
+#include <QScreen>
+#include <QScrollBar>
 #include <QScrollArea>
 #include <QSpinBox>
 #include <QSlider>
@@ -33,6 +38,7 @@
 #include <array>
 #include <cstdint>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <exception>
 #include <filesystem>
@@ -1882,10 +1888,202 @@ void ui_layer_style_slider_rows_have_step_buttons() {
   CHECK(std::abs(result.highlight_opacity - 0.74F) < 0.005F);
 }
 
+// Draws the dialog where it sits on its screen, dimming whatever lies past the
+// screen's available area and outlining that area in red, so the artifact shows
+// at a glance whether OK/Cancel are reachable.
+QImage dialog_on_screen_image(QWidget& dialog, QRect available) {
+  const auto frame = dialog.frameGeometry();
+  const auto canvas = available.united(frame).adjusted(-8, -8, 8, 8);
+  QImage image(canvas.size(), QImage::Format_ARGB32_Premultiplied);
+  image.fill(QColor(40, 40, 40));
+  QPainter painter(&image);
+  painter.translate(-canvas.topLeft());
+  painter.fillRect(available, QColor(96, 104, 112));
+  painter.drawPixmap(dialog.geometry().topLeft(), dialog.grab());
+  QPainterPath outside;
+  outside.addRect(canvas);
+  QPainterPath inside;
+  inside.addRect(available);
+  painter.fillPath(outside.subtracted(inside), QColor(0, 0, 0, 150));
+  painter.setPen(QPen(QColor(230, 40, 40), 3));
+  painter.drawRect(available.adjusted(1, 1, -2, -2));
+  return image;
+}
+
+void ui_layer_style_dialog_fits_a_short_screen() {
+  // GitHub issue 190: the Blending Options page (Blend If included) made the
+  // dialog taller than a 768 px screen (Linux desktop fonts are larger than
+  // the suite's), so OK and Cancel sat below its edge. The offscreen screen is
+  // 800 x 800; an imported Photoshop layer whose three notices (missing
+  // pattern, Satin contour, unsupported Blend If) sit above the pages makes
+  // the dialog taller than that here. It must cap itself to the available
+  // height, keep its buttons on screen, and scroll the settings pane instead.
+  patchy::Document document(96, 72, patchy::PixelFormat::rgba8());
+  patchy::Layer layer(document.allocate_layer_id(), "Short Screen",
+                      solid_pixels(48, 36, patchy::PixelFormat::rgba8(), QColor(80, 140, 220, 255)));
+  patchy::LayerPatternOverlay missing_pattern;
+  missing_pattern.enabled = true;
+  missing_pattern.pattern_id = "issue-190-missing-pattern";
+  missing_pattern.pattern_name = "Missing Pattern";
+  layer.layer_style().pattern_overlays.push_back(missing_pattern);
+  patchy::LayerSatin satin;
+  satin.enabled = true;
+  satin.unsupported_contour_options = true;
+  layer.layer_style().satins.push_back(satin);
+  layer.set_blend_if_payload({1});
+  const auto layer_id = layer.id();
+  document.add_layer(std::move(layer));
+  document.set_active_layer(layer_id);
+
+  // Opened from the main window, as in the app: the dialog inherits the
+  // window's theme sheet (its scroll bar included) and sizes to its screen.
+  patchy::ui::MainWindow window;
+  window.add_document_session(std::move(document), QStringLiteral("Short Screen"));
+  show_window(window);
+  bool inspected = false;
+  QTimer::singleShot(0, &window, [&] {
+    auto* dialog = qobject_cast<QDialog*>(find_top_level_dialog(QStringLiteral("patchyLayerStyleDialog")));
+    CHECK(dialog != nullptr);
+    if (dialog == nullptr) {
+      return;
+    }
+    QApplication::processEvents();
+    const auto* screen = dialog->screen();
+    CHECK(screen != nullptr);
+    const auto available = screen != nullptr ? screen->availableGeometry() : QRect(0, 0, 800, 600);
+    auto* buttons = dialog->findChild<QDialogButtonBox*>();
+    CHECK(buttons != nullptr);
+    const auto stack = dialog->findChild<QWidget*>(QStringLiteral("layerStyleOptionsStack"));
+    CHECK(stack != nullptr);
+    auto* pane = dialog->findChild<QScrollArea*>(QStringLiteral("layerStyleOptionsScroll"));
+    std::printf("layer style dialog %dx%d (minimum %d) at %d,%d on %dx%d available (stack minimum %d, pane %d)\n",
+                dialog->width(), dialog->height(), dialog->minimumHeight(), dialog->x(), dialog->y(),
+                available.width(), available.height(), stack != nullptr ? stack->minimumSizeHint().height() : -1,
+                pane != nullptr ? pane->height() : -1);
+    save_image_artifact("ui_layer_style_dialog_short_screen", dialog_on_screen_image(*dialog, available));
+    if (stack != nullptr) {
+      save_widget_artifact("ui_layer_style_blending_options_page", *stack);
+    }
+    CHECK(available.contains(dialog->frameGeometry()));
+    if (buttons != nullptr) {
+      const QRect button_rect(buttons->mapToGlobal(QPoint(0, 0)), buttons->size());
+      CHECK(available.contains(button_rect));
+      CHECK(!buttons->visibleRegion().isEmpty());
+    }
+    // The settings pane scrolls: its last Blend If field is out of view at
+    // first and comes into view by scrolling, never by growing the dialog.
+    auto* scroll = dialog->findChild<QScrollArea*>(QStringLiteral("layerStyleOptionsScroll"));
+    CHECK(scroll != nullptr);
+    auto* last_field = dialog->findChild<QSpinBox*>(QStringLiteral("layerStyleBlendIfUnderlyingWhiteHighSpin"));
+    CHECK(last_field != nullptr);
+    if (scroll != nullptr && last_field != nullptr) {
+      CHECK(scroll->verticalScrollBar()->maximum() > 0);
+      const auto height_before = dialog->height();
+      scroll->ensureWidgetVisible(last_field);
+      QApplication::processEvents();
+      CHECK(!last_field->visibleRegion().isEmpty());
+      CHECK(dialog->height() == height_before);
+      // The pane is wide enough for its widest page next to the scroll bar:
+      // no field is clipped on the right.
+      CHECK(last_field->mapTo(scroll->viewport(), QPoint(last_field->width(), 0)).x() <=
+            scroll->viewport()->width());
+    }
+    inspected = true;
+    dialog->reject();
+  });
+
+  require_action(window, "layerBlendingOptionsAction")->trigger();
+  QApplication::processEvents();
+  CHECK(inspected);
+}
+
+void ui_layer_style_knockout_and_vector_mask_hides_effects_commit() {
+  // GitHub issue 191: Blending Options gains Photoshop's Knockout (None,
+  // Shallow, Deep) and Vector Mask Hides Effects. The layer carries the None
+  // 'knko' block Photoshop writes on every layer; committing Deep patches it
+  // in place, and the vector flag lands in the layer style.
+  patchy::Document document(96, 72, patchy::PixelFormat::rgba8());
+  patchy::Layer layer(document.allocate_layer_id(), "Knockout",
+                      solid_pixels(48, 36, patchy::PixelFormat::rgba8(), QColor(80, 140, 220, 255)));
+  const auto layer_id = layer.id();
+  layer.unknown_psd_blocks().push_back({"knko", {0, 0, 0, 0}});
+  document.add_layer(std::move(layer));
+  document.set_active_layer(layer_id);
+
+  patchy::ui::MainWindow window;
+  window.add_document_session(std::move(document), QStringLiteral("Knockout"));
+  show_window(window);
+  bool inspected = false;
+  QTimer::singleShot(0, &window, [&] {
+    auto* dialog = qobject_cast<QDialog*>(find_top_level_dialog(QStringLiteral("patchyLayerStyleDialog")));
+    CHECK(dialog != nullptr);
+    if (dialog == nullptr) {
+      return;
+    }
+    auto* knockout = dialog->findChild<QComboBox*>(QStringLiteral("layerStyleKnockoutCombo"));
+    auto* vector_hides = dialog->findChild<QCheckBox*>(QStringLiteral("layerStyleVectorMaskHidesEffectsCheck"));
+    CHECK(knockout != nullptr);
+    CHECK(vector_hides != nullptr);
+    if (knockout == nullptr || vector_hides == nullptr) {
+      dialog->reject();
+      return;
+    }
+    CHECK(knockout->isEnabled());
+    CHECK(knockout->count() == 3);
+    CHECK(knockout->currentData().toInt() == 0);
+    CHECK(!vector_hides->isChecked());
+    knockout->setCurrentIndex(knockout->findData(2));
+    vector_hides->setChecked(true);
+    QTest::qWait(80);
+    // The live preview already renders the knockout from the patched block.
+    const auto* preview_layer = patchy::ui::MainWindowTestAccess::document(window).find_layer(layer_id);
+    CHECK(preview_layer != nullptr);
+    if (preview_layer != nullptr) {
+      CHECK(patchy::layer_knockout_setting(*preview_layer) == std::optional<std::uint8_t>{std::uint8_t{2}});
+    }
+    if (auto* stack = dialog->findChild<QWidget*>(QStringLiteral("layerStyleOptionsStack")); stack != nullptr) {
+      save_widget_artifact("ui_layer_style_blending_options_knockout", *stack);
+    }
+    inspected = true;
+    dialog->accept();
+  });
+  require_action(window, "layerBlendingOptionsAction")->trigger();
+  QApplication::processEvents();
+  CHECK(inspected);
+  const auto* committed = patchy::ui::MainWindowTestAccess::document(window).find_layer(layer_id);
+  CHECK(committed != nullptr);
+  if (committed != nullptr) {
+    CHECK(committed->layer_style().vector_mask_hides_effects);
+    CHECK(patchy::layer_knockout_setting(*committed) == std::optional<std::uint8_t>{std::uint8_t{2}});
+    CHECK(committed->unknown_psd_blocks().size() == 1U);
+  }
+
+  // A knko payload Patchy cannot interpret leaves the control disabled and
+  // the commit cannot change it.
+  patchy::Document other(96, 72, patchy::PixelFormat::rgba8());
+  patchy::Layer unknown(other.allocate_layer_id(), "Unknown Knockout",
+                        solid_pixels(48, 36, patchy::PixelFormat::rgba8(), QColor(80, 140, 220, 255)));
+  unknown.unknown_psd_blocks().push_back({"knko", {9, 0, 0, 0}});
+  QTimer::singleShot(0, [] {
+    auto* dialog = qobject_cast<QDialog*>(find_top_level_dialog(QStringLiteral("patchyLayerStyleDialog")));
+    CHECK(dialog != nullptr);
+    if (dialog == nullptr) {
+      return;
+    }
+    auto* knockout = dialog->findChild<QComboBox*>(QStringLiteral("layerStyleKnockoutCombo"));
+    CHECK(knockout != nullptr && !knockout->isEnabled());
+    dialog->accept();
+  });
+  CHECK(patchy::ui::request_layer_style_settings(nullptr, unknown, {}).has_value());
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> layer_style_gradient_tests_part1() {
   return {
+      {"ui_layer_style_dialog_fits_a_short_screen", ui_layer_style_dialog_fits_a_short_screen},
+      {"ui_layer_style_knockout_and_vector_mask_hides_effects_commit",
+       ui_layer_style_knockout_and_vector_mask_hides_effects_commit},
       {"ui_layer_style_shadow_distances_accept_photoshop_30000",
        ui_layer_style_shadow_distances_accept_photoshop_30000},
       {"ui_layer_style_dialog_coalesces_rapid_slider_preview_callbacks",

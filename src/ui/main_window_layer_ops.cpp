@@ -2565,6 +2565,7 @@ void MainWindow::edit_active_layer_style() {
       clear_layer_psd_style_source(target);
     }
     if (original.channel_restriction_supported()) target.set_restricted_channels(next.restricted_channels);
+    if (layer_knockout_setting(original).has_value()) set_layer_knockout(target, next.knockout);
     target.set_blend_if_payload(original.raw_psd_blending_ranges(), original.blend_if_rgb_compatible());
     if (next.replace_unsupported_blend_if || next.blend_if != baseline.blend_if)
       (void)target.set_blend_if(next.blend_if, next.replace_unsupported_blend_if);
@@ -2630,6 +2631,7 @@ void MainWindow::edit_active_layer_style() {
           !next.replace_unsupported_blend_if) next.blend_if = context.originals[index].blend_if;
       if (!originals[index].channel_restriction_supported())
         next.restricted_channels = context.originals[index].restricted_channels;
+      if (!layer_knockout_setting(originals[index]).has_value()) next.knockout = context.originals[index].knockout;
       if (!layer_style_settings_equal(context.originals[index], next) ||
           (next.opacity_edited && originals[index].opacity() != next.opacity / 100.0F) ||
           (next.fill_opacity_edited && originals[index].fill_opacity() != next.fill_opacity / 100.0F))

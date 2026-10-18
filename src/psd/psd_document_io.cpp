@@ -1095,6 +1095,7 @@ std::vector<Layer> read_layer_info_records(BigEndianReader& layer_reader, std::i
     }
     layer.layer_style() = record.layer_style;
     layer.layer_style().layer_mask_hides_effects = record.layer_mask_hides_effects;
+    layer.layer_style().vector_mask_hides_effects = record.vector_mask_hides_effects;
     layer.layer_style().blend_interior_elements = record.blend_interior_elements;
     layer.layer_style().blend_clipped_elements = record.blend_clipped_elements;
     resolve_global_light(layer.layer_style(), global_light_angle, global_light_altitude);

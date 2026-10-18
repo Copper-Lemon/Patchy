@@ -5,6 +5,7 @@
 #include "support/translate_noop.hpp"
 
 #include <algorithm>
+#include <utility>
 #include <array>
 #include <atomic>
 #include <cstdio>
@@ -430,6 +431,36 @@ void set_photoshop_layer_id(Layer& layer, std::uint32_t id) {
   blocks.insert(blocks.begin() +
                     static_cast<std::ptrdiff_t>(std::min(index, blocks.size())),
                 std::move(replacement));
+}
+
+std::optional<std::uint8_t> layer_knockout_setting(const Layer& layer) noexcept {
+  for (const auto& block : layer.unknown_psd_blocks()) {
+    if (block.key == "knko") {
+      if (block.payload.size() != 4U || block.payload[0] > 2U) {
+        return std::nullopt;
+      }
+      return block.payload[0];
+    }
+  }
+  return std::uint8_t{0};
+}
+
+void set_layer_knockout(Layer& layer, std::uint8_t mode) {
+  mode = std::min(mode, std::uint8_t{2});
+  const auto& blocks = std::as_const(layer).unknown_psd_blocks();
+  const auto existing = std::find_if(blocks.begin(), blocks.end(),
+                                     [](const UnknownPsdBlock& block) { return block.key == "knko"; });
+  if (existing == blocks.end()) {
+    if (mode != 0U) {
+      layer.unknown_psd_blocks().push_back({"knko", {mode, 0U, 0U, 0U}});
+    }
+    return;
+  }
+  if (existing->payload.size() != 4U || existing->payload[0] > 2U || existing->payload[0] == mode) {
+    return;  // unknown payloads stay raw; an unchanged mode bumps no revision
+  }
+  const auto index = static_cast<std::size_t>(existing - blocks.begin());
+  layer.unknown_psd_blocks()[index].payload[0] = mode;
 }
 
 std::uint32_t

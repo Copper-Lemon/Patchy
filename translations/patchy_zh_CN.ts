@@ -10322,6 +10322,34 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>以页面文件夹导入的 PDF 只显示第一页；隐藏的页面仍然是页面。</translation>
     </message>
     <message>
+        <source>Shallow</source>
+        <translation>浅</translation>
+    </message>
+    <message>
+        <source>Deep</source>
+        <translation>深</translation>
+    </message>
+    <message>
+        <source>Shallow cuts through the layers below to the bottom of this layer&apos;s group; Deep cuts through to the Background, or to transparency without one</source>
+        <translation>浅：挖空下方图层直到此图层所在组的底部；深：挖空到背景，没有背景时挖空到透明</translation>
+    </message>
+    <message>
+        <source>This layer preserves a Photoshop knockout setting Patchy cannot edit</source>
+        <translation>此图层保留了 Patchy 无法编辑的 Photoshop 挖空设置</translation>
+    </message>
+    <message>
+        <source>Knockout:</source>
+        <translation>挖空:</translation>
+    </message>
+    <message>
+        <source>Vector Mask Hides Effects</source>
+        <translation>矢量蒙版隐藏效果</translation>
+    </message>
+    <message>
+        <source>Hide drop shadows, glows, and strokes where the vector mask hides the layer, instead of letting the vector mask shape them</source>
+        <translation>在矢量蒙版隐藏图层的地方隐藏投影、发光和描边，而不是让矢量蒙版塑造它们的形状</translation>
+    </message>
+    <message>
         <source>Last Used</source>
         <translation>上次使用</translation>
     </message>

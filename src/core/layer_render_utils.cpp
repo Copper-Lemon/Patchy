@@ -887,8 +887,15 @@ bool layer_has_enabled_vector_mask(const Layer& layer) noexcept {
 }
 
 bool layer_vector_mask_hides_effects(const Layer& layer) noexcept {
-  return layer.vector_mask() != nullptr && !layer.vector_mask()->disabled &&
-         layer.vector_mask()->hides_effects;
+  return layer.layer_style().vector_mask_hides_effects && layer_has_enabled_vector_mask(layer);
+}
+
+LayerMaskParts layer_effect_source_masks(const Layer& layer) noexcept {
+  return {!layer.layer_style().layer_mask_hides_effects, !layer.layer_style().vector_mask_hides_effects};
+}
+
+LayerMaskParts layer_effect_output_masks(const Layer& layer) noexcept {
+  return {layer.layer_style().layer_mask_hides_effects, layer.layer_style().vector_mask_hides_effects};
 }
 
 float vector_mask_alpha_at(const Layer& layer, std::int32_t x, std::int32_t y) {
@@ -912,11 +919,15 @@ float vector_mask_alpha_at(const Layer& layer, std::int32_t x, std::int32_t y) {
 }
 
 float layer_mask_alpha_at(const Layer& layer, std::int32_t x, std::int32_t y) {
+  return layer_mask_alpha_at(layer, x, y, LayerMaskParts{});
+}
+
+float layer_mask_alpha_at(const Layer& layer, std::int32_t x, std::int32_t y, LayerMaskParts parts) {
   const auto& mask = layer.mask();
-  if (!mask.has_value() || mask->disabled) {
-    return vector_mask_alpha_at(layer, x, y);
+  if (!parts.raster || !mask.has_value() || mask->disabled) {
+    return parts.vector ? vector_mask_alpha_at(layer, x, y) : 1.0F;
   }
-  return layer_mask_alpha_at(layer, x, y, mask->bounds);
+  return layer_mask_alpha_at(layer, x, y, mask->bounds, parts);
 }
 
 std::shared_ptr<const FeatheredLayerMask> feathered_layer_mask(const Layer& layer) {
@@ -963,9 +974,15 @@ void sync_layer_mask_feather_canvas(Layer& layer, Rect canvas) {
 }
 
 float layer_mask_alpha_at(const Layer& layer, std::int32_t x, std::int32_t y, Rect mask_bounds) {
-  const auto vector_alpha = vector_mask_alpha_at(layer, x, y);
+  return layer_mask_alpha_at(layer, x, y, mask_bounds, LayerMaskParts{});
+}
+
+float layer_mask_alpha_at(const Layer& layer, std::int32_t x, std::int32_t y, Rect mask_bounds, LayerMaskParts parts) {
+  // A left-out vector mask multiplies by exactly 1, so every selection of
+  // parts keeps the float operation order the pinned compositor bytes need.
+  const auto vector_alpha = parts.vector ? vector_mask_alpha_at(layer, x, y) : 1.0F;
   const auto& mask = layer.mask();
-  if (!mask.has_value() || mask->disabled) {
+  if (!parts.raster || !mask.has_value() || mask->disabled) {
     return vector_alpha;
   }
   // Density lifts the hidden floor exactly like the vector mask's. The
@@ -1021,6 +1038,9 @@ std::vector<float> layer_alpha_mask(const PixelBuffer& source, const Layer& laye
   if (source.empty()) {
     return mask;
   }
+  // Effect sources: a mask whose "Hides Effects" option is on hides the
+  // output instead (layer_effect_output_masks), so it does not shape them.
+  const auto parts = layer_effect_source_masks(layer);
 
   const auto format = source.format();
   const auto source_left = bounds.x - sample_offset_x;
@@ -1040,8 +1060,9 @@ std::vector<float> layer_alpha_mask(const PixelBuffer& source, const Layer& laye
       auto* output = mask.data() + static_cast<std::size_t>(y - mask_bounds.y) * width + (draw_left - mask_bounds.x);
       for (std::int32_t x = draw_left; x < draw_right; ++x) {
         *output++ = layer_mask_bounds.has_value()
-                        ? layer_mask_alpha_at(layer, x + sample_offset_x, y + sample_offset_y, *layer_mask_bounds)
-                        : layer_mask_alpha_at(layer, x + sample_offset_x, y + sample_offset_y);
+                        ? layer_mask_alpha_at(layer, x + sample_offset_x, y + sample_offset_y, *layer_mask_bounds,
+                                              parts)
+                        : layer_mask_alpha_at(layer, x + sample_offset_x, y + sample_offset_y, parts);
       }
     }
     return mask;
@@ -1056,8 +1077,8 @@ std::vector<float> layer_alpha_mask(const PixelBuffer& source, const Layer& laye
         const auto sx = x + sample_offset_x - bounds.x;
         const auto mask_alpha =
             layer_mask_bounds.has_value()
-                ? layer_mask_alpha_at(layer, x + sample_offset_x, y + sample_offset_y, *layer_mask_bounds)
-                : layer_mask_alpha_at(layer, x + sample_offset_x, y + sample_offset_y);
+                ? layer_mask_alpha_at(layer, x + sample_offset_x, y + sample_offset_y, *layer_mask_bounds, parts)
+                : layer_mask_alpha_at(layer, x + sample_offset_x, y + sample_offset_y, parts);
         *output++ = pixel_alpha_at(source, sx, sy) * mask_alpha;
       }
     }
@@ -1074,8 +1095,8 @@ std::vector<float> layer_alpha_mask(const PixelBuffer& source, const Layer& laye
       const auto* pixel = source_row + static_cast<std::size_t>(sx) * format.channels;
       const auto mask_alpha =
           layer_mask_bounds.has_value()
-              ? layer_mask_alpha_at(layer, x + sample_offset_x, y + sample_offset_y, *layer_mask_bounds)
-              : layer_mask_alpha_at(layer, x + sample_offset_x, y + sample_offset_y);
+              ? layer_mask_alpha_at(layer, x + sample_offset_x, y + sample_offset_y, *layer_mask_bounds, parts)
+              : layer_mask_alpha_at(layer, x + sample_offset_x, y + sample_offset_y, parts);
       *output++ = (static_cast<float>(pixel[3]) / 255.0F) * mask_alpha;
     }
   }

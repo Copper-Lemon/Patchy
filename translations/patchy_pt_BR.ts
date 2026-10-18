@@ -10354,6 +10354,34 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>Um PDF importado como pastas de páginas mostra só a primeira página; as páginas ocultas continuam sendo páginas.</translation>
     </message>
     <message>
+        <source>Shallow</source>
+        <translation>Raso</translation>
+    </message>
+    <message>
+        <source>Deep</source>
+        <translation>Profundo</translation>
+    </message>
+    <message>
+        <source>Shallow cuts through the layers below to the bottom of this layer&apos;s group; Deep cuts through to the Background, or to transparency without one</source>
+        <translation>Raso vaza as camadas abaixo até a base do grupo desta camada; Profundo vaza até o plano de fundo, ou até a transparência quando não há um</translation>
+    </message>
+    <message>
+        <source>This layer preserves a Photoshop knockout setting Patchy cannot edit</source>
+        <translation>Esta camada preserva uma configuração de vazado do Photoshop que o Patchy não pode editar</translation>
+    </message>
+    <message>
+        <source>Knockout:</source>
+        <translation>Vazado:</translation>
+    </message>
+    <message>
+        <source>Vector Mask Hides Effects</source>
+        <translation>Máscara vetorial oculta efeitos</translation>
+    </message>
+    <message>
+        <source>Hide drop shadows, glows, and strokes where the vector mask hides the layer, instead of letting the vector mask shape them</source>
+        <translation>Oculta sombras projetadas, brilhos e traçados onde a máscara vetorial oculta a camada, em vez de deixar a máscara vetorial dar forma a eles</translation>
+    </message>
+    <message>
         <source>Last Used</source>
         <translation>Último usado</translation>
     </message>

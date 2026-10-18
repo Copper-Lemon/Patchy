@@ -29,6 +29,9 @@ struct LayerStyleSettings {
   // Advanced Blending "Channels" (kRestrict* bits; set = excluded). Ignored on
   // commit when the layer preserves an unsupported native 'brst' payload.
   std::uint8_t restricted_channels{0};
+  // Advanced Blending "Knockout": 0 None, 1 Shallow, 2 Deep (the native 'knko'
+  // mode). Ignored on commit when the layer preserves an unknown 'knko' payload.
+  std::uint8_t knockout{0};
   std::shared_ptr<const AppearanceEdits<LayerStyleSettings>> edits{};
   bool preview_enabled{true};
   bool opacity_edited{false};

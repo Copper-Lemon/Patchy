@@ -10354,6 +10354,34 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>Un PDF importé en dossiers de pages n&apos;affiche que sa première page ; ses pages masquées restent des pages.</translation>
     </message>
     <message>
+        <source>Shallow</source>
+        <translation>Faible</translation>
+    </message>
+    <message>
+        <source>Deep</source>
+        <translation>Profonde</translation>
+    </message>
+    <message>
+        <source>Shallow cuts through the layers below to the bottom of this layer&apos;s group; Deep cuts through to the Background, or to transparency without one</source>
+        <translation>Faible traverse les calques inférieurs jusqu’au bas du groupe de ce calque ; Profonde traverse jusqu’à l’arrière-plan, ou jusqu’à la transparence s’il n’y en a pas</translation>
+    </message>
+    <message>
+        <source>This layer preserves a Photoshop knockout setting Patchy cannot edit</source>
+        <translation>Ce calque conserve un réglage de défonce de Photoshop que Patchy ne peut pas modifier</translation>
+    </message>
+    <message>
+        <source>Knockout:</source>
+        <translation>Défonce :</translation>
+    </message>
+    <message>
+        <source>Vector Mask Hides Effects</source>
+        <translation>Le masque vectoriel masque les effets</translation>
+    </message>
+    <message>
+        <source>Hide drop shadows, glows, and strokes where the vector mask hides the layer, instead of letting the vector mask shape them</source>
+        <translation>Masquer les ombres portées, les lueurs et les contours là où le masque vectoriel masque le calque, au lieu de laisser le masque vectoriel les façonner</translation>
+    </message>
+    <message>
         <source>Last Used</source>
         <translation>Derniers réglages</translation>
     </message>

@@ -274,7 +274,6 @@ struct LayerVectorMask {
   bool disabled{false};   // vmsk flags bit 2
   bool inverted{false};   // vmsk flags bit 0
   bool unlinked{false};   // vmsk flags bit 1 (does not follow layer moves)
-  bool hides_effects{false};
   // Mask parameters (Properties panel): density raw 0..255, feather pixels.
   std::uint8_t density{255};
   double feather{0.0};

@@ -8,7 +8,7 @@ Layer Style supports selected-layer property edits, ordered effect operations,
 and explicit full replacement. See [batch appearance](batch-appearance.md) for
 matching, mixed values, preview transactions, native-data safeguards, and history.
 
-- **Style Presets page** (Layer Style dialog): a non-checkable "Style Presets" row sits FIRST in the category list, above Blending Options; the dialog still opens on Blending Options (the row carries the selection marker `kStylesCategoryIndex = -2` because it shares `LayerStyleEffectKind::None` with Blending Options, and `LayerStyleCategoryPage::Styles` is appended to the enum so the stacked-widget indices of the older pages never move). Clicking a preset REPLACES the working effects (Photoshop behavior), forces `effects_visible` on, and keeps `layer_mask_hides_effects` and the layer's opacity/blend mode/Blend If unless the preset carries blending options. A "No Style" first entry clears all effects and keeps blending options. "New Style…" saves the current dialog state (checkbox opts into capturing opacity/blend mode/Blend If); "Manage Styles…" opens the Style Manager and applies its "Use Style" pick.
+- **Style Presets page** (Layer Style dialog): a non-checkable "Style Presets" row sits FIRST in the category list, above Blending Options; the dialog still opens on Blending Options (the row carries the selection marker `kStylesCategoryIndex = -2` because it shares `LayerStyleEffectKind::None` with Blending Options, and `LayerStyleCategoryPage::Styles` is appended to the enum so the stacked-widget indices of the older pages never move). Clicking a preset REPLACES the working effects (Photoshop behavior), forces `effects_visible` on, and keeps `layer_mask_hides_effects`, `vector_mask_hides_effects` and the layer's opacity/blend mode/Blend If unless the preset carries blending options. A "No Style" first entry clears all effects and keeps blending options. "New Style…" saves the current dialog state (checkbox opts into capturing opacity/blend mode/Blend If); "Manage Styles…" opens the Style Manager and applies its "Use Style" pick.
 - **Style Manager** (`request_style_manager`, src/ui/style_manager_dialog.cpp): the Pattern Manager's style twin. Tree + large rendered preview + name/folder edits + Import .asl / Export / Duplicate / Delete / Restore Default Styles / Use Style. Library edits apply immediately (no undo, matching patterns).
 - **StyleBrowserWidget** (src/ui/style_browser.cpp) is the shared folder tree (48 px icons on the Styles page, 40 px in the manager). Its context menu's "Export to .asl…" exports the selection; a folder row exports its children and supplies the default filename. `export_selection_to(path)` is the prompt-free half tests drive.
 
@@ -21,6 +21,13 @@ shared gradient editor, whose separate context lives through the whole dialog; c
 capture that stable state or widget handles. `layer_style_dialog_controls.{hpp,cpp}` owns
 shared color and numeric rows. Page object names, stacked indices, and translation
 contexts remain compatibility contracts for the UI tests.
+
+The settings pages sit in the `layerStyleOptionsScroll` scroll area (GitHub issue 190).
+`OptionsPaneHeightCap` keeps its minimum equal to the tallest page up to what the
+screen leaves (available height minus 40, measured before the dialog shows), so a
+tall screen opens and grows the dialog exactly as before and a short one scrolls
+the pane with OK/Cancel in view. `ui_layer_style_dialog_fits_a_short_screen` pins
+it on the 800 x 800 offscreen screen.
 
 ## StyleLibrary (src/ui/style_library.*)
 

@@ -237,7 +237,8 @@ ShapeAppearanceSettings shape_appearance_settings(const Layer& layer) {
 LayerStyleSettings layer_style_settings(const Layer& layer) {
   return {static_cast<int>(std::lround(layer.opacity() * 100.0F)), layer.blend_mode(),
           layer.layer_style(), layer.blend_if(), false,
-          static_cast<int>(std::lround(layer.fill_opacity() * 100.0F)), layer.restricted_channels()};
+          static_cast<int>(std::lround(layer.fill_opacity() * 100.0F)), layer.restricted_channels(),
+          layer_knockout_setting(layer).value_or(0U)};
 }
 
 bool appearance_has_editable_radii(const ShapeAppearanceSettings& settings) {
@@ -319,6 +320,8 @@ std::vector<AppearanceProperty<LayerStyleSettings>> layer_style_properties(const
   STYLE_FIELD(replace_unsupported_blend_if);
   STYLE_FIELD(style.effects_visible);
   STYLE_FIELD(style.layer_mask_hides_effects);
+  STYLE_FIELD(style.vector_mask_hides_effects);
+  STYLE_FIELD(knockout);
   STYLE_FIELD(style.blend_interior_elements);
   STYLE_FIELD(style.blend_clipped_elements);
 #undef STYLE_FIELD

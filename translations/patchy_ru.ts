@@ -10386,6 +10386,34 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>PDF, импортированный папками страниц, показывает только первую страницу; скрытые страницы всё равно остаются страницами.</translation>
     </message>
     <message>
+        <source>Shallow</source>
+        <translation>Неглубокое</translation>
+    </message>
+    <message>
+        <source>Deep</source>
+        <translation>Глубокое</translation>
+    </message>
+    <message>
+        <source>Shallow cuts through the layers below to the bottom of this layer&apos;s group; Deep cuts through to the Background, or to transparency without one</source>
+        <translation>Неглубокое выбивает нижние слои до низа группы этого слоя; Глубокое выбивает до фона, а без фона до прозрачности</translation>
+    </message>
+    <message>
+        <source>This layer preserves a Photoshop knockout setting Patchy cannot edit</source>
+        <translation>Этот слой сохраняет настройку выбивания Photoshop, которую Patchy не может изменить</translation>
+    </message>
+    <message>
+        <source>Knockout:</source>
+        <translation>Выбивание:</translation>
+    </message>
+    <message>
+        <source>Vector Mask Hides Effects</source>
+        <translation>Векторная маска скрывает эффекты</translation>
+    </message>
+    <message>
+        <source>Hide drop shadows, glows, and strokes where the vector mask hides the layer, instead of letting the vector mask shape them</source>
+        <translation>Скрывать тени, свечения и обводки там, где векторная маска скрывает слой, вместо того чтобы векторная маска задавала их форму</translation>
+    </message>
+    <message>
         <source>Last Used</source>
         <translation>Последние</translation>
     </message>

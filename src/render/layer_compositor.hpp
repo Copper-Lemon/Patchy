@@ -392,10 +392,10 @@ inline Rect group_content_bounds_for_render(const Layer& group, const std::vecto
   return bounds;
 }
 
-// Photoshop's "Layer Mask Hides Effects" blending option ('lmgm'): when set, the layer
-// mask additionally clips effect output where it lands. Only exterior effects (drop
-// shadow, outer glow, outside strokes) can place output beyond the masked shape;
-// interior effects are already confined by their mask-shaped source.
+// Photoshop's "Layer Mask Hides Effects" ('lmgm') and "Vector Mask Hides Effects"
+// ('vmgm') blending options: a mask with its option on stops shaping the effects
+// and hides their output where it lands instead (effect_output_mask_alpha_for_render
+// multiplies only those masks in). Each mask switches on its own.
 inline bool layer_mask_clips_effect_output(const Layer& layer) {
   return (layer.layer_style().layer_mask_hides_effects && layer.mask().has_value() &&
           !layer.mask()->disabled) ||
@@ -894,7 +894,7 @@ void render_drop_shadow(Target& destination, const Layer& layer, const PixelBuff
       auto alpha = mask[static_cast<std::size_t>((y - mask_bounds.y) * width + (x - mask_bounds.x))] *
                    shadow.opacity * layer.opacity();
       if (clip_to_mask) {
-        alpha *= layer_mask_alpha_for_render(layer, x, y, layer_mask_bounds);
+        alpha *= effect_output_mask_alpha_for_render(layer, x, y, layer_mask_bounds);
       }
       if (!conceal_mask.empty()) {
         const auto shape = conceal_mask[static_cast<std::size_t>((y - draw_rect.y) * draw_rect.width +
@@ -962,7 +962,7 @@ void render_outer_glow(Target& destination, const Layer& layer, const PixelBuffe
                         exterior_effect_knockout(source_alpha, source_alpha * paint_scale, true) *
                         glow.opacity * layer.opacity();
       if (clip_to_mask) {
-        glow_alpha *= layer_mask_alpha_for_render(layer, x, y, layer_mask_bounds);
+        glow_alpha *= effect_output_mask_alpha_for_render(layer, x, y, layer_mask_bounds);
       }
       composite_effect_color(destination, x, y, glow.color, glow_alpha, glow.blend_mode,
                              DissolveField::OuterGlow);
@@ -1320,7 +1320,9 @@ void render_bevel_emboss(Target& destination, const Layer& layer, const PixelBuf
         StyleMaskEntry computed;
         if (stroke_emboss) {
           computed.secondary.assign(static_cast<std::size_t>(domain.width) * domain.height, 0.0F);
-          const auto mask_shapes_source = !layer.layer_style().layer_mask_hides_effects;
+          // The contour leaves out any mask whose "Hides Effects" option is
+          // on (effect_source_mask_alpha_for_render); those hide the output.
+          const auto mask_shapes_source = true;
           const auto clip_to_mask = layer_mask_clips_effect_output(layer);
           const auto has_aligned_gradient =
               std::any_of(strokes->begin(), strokes->end(), [](const LayerStroke& stroke) {
@@ -1364,8 +1366,8 @@ void render_bevel_emboss(Target& destination, const Layer& layer, const PixelBuf
                 if (alpha > 0.0F && clip_to_mask) {
                   // "Layer Mask Hides Effects": hide the embossed stroke where it
                   // lands instead of reshaping its contour.
-                  alpha *= layer_mask_alpha_for_render(layer, domain.x + local_x, domain.y + local_y,
-                                                       layer_mask_bounds);
+                  alpha *= effect_output_mask_alpha_for_render(layer, domain.x + local_x, domain.y + local_y,
+                                                               layer_mask_bounds);
                 }
                 computed.secondary[index] = alpha + computed.secondary[index] * (1.0F - alpha);
               }
@@ -1520,7 +1522,7 @@ void render_bevel_emboss(Target& destination, const Layer& layer, const PixelBuf
       const auto base_gradient_x = (left - right) * normal_scale;
       const auto base_gradient_y = (top - bottom) * normal_scale;
       if (layer_mask_clips_effect_output(layer)) {
-        effect_alpha *= layer_mask_alpha_for_render(layer, x, y, layer_mask_bounds);
+        effect_alpha *= effect_output_mask_alpha_for_render(layer, x, y, layer_mask_bounds);
         if (effect_alpha <= 0.0F) {
           continue;
         }
@@ -1657,7 +1659,9 @@ inline std::optional<PreparedStroke> prepare_stroke_render(const Layer& layer, c
     return std::nullopt;
   }
   const auto legacy_mask_bounds = clipped_mask_bounds(full_mask_bounds, draw_rect, radius + 1);
-  const auto mask_shapes_source = !layer.layer_style().layer_mask_hides_effects;
+  // The contour leaves out any mask whose "Hides Effects" option is on
+  // (effect_source_mask_alpha_for_render); those hide the output instead.
+  const auto mask_shapes_source = true;
   const auto shape_burst =
       stroke.uses_gradient && stroke.gradient.type == LayerStyleGradientType::ShapeBurst;
   auto [entry, mask_bounds] = style_mask_for_render(
@@ -1704,7 +1708,7 @@ inline float prepared_stroke_coverage(const PreparedStroke& prepared, const Laye
     coverage = clamp_unit(coverage + prepared.entry->underlay[index] + prepared.entry->inside[index]);
   }
   if (prepared.clip_to_mask && coverage > 0.0F) {
-    coverage *= layer_mask_alpha_for_render(layer, x, y, layer_mask_bounds);
+    coverage *= effect_output_mask_alpha_for_render(layer, x, y, layer_mask_bounds);
   }
   return coverage;
 }
@@ -1723,7 +1727,7 @@ inline float prepared_stroke_underlay(const PreparedStroke& prepared, const Laye
   const auto index = static_cast<std::size_t>((y - bounds.y) * bounds.width + (x - bounds.x));
   auto coverage = clamp_unit(prepared.entry->underlay[index] + prepared.entry->inside[index]);
   if (prepared.clip_to_mask && coverage > 0.0F) {
-    coverage *= layer_mask_alpha_for_render(layer, x, y, layer_mask_bounds);
+    coverage *= effect_output_mask_alpha_for_render(layer, x, y, layer_mask_bounds);
   }
   return coverage;
 }
@@ -1742,7 +1746,7 @@ inline float prepared_stroke_knockout_coverage(const PreparedStroke& prepared, c
   }
   auto region = prepared.entry->knockout[static_cast<std::size_t>((y - bounds.y) * bounds.width + (x - bounds.x))];
   if (prepared.clip_to_mask && region > 0.0F) {
-    region *= layer_mask_alpha_for_render(layer, x, y, layer_mask_bounds);
+    region *= effect_output_mask_alpha_for_render(layer, x, y, layer_mask_bounds);
   }
   return region;
 }
@@ -1844,7 +1848,7 @@ void render_prepared_stroke(Target& destination, const Layer& layer, const Prepa
       if (clip_to_mask && mask_alpha > 0.0F) {
         // "Layer Mask Hides Effects": the mask hides the stroke where it lands
         // instead of reshaping its contour.
-        mask_alpha *= layer_mask_alpha_for_render(layer, x, y, layer_mask_bounds);
+        mask_alpha *= effect_output_mask_alpha_for_render(layer, x, y, layer_mask_bounds);
       }
       if (mask_alpha <= 0.0F) {
         continue;

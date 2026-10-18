@@ -1180,9 +1180,10 @@ std::vector<float> stroke_alpha_mask(const PixelBuffer& source, const Layer& lay
   // layer's own pixels cover it according to their alpha, so semi-transparent fills let
   // it show through. By default the layer mask reshapes that coverage where it is fully
   // black — the contour follows {alpha > 0 AND mask > 0} and the band lands on
-  // mask-hidden ground at full strength; with "Layer Mask Hides Effects" the caller
-  // passes mask_shapes_source = false, keeps the raw-pixel contour, and hides the output
-  // where it lands instead. Fractional (gray/feathered) mask values deliberately keep
+  // mask-hidden ground at full strength. A mask whose "Hides Effects" option is on
+  // (layer or vector mask, each on its own) is left out of the contour, and the caller
+  // hides the output where it lands instead; mask_shapes_source = false leaves every
+  // mask out. Fractional (gray/feathered) mask values deliberately keep
   // the raw pixel alpha: Photoshop folds them into the matte with content-knockout
   // compositing (a gray mask washes the whole interior), the same knockout model this
   // renderer already skips for semi-transparent fills (docs/ps-compat.md). Calibrated
@@ -1219,7 +1220,7 @@ std::vector<float> stroke_alpha_mask(const PixelBuffer& source, const Layer& lay
         // psd-tools' feathered-stroke.psd, whose pixels are opaque under a soft
         // mask). Binary masks keep the pinned {alpha > 0 AND mask > 0} contour.
         if (mask_shapes_source && alpha > 0.0F) {
-          alpha *= clamp_unit(layer_mask_alpha_for_render(layer, x, y, layer_mask_bounds));
+          alpha *= clamp_unit(effect_source_mask_alpha_for_render(layer, x, y, layer_mask_bounds));
         }
         *output++ = alpha;
       }
@@ -1233,8 +1234,9 @@ std::vector<float> stroke_alpha_mask(const PixelBuffer& source, const Layer& lay
     for (std::int32_t y = draw_top; y < draw_bottom; ++y) {
       auto* output = base.data() + static_cast<std::size_t>(y - mask_bounds.y) * width + (draw_left - mask_bounds.x);
       for (std::int32_t x = draw_left; x < draw_right; ++x) {
-        *output++ = mask_shapes_source ? clamp_unit(layer_mask_alpha_for_render(layer, x, y, layer_mask_bounds))
-                                       : 1.0F;
+        *output++ = mask_shapes_source
+                        ? clamp_unit(effect_source_mask_alpha_for_render(layer, x, y, layer_mask_bounds))
+                        : 1.0F;
       }
     }
   }

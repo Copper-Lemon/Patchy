@@ -10322,6 +10322,34 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>ページフォルダーとして読み込んだ PDF は最初のページだけを表示しますが、非表示のページもページです。</translation>
     </message>
     <message>
+        <source>Shallow</source>
+        <translation>浅く</translation>
+    </message>
+    <message>
+        <source>Deep</source>
+        <translation>深く</translation>
+    </message>
+    <message>
+        <source>Shallow cuts through the layers below to the bottom of this layer&apos;s group; Deep cuts through to the Background, or to transparency without one</source>
+        <translation>浅くはこのレイヤーのグループの最下部まで下のレイヤーを抜き、深くは背景まで（背景がなければ透明まで）抜きます</translation>
+    </message>
+    <message>
+        <source>This layer preserves a Photoshop knockout setting Patchy cannot edit</source>
+        <translation>このレイヤーには Patchy で編集できない Photoshop の抜きの設定が保持されています</translation>
+    </message>
+    <message>
+        <source>Knockout:</source>
+        <translation>抜き:</translation>
+    </message>
+    <message>
+        <source>Vector Mask Hides Effects</source>
+        <translation>ベクトルマスクで効果を隠す</translation>
+    </message>
+    <message>
+        <source>Hide drop shadows, glows, and strokes where the vector mask hides the layer, instead of letting the vector mask shape them</source>
+        <translation>ベクトルマスクで効果の形を作る代わりに、ベクトルマスクがレイヤーを隠す部分のドロップシャドウ、光彩、境界線を隠します</translation>
+    </message>
+    <message>
         <source>Last Used</source>
         <translation>前回の設定</translation>
     </message>
