@@ -3,6 +3,7 @@
 #include "core/blend_math.hpp"
 #include "core/document.hpp"
 #include "core/layer_metadata.hpp"
+#include "core/layer_tree.hpp"
 #include "formats/acv_curves_io.hpp"
 #include "formats/bmp_document_io.hpp"
 #include "formats/aseprite_document_io.hpp"
@@ -33,8 +34,10 @@
 #include <iostream>
 #include <iterator>
 #include <limits>
+#include <map>
 #include <numeric>
 #include <optional>
+#include <set>
 #include <span>
 #include <sstream>
 #include <stdexcept>
@@ -304,6 +307,62 @@ void psd_reader_preserves_layer_group_hierarchy() {
   CHECK(px[0] == 20);
   CHECK(px[1] == 40);
   CHECK(px[2] == 220);
+}
+
+// Issue 179: a save writes the Layers panel's open/closed folders (the session's collapsed
+// set) through apply_layer_group_disclosure. Only groups whose state changed are touched, and
+// none gets a content revision bump: expand state never renders.
+void psd_writer_saves_applied_layer_group_disclosure() {
+  patchy::Document document(4, 4, patchy::PixelFormat::rgb8());
+  document.add_pixel_layer("Background", solid_rgb(4, 4, 10, 20, 30));
+  patchy::Layer outer(document.allocate_layer_id(), "Outer", patchy::LayerKind::Group);
+  patchy::Layer inner(document.allocate_layer_id(), "Inner", patchy::LayerKind::Group);
+  patchy::set_layer_group_expanded(inner, false);
+  inner.add_child(patchy::Layer(document.allocate_layer_id(), "Leaf", solid_rgba(2, 2, 40, 50, 60, 255)));
+  outer.add_child(std::move(inner));
+  const auto outer_id = outer.id();
+  document.add_layer(std::move(outer));
+  patchy::Layer steady(document.allocate_layer_id(), "Steady", patchy::LayerKind::Group);
+  steady.add_child(patchy::Layer(document.allocate_layer_id(), "Steady Leaf", solid_rgba(2, 2, 70, 80, 90, 255)));
+  document.add_layer(std::move(steady));
+
+  const auto& layers = std::as_const(document).layers();
+  const auto& outer_before = layers[1];
+  const auto& inner_before = outer_before.children()[0];
+  const auto& steady_before = layers[2];
+  const auto outer_content = outer_before.content_revision();
+  const auto inner_content = inner_before.content_revision();
+  const auto steady_content = steady_before.content_revision();
+  const auto steady_render = steady_before.render_revision();
+
+  // The panel shows Outer closed and Inner open.
+  patchy::apply_layer_group_disclosure(document.layers(), std::set<patchy::LayerId>{outer_id});
+  const auto& outer_after = std::as_const(document).layers()[1];
+  const auto& inner_after = outer_after.children()[0];
+  const auto& steady_after = std::as_const(document).layers()[2];
+  CHECK(!patchy::layer_group_expanded(outer_after));
+  CHECK(patchy::layer_group_expanded(inner_after));
+  CHECK(patchy::layer_group_expanded(steady_after));
+  CHECK(!steady_after.metadata().contains(patchy::kLayerMetadataGroupExpanded));
+  CHECK(outer_after.content_revision() == outer_content);
+  CHECK(inner_after.content_revision() == inner_content);
+  CHECK(steady_after.content_revision() == steady_content);
+  CHECK(steady_after.render_revision() == steady_render);
+
+  const auto bytes = patchy::psd::DocumentIo::write_layered_rgb8(document);
+  std::map<std::string, std::uint32_t> divider_types;
+  for (const auto& record : psd_raw_layer_records(bytes)) {
+    divider_types[record.name] = record.section_divider_type;
+  }
+  CHECK(divider_types["Outer"] == 2U);
+  CHECK(divider_types["Inner"] == 1U);
+  CHECK(divider_types["Steady"] == 1U);
+
+  const auto read = patchy::psd::DocumentIo::read(bytes);
+  CHECK(read.layers().size() == 3U);
+  CHECK(!patchy::layer_group_expanded(read.layers()[1]));
+  CHECK(patchy::layer_group_expanded(read.layers()[1].children()[0]));
+  CHECK(patchy::layer_group_expanded(read.layers()[2]));
 }
 
 void psd_writer_round_trips_layer_groups() {
@@ -1399,6 +1458,7 @@ std::vector<patchy::test::TestCase> psd_structure_tests() {
        psd_reader_tolerates_legacy_patchy_top_to_bottom_background_files},
       {"psd_reader_preserves_layer_group_hierarchy", psd_reader_preserves_layer_group_hierarchy},
       {"psd_writer_round_trips_layer_groups", psd_writer_round_trips_layer_groups},
+      {"psd_writer_saves_applied_layer_group_disclosure", psd_writer_saves_applied_layer_group_disclosure},
       {"psd_blending_ranges_round_trip_for_layers_and_group_records",
        psd_blending_ranges_round_trip_for_layers_and_group_records},
       {"psd_photoshop_blend_if_4b_fixture_round_trips_and_matches_render",
