@@ -1813,6 +1813,11 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
     // Every position the platform folded into this event gets its own stroke
     // sample, so a slow frame joins the true path instead of a straight
     // segment across it (GitHub issue 165); the canvas repaints once.
+    // Constraint: these are only positions the platform already recorded
+    // (coalesced_pointer_input.cpp, coalesced_pointer_input_mac.mm), and their
+    // timestamps only order them. Nothing predicts or extrapolates the pointer,
+    // and no speed feeds deposition or Smoothing; adding either needs a new
+    // review (docs/legal-constraints.md, "Brush behavior").
     std::vector<QRect> dirty;
     for (const auto& position : coalesced_stroke_positions(*event)) {
       dirty.push_back(advance_paint_stroke(document_position(position.toPoint()), document_position_f(position),
