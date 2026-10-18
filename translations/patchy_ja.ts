@@ -10333,6 +10333,14 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <source>A PDF imported as page folders shows only its first page; its hidden pages are still pages.</source>
         <translation>ページフォルダーとして読み込んだ PDF は最初のページだけを表示しますが、非表示のページもページです。</translation>
     </message>
+    <message>
+        <source>Last Used</source>
+        <translation>前回の設定</translation>
+    </message>
+    <message>
+        <source>The settings of the last document created here: %1 x %2 px at %3 ppi</source>
+        <translation>ここで最後に作成したドキュメントの設定: %1 x %2 px、%3 ppi</translation>
+    </message>
 </context>
 <context>
     <name>ScannerImport</name>

@@ -62,6 +62,9 @@ constexpr int kPresetThumbnailRole = Qt::UserRole + 5;
 
 constexpr QSize kPresetCardCell(116, 100);
 
+// The Last Used card's id (item data only, never written to settings) - never rename.
+constexpr QLatin1StringView kLastUsedPresetId("last-used");
+
 enum class PresetCategory { Screen, Print };
 
 struct NewDocumentPreset {
@@ -377,7 +380,9 @@ std::optional<NewDocumentSettings> request_new_document_settings(QWidget* parent
   preset_list->setMouseTracking(true);
   preset_list->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
   preset_list->setItemDelegate(new PresetCardDelegate(preset_list));
-  preset_list->setMinimumSize(3 * kPresetCardCell.width() + 26, 3 * kPresetCardCell.height() + 10);
+  // Room for every Screen card without a scroll bar: Clipboard, Last Used and eight
+  // presets fill four rows of three.
+  preset_list->setMinimumSize(3 * kPresetCardCell.width() + 26, 4 * kPresetCardCell.height() + 12);
   left->addWidget(preset_list, 1);
 
   // Right pane: the details grid. Fixed field/unit column widths keep every row the
@@ -474,7 +479,7 @@ std::optional<NewDocumentSettings> request_new_document_settings(QWidget* parent
   if (deep_editing_enabled()) {
     add_row_label(QObject::tr("Bit Depth"), 4);
     grid->addWidget(bit_depth, 4, 1, 1, 2);
-    // Every new document starts at 8 bits, as in Photoshop; the choice is not remembered.
+    // 8 bits, as in Photoshop's presets; only the Last Used card brings back another depth.
     bit_depth->setCurrentIndex(0);
   } else {
     bit_depth->hide();
@@ -517,6 +522,18 @@ std::optional<NewDocumentSettings> request_new_document_settings(QWidget* parent
   QString current_preset_id = QStringLiteral("custom");
   QString current_preset_name = QObject::tr("Custom");
   QColor background_color(Qt::white);
+  // The last accepted settings, which the Last Used card restores; empty until a
+  // document has been created from the dialog.
+  struct LastUsedSettings {
+    QSize size;
+    double ppi{kScreenPpi};
+    MeasurementUnit unit{MeasurementUnit::Pixels};
+    int resolution_unit_index{0};
+    QColor background{Qt::white};
+    int bits{8};
+    bool artboards{false};
+  };
+  std::optional<LastUsedSettings> last_used;
 
   const auto current_unit = [unit] { return static_cast<MeasurementUnit>(unit->currentData().toInt()); };
   const auto refresh_dimension_spins = [&state, current_unit, width, height] {
@@ -586,6 +603,35 @@ std::optional<NewDocumentSettings> request_new_document_settings(QWidget* parent
     swap_dimensions->setEnabled(enabled);
   };
 
+  const auto update_swatch = [background_swatch, &background_color] {
+    QPixmap swatch(34, 18);
+    QPainter painter(&swatch);
+    constexpr int kTile = 6;  // checkerboard base so a transparent background reads as transparent
+    for (int y = 0; y < swatch.height(); y += kTile) {
+      for (int x = 0; x < swatch.width(); x += kTile) {
+        const bool light = ((x / kTile) + (y / kTile)) % 2 == 0;
+        painter.fillRect(QRect(x, y, kTile, kTile), light ? QColor(212, 212, 212) : QColor(150, 150, 150));
+      }
+    }
+    painter.fillRect(swatch.rect(), background_color);
+    painter.setPen(QPen(QColor(26, 26, 26), 1));
+    painter.drawRect(swatch.rect().adjusted(0, 0, -1, -1));
+    painter.end();
+    background_swatch->setIcon(QIcon(swatch));
+    background_swatch->setIconSize(swatch.size());
+  };
+  const auto select_background_index_for = [background](const QColor& color) {
+    const QSignalBlocker blocker(background);
+    for (int index = 1; index < background->count(); ++index) {
+      if (background->itemData(index).value<QColor>() == color) {
+        background->setCurrentIndex(index);
+        return;
+      }
+    }
+    background->setItemData(0, color);
+    background->setCurrentIndex(0);
+  };
+
   const auto mark_custom = [&current_preset_id, &current_preset_name, preset_list, update_summary,
                             set_fields_enabled] {
     if (current_preset_id != QStringLiteral("custom")) {
@@ -604,7 +650,14 @@ std::optional<NewDocumentSettings> request_new_document_settings(QWidget* parent
   const auto populate_list = [&](PresetCategory category) {
     const QSignalBlocker blocker(preset_list);
     preset_list->clear();
-    for (const auto& preset : presets_for_category(category, clipboard_size)) {
+    auto presets = presets_for_category(category, clipboard_size);
+    if (last_used.has_value()) {
+      // After Clipboard on Screen, first on Print.
+      presets.insert(presets.begin() + (category == PresetCategory::Screen ? 1 : 0),
+                     NewDocumentPreset{QString(kLastUsedPresetId), QObject::tr("Last Used"), last_used->size,
+                                       last_used->ppi});
+    }
+    for (const auto& preset : presets) {
       auto* item = new QListWidgetItem(preset.name, preset_list);
       item->setData(kPresetIdRole, preset.id);
       item->setData(kPresetSizeRole, preset.size);
@@ -620,6 +673,11 @@ std::optional<NewDocumentSettings> request_new_document_settings(QWidget* parent
                             112, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation))));
           item->setToolTip(QObject::tr("Create the document from the clipboard image"));
         }
+      } else if (preset.id == kLastUsedPresetId) {
+        item->setToolTip(QObject::tr("The settings of the last document created here: %1 x %2 px at %3 ppi")
+                             .arg(preset.size.width())
+                             .arg(preset.size.height())
+                             .arg(QString::number(preset.ppi)));
       } else if (preset.size.isValid() && preset.size.width() > 0) {
         item->setToolTip(QObject::tr("%1: %2 x %3 px at %4 ppi")
                              .arg(preset.name)
@@ -647,6 +705,24 @@ std::optional<NewDocumentSettings> request_new_document_settings(QWidget* parent
     }
     if (const auto preset_ppi = item->data(kPresetPpiRole).toDouble(); preset_ppi > 0.0) {
       state.ppi = preset_ppi;
+    }
+    if (current_preset_id == kLastUsedPresetId && last_used.has_value()) {
+      // Last Used restores everything the last create accepted, not just the size.
+      {
+        const QSignalBlocker blocker(unit);
+        unit->setCurrentIndex(std::max(0, unit->findData(static_cast<int>(last_used->unit))));
+      }
+      {
+        const QSignalBlocker blocker(resolution_unit);
+        resolution_unit->setCurrentIndex(last_used->resolution_unit_index);
+      }
+      background_color = last_used->background;
+      select_background_index_for(background_color);
+      update_swatch();
+      if (const auto index = bit_depth->findData(last_used->bits); index >= 0 && deep_editing_enabled()) {
+        bit_depth->setCurrentIndex(index);
+      }
+      artboards->setChecked(last_used->artboards);
     }
     refresh_dimension_spins();
     refresh_resolution_spin();
@@ -697,34 +773,6 @@ std::optional<NewDocumentSettings> request_new_document_settings(QWidget* parent
     refresh_dimension_spins();
   });
 
-  const auto update_swatch = [background_swatch, &background_color] {
-    QPixmap swatch(34, 18);
-    QPainter painter(&swatch);
-    constexpr int kTile = 6;  // checkerboard base so a transparent background reads as transparent
-    for (int y = 0; y < swatch.height(); y += kTile) {
-      for (int x = 0; x < swatch.width(); x += kTile) {
-        const bool light = ((x / kTile) + (y / kTile)) % 2 == 0;
-        painter.fillRect(QRect(x, y, kTile, kTile), light ? QColor(212, 212, 212) : QColor(150, 150, 150));
-      }
-    }
-    painter.fillRect(swatch.rect(), background_color);
-    painter.setPen(QPen(QColor(26, 26, 26), 1));
-    painter.drawRect(swatch.rect().adjusted(0, 0, -1, -1));
-    painter.end();
-    background_swatch->setIcon(QIcon(swatch));
-    background_swatch->setIconSize(swatch.size());
-  };
-  const auto select_background_index_for = [background](const QColor& color) {
-    const QSignalBlocker blocker(background);
-    for (int index = 1; index < background->count(); ++index) {
-      if (background->itemData(index).value<QColor>() == color) {
-        background->setCurrentIndex(index);
-        return;
-      }
-    }
-    background->setItemData(0, color);
-    background->setCurrentIndex(0);
-  };
   const auto choose_background_color = [&dialog, &background_color, update_swatch,
                                         select_background_index_for] {
     // Patchy's own picker (palettes, names, hex), previewed live on the swatch. It picks
@@ -763,51 +811,47 @@ std::optional<NewDocumentSettings> request_new_document_settings(QWidget* parent
   QObject::connect(preset_list, &QListWidget::itemDoubleClicked, &dialog,
                    [create](QListWidgetItem*) { create->click(); });
 
-  // Restore the last accepted settings; a clipboard image preselects its card instead.
+  // Open on the Last Used card, which holds the last accepted settings, or on Default
+  // before anything has been created here. A clipboard image never preselects its card:
+  // it would hide the remembered size, and File > Open from Clipboard is the one-step
+  // clipboard path.
   {
     auto settings = app_settings();
     settings.beginGroup(QStringLiteral("newDocument"));
-    const auto last_id = settings.value(QStringLiteral("lastPresetId")).toString();
     const auto last_width = settings.value(QStringLiteral("lastWidth")).toInt();
     const auto last_height = settings.value(QStringLiteral("lastHeight")).toInt();
     const auto last_ppi = settings.value(QStringLiteral("lastPpi")).toDouble();
     const auto last_background = settings.value(QStringLiteral("lastBackground")).value<QColor>();
+    const auto last_bits = settings.value(QStringLiteral("lastBitsPerChannel"), 8).toInt();
     settings.endGroup();
     // The W/H unit and the resolution unit (issue 53): the last accepted ones, else
     // the ruler unit on a first run; the combo has no Points or Percent, so those
     // fall back to Pixels (remembered_dialog_unit).
+    const auto seed_unit = remembered_dialog_unit(
+        QStringLiteral("newDocument/lastUnit"), {MeasurementUnit::Pixels, MeasurementUnit::Inches,
+                                                 MeasurementUnit::Centimeters, MeasurementUnit::Millimeters});
+    const auto seed_resolution_unit =
+        remembered_resolution_unit_index(QStringLiteral("newDocument/lastResolutionUnit"));
     {
-      const auto seed_unit = remembered_dialog_unit(
-          QStringLiteral("newDocument/lastUnit"), {MeasurementUnit::Pixels, MeasurementUnit::Inches,
-                                                   MeasurementUnit::Centimeters, MeasurementUnit::Millimeters});
       const QSignalBlocker unit_blocker(unit);  // the first refresh below picks it up once
       unit->setCurrentIndex(std::max(0, unit->findData(static_cast<int>(seed_unit))));
       const QSignalBlocker resolution_unit_blocker(resolution_unit);
-      resolution_unit->setCurrentIndex(
-          remembered_resolution_unit_index(QStringLiteral("newDocument/lastResolutionUnit")));
+      resolution_unit->setCurrentIndex(seed_resolution_unit);
     }
 
     if (last_background.isValid()) {
       background_color = last_background;
     }
-    if (!clipboard_image.isNull()) {
-      current_preset_id = QStringLiteral("clipboard");
-    } else if (last_id == QStringLiteral("custom") && last_width >= 1 && last_height >= 1) {
-      state.pixel_width = std::clamp(last_width, 1, 30000);
-      state.pixel_height = std::clamp(last_height, 1, 30000);
-      state.ppi = std::clamp(last_ppi > 0.0 ? last_ppi : kScreenPpi, 0.01, 9999.0);
-    } else if (!last_id.isEmpty() && last_id != QStringLiteral("clipboard")) {
-      for (const auto category : {PresetCategory::Screen, PresetCategory::Print}) {
-        for (const auto& preset : presets_for_category(category, clipboard_size)) {
-          if (preset.id == last_id) {
-            current_preset_id = last_id;
-            break;
-          }
-        }
-      }
-    }
-    if (current_preset_id == QStringLiteral("custom") && last_id != QStringLiteral("custom")) {
-      // First run, or a remembered id this build no longer knows.
+    if (last_width >= 1 && last_height >= 1) {
+      last_used = LastUsedSettings{QSize(std::clamp(last_width, 1, 30000), std::clamp(last_height, 1, 30000)),
+                                   std::clamp(last_ppi > 0.0 ? last_ppi : kScreenPpi, 0.01, 9999.0),
+                                   seed_unit,
+                                   seed_resolution_unit,
+                                   background_color,
+                                   last_bits,
+                                   artboards->isChecked()};
+      current_preset_id = QString(kLastUsedPresetId);
+    } else {
       current_preset_id = QStringLiteral("screen-1024x768");
     }
   }
@@ -835,20 +879,33 @@ std::optional<NewDocumentSettings> request_new_document_settings(QWidget* parent
     return std::nullopt;
   }
   const bool clipboard_selected = current_preset_id == QStringLiteral("clipboard");
-  if (!clipboard_selected) {
+  const auto chosen_bits = deep_editing_enabled() ? bit_depth->currentData().toInt() : 8;
+  {
+    // Every create becomes the next Last Used. A clipboard create contributes only its
+    // size and resolution (never the image). lastPresetId is no longer read here; older
+    // builds restore from it, so it keeps naming a card they know ("custom" for the
+    // clipboard size, unchanged when Last Used itself was accepted).
     auto settings = app_settings();
     settings.beginGroup(QStringLiteral("newDocument"));
-    settings.setValue(QStringLiteral("lastPresetId"), current_preset_id);
+    if (clipboard_selected) {
+      settings.setValue(QStringLiteral("lastPresetId"), QStringLiteral("custom"));
+    } else if (current_preset_id != kLastUsedPresetId) {
+      settings.setValue(QStringLiteral("lastPresetId"), current_preset_id);
+    }
     settings.setValue(QStringLiteral("lastWidth"), state.pixel_width);
     settings.setValue(QStringLiteral("lastHeight"), state.pixel_height);
     settings.setValue(QStringLiteral("lastPpi"), state.ppi);
-    settings.setValue(QStringLiteral("lastBackground"), background_color);
+    if (!clipboard_selected) {
+      settings.setValue(QStringLiteral("lastBackground"), background_color);
+      settings.setValue(QStringLiteral("lastBitsPerChannel"), chosen_bits);
+    }
     settings.endGroup();
-    remember_dialog_unit(QStringLiteral("newDocument/lastUnit"), current_unit());
-    remember_resolution_unit(QStringLiteral("newDocument/lastResolutionUnit"), resolution_unit->currentIndex());
-    app_settings().setValue(QStringLiteral("newDocument/artboards"), artboards->isChecked());
+    if (!clipboard_selected) {
+      remember_dialog_unit(QStringLiteral("newDocument/lastUnit"), current_unit());
+      remember_resolution_unit(QStringLiteral("newDocument/lastResolutionUnit"), resolution_unit->currentIndex());
+      app_settings().setValue(QStringLiteral("newDocument/artboards"), artboards->isChecked());
+    }
   }
-  const auto chosen_bits = deep_editing_enabled() ? bit_depth->currentData().toInt() : 8;
   return NewDocumentSettings{state.pixel_width,
                              state.pixel_height,
                              state.ppi,

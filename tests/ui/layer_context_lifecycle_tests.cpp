@@ -50,6 +50,7 @@
 #include <QTest>
 #include <QTextEdit>
 #include <QTimer>
+#include <QScrollBar>
 #include <QToolButton>
 #include <QWidget>
 #include <algorithm>
@@ -2221,6 +2222,54 @@ void ui_new_document_presets_and_clipboard_work() {
   CHECK(pasted_rect.has_value());
   CHECK(pasted_rect->topLeft() == QPoint(0, 0));
   CHECK(pasted_rect->size() == clipboard_image.size());
+
+  // The Clipboard create became Last Used at the clipboard's size: reopening (image
+  // still on the clipboard) shows the card after Clipboard, first on Print, and
+  // selects it with editable fields.
+  bool reopened = false;
+  QTimer::singleShot(0, [&reopened] {
+    auto* dialog = find_top_level_dialog(QStringLiteral("patchyNewDocumentDialog"));
+    CHECK(dialog != nullptr);
+    if (dialog == nullptr) {
+      return;
+    }
+    auto* presets = dialog->findChild<QListWidget*>(QStringLiteral("newDocumentPresetList"));
+    auto* print_chip = dialog->findChild<QToolButton*>(QStringLiteral("newDocumentPrintChip"));
+    auto* width = dialog->findChild<QDoubleSpinBox*>(QStringLiteral("newDocumentWidthSpin"));
+    auto* height = dialog->findChild<QDoubleSpinBox*>(QStringLiteral("newDocumentHeightSpin"));
+    CHECK(presets != nullptr && print_chip != nullptr && width != nullptr && height != nullptr);
+    if (presets == nullptr || print_chip == nullptr || width == nullptr || height == nullptr) {
+      dialog->reject();
+      return;
+    }
+    const auto id_at = [presets](int row) {
+      return presets->item(row)->data(patchy::ui::kNewDocumentPresetIdRole).toString();
+    };
+    CHECK(presets->count() >= 3);
+    CHECK(id_at(0) == QStringLiteral("clipboard"));
+    CHECK(id_at(1) == QStringLiteral("last-used"));
+    CHECK(id_at(2) == QStringLiteral("screen-1024x768"));
+    CHECK(presets->item(1)->text() == QStringLiteral("Last Used"));
+    CHECK(presets->item(1)->data(patchy::ui::kNewDocumentPresetSizeRole).toSize() == QSize(123, 45));
+    CHECK(presets->currentItem() == presets->item(1));
+    CHECK(width->isEnabled());
+    CHECK(width->value() == 123);
+    CHECK(height->value() == 45);
+    // All ten Screen cards fit without a scroll bar.
+    CHECK(presets->count() == 10);
+    CHECK(!presets->verticalScrollBar()->isVisible());
+    dialog->grab().save(QStringLiteral("test-artifacts/ui_new_document_dialog_last_used.png"));
+    print_chip->click();
+    QApplication::processEvents();
+    CHECK(id_at(0) == QStringLiteral("last-used"));
+    CHECK(presets->currentItem() == presets->item(0));
+    reopened = true;
+    dialog->reject();
+  });
+  require_action_by_text(window, QStringLiteral("New"))->trigger();
+  QApplication::processEvents();
+  CHECK(reopened);
+  CHECK(tabs->count() == 2);
   QApplication::clipboard()->clear();
 }
 
@@ -2328,8 +2377,14 @@ void ui_new_document_dialog_remembers_last_settings() {
   CHECK(info->text().contains(QStringLiteral("1920 x 1080 px")));
   CHECK(info->text().contains(QStringLiteral("72 ppi")));
 
-  // Reopening restores the remembered card and background.
-  QTimer::singleShot(0, [] {
+  // Reopening, even with an image on the clipboard, selects the Last Used card (not
+  // the 1080p card its values match) and restores the remembered background. Clicking
+  // it after other edits brings everything back.
+  QImage clipboard_image(64, 32, QImage::Format_RGBA8888);
+  clipboard_image.fill(QColor(200, 40, 90));
+  QApplication::clipboard()->setImage(clipboard_image);
+  QApplication::processEvents();
+  QTimer::singleShot(0, [find_card] {
     for (auto* widget : QApplication::topLevelWidgets()) {
       if (widget->objectName() != QStringLiteral("patchyNewDocumentDialog")) {
         continue;
@@ -2339,16 +2394,33 @@ void ui_new_document_dialog_remembers_last_settings() {
       auto* background = dialog->findChild<QComboBox*>(QStringLiteral("newDocumentBackgroundCombo"));
       auto* width = dialog->findChild<QDoubleSpinBox*>(QStringLiteral("newDocumentWidthSpin"));
       auto* resolution = dialog->findChild<QDoubleSpinBox*>(QStringLiteral("newDocumentResolutionSpin"));
+      auto* artboards = dialog->findChild<QCheckBox*>(QStringLiteral("newDocumentArtboardsCheck"));
       CHECK(presets != nullptr);
       CHECK(background != nullptr);
       CHECK(width != nullptr);
       CHECK(resolution != nullptr);
+      CHECK(artboards != nullptr);
       CHECK(presets->currentItem() != nullptr);
       CHECK(presets->currentItem()->data(patchy::ui::kNewDocumentPresetIdRole).toString() ==
-            QStringLiteral("screen-1080p"));
+            QStringLiteral("last-used"));
+      CHECK(presets->currentItem() == presets->item(1));
       CHECK(width->value() == 1920);
       CHECK(std::abs(resolution->value() - 72.0) < 0.01);
       CHECK(background->currentText() == QStringLiteral("Black"));
+      const bool remembered_artboards = artboards->isChecked();
+
+      auto* default_card = find_card(presets, QStringLiteral("screen-1024x768"));
+      CHECK(default_card != nullptr);
+      presets->setCurrentItem(default_card);
+      background->setCurrentIndex(background->findText(QStringLiteral("White")));
+      artboards->setChecked(!remembered_artboards);
+      QApplication::processEvents();
+      CHECK(width->value() == 1024);
+      presets->setCurrentItem(find_card(presets, QStringLiteral("last-used")));
+      QApplication::processEvents();
+      CHECK(width->value() == 1920);
+      CHECK(background->currentText() == QStringLiteral("Black"));
+      CHECK(artboards->isChecked() == remembered_artboards);
       dialog->reject();
       return;
     }
@@ -2357,6 +2429,7 @@ void ui_new_document_dialog_remembers_last_settings() {
   require_action(window, "fileNewAction")->trigger();
   QApplication::processEvents();
   CHECK(tabs->count() == 2);
+  QApplication::clipboard()->clear();
 }
 
 // Issue 53: the W/H unit and the resolution unit persist with the other New

@@ -328,8 +328,7 @@ void ui_artboard_layers_panel_rows_and_properties_panel() {
 // holding "Layer 1".
 void ui_artboard_new_document_option() {
   SettingsValueRestorer option_restorer(QStringLiteral("newDocument/artboards"));
-  // An image left on the clipboard by an earlier test would preselect the Clipboard card,
-  // which makes a document from the clipboard instead.
+  // Start without an image an earlier test left on the clipboard.
   QGuiApplication::clipboard()->clear();
   patchy::ui::MainWindow window;
   show_window(window);

@@ -1145,8 +1145,8 @@ void ui_image_mode_converts_bit_depth_with_undo() {
   patchy::set_deep_editing_override(std::nullopt);
 }
 // File > New offers Bit Depth while deep editing is on (the default in the app): the
-// chosen depth makes the document, every new dialog starts at 8 bits again (as in
-// Photoshop), and the row is hidden when deep editing is off.
+// chosen depth makes the document, the Last Used card the next dialog opens on brings
+// that depth back, and the row is hidden when deep editing is off.
 void ui_new_document_dialog_creates_the_chosen_bit_depth() {
   const auto answer_new_document = [](int bits, bool expect_row, int* remembered) {
     QTimer::singleShot(0, [bits, expect_row, remembered] {
@@ -1214,7 +1214,7 @@ void ui_new_document_dialog_creates_the_chosen_bit_depth() {
     answer_new_document(32, true, &remembered);
     require_action(window, "fileNewAction")->trigger();
     QApplication::processEvents();
-    CHECK(remembered == 8);
+    CHECK(remembered == 16);
     CHECK(patchy::ui::MainWindowTestAccess::document(window).color_state().bit_depth == patchy::BitDepth::Float32);
     CHECK(require_action(window, "imageMode32BitAction")->isChecked());
     CHECK(window.findChild<QDoubleSpinBox*>(QStringLiteral("hdrPreviewExposureSpin"))->isVisible());
