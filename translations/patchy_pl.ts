@@ -21748,6 +21748,14 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
         <source>Preparing page image %1 of %2...</source>
         <translation>Przygotowywanie obrazu strony %1 z %2...</translation>
     </message>
+    <message>
+        <source>Use Esc to commit text</source>
+        <translation>Używaj klawisza Esc do zatwierdzania tekstu</translation>
+    </message>
+    <message>
+        <source>When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar&apos;s Cancel button discards the edit. When off, Esc cancels the edit.</source>
+        <translation>Gdy włączone, Esc zatwierdza wpisywany tekst tak jak %CTRL%+Enter, a przycisk Anuluj na pasku opcji odrzuca edycję. Gdy wyłączone, Esc anuluje edycję.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

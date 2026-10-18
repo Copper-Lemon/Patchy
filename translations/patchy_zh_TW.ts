@@ -21618,6 +21618,14 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
         <source>Preparing page image %1 of %2...</source>
         <translation>正在準備第 %1 頁影像（共 %2 頁）...</translation>
     </message>
+    <message>
+        <source>Use Esc to commit text</source>
+        <translation>使用 Esc 鍵提交文字</translation>
+    </message>
+    <message>
+        <source>When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar&apos;s Cancel button discards the edit. When off, Esc cancels the edit.</source>
+        <translation>開啟時，Esc 鍵會像 %CTRL%+Enter 一樣套用正在輸入的文字，選項列的「取消」按鈕會放棄編輯。關閉時，Esc 鍵會取消編輯。</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

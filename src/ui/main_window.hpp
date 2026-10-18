@@ -1905,6 +1905,13 @@ private:
   void toggle_text_italic_face();
   void apply_text_color_to_active_editor();
   void apply_text_color_to_editor(QTextEdit& editor, QColor color);
+  // An options-bar pick during a live session hands the keyboard back to the editor, as
+  // Photoshop does, so the next keystroke types (replacing a still-selected "Type"
+  // placeholder) instead of landing on the control or a tool shortcut (GitHub issue 175).
+  void return_keyboard_to_text_editor();
+  // The Character and Paragraph panels follow the same rule: Enter in a field, a checkbox
+  // click or a combo pick hands the keyboard back to a live session.
+  void return_keyboard_after_text_panel_edits(QWidget& panel);
   // The text color panel is live; with no session each change would commit every selected
   // layer, so the layer edit waits for the picker to settle on `color`.
   void apply_text_color_to_selected_layers_debounced(QColor color);
@@ -1924,6 +1931,8 @@ private:
   // text layer (committing any open inline edit first) with live preview; OK is one
   // undo step, Cancel restores the pre-dialog pixels and metadata.
   void request_warp_text_dialog();
+  // False when the dialog never opened (no text layer, locked pixels, faux bold).
+  bool run_warp_text_dialog_on_active_layer();
   // Character changes apply to the inline selection, or the selected text layer
   // through a hidden session committed immediately without an unwarped preview.
   void open_text_character_dialog();
@@ -2873,6 +2882,9 @@ private:
   // input/snapTransformsToPixelGrid: numeric Free Transform entries land on whole
   // pixels (Photoshop's default). Persisted identifier.
   bool snap_transforms_to_pixel_grid_{true};
+  // input/escapeCommitsText: Esc applies a text edit instead of canceling it (Photoshop's
+  // "Use ESC key to commit text", GitHub issue 173). Persisted identifier.
+  bool escape_commits_text_{false};
   bool zoom_layer_thumbnails_to_content_{true};
   std::vector<std::pair<QWidget*, std::vector<CanvasTool>>> option_actions_;
   std::vector<QWidget*> transform_option_actions_;

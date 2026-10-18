@@ -10,6 +10,7 @@
 #include "ui/canvas_types.hpp"
 #include "ui/main_window.hpp"
 #include "ui/gradient_stops_editor.hpp"
+#include <QApplication>
 #include <QStatusBar>
 #include "ui/canvas_widget.hpp"
 #include "ui/appearance_edits.hpp"
@@ -3233,6 +3234,10 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   text_color_button_->setObjectName(QStringLiteral("textColorButton"));
   bind_tooltip(text_color_button_, QT_TR_NOOP("Text color"));
   text_color_button_->setFixedSize(30, 26);
+  // Qt::NoFocus like the session buttons below: keyboard focus stays in the editor, so typing
+  // after a color pick replaces the selected "Type" placeholder (GitHub issue 175). The
+  // alignment buttons follow the same rule.
+  text_color_button_->setFocusPolicy(Qt::NoFocus);
   add_option_widget(text_color_button_, {CanvasTool::Text});
   // Ragged-lines glyphs instead of L / C / R letters, which needed an "Align:" label to
   // read; sync_text_orientation_controls_from_editor swaps in the column glyphs for
@@ -3246,6 +3251,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   text_align_left_button_->setChecked(true);
   bind_tooltip(text_align_left_button_, QT_TR_NOOP("Align Left"));
   text_align_left_button_->setFixedSize(30, 26);
+  text_align_left_button_->setFocusPolicy(Qt::NoFocus);
   text_alignment_group->addButton(text_align_left_button_);
   add_option_widget(text_align_left_button_, {CanvasTool::Text});
   text_align_center_button_ = new QPushButton(toolbar);
@@ -3254,6 +3260,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   text_align_center_button_->setCheckable(true);
   bind_tooltip(text_align_center_button_, QT_TR_NOOP("Align Center"));
   text_align_center_button_->setFixedSize(30, 26);
+  text_align_center_button_->setFocusPolicy(Qt::NoFocus);
   text_alignment_group->addButton(text_align_center_button_);
   add_option_widget(text_align_center_button_, {CanvasTool::Text});
   text_align_right_button_ = new QPushButton(toolbar);
@@ -3262,6 +3269,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   text_align_right_button_->setCheckable(true);
   bind_tooltip(text_align_right_button_, QT_TR_NOOP("Align Right"));
   text_align_right_button_->setFixedSize(30, 26);
+  text_align_right_button_->setFocusPolicy(Qt::NoFocus);
   text_alignment_group->addButton(text_align_right_button_);
   add_option_widget(text_align_right_button_, {CanvasTool::Text});
   // Photoshop's "Toggle text orientation": one Type tool with a vertical switch instead of a
@@ -3278,6 +3286,9 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   bind_widget_text(text_warp_button_, QT_TR_NOOP("Warp..."));
   text_warp_button_->setObjectName(QStringLiteral("textWarpButton"));
   bind_tooltip(text_warp_button_, QT_TR_NOOP("Warp Text (Photoshop-style styles: arc, flag, fish, ...)"));
+  // Qt::NoFocus so the press does not auto-commit the session before request_warp_text_dialog
+  // can note its selection and reopen it afterwards (GitHub issue 175).
+  text_warp_button_->setFocusPolicy(Qt::NoFocus);
   add_option_widget(text_warp_button_, {CanvasTool::Text});
   // Character panel: works on the LIVE editor session, so Qt::NoFocus is load-bearing here
   // exactly like the session apply/cancel buttons (a focus-taking button would fire the
@@ -3317,6 +3328,18 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
             refresh_document_info();
           });
   connect(text_color_button_, &QPushButton::clicked, this, [this] { choose_text_color(); });
+  // The controls that need the keyboard while in use hand it back to a live session once the
+  // pick lands: a popup choice, or Enter in the size field. editingFinished on focus loss finds
+  // the spin no longer focused, except when its slider popup opens: Qt sends that FocusOut while
+  // the field still holds focus, and an active popup tells the two apart.
+  for (QComboBox* combo : {static_cast<QComboBox*>(text_font_combo_), text_style_combo_, text_smoothing_combo_}) {
+    connect(combo, QOverload<int>::of(&QComboBox::activated), this, [this](int) { return_keyboard_to_text_editor(); });
+  }
+  connect(text_size_spin_, &QAbstractSpinBox::editingFinished, this, [this] {
+    if (text_size_spin_->hasFocus() && QApplication::activePopupWidget() == nullptr) {
+      return_keyboard_to_text_editor();
+    }
+  });
   connect(text_align_left_button_, &QPushButton::clicked, this,
           [this] { apply_text_alignment_to_active_editor(Qt::AlignLeft); });
   connect(text_align_center_button_, &QPushButton::clicked, this,

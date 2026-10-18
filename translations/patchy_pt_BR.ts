@@ -21683,6 +21683,14 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
         <source>Preparing page image %1 of %2...</source>
         <translation>Preparando a imagem de página %1 de %2...</translation>
     </message>
+    <message>
+        <source>Use Esc to commit text</source>
+        <translation>Usar Esc para confirmar o texto</translation>
+    </message>
+    <message>
+        <source>When on, Esc applies the text you are typing, like %CTRL%+Enter, and the options bar&apos;s Cancel button discards the edit. When off, Esc cancels the edit.</source>
+        <translation>Quando ativado, Esc aplica o texto que você está digitando, como %CTRL%+Enter, e o botão Cancelar da barra de opções descarta a edição. Quando desativado, Esc cancela a edição.</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

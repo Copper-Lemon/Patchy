@@ -4948,6 +4948,12 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
     wasm_files::restore_qt_dom_focus();
   }
 #endif
+  // The type size field's slider popup leaves the keyboard on the field when it closes; a live
+  // session gets it back like any other options-bar pick (GitHub issue 175).
+  if (event->type() == QEvent::Hide && watched->isWidgetType() &&
+      watched->objectName() == QStringLiteral("textSizePopup")) {
+    QTimer::singleShot(0, this, [this] { return_keyboard_to_text_editor(); });
+  }
   if (handle_spacebar_canvas_pan_event(watched, event)) {
     return true;
   }
@@ -5024,7 +5030,15 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
         layer_id = static_cast<LayerId>(editor->property("patchy.editingLayerId").toULongLong());
       }
       if (key_event->key() == Qt::Key_Escape) {
-        cancel_text_editor(editor, layer_id);
+        // Preferences > Tools "Use Esc to commit text" (GitHub issue 173); off, Esc cancels.
+        if (escape_commits_text_) {
+          commit_text_editor(editor,
+                             QPoint(editor->property("patchy.documentTextX").toInt(),
+                                    editor->property("patchy.documentTextY").toInt()),
+                             layer_id);
+        } else {
+          cancel_text_editor(editor, layer_id);
+        }
         key_event->accept();
         return true;
       }
@@ -6752,8 +6766,12 @@ void MainWindow::add_text_at(QPoint document_point, QRect requested_text_box, bo
   auto* cancel_shortcut = new QShortcut(QKeySequence(Qt::Key_Escape), editor);
   cancel_shortcut->setContext(Qt::WidgetWithChildrenShortcut);
   connect(cancel_shortcut, &QShortcut::activated, editor,
-          [this, editor = QPointer<QTextEdit>(editor), editing_layer, committed] {
+          [this, editor = QPointer<QTextEdit>(editor), editing_layer, committed, commit] {
             if (*committed || editor == nullptr) {
+              return;
+            }
+            if (escape_commits_text_) {
+              commit();
               return;
             }
             *committed = true;
@@ -7729,6 +7747,7 @@ void MainWindow::open_text_character_dialog() {
   // Sub-control gotcha: the spin-button style must land AFTER all children exist.
   append_themed_style(*dialog, dialog_spinbox_button_style());
   sync_text_character_dialog_from_editor();
+  return_keyboard_after_text_panel_edits(*dialog);
   run_non_modal_dialog(*dialog);
   // WA_DeleteOnClose destroyed the dialog when the nested loop unwound.
   text_character_hint_label_ = nullptr;
@@ -8153,6 +8172,7 @@ void MainWindow::open_text_paragraph_dialog() {
   append_themed_style(*dialog, dialog_spinbox_button_style());
   sync_text_paragraph_dialog_from_editor();
   sync_text_orientation_controls_from_editor();
+  return_keyboard_after_text_panel_edits(*dialog);
   run_non_modal_dialog(*dialog);
   // WA_DeleteOnClose destroyed the dialog when the nested loop unwound.
   text_paragraph_hint_label_ = nullptr;
@@ -8495,25 +8515,54 @@ void MainWindow::request_warp_text_dialog() {
   if (canvas_ == nullptr) {
     return;
   }
-  // The dialog operates on the committed layer; finish any open inline edit first.
+  // The dialog operates on the committed layer, so an open inline edit commits first. Photoshop
+  // keeps the type in edit mode across Warp Text, so a live session reopens afterwards with its
+  // selection: a still-selected "Type" placeholder stays replaceable (GitHub issue 175).
+  std::optional<std::pair<int, int>> resume_selection;
+  if (const auto* live = canvas_->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor"));
+      live != nullptr && !live->property(kTextEditorFinishedProperty).toBool() && live->isVisible()) {
+    resume_selection = std::pair{live->textCursor().anchor(), live->textCursor().position()};
+  }
   commit_active_text_editor();
+  const bool dialog_ran = run_warp_text_dialog_on_active_layer();
+  if (!dialog_ran || !resume_selection.has_value() || canvas_ == nullptr || !has_active_document()) {
+    return;
+  }
+  const auto active = document().active_layer_id();
+  const auto* layer = active.has_value() ? std::as_const(document()).find_layer(*active) : nullptr;
+  if (layer == nullptr || !layer_is_text(*layer)) {
+    return;
+  }
+  edit_text_layer(*active);
+  if (auto* editor = canvas_->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor"));
+      editor != nullptr && editor->property("patchy.editingLayerId").toULongLong() == *active) {
+    const int end = std::max(0, editor->document()->characterCount() - 1);
+    QTextCursor cursor(editor->document());
+    cursor.setPosition(std::clamp(resume_selection->first, 0, end));
+    cursor.setPosition(std::clamp(resume_selection->second, 0, end), QTextCursor::KeepAnchor);
+    editor->setTextCursor(cursor);
+    return_keyboard_to_text_editor();  // the modal dialog took the window's activation with it
+  }
+}
+
+bool MainWindow::run_warp_text_dialog_on_active_layer() {
   auto& doc = document();
   select_only_layer_if_none_active();
   const auto active_id = doc.active_layer_id();
   Layer* layer = active_id.has_value() ? doc.find_layer(*active_id) : nullptr;
   if (layer == nullptr || !layer_is_text(*layer)) {
     show_status_error(tr("Select a text layer to warp."));
-    return;
+    return false;
   }
   if (layer_id_locks_image_pixels(layer->id())) {
     show_status_error(tr("Layer pixels are locked."));
-    return;
+    return false;
   }
   if (text_layer_uses_faux_bold(*layer)) {
     // Photoshop parity: it refuses to warp type with Faux Bold anywhere in the layer, so
     // Patchy must not author a PSD Photoshop itself would not create. Faux italic warps fine.
     show_status_error(tr("Faux bold text cannot be warped. Turn off faux bold in the Character panel first."));
-    return;
+    return false;
   }
   const auto layer_id = layer->id();
   const auto original_pixels = layer->pixels();
@@ -8557,7 +8606,7 @@ void MainWindow::request_warp_text_dialog() {
   if (!result.has_value() || warp_settings_equal(*result, initial)) {
     canvas_->document_changed();
     refresh_layer_list();
-    return;
+    return true;
   }
   push_undo_snapshot(tr("Warp Text"));
   bool applied = false;
@@ -8573,6 +8622,7 @@ void MainWindow::request_warp_text_dialog() {
   canvas_->document_changed();
   refresh_layer_list();
   refresh_layer_controls();
+  return true;
 }
 
 // SVG post-open pass. The Qt-free SVG reader stores each <text> element's
@@ -10994,6 +11044,39 @@ void MainWindow::apply_text_color_to_active_editor() {
   refresh_text_color_button();
 }
 
+void MainWindow::return_keyboard_to_text_editor() {
+  if (canvas_ == nullptr || applying_text_options_to_layers_) {
+    return;
+  }
+  auto* editor = canvas_->findChild<QTextEdit*>(QStringLiteral("inlineTextEditor"));
+  if (editor == nullptr || editor->property(kTextEditorFinishedProperty).toBool() || !editor->isVisible()) {
+    return;
+  }
+  // From a Character/Paragraph panel the keyboard sits in another window; give the canvas's
+  // window the keyboard back too, or the keys would keep going to the panel.
+  if (auto* window = editor->window(); window != nullptr && !window->isActiveWindow()) {
+    window->activateWindow();
+  }
+  editor->setFocus(Qt::OtherFocusReason);
+}
+
+void MainWindow::return_keyboard_after_text_panel_edits(QWidget& panel) {
+  for (auto* spin : panel.findChildren<QAbstractSpinBox*>()) {
+    // Enter, not focus loss: leaving the field already put the keyboard somewhere on purpose.
+    connect(spin, &QAbstractSpinBox::editingFinished, this, [this, spin = QPointer<QAbstractSpinBox>(spin)] {
+      if (spin != nullptr && spin->hasFocus() && QApplication::activePopupWidget() == nullptr) {
+        return_keyboard_to_text_editor();
+      }
+    });
+  }
+  for (auto* check : panel.findChildren<QCheckBox*>()) {
+    connect(check, &QCheckBox::clicked, this, [this](bool) { return_keyboard_to_text_editor(); });
+  }
+  for (auto* combo : panel.findChildren<QComboBox*>()) {
+    connect(combo, QOverload<int>::of(&QComboBox::activated), this, [this](int) { return_keyboard_to_text_editor(); });
+  }
+}
+
 void MainWindow::apply_text_color_to_editor(QTextEdit& editor, QColor color) {
   QTextCharFormat format;
   format.setForeground(QBrush(color));
@@ -11103,7 +11186,9 @@ bool MainWindow::is_text_option_widget(QWidget* widget) const {
          // The font picker popup is a Qt::Popup window, so isAncestorOf-based ownership stops
          // at its boundary; without the name match, focusing its search box would auto-commit
          // an open inline text editor.
-         in_named_ancestor(QString::fromLatin1(kFontPickerPopupObjectName));
+         in_named_ancestor(QString::fromLatin1(kFontPickerPopupObjectName)) ||
+         // The size field's slider popup is a Qt::Popup too (parentWidget still reaches it).
+         in_named_ancestor(QStringLiteral("textSizePopup"));
 }
 
 MainWindow::PreviewDialogEditLock MainWindow::lock_preview_dialog_edits() {
