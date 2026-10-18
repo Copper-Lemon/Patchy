@@ -21240,10 +21240,6 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
         <translation>Usa la barra del titolo di sistema</translation>
     </message>
     <message>
-        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
-        <translation>Mostra la barra del titolo e la cornice della finestra del desktop al posto dei controlli finestra di Patchy nella barra dei menu. Ha effetto al prossimo avvio di Patchy.</translation>
-    </message>
-    <message>
         <source>System Title Bar</source>
         <translation>Barra del titolo di sistema</translation>
     </message>
@@ -21634,6 +21630,54 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
     <message>
         <source>Opening PDF</source>
         <translation>Apertura del PDF</translation>
+    </message>
+    <message>
+        <source>Zoom presets</source>
+        <translation>Zoom predefiniti</translation>
+    </message>
+    <message>
+        <source>Sets:</source>
+        <translation>Imposta:</translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation>Primo piano</translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation>Un clic imposta il colore di primo piano; %ALT%+clic imposta lo sfondo</translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation>Un clic imposta il colore di sfondo; %ALT%+clic imposta il primo piano</translation>
+    </message>
+    <message>
+        <source>Ro&amp;tate &amp;&amp; Flip</source>
+        <translation>Ruo&amp;ta e rifletti</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>Mostra la barra del titolo e la cornice della finestra del desktop al posto dei controlli finestra di Patchy nella barra dei menu. Attivo per impostazione predefinita quando il desktop mostra i menu delle applicazioni in una barra dei menu globale. Ha effetto al prossimo avvio di Patchy.</translation>
+    </message>
+    <message>
+        <source>Reset Panels</source>
+        <translation>Ripristina i pannelli</translation>
+    </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation>Comprimi pannello</translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation>Espandi pannello</translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation>Chiudi gruppo di schede</translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
+        <translation>Chiudi pannello</translation>
     </message>
     <message>
         <source>Preparing page image %1 of %2...</source>

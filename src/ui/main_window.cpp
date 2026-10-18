@@ -1,6 +1,7 @@
-#include <QDockWidget>
+#include <QSplitter>
 #include <QWindow>
 #include "ui/main_window.hpp"
+#include "ui/panel_column.hpp"
 #include "ui/brush_tip_library.hpp"
 #include "ui/gradient_stops_editor.hpp"
 #include <QMenuBar>
@@ -38,6 +39,7 @@
 #include "ui/image_document_io.hpp"
 #include "ui/filter_workflows.hpp"
 #include "ui/dialog_utils.hpp"
+#include "ui/theme_palette.hpp"
 #include <qlatin1stringview.h>
 #include <QAbstractSpinBox>
 #include <QAction>
@@ -127,6 +129,8 @@
 #include <QTextFormat>
 #include <QTextOption>
 #include <QTimer>
+#include <QActionGroup>
+#include <QSet>
 #include <QHBoxLayout>
 #include <QToolButton>
 #include <QToolTip>
@@ -4320,7 +4324,13 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
       }
     });
   }
-  setCentralWidget(document_tabs_);
+  // The document tabs share the central area with the panel column, which
+  // create_docks adds as the splitter's second widget (docs/right-docks.md).
+  workspace_splitter_ = new QSplitter(Qt::Horizontal, this);
+  workspace_splitter_->setObjectName(QStringLiteral("workspaceSplitter"));
+  workspace_splitter_->setHandleWidth(7);
+  workspace_splitter_->addWidget(document_tabs_);
+  setCentralWidget(workspace_splitter_);
   connect(document_tabs_, &QTabWidget::currentChanged, this, [this](int index) { activate_document_tab(index); });
   connect(document_tabs_, &QTabWidget::tabCloseRequested, this, [this](int index) { close_document_tab(index); });
   start_panel_ = new StartPanel(document_tabs_);
@@ -4399,6 +4409,9 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
   });
 #endif
   create_docks();
+  default_collapsed_panels_ = collapsed_panel_names();
+  default_panel_order_ = panel_column_->section_order();
+  install_window_panel_entries();
   hotkey_registry_.apply_to_actions();
   // Script hotkeys must work from the first keypress, before File > Scripts was ever
   // opened: register every script's command now (docs/scripting.md "Script hotkeys").
@@ -4414,6 +4427,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     resize(1280, 860);
     clamp_window_to_available_screen();
   }
+  restore_panel_layout();
   setStyleSheet(photoshop_style());
   // Connected after the first sheet is applied: connecting earlier would let a
   // scheme change restyle a half-built window.
@@ -4440,10 +4454,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
   palette_mode_chip_->setCursor(Qt::PointingHandCursor);
   palette_mode_chip_->setFocusPolicy(Qt::NoFocus);
   connect(palette_mode_chip_, &QToolButton::clicked, this, [this] {
-    if (palette_dock_ != nullptr) {
-      palette_dock_->show();
-      palette_dock_->raise();
-    }
+    show_panel(QStringLiteral("paletteDock"));
   });
   statusBar()->addPermanentWidget(palette_mode_chip_);
   palette_mode_chip_->hide();
@@ -4507,9 +4518,45 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     zoom_controls_layout->addWidget(button);
     return button;
   };
-  auto* zoom_actual_pixels = add_zoom_button(QStringLiteral("statusZoomActualPixelsButton"),
-                                             QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "100%"),
-                                             QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Actual Pixels"));
+  // A chevron inside the box, like an options-bar field's, opens the zoom presets
+  // (800% down to 12.5%, the current view checked; GitHub issue 159).
+  auto* zoom_presets_menu = new QMenu(zoom_status_edit_);
+  zoom_presets_menu->setObjectName(QStringLiteral("statusZoomPresetsMenu"));
+  auto* zoom_presets_group = new QActionGroup(zoom_presets_menu);
+  for (const double percent : {800.0, 400.0, 200.0, 100.0, 50.0, 25.0, 12.5}) {
+    auto* action = zoom_presets_menu->addAction(ZoomPercentEdit::format_zoom_text(percent / 100.0));
+    action->setCheckable(true);
+    action->setData(percent);
+    action->setActionGroup(zoom_presets_group);
+    action->setProperty(kViewNavigationActionProperty, true);  // allowed during automation (mcp_activity.cpp)
+    connect(action, &QAction::triggered, this, [this, percent] {
+      if (canvas_ != nullptr && has_active_document()) {
+        canvas_->set_view_zoom_centered(percent / 100.0);
+      }
+    });
+  }
+  connect(zoom_presets_menu, &QMenu::aboutToShow, this, [this, zoom_presets_menu] {
+    const double current = canvas_ != nullptr && has_active_document() ? canvas_->view_zoom() * 100.0 : 0.0;
+    for (auto* action : zoom_presets_menu->actions()) {
+      action->setChecked(std::abs(action->data().toDouble() - current) < 0.005);
+    }
+  });
+  auto* zoom_presets = zoom_status_edit_->addAction(
+      themed_glyph_icon(QStringLiteral("status-zoom-presets"), 12.0, &ThemePalette::status_text,
+                        [](QPainter& painter, const QColor& ink) {
+                          painter.setRenderHint(QPainter::Antialiasing, true);
+                          painter.setPen(QPen(ink, 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+                          painter.drawPolyline(QPolygonF{QPointF(2.5, 4.5), QPointF(6.0, 8.0), QPointF(9.5, 4.5)});
+                        }),
+      QLineEdit::TrailingPosition);
+  zoom_presets->setObjectName(QStringLiteral("statusZoomPresetsAction"));
+  register_retranslation([zoom_presets] { zoom_presets->setToolTip(tr("Zoom presets")); });
+  zoom_presets->setToolTip(tr("Zoom presets"));
+  connect(zoom_presets, &QAction::triggered, this, [this, zoom_presets_menu] {
+    // The status bar sits at the window's foot, so the list opens upward from the box.
+    const auto box = zoom_status_edit_->mapToGlobal(QPoint(0, 0));
+    zoom_presets_menu->popup(box - QPoint(0, zoom_presets_menu->sizeHint().height()));
+  });
   auto* zoom_fit = add_zoom_button(QStringLiteral("statusZoomFitButton"),
                                    QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Fit"),
                                    QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Fit on Screen"));
@@ -4526,11 +4573,6 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
   connect(zoom_status_edit_, &ZoomPercentEdit::zoom_scrub_requested, this, [this](double factor) {
     if (canvas_ != nullptr && has_active_document()) {
       canvas_->set_view_zoom_centered(canvas_->view_zoom() * factor);
-    }
-  });
-  connect(zoom_actual_pixels, &QToolButton::clicked, this, [this] {
-    if (canvas_ != nullptr && has_active_document()) {
-      canvas_->set_view_zoom_centered(1.0);
     }
   });
   connect(zoom_fit, &QToolButton::clicked, this, [this] {
@@ -5097,14 +5139,6 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
     return true;
   }
 
-  if (handle_right_dock_title_drag_event(watched, event)) {
-    return true;
-  }
-
-  if (handle_dock_group_window_event(watched, event)) {
-    return true;
-  }
-
   if (auto* viewport = qobject_cast<QWidget*>(watched);
       viewport != nullptr && viewport->parentWidget() != nullptr &&
       viewport->parentWidget()->objectName() == QStringLiteral("inlineTextEditor")) {
@@ -5459,6 +5493,7 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     }
   }
   save_window_geometry();
+  save_panel_layout();
   // Flush any tool-option change still waiting on the save debounce; the timer
   // will not fire once the window is gone.
   save_tool_settings();
@@ -11172,6 +11207,51 @@ bool MainWindow::refuse_layer_dialog_during_transform() {
   }
   show_status_error(tr("Finish the transform first: press Enter to apply it or Esc to cancel it"));
   return true;
+}
+
+bool command_works_without_document(const QAction& action, const QString& command_id) {
+  if (action.property(kWorksWithoutDocumentProperty).toBool()) {
+    return true;
+  }
+  switch (action.menuRole()) {
+    case QAction::AboutRole:
+    case QAction::AboutQtRole:
+    case QAction::PreferencesRole:
+    case QAction::QuitRole:
+      return true;
+    default:
+      break;
+  }
+  // Commands that open, create or import a document, change app-wide settings, or
+  // run a script (scripts check for a document themselves).
+  static const QSet<QString> ids{
+      QStringLiteral("file.new"),
+      QStringLiteral("file.open"),
+      QStringLiteral("file.open_clipboard"),
+      QStringLiteral("file.open_folder"),
+      QStringLiteral("file.import_scanner"),
+      QStringLiteral("file.import_photocopy"),
+      QStringLiteral("file.import_divide_photos"),
+      QStringLiteral("file.import_sprite_sheet"),
+      QStringLiteral("file.import_image_sequence"),
+      QStringLiteral("file.preferences"),
+      QStringLiteral("file.quit"),
+      QStringLiteral("edit.define_custom_shape_svg"),
+      QStringLiteral("plugins.open_folder"),
+      QStringLiteral("plugins.rescan"),
+      QStringLiteral("view.vector_preview"),  // a preference, also in Preferences
+  };
+  if (ids.contains(command_id)) {
+    return true;
+  }
+  for (const auto* prefix : {"help.", "script.", "file.scripts."}) {
+    if (command_id.startsWith(QLatin1String(prefix))) {
+      return true;
+    }
+  }
+  const auto name = action.objectName();
+  return name == QStringLiteral("fileClearRecentAction") || name == QStringLiteral("fileClearRecentFoldersAction") ||
+         name.startsWith(QStringLiteral("windowSetScreenSize"));
 }
 
 void MainWindow::register_document_action(QAction* action) {

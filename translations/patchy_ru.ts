@@ -21305,10 +21305,6 @@ Patchy может скачать обновление, заменить этот
         <translation>Использовать системный заголовок окна</translation>
     </message>
     <message>
-        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
-        <translation>Показывает заголовок и рамку окна рабочего стола вместо кнопок окна Patchy в строке меню. Вступает в силу при следующем запуске Patchy.</translation>
-    </message>
-    <message>
         <source>System Title Bar</source>
         <translation>Системный заголовок окна</translation>
     </message>
@@ -21699,6 +21695,54 @@ Patchy может скачать обновление, заменить этот
     <message>
         <source>Opening PDF</source>
         <translation>Открытие PDF</translation>
+    </message>
+    <message>
+        <source>Zoom presets</source>
+        <translation>Предустановки масштаба</translation>
+    </message>
+    <message>
+        <source>Sets:</source>
+        <translation>Задаёт:</translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation>Основной</translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation>Щелчок задаёт основной цвет; %ALT%+щелчок задаёт фоновый</translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation>Щелчок задаёт фоновый цвет; %ALT%+щелчок задаёт основной</translation>
+    </message>
+    <message>
+        <source>Ro&amp;tate &amp;&amp; Flip</source>
+        <translation>Пово&amp;рот и отражение</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>Показывает заголовок и рамку окна рабочего стола вместо кнопок окна Patchy в строке меню. Включено по умолчанию, если рабочий стол показывает меню приложений в глобальной строке меню. Вступает в силу при следующем запуске Patchy.</translation>
+    </message>
+    <message>
+        <source>Reset Panels</source>
+        <translation>Сбросить панели</translation>
+    </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation>Свернуть панель</translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation>Развернуть панель</translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation>Закрыть группу вкладок</translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
+        <translation>Закрыть панель</translation>
     </message>
     <message>
         <source>Preparing page image %1 of %2...</source>

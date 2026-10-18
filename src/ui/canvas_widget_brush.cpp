@@ -1248,7 +1248,7 @@ float CanvasWidget::capped_stroke_coverage(std::int32_t x, std::int32_t y, float
     return 0.0F;
   }
 
-  auto& previous_alpha = brush_stroke_alpha_caps_[stroke_pixel_key(x, y)];
+  auto& previous_alpha = brush_stroke_alpha_caps_(x, y);
   if (target_alpha <= previous_alpha + 0.0005F) {
     return 0.0F;
   }
@@ -1269,7 +1269,7 @@ float CanvasWidget::accumulating_stroke_coverage(std::int32_t x, std::int32_t y,
     return 0.0F;
   }
 
-  auto& accumulated_alpha = brush_stroke_accumulated_alpha_[stroke_pixel_key(x, y)];
+  auto& accumulated_alpha = brush_stroke_accumulated_alpha_(x, y);
   const auto target_alpha =
       std::min(opacity, 1.0F - (1.0F - accumulated_alpha) * (1.0F - dab_alpha));
   if (target_alpha <= accumulated_alpha + 0.0005F) {
@@ -1506,7 +1506,7 @@ bool CanvasWidget::write_brush_stroke_pixel_from_snapshot_blend(std::int32_t x, 
 
   flow = std::clamp(flow, 0.01F, 1.0F);
   const auto dab_alpha = std::clamp(source_alpha * flow * coverage, 0.0F, source_alpha);
-  auto& accumulated_alpha = brush_stroke_accumulated_alpha_[stroke_pixel_key(x, y)];
+  auto& accumulated_alpha = brush_stroke_accumulated_alpha_(x, y);
   const auto target_alpha =
       std::min(source_alpha, 1.0F - (1.0F - accumulated_alpha) * (1.0F - dab_alpha));
   if (target_alpha <= accumulated_alpha + 0.0005F) {
@@ -1631,7 +1631,7 @@ bool CanvasWidget::render_brush_stroke_pixel_from_snapshot_target(
 void CanvasWidget::observe_wet_edge_coverage(std::int32_t x, std::int32_t y, float coverage,
                                              EditColor primary) {
   const auto key = stroke_pixel_key(x, y);
-  auto& union_coverage = brush_stroke_union_coverage_[key];
+  auto& union_coverage = brush_stroke_union_coverage_(x, y);
   union_coverage = std::max(union_coverage, std::clamp(coverage, 0.0F, 1.0F));
   brush_stroke_wet_edge_primary_[key] = primary;
   const auto pixel_rect = QRect(QPoint(x, y), QSize(1, 1));
@@ -1660,23 +1660,21 @@ QRect CanvasWidget::finalize_pending_wet_edges(QRect dirty) {
   const auto bounds = layer->bounds();
   const auto channels = pixels.format().channels;
   const auto coverage_at = [this](std::int32_t x, std::int32_t y) {
-    const auto found = brush_stroke_union_coverage_.find(stroke_pixel_key(x, y));
-    return found != brush_stroke_union_coverage_.end() ? found->second : 0.0F;
+    const auto* found = brush_stroke_union_coverage_.find(x, y);
+    return found != nullptr ? *found : 0.0F;
   };
   const auto secondary = edit_color(secondary_color_);
   const auto locked = active_layer_locks_transparent_pixels();
   for (int y = region.top(); y <= region.bottom(); ++y) {
     auto row = pixels.row(y - bounds.y);
     for (int x = region.left(); x <= region.right(); ++x) {
-      const auto key = stroke_pixel_key(x, y);
-      const auto union_found = brush_stroke_union_coverage_.find(key);
-      const auto alpha_found = brush_stroke_accumulated_alpha_.find(key);
-      if (union_found == brush_stroke_union_coverage_.end() ||
-          alpha_found == brush_stroke_accumulated_alpha_.end()) {
+      const auto* union_found = brush_stroke_union_coverage_.find(x, y);
+      const auto* alpha_found = brush_stroke_accumulated_alpha_.find(x, y);
+      if (union_found == nullptr || alpha_found == nullptr) {
         continue;
       }
 
-      const auto center = union_found->second;
+      const auto center = *union_found;
       auto gradient = 0.0F;
       for (int oy = -1; oy <= 1; ++oy) {
         for (int ox = -1; ox <= 1; ++ox) {
@@ -1694,14 +1692,14 @@ QRect CanvasWidget::finalize_pending_wet_edges(QRect dirty) {
       const auto boundary = std::clamp(gradient * 4.0F, 0.0F, 1.0F);
       const auto wet_factor =
           std::clamp(0.585F + boundary * (0.035F + 1.12F * (1.0F - center)), 0.0F, 1.5F);
-      const auto primary_found = brush_stroke_wet_edge_primary_.find(key);
+      const auto primary_found = brush_stroke_wet_edge_primary_.find(stroke_pixel_key(x, y));
       const auto primary = primary_found != brush_stroke_wet_edge_primary_.end()
                                ? primary_found->second
                                : edit_color(primary_color_);
       auto* pixel = row.data() + static_cast<std::size_t>(x - bounds.x) * static_cast<std::size_t>(bytes_per_pixel(pixels.format()));
       if (render_brush_stroke_pixel_from_snapshot_target(
               x, y, pixel, channels, primary, secondary, locked,
-              std::clamp(alpha_found->second * wet_factor, 0.0F, 1.0F), false)) {
+              std::clamp(*alpha_found * wet_factor, 0.0F, 1.0F), false)) {
         dirty = united_dirty_rect(dirty, QRect(QPoint(x, y), QSize(1, 1)));
       }
     }
@@ -1832,9 +1830,8 @@ void CanvasWidget::install_brush_stroke_compositor(EditOptions& options, bool er
                                         positive_modulo(y - origin.y(), height));
         const auto pattern_alpha = static_cast<float>(source[3]) / 255.0F;
         const auto cap = source_alpha * pattern_alpha;
-        const auto found = brush_stroke_accumulated_alpha_.find(stroke_pixel_key(x, y));
-        return cap > 0.0F &&
-               (found == brush_stroke_accumulated_alpha_.end() || found->second < cap - 0.0005F);
+        const auto* found = brush_stroke_accumulated_alpha_.find(x, y);
+        return cap > 0.0F && (found == nullptr || *found < cap - 0.0005F);
       };
       const auto* palette_snap = options.palette_snap;
       options.stroke_pixel_writer =
@@ -1858,8 +1855,8 @@ void CanvasWidget::install_brush_stroke_compositor(EditOptions& options, bool er
   }
 
   options.stroke_pixel_gate = [this, source_alpha](std::int32_t x, std::int32_t y) {
-    const auto found = brush_stroke_accumulated_alpha_.find(stroke_pixel_key(x, y));
-    return found == brush_stroke_accumulated_alpha_.end() || found->second < source_alpha - 0.0005F;
+    const auto* found = brush_stroke_accumulated_alpha_.find(x, y);
+    return found == nullptr || *found < source_alpha - 0.0005F;
   };
   const auto* palette_snap = options.palette_snap;
   options.stroke_pixel_writer = [this, secondary, lock_transparent_pixels, erase, palette_snap](

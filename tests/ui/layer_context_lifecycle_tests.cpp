@@ -1734,7 +1734,7 @@ void inspect_new_document_dialog_without_clipboard() {
 void ui_closing_last_document_leaves_empty_workspace() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   auto* info = window.findChild<QLabel*>(QStringLiteral("documentInfoLabel"));
   auto* layer_list = window.findChild<QListWidget*>(QStringLiteral("layerList"));
   auto* foreground = window.findChild<QPushButton*>(QStringLiteral("foregroundColorButton"));
@@ -1784,7 +1784,7 @@ void ui_closing_last_document_leaves_empty_workspace() {
 void ui_close_last_tab_with_active_text_edit_commits_editor_first() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   CHECK(tabs->count() == 1);
   auto* canvas = require_canvas(window);
@@ -1867,7 +1867,7 @@ void ui_save_prompt_uses_save_dont_save_cancel_with_letter_hotkeys() {
   // reachable, including the native frame below the message-box content.
   window.move(window.screen()->availableGeometry().bottomRight() - QPoint(80, 80));
   QApplication::processEvents();
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
 
   const auto corner_color = [&window] {
@@ -1965,7 +1965,7 @@ void ui_document_tab_context_menu_closes_tabs_and_file_menu_closes_all() {
 
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   auto* tab_bar = tabs->findChild<QTabBar*>();
   CHECK(tab_bar != nullptr);
@@ -2098,7 +2098,7 @@ void ui_canvas_size_preserves_layers_and_crop_option_resets() {
 void ui_new_document_and_canvas_size_dialogs_work() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   CHECK(tabs->count() == 1);
 
@@ -2190,7 +2190,7 @@ void ui_new_document_presets_and_clipboard_work() {
 
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   auto* info = window.findChild<QLabel*>(QStringLiteral("documentInfoLabel"));
   auto* layer_list = window.findChild<QListWidget*>(QStringLiteral("layerList"));
   CHECK(tabs != nullptr);
@@ -2233,7 +2233,7 @@ void ui_new_document_preset_double_click_creates_document() {
   }
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   auto* info = window.findChild<QLabel*>(QStringLiteral("documentInfoLabel"));
   CHECK(tabs != nullptr && info != nullptr);
   if (tabs == nullptr || info == nullptr) {
@@ -2284,7 +2284,7 @@ void ui_new_document_dialog_remembers_last_settings() {
 
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   auto* info = window.findChild<QLabel*>(QStringLiteral("documentInfoLabel"));
   CHECK(tabs != nullptr);
   CHECK(info != nullptr);
@@ -2373,7 +2373,7 @@ void ui_new_document_dialog_remembers_unit() {
 
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
 
   struct DialogFields {
@@ -2492,7 +2492,7 @@ void ui_new_document_opens_fit_to_view() {
 void ui_new_document_background_starts_locked() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   auto* layer_list = window.findChild<QListWidget*>(QStringLiteral("layerList"));
   CHECK(tabs != nullptr);
   CHECK(layer_list != nullptr);
@@ -2553,7 +2553,7 @@ void ui_merge_down_into_position_locked_background_works() {
 void ui_first_tab_still_draws_after_second_tab_created() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
 
   accept_new_document_dialog(360, 240);
@@ -2594,7 +2594,7 @@ void ui_document_tab_context_menu_file_actions() {
 
   patchy::ui::MainWindow window;
   show_window(window);  // Tab 0: the untitled startup document (no disk path).
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   auto* tab_bar = tabs->findChild<QTabBar*>();
   CHECK(tab_bar != nullptr);

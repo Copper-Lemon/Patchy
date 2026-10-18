@@ -38,7 +38,7 @@ Required release handoff steps:
 
    The throttling is mandatory: `-j 20` caps ninja for local Windows builds (remote builds use every core but four) and `scripts\run-throttled.bat` runs the build at below-normal priority. Run tests through it too, batch files as-is. Never use an unthrottled build or a bare `start "" /b /wait /belownormal` (it reports 0 once the program launched; the helper returns the real code). It refuses a `cmake --build` (exit 3) while another build runs here: wait, or use `scripts\remote\remote-build.ps1 -Target windows`; `PATCHY_ALLOW_CONCURRENT_BUILD=1` only when Seth says. Never edit it mid-run (cmd rereads it).
 
-   Run from the repository root in PowerShell or real cmd, never Git Bash: nested quoting can exit 0 without building. Require compile/link lines or `ninja: no work to do`, not just exit 0. Unchanged builds reuse binaries and dates; changed source/build inputs refresh the date, and packagers explicitly refresh it (docs/building.md). The version uses generated `patchy_version.hpp` (`cmake/patchy_version.hpp.in`), included only where used; never make it a target-wide define, which recompiles all of `patchy_ui`.
+   Run from the repository root in PowerShell or real cmd, never Git Bash: nested quoting can exit 0 without building. Require compile/link lines or `ninja: no work to do`, not just exit 0. Iterate with `--target <the test/app you run>`; a full build is five LTCG links (~12 min, docs/building.md). The version uses generated `patchy_version.hpp` (`cmake/patchy_version.hpp.in`), included only where used; never make it a target-wide define, which recompiles all of `patchy_ui`.
 
    Call `scripts\vs-env.bat`, never VsDevCmd.bat directly. See [docs/release-process.md](docs/release-process.md).
 
@@ -121,7 +121,7 @@ Read these before acting in the named area:
 - Every gradient descriptor Patchy writes carries at least two transparency stops, and a file that already has none heals on save. An empty `Trns` list makes Photoshop discard the layer behind its "unknown data" prompt; `scripts\dev\photoshop-open-check.ps1` detects that prompt per file. See [docs/ps-compat.md](docs/ps-compat.md).
 - Never leave a Qt host lookup pending at quit: `~QCoreApplication` waits for `QHostInfo`'s thread pool with no timeout (GitHub issue 48, a macOS quit freeze). `update_checker.cpp` resolves the host on a detached thread first; any new network client does the same. The tracked-worker wait after `app.exec()` is bounded (`finish_after_event_loop`): a worker still blocked after 10 s ends the process without destructors after dropping the recovery folder, so never rely on a destructor for anything the user could lose.
 - Never rely on Qt's automatic quit: inactive before `app.exec()` (startup pumps events for command-line opens and the update check), and inside exec a shown window deletes its posted event. `main.cpp` skips exec for a window closed during startup; the update close calls `QCoreApplication::exit(0)`.
-- Claude Code's Bash tool rewrites backslash escapes in heredocs; write a file and run it.
+- Bash heredocs rewrite backslash escapes (write a file and run it); Windows Python text mode writes CRLF (use `newline=''`).
 
 ## Feature index
 

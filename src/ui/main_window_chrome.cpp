@@ -77,6 +77,8 @@ constexpr int kWindowResizeBorder = 10;
 #if defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
 // The Linux chrome decision, made once per process from the stored preference.
 std::optional<bool> g_linux_custom_window_chrome;
+// Whether this desktop takes the menus into a global menu bar, probed once; tests set it.
+std::optional<bool> g_linux_global_menu_bar;
 #endif
 // Wayland reports no work area, so the window keeps this much of the screen height free for
 // a shell panel (GNOME's top bar is about 32 logical px, a KDE panel about 44). Logical pixels.
@@ -237,9 +239,11 @@ bool MainWindow::use_custom_window_chrome() {
   // resize, snap and tiling go through startSystemMove/startSystemResize. The "Use the
   // system title bar" preference turns this off for the whole process (the desktop's
   // decorations, native move and resize, no controls in the menu bar); it is read once
-  // here, before the window is built, and a change applies on the next launch.
+  // here, before the window is built, and a change applies on the next launch. Until the
+  // user sets it, it follows the desktop: on where a global menu bar takes the menus
+  // (GitHub issue 161), since the frameless chrome keeps them in the window.
   if (!g_linux_custom_window_chrome.has_value()) {
-    g_linux_custom_window_chrome = !stored_system_title_bar();
+    g_linux_custom_window_chrome = !system_title_bar_effective();
   }
   return *g_linux_custom_window_chrome;
 #else
@@ -248,9 +252,41 @@ bool MainWindow::use_custom_window_chrome() {
 #endif
 }
 
+bool MainWindow::desktop_has_global_menu_bar() {
+#if defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
+  if (!g_linux_global_menu_bar.has_value()) {
+    // Ask Qt rather than the bus: a QMenuBar gets a platform menu bar exactly when the
+    // platform theme would export it (the generic theme checks for
+    // com.canonical.AppMenu.Registrar, KDE's its own way), and isNativeMenuBar() reports
+    // that. Nothing is shown; the probe is gone before the main window is built.
+    bool global = false;
+    if (qobject_cast<QApplication*>(QCoreApplication::instance()) != nullptr) {
+      QMenuBar probe;
+      global = probe.isNativeMenuBar();
+    }
+    g_linux_global_menu_bar = global;
+  }
+  return *g_linux_global_menu_bar;
+#else
+  return false;
+#endif
+}
+
+bool MainWindow::system_title_bar_effective() {
+  return stored_system_title_bar_choice().value_or(desktop_has_global_menu_bar());
+}
+
 void MainWindow::reset_window_chrome_gate_cache() {
 #if defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
   g_linux_custom_window_chrome.reset();
+#endif
+}
+
+void MainWindow::set_global_menu_bar_probe_for_testing(std::optional<bool> global) {
+#if defined(Q_OS_LINUX) && !defined(Q_OS_WASM)
+  g_linux_global_menu_bar = global;
+#else
+  static_cast<void>(global);
 #endif
 }
 

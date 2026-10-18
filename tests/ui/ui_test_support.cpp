@@ -669,7 +669,7 @@ LayerStyleContextMenuState layer_style_context_menu_state(QListWidget& layer_lis
 patchy::ui::CanvasWidget* require_canvas(patchy::ui::MainWindow& window) {
   auto* canvas = dynamic_cast<patchy::ui::CanvasWidget*>(window.centralWidget());
   if (canvas == nullptr) {
-    auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+    auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
     if (tabs != nullptr) {
       canvas = dynamic_cast<patchy::ui::CanvasWidget*>(tabs->currentWidget());
     }
@@ -738,7 +738,7 @@ void show_window(patchy::ui::MainWindow& window) {
   // assume the historical 1024x768 canvas, so create it here for fresh windows.
   // Windows that already hold documents (opened before show) are left alone; use
   // show_window_empty to exercise the real empty-startup state.
-  if (auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  if (auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
       tabs != nullptr && tabs->count() == 0 &&
       patchy::ui::MainWindowTestAccess::session_count(window) == 0) {
     patchy::ui::MainWindowTestAccess::create_default_document(window);

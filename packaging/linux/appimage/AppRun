@@ -17,4 +17,11 @@ fi
 case "$(basename "${ARGV0:-}")" in
   patchy-mcp) exec "$HERE/usr/bin/patchy-mcp" "$@" ;;
 esac
+# Qt loads its desktop-portal theme on its own only inside Flatpak and Snap. Ask for it so
+# file dialogs are the desktop's own (GNOME's, KDE's) instead of Qt's widget dialog
+# (GitHub issue 156); it wraps the theme Qt would pick anyway and falls back to Qt's
+# dialog where no portal runs. A theme the user set wins.
+if [ -z "${QT_QPA_PLATFORMTHEME:-}" ]; then
+  export QT_QPA_PLATFORMTHEME=xdgdesktopportal
+fi
 exec "$HERE/usr/bin/patchy" "$@"

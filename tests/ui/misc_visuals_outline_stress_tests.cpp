@@ -94,7 +94,7 @@ void ui_transparency_checkerboard_and_copy_paste_preserve_alpha() {
   QApplication::processEvents();
   CHECK(*refused);
 
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   accept_new_document_dialog(220, 180);
   require_action_by_text(window, QStringLiteral("New"))->trigger();

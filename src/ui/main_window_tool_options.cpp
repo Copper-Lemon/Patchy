@@ -1836,6 +1836,9 @@ void MainWindow::load_tool_settings() {
   current_eyedropper_sample_all_layers_ =
       settings.value(QStringLiteral("tools/eyedropperSampleAllLayers"), current_eyedropper_sample_all_layers_).toBool();
   canvas_->set_eyedropper_sample_all_layers(current_eyedropper_sample_all_layers_);
+  current_eyedropper_picks_background_ =
+      settings.value(QStringLiteral("tools/eyedropperPicksBackground"), current_eyedropper_picks_background_).toBool();
+  canvas_->set_eyedropper_picks_background(current_eyedropper_picks_background_);
   canvas_->set_shape_corner_radius(
       settings.value(QStringLiteral("tools/shapeCornerRadius"), canvas_->shape_corner_radius()).toInt());
   // The spin resync below is signal-blocked, so mirror the loaded value by hand.
@@ -2124,6 +2127,7 @@ void MainWindow::save_tool_settings() const {
   settings.setValue(QStringLiteral("tools/spongeVibrance"), current_sponge_vibrance_);
   settings.setValue(QStringLiteral("tools/eyedropperSampleSize"), current_eyedropper_sample_size_);
   settings.setValue(QStringLiteral("tools/eyedropperSampleAllLayers"), current_eyedropper_sample_all_layers_);
+  settings.setValue(QStringLiteral("tools/eyedropperPicksBackground"), current_eyedropper_picks_background_);
   settings.setValue(QStringLiteral("tools/shapeCornerRadius"), canvas_->shape_corner_radius());
   settings.setValue(QStringLiteral("tools/vectorToolMode"),
                     current_vector_tool_mode_ == VectorToolMode::Path     ? QStringLiteral("path")
@@ -2793,6 +2797,12 @@ void MainWindow::refresh_options_bar() {
     QSignalBlocker blocker(eyedropper_sample_layers_combo_);
     eyedropper_sample_layers_combo_->setCurrentIndex(
         std::max(0, eyedropper_sample_layers_combo_->findData(current_eyedropper_sample_all_layers_)));
+  }
+  if (eyedropper_sets_foreground_button_ != nullptr && eyedropper_sets_background_button_ != nullptr) {
+    QSignalBlocker foreground_blocker(eyedropper_sets_foreground_button_);
+    QSignalBlocker background_blocker(eyedropper_sets_background_button_);
+    (current_eyedropper_picks_background_ ? eyedropper_sets_background_button_ : eyedropper_sets_foreground_button_)
+        ->setChecked(true);
   }
   if (sponge_vibrance_check_ != nullptr) {
     QSignalBlocker blocker(sponge_vibrance_check_);

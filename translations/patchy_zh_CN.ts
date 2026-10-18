@@ -21175,10 +21175,6 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
         <translation>使用系统标题栏</translation>
     </message>
     <message>
-        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
-        <translation>显示桌面自身的标题栏和窗口边框，而不是菜单栏中 Patchy 的窗口控制按钮。下次启动 Patchy 时生效。</translation>
-    </message>
-    <message>
         <source>System Title Bar</source>
         <translation>系统标题栏</translation>
     </message>
@@ -21569,6 +21565,54 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
     <message>
         <source>Opening PDF</source>
         <translation>正在打开 PDF</translation>
+    </message>
+    <message>
+        <source>Zoom presets</source>
+        <translation>缩放预设</translation>
+    </message>
+    <message>
+        <source>Sets:</source>
+        <translation>设置:</translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation>前景色</translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation>单击设置前景色；%ALT%+单击设置背景色</translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation>单击设置背景色；%ALT%+单击设置前景色</translation>
+    </message>
+    <message>
+        <source>Ro&amp;tate &amp;&amp; Flip</source>
+        <translation>旋转和翻转(&amp;T)</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>显示桌面自身的标题栏和窗口边框，而不是菜单栏中 Patchy 的窗口控制按钮。桌面在全局菜单栏中显示应用程序菜单时默认开启。下次启动 Patchy 时生效。</translation>
+    </message>
+    <message>
+        <source>Reset Panels</source>
+        <translation>重置面板</translation>
+    </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation>折叠面板</translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation>展开面板</translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation>关闭标签组</translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
+        <translation>关闭面板</translation>
     </message>
     <message>
         <source>Preparing page image %1 of %2...</source>

@@ -21240,10 +21240,6 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
         <translation>Systemtitelleiste verwenden</translation>
     </message>
     <message>
-        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
-        <translation>Zeigt die Titelleiste und den Fensterrahmen des Desktops statt der Fensterschaltflächen von Patchy in der Menüleiste. Wird beim nächsten Start von Patchy wirksam.</translation>
-    </message>
-    <message>
         <source>System Title Bar</source>
         <translation>Systemtitelleiste</translation>
     </message>
@@ -21634,6 +21630,54 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
     <message>
         <source>Opening PDF</source>
         <translation>PDF wird geöffnet</translation>
+    </message>
+    <message>
+        <source>Zoom presets</source>
+        <translation>Zoomvorgaben</translation>
+    </message>
+    <message>
+        <source>Sets:</source>
+        <translation>Setzt:</translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation>Vordergrund</translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation>Ein Klick setzt die Vordergrundfarbe; %ALT%+Klick setzt die Hintergrundfarbe</translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation>Ein Klick setzt die Hintergrundfarbe; %ALT%+Klick setzt die Vordergrundfarbe</translation>
+    </message>
+    <message>
+        <source>Ro&amp;tate &amp;&amp; Flip</source>
+        <translation>Dre&amp;hen und spiegeln</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>Zeigt die Titelleiste und den Fensterrahmen des Desktops statt der Fensterschaltflächen von Patchy in der Menüleiste. Standardmäßig an, wenn der Desktop die Anwendungsmenüs in einer globalen Menüleiste zeigt. Wird beim nächsten Start von Patchy wirksam.</translation>
+    </message>
+    <message>
+        <source>Reset Panels</source>
+        <translation>Bedienfelder zurücksetzen</translation>
+    </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation>Bedienfeld einklappen</translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation>Bedienfeld ausklappen</translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation>Registerkartengruppe schließen</translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
+        <translation>Bedienfeld schließen</translation>
     </message>
     <message>
         <source>Preparing page image %1 of %2...</source>

@@ -13,7 +13,6 @@
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
-#include <QDockWidget>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QEventLoop>
@@ -249,8 +248,7 @@ void ui_quick_mask_overlay_channels_and_tab_state_are_temporary() {
 
   auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   auto* channels = window.findChild<QListWidget*>(QStringLiteral("channelList"));
-  auto* channels_dock =
-      window.findChild<QDockWidget*>(QStringLiteral("channelsDock"));
+  auto* channels_dock = window.findChild<QWidget*>(QStringLiteral("channelsDock"));
   auto* quick_mask_button =
       window.findChild<QToolButton*>(QStringLiteral("quickMaskButton"));
   auto* quick_mask = require_hotkey_action(window, QStringLiteral("select.quick_mask"));
@@ -290,7 +288,7 @@ void ui_quick_mask_overlay_channels_and_tab_state_are_temporary() {
   CHECK(overlaid.red() > 135);
   CHECK(overlaid.green() >= 70 && overlaid.green() <= 82);
   CHECK(overlaid.blue() >= 105 && overlaid.blue() <= 116);
-  channels_dock->raise();
+  patchy::ui::MainWindowTestAccess::show_panel(window, QStringLiteral("channelsDock"));
   process_events_for(100);
   CHECK(channels->isVisible());
   save_widget_artifact("ui_quick_mask_overlay_channels", window);

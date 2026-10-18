@@ -21305,10 +21305,6 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
         <translation>Używaj systemowego paska tytułu</translation>
     </message>
     <message>
-        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
-        <translation>Pokazuje pasek tytułu i ramkę okna pulpitu zamiast przycisków okna Patchy na pasku menu. Zacznie obowiązywać przy następnym uruchomieniu Patchy.</translation>
-    </message>
-    <message>
         <source>System Title Bar</source>
         <translation>Systemowy pasek tytułu</translation>
     </message>
@@ -21699,6 +21695,54 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
     <message>
         <source>Opening PDF</source>
         <translation>Otwieranie pliku PDF</translation>
+    </message>
+    <message>
+        <source>Zoom presets</source>
+        <translation>Ustawienia powiększenia</translation>
+    </message>
+    <message>
+        <source>Sets:</source>
+        <translation>Ustawia:</translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation>Pierwszy plan</translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation>Kliknięcie ustawia kolor pierwszego planu; %ALT%+kliknięcie ustawia tło</translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation>Kliknięcie ustawia kolor tła; %ALT%+kliknięcie ustawia pierwszy plan</translation>
+    </message>
+    <message>
+        <source>Ro&amp;tate &amp;&amp; Flip</source>
+        <translation>Obr&amp;ót i odbicie</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>Pokazuje pasek tytułu i ramkę okna pulpitu zamiast przycisków okna Patchy na pasku menu. Domyślnie włączone, gdy pulpit pokazuje menu aplikacji na globalnym pasku menu. Zacznie obowiązywać przy następnym uruchomieniu Patchy.</translation>
+    </message>
+    <message>
+        <source>Reset Panels</source>
+        <translation>Resetuj panele</translation>
+    </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation>Zwiń panel</translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation>Rozwiń panel</translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation>Zamknij grupę kart</translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
+        <translation>Zamknij panel</translation>
     </message>
     <message>
         <source>Preparing page image %1 of %2...</source>

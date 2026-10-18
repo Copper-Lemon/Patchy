@@ -294,6 +294,10 @@ struct CanvasRenderCacheDiagnostics {
   double vector_preview_elapsed_ms{0.0};
   int full_refreshes{0};
   int partial_patches{0};
+  // Times a zoomed-out paint built the composite's display mip chain from the
+  // full-resolution image. Partial patches update the chain in place, so a
+  // brush stroke adds none (GitHub issue 165).
+  int display_mip_rebuilds{0};
   int move_precommit_patches{0};
   // Move releases whose accurate patches rendered on a worker behind a hold.
   int move_deferred_commits{0};

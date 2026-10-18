@@ -44,7 +44,6 @@
 #include <QComboBox>
 #include <QDialog>
 #include <QDialogButtonBox>
-#include <QDockWidget>
 #include <QDoubleSpinBox>
 #include <QFont>
 #include <QFontDatabase>
@@ -2232,12 +2231,10 @@ void shot_readme_quick_mask() {
   canvas->set_brush_softness(55);
   canvas->set_primary_color(Qt::white);
   require_action(window, "viewFitOnScreenAction")->trigger();
-  auto* channels_dock =
-      window.findChild<QDockWidget*>(QStringLiteral("channelsDock"));
+  auto* channels_dock = window.findChild<QWidget*>(QStringLiteral("channelsDock"));
   auto* channels = window.findChild<QListWidget*>(QStringLiteral("channelList"));
   CHECK(channels_dock != nullptr && channels != nullptr);
-  channels_dock->show();
-  channels_dock->raise();
+  patchy::ui::MainWindowTestAccess::show_panel(window, QStringLiteral("channelsDock"));
   process_events_for(400);
   CHECK(channels->findItems(QStringLiteral("Quick Mask"), Qt::MatchExactly).size() == 1);
   reset_readme_status_bar(window);
@@ -2561,24 +2558,24 @@ void shot_readme_vector_tools() {
        canvas->widget_position_for_document_point(QPoint(1060, 760)));
   QApplication::processEvents();
 
-  // Float the Paths panel over the canvas so the layer list stays visible in
-  // the same shot (the two docks share the right-side tab stack).
-  auto* paths_dock = window.findChild<QDockWidget*>(QStringLiteral("pathsDock"));
+  // Panels no longer float, so the Paths panel is grabbed from the column and laid
+  // over the canvas, keeping the layer list visible in the same shot (the two share
+  // the column's tab group).
+  auto* paths_dock = window.findChild<QWidget*>(QStringLiteral("pathsDock"));
   CHECK(paths_dock != nullptr);
-  paths_dock->setFloating(true);
-  paths_dock->resize(300, 255);
+  patchy::ui::MainWindowTestAccess::show_panel(window, QStringLiteral("pathsDock"));
   const QPoint paths_offset(64, 615);
-  paths_dock->move(window.geometry().topLeft() + paths_offset);
-  paths_dock->show();
-  paths_dock->raise();
   process_events_for(250);
   CHECK(paths_list->count() == 3);  // Front Ridge Shape Path, Cloud Path, Work Path
+  const auto paths_image = paths_dock->grab(QRect(0, 0, std::min(paths_dock->width(), 300),
+                                                  std::min(paths_dock->height(), 255))).toImage();
+  patchy::ui::MainWindowTestAccess::show_panel(window, QStringLiteral("layersDock"));
+  process_events_for(100);
 
   reset_readme_status_bar(window);
   auto base = window.grab().toImage();
-  draw_readme_overlay(base, paths_dock->grab().toImage(), paths_offset);
+  draw_readme_overlay(base, paths_image, paths_offset);
   save_readme_shot("shot_readme_vector_tools", base);
-  paths_dock->setFloating(false);
   QApplication::processEvents();
 
   // Rulers persist to view settings on window teardown; restore the clean state.

@@ -27,7 +27,6 @@
 #include <QByteArray>
 #include <QCheckBox>
 #include <QComboBox>
-#include <QDockWidget>
 #include <QImage>
 #include <QItemSelectionModel>
 #include <QLabel>
@@ -77,7 +76,7 @@ using namespace patchy::test::ui;
 void ui_tab_switch_layers_follow_the_canvas_after_tab_reorder() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   auto* layer_list = window.findChild<QListWidget*>(QStringLiteral("layerList"));
   CHECK(tabs != nullptr);
   CHECK(layer_list != nullptr);
@@ -2444,7 +2443,7 @@ void ui_layer_inline_rename_drops_commit_after_document_switch() {
 
   patchy::ui::MainWindow window;
   show_window(window);  // Untitled-1: its Background shares layer id 1.
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   CHECK(tabs->count() == 1);
   auto& untitled = patchy::ui::MainWindowTestAccess::document(window);
@@ -2747,13 +2746,15 @@ void ui_right_dock_opens_at_content_width_without_gap() {
   show_window(window);
   QApplication::processEvents();
   QApplication::processEvents();
-  auto* dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
-  auto* palette_dock = window.findChild<QDockWidget*>(QStringLiteral("paletteDock"));
+  QWidget* dock = patchy::ui::MainWindowTestAccess::panel_column(window);
+  auto* palette_dock = patchy::ui::MainWindowTestAccess::panel_section(window, QStringLiteral("paletteDock"));
   auto* combo = window.findChild<QComboBox*>(QStringLiteral("layerBlendModeCombo"));
   auto* opacity = window.findChild<QSpinBox*>(QStringLiteral("layerOpacitySpin"));
   auto* filter = window.findChild<QLineEdit*>(QStringLiteral("layerNameFilterEdit"));
   auto* delete_button = window.findChild<QPushButton*>(QStringLiteral("layerDeleteButton"));
-  auto* overflow = dock != nullptr ? dock->findChild<QScrollArea*>(QStringLiteral("rightDockOverflowScroll")) : nullptr;
+  auto* layers_page = window.findChild<QWidget*>(QStringLiteral("layersDock"));
+  auto* overflow =
+      layers_page != nullptr ? layers_page->findChild<QScrollArea*>(QStringLiteral("rightDockOverflowScroll")) : nullptr;
   CHECK(dock != nullptr && palette_dock != nullptr && combo != nullptr && opacity != nullptr);
   CHECK(filter != nullptr && delete_button != nullptr && overflow != nullptr);
   CHECK(dock->width() == patchy::ui::MainWindowTestAccess::right_dock_content_minimum_width(window));
@@ -2778,7 +2779,7 @@ void ui_layer_blend_row_wraps_in_narrow_panel() {
     patchy::ui::MainWindow window;
     show_window(window);
     QApplication::processEvents();
-    auto* dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
+    QWidget* dock = patchy::ui::MainWindowTestAccess::panel_column(window);
     auto* combo = window.findChild<QComboBox*>(QStringLiteral("layerBlendModeCombo"));
     auto* opacity = window.findChild<QSpinBox*>(QStringLiteral("layerOpacitySpin"));
     auto* fill = window.findChild<QSpinBox*>(QStringLiteral("layerFillOpacitySpin"));
@@ -2983,7 +2984,7 @@ void ui_layer_filter_blocks_layer_drag_reorder() {
 void ui_layer_filter_persists_across_document_tabs() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   auto* layer_list = window.findChild<QListWidget*>(QStringLiteral("layerList"));
   auto* filter_edit = window.findChild<QLineEdit*>(QStringLiteral("layerNameFilterEdit"));
   CHECK(tabs != nullptr);

@@ -1,10 +1,9 @@
-// MainWindow's dock construction, split out of main_window.cpp: create_docks
-// (the right dock stack of layers/channels/history/properties/info panels),
-// create_palette_dock, the right-dock-stack resize plumbing
-// (update_right_dock_resize_handle_geometry, set_right_dock_stack_width,
-// update_right_dock_minimum_width, handle_right_dock_resize_event), and the
-// collapsible dock title helper.
-// Pure function moves from main_window.cpp; behavior must stay identical.
+// MainWindow's right-hand panels, split out of main_window.cpp: create_docks builds
+// the Layers, Channels, Paths, History, Properties, Info and Palette panels and hands
+// them to the PanelColumn (panel_column.hpp) beside the document tabs; the column's
+// width (content-fit, picked, snapped), its screen fit, the Window menu panel entries,
+// the panel header menu, the saved panel layout and Reset Panels live here too.
+// docs/right-docks.md owns the rules.
 
 #include "core/layer.hpp"
 #include "core/pixel_buffer.hpp"
@@ -31,6 +30,7 @@
 #include "ui/brush_dynamics_popup.hpp"
 #include "ui/brush_tip_manager_dialog.hpp"
 #include "ui/filter_workflows.hpp"
+#include "ui/hotkey_registry.hpp"
 #include "ui/dialog_utils.hpp"
 #include "ui/document_float_window.hpp"
 #include "ui/color_panel.hpp"
@@ -39,6 +39,7 @@
 #include "ui/localization.hpp"
 #include "ui/measurement_units.hpp"
 #include "ui/palette_panel.hpp"
+#include "ui/panel_column.hpp"
 #include "ui/scanner_import.hpp"
 #include "ui/tile_preview_window.hpp"
 #include "ui/unit_spin_box.hpp"
@@ -51,14 +52,12 @@
 #include <QApplication>
 #include <QColor>
 #include <QComboBox>
-#include <QDockWidget>
+#include <QCollator>
 #include <QDoubleSpinBox>
-#include <QEnterEvent>
 #include <QEvent>
 #include <QFrame>
 #include <QGuiApplication>
 #include <QHBoxLayout>
-#include <QHoverEvent>
 #include <QKeySequence>
 #include <QLabel>
 #include <QLatin1String>
@@ -70,6 +69,8 @@
 #include <QMainWindow>
 #include <QMargins>
 #include <QMenu>
+#include <QMenuBar>
+#include <QPointer>
 #include <QMimeData>
 #include <QMouseEvent>
 #include <QObject>
@@ -82,6 +83,7 @@
 #include <QSize>
 #include <QSizePolicy>
 #include <QSpinBox>
+#include <QSplitter>
 #include <QString>
 #include <QStringLiteral>
 #include <QStyle>
@@ -89,6 +91,7 @@
 #include <QTabWidget>
 #include <QTextEdit>
 #include <QTimer>
+#include <QToolBar>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -126,42 +129,16 @@ constexpr int kRightDockFloorWidth = 120;
 // A handle drag that ends within this many pixels of the content-fit width
 // lands exactly on it, the width with no dead strip and no sideways scroll.
 constexpr int kRightDockSnapDistance = 10;
-// Width the dock chrome adds around a panel: a dock at width W gives its
-// content widget W minus this.
+// Width the column chrome adds around the Layers panel before it is measured: a
+// column at width W gives the panel W minus this.
 constexpr int kRightDockChromeWidth = 18;
-constexpr int kRightDockResizeHandleWidth = 7;
-// Floors are deliberately low: an expanded dock's hard minimum feeds the
-// window's minimum height, so tall floors force the whole window to grow.
-// Preferred heights are demanded through a temporary minimum on expand and
-// released one event-loop hop later (handle_right_dock_panel_toggled), so
-// the dock gets its working height without pinning the window taller.
+// Floors are deliberately low: an expanded section's minimum feeds the window's
+// minimum height, so tall floors force the whole window to grow. An expand asks
+// for the preferred height from its neighbors instead (PanelColumn).
 constexpr int kHistoryDockExpandedMinimumHeight = 90;
 constexpr int kHistoryDockPreferredHeight = 190;
 constexpr int kPropertiesDockMaximumHeight = 230;
 constexpr int kPaletteDockPreferredHeight = 320;
-
-// The docks that share one width as the right panel stack. Every dock in the
-// column must be listed: one left out keeps its own minimum width and renders
-// as a shorter strip whenever the pinned or measured width exceeds it.
-const std::array<QString, 7>& right_dock_stack_names() {
-  static const std::array<QString, 7> names{
-      QStringLiteral("layersDock"),     QStringLiteral("channelsDock"),
-      QStringLiteral("pathsDock"),      QStringLiteral("historyDock"),
-      QStringLiteral("propertiesDock"), QStringLiteral("infoDock"),
-      QStringLiteral("paletteDock")};
-  return names;
-}
-
-// Whether right-dock panels may be dragged out of the column. Not on Wayland: an app
-// cannot place its own windows there, and the window a panel becomes mid-drag loses the
-// button release, so Qt kept the mouse grabbed and every later click went nowhere
-// (GitHub issue 102). PATCHY_FIXED_PANELS=1 forces the Wayland behavior (tests).
-bool right_docks_can_leave_column() {
-  if (qEnvironmentVariableIntValue("PATCHY_FIXED_PANELS") != 0) {
-    return false;
-  }
-  return !QGuiApplication::platformName().startsWith(QLatin1String("wayland"), Qt::CaseInsensitive);
-}
 
 // The Layers panel's blend/opacity row (GitHub issue 96): the first item (the
 // blend combo) and the rest (Opacity, Fill) share one line when the panel is
@@ -288,475 +265,104 @@ private:
   bool wrapped_{false};
 };
 
-// The QDockWidgetGroupWindow class name is reliable (it has Q_OBJECT); the
-// patchy.dockGroupWindow property is a seam for tests, which cannot construct
-// the private Qt type.
-constexpr int kGroupWindowResizeMargin = 10;
-// Added as contents margins so the resize frame is a real, hittable strip;
-// Qt's own frame is only PM_DockWidgetFrameWidth thin.
-constexpr int kGroupWindowFrameMargin = 8;
-
-// A window that gets the hand-rolled floating chrome (widened resize frame,
-// edge cursors, blank-area drags): Qt's tab-group window, or one of the
-// right-column docks floating on its own.
-bool is_floating_chrome_window(const QWidget* widget) {
-  if (widget == nullptr || !widget->isWindow()) {
-    return false;
-  }
-  if (qstrcmp(widget->metaObject()->className(), "QDockWidgetGroupWindow") == 0 ||
-      widget->property("patchy.dockGroupWindow").toBool()) {
-    return true;
-  }
-  const auto* dock = qobject_cast<const QDockWidget*>(widget);
-  return dock != nullptr &&
-         dock->findChild<QWidget*>(QStringLiteral("rightDockResizeHandle"), Qt::FindDirectChildrenOnly) !=
-             nullptr;
-}
-
-Qt::Edges group_window_resize_edges(const QWidget* window, QPoint position) {
-  Qt::Edges edges;
-  if (position.x() <= kGroupWindowResizeMargin) {
-    edges |= Qt::LeftEdge;
-  }
-  if (position.x() >= window->width() - kGroupWindowResizeMargin) {
-    edges |= Qt::RightEdge;
-  }
-  if (position.y() <= kGroupWindowResizeMargin) {
-    edges |= Qt::TopEdge;
-  }
-  if (position.y() >= window->height() - kGroupWindowResizeMargin) {
-    edges |= Qt::BottomEdge;
-  }
-  return edges;
-}
-
-Qt::CursorShape group_window_resize_cursor(Qt::Edges edges) {
-  const bool left = edges.testFlag(Qt::LeftEdge);
-  const bool right = edges.testFlag(Qt::RightEdge);
-  const bool top = edges.testFlag(Qt::TopEdge);
-  const bool bottom = edges.testFlag(Qt::BottomEdge);
-  if ((top && left) || (bottom && right)) {
-    return Qt::SizeFDiagCursor;
-  }
-  if ((top && right) || (bottom && left)) {
-    return Qt::SizeBDiagCursor;
-  }
-  if (left || right) {
-    return Qt::SizeHorCursor;
-  }
-  return Qt::SizeVerCursor;
-}
-
-// Hosts a right-column panel so the column can be narrower than the panel's
-// minimum width: the panel keeps that width and scrolls horizontally, with
-// the scroll bar at the bottom. It never scrolls vertically: the panel always
-// gets the viewport's full height, and the minimum height grows by the
-// scroll bar while it shows, so the bar never eats the panel's own floor.
-// The panel is placed by hand rather than with widgetResizable, which would
-// size a height-for-width panel (the Layers panel) to its preferred height
-// and clip its bottom row.
-class RightDockOverflowArea final : public QScrollArea {
-public:
-  explicit RightDockOverflowArea(QWidget* parent) : QScrollArea(parent) {
-    setObjectName(QStringLiteral("rightDockOverflowScroll"));
-    setFrameShape(QFrame::NoFrame);
-    setWidgetResizable(false);
-    setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-  }
-
-  [[nodiscard]] QSize sizeHint() const override {
-    const auto* content = widget();
-    if (content == nullptr) {
-      return QScrollArea::sizeHint();
-    }
-    const auto hint = content->sizeHint().expandedTo(content_minimum());
-    return {hint.width() + frameWidth() * 2, hint.height() + frameWidth() * 2};
-  }
-
-  [[nodiscard]] QSize minimumSizeHint() const override {
-    if (widget() == nullptr) {
-      return QScrollArea::minimumSizeHint();
-    }
-    const auto bar = overflowing_ ? horizontalScrollBar()->sizeHint().height() : 0;
-    return {0, content_minimum().height() + bar + frameWidth() * 2};
-  }
-
-protected:
-  void resizeEvent(QResizeEvent* event) override {
-    QScrollArea::resizeEvent(event);
-    place_content();
-  }
-
-  bool viewportEvent(QEvent* event) override {
-    if (event->type() == QEvent::LayoutRequest) {
-      // The panel's minimum changed (a retranslated or restyled row).
-      place_content();
-    }
-    return QScrollArea::viewportEvent(event);
-  }
-
-private:
-  [[nodiscard]] QSize content_minimum() const {
-    const auto* content = widget();
-    return content->minimumSizeHint().expandedTo(content->minimumSize());
-  }
-
-  void place_content() {
-    auto* content = widget();
-    if (content == nullptr) {
-      return;
-    }
-    const auto minimum = content_minimum();
-    const auto overflowing = minimum.width() > width() - frameWidth() * 2;
-    const auto viewport_size = viewport()->size();
-    content->resize(std::max(viewport_size.width(), minimum.width()), viewport_size.height());
-    if (overflowing != overflowing_) {
-      overflowing_ = overflowing;
-      updateGeometry();
-    }
-  }
-
-  bool overflowing_{false};
-};
-
-// The collapse toggle in a right dock's title bar, or null for a dock without one.
-QToolButton* dock_collapse_toggle(QDockWidget* dock) {
-  auto* title = dock != nullptr ? dock->titleBarWidget() : nullptr;
-  if (title == nullptr) {
-    return nullptr;
-  }
-  for (auto* button : title->findChildren<QToolButton*>()) {
-    if (button->property("dockCollapseButton").toBool()) {
-      return button;
-    }
-  }
-  return nullptr;
-}
-
-void install_collapsible_dock_title(QDockWidget* dock,
-                                    QWidget* content,
-                                    const QString& object_prefix,
-                                    int expanded_minimum_height = 0,
-                                    int expanded_maximum_height = QWIDGETSIZE_MAX,
-                                    bool initially_expanded = true,
-                                    int expanded_preferred_height = 0,
-                                    std::function<void(bool)> panel_toggled = {}) {
-  // The column can be dragged narrower than a panel's content, which then
-  // scrolls horizontally; Properties already scrolls in its own area.
-  dock->setMinimumWidth(kRightDockFloorWidth);
-  if (qobject_cast<QScrollArea*>(content) == nullptr) {
-    auto* overflow = new RightDockOverflowArea(dock);
-    overflow->setWidget(content);
-    dock->setWidget(overflow);
-    content = overflow;
-  }
-
-  auto* title = new QWidget(dock);
-  title->setObjectName(object_prefix + QStringLiteral("DockTitle"));
-  // The dock's width-drag handle overlays the leftmost strip of the dock,
-  // title bar included; this inset keeps the toggle and label clear of it.
-  title->setContentsMargins(kRightDockResizeHandleWidth, 0, 0, 0);
-  auto* layout = new QHBoxLayout(title);
-  layout->setContentsMargins(7, 3, 7, 3);
-  layout->setSpacing(6);
-
-  auto* toggle = new QToolButton(title);
-  toggle->setObjectName(object_prefix + QStringLiteral("DockCollapseButton"));
-  toggle->setProperty("dockCollapseButton", true);
-  toggle->setAutoRaise(false);
-  toggle->setCheckable(true);
-  toggle->setChecked(initially_expanded);
-  toggle->setText(initially_expanded ? QStringLiteral("v") : QStringLiteral(">"));
-  toggle->setFixedSize(18, 18);
-  bind_translated_tooltip(toggle, initially_expanded ? QT_TRANSLATE_NOOP("QObject", "Collapse panel")
-                                                   : QT_TRANSLATE_NOOP("QObject", "Expand panel"), "QObject");
-  apply_bound_translation(toggle);
-  layout->addWidget(toggle);
-
-  auto* label = new QLabel(dock->windowTitle(), title);
-  label->setObjectName(object_prefix + QStringLiteral("DockTitleLabel"));
-  // A long title clips instead of holding a narrowed column wide.
-  label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
-  if (dock->property(kTranslationTextProperty).isValid()) {
-    label->setProperty(kTranslationContextProperty, dock->property(kTranslationContextProperty));
-    label->setProperty(kTranslationTextProperty, dock->property(kTranslationTextProperty));
-    apply_bound_translation(label);
-  }
-  layout->addWidget(label, 1);
-
-  const auto expanded_boost_height = std::max(expanded_minimum_height, expanded_preferred_height);
-  const auto apply_expanded_state = [dock, content, toggle, expanded_boost_height,
-                                     expanded_maximum_height,
-                                     panel_toggled = std::move(panel_toggled)](bool expanded) {
-    content->setVisible(expanded);
-    toggle->setText(expanded ? QStringLiteral("v") : QStringLiteral(">"));
-    bind_translated_tooltip(toggle, expanded ? QT_TRANSLATE_NOOP("QObject", "Collapse panel")
-                                            : QT_TRANSLATE_NOOP("QObject", "Expand panel"), "QObject");
-    apply_bound_translation(toggle);
-    // Collapsed docks pin min == max to the exact title-bar height: every
-    // collapsed panel renders as the same strip, and the dock area can
-    // neither stretch it nor leave a dead band under the header. Expanding
-    // demands the preferred height through a temporary minimum (the only
-    // request the dock area is guaranteed to honor);
-    // MainWindow::handle_right_dock_panel_toggled hands the slack back one
-    // event-loop hop later so the demand never lingers in the window's
-    // minimum size. A floor of 0 means the layout-derived natural minimum.
-    const auto collapsed_height = dock->titleBarWidget()->sizeHint().height();
-    dock->setMinimumHeight(expanded ? expanded_boost_height : collapsed_height);
-    dock->setMaximumHeight(expanded ? expanded_maximum_height : collapsed_height);
-    dock->updateGeometry();
-    if (panel_toggled) {
-      panel_toggled(expanded);
-    }
-  };
-
-  QObject::connect(toggle, &QToolButton::toggled, dock, apply_expanded_state);
-  // A tab group (Layers, Channels, Paths) collapses and expands as one: the group keeps the
-  // tallest member's height, so a collapsed current tab over expanded hidden ones left a
-  // dead band in the column (GitHub issue 101). Setting a sibling's toggle to the state it
-  // already has emits nothing, so the sync stops there.
-  QObject::connect(toggle, &QToolButton::toggled, dock, [dock](bool expanded) {
-    auto* main_window = qobject_cast<QMainWindow*>(dock->parentWidget());
-    if (main_window == nullptr || dock->isFloating()) {
-      return;
-    }
-    for (auto* sibling : main_window->tabifiedDockWidgets(dock)) {
-      if (auto* sibling_toggle = dock_collapse_toggle(sibling); sibling_toggle != nullptr && !sibling->isFloating()) {
-        sibling_toggle->setChecked(expanded);
-      }
-    }
-  });
-
-  // Floating panels are always expanded: a collapsed strip is pinned to
-  // min == max, and Qt cannot plug that into a floating tab group (the
-  // group's layout has no room for the pin plus its tab bar, and the docked
-  // partner blinks away). Pulling a panel out expands it, and the collapse
-  // toggle only shows while the panel sits in the main window's column.
-  // Deferred a hop because window() still reports the old top-level while
-  // topLevelChanged is being emitted.
-  QObject::connect(dock, &QDockWidget::topLevelChanged, toggle, [dock, toggle](bool) {
-    QTimer::singleShot(0, toggle, [dock, toggle] {
-      auto* main_window = qobject_cast<QMainWindow*>(dock->window());
-      const bool in_main_window_column = main_window != nullptr;
-      toggle->setVisible(in_main_window_column);
-      if (!in_main_window_column && !toggle->isChecked()) {
-        toggle->setChecked(true);
-      }
-      // Docked into a tab group: take the group's state, so the group stays one height.
-      if (in_main_window_column && !dock->isFloating()) {
-        for (auto* sibling : main_window->tabifiedDockWidgets(dock)) {
-          if (auto* sibling_toggle = dock_collapse_toggle(sibling);
-              sibling_toggle != nullptr && !sibling->isFloating()) {
-            toggle->setChecked(sibling_toggle->isChecked());
-            break;
-          }
-        }
-      }
-    });
-  });
-
-  dock->setTitleBarWidget(title);
-  apply_expanded_state(initially_expanded);
-}
-
 }  // namespace
 
-void MainWindow::install_right_dock_width_handle(QDockWidget* dock) {
-  // Every dock in the right column hosts the 7px width handle at its left
-  // edge, so the column divider is grabbable along its entire height. The
-  // handle overlays the dock; title bars and panel contents carry a matching
-  // left inset to stay clear of it.
-  dock->setProperty("patchy.rightDockResizeHost", true);
-  dock->installEventFilter(this);
-  auto* handle = new QWidget(dock);
-  handle->setObjectName(QStringLiteral("rightDockResizeHandle"));
-  handle->setProperty("patchy.rightDockResizeHandle", true);
-  handle->setAttribute(Qt::WA_StyledBackground, true);
-  handle->setCursor(Qt::SplitHCursor);
-  handle->installEventFilter(this);
-  // Hover events drive the floating-frame edge cursors; harmless while
-  // docked.
-  dock->setAttribute(Qt::WA_Hover, true);
-  dock->setMouseTracking(true);
-  // A floating dock is not part of the column, so the column-width handle
-  // hides until the dock returns to the stack. Floating also widens the
-  // dock's frame into the same hittable, visibly-styled resize strip the tab
-  // group window gets (the floatingChrome property carries the styling).
-  connect(dock, &QDockWidget::topLevelChanged, handle, [dock, handle](bool floating) {
-    handle->setVisible(!floating);
-    dock->setContentsMargins(floating
-                                 ? QMargins(kGroupWindowFrameMargin, kGroupWindowFrameMargin,
-                                            kGroupWindowFrameMargin, kGroupWindowFrameMargin)
-                                 : QMargins());
-    dock->setProperty("floatingChrome", floating);
-    dock->style()->unpolish(dock);
-    dock->style()->polish(dock);
-  });
-  // The column's width hangs on its bottom docked dock, which floating or
-  // re-docking a dock can change (closing and reopening one arrive as
-  // Hide/Show in handle_right_dock_resize_event).
-  connect(dock, &QDockWidget::topLevelChanged, this, [this] {
-    reapply_right_dock_stack_width();
-    QTimer::singleShot(0, this, [this] { reapply_right_dock_stack_width(); });
-  });
-  connect(dock, &QDockWidget::topLevelChanged, this, [this, dock](bool floating) {
-    if (floating) {
-      return;
-    }
-    // Re-docking goes through Qt's drop-preview gap item, whose slot can be
-    // taller than a collapsed dock's pinned strip; the widget clamps to the
-    // pin but the slot keeps the extra as a gap under the header that grows
-    // with every float/re-dock cycle. Snap the slot back to the strip once
-    // the plug has settled.
-    QTimer::singleShot(0, this, [this, dock] {
-      if (dock->isFloating() || dock->widget() == nullptr || dock->widget()->isVisible()) {
-        return;
-      }
-      resizeDocks({dock}, {dock->minimumHeight()}, Qt::Vertical);
-    });
-  });
-  update_right_dock_resize_handle_geometry(dock);
-}
-
-void MainWindow::update_right_dock_resize_handle_geometry(QWidget* host) {
-  if (host == nullptr) {
+void MainWindow::apply_right_column_width(int width) {
+  right_dock_pinned_width_ = width;
+  if (workspace_splitter_ == nullptr || panel_column_ == nullptr) {
     return;
   }
-  auto* handle = host->findChild<QWidget*>(QStringLiteral("rightDockResizeHandle"), Qt::FindDirectChildrenOnly);
-  if (handle == nullptr) {
-    return;
-  }
-  handle->setGeometry(0, 0, kRightDockResizeHandleWidth, host->height());
-  handle->raise();
+  // The splitter keeps the column at this width when the window resizes (the
+  // column's stretch factor is 0), so one call holds it.
+  const auto total = workspace_splitter_->width() > 0 ? workspace_splitter_->width() : this->width();
+  const auto rest = std::max(0, total - workspace_splitter_->handleWidth() - width);
+  workspace_splitter_->setSizes({rest, width});
 }
 
 void MainWindow::set_right_dock_stack_width(int width) {
   // Re-measure lazily: styling and retranslation both change the layers
-  // panel's minimum after the docks are built.
+  // panel's minimum after the column is built.
+  right_dock_width_follows_minimum_ = false;
   update_right_dock_minimum_width();
   // Any width the user or a script picks is kept, narrower than the content
   // included (the panels scroll horizontally then).
-  right_dock_width_follows_minimum_ = false;
   const auto max_width = std::max(kRightDockFloorWidth, this->width() - 260);
-  pin_right_dock_stack_width(std::clamp(width, kRightDockFloorWidth, max_width));
+  apply_right_column_width(std::clamp(width, kRightDockFloorWidth, max_width));
 }
 
-void MainWindow::drag_right_dock_stack_width(int width) {
-  // Near the content-fit width the drag snaps to it, and the column follows
-  // that width again (language switch, restyle) as it did before any drag.
-  update_right_dock_minimum_width();
-  const bool snap =
-      right_dock_minimum_width_ > 0 && std::abs(width - right_dock_minimum_width_) <= kRightDockSnapDistance;
-  set_right_dock_stack_width(snap ? right_dock_minimum_width_ : width);
-  if (snap) {
-    right_dock_width_follows_minimum_ = true;
-  }
-}
-
-void MainWindow::pin_right_dock_stack_width(int target_width) {
-  right_dock_pinned_width_ = target_width;
-  // One fixed-width dock pins the whole column (a column is no wider than its
-  // narrowest maximum), and it must be the bottom one: Qt draws no separator
-  // after a dock whose width is fixed in a vertical column
-  // (QDockAreaLayoutItem::hasFixedSize), so a fixed dock above another would
-  // take away the drag between them. Every other dock, floating ones
-  // included, keeps only the floor. Once the window is shown the bottom dock
-  // is read from the layout (the user can rearrange or close docks); before
-  // that it is the last docked entry of right_dock_stack_names.
-  QDockWidget* anchor = nullptr;
-  int anchor_bottom = std::numeric_limits<int>::min();
-  int order = 0;
-  for (const auto& object_name : right_dock_stack_names()) {
-    auto* dock = findChild<QDockWidget*>(object_name);
-    ++order;
-    if (dock == nullptr) {
-      continue;
-    }
-    dock->setMinimumWidth(kRightDockFloorWidth);
-    dock->setMaximumWidth(QWIDGETSIZE_MAX);
-    if (dock->isFloating() || dock->isHidden() || dockWidgetArea(dock) != Qt::RightDockWidgetArea) {
-      continue;
-    }
-    const auto bottom = isVisible() ? dock->geometry().bottom() : order;
-    if (bottom >= anchor_bottom) {
-      anchor_bottom = bottom;
-      anchor = dock;
-    }
-  }
-  if (anchor != nullptr) {
-    anchor->setFixedWidth(target_width);
-    anchor->updateGeometry();
-  }
-}
-
-void MainWindow::fit_right_dock_floors_to_screen(QDockWidget* yielding_dock) {
-  const int budget = available_window_height();
-  if (budget <= 0 || layout() == nullptr) {
+void MainWindow::handle_right_column_moved() {
+  if (panel_column_ == nullptr) {
     return;
   }
-  const auto overflow = [this, budget] { return minimumSizeHint().height() - budget; };
-  // Lowers one expanded dock's explicit floor, and the explicit floor of the
-  // panel inside it (the Layers panel's own 240 px, which the overflow area
-  // passes on as the dock's minimum hint), toward their layouts' minimums. A
-  // collapsed dock is pinned min == max to its title strip and keeps that.
-  const auto lower_explicit_floor = [](QWidget* widget, int by, int hard_floor = 0) {
-    if (widget == nullptr || widget->minimumHeight() <= 0) {
+  // Measured with following off, so the measurement cannot pin the column back
+  // to the content-fit width under the user's drag.
+  right_dock_width_follows_minimum_ = false;
+  update_right_dock_minimum_width();
+  const auto width = panel_column_->width();
+  right_dock_pinned_width_ = width;
+  // Near the content-fit width the drag snaps to it, and the column follows that
+  // width again (language switch, restyle) as it did before any drag.
+  if (right_dock_minimum_width_ > 0 && std::abs(width - right_dock_minimum_width_) <= kRightDockSnapDistance) {
+    right_dock_width_follows_minimum_ = true;
+    if (width != right_dock_minimum_width_) {
+      apply_right_column_width(right_dock_minimum_width_);
+    }
+  }
+}
+
+void MainWindow::fit_right_dock_floors_to_screen() {
+  const int budget = available_window_height();
+  if (budget <= 0 || layout() == nullptr || panel_column_ == nullptr) {
+    return;
+  }
+  // The workspace splitter does not pass the column's size changes on to the window's
+  // layout by itself; without this the minimum read below (and the activation at the
+  // end) would use a stale column size.
+  const auto overflow = [this, budget] {
+    panel_column_->updateGeometry();
+    workspace_splitter_->updateGeometry();
+    layout()->invalidate();
+    return minimumSizeHint().height() - budget;
+  };
+  if (const auto over = overflow(); over > 0) {
+    panel_column_->lower_floors(over);
+  }
+  // The Layers panel's own floors (the panel's 240 px, the list's 120 px) sit under
+  // its section's; a couple of rows still show on the shortest screens.
+  const auto lower_explicit_floor = [](QWidget* widget, int by, int hard_floor) {
+    if (widget == nullptr || widget->minimumHeight() <= 0 || by <= 0) {
       return;
     }
     const int layout_floor = widget->layout() != nullptr ? widget->layout()->minimumSize().height() : 0;
     widget->setMinimumHeight(std::max({hard_floor, layout_floor, widget->minimumHeight() - by}));
     widget->updateGeometry();
   };
-  const auto shrink = [this, &overflow, &lower_explicit_floor](QDockWidget* dock) {
-    if (dock == nullptr || dock->isFloating() || dock->isHidden() || dock->widget() == nullptr ||
-        !dock->widget()->isVisibleTo(dock)) {
-      return;
-    }
-    const int over = overflow();
-    if (over <= 0) {
-      return;
-    }
-    auto* content = dock->widget();
-    if (auto* area = qobject_cast<QScrollArea*>(content); area != nullptr && area->widget() != nullptr) {
-      content = area->widget();
-    }
-    // The layer list's own 120 px floor sits under the panel's layout minimum;
-    // a couple of rows still show on the shortest screens.
-    lower_explicit_floor(content->findChild<QWidget*>(QStringLiteral("layerList")), over, 48);
-    lower_explicit_floor(content, over);
-    if (dock->minimumHeight() > 0) {
-      dock->setMinimumHeight(std::max(0, dock->minimumHeight() - over));
-    }
-    // Every layout item between the panel and the window caches its minimum
-    // until the widget it holds reports a geometry change.
-    if (content != dock->widget()) {
-      dock->widget()->updateGeometry();
-    }
-    dock->updateGeometry();
-    layout()->invalidate();
-  };
-  shrink(yielding_dock);
-  // The Layers panel's 300 px floor is the column's biggest fixed demand.
-  shrink(findChild<QDockWidget*>(QStringLiteral("layersDock")));
-  for (const auto& name : right_dock_stack_names()) {
-    if (overflow() <= 0) {
-      break;
-    }
-    shrink(findChild<QDockWidget*>(name));
+  if (const auto over = overflow(); over > 0) {
+    lower_explicit_floor(findChild<QWidget*>(QStringLiteral("layerList")), over, 48);
+  }
+  if (const auto over = overflow(); over > 0) {
+    lower_explicit_floor(findChild<QWidget*>(QStringLiteral("layersPanel")), over, 0);
+  }
+  overflow();
+  if (isVisible()) {
+    // The window's explicit minimum is the layout's total from its last activation;
+    // refresh it now so a resize right after sees the lowered floors. Only once
+    // shown: an activation before the stylesheet lands would pin an unstyled,
+    // taller minimum on the window.
+    layout()->activate();
   }
 }
 
 void MainWindow::reapply_right_dock_stack_width() {
   if (right_dock_pinned_width_ > 0) {
-    pin_right_dock_stack_width(right_dock_pinned_width_);
+    apply_right_column_width(right_dock_pinned_width_);
   }
 }
 
 void MainWindow::update_right_dock_minimum_width() {
   const auto* layers_panel = findChild<QWidget*>(QStringLiteral("layersPanel"));
   const auto* panel_layout = layers_panel != nullptr ? layers_panel->layout() : nullptr;
-  if (panel_layout == nullptr) {
+  if (panel_layout == nullptr || panel_column_ == nullptr) {
     return;
   }
   if (blend_combo_ != nullptr) {
@@ -769,492 +375,385 @@ void MainWindow::update_right_dock_minimum_width() {
         blend_combo_->style()->pixelMetric(QStyle::PM_ScrollBarExtent, nullptr, blend_combo_);
     blend_combo_->setMinimumWidth(blend_combo_->minimumSizeHint().width() + scroll_extent + 8);
   }
-  // The platform styles the dock frame, so the chrome around the panel can
-  // only be trusted once the dock has been laid out. An estimate that is too
-  // small lets the widest row (the footer buttons, or the wrapped blend row)
-  // overflow past the panel's right inset at the minimum width.
-  // The panel sits in RightDockOverflowArea's viewport and can be wider than
-  // it while the column is narrowed, so the chrome is the dock minus the
-  // viewport, not minus the panel.
-  auto* layers_dock = findChild<QDockWidget*>(QStringLiteral("layersDock"));
+  // The chrome around the panel (frames, the scroll area) can only be trusted once
+  // the column has been laid out. The panel sits in RightDockOverflowArea's viewport
+  // and can be wider than it while the column is narrowed, so the chrome is the
+  // column minus the viewport, not minus the panel.
   const auto* layers_viewport = layers_panel->parentWidget();
-  if (layers_dock != nullptr && layers_viewport != nullptr && layers_panel->isVisible() &&
-      layers_viewport->width() > 0 && layers_dock->width() >= layers_viewport->width()) {
-    right_dock_chrome_width_ = std::min(layers_dock->width() - layers_viewport->width(), 64);
+  if (layers_viewport != nullptr && layers_panel->isVisible() && layers_viewport->width() > 0 &&
+      panel_column_->width() >= layers_viewport->width()) {
+    right_dock_chrome_width_ = std::min(panel_column_->width() - layers_viewport->width(), 64);
   }
-  const auto chrome =
-      right_dock_chrome_width_ >= 0 ? right_dock_chrome_width_ : kRightDockChromeWidth;
+  const auto chrome = right_dock_chrome_width_ >= 0 ? right_dock_chrome_width_ : kRightDockChromeWidth;
   // The panel layout's minimum covers the footer buttons and the blend row at
   // its wrapped width, whose spin boxes re-measure for the translated
-  // prefixes, so a stack at this width clips neither the Fill spin box nor
+  // prefixes, so a column at this width clips neither the Fill spin box nor
   // the popup chevrons.
-  const auto minimum =
-      std::max(kRightDockMinimumWidth, panel_layout->minimumSize().width() + chrome);
+  const auto minimum = std::max(kRightDockMinimumWidth, panel_layout->minimumSize().width() + chrome);
   if (minimum == right_dock_minimum_width_) {
     return;
   }
   right_dock_minimum_width_ = minimum;
-  // Until the user or a script picks a width, the column sits at the
-  // narrowest width every panel fits without scrolling, and follows it when
-  // a language switch or restyle changes it. A picked width is kept even
+  // Until the user or a script picks a width, the column sits at the narrowest
+  // width every panel fits without scrolling, and follows it when a language
+  // switch or restyle changes it (GitHub issue 96). A picked width is kept even
   // below that; the panels scroll horizontally then.
   if (right_dock_width_follows_minimum_) {
-    pin_right_dock_stack_width(minimum);
+    apply_right_column_width(minimum);
   }
-}
-
-void MainWindow::refresh_collapsed_right_dock_heights() {
-  // The collapsed pins are computed from the title bar's sizeHint, which
-  // grows by the title borders once the application stylesheet is applied.
-  // Re-pin every still-collapsed dock so they all sit at the styled height;
-  // docks toggled later recompute from the styled title on their own.
-  for (auto* dock : findChildren<QDockWidget*>()) {
-    auto* title = dock->titleBarWidget();
-    auto* content = dock->widget();
-    if (title == nullptr || content == nullptr || content->isVisibleTo(dock)) {
-      continue;
-    }
-    const auto collapsed_height = title->sizeHint().height();
-    dock->setMinimumHeight(collapsed_height);
-    dock->setMaximumHeight(collapsed_height);
-    dock->updateGeometry();
-  }
-}
-
-void MainWindow::handle_right_dock_panel_toggled(QDockWidget* dock, bool expanded,
-                                                 int expanded_minimum_height) {
-  // Construction-time apply_expanded_state: the dock area is not laid out
-  // yet, and no dock that starts expanded boosts past its floor.
-  if (!isVisible()) {
-    return;
-  }
-  // The demand may only grow the window as far as the screen allows: past
-  // that, this dock and then the Layers floor give way, so the column keeps
-  // fitting (GitHub issue 108; on Wayland an oversize window cannot be moved
-  // or shrunk back onto the screen).
-  if (expanded && !dock->isFloating()) {
-    fit_right_dock_floors_to_screen(dock);
-  }
-  const auto height_before = height();
-  // One event-loop hop: the boosted minimum from apply_expanded_state has
-  // been granted once the posted layout pass ran (timers fire after it).
-  QTimer::singleShot(0, this, [this, dock, expanded, expanded_minimum_height, height_before] {
-    // Release the expand demand down to the real floor. The dock keeps the
-    // granted height, but the window's minimum no longer carries it, so a
-    // later clamp or user resize can redistribute the column freely. Skip
-    // the release when the panel was re-collapsed before this hop ran (the
-    // collapsed min == max pin must survive).
-    if (expanded && dock->widget() != nullptr && dock->widget()->isVisible()) {
-      dock->setMinimumHeight(expanded_minimum_height);
-      if (!dock->isFloating()) {
-        fit_right_dock_floors_to_screen(dock);
-      }
-    }
-    if (dock->isFloating()) {
-      // No column redistributes space for a floating dock, so an expand with
-      // a zero boost (Info) leaves the window at the collapsed strip size;
-      // grow it to fit the panel explicitly.
-      if (expanded && dock->widget() != nullptr && dock->widget()->isVisible()) {
-        const auto wanted = std::max(dock->sizeHint().height(), dock->minimumSizeHint().height());
-        if (dock->height() < wanted) {
-          dock->resize(dock->width(), wanted);
-        }
-      }
-      // A floating dock's backing store also keeps stale pixels over the
-      // area the toggle exposed, and the panel stays undrawn until a resize
-      // forces a repaint. Replicate one programmatically, the same remedy as
-      // resync_native_frame_geometry. The main-window clamp below is about
-      // the docked column and does not apply here.
-      const auto dock_size = dock->size();
-      if (dock_size.width() > 0 && dock_size.height() > 0) {
-        dock->resize(dock_size.width(), dock_size.height() + 1);
-        dock->resize(dock_size);
-      }
-      dock->update();
-      return;
-    }
-    if (layout() != nullptr) {
-      // The release above only posts a layout request, but the clamp below
-      // resizes through the window's explicit minimum, which the layout owns
-      // and only rewrites during activation. Activate now so the clamp sees
-      // the released minimum instead of the expand demand.
-      layout()->activate();
-    }
-#ifdef Q_OS_WASM
-    // The wasm backing store is not repainted where the relayout moved the
-    // docks, leaving stale panel pixels until the next browser resize.
-    update();
-#endif
-    // Re-clamp only when this toggle grew the window: offscreen tests open
-    // windows larger than the platform screen, and an unconditional clamp
-    // would shrink them behind the tests' backs.
-    if (height() > height_before) {
-      clamp_window_to_available_screen();
-    }
-  });
 }
 
 bool MainWindow::handle_right_dock_resize_event(QObject* watched, QEvent* event) {
-  auto* widget = qobject_cast<QWidget*>(watched);
-  if (widget == nullptr) {
+  if (panel_column_ == nullptr || watched != panel_column_ || event->type() != QEvent::Show) {
     return false;
   }
-
-  if (widget->property("patchy.rightDockResizeHost").toBool()) {
-    if (event->type() == QEvent::Resize || event->type() == QEvent::Show) {
-      update_right_dock_resize_handle_geometry(widget);
-    }
-    if (event->type() == QEvent::Hide || event->type() == QEvent::Show) {
-      // A dock closing or reopening can change which dock is the column's
-      // bottom one, the dock that carries its width. Through the event filter
-      // rather than visibilityChanged, which also fires while the window is
-      // being destroyed.
-      QTimer::singleShot(0, this, [this] { reapply_right_dock_stack_width(); });
-    }
-    if (event->type() == QEvent::Show && widget->objectName() == QStringLiteral("layersDock")) {
-      // The dock chrome can only be measured once the dock is laid out, and
-      // the column follows the content-fit width it yields. Re-pinned even
-      // when the width did not change: before the first show the bottom dock
-      // is only a guess from the stack order.
-      QTimer::singleShot(0, this, [this] {
-        update_right_dock_minimum_width();
-        reapply_right_dock_stack_width();
-      });
-    }
-    return false;
-  }
-
-  if (!widget->property("patchy.rightDockResizeHandle").toBool()) {
-    return false;
-  }
-
-  switch (event->type()) {
-    case QEvent::MouseButtonPress: {
-      auto* mouse_event = static_cast<QMouseEvent*>(event);
-      if (mouse_event->button() != Qt::LeftButton) {
-        return false;
-      }
-      auto* dock = qobject_cast<QDockWidget*>(widget->parentWidget());
-      if (dock == nullptr || dock->isFloating()) {
-        return false;
-      }
-      right_dock_resizing_ = true;
-      right_dock_resize_start_global_ = mouse_event->globalPosition().toPoint();
-      // Start from the column's width, not the pressed dock's: an inactive
-      // tab (Channels, Paths) keeps a stale width that Qt never lays out.
-      right_dock_resize_start_width_ = right_dock_pinned_width_ > 0 ? right_dock_pinned_width_ : dock->width();
-      // No explicit grabMouse: Qt's implicit press-grab already routes the
-      // moves and release here, and an explicit grab is unreliable on wasm.
-      mouse_event->accept();
-      return true;
-    }
-    case QEvent::MouseMove: {
-      auto* mouse_event = static_cast<QMouseEvent*>(event);
-      if (!right_dock_resizing_ || (mouse_event->buttons() & Qt::LeftButton) == 0) {
-        return false;
-      }
-      const auto delta = right_dock_resize_start_global_.x() - mouse_event->globalPosition().toPoint().x();
-      drag_right_dock_stack_width(right_dock_resize_start_width_ + delta);
-      mouse_event->accept();
-      return true;
-    }
-    case QEvent::MouseButtonRelease: {
-      auto* mouse_event = static_cast<QMouseEvent*>(event);
-      if (!right_dock_resizing_ || mouse_event->button() != Qt::LeftButton) {
-        return false;
-      }
-      const auto delta = right_dock_resize_start_global_.x() - mouse_event->globalPosition().toPoint().x();
-      drag_right_dock_stack_width(right_dock_resize_start_width_ + delta);
-      right_dock_resizing_ = false;
-      mouse_event->accept();
-      return true;
-    }
-    default:
-      break;
-  }
-
+  // The column chrome can only be measured once it is laid out, and the column
+  // follows the content-fit width it yields. Re-applied even when the width did
+  // not change: before the first show the splitter had no width to divide.
+  QTimer::singleShot(0, this, [this] {
+    update_right_dock_minimum_width();
+    reapply_right_dock_stack_width();
+    fit_right_dock_floors_to_screen();
+  });
   return false;
 }
 
-bool MainWindow::handle_right_dock_title_drag_event(QObject* watched, QEvent* event) {
-  // Dragging the collapsible title of a TABBED dock detaches that dock alone,
-  // exactly like dragging its tab. Left to Qt, GroupedDragging floats the
-  // whole tab group instead, and the resulting QDockWidgetGroupWindow is
-  // broken with custom title bars: a second redundant header, a blank strip
-  // that cannot be dragged, and a jump that re-anchors the grab to the group
-  // title. Consuming the title press before QDockWidget sees it keeps that
-  // window from ever forming; untabbed docks keep Qt's native title drag,
-  // which behaves.
-  if (right_dock_title_drag_dock_ != nullptr) {
-    switch (event->type()) {
-      case QEvent::MouseMove: {
-        auto* mouse_event = static_cast<QMouseEvent*>(event);
-        if ((mouse_event->buttons() & Qt::LeftButton) == 0) {
-          right_dock_title_drag_dock_ = nullptr;
-          right_dock_title_drag_started_ = false;
-          return false;
-        }
-        const auto global = mouse_event->globalPosition().toPoint();
-        if (!right_dock_title_drag_started_ &&
-            (global - right_dock_title_drag_press_global_).manhattanLength() <
-                QApplication::startDragDistance()) {
-          mouse_event->accept();
-          return true;
-        }
-        if (!right_dock_title_drag_started_) {
-          right_dock_title_drag_started_ = true;
-          right_dock_title_drag_dock_->setFloating(true);
-        }
-        right_dock_title_drag_dock_->move(global - right_dock_title_drag_offset_);
-        mouse_event->accept();
-        return true;
-      }
-      case QEvent::MouseButtonRelease: {
-        auto* mouse_event = static_cast<QMouseEvent*>(event);
-        if (mouse_event->button() != Qt::LeftButton) {
-          return false;
-        }
-        const auto started = right_dock_title_drag_started_;
-        right_dock_title_drag_dock_ = nullptr;
-        right_dock_title_drag_started_ = false;
-        if (started) {
-          mouse_event->accept();
-          return true;
-        }
-        return false;
-      }
-      default:
-        return false;
-    }
-  }
+namespace {
 
-  if (event->type() != QEvent::MouseButtonPress) {
-    return false;
+// The property naming the panel a Window menu entry toggles.
+constexpr char kWindowPanelIdProperty[] = "patchy.windowPanelId";
+
+}  // namespace
+
+void MainWindow::show_panel(const QString& panel_id) {
+  if (panel_column_ == nullptr || !panel_column_->has_panel(panel_id)) {
+    return;
   }
-  auto* dock = qobject_cast<QDockWidget*>(watched);
-  if (dock == nullptr || dock->isFloating() || dock->titleBarWidget() == nullptr ||
-      !dock->features().testFlag(QDockWidget::DockWidgetFloatable) || tabifiedDockWidgets(dock).isEmpty() ||
-      dock->findChild<QWidget*>(QStringLiteral("rightDockResizeHandle"), Qt::FindDirectChildrenOnly) ==
-          nullptr) {
-    return false;
-  }
-  auto* mouse_event = static_cast<QMouseEvent*>(event);
-  if (mouse_event->button() != Qt::LeftButton ||
-      !dock->titleBarWidget()->geometry().contains(mouse_event->position().toPoint())) {
-    return false;
-  }
-  right_dock_title_drag_dock_ = dock;
-  right_dock_title_drag_press_global_ = mouse_event->globalPosition().toPoint();
-  right_dock_title_drag_offset_ = mouse_event->position().toPoint();
-  right_dock_title_drag_started_ = false;
-  mouse_event->accept();
-  return true;
+  panel_column_->set_panel_visible(panel_id, true);
+  panel_column_->bring_to_front(panel_id);
+  panel_column_->set_panel_expanded(panel_id, true);
 }
 
-bool MainWindow::handle_dock_group_window_event(QObject* watched, QEvent* event) {
-  // Qt's floating dock tab-group window ships with no grabbable chrome of
-  // its own: presses on the blank strip beside the tabs do nothing, and its
-  // edge-resize handler moves the borders without ever showing a resize
-  // cursor. Give the blank areas window-drag behavior and the edges cursor
-  // feedback; presses on the edges stay with Qt's own resize handling.
-  if (dock_group_drag_window_ != nullptr) {
-    switch (event->type()) {
-      case QEvent::MouseMove: {
-        auto* mouse_event = static_cast<QMouseEvent*>(event);
-        if ((mouse_event->buttons() & Qt::LeftButton) == 0) {
-          dock_group_drag_window_ = nullptr;
-          return false;
-        }
-        const auto global = mouse_event->globalPosition().toPoint();
-        if (dock_group_drag_edges_ == Qt::Edges{}) {
-          dock_group_drag_window_->move(global - dock_group_drag_offset_);
-        } else {
-          const auto delta = global - dock_group_drag_press_global_;
-          auto rect = dock_group_drag_origin_rect_;
-          if (dock_group_drag_edges_.testFlag(Qt::LeftEdge)) {
-            rect.setLeft(rect.left() + delta.x());
-          }
-          if (dock_group_drag_edges_.testFlag(Qt::RightEdge)) {
-            rect.setRight(rect.right() + delta.x());
-          }
-          if (dock_group_drag_edges_.testFlag(Qt::TopEdge)) {
-            rect.setTop(rect.top() + delta.y());
-          }
-          if (dock_group_drag_edges_.testFlag(Qt::BottomEdge)) {
-            rect.setBottom(rect.bottom() + delta.y());
-          }
-          const auto minimum =
-              dock_group_drag_window_->minimumSizeHint().expandedTo(dock_group_drag_window_->minimumSize());
-          if (rect.width() < minimum.width()) {
-            if (dock_group_drag_edges_.testFlag(Qt::LeftEdge)) {
-              rect.setLeft(rect.right() - minimum.width() + 1);
-            } else {
-              rect.setRight(rect.left() + minimum.width() - 1);
-            }
-          }
-          if (rect.height() < minimum.height()) {
-            if (dock_group_drag_edges_.testFlag(Qt::TopEdge)) {
-              rect.setTop(rect.bottom() - minimum.height() + 1);
-            } else {
-              rect.setBottom(rect.top() + minimum.height() - 1);
-            }
-          }
-          dock_group_drag_window_->setGeometry(rect);
-        }
-        mouse_event->accept();
-        return true;
-      }
-      case QEvent::MouseButtonRelease: {
-        auto* mouse_event = static_cast<QMouseEvent*>(event);
-        if (mouse_event->button() != Qt::LeftButton) {
-          return false;
-        }
-        dock_group_drag_window_ = nullptr;
-        mouse_event->accept();
-        return true;
-      }
-      default:
-        return false;
+void MainWindow::toggle_window_panel(const QString& panel_id) {
+  if (panel_column_ == nullptr || !panel_column_->has_panel(panel_id)) {
+    return;
+  }
+  if (panel_column_->panel_visible(panel_id) && panel_column_->panel_in_front(panel_id) &&
+      panel_column_->panel_expanded(panel_id)) {
+    panel_column_->set_panel_visible(panel_id, false);
+    return;
+  }
+  show_panel(panel_id);
+}
+
+void MainWindow::install_window_panel_entries() {
+  auto* window_menu = menuBar()->findChild<QMenu*>(QStringLiteral("windowMenu"));
+  if (window_menu == nullptr || window_panels_separator_ == nullptr || panel_column_ == nullptr) {
+    return;
+  }
+  struct PanelEntry {
+    const char* panel_id;
+    const char* action_name;
+    const char* title;
+  };
+  // The panels' own title sources, so each entry shares its panel's translation.
+  static constexpr PanelEntry kPanels[] = {
+      {"layersDock", "windowPanelLayersAction", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Layers")},
+      {"channelsDock", "windowPanelChannelsAction", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Channels")},
+      {"pathsDock", "windowPanelPathsAction", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Paths")},
+      {"historyDock", "windowPanelHistoryAction", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "History")},
+      {"propertiesDock", "windowPanelPropertiesAction",
+       QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Properties")},
+      {"infoDock", "windowPanelInfoAction", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Info")},
+      {"paletteDock", "windowPanelPaletteAction", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Palette")},
+  };
+  for (const auto& panel : kPanels) {
+    const auto id = QString::fromLatin1(panel.panel_id);
+    if (!panel_column_->has_panel(id)) {
+      continue;
+    }
+    auto* action = new QAction(window_menu);
+    action->setObjectName(QLatin1String(panel.action_name));
+    action->setCheckable(true);
+    action->setChecked(panel_column_->panel_visible(id));
+    action->setMenuRole(QAction::NoRole);
+    action->setProperty(kWorksWithoutDocumentProperty, true);
+    action->setProperty(kWindowPanelIdProperty, id);
+    bind_action_text(action, panel.title);
+    connect(action, &QAction::triggered, this, [this, action, id] {
+      toggle_window_panel(id);
+      action->setChecked(panel_column_->panel_visible(id));
+    });
+    window_panel_actions_.push_back(action);
+  }
+  for (const auto* toolbar_name : {"toolPalette", "Options"}) {
+    if (auto* toolbar = findChild<QToolBar*>(QLatin1String(toolbar_name)); toolbar != nullptr) {
+      window_panel_actions_.push_back(toolbar->toggleViewAction());
     }
   }
+  // Window > Reset Panels closes the list: every panel and toolbar back to the layout a
+  // first launch has (reset_panels).
+  window_reset_panels_separator_ = new QAction(window_menu);
+  window_reset_panels_separator_->setSeparator(true);
+  window_reset_panels_action_ = new QAction(window_menu);
+  window_reset_panels_action_->setObjectName(QStringLiteral("windowResetPanelsAction"));
+  window_reset_panels_action_->setMenuRole(QAction::NoRole);
+  window_reset_panels_action_->setProperty(kWorksWithoutDocumentProperty, true);
+  bind_action_text(window_reset_panels_action_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Reset Panels"));
+  register_hotkey(window_reset_panels_action_, "window.reset_panels", QKeySequence());
+  connect(window_reset_panels_action_, &QAction::triggered, this, [this] { reset_panels(); });
+  sort_window_panel_entries();
+  connect(window_menu, &QMenu::aboutToShow, this, [this] { sort_window_panel_entries(); });
+}
 
-  auto* widget = qobject_cast<QWidget*>(watched);
-  if (widget == nullptr) {
-    return false;
+std::vector<QAction*> MainWindow::sorted_window_panel_actions() const {
+  // Alphabetical in the current language, like Photoshop's panel list.
+  QCollator collator;
+  collator.setCaseSensitivity(Qt::CaseInsensitive);
+  auto sorted = window_panel_actions_;
+  std::sort(sorted.begin(), sorted.end(), [&collator](const QAction* left, const QAction* right) {
+    return collator.compare(clean_action_text(left), clean_action_text(right)) < 0;
+  });
+  return sorted;
+}
+
+void MainWindow::sort_window_panel_entries() {
+  auto* window_menu = menuBar()->findChild<QMenu*>(QStringLiteral("windowMenu"));
+  if (window_menu == nullptr || window_documents_separator_ == nullptr || panel_column_ == nullptr) {
+    return;
   }
-
-  if (is_floating_chrome_window(widget)) {
-    switch (event->type()) {
-      case QEvent::Show:
-        // Hover events drive the edge cursor; the private Qt window does not
-        // enable them itself. The contents margins widen Qt's few-pixel
-        // frame into a real, hittable resize strip.
-        widget->setAttribute(Qt::WA_Hover, true);
-        widget->setMouseTracking(true);
-        widget->setContentsMargins(kGroupWindowFrameMargin, kGroupWindowFrameMargin,
-                                   kGroupWindowFrameMargin, kGroupWindowFrameMargin);
-        return false;
-      case QEvent::HoverEnter:
-      case QEvent::HoverMove: {
-        const auto position = static_cast<QHoverEvent*>(event)->position().toPoint();
-        const auto edges = group_window_resize_edges(widget, position);
-        if (edges != Qt::Edges{}) {
-          widget->setCursor(group_window_resize_cursor(edges));
-        } else {
-          widget->unsetCursor();
-        }
-        return false;
-      }
-      case QEvent::MouseMove: {
-        // Mouse tracking is enabled on the group window, and a buttonless
-        // move over its frame strip is the return path from a child (Qt
-        // sends no Enter for child-to-parent crossings).
-        auto* mouse_event = static_cast<QMouseEvent*>(event);
-        if (mouse_event->buttons() != Qt::NoButton) {
-          return false;
-        }
-        const auto edges = group_window_resize_edges(widget, mouse_event->position().toPoint());
-        if (edges != Qt::Edges{}) {
-          widget->setCursor(group_window_resize_cursor(edges));
-        } else {
-          widget->unsetCursor();
-        }
-        return false;
-      }
-      case QEvent::Enter: {
-        // Enter is delivered without any hover attributes, and the group
-        // window's own exposed surface is only its few-pixel frame strip, so
-        // entering it IS being near an edge. Hover events alone miss it: by
-        // the time WA_Hover applies the cursor may already be over a child.
-        const auto position = static_cast<QEnterEvent*>(event)->position().toPoint();
-        const auto edges = group_window_resize_edges(widget, position);
-        if (edges != Qt::Edges{}) {
-          widget->setCursor(group_window_resize_cursor(edges));
-        } else {
-          widget->unsetCursor();
-        }
-        return false;
-      }
-      case QEvent::HoverLeave:
-      case QEvent::Leave:
-        widget->unsetCursor();
-        return false;
-      case QEvent::MouseButtonPress: {
-        auto* mouse_event = static_cast<QMouseEvent*>(event);
-        if (mouse_event->button() != Qt::LeftButton) {
-          return false;
-        }
-        const auto edges = group_window_resize_edges(widget, mouse_event->position().toPoint());
-        // On a single floating dock the dock IS the window, so interior
-        // presses here are title or content presses that propagated up; they
-        // must reach QDockWidget, whose title drag is the only path that
-        // tracks drop targets and re-docks. Claim only the frame strip.
-        // A group window's interior surface is genuinely blank chrome, so
-        // there interior presses move the window.
-        if (edges == Qt::Edges{} && qobject_cast<QDockWidget*>(widget) != nullptr) {
-          return false;
-        }
-        // Edge presses resize (our handler owns the whole widened strip; Qt's
-        // QWidgetResizeHandler only covers its own few-pixel range). Anchor
-        // the move to the frame origin: move() positions the frame while
-        // mouse coordinates are client-relative, and the platform can pad a
-        // frame margin between the two.
-        dock_group_drag_window_ = widget;
-        dock_group_drag_edges_ = edges;
-        dock_group_drag_press_global_ = mouse_event->globalPosition().toPoint();
-        dock_group_drag_origin_rect_ = widget->geometry();
-        dock_group_drag_offset_ = mouse_event->globalPosition().toPoint() - widget->pos();
-        mouse_event->accept();
-        return true;
-      }
-      default:
-        return false;
+  // The menu reads the order each time it opens, so a language switch re-sorts it.
+  for (auto* action : sorted_window_panel_actions()) {
+    window_menu->removeAction(action);
+    window_menu->insertAction(window_documents_separator_, action);
+    if (const auto id = action->property(kWindowPanelIdProperty).toString(); !id.isEmpty()) {
+      action->setChecked(panel_column_->panel_visible(id));
     }
   }
-
-  // Entering any child clears the frame cursor: children inherit the group
-  // window's cursor, so a lingering resize shape would cover the whole panel.
-  if (event->type() == QEvent::Enter && is_floating_chrome_window(widget->window()) &&
-      widget != widget->window()) {
-    widget->window()->unsetCursor();
-    return false;
-  }
-
-  // The tab bar swallows presses on its own blank stretch, so catch those at
-  // the bar and start the same window drag.
-  if (auto* tab_bar = qobject_cast<QTabBar*>(widget);
-      tab_bar != nullptr && event->type() == QEvent::MouseButtonPress &&
-      is_floating_chrome_window(tab_bar->window())) {
-    auto* mouse_event = static_cast<QMouseEvent*>(event);
-    if (mouse_event->button() == Qt::LeftButton &&
-        tab_bar->tabAt(mouse_event->position().toPoint()) < 0) {
-      dock_group_drag_window_ = tab_bar->window();
-      dock_group_drag_edges_ = Qt::Edges{};
-      dock_group_drag_offset_ =
-          mouse_event->globalPosition().toPoint() - tab_bar->window()->pos();
-      mouse_event->accept();
-      return true;
+  for (auto* action : {window_reset_panels_separator_, window_reset_panels_action_}) {
+    if (action != nullptr) {
+      window_menu->removeAction(action);
+      window_menu->insertAction(window_documents_separator_, action);
     }
   }
-  return false;
+}
+
+void MainWindow::show_panel_header_menu(const QString& panel_id, const QPoint& global_position,
+                                        bool on_tab_bar) {
+  if (panel_column_ == nullptr || !panel_column_->has_panel(panel_id)) {
+    return;
+  }
+  QMenu menu(this);
+  menu.setObjectName(QStringLiteral("panelHeaderMenu"));
+  const bool expanded = panel_column_->panel_expanded(panel_id);
+  auto* collapse = menu.addAction(expanded ? tr("Collapse Panel") : tr("Expand Panel"));
+  collapse->setObjectName(QStringLiteral("panelHeaderCollapseAction"));
+  connect(collapse, &QAction::triggered, this,
+          [this, panel_id, expanded] { panel_column_->set_panel_expanded(panel_id, !expanded); });
+  // On a group's tab bar the menu speaks for the whole group, as Photoshop's does.
+  const bool whole_group = on_tab_bar && panel_column_->in_tab_group(panel_id);
+  auto* close = menu.addAction(whole_group ? tr("Close Tab Group") : tr("Close Panel"));
+  close->setObjectName(QStringLiteral("panelHeaderCloseAction"));
+  connect(close, &QAction::triggered, this, [this, panel_id, whole_group] {
+    const auto ids = whole_group ? panel_column_->section_panel_ids(panel_id) : QStringList{panel_id};
+    for (const auto& id : ids) {
+      panel_column_->set_panel_visible(id, false);
+    }
+  });
+  menu.addSeparator();
+  sort_window_panel_entries();
+  for (auto* action : sorted_window_panel_actions()) {
+    menu.addAction(action);
+  }
+  if (window_reset_panels_action_ != nullptr) {
+    menu.addSeparator();
+    menu.addAction(window_reset_panels_action_);
+  }
+  menu.exec(global_position);
+}
+
+namespace {
+
+// The saved panel layout (docs/right-docks.md, "Saved panel layout"). Every key is a
+// compatibility contract. The version guards what the values mean: a release that adds,
+// renames or regroups panels bumps it, and an older record is then ignored rather than
+// half applied.
+constexpr int kPanelLayoutVersion = 2;
+QString panel_layout_version_key() { return QStringLiteral("window/panelLayoutVersion"); }
+QString hidden_panels_key() { return QStringLiteral("window/hiddenPanels"); }
+QString collapsed_panels_key() { return QStringLiteral("window/collapsedPanels"); }
+QString front_panel_key() { return QStringLiteral("window/frontPanel"); }
+QString panel_column_width_key() { return QStringLiteral("window/panelColumnWidth"); }
+QString panel_heights_key() { return QStringLiteral("window/panelSplitterState"); }
+QString panel_order_key() { return QStringLiteral("window/panelOrder"); }
+
+// The two toolbars, by object name, with the area each starts in.
+struct DefaultToolbar {
+  const char* name;
+  Qt::ToolBarArea area;
+};
+constexpr DefaultToolbar kDefaultToolbars[] = {{"toolPalette", Qt::LeftToolBarArea},
+                                                {"Options", Qt::TopToolBarArea}};
+
+// The tab group's first panel, which a reset brings to the front.
+constexpr char kFirstPanel[] = "layersDock";
+
+}  // namespace
+
+bool MainWindow::panel_layout_persists() {
+  // Offscreen runs (the UI tests, --headless scripts, the MCP connector's own window)
+  // neither read nor write the user's layout: a test that closes a panel must not leave
+  // it closed for the next one, and a headless run must not change the desktop layout.
+  return QGuiApplication::platformName().compare(QStringLiteral("offscreen"), Qt::CaseInsensitive) != 0;
+}
+
+QStringList MainWindow::collapsed_panel_names() {
+  QStringList names;
+  if (panel_column_ == nullptr) {
+    return names;
+  }
+  for (const auto& id : panel_column_->panel_ids()) {
+    if (!panel_column_->panel_expanded(id)) {
+      names << id;
+    }
+  }
+  return names;
+}
+
+void MainWindow::apply_collapsed_panels(const QStringList& collapsed) {
+  if (panel_column_ == nullptr) {
+    return;
+  }
+  // One call per section: a tab group follows its first panel.
+  QStringList done;
+  for (const auto& id : panel_column_->panel_ids()) {
+    if (done.contains(id)) {
+      continue;
+    }
+    panel_column_->set_panel_expanded(id, !collapsed.contains(id));
+    done << panel_column_->section_panel_ids(id);
+  }
+}
+
+void MainWindow::save_panel_layout() {
+  if (panel_layout_persists()) {
+    write_panel_layout();
+  }
+}
+
+void MainWindow::write_panel_layout() {
+  if (panel_column_ == nullptr) {
+    return;
+  }
+  auto settings = app_settings();
+  QStringList hidden;
+  QString front;
+  for (const auto& id : panel_column_->panel_ids()) {
+    if (!panel_column_->panel_visible(id)) {
+      hidden << id;
+    } else if (front.isEmpty() && panel_column_->in_tab_group(id) && panel_column_->panel_in_front(id)) {
+      front = id;
+    }
+  }
+  for (const auto& toolbar : kDefaultToolbars) {
+    if (auto* bar = findChild<QToolBar*>(QLatin1String(toolbar.name)); bar != nullptr && bar->isHidden()) {
+      hidden << QLatin1String(toolbar.name);
+    }
+  }
+  settings.setValue(panel_layout_version_key(), kPanelLayoutVersion);
+  settings.setValue(hidden_panels_key(), hidden);
+  settings.setValue(collapsed_panels_key(), collapsed_panel_names());
+  settings.setValue(front_panel_key(), front);
+  settings.setValue(panel_order_key(), panel_column_->section_order());
+  settings.setValue(panel_heights_key(), panel_column_->save_heights());
+  if (right_dock_width_follows_minimum_ || right_dock_pinned_width_ <= 0) {
+    settings.remove(panel_column_width_key());
+  } else {
+    settings.setValue(panel_column_width_key(), right_dock_pinned_width_);
+  }
+}
+
+void MainWindow::restore_panel_layout() {
+  if (panel_layout_persists()) {
+    read_panel_layout();
+  }
+}
+
+void MainWindow::read_panel_layout() {
+  const auto settings = app_settings();
+  if (panel_column_ == nullptr || settings.value(panel_layout_version_key(), 0).toInt() != kPanelLayoutVersion) {
+    return;
+  }
+  apply_collapsed_panels(settings.value(collapsed_panels_key()).toStringList());
+  const auto hidden = settings.value(hidden_panels_key()).toStringList();
+  for (const auto& id : panel_column_->panel_ids()) {
+    if (hidden.contains(id)) {
+      panel_column_->set_panel_visible(id, false);
+    }
+  }
+  if (const auto front = settings.value(front_panel_key()).toString(); panel_column_->has_panel(front)) {
+    panel_column_->bring_to_front(front);
+  }
+  for (const auto& toolbar : kDefaultToolbars) {
+    if (auto* bar = findChild<QToolBar*>(QLatin1String(toolbar.name));
+        bar != nullptr && hidden.contains(QLatin1String(toolbar.name))) {
+      bar->hide();
+    }
+  }
+  // The order first: the heights state is by position. A record without one (saved
+  // before panels could move) keeps the default order.
+  if (const auto order = settings.value(panel_order_key()).toStringList(); !order.isEmpty()) {
+    panel_column_->set_section_order(order);
+  }
+  panel_column_->restore_heights(settings.value(panel_heights_key()).toByteArray());
+  // A picked width; without one the column keeps following the content-fit width. The
+  // window's own size is restored first, so the clamp sees the real width.
+  if (const auto width = settings.value(panel_column_width_key(), 0).toInt(); width > 0) {
+    set_right_dock_stack_width(width);
+  }
+}
+
+void MainWindow::reset_panels() {
+  if (panel_column_ == nullptr) {
+    return;
+  }
+  // Every panel open in the first-launch order, collapse states and heights, Layers in
+  // front. Nothing is re-parented, so the window keeps its size and place.
+  // Floors a short screen lowered stay lowered: putting them back would ask for more
+  // height than the window has and grow it past the screen.
+  for (const auto& id : panel_column_->panel_ids()) {
+    panel_column_->set_panel_visible(id, true);
+  }
+  panel_column_->set_section_order(default_panel_order_);
+  apply_collapsed_panels(default_collapsed_panels_);
+  panel_column_->bring_to_front(QString::fromLatin1(kFirstPanel));
+  for (const auto& toolbar : kDefaultToolbars) {
+    if (auto* bar = findChild<QToolBar*>(QLatin1String(toolbar.name)); bar != nullptr) {
+      if (toolBarArea(bar) != toolbar.area || bar->isFloating()) {
+        addToolBar(toolbar.area, bar);
+      }
+      bar->show();
+    }
+  }
+  panel_column_->apply_preferred_heights();
+  // The column follows the content-fit width again, as on a first launch.
+  right_dock_width_follows_minimum_ = true;
+  right_dock_minimum_width_ = 0;
+  update_right_dock_minimum_width();
+  fit_right_dock_floors_to_screen();
+  sort_window_panel_entries();
 }
 
 void MainWindow::create_docks() {
-  setTabPosition(Qt::RightDockWidgetArea, QTabWidget::North);
-  // Docks dropped onto each other form tab groups, and Qt only wires up
-  // dragging a dock back OUT by its tab under GroupedDragging (which also
-  // drags a tabbed group as one unit by its shared title bar).
-  setDockOptions(dockOptions() | QMainWindow::GroupedDragging);
-  auto* layers_dock = new QDockWidget(tr("Layers"), this);
-  layers_dock->setObjectName(QStringLiteral("layersDock"));
-  bind_widget_text(layers_dock, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Layers"));
-  auto* layers_panel = new QWidget(layers_dock);
+  // The panels are built first and handed to the column at the end: the Layers,
+  // Channels and Paths tab group, then one section per remaining panel.
+  std::vector<PanelSpec> tab_specs;
+  std::vector<PanelSpec> panel_specs;
+  auto* layers_panel = new QWidget(this);
   layers_panel->setObjectName(QStringLiteral("layersPanel"));
   layers_panel->setMinimumHeight(240);
   auto* layers_layout = new QVBoxLayout(layers_panel);
-  // The extra left margin clears the width handle overlaying the dock's left
-  // edge; it lives in the layout so the measured minimum width includes it.
-  layers_layout->setContentsMargins(kRightDockResizeHandleWidth + 6, 6, 6, 6);
+  layers_layout->setContentsMargins(6, 6, 6, 6);
   layers_layout->setSpacing(6);
 
   auto* layer_list = new LayerListWidget(layers_panel);
@@ -1770,30 +1269,18 @@ void MainWindow::create_docks() {
   // selection, so refresh_add_layer_mask_button_state owns it.
   add_mask_button->setEnabled(false);
 
-  layers_dock->setWidget(layers_panel);
-  install_collapsible_dock_title(layers_dock, layers_panel, QStringLiteral("layers"), 300, QWIDGETSIZE_MAX,
-                                 true, 0, [this, layers_dock](bool expanded) {
-                                   handle_right_dock_panel_toggled(layers_dock, expanded, 300);
-                                 });
-  install_right_dock_width_handle(layers_dock);
-  addDockWidget(Qt::RightDockWidgetArea, layers_dock);
-  update_right_dock_resize_handle_geometry(layers_dock);
+  tab_specs.push_back(PanelSpec{.id = QStringLiteral("layersDock"),
+                                .object_prefix = QStringLiteral("layers"),
+                                .title = tr("Layers"),
+                                .content = layers_panel,
+                                .expanded_minimum_height = 300});
 
-  channel_dock_ = new QDockWidget(tr("Channels"), this);
-  channel_dock_->setObjectName(QStringLiteral("channelsDock"));
-  bind_widget_text(channel_dock_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Channels"));
-  channel_panel_ = new ChannelPanel(channel_dock_);
-  channel_panel_->setContentsMargins(kRightDockResizeHandleWidth, 0, 0, 0);
-  channel_dock_->setWidget(channel_panel_);
-  install_collapsible_dock_title(channel_dock_, channel_panel_, QStringLiteral("channels"), 190,
-                                 QWIDGETSIZE_MAX, true, 0, [this](bool expanded) {
-                                   handle_right_dock_panel_toggled(channel_dock_, expanded, 190);
-                                 });
-  install_right_dock_width_handle(channel_dock_);
-  addDockWidget(Qt::RightDockWidgetArea, channel_dock_);
-  tabifyDockWidget(layers_dock, channel_dock_);
-  layers_dock->raise();
-  update_right_dock_resize_handle_geometry(channel_dock_);
+  channel_panel_ = new ChannelPanel(this);
+  tab_specs.push_back(PanelSpec{.id = QStringLiteral("channelsDock"),
+                                .object_prefix = QStringLiteral("channels"),
+                                .title = tr("Channels"),
+                                .content = channel_panel_,
+                                .expanded_minimum_height = 190});
 
   const auto make_channel_action = [this](QAction*& target, const char* text, const char* object_name,
                                           const char* hotkey_id, auto callback) {
@@ -1842,21 +1329,12 @@ void MainWindow::create_docks() {
   register_document_widget(channel_panel_);
   refresh_channel_panel();
 
-  paths_dock_ = new QDockWidget(tr("Paths"), this);
-  paths_dock_->setObjectName(QStringLiteral("pathsDock"));
-  bind_widget_text(paths_dock_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Paths"));
-  paths_panel_ = new PathsPanel(paths_dock_);
-  paths_panel_->setContentsMargins(kRightDockResizeHandleWidth, 0, 0, 0);
-  paths_dock_->setWidget(paths_panel_);
-  install_collapsible_dock_title(paths_dock_, paths_panel_, QStringLiteral("paths"), 190, QWIDGETSIZE_MAX,
-                                 true, 0, [this](bool expanded) {
-                                   handle_right_dock_panel_toggled(paths_dock_, expanded, 190);
-                                 });
-  install_right_dock_width_handle(paths_dock_);
-  addDockWidget(Qt::RightDockWidgetArea, paths_dock_);
-  tabifyDockWidget(channel_dock_, paths_dock_);
-  layers_dock->raise();
-  update_right_dock_resize_handle_geometry(paths_dock_);
+  paths_panel_ = new PathsPanel(this);
+  tab_specs.push_back(PanelSpec{.id = QStringLiteral("pathsDock"),
+                                .object_prefix = QStringLiteral("paths"),
+                                .title = tr("Paths"),
+                                .content = paths_panel_,
+                                .expanded_minimum_height = 190});
 
   const auto make_path_action = [this](QAction*& target, const char* text, const char* object_name,
                                        const char* hotkey_id, auto callback) {
@@ -1912,10 +1390,7 @@ void MainWindow::create_docks() {
   register_document_widget(paths_panel_);
   refresh_paths_panel();
 
-  auto* history_dock = new QDockWidget(tr("History"), this);
-  history_dock->setObjectName(QStringLiteral("historyDock"));
-  bind_widget_text(history_dock, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "History"));
-  history_list_ = new QListWidget(history_dock);
+  history_list_ = new QListWidget(this);
   history_list_->setObjectName(QStringLiteral("historyList"));
   // itemClicked (not currentRowChanged): the rebuild's programmatic
   // setCurrentRow must never trigger a jump, and keyboard focus moves stay
@@ -1928,38 +1403,29 @@ void MainWindow::create_docks() {
   // Disabled while no document is open or a preview dialog holds the edit lock,
   // matching the undo/redo actions.
   register_document_widget(history_list_);
-  // The wrapper keeps the width-handle inset outside the list frame, so the
-  // frame is not half-covered by the handle.
-  auto* history_panel = new QWidget(history_dock);
+  auto* history_panel = new QWidget(this);
   history_panel->setObjectName(QStringLiteral("historyPanel"));
   auto* history_layout = new QVBoxLayout(history_panel);
-  history_layout->setContentsMargins(kRightDockResizeHandleWidth, 0, 0, 0);
+  history_layout->setContentsMargins(0, 0, 0, 0);
   history_layout->setSpacing(0);
   history_layout->addWidget(history_list_);
-  history_dock->setWidget(history_panel);
-  install_collapsible_dock_title(history_dock, history_panel, QStringLiteral("history"),
-                                 kHistoryDockExpandedMinimumHeight, QWIDGETSIZE_MAX, false,
-                                 kHistoryDockPreferredHeight, [this, history_dock](bool expanded) {
-                                   handle_right_dock_panel_toggled(history_dock, expanded,
-                                                                   kHistoryDockExpandedMinimumHeight);
-                                 });
-  install_right_dock_width_handle(history_dock);
-  addDockWidget(Qt::RightDockWidgetArea, history_dock);
-  update_right_dock_resize_handle_geometry(history_dock);
+  panel_specs.push_back(PanelSpec{.id = QStringLiteral("historyDock"),
+                                  .object_prefix = QStringLiteral("history"),
+                                  .title = tr("History"),
+                                  .content = history_panel,
+                                  .expanded_minimum_height = kHistoryDockExpandedMinimumHeight,
+                                  .preferred_height = kHistoryDockPreferredHeight});
 
-  auto* properties_dock = new QDockWidget(tr("Properties"), this);
-  properties_dock->setObjectName(QStringLiteral("propertiesDock"));
-  bind_widget_text(properties_dock, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Properties"));
-  auto* properties_scroll = new QScrollArea(properties_dock);
+  auto* properties_scroll = new QScrollArea(this);
   properties_scroll->setObjectName(QStringLiteral("propertiesScrollArea"));
   properties_scroll->setFrameShape(QFrame::NoFrame);
   properties_scroll->setWidgetResizable(true);
   // Scrolls sideways once the column is dragged narrower than the panel.
   properties_scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-  auto* properties_panel = new QWidget(properties_dock);
+  auto* properties_panel = new QWidget(properties_scroll);
   properties_panel->setObjectName(QStringLiteral("propertiesPanel"));
   auto* properties_layout = new QVBoxLayout(properties_panel);
-  properties_layout->setContentsMargins(kRightDockResizeHandleWidth + 6, 6, 6, 6);
+  properties_layout->setContentsMargins(6, 6, 6, 6);
   properties_layout->setSpacing(4);
   const auto add_properties_label = [properties_panel, properties_layout](const QString& object_name) {
     auto* label = new QLabel(properties_panel);
@@ -2060,23 +1526,17 @@ void MainWindow::create_docks() {
   active_tool_info_label_ = add_properties_label(QStringLiteral("activeToolInfoLabel"));
   properties_layout->addStretch(0);
   properties_scroll->setWidget(properties_panel);
-  properties_dock->setWidget(properties_scroll);
-  install_collapsible_dock_title(properties_dock, properties_scroll, QStringLiteral("properties"), 0,
-                                 kPropertiesDockMaximumHeight, false, kPropertiesDockMaximumHeight,
-                                 [this, properties_dock](bool expanded) {
-                                   handle_right_dock_panel_toggled(properties_dock, expanded, 0);
-                                 });
-  install_right_dock_width_handle(properties_dock);
-  addDockWidget(Qt::RightDockWidgetArea, properties_dock);
-  update_right_dock_resize_handle_geometry(properties_dock);
+  panel_specs.push_back(PanelSpec{.id = QStringLiteral("propertiesDock"),
+                                  .object_prefix = QStringLiteral("properties"),
+                                  .title = tr("Properties"),
+                                  .content = properties_scroll,
+                                  .expanded_maximum_height = kPropertiesDockMaximumHeight,
+                                  .preferred_height = kPropertiesDockMaximumHeight});
 
-  auto* info_dock = new QDockWidget(tr("Info"), this);
-  info_dock->setObjectName(QStringLiteral("infoDock"));
-  bind_widget_text(info_dock, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Info"));
-  auto* info_panel = new QWidget(info_dock);
+  auto* info_panel = new QWidget(this);
   info_panel->setObjectName(QStringLiteral("infoPanel"));
   auto* info_layout = new QVBoxLayout(info_panel);
-  info_layout->setContentsMargins(kRightDockResizeHandleWidth + 8, 8, 8, 8);
+  info_layout->setContentsMargins(8, 8, 8, 8);
   canvas_info_label_ = new QLabel(info_panel);
   canvas_info_label_->setObjectName(QStringLiteral("canvasInfoLabel"));
   canvas_info_label_->setText(tr("X: -\nY: -\nRGB: -\nRect: -"));
@@ -2084,30 +1544,68 @@ void MainWindow::create_docks() {
   canvas_info_label_->setTextInteractionFlags(Qt::TextSelectableByMouse);
   info_layout->addWidget(canvas_info_label_);
   info_layout->addStretch(1);
-  info_dock->setWidget(info_panel);
-  install_collapsible_dock_title(info_dock, info_panel, QStringLiteral("info"), 0, QWIDGETSIZE_MAX, false,
-                                 0, [this, info_dock](bool expanded) {
-                                   handle_right_dock_panel_toggled(info_dock, expanded, 0);
-                                 });
-  install_right_dock_width_handle(info_dock);
-  addDockWidget(Qt::RightDockWidgetArea, info_dock);
-  update_right_dock_resize_handle_geometry(info_dock);
+  panel_specs.push_back(PanelSpec{.id = QStringLiteral("infoDock"),
+                                  .object_prefix = QStringLiteral("info"),
+                                  .title = tr("Info"),
+                                  .content = info_panel});
 
-  create_palette_dock();
+  create_palette_dock(panel_specs);
+
+  // The column: the tab group first (it takes the spare height), then the rest in
+  // order. History, Properties, Info and Palette start collapsed.
+  panel_column_ = new PanelColumn(workspace_splitter_);
+  panel_column_->setMinimumWidth(kRightDockFloorWidth);
+  panel_column_->add_tab_group(QStringLiteral("panelTabGroup"), tab_specs, true);
+  for (const auto& spec : panel_specs) {
+    panel_column_->add_panel(spec, false);
+  }
+  // Each title shares its panel's translation; the tab texts follow the titles.
+  static constexpr std::pair<const char*, const char*> kPanelTitles[] = {
+      {"layersDock", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Layers")},
+      {"channelsDock", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Channels")},
+      {"pathsDock", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Paths")},
+      {"historyDock", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "History")},
+      {"propertiesDock", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Properties")},
+      {"infoDock", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Info")},
+      {"paletteDock", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Palette")},
+  };
+  for (const auto& [id, title] : kPanelTitles) {
+    bind_widget_text(panel_column_->title_label(QLatin1String(id)), title);
+  }
+  panel_column_->refresh_tab_titles();
+  register_retranslation([this] { panel_column_->refresh_tab_titles(); });
+  connect(panel_column_, &PanelColumn::header_context_menu_requested, this,
+          &MainWindow::show_panel_header_menu);
+  // An expand or a reopened section raises the column's minimum: keep the window on
+  // its screen (GitHub issue 108).
+  const auto column_changed = [this] {
+    fit_right_dock_floors_to_screen();
+#ifdef Q_OS_WASM
+    // The wasm backing store keeps stale pixels where a relayout moved the panels.
+    update();
+#endif
+  };
+  connect(panel_column_, &PanelColumn::panel_expanded_changed, this, column_changed);
+  connect(panel_column_, &PanelColumn::panel_visibility_changed, this, column_changed);
+  panel_column_->installEventFilter(this);
+
+  // Beside the document tabs: the tabs take every width change, the column keeps its
+  // width, and the splitter handle is the column's draggable edge.
+  workspace_splitter_->addWidget(panel_column_);
+  workspace_splitter_->setStretchFactor(0, 1);
+  workspace_splitter_->setStretchFactor(1, 0);
+  workspace_splitter_->setCollapsible(0, false);
+  workspace_splitter_->setCollapsible(1, false);
+  workspace_splitter_->handle(1)->setObjectName(QStringLiteral("rightDockResizeHandle"));
+  connect(workspace_splitter_, &QSplitter::splitterMoved, this, [this] { handle_right_column_moved(); });
   update_right_dock_minimum_width();
-  // Re-measure once the first event-loop pass has shown and styled the docks:
-  // only then can the real dock chrome and title heights be read.
-  QTimer::singleShot(0, this, [this] {
-    update_right_dock_minimum_width();
-    refresh_collapsed_right_dock_heights();
-  });
+  // Re-measure once the first event-loop pass has shown and styled the column: only
+  // then can the real chrome be read.
+  QTimer::singleShot(0, this, [this] { update_right_dock_minimum_width(); });
 }
 
-void MainWindow::create_palette_dock() {
-  palette_dock_ = new QDockWidget(tr("Palette"), this);
-  palette_dock_->setObjectName(QStringLiteral("paletteDock"));
-  bind_widget_text(palette_dock_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Palette"));
-  palette_panel_ = new PalettePanel(palette_dock_);
+void MainWindow::create_palette_dock(std::vector<PanelSpec>& specs) {
+  palette_panel_ = new PalettePanel(this);
   connect(palette_panel_, &PalettePanel::entry_clicked, this, [this](int index) {
     if (canvas_ == nullptr) {
       return;
@@ -2210,26 +1708,11 @@ void MainWindow::create_palette_dock() {
   set_color_picker_document_palette_name_editor([this](int index, const QString& name) {
     apply_palette_entry_name(index, name);
   });
-  palette_panel_->setContentsMargins(kRightDockResizeHandleWidth, 0, 0, 0);
-  palette_dock_->setWidget(palette_panel_);
-  install_collapsible_dock_title(palette_dock_, palette_panel_, QStringLiteral("palette"), 0,
-                                 QWIDGETSIZE_MAX, false, kPaletteDockPreferredHeight,
-                                 [this](bool expanded) {
-                                   handle_right_dock_panel_toggled(palette_dock_, expanded, 0);
-                                 });
-  install_right_dock_width_handle(palette_dock_);
-  addDockWidget(Qt::RightDockWidgetArea, palette_dock_);
-  update_right_dock_resize_handle_geometry(palette_dock_);
-
-  // On Wayland the panels stay in the column: no drag floats or moves them (Qt's move also
-  // detaches the panel into a window mid-drag). Collapse, tabs and the width still work.
-  if (!right_docks_can_leave_column()) {
-    for (const auto& name : right_dock_stack_names()) {
-      if (auto* dock = findChild<QDockWidget*>(name); dock != nullptr) {
-        dock->setFeatures(dock->features() & ~(QDockWidget::DockWidgetFloatable | QDockWidget::DockWidgetMovable));
-      }
-    }
-  }
+  specs.push_back(PanelSpec{.id = QStringLiteral("paletteDock"),
+                            .object_prefix = QStringLiteral("palette"),
+                            .title = tr("Palette"),
+                            .content = palette_panel_,
+                            .preferred_height = kPaletteDockPreferredHeight});
 }
 
 }  // namespace patchy::ui

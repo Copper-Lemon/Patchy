@@ -19,6 +19,7 @@
 #include "ui/image_document_io.hpp"
 #include "ui/measurement_units.hpp"
 #include "ui/main_window.hpp"
+#include "ui/tool_cursors.hpp"
 #include "ui/script_folders.hpp"
 #include "ui/app_settings.hpp"
 #include "psd/psd_document_io.hpp"
@@ -1006,7 +1007,7 @@ void ui_psd_import_warning_dialog_is_hidden_by_default() {
   const auto psd_path = write_psd_import_warning_fixture(QStringLiteral("psd-import-warning-default.psd"));
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   const auto original_tab_count = tabs->count();
   const auto compatibility_report_done = std::make_shared<bool>(false);
@@ -1029,7 +1030,7 @@ void ui_psd_import_warning_dialog_shows_when_enabled() {
   const auto psd_path = write_psd_import_warning_fixture(QStringLiteral("psd-import-warning-enabled.psd"));
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   const auto original_tab_count = tabs->count();
   const auto compatibility_report_done = std::make_shared<bool>(false);
@@ -1849,6 +1850,65 @@ void ui_eyedropper_sample_size_and_current_layer() {
   CHECK(canvas.eyedropper_sample_size() == 101);
 }
 
+// Eyedropper Sets (GitHub issue 151): a click sets the color the option names,
+// Alt inverts it for that click (with Foreground, Alt+click is Photoshop's
+// background pick), and the cursor badge shows the color a click would set.
+void ui_eyedropper_sets_option_and_alt_inverts() {
+  patchy::Document document(48, 16, patchy::PixelFormat::rgba8());
+  document.add_pixel_layer("Teal", solid_pixels(48, 16, patchy::PixelFormat::rgba8(), QColor(20, 140, 160)));
+  patchy::ui::CanvasWidget canvas;
+  canvas.resize(192, 64);
+  canvas.set_document(&document);
+  canvas.set_tool(patchy::ui::CanvasTool::Eyedropper);
+  canvas.show();
+  QApplication::processEvents();
+  const auto point = canvas.widget_position_for_document_point(QPoint(24, 8));
+  const auto reset = [&canvas] {
+    canvas.set_primary_color(QColor(1, 2, 3));
+    canvas.set_secondary_color(QColor(250, 250, 250));
+  };
+  const auto click = [&](Qt::KeyboardModifiers modifiers) {
+    send_mouse(canvas, QEvent::MouseButtonPress, point, Qt::LeftButton, Qt::LeftButton, modifiers);
+    send_mouse(canvas, QEvent::MouseButtonRelease, point, Qt::LeftButton, Qt::NoButton, modifiers);
+    QApplication::processEvents();
+  };
+  const QColor teal(20, 140, 160);
+  const auto cursor_image = [&canvas] { return canvas.cursor().pixmap().toImage(); };
+
+  CHECK(!canvas.eyedropper_picks_background());
+  CHECK(cursor_image() == patchy::ui::eyedropper_target_cursor(false).pixmap().toImage());
+  CHECK(cursor_image() != patchy::ui::eyedropper_target_cursor(true).pixmap().toImage());
+  reset();
+  click(Qt::NoModifier);
+  CHECK(color_close(canvas.primary_color(), teal, 1) && canvas.secondary_color() == QColor(250, 250, 250));
+  reset();
+  click(Qt::AltModifier);
+  CHECK(color_close(canvas.secondary_color(), teal, 1) && canvas.primary_color() == QColor(1, 2, 3));
+
+  canvas.set_eyedropper_picks_background(true);
+  CHECK(cursor_image() == patchy::ui::eyedropper_target_cursor(true).pixmap().toImage());
+  reset();
+  click(Qt::NoModifier);
+  CHECK(color_close(canvas.secondary_color(), teal, 1) && canvas.primary_color() == QColor(1, 2, 3));
+  reset();
+  click(Qt::AltModifier);
+  CHECK(color_close(canvas.primary_color(), teal, 1) && canvas.secondary_color() == QColor(250, 250, 250));
+  // Holding Alt flips the badge without moving the pointer.
+  send_key_press(canvas, Qt::Key_Alt, Qt::AltModifier);
+  QApplication::processEvents();
+  CHECK(cursor_image() == patchy::ui::eyedropper_target_cursor(false).pixmap().toImage());
+  send_key_release(canvas, Qt::Key_Alt);
+  QApplication::processEvents();
+  CHECK(cursor_image() == patchy::ui::eyedropper_target_cursor(true).pixmap().toImage());
+  save_widget_artifact("ui_eyedropper_background_cursor", canvas);
+
+  // The Brush tool's Alt eyedropper still sets the foreground whatever Sets says.
+  canvas.set_tool(patchy::ui::CanvasTool::Brush);
+  reset();
+  click(Qt::AltModifier);
+  CHECK(color_close(canvas.primary_color(), teal, 1) && canvas.secondary_color() == QColor(250, 250, 250));
+}
+
 // The Eyedropper options row (GitHub issue 151): Sample Size and Sample combos
 // for the Eyedropper only, reaching the canvas, every new document and the
 // saved tool settings.
@@ -1869,6 +1929,13 @@ void ui_eyedropper_options_bar_sample_controls() {
   CHECK(size_combo->itemText(3) == QStringLiteral("11 by 11 Average"));
   CHECK(layers_combo->itemText(0) == QStringLiteral("All Layers"));
   CHECK(layers_combo->itemText(1) == QStringLiteral("Current Layer"));
+  auto* sets_foreground = window.findChild<QPushButton*>(QStringLiteral("eyedropperSetsForegroundButton"));
+  auto* sets_background = window.findChild<QPushButton*>(QStringLiteral("eyedropperSetsBackgroundButton"));
+  CHECK(sets_foreground != nullptr && sets_background != nullptr);
+  CHECK(sets_foreground->isVisible() && sets_background->isVisible());
+  CHECK(sets_foreground->isChecked() && !sets_background->isChecked());
+  CHECK(sets_foreground->toolTip().contains(QStringLiteral("+click")));
+  CHECK(!sets_foreground->toolTip().contains(QStringLiteral("%ALT%")));
   save_widget_artifact("ui_eyedropper_options_bar", window);
 
   size_combo->setCurrentIndex(size_combo->findData(5));
@@ -1877,10 +1944,15 @@ void ui_eyedropper_options_bar_sample_controls() {
   auto* canvas = require_canvas(window);
   CHECK(canvas->eyedropper_sample_size() == 5);
   CHECK(!canvas->eyedropper_sample_all_layers());
+  sets_background->click();
+  QApplication::processEvents();
+  CHECK(sets_background->isChecked() && !sets_foreground->isChecked());
+  CHECK(canvas->eyedropper_picks_background());
   {
     auto settings = patchy::ui::app_settings();
     CHECK(settings.value(QStringLiteral("tools/eyedropperSampleSize")).toInt() == 5);
     CHECK(!settings.value(QStringLiteral("tools/eyedropperSampleAllLayers")).toBool());
+    CHECK(settings.value(QStringLiteral("tools/eyedropperPicksBackground")).toBool());
   }
   patchy::ui::MainWindowTestAccess::create_default_document(window);
   QApplication::processEvents();
@@ -1888,12 +1960,15 @@ void ui_eyedropper_options_bar_sample_controls() {
   CHECK(second != canvas);
   CHECK(second->eyedropper_sample_size() == 5);
   CHECK(!second->eyedropper_sample_all_layers());
+  CHECK(second->eyedropper_picks_background());
 
   // Back to the defaults so later tests see Photoshop's starting state.
   size_combo->setCurrentIndex(0);
   layers_combo->setCurrentIndex(0);
+  sets_foreground->click();
   QApplication::processEvents();
   auto settings = patchy::ui::app_settings();
+  CHECK(!settings.value(QStringLiteral("tools/eyedropperPicksBackground")).toBool());
   CHECK(settings.value(QStringLiteral("tools/eyedropperSampleSize")).toInt() == 1);
   CHECK(settings.value(QStringLiteral("tools/eyedropperSampleAllLayers")).toBool());
 }
@@ -3145,6 +3220,7 @@ std::vector<patchy::test::TestCase> pickers_notices_hotkeys_tests() {
        ui_eyedropper_picks_group_opacity_and_clipping_composite},
       {"ui_eyedropper_alt_click_picks_the_background_color", ui_eyedropper_alt_click_picks_the_background_color},
       {"ui_eyedropper_sample_size_and_current_layer", ui_eyedropper_sample_size_and_current_layer},
+      {"ui_eyedropper_sets_option_and_alt_inverts", ui_eyedropper_sets_option_and_alt_inverts},
       {"ui_eyedropper_options_bar_sample_controls", ui_eyedropper_options_bar_sample_controls},
       {"ui_eyedropper_starts_in_gray_area_and_drags_to_document_color",
        ui_eyedropper_starts_in_gray_area_and_drags_to_document_color},

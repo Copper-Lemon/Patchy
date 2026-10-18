@@ -1034,7 +1034,7 @@ QRect CanvasWidget::draw_line(QPoint from, QPoint to, bool erase) {
                               active_layer_locks_transparent_pixels(), *this);
   if (brush_opacity_ < 100) {
     options.stroke_pixel_gate = [this](std::int32_t x, std::int32_t y) {
-      return brush_stroke_pixels_.insert(stroke_pixel_key(x, y)).second;
+      return brush_stroke_pixels_.insert(x, y);
     };
   }
   return to_qrect(patchy::draw_line(*document_, *document_->active_layer_id(), from.x(), from.y(), to.x(), to.y(),
@@ -1082,7 +1082,7 @@ QRect CanvasWidget::draw_rectangle(QPoint from, QPoint to, bool erase) {
   // only matters for the crisp 1px-outline legacy path, which paints overlapping line segments.
   if (brush_opacity_ < 100) {
     options.stroke_pixel_gate = [this](std::int32_t x, std::int32_t y) {
-      return brush_stroke_pixels_.insert(stroke_pixel_key(x, y)).second;
+      return brush_stroke_pixels_.insert(x, y);
     };
   }
   return to_qrect(patchy::draw_rectangle(*document_, *document_->active_layer_id(), to_core_rect(rect),
@@ -1104,7 +1104,7 @@ QRect CanvasWidget::draw_ellipse(QPoint from, QPoint to, bool erase) {
   // Only the crisp 1px-outline legacy path needs the buildup gate (see draw_rectangle).
   if (brush_opacity_ < 100) {
     options.stroke_pixel_gate = [this](std::int32_t x, std::int32_t y) {
-      return brush_stroke_pixels_.insert(stroke_pixel_key(x, y)).second;
+      return brush_stroke_pixels_.insert(x, y);
     };
   }
   return to_qrect(patchy::draw_ellipse(*document_, *document_->active_layer_id(), to_core_rect(rect),

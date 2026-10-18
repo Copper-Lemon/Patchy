@@ -23,7 +23,6 @@
 #include <QComboBox>
 #include <QContextMenuEvent>
 #include <QDialog>
-#include <QDockWidget>
 #include <QDir>
 #include <QFile>
 #include <QFileDialog>
@@ -45,7 +44,10 @@
 #include <QTabWidget>
 #include <QTest>
 #include <QTimer>
+#include <QWidgetAction>
 #include <QAbstractButton>
+#include <QTabBar>
+#include <QSplitter>
 #include <QToolBar>
 #include <QToolButton>
 #include <QWidget>
@@ -59,6 +61,7 @@
 #include <exception>
 #include <filesystem>
 #include <fstream>
+#include <cstdio>
 #include <functional>
 #include <iostream>
 #include <limits>
@@ -216,7 +219,7 @@ void ui_startup_opens_empty_workspace_with_start_panel() {
   patchy::ui::MainWindow window;
   show_window_empty(window);
 
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   auto* panel = window.findChild<QWidget*>(QStringLiteral("startPanel"));
   auto* new_button = window.findChild<QPushButton*>(QStringLiteral("startPanelNewButton"));
   auto* open_button = window.findChild<QPushButton*>(QStringLiteral("startPanelOpenButton"));
@@ -270,7 +273,7 @@ void ui_start_panel_recent_files_open_on_click() {
 
   patchy::ui::MainWindow window;
   show_window_empty(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   auto* panel = window.findChild<QWidget*>(QStringLiteral("startPanel"));
   auto* recent_list = window.findChild<QListWidget*>(QStringLiteral("startPanelRecentList"));
   auto* info = window.findChild<QLabel*>(QStringLiteral("documentInfoLabel"));
@@ -396,7 +399,7 @@ void ui_start_panel_recent_files_scroll_and_context_menu() {
 
   patchy::ui::MainWindow window;
   show_window_empty(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   auto* recent_list = window.findChild<QListWidget*>(QStringLiteral("startPanelRecentList"));
   CHECK(tabs != nullptr);
   CHECK(recent_list != nullptr);
@@ -492,7 +495,7 @@ void ui_start_panel_recent_row_remove_button_and_menu() {
 
   patchy::ui::MainWindow window;
   show_window_empty(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   auto* recent_list = dynamic_cast<patchy::ui::RecentFileList*>(
       window.findChild<QListWidget*>(QStringLiteral("startPanelRecentList")));
   CHECK(tabs != nullptr && recent_list != nullptr);
@@ -559,6 +562,188 @@ void ui_start_panel_recent_row_remove_button_and_menu() {
   CHECK(stored_recent_files() == QStringList{recent_files[2]});
   CHECK(recent_list->count() == 1);
   CHECK(recent_list->item(0)->data(patchy::ui::kRecentPathRole).toString() == recent_files[2]);
+
+  // File > Open Recent File rows carry the same x. The menu stays as it is
+  // (the list refills in place) and rebuilds on the next File menu open.
+  {
+    auto settings = patchy::ui::app_settings();
+    settings.setValue(QStringLiteral("recentFiles"), recent_files);
+    settings.sync();
+  }
+  auto* recent_menu = window.findChild<QMenu*>(QStringLiteral("fileOpenRecentMenu"));
+  CHECK(recent_menu != nullptr);
+  auto* file_menu = qobject_cast<QMenu*>(recent_menu->parentWidget());
+  CHECK(file_menu != nullptr);
+  QMetaObject::invokeMethod(file_menu, "aboutToShow");
+  QApplication::processEvents();
+  CHECK(recent_menu_paths(*recent_menu) == recent_files);
+  auto* menu_list = dynamic_cast<patchy::ui::RecentFileList*>(
+      recent_menu->findChild<QListWidget*>(QStringLiteral("fileOpenRecentList")));
+  CHECK(menu_list != nullptr && menu_list->has_remove_button());
+  menu_list->resize(menu_list->sizeHint());
+  const auto menu_button = patchy::ui::RecentFileList::remove_button_rect(
+                               menu_list->visualItemRect(menu_list->item(0)))
+                               .center();
+  send_mouse(*menu_list->viewport(), QEvent::MouseMove, menu_button, Qt::NoButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(menu_list->remove_button_hovered(0));
+  save_widget_artifact("ui_open_recent_menu_remove_hover", *menu_list);
+  send_mouse(*menu_list->viewport(), QEvent::MouseButtonPress, menu_button, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*menu_list->viewport(), QEvent::MouseButtonRelease, menu_button, Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  QApplication::processEvents();
+  CHECK(tabs->count() == 0);
+  CHECK(!stored_recent_files().contains(recent_files[0]));
+  CHECK(menu_list->count() == 2);  // the same list widget, refilled
+  CHECK(recent_menu->findChild<QListWidget*>(QStringLiteral("fileOpenRecentList")) == menu_list);
+  QMetaObject::invokeMethod(file_menu, "aboutToShow");
+  QApplication::processEvents();
+  CHECK(recent_menu_paths(*recent_menu) == (QStringList{recent_files[1], recent_files[2]}));
+
+  // Open Recent Folder shares the list and its x.
+  const auto folder_a = QFileInfo(QStringLiteral("test-artifacts")).absoluteFilePath();
+  const auto folder_b = QFileInfo(QStringLiteral(".")).absoluteFilePath();
+  {
+    auto settings = patchy::ui::app_settings();
+    settings.setValue(QStringLiteral("recentFolders"), QStringList{folder_a, folder_b});
+    settings.sync();
+  }
+  QMetaObject::invokeMethod(file_menu, "aboutToShow");
+  QApplication::processEvents();
+  auto* folder_list = dynamic_cast<patchy::ui::RecentFileList*>(
+      window.findChild<QListWidget*>(QStringLiteral("fileOpenRecentFolderList")));
+  CHECK(folder_list != nullptr && folder_list->has_remove_button() && folder_list->count() == 2);
+  folder_list->resize(folder_list->sizeHint());
+  const auto folder_button = patchy::ui::RecentFileList::remove_button_rect(
+                                 folder_list->visualItemRect(folder_list->item(0)))
+                                 .center();
+  send_mouse(*folder_list->viewport(), QEvent::MouseButtonPress, folder_button, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*folder_list->viewport(), QEvent::MouseButtonRelease, folder_button, Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  QApplication::processEvents();
+  CHECK(folder_list->count() == 1);
+  auto settings = patchy::ui::app_settings();
+  settings.sync();
+  CHECK(settings.value(QStringLiteral("recentFolders")).toStringList() == QStringList{folder_b});
+}
+
+// Seth's case: the Open Recent list's x keeps the list where it was, as the start panel's
+// does. The scroll position stays and the highlight moves to the entry that took the
+// removed row, or to the new last row when the bottom entry went.
+void ui_open_recent_menu_remove_keeps_place() {
+  ensure_artifact_dir();
+  QStringList recent_files;
+  for (int index = 0; index < 20; ++index) {
+    recent_files << QFileInfo(QStringLiteral("test-artifacts/open_recent_keep_place_%1.png").arg(index))
+                        .absoluteFilePath();
+    QImage image(8, 8, QImage::Format_RGB32);
+    image.fill(QColor(40 + index * 10, 90, 160));
+    CHECK(image.save(recent_files.last()));
+  }
+  {
+    auto settings = patchy::ui::app_settings();
+    settings.setValue(QStringLiteral("recentFiles"), recent_files);
+    settings.sync();
+  }
+  patchy::ui::MainWindow window;
+  show_window_empty(window);
+  auto* recent_menu = window.findChild<QMenu*>(QStringLiteral("fileOpenRecentMenu"));
+  CHECK(recent_menu != nullptr);
+  if (recent_menu == nullptr) {
+    return;
+  }
+  auto* file_menu = qobject_cast<QMenu*>(recent_menu->parentWidget());
+  CHECK(file_menu != nullptr);
+  QMetaObject::invokeMethod(file_menu, "aboutToShow");
+  QApplication::processEvents();
+  auto* list = dynamic_cast<patchy::ui::RecentFileList*>(
+      recent_menu->findChild<QListWidget*>(QStringLiteral("fileOpenRecentList")));
+  CHECK(list != nullptr && list->count() == 20);
+  if (list == nullptr) {
+    return;
+  }
+  list->resize(list->sizeHint());
+  QApplication::processEvents();
+  auto* scroll_bar = list->verticalScrollBar();
+  CHECK(scroll_bar->maximum() > 0);
+  const auto click_remove = [list](int row) {
+    const auto button =
+        patchy::ui::RecentFileList::remove_button_rect(list->visualItemRect(list->item(row))).center();
+    send_mouse(*list->viewport(), QEvent::MouseMove, button, Qt::NoButton, Qt::NoButton);
+    send_mouse(*list->viewport(), QEvent::MouseButtonPress, button, Qt::LeftButton, Qt::LeftButton);
+    send_mouse(*list->viewport(), QEvent::MouseButtonRelease, button, Qt::LeftButton, Qt::NoButton);
+    QApplication::processEvents();
+    QApplication::processEvents();
+  };
+  const auto row_path = [list](int row) { return list->item(row)->data(patchy::ui::kRecentPathRole).toString(); };
+
+  // Scrolled down a few rows, a middle entry goes.
+  const auto row_height = list->visualItemRect(list->item(0)).height();
+  scroll_bar->setValue(row_height * 4);
+  QApplication::processEvents();
+  const auto scrolled = scroll_bar->value();
+  CHECK(scrolled > 0);
+  click_remove(8);
+  CHECK(list->count() == 19);
+  CHECK(row_path(8) == recent_files[9]);
+  CHECK(list->currentRow() == 8);
+  if (scroll_bar->value() != scrolled) {
+    std::printf("scroll after remove %d, before %d\n", scroll_bar->value(), scrolled);
+  }
+  CHECK(scroll_bar->value() == scrolled);
+
+  // The bottom entry goes: the highlight lands on the new last row.
+  scroll_bar->setValue(scroll_bar->maximum());
+  QApplication::processEvents();
+  click_remove(list->count() - 1);
+  CHECK(list->count() == 18);
+  CHECK(list->currentRow() == 17);
+  CHECK(row_path(17) == recent_files[18]);
+  save_widget_artifact("ui_open_recent_menu_remove_keeps_place", *list);
+}
+
+// With no document open (the Home screen), every menu-bar command that needs a
+// document is disabled: Image > Crop to Selection (Advanced) and Layer > Edit
+// Adjustment crashed there, and Layer > Smart Objects stayed enabled (GitHub
+// issue 162). Only commands that work without a document stay live.
+void ui_empty_workspace_disables_document_commands() {
+  patchy::ui::MainWindow window;
+  show_window_empty(window);
+  const auto command_id = [&window](const QAction* action) {
+    for (const auto& command : window.hotkey_registry().commands()) {
+      if (command.action == action) {
+        return command.id;
+      }
+    }
+    return QString();
+  };
+  QStringList enabled;
+  std::function<void(QMenu*, const QString&)> walk = [&](QMenu* menu, const QString& path) {
+    QMetaObject::invokeMethod(menu, "aboutToShow");  // dynamic menus fill on show
+    QApplication::processEvents();
+    for (auto* action : menu->actions()) {
+      if (action->isSeparator() || qobject_cast<QWidgetAction*>(action) != nullptr || !action->isVisible()) {
+        continue;
+      }
+      const auto label = path + QStringLiteral(" > ") + action->text().remove(QLatin1Char('&'));
+      if (action->menu() != nullptr) {
+        walk(action->menu(), label);
+        continue;
+      }
+      if (action->isEnabled() && !patchy::ui::command_works_without_document(*action, command_id(action))) {
+        enabled << QStringLiteral("%1 [%2 / %3]").arg(label, command_id(action), action->objectName());
+      }
+    }
+  };
+  for (auto* top : window.menuBar()->actions()) {
+    if (top->menu() != nullptr) {
+      walk(top->menu(), top->text().remove(QLatin1Char('&')));
+    }
+  }
+  for (const auto& line : enabled) {
+    std::printf("  enabled without a document: %s\n", line.toUtf8().constData());
+  }
+  CHECK(enabled.isEmpty());
 }
 
 void ui_start_panel_recent_filter_narrows_rows_and_opens_match() {
@@ -584,7 +769,7 @@ void ui_start_panel_recent_filter_narrows_rows_and_opens_match() {
 
   patchy::ui::MainWindow window;
   show_window_empty(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   auto* panel = window.findChild<QWidget*>(QStringLiteral("startPanel"));
   auto* recent_list = window.findChild<QListWidget*>(QStringLiteral("startPanelRecentList"));
   auto* filter_edit = window.findChild<QLineEdit*>(QStringLiteral("startPanelRecentFilterEdit"));
@@ -723,6 +908,582 @@ void ui_start_panel_shows_about_info_and_update_status() {
   CHECK(!status->isVisible());
 }
 
+// GitHub issue 163: the Window menu lists every side panel and both toolbars as checkable
+// entries, alphabetically, with the document-window commands under Window > Arrange.
+// Picking a closed, background-tab or collapsed panel brings it forward expanded; picking
+// one already in front closes it.
+void ui_window_menu_lists_panels_and_toolbars() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* column = patchy::ui::MainWindowTestAccess::panel_column(window);
+  auto* window_menu = window.findChild<QMenu*>(QStringLiteral("windowMenu"));
+  auto* arrange_menu = window.findChild<QMenu*>(QStringLiteral("windowArrangeMenu"));
+  CHECK(column != nullptr && window_menu != nullptr && arrange_menu != nullptr);
+  if (column == nullptr || window_menu == nullptr || arrange_menu == nullptr) {
+    return;
+  }
+  CHECK(window_menu->actions().contains(arrange_menu->menuAction()));
+  for (const char* name : {"windowFloatDocumentAction", "windowDockDocumentAction", "windowFloatAllAction",
+                           "windowConsolidateTabsAction", "windowTileAction", "windowCascadeAction"}) {
+    CHECK(arrange_menu->actions().contains(require_action(window, name)));
+    CHECK(!window_menu->actions().contains(require_action(window, name)));
+  }
+
+  emit window_menu->aboutToShow();
+  QApplication::processEvents();
+  QStringList entry_texts;
+  for (auto* action : window_menu->actions()) {
+    if (action->isCheckable() && !action->objectName().startsWith(QStringLiteral("windowDocument"))) {
+      entry_texts << action->text().remove(QLatin1Char('&'));
+      CHECK(action->isChecked());
+    }
+  }
+  CHECK(entry_texts == QStringList({QStringLiteral("Channels"), QStringLiteral("History"), QStringLiteral("Info"),
+                                    QStringLiteral("Layers"), QStringLiteral("Options"), QStringLiteral("Palette"),
+                                    QStringLiteral("Paths"), QStringLiteral("Properties"),
+                                    QStringLiteral("Tool Palette")}));
+
+  const auto history = QStringLiteral("historyDock");
+  auto* history_toggle = window.findChild<QToolButton*>(QStringLiteral("historyDockCollapseButton"));
+  auto* history_entry = require_action(window, "windowPanelHistoryAction");
+  CHECK(history_toggle != nullptr);
+  if (history_toggle == nullptr) {
+    return;
+  }
+  // Collapsed: the entry expands it and leaves it open.
+  history_toggle->setChecked(false);
+  QApplication::processEvents();
+  CHECK(!column->panel_expanded(history));
+  history_entry->trigger();
+  QApplication::processEvents();
+  CHECK(column->panel_visible(history));
+  CHECK(column->panel_expanded(history));
+  CHECK(history_toggle->isChecked());
+  CHECK(history_entry->isChecked());
+  // In front and expanded: the entry closes it, and the next pick brings it back.
+  history_entry->trigger();
+  QApplication::processEvents();
+  CHECK(!column->panel_visible(history));
+  CHECK(column->section_widget(history)->isHidden());
+  CHECK(!history_entry->isChecked());
+  history_entry->trigger();
+  QApplication::processEvents();
+  CHECK(column->panel_visible(history) && column->section_widget(history)->isVisible());
+  CHECK(history_entry->isChecked());
+
+  // Behind another tab of its group: the entry brings its tab forward instead of closing it.
+  const auto layers = QStringLiteral("layersDock");
+  const auto channels = QStringLiteral("channelsDock");
+  CHECK(column->panel_in_front(layers) && !column->panel_in_front(channels));
+  require_action(window, "windowPanelChannelsAction")->trigger();
+  QApplication::processEvents();
+  CHECK(column->panel_in_front(channels));
+  CHECK(column->panel_visible(layers));
+  require_action(window, "windowPanelLayersAction")->trigger();
+  QApplication::processEvents();
+  CHECK(column->panel_in_front(layers));
+  CHECK(column->panel_visible(channels));
+
+  // The toolbars keep Qt's own toggle.
+  auto* tool_palette = window.findChild<QToolBar*>(QStringLiteral("toolPalette"));
+  CHECK(tool_palette != nullptr);
+  if (tool_palette != nullptr) {
+    CHECK(window_menu->actions().contains(tool_palette->toggleViewAction()));
+    tool_palette->toggleViewAction()->trigger();
+    QApplication::processEvents();
+    CHECK(tool_palette->isHidden());
+    tool_palette->toggleViewAction()->trigger();
+    QApplication::processEvents();
+    CHECK(!tool_palette->isHidden());
+  }
+
+  // Captures for review: test-artifacts/menu_windowMenu.png and menu_windowArrangeMenu.png.
+  for (auto* menu : {window_menu, arrange_menu}) {
+    emit window_menu->aboutToShow();
+    menu->popup(window.mapToGlobal(QPoint(40, 40)));
+    QApplication::processEvents();
+    save_widget_artifact("menu_" + menu->objectName().toStdString(), *menu);
+    menu->hide();
+  }
+}
+
+// Closing a panel and opening it again leaves every section at the column's full width,
+// stacked in one column with nothing beside it. Under the old dock column a reopened dock
+// could come back narrower, with the window background showing beside its title.
+void ui_panel_close_and_reopen_keeps_full_width() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* column = patchy::ui::MainWindowTestAccess::panel_column(window);
+  CHECK(column != nullptr);
+  if (column == nullptr) {
+    return;
+  }
+  const auto check_full_width = [&](const QString& context) {
+    auto* splitter = column->splitter();
+    for (int index = 0; index < splitter->count(); ++index) {
+      auto* section = splitter->widget(index);
+      if (section->isHidden()) {
+        continue;
+      }
+      if (section->x() != 0 || section->width() != splitter->width()) {
+        std::printf("%s: section %s at x %d width %d, column %d\n", qPrintable(context),
+                    qPrintable(section->objectName()), section->x(), section->width(), splitter->width());
+      }
+      CHECK(section->x() == 0);
+      CHECK(section->width() == splitter->width());
+    }
+  };
+  for (const auto& id : column->panel_ids()) {
+    patchy::ui::MainWindowTestAccess::show_panel(window, id);
+    QApplication::processEvents();
+    column->set_panel_visible(id, false);
+    QApplication::processEvents();
+    check_full_width(QStringLiteral("closed ") + id);
+    patchy::ui::MainWindowTestAccess::show_panel(window, id);
+    QApplication::processEvents();
+    QApplication::processEvents();
+    CHECK(column->panel_visible(id) && column->panel_in_front(id) && column->panel_expanded(id));
+    check_full_width(QStringLiteral("reopened ") + id);
+  }
+  save_widget_artifact("ui_panel_close_and_reopen_keeps_full_width", *column);
+}
+
+// Seth's case: expanding a panel and collapsing it again (or closing it) must hand its
+// height back to the other panels at once, never leave a band between the title rows.
+void ui_panel_collapse_and_close_leave_no_gap() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* column = patchy::ui::MainWindowTestAccess::panel_column(window);
+  CHECK(column != nullptr);
+  if (column == nullptr) {
+    return;
+  }
+  auto* splitter = column->splitter();
+  const auto check_filled = [&](const QString& context) {
+    QApplication::processEvents();
+    QApplication::processEvents();
+    int expected_top = 0;
+    int last_bottom = -1;
+    for (int index = 0; index < splitter->count(); ++index) {
+      auto* section = splitter->widget(index);
+      if (section->isHidden()) {
+        continue;
+      }
+      if (section->y() != expected_top) {
+        std::printf("%s: section %s at y %d, expected %d\n", qPrintable(context),
+                    qPrintable(section->objectName()), section->y(), expected_top);
+      }
+      CHECK(section->y() == expected_top);
+      expected_top = section->geometry().bottom() + 1 + splitter->handleWidth();
+      last_bottom = section->geometry().bottom();
+    }
+    if (last_bottom != splitter->height() - 1) {
+      std::printf("%s: last section ends at %d, column height %d\n", qPrintable(context), last_bottom,
+                  splitter->height());
+    }
+    CHECK(last_bottom == splitter->height() - 1);
+  };
+  check_filled(QStringLiteral("start"));
+  for (const auto& id : {QStringLiteral("propertiesDock"), QStringLiteral("historyDock"),
+                         QStringLiteral("infoDock"), QStringLiteral("paletteDock")}) {
+    auto* toggle = column->collapse_button(id);
+    CHECK(toggle != nullptr);
+    if (toggle == nullptr) {
+      continue;
+    }
+    if (column->panel_expanded(id)) {
+      toggle->click();
+      check_filled(QStringLiteral("collapsed ") + id);
+    }
+    toggle->click();
+    CHECK(column->panel_expanded(id));
+    check_filled(QStringLiteral("expanded ") + id);
+    toggle->click();
+    CHECK(!column->panel_expanded(id));
+    check_filled(QStringLiteral("collapsed again ") + id);
+    toggle->click();
+    column->set_panel_visible(id, false);
+    check_filled(QStringLiteral("closed expanded ") + id);
+    patchy::ui::MainWindowTestAccess::show_panel(window, id);
+    check_filled(QStringLiteral("reopened ") + id);
+    column->collapse_button(id)->click();
+    check_filled(QStringLiteral("collapsed after reopen ") + id);
+  }
+  save_widget_artifact("ui_panel_collapse_and_close_leave_no_gap", *column);
+}
+
+// Dragging a title row up or down moves its section in the column (the tab group by its
+// title row or its tab bar); a drop line shows where it lands, Escape cancels, and the
+// moved sections keep the column filled.
+void ui_panel_title_drag_reorders_sections() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* column = patchy::ui::MainWindowTestAccess::panel_column(window);
+  CHECK(column != nullptr);
+  if (column == nullptr) {
+    return;
+  }
+  auto* splitter = column->splitter();
+  const QStringList defaults = {QStringLiteral("layersDock"), QStringLiteral("historyDock"),
+                                QStringLiteral("propertiesDock"), QStringLiteral("infoDock"),
+                                QStringLiteral("paletteDock")};
+  CHECK(column->section_order() == defaults);
+  const auto check_filled = [&](const char* context) {
+    int expected_top = 0;
+    int last_bottom = -1;
+    for (int index = 0; index < splitter->count(); ++index) {
+      auto* section = splitter->widget(index);
+      if (section->isHidden()) {
+        continue;
+      }
+      if (section->y() != expected_top) {
+        std::printf("%s: section %s at y %d, expected %d\n", context, qPrintable(section->objectName()), section->y(),
+                    expected_top);
+      }
+      CHECK(section->y() == expected_top);
+      expected_top = section->geometry().bottom() + 1 + splitter->handleWidth();
+      last_bottom = section->geometry().bottom();
+    }
+    CHECK(last_bottom == splitter->height() - 1);
+  };
+  const auto header_of = [&window](const char* prefix) {
+    return window.findChild<QWidget*>(QLatin1String(prefix) + QStringLiteral("DockTitle"));
+  };
+  // Presses `handle` at `from`, crosses the drag distance, then moves to the column point
+  // `to` (and releases unless told not to).
+  const auto drag = [&](QWidget* handle, QPoint from, QPoint column_to, bool release) {
+    send_mouse(*handle, QEvent::MouseButtonPress, from, Qt::LeftButton, Qt::LeftButton);
+    send_mouse(*handle, QEvent::MouseMove, from + QPoint(0, QApplication::startDragDistance() + 2), Qt::NoButton,
+               Qt::LeftButton);
+    const auto to = handle->mapFromGlobal(column->mapToGlobal(column_to));
+    send_mouse(*handle, QEvent::MouseMove, to, Qt::NoButton, Qt::LeftButton);
+    QApplication::processEvents();
+    if (release) {
+      send_mouse(*handle, QEvent::MouseButtonRelease, to, Qt::LeftButton, Qt::NoButton);
+      QApplication::processEvents();
+      QApplication::processEvents();
+    }
+  };
+
+  // Info dragged by its title text (which passes the mouse up to the row, as a real click
+  // does) above the tab group: Info moves to the top, keeping its height.
+  auto* info_header = column->title_label(QStringLiteral("infoDock"));
+  CHECK(info_header != nullptr);
+  const auto info_height = column->section_widget(QStringLiteral("infoDock"))->height();
+  drag(info_header, QPoint(40, info_header->height() / 2), QPoint(20, 2), false);
+  auto* indicator = column->findChild<QWidget*>(QStringLiteral("panelDropIndicator"));
+  CHECK(indicator != nullptr && indicator->isVisible());
+  if (indicator != nullptr) {
+    if (indicator->y() > 2) {
+      std::printf("drop line at y %d, height %d, first section at y %d\n", indicator->y(), indicator->height(),
+                  splitter->widget(0)->mapTo(column, QPoint(0, 0)).y());
+    }
+    CHECK(indicator->y() <= 2);
+  }
+  save_widget_artifact("ui_panel_title_drag_reorders_sections_drop_line", *column);
+  send_mouse(*info_header, QEvent::MouseButtonRelease, info_header->mapFromGlobal(column->mapToGlobal(QPoint(20, 2))),
+             Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  QApplication::processEvents();
+  CHECK(!indicator->isVisible());
+  CHECK(column->section_order() == (QStringList{QStringLiteral("infoDock"), QStringLiteral("layersDock"),
+                                                QStringLiteral("historyDock"), QStringLiteral("propertiesDock"),
+                                                QStringLiteral("paletteDock")}));
+  CHECK(splitter->widget(0)->objectName() == QStringLiteral("infoDock"));
+  CHECK(column->section_widget(QStringLiteral("infoDock"))->height() == info_height);
+  check_filled("info to top");
+
+  // Escape cancels a drag: nothing moves.
+  auto* properties_header = header_of("properties");
+  const auto before_escape = column->section_order();
+  drag(properties_header, QPoint(40, properties_header->height() / 2), QPoint(20, column->height() - 2), false);
+  CHECK(indicator->isVisible());
+  QTest::keyClick(&window, Qt::Key_Escape);
+  CHECK(!indicator->isVisible());
+  send_mouse(*properties_header, QEvent::MouseButtonRelease, QPoint(40, 4), Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(column->section_order() == before_escape);
+
+  // A plain click on a title row moves nothing.
+  send_mouse(*properties_header, QEvent::MouseButtonPress, QPoint(40, 4), Qt::LeftButton, Qt::LeftButton);
+  send_mouse(*properties_header, QEvent::MouseButtonRelease, QPoint(40, 4), Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+  CHECK(column->section_order() == before_escape);
+
+  // The tab group dragged by its tab bar to the bottom; a press there still picks a tab.
+  auto* tabs = column->tab_bar(QStringLiteral("layersDock"));
+  CHECK(tabs != nullptr);
+  const auto channels_tab = tabs->tabRect(1).center();
+  drag(tabs, channels_tab, QPoint(20, column->height() - 2), true);
+  CHECK(column->section_order().last() == QStringLiteral("layersDock"));
+  CHECK(splitter->widget(splitter->count() - 1)->objectName() == QStringLiteral("panelTabGroup"));
+  CHECK(column->panel_in_front(QStringLiteral("channelsDock")));
+  check_filled("group to bottom");
+
+  // move_section and set_section_order do the same without a mouse.
+  column->move_section(QStringLiteral("paletteDock"), 0);
+  CHECK(column->section_order().first() == QStringLiteral("paletteDock"));
+  column->set_section_order(defaults);
+  QApplication::processEvents();
+  CHECK(column->section_order() == defaults);
+  check_filled("defaults again");
+}
+
+// Right-clicking a panel's title row opens the panel menu (collapse or expand, close, the
+// panel toggles and Reset Panels); on the tab group's tab bar the close entry closes the
+// whole group.
+void ui_panel_header_right_click_opens_panel_menu() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* column = patchy::ui::MainWindowTestAccess::panel_column(window);
+  CHECK(column != nullptr);
+  if (column == nullptr) {
+    return;
+  }
+  // Opens the menu on `target`, checks it and triggers the entry named `trigger` (or
+  // closes the menu when empty).
+  const auto right_click = [&](QWidget* target, const QString& expected_close, const QString& trigger) {
+    bool saw_menu = false;
+    QTimer::singleShot(0, [&] {
+      auto* menu = qobject_cast<QMenu*>(QApplication::activePopupWidget());
+      CHECK(menu != nullptr);
+      if (menu == nullptr) {
+        return;
+      }
+      saw_menu = true;
+      CHECK(menu->objectName() == QStringLiteral("panelHeaderMenu"));
+      auto* close = menu->findChild<QAction*>(QStringLiteral("panelHeaderCloseAction"));
+      CHECK(close != nullptr && close->text() == expected_close);
+      CHECK(menu->findChild<QAction*>(QStringLiteral("panelHeaderCollapseAction")) != nullptr);
+      CHECK(menu->actions().contains(require_action(window, "windowResetPanelsAction")));
+      CHECK(menu->actions().contains(require_action(window, "windowPanelPaletteAction")));
+      QAction* chosen = trigger.isEmpty() ? nullptr : menu->findChild<QAction*>(trigger);
+      menu->close();
+      if (chosen != nullptr) {
+        chosen->trigger();
+      }
+    });
+    const QPoint position(target->width() / 2, target->height() / 2);
+    QContextMenuEvent event(QContextMenuEvent::Mouse, position, target->mapToGlobal(position));
+    QApplication::sendEvent(target, &event);
+    QApplication::processEvents();
+    CHECK(saw_menu);
+  };
+  for (const char* prefix : {"layers", "channels", "paths", "history", "properties", "info", "palette"}) {
+    auto* header = window.findChild<QWidget*>(QLatin1String(prefix) + QStringLiteral("DockTitle"));
+    CHECK(header != nullptr);
+    if (header == nullptr) {
+      continue;
+    }
+    const auto id = QLatin1String(prefix) + QStringLiteral("Dock");
+    patchy::ui::MainWindowTestAccess::show_panel(window, id);
+    QApplication::processEvents();
+    right_click(header, QStringLiteral("Close Panel"), QString());
+  }
+  // Close Panel from History's title row closes History only.
+  patchy::ui::MainWindowTestAccess::show_panel(window, QStringLiteral("historyDock"));
+  QApplication::processEvents();
+  right_click(window.findChild<QWidget*>(QStringLiteral("historyDockTitle")), QStringLiteral("Close Panel"),
+              QStringLiteral("panelHeaderCloseAction"));
+  CHECK(!column->panel_visible(QStringLiteral("historyDock")));
+  CHECK(column->panel_visible(QStringLiteral("propertiesDock")));
+  // Collapse from the Properties title row.
+  patchy::ui::MainWindowTestAccess::show_panel(window, QStringLiteral("propertiesDock"));
+  QApplication::processEvents();
+  right_click(window.findChild<QWidget*>(QStringLiteral("propertiesDockTitle")), QStringLiteral("Close Panel"),
+              QStringLiteral("panelHeaderCollapseAction"));
+  CHECK(!column->panel_expanded(QStringLiteral("propertiesDock")));
+  // The tab bar's menu closes the whole group.
+  auto* tab_bar = column->tab_bar(QStringLiteral("layersDock"));
+  CHECK(tab_bar != nullptr);
+  if (tab_bar != nullptr) {
+    right_click(tab_bar, QStringLiteral("Close Tab Group"), QStringLiteral("panelHeaderCloseAction"));
+    for (const auto& id : {QStringLiteral("layersDock"), QStringLiteral("channelsDock"), QStringLiteral("pathsDock")}) {
+      CHECK(!column->panel_visible(id));
+    }
+    CHECK(column->section_widget(QStringLiteral("layersDock"))->isHidden());
+  }
+}
+
+// The saved panel layout: closed panels and toolbars, collapsed panels, the tab group's front
+// panel, the section order and heights and a picked column width come back in the next window; a
+// record from another layout version is ignored. Offscreen windows neither read nor write
+// it on their own.
+void ui_panel_layout_returns_in_the_next_window() {
+  const QStringList keys = {QStringLiteral("window/panelLayoutVersion"), QStringLiteral("window/hiddenPanels"),
+                            QStringLiteral("window/collapsedPanels"), QStringLiteral("window/frontPanel"),
+                            QStringLiteral("window/panelColumnWidth"), QStringLiteral("window/panelSplitterState"),
+                            QStringLiteral("window/panelOrder")};
+  std::vector<std::unique_ptr<SettingsValueRestorer>> restorers;
+  for (const auto& key : keys) {
+    restorers.push_back(std::make_unique<SettingsValueRestorer>(key));
+  }
+  {
+    auto settings = patchy::ui::app_settings();
+    for (const auto& key : keys) {
+      settings.remove(key);
+    }
+    settings.sync();
+  }
+  CHECK(!patchy::ui::MainWindowTestAccess::panel_layout_persists());
+  const auto properties = QStringLiteral("propertiesDock");
+  const auto history = QStringLiteral("historyDock");
+  bool properties_expanded_before = false;
+  int picked_width = 0;
+  {
+    patchy::ui::MainWindow window;
+    show_window(window);
+    auto* column = patchy::ui::MainWindowTestAccess::panel_column(window);
+    properties_expanded_before = column->panel_expanded(properties);
+    column->set_panel_expanded(properties, !properties_expanded_before);
+    column->set_panel_visible(history, false);
+    require_action(window, "windowPanelChannelsAction")->trigger();
+    window.findChild<QToolBar*>(QStringLiteral("Options"))->toggleViewAction()->trigger();
+    column->move_section(QStringLiteral("infoDock"), 0);
+    QApplication::processEvents();
+    picked_width = patchy::ui::MainWindowTestAccess::right_dock_content_minimum_width(window) + 40;
+    patchy::ui::MainWindowTestAccess::set_right_dock_stack_width(window, picked_width);
+    QApplication::processEvents();
+    picked_width = patchy::ui::MainWindowTestAccess::right_dock_pinned_width(window);
+    CHECK(column->width() == picked_width);
+    // Closing an offscreen window writes nothing.
+    window.close();
+    QApplication::processEvents();
+    CHECK(!patchy::ui::app_settings().contains(QStringLiteral("window/hiddenPanels")));
+    patchy::ui::MainWindowTestAccess::write_panel_layout(window);
+  }
+  {
+    // Read before the first show, as the constructor does on a desktop.
+    patchy::ui::MainWindow window;
+    patchy::ui::MainWindowTestAccess::read_panel_layout(window);
+    show_window(window);
+    auto* column = patchy::ui::MainWindowTestAccess::panel_column(window);
+    CHECK(!column->panel_visible(history));
+    CHECK(column->section_widget(history)->isHidden());
+    CHECK(column->panel_visible(QStringLiteral("layersDock")));
+    CHECK(window.findChild<QToolBar*>(QStringLiteral("Options"))->isHidden());
+    CHECK(!window.findChild<QToolBar*>(QStringLiteral("toolPalette"))->isHidden());
+    CHECK(column->panel_expanded(properties) == !properties_expanded_before);
+    CHECK(!patchy::ui::MainWindowTestAccess::right_dock_width_follows_content(window));
+    CHECK(patchy::ui::MainWindowTestAccess::right_dock_pinned_width(window) == picked_width);
+    CHECK(column->width() == picked_width);
+    emit window.findChild<QMenu*>(QStringLiteral("windowMenu"))->aboutToShow();
+    CHECK(!require_action(window, "windowPanelHistoryAction")->isChecked());
+    CHECK(column->panel_in_front(QStringLiteral("channelsDock")));
+    CHECK(column->section_order().first() == QStringLiteral("infoDock"));
+    CHECK(column->splitter()->widget(0)->objectName() == QStringLiteral("infoDock"));
+  }
+  {
+    // A record from another layout version is ignored: the defaults stand.
+    auto settings = patchy::ui::app_settings();
+    settings.setValue(QStringLiteral("window/panelLayoutVersion"), 999);
+    settings.sync();
+    patchy::ui::MainWindow window;
+    patchy::ui::MainWindowTestAccess::read_panel_layout(window);
+    show_window(window);
+    auto* column = patchy::ui::MainWindowTestAccess::panel_column(window);
+    CHECK(column->panel_visible(history));
+    CHECK(!window.findChild<QToolBar*>(QStringLiteral("Options"))->isHidden());
+    CHECK(column->panel_expanded(properties) == properties_expanded_before);
+    CHECK(patchy::ui::MainWindowTestAccess::right_dock_width_follows_content(window));
+    CHECK(column->section_order().first() == QStringLiteral("layersDock"));
+  }
+}
+
+// Window > Reset Panels returns the first-launch layout: closed panels and toolbars back, the
+// first-launch order, the default collapse states, Layers in front and the content-fit column
+// width.
+void ui_reset_panels_restores_first_launch_layout() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* column = patchy::ui::MainWindowTestAccess::panel_column(window);
+  auto* tool_palette = window.findChild<QToolBar*>(QStringLiteral("toolPalette"));
+  CHECK(column != nullptr && tool_palette != nullptr);
+  if (column == nullptr || tool_palette == nullptr) {
+    return;
+  }
+  const auto collapse_states = [column] {
+    QList<bool> states;
+    for (const auto& id : column->panel_ids()) {
+      states << column->panel_expanded(id);
+    }
+    return states;
+  };
+  const auto defaults = collapse_states();
+  column->set_panel_visible(QStringLiteral("paletteDock"), false);
+  column->set_panel_visible(QStringLiteral("pathsDock"), false);
+  require_action(window, "windowPanelChannelsAction")->trigger();
+  column->set_panel_expanded(QStringLiteral("historyDock"), !column->panel_expanded(QStringLiteral("historyDock")));
+  tool_palette->toggleViewAction()->trigger();
+  column->move_section(QStringLiteral("propertiesDock"), 0);
+  column->move_section(QStringLiteral("layersDock"), 5);
+  patchy::ui::MainWindowTestAccess::set_right_dock_stack_width(
+      window, patchy::ui::MainWindowTestAccess::right_dock_content_minimum_width(window) + 60);
+  QApplication::processEvents();
+  CHECK(!column->panel_visible(QStringLiteral("paletteDock")));
+  CHECK(tool_palette->isHidden());
+  CHECK(!patchy::ui::MainWindowTestAccess::right_dock_width_follows_content(window));
+
+  require_action(window, "windowResetPanelsAction")->trigger();
+  QApplication::processEvents();
+  QApplication::processEvents();
+  for (const auto& id : column->panel_ids()) {
+    CHECK(column->panel_visible(id));
+  }
+  CHECK(column->panel_in_front(QStringLiteral("layersDock")));
+  CHECK(collapse_states() == defaults);
+  // Top to bottom in the first-launch order.
+  auto* splitter = column->splitter();
+  const QStringList order = {QStringLiteral("panelTabGroup"), QStringLiteral("historyDock"),
+                             QStringLiteral("propertiesDock"), QStringLiteral("infoDock"),
+                             QStringLiteral("paletteDock")};
+  for (int index = 0; index < splitter->count(); ++index) {
+    CHECK(splitter->widget(index)->objectName() == order.value(index));
+    CHECK(splitter->widget(index)->isVisible());
+  }
+  CHECK(!tool_palette->isHidden());
+  CHECK(window.toolBarArea(tool_palette) == Qt::LeftToolBarArea);
+  CHECK(patchy::ui::MainWindowTestAccess::right_dock_width_follows_content(window));
+  CHECK(patchy::ui::MainWindowTestAccess::right_dock_pinned_width(window) ==
+        patchy::ui::MainWindowTestAccess::right_dock_content_minimum_width(window));
+  CHECK(column->width() == patchy::ui::MainWindowTestAccess::right_dock_pinned_width(window));
+  emit window.findChild<QMenu*>(QStringLiteral("windowMenu"))->aboutToShow();
+  CHECK(require_action(window, "windowPanelPaletteAction")->isChecked());
+}
+
+// Reset Panels used to re-add every dock, and the column's minimum briefly asked for more
+// height than the window had: the window grew past the bottom of the screen. It keeps its
+// size and place, on a short screen too.
+void ui_reset_panels_keeps_the_window_geometry() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* column = patchy::ui::MainWindowTestAccess::panel_column(window);
+  const int short_screen = 720;
+  patchy::ui::MainWindowTestAccess::set_available_window_height(window, short_screen);
+  patchy::ui::MainWindowTestAccess::fit_right_dock_floors_to_screen(window);
+  window.resize(1100, short_screen);
+  QApplication::processEvents();
+  // Expanded panels ask for the most height.
+  for (const auto& id : column->panel_ids()) {
+    column->set_panel_expanded(id, true);
+  }
+  QApplication::processEvents();
+  QApplication::processEvents();
+  window.resize(1100, short_screen);
+  QApplication::processEvents();
+  const auto before = window.geometry();
+  column->set_panel_visible(QStringLiteral("historyDock"), false);
+  QApplication::processEvents();
+  require_action(window, "windowResetPanelsAction")->trigger();
+  for (int pass = 0; pass < 4; ++pass) {
+    QApplication::processEvents();
+  }
+  CHECK(window.geometry() == before);
+  // The column still fits that screen once the layout settles.
+  CHECK(window.minimumSizeHint().height() <= before.height());
+  patchy::ui::MainWindowTestAccess::set_available_window_height(window, 0);
+}
+
 void ui_main_window_renders_color_controls() {
   patchy::ui::MainWindow window;
   show_window(window);
@@ -735,10 +1496,10 @@ void ui_main_window_renders_color_controls() {
   CHECK(background->text() == QStringLiteral("BG"));
   CHECK(!foreground->text().contains('#'));
   CHECK(!background->text().contains('#'));
-  CHECK(window.findChild<QDockWidget*>(QStringLiteral("swatchesDock")) == nullptr);
+  CHECK(window.findChild<QWidget*>(QStringLiteral("swatchesDock")) == nullptr);
   CHECK(window.findChild<QToolButton*>(QStringLiteral("swatchesDockCollapseButton")) == nullptr);
   CHECK(window.findChildren<QPushButton*>(QStringLiteral("swatchButton")).isEmpty());
-  CHECK(window.findChild<QDockWidget*>(QStringLiteral("paletteDock")) != nullptr);
+  CHECK(window.findChild<QWidget*>(QStringLiteral("paletteDock")) != nullptr);
   const QStringList expected_menus = {QStringLiteral("File"),   QStringLiteral("Edit"),   QStringLiteral("Image"),
                                       QStringLiteral("Layer"),  QStringLiteral("Type"),   QStringLiteral("Select"),
                                       QStringLiteral("Filter"), QStringLiteral("Plugins"), QStringLiteral("View"),
@@ -862,8 +1623,36 @@ void ui_main_window_renders_color_controls() {
   auto* layer_arrange_menu = window.findChild<QMenu*>(QStringLiteral("layerArrangeMenu"));
   CHECK(layer_arrange_menu != nullptr);
   CHECK(layer_arrange_menu->actions().contains(require_action_by_text(window, QStringLiteral("Move Layer Up"))));
-  CHECK(layer_arrange_menu->actions().contains(
-      require_action_by_text(window, QStringLiteral("Flip Layer Horizontal"))));
+  // Image > Rotate & Flip and Layer > Rotate & Flip hold the turns and flips; Arrange keeps
+  // only the stacking order and Align / Distribute.
+  auto* layer_rotate_flip_menu = window.findChild<QMenu*>(QStringLiteral("layerRotateFlipMenu"));
+  CHECK(layer_rotate_flip_menu != nullptr);
+  CHECK(layer_menu->actions().contains(layer_rotate_flip_menu->menuAction()));
+  for (const char* name : {"layerRotateClockwiseAction", "layerRotateCounterclockwiseAction", "layerRotate180Action"}) {
+    CHECK(layer_rotate_flip_menu->actions().contains(require_action(window, name)));
+    CHECK(!layer_arrange_menu->actions().contains(require_action(window, name)));
+  }
+  for (const char* text : {"Flip Layer Horizontal", "Flip Layer Vertical"}) {
+    CHECK(layer_rotate_flip_menu->actions().contains(require_action_by_text(window, QLatin1String(text))));
+    CHECK(!layer_arrange_menu->actions().contains(require_action_by_text(window, QLatin1String(text))));
+  }
+  auto* image_menu = window.findChild<QMenu*>(QStringLiteral("imageMenu"));
+  auto* image_rotate_flip_menu = window.findChild<QMenu*>(QStringLiteral("imageRotateFlipMenu"));
+  CHECK(image_menu != nullptr && image_rotate_flip_menu != nullptr);
+  CHECK(image_menu->actions().contains(image_rotate_flip_menu->menuAction()));
+  for (const char* name : {"imageRotateClockwiseAction", "imageRotateCounterclockwiseAction", "imageRotate180Action",
+                           "imageRotateArbitraryAction", "imageFlipHorizontalAction", "imageFlipVerticalAction"}) {
+    CHECK(image_rotate_flip_menu->actions().contains(require_action(window, name)));
+    CHECK(!image_menu->actions().contains(require_action(window, name)));
+  }
+  CHECK(image_menu->actions().contains(require_action(window, "imageShiftSeamsAction")));
+  // Captures for review: test-artifacts/menu_imageMenu.png and the three others.
+  for (auto* menu : {image_menu, image_rotate_flip_menu, layer_menu, layer_rotate_flip_menu}) {
+    menu->popup(window.mapToGlobal(QPoint(40, 40)));
+    QApplication::processEvents();
+    save_widget_artifact("menu_" + menu->objectName().toStdString(), *menu);
+    menu->hide();
+  }
   auto* feather_spin = window.findChild<QSpinBox*>(QStringLiteral("selectionFeatherSpin"));
   CHECK(feather_spin != nullptr);
   // Photoshop's 0..1000 px selection Feather.
@@ -1617,7 +2406,7 @@ void ui_open_recent_filter_narrows_entries_and_opens_first_match() {
   CHECK(recent_menu_paths(*recent_menu).front() == recent_files[0]);
 
   // Enter opens the highlighted row: the second beta match, a real 48 x 35 PNG.
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   CHECK(tabs->count() == 0);
   filter_edit->setText(QStringLiteral("beta"));
@@ -2165,9 +2954,19 @@ std::vector<patchy::test::TestCase> app_shell_tests_part1() {
       {"ui_large_document_session_keeps_loading_responsive", ui_large_document_session_keeps_loading_responsive},
       {"ui_start_panel_recent_files_scroll_and_context_menu", ui_start_panel_recent_files_scroll_and_context_menu},
       {"ui_start_panel_recent_row_remove_button_and_menu", ui_start_panel_recent_row_remove_button_and_menu},
+      {"ui_open_recent_menu_remove_keeps_place", ui_open_recent_menu_remove_keeps_place},
+      {"ui_empty_workspace_disables_document_commands", ui_empty_workspace_disables_document_commands},
       {"ui_start_panel_recent_filter_narrows_rows_and_opens_match", ui_start_panel_recent_filter_narrows_rows_and_opens_match},
       {"ui_start_panel_shows_about_info_and_update_status", ui_start_panel_shows_about_info_and_update_status},
       {"ui_main_window_renders_color_controls", ui_main_window_renders_color_controls},
+      {"ui_window_menu_lists_panels_and_toolbars", ui_window_menu_lists_panels_and_toolbars},
+      {"ui_panel_close_and_reopen_keeps_full_width", ui_panel_close_and_reopen_keeps_full_width},
+      {"ui_panel_collapse_and_close_leave_no_gap", ui_panel_collapse_and_close_leave_no_gap},
+      {"ui_panel_title_drag_reorders_sections", ui_panel_title_drag_reorders_sections},
+      {"ui_panel_header_right_click_opens_panel_menu", ui_panel_header_right_click_opens_panel_menu},
+      {"ui_panel_layout_returns_in_the_next_window", ui_panel_layout_returns_in_the_next_window},
+      {"ui_reset_panels_restores_first_launch_layout", ui_reset_panels_restores_first_launch_layout},
+      {"ui_reset_panels_keeps_the_window_geometry", ui_reset_panels_keeps_the_window_geometry},
       {"ui_tool_palette_overflow_hides_quick_mask_before_swatches", ui_tool_palette_overflow_hides_quick_mask_before_swatches},
       {"ui_tool_palette_extension_survives_resize_cycles", ui_tool_palette_extension_survives_resize_cycles},
       {"ui_tool_palette_extension_button_expands_palette", ui_tool_palette_extension_button_expands_palette},

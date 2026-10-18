@@ -2,9 +2,10 @@
 
 Patchy behavior that differs on a Wayland session (Qt's `wayland` platform plug-in). X11
 (`xcb`), Windows, macOS and the offscreen test platform take none of these paths, except
-the frameless window chrome below, which is the Linux rule for X11 too. The right-dock
-rule (panels stay in the column, GitHub issue 102) lives in [right-docks.md](right-docks.md);
-the KWin and GNOME test rigs for dock drags are in [testing.md](testing.md).
+the frameless window chrome below, which is the Linux rule for X11 too. The right panels
+never float on any platform (the column is Patchy's own widget, [right-docks.md](right-docks.md)),
+so the Wayland dock-drag problems of GitHub issue 102 no longer exist; the KWin and GNOME
+test rigs are in [testing.md](testing.md).
 
 ## The frameless window chrome (Linux, X11 and Wayland)
 
@@ -53,11 +54,28 @@ the window is built, so a change applies on the next launch and the accept branc
 usual restart notice (`preferencesSystemTitleBarMessageBox`). With it on, Linux behaves as
 it did before the frameless chrome: Qt's client-side decoration on GNOME Wayland, the
 server-side title bar on X11 and KDE, native move and resize, no badge or controls in the
-menu bar, the blank menu-bar drag still a `startSystemMove`. The key is stored but inert on
-Windows and macOS. `ui_system_title_bar_preference_disables_custom_chrome`,
-`ui_system_title_bar_preference_defaults_off` and
-`ui_preferences_system_title_bar_checkbox_persists_key` cover it (the gate cache resets
-through `MainWindowTestAccess::reset_window_chrome_gate_cache`).
+menu bar, the blank menu-bar drag still a `startSystemMove`, and the menus in a global menu
+bar where the desktop has one. The key is stored but inert on Windows and macOS.
+
+**Global menu desktops** (GitHub issue 161): the frameless chrome calls
+`setNativeMenuBar(false)`, which keeps the menus in the window even where KDE's Global
+Menu, elementary or a Unity-style panel would take them. So until the user writes the key
+(`stored_system_title_bar_choice()` is nullopt), the default is the system title bar
+exactly where `MainWindow::desktop_has_global_menu_bar()` is true. That probe builds a
+throwaway `QMenuBar` before the window and reads `isNativeMenuBar()`: Qt creates a
+platform menu bar only when its platform theme would export the menus (the generic theme
+checks for `com.canonical.AppMenu.Registrar` on the session bus, the KDE theme its own
+way), so Patchy decides the same thing Qt does. Offscreen it is false. The Preferences
+checkbox shows the effective state (`system_title_bar_effective()`) and writes the key only
+when the user changes it, so an untouched install keeps following the desktop.
+
+`ui_system_title_bar_preference_disables_custom_chrome`,
+`ui_system_title_bar_preference_defaults_off`,
+`ui_system_title_bar_follows_global_menu_bar_until_set`,
+`ui_preferences_system_title_bar_checkbox_persists_key` and
+`ui_preferences_system_title_bar_checkbox_shows_desktop_default` cover it (the gate cache
+resets through `MainWindowTestAccess::reset_window_chrome_gate_cache`, and
+`set_global_menu_bar_probe` stands in for the desktop).
 
 The maximize-after-first-show rule below (issue 132) is unchanged in both modes: a restored
 maximized state is still requested from `showEvent`'s first-show turn, and
@@ -156,16 +174,14 @@ the screen: the available height less the decorations outside the client area (Q
 client-side title bar on GNOME, known only once the window is shown, hence the deferred
 first-show clamp on Wayland in `showEvent`) less `kWaylandShellPanelAllowance` (48 logical
 px) for the panel the compositor never reports. `fit_right_dock_floors_to_screen` lowers
-the expanded docks' explicit floors (the dock just expanded first, then Layers, including
-the Layers panel's own 240 px and the list's 120 px, then the rest of the column) until the
-window's minimum fits that budget; `clamp_window_to_available_screen` and
-`handle_right_dock_panel_toggled` call it, so an expand takes room from the column while
-the column has any to give. Qt re-derives a dock's minimum from its content at every layout
-activation (`QDockWidgetLayout` runs with `SetMinAndMaxSize`), so the floors that can yield
-are the explicit ones on the panels; once every panel is open, the content minimums alone
-(Info's four lines, the Properties scroll area) can still exceed a 1366x768 screen at 125%,
-and then the window grows to that irreducible minimum as before. Platform-neutral (a short
-Windows screen gets the same floors); only the panel allowance is Wayland-specific.
+the expanded sections' floors (later sections first, the Layers group last, then the
+Layers panel's own 240 px and the list's 120 px) until the window's minimum fits that
+budget; `clamp_window_to_available_screen` and every expand or visibility change call it,
+so an expand takes room from the column while the column has any to give. Once every
+panel is open, the content minimums alone (Info's four lines, the Properties scroll area)
+can still exceed a 1366x768 screen at 125%, and then the window grows to that irreducible
+minimum. Platform-neutral (a short Windows screen gets the same floors); only the panel
+allowance is Wayland-specific.
 `ui_right_dock_floors_fit_the_screen_height` covers it on the offscreen platform's 600 px
 screen. See [right-docks.md](right-docks.md).
 

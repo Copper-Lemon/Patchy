@@ -1497,6 +1497,9 @@ void MainWindow::resize_canvas_dialog() {
 }
 
 void MainWindow::crop_to_selection_advanced() {
+  if (canvas_ == nullptr || !has_active_document()) {
+    return;  // the menu item is disabled then; scripts and stale shortcuts land here (issue 162)
+  }
   finish_active_text_editor();
   // With the Crop tool active, a box the user laid out is the frame; the
   // untouched canvas frame defers to a marquee selection (it stays after Esc or

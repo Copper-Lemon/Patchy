@@ -1075,7 +1075,7 @@ void ui_dragged_image_file_opens_document_tab() {
   patchy::ui::MainWindow window;
   show_window(window);
 
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   CHECK(tabs->count() == 1);
   auto* canvas = require_canvas(window);
@@ -1171,7 +1171,7 @@ void ui_reported_psd_open_shows_progress_dialog_if_available() {
   patchy::ui::MainWindow window;
   show_window(window);
 
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   const auto original_tab_count = tabs->count();
   auto* canvas = require_canvas(window);

@@ -118,6 +118,7 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   auto* view_menu = menuBar()->addMenu(tr("&View"));
   auto* window_menu = menuBar()->addMenu(tr("&Window"));
   auto* help_menu = menuBar()->addMenu(tr("&Help"));
+  image_menu->setObjectName(QStringLiteral("imageMenu"));
   layer_menu->setObjectName(QStringLiteral("layerMenu"));
   filter_menu->setObjectName(QStringLiteral("filterMenu"));
   bind_action_text(file_menu->menuAction(), QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "&File"));
@@ -783,7 +784,8 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   auto* vector_mask_menu = layer_menu->addMenu(tr("&Vector Mask"));
   vector_mask_menu->setObjectName(QStringLiteral("layerVectorMaskMenu"));
   populate_vector_mask_menu(vector_mask_menu, QStringLiteral("layer"));
-  layer_menu->addSeparator();
+  // (No separator between the mask and edit groups: the Layer menu's 23-row bound paid
+  // for the Rotate & Flip submenu with it.)
   auto* edit_adjustment_action = layer_menu->addAction(tr("&Edit Adjustment..."));
   layer_blending_options_action_ = layer_menu->addAction(tr("Edit Layer &Styles..."));
   layer_copy_style_action_ = new QAction(tr("Copy Layer Style"), this);
@@ -903,11 +905,16 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   layer_arrange_menu->setObjectName(QStringLiteral("layerArrangeMenu"));
   auto* layer_up_action = layer_arrange_menu->addAction(tr("Move Layer &Up"));
   auto* layer_down_action = layer_arrange_menu->addAction(tr("Move Layer &Down"));
-  layer_arrange_menu->addSeparator();
-  // Quarter and half turns of the selected layers (GitHub issue 139), beside the flips.
-  auto* layer_rotate_cw_action = layer_arrange_menu->addAction(tr("Rotate Layer &Right"));
-  auto* layer_rotate_ccw_action = layer_arrange_menu->addAction(tr("Rotate Layer &Left"));
-  auto* layer_rotate_180_action = layer_arrange_menu->addAction(tr("Rotate Layer 1&80"));
+  // Quarter and half turns of the selected layers (GitHub issue 139) and the flips, in
+  // their own submenu like Image > Rotate & Flip.
+  auto* layer_rotate_flip_menu = layer_menu->addMenu(tr("Ro&tate && Flip"));
+  layer_rotate_flip_menu->setObjectName(QStringLiteral("layerRotateFlipMenu"));
+  bind_action_text(layer_rotate_flip_menu->menuAction(),
+                   QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Ro&tate && Flip"));
+  layer_rotate_flip_menu->menuAction()->setIcon(simple_icon(QStringLiteral("rotate")));
+  auto* layer_rotate_cw_action = layer_rotate_flip_menu->addAction(tr("Rotate Layer &Right"));
+  auto* layer_rotate_ccw_action = layer_rotate_flip_menu->addAction(tr("Rotate Layer &Left"));
+  auto* layer_rotate_180_action = layer_rotate_flip_menu->addAction(tr("Rotate Layer 1&80"));
   layer_rotate_cw_action->setObjectName(QStringLiteral("layerRotateClockwiseAction"));
   layer_rotate_ccw_action->setObjectName(QStringLiteral("layerRotateCounterclockwiseAction"));
   layer_rotate_180_action->setObjectName(QStringLiteral("layerRotate180Action"));
@@ -931,8 +938,9 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   for (auto* action : {layer_rotate_cw_action, layer_rotate_ccw_action, layer_rotate_180_action}) {
     register_document_action(action);
   }
-  auto* flip_h_action = layer_arrange_menu->addAction(tr("Flip Layer &Horizontal"));
-  auto* flip_v_action = layer_arrange_menu->addAction(tr("Flip Layer &Vertical"));
+  layer_rotate_flip_menu->addSeparator();
+  auto* flip_h_action = layer_rotate_flip_menu->addAction(tr("Flip Layer &Horizontal"));
+  auto* flip_v_action = layer_rotate_flip_menu->addAction(tr("Flip Layer &Vertical"));
   // Align / Distribute nest under Arrange: the Layer menu sits at its 23-row
   // cap (ui_main_window_renders_color_controls). The Move tool's options-bar
   // buttons wrap these same QActions (docs/alignment.md).
@@ -1218,7 +1226,7 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   for (auto* action : {add_layer_action, add_folder_action, layer_new_menu->menuAction(),
                        new_adjustment_layer_menu->menuAction(), new_fill_layer_menu->menuAction(),
                        layer_mask_menu->menuAction(), vector_mask_menu->menuAction(),
-                       layer_arrange_menu->menuAction(),
+                       layer_arrange_menu->menuAction(), layer_rotate_flip_menu->menuAction(),
                        layer_via_copy_action, layer_via_cut_action, add_mask_action, layer_clipping_mask_action_,
                        duplicate_layer_action, merge_visible_action, merge_down_action, rename_layer_action,
                        delete_layer_action, fill_layer_action, fill_background_action, clear_layer_action,
@@ -1407,15 +1415,23 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
     register_document_action(fit_artboards_action);
   }
   image_menu->addSeparator();
+  // Image > Rotate & Flip holds the turns and flips; Layer > Rotate & Flip has the same set
+  // for the selected layers.
+  auto* image_rotate_flip_menu = image_menu->addMenu(tr("Ro&tate && Flip"));
+  image_rotate_flip_menu->setObjectName(QStringLiteral("imageRotateFlipMenu"));
+  bind_action_text(image_rotate_flip_menu->menuAction(),
+                   QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Ro&tate && Flip"));
+  image_rotate_flip_menu->menuAction()->setIcon(simple_icon(QStringLiteral("rotate")));
   // "Right" is the 90-degree clockwise turn and "Left" the counterclockwise one; the object
   // names and hotkey ids keep their persisted clockwise/counterclockwise identities.
-  auto* rotate_cw_action = image_menu->addAction(tr("Rotate &Right"));
-  auto* rotate_ccw_action = image_menu->addAction(tr("Rotate &Left"));
-  auto* rotate_180_action = image_menu->addAction(tr("Rotate 1&80"));
-  auto* rotate_arbitrary_action = image_menu->addAction(tr("Rotate &Arbitrary..."));
+  auto* rotate_cw_action = image_rotate_flip_menu->addAction(tr("Rotate &Right"));
+  auto* rotate_ccw_action = image_rotate_flip_menu->addAction(tr("Rotate &Left"));
+  auto* rotate_180_action = image_rotate_flip_menu->addAction(tr("Rotate 1&80"));
+  auto* rotate_arbitrary_action = image_rotate_flip_menu->addAction(tr("Rotate &Arbitrary..."));
   // Whole-image flips beside the rotations (GitHub issue 139).
-  auto* image_flip_h_action = image_menu->addAction(tr("Flip &Horizontal"));
-  auto* image_flip_v_action = image_menu->addAction(tr("Flip &Vertical"));
+  image_rotate_flip_menu->addSeparator();
+  auto* image_flip_h_action = image_rotate_flip_menu->addAction(tr("Flip &Horizontal"));
+  auto* image_flip_v_action = image_rotate_flip_menu->addAction(tr("Flip &Vertical"));
   rotate_180_action->setObjectName(QStringLiteral("imageRotate180Action"));
   image_flip_h_action->setObjectName(QStringLiteral("imageFlipHorizontalAction"));
   image_flip_v_action->setObjectName(QStringLiteral("imageFlipVerticalAction"));
@@ -1501,7 +1517,8 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   apply_bound_translation(image_flatten_action_);
   register_hotkey(image_flatten_action_, "image.flatten");
   connect(image_flatten_action_, &QAction::triggered, this, [this] { flatten_image(); });
-  for (auto* action : {adjustments_menu->menuAction(), image_size_action, canvas_size_action, crop_action,
+  for (auto* action : {adjustments_menu->menuAction(), image_rotate_flip_menu->menuAction(), image_size_action,
+                       canvas_size_action, crop_action,
                        rotate_cw_action, rotate_ccw_action, rotate_arbitrary_action, shift_seams_action,
                        divide_photos_action, image_flatten_action_}) {
     register_document_action(action);
@@ -2002,44 +2019,51 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
     register_document_action(action);
   }
 
-  float_document_action_ = window_menu->addAction(tr("Float in &Window"));
+  // Window > Arrange holds the document-window commands, as Photoshop's does; the panel
+  // and toolbar toggles follow at the top level (install_window_panel_entries, GitHub
+  // issue 163). "Arran&ge" is the Layer menu's source text, so it shares its translations.
+  auto* window_arrange_menu = window_menu->addMenu(tr("Arran&ge"));
+  window_arrange_menu->setObjectName(QStringLiteral("windowArrangeMenu"));
+  bind_action_text(window_arrange_menu->menuAction(), QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Arran&ge"));
+  window_arrange_menu->menuAction()->setProperty(kWorksWithoutDocumentProperty, true);
+  float_document_action_ = window_arrange_menu->addAction(tr("Float in &Window"));
   float_document_action_->setObjectName(QStringLiteral("windowFloatDocumentAction"));
   bind_action_text(float_document_action_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Float in &Window"));
   register_hotkey(float_document_action_, "window.float_document", QKeySequence());
   connect(float_document_action_, &QAction::triggered, this, [this] { float_active_document(); });
   register_document_action(float_document_action_);
 
-  dock_document_action_ = window_menu->addAction(tr("&Dock to Tabs"));
+  dock_document_action_ = window_arrange_menu->addAction(tr("&Dock to Tabs"));
   dock_document_action_->setObjectName(QStringLiteral("windowDockDocumentAction"));
   bind_action_text(dock_document_action_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "&Dock to Tabs"));
   register_hotkey(dock_document_action_, "window.dock_document", QKeySequence());
   connect(dock_document_action_, &QAction::triggered, this, [this] { dock_active_document(); });
   register_document_action(dock_document_action_);
 
-  float_all_action_ = window_menu->addAction(tr("Float A&ll in Windows"));
+  float_all_action_ = window_arrange_menu->addAction(tr("Float A&ll in Windows"));
   float_all_action_->setObjectName(QStringLiteral("windowFloatAllAction"));
   bind_action_text(float_all_action_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Float A&ll in Windows"));
   register_hotkey(float_all_action_, "window.float_all", QKeySequence());
   connect(float_all_action_, &QAction::triggered, this, [this] { float_all_documents(); });
   register_document_action(float_all_action_);
 
-  consolidate_tabs_action_ = window_menu->addAction(tr("&Consolidate All to Tabs"));
+  consolidate_tabs_action_ = window_arrange_menu->addAction(tr("&Consolidate All to Tabs"));
   consolidate_tabs_action_->setObjectName(QStringLiteral("windowConsolidateTabsAction"));
   bind_action_text(consolidate_tabs_action_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "&Consolidate All to Tabs"));
   register_hotkey(consolidate_tabs_action_, "window.consolidate_all_to_tabs", QKeySequence());
   connect(consolidate_tabs_action_, &QAction::triggered, this, [this] { consolidate_all_to_tabs(); });
   register_document_action(consolidate_tabs_action_);
 
-  window_menu->addSeparator();
+  window_arrange_menu->addSeparator();
 
-  tile_windows_action_ = window_menu->addAction(tr("&Tile"));
+  tile_windows_action_ = window_arrange_menu->addAction(tr("&Tile"));
   tile_windows_action_->setObjectName(QStringLiteral("windowTileAction"));
   bind_action_text(tile_windows_action_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "&Tile"));
   register_hotkey(tile_windows_action_, "window.tile_windows", QKeySequence());
   connect(tile_windows_action_, &QAction::triggered, this, [this] { tile_float_windows(); });
   register_document_action(tile_windows_action_);
 
-  cascade_windows_action_ = window_menu->addAction(tr("Ca&scade"));
+  cascade_windows_action_ = window_arrange_menu->addAction(tr("Ca&scade"));
   cascade_windows_action_->setObjectName(QStringLiteral("windowCascadeAction"));
   bind_action_text(cascade_windows_action_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Ca&scade"));
   register_hotkey(cascade_windows_action_, "window.cascade_windows", QKeySequence());
@@ -2056,9 +2080,8 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   consolidate_tabs_action_->setVisible(false);
   tile_windows_action_->setVisible(false);
   cascade_windows_action_->setVisible(false);
+  window_arrange_menu->menuAction()->setVisible(false);
 #endif
-
-  window_menu->addSeparator();
 
   auto* screen_size_menu = window_menu->addMenu(tr("Set Screen Size"));
   screen_size_menu->setObjectName(QStringLiteral("windowSetScreenSizeMenu"));
@@ -2090,6 +2113,9 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
     }
   });
   register_document_action(force_refresh_action);
+
+  // The panel and toolbar toggles go between these two separators once the docks exist.
+  window_panels_separator_ = window_menu->addSeparator();
 
   // Photoshop lists the open documents at the bottom of the Window menu. The
   // entries are rebuilt each time the menu opens (dynamic actions, no hotkey

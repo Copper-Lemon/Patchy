@@ -92,8 +92,12 @@ already have. If it says it cannot mount itself, install it:
 Without FUSE (some containers and minimal systems), run it with
 `./PatchyLinux.AppImage --appimage-extract-and-run`.
 
-To add Patchy to your application menu, open the AppImage with
-[Gear Lever](https://flathub.org/apps/it.mijorus.gearlever).
+To add Patchy to your application menu, use an AppImage integration tool:
+[Gear Lever](https://flathub.org/apps/it.mijorus.gearlever) (a Flatpak app: open the
+AppImage with it), [AppImageLauncher](https://github.com/TheAssassin/AppImageLauncher)
+(offers to integrate an AppImage the first time you open it),
+[AM](https://github.com/ivan-hc/AM) (command line: `am --launcher ./PatchyLinux.AppImage`),
+or [AppImage Manager](https://github.com/tunjayoff/appimagemanager).
 
 When a new version is out, Patchy's update prompt can download it, replace the AppImage
 file and start again (if the file sits in a folder you can write to; otherwise it offers

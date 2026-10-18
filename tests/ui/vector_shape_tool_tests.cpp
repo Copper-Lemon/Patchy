@@ -52,7 +52,6 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
-#include <QDockWidget>
 #include <QDoubleSpinBox>
 #include <QLabel>
 #include <QLineEdit>
@@ -1287,9 +1286,8 @@ void ui_paths_panel_lists_saves_and_targets_paths() {
   auto* radius_spin = window.findChild<QSpinBox*>(QStringLiteral("shapeCornerRadiusSpin"));
   radius_spin->setValue(0);
   shape_drag(*canvas, QPoint(100, 100), QPoint(300, 220));
-  auto* paths_dock = window.findChild<QDockWidget*>(QStringLiteral("pathsDock"));
-  CHECK(paths_dock != nullptr);
-  paths_dock->raise();
+  CHECK(window.findChild<QWidget*>(QStringLiteral("pathsDock")) != nullptr);
+  patchy::ui::MainWindowTestAccess::show_panel(window, QStringLiteral("pathsDock"));
   QApplication::processEvents();
   auto* paths_list = window.findChild<QListWidget*>(QStringLiteral("pathsList"));
   CHECK(paths_list != nullptr);

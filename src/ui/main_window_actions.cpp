@@ -86,6 +86,22 @@ void MainWindow::create_actions() {
     reserve_menu_icon_column(action->menu());
     hide_menu_action_icons(action->menu());
   }
+  // Menu-bar commands that stayed enabled on the empty workspace and crashed or
+  // did nothing there (GitHub issue 162). ui_empty_workspace_disables_document_commands
+  // walks every menu and fails on any other command enabled without a document
+  // that command_works_without_document does not list.
+  for (const auto* name :
+       {"imageCropToSelectionAdvancedAction", "layerEditAdjustmentAction", "layerConvertSmartObjectAction",
+        "layerSmartObjectEditAction", "layerSmartObjectReplaceAction", "layerSmartObjectUpdateAction",
+        "layerSmartObjectRelinkAction", "layerSmartObjectEmbedAction", "layerSmartObjectExportAction",
+        "layerSmartObjectViaCopyAction", "layerSmartObjectToLayersAction", "layerSmartObjectToNormalAction",
+        "viewProofColorsAction", "viewGamutWarningAction", "viewToggleTargetPathAction", "viewTilePreviewAction"}) {
+    if (auto* document_action = findChild<QAction*>(QString::fromLatin1(name));
+        document_action != nullptr &&
+        std::find(document_actions_.begin(), document_actions_.end(), document_action) == document_actions_.end()) {
+      register_document_action(document_action);
+    }
+  }
   refresh_options_bar();
   refresh_color_buttons();
 
@@ -94,11 +110,13 @@ void MainWindow::create_actions() {
 
 // The translation-binding pass of create_actions(): binds retranslatable text
 // sources to the actions and widgets the three build phases created (reaching
-// them through the ActionBuildContext) and registers the toolbars'
-// toggle-view actions in the Window menu.
+// them through the ActionBuildContext) and prepares the toolbars'
+// toggle-view actions for the Window menu.
 void MainWindow::bind_action_translations(ActionBuildContext& ctx) {
-  ctx.window_menu->addAction(ctx.tool_palette->toggleViewAction());
-  ctx.window_menu->addAction(ctx.options_toolbar->toggleViewAction());
+  // The toggles join the Window menu with the panels (install_window_panel_entries).
+  for (auto* toggle : {ctx.tool_palette->toggleViewAction(), ctx.options_toolbar->toggleViewAction()}) {
+    toggle->setProperty(kWorksWithoutDocumentProperty, true);
+  }
   // The "Options" toggle would otherwise be captured by macOS's menu-text heuristic
   // (any menubar action containing "options" gets relocated as a Preferences item).
   ctx.tool_palette->toggleViewAction()->setMenuRole(QAction::NoRole);

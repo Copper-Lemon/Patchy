@@ -306,6 +306,7 @@ void CanvasWidget::set_document_internal(Document* document, bool preserve_frame
   invalidate_vector_preview();
   cancel_pointer_gestures();
   painting_ = false;
+  sync_stroke_input_compression();
   // An armed stroke ends with the outgoing document (the host validates the
   // entry before shrinking it).
   finish_paint_stroke_history();
@@ -951,6 +952,21 @@ bool CanvasWidget::eyedropper_sample_all_layers() const noexcept {
   return eyedropper_sample_all_layers_;
 }
 
+void CanvasWidget::set_eyedropper_picks_background(bool background) {
+  eyedropper_picks_background_ = background;
+  if (tool_ == CanvasTool::Eyedropper) {
+    update_tool_cursor();  // the badge shows the new target
+  }
+}
+
+bool CanvasWidget::eyedropper_picks_background() const noexcept {
+  return eyedropper_picks_background_;
+}
+
+bool CanvasWidget::eyedropper_target_is_background(Qt::KeyboardModifiers modifiers) const noexcept {
+  return eyedropper_picks_background_ != ((modifiers & Qt::AltModifier) != 0);
+}
+
 void CanvasWidget::set_sponge_mode(SpongeMode mode) noexcept {
   sponge_mode_ = mode;
 }
@@ -1038,6 +1054,7 @@ void CanvasWidget::clear_smart_filter_mask_edit_target() {
   cancel_smart_filter_mask_edit();
   if (painting_) {
     painting_ = false;
+    sync_stroke_input_compression();
     reset_brush_smoothing();
     reset_axis_constrained_stroke();
   }

@@ -200,6 +200,18 @@ int display_mip_level_for_zoom(double zoom) noexcept;
 // Mip level for PREVIEW-ONLY display-resolution compositing (move drags): the
 // display mip level clamped to [0, 3].
 int preview_composite_level_for_zoom(double zoom) noexcept;
+// One step of every zoomed-out display mip chain: a (w+1)/2 x (h+1)/2 image
+// whose pixels each average their own 2x2 source block (alpha-weighted for
+// straight-alpha formats; an odd last row or column averages what it has).
+// Each output pixel depends on its block alone, so a changed source rect can
+// be patched in place (GitHub issue 165: rebuilding the chain on every brush
+// frame cost the whole composite per repaint).
+QImage halved_display_mip(const QImage& source);
+// The rect of a halved_display_mip output that a change to source_rect touches.
+QRect halved_display_mip_rect(QRect source_rect) noexcept;
+// Recompute target_rect of target (halved_display_mip(source)'s size and
+// format) from source, bit-identical to rebuilding the whole level.
+void refresh_halved_display_mip(const QImage& source, QImage& target, QRect target_rect);
 // Expand a (non-negative) document rect outward so its edges land on the
 // 2^level mip-block grid. Patches aligned this way downscale to exactly the
 // same pixels the full-image mip chain produces for that area.

@@ -369,7 +369,7 @@ void ui_filter_gallery_live_canvas_latest_off_on_and_cancel_restore_exact() {
   show_window(window);
   auto* canvas = require_canvas(window);
   auto* layer_list = window.findChild<QListWidget*>(QStringLiteral("layerList"));
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(layer_list != nullptr);
   CHECK(tabs != nullptr);
   const auto undo_before = patchy::ui::MainWindowTestAccess::active_session_undo_depth(window);

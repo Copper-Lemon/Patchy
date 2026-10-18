@@ -79,10 +79,13 @@ namespace patchy::ui {
 
 class SaveProgress;
 class ColorWellSwatch;
+class PanelColumn;
+struct PanelSpec;
 class ToolPaletteFooter;
 }  // namespace patchy::ui
 class QShowEvent;
 class QSlider;
+class QSplitter;
 class QSpinBox;
 class QVBoxLayout;
 class QTabWidget;
@@ -161,6 +164,14 @@ class StyleLibrary;
 class ZoomPercentEdit;
 class ZoomStatusBar;
 
+// A QAction property marking a menu command that works with no document open
+// (recent-file rows, panel toggles); see command_works_without_document.
+inline constexpr char kWorksWithoutDocumentProperty[] = "patchy.worksWithoutDocument";
+// Whether a menu-bar command stays enabled on the empty workspace (GitHub issue
+// 162). Every other menu-bar command is a document action, disabled until a
+// document is open; `command_id` is its hotkey id or empty.
+[[nodiscard]] bool command_works_without_document(const QAction& action, const QString& command_id);
+
 struct GmicRenderResult;  // main_window_gmic.cpp
 struct GmicRunInput;
 
@@ -183,6 +194,12 @@ public:
   // global menu bar (docs/platform.md). On Linux the preference is read once, on the
   // first call, so a change applies on the next launch.
   [[nodiscard]] static bool use_custom_window_chrome();
+  // Linux: true where Qt exports the menu bar to the desktop's global menu (KDE's Global
+  // Menu, elementary, Unity-style panels). Probed once; false elsewhere.
+  [[nodiscard]] static bool desktop_has_global_menu_bar();
+  // Whether "Use the system title bar" is in effect: the stored choice, else the desktop
+  // default (on with a global menu bar). Inert off Linux.
+  [[nodiscard]] static bool system_title_bar_effective();
   // A plain mouse wheel zooms by default on every platform (Seth, October 2026). macOS
   // used to default this off for trackpads, which no longer read the setting: a
   // two-finger scroll always pans and pinch zooms (docs/view-navigation.md).
@@ -460,6 +477,8 @@ private:
   // Forgets the cached Linux preference so the next use_custom_window_chrome() re-reads
   // it (tests; the app decides once per process).
   static void reset_window_chrome_gate_cache();
+  // Replaces the global-menu probe (tests; nullopt probes again on the next call).
+  static void set_global_menu_bar_probe_for_testing(std::optional<bool> global);
   void configure_window_chrome();
   void position_window_chrome_controls();
   void ensure_native_resizable_frame();
@@ -478,25 +497,22 @@ private:
   // Wayland, a strip for a shell panel the compositor never reports. -1 with no
   // screen.
   [[nodiscard]] int available_window_height() const;
-  // Lowers the expanded right-dock floors (the Layers panel's 300 px first of
-  // all) until the window's minimum height fits available_window_height(), so
-  // a small screen or a large interface scale never leaves the bottom of the
-  // column off-screen (GitHub issue 108). yielding_dock, when given, gives up
-  // its expand demand before any other dock shrinks.
-  void fit_right_dock_floors_to_screen(QDockWidget* yielding_dock = nullptr);
+  // Lowers the expanded panel floors (later sections first, the Layers group last)
+  // until the window's minimum height fits available_window_height(), so a small
+  // screen or a large interface scale never leaves the bottom of the column
+  // off-screen (GitHub issue 108).
+  void fit_right_dock_floors_to_screen();
   void save_window_geometry() const;
   bool restore_window_geometry();
+  // The panel column's first show: measure the content-fit width once laid out.
   bool handle_right_dock_resize_event(QObject* watched, QEvent* event);
-  bool handle_right_dock_title_drag_event(QObject* watched, QEvent* event);
-  bool handle_dock_group_window_event(QObject* watched, QEvent* event);
-  void handle_right_dock_panel_toggled(QDockWidget* dock, bool expanded, int expanded_minimum_height);
-  void refresh_collapsed_right_dock_heights();
-  void install_right_dock_width_handle(QDockWidget* dock);
-  void update_right_dock_resize_handle_geometry(QWidget* host);
+  // A width the user or a script picks for the panel column (clamped, never snapped).
   void set_right_dock_stack_width(int width);
-  // The handle drag: set_right_dock_stack_width, snapped to the content-fit width nearby.
-  void drag_right_dock_stack_width(int width);
-  void pin_right_dock_stack_width(int target_width);
+  // Sets the workspace splitter so the panel column is exactly `width` wide.
+  void apply_right_column_width(int width);
+  // The column edge was dragged: snaps to the content-fit width nearby, else keeps the
+  // dragged width as picked.
+  void handle_right_column_moved();
   void reapply_right_dock_stack_width();
   void update_right_dock_minimum_width();
   bool handle_window_resize_event(QObject* watched, QEvent* event);
@@ -517,7 +533,33 @@ private:
   void resize_window_from_global_point(QPoint global_position);
   void set_window_screen_size(QSize physical_size);
   void create_docks();
-  void create_palette_dock();
+  // Window menu toggles for the side panels and the two toolbars, sorted by their current
+  // text each time the menu opens (GitHub issue 163). Runs once, after create_docks.
+  void install_window_panel_entries();
+  void sort_window_panel_entries();
+  // The panel and toolbar toggles in the current language's alphabetical order.
+  [[nodiscard]] std::vector<QAction*> sorted_window_panel_actions() const;
+  // Photoshop's rule for a panel picked from the Window menu: one that is open, in
+  // front and expanded closes; any other opens, comes to the front and expands.
+  void toggle_window_panel(const QString& panel_id);
+  void show_panel(const QString& panel_id);
+  // Right-click on a panel's title row or tab: collapse/expand, close, the panel
+  // toggles and Reset Panels.
+  void show_panel_header_menu(const QString& panel_id, const QPoint& global_position, bool on_tab_bar);
+  // The saved panel layout (docs/right-docks.md "Saved panel layout"): which panels and
+  // toolbars are closed, which are collapsed, the tab group's front panel and a picked
+  // column width. Read once after the window geometry, written on a consented close;
+  // offscreen runs skip both (panel_layout_persists).
+  static bool panel_layout_persists();
+  void save_panel_layout();
+  void restore_panel_layout();
+  void write_panel_layout();
+  void read_panel_layout();
+  QStringList collapsed_panel_names();
+  void apply_collapsed_panels(const QStringList& collapsed);
+  // Window > Reset Panels: the first-launch layout, column width included.
+  void reset_panels();
+  void create_palette_dock(std::vector<PanelSpec>& specs);
   // Palette (indexed) mode plumbing. Every document-palette mutation goes through
   // these so the undo snapshot, the revision bump (app-globally unique values,
   // keying the canvas LUT cache), the indexed_palette export mirror, and the UI
@@ -1992,7 +2034,7 @@ private:
   };
   [[nodiscard]] const QStringList& recent_list_paths(const RecentListMenu& ui) const;
   bool build_recent_list_menu(RecentListMenu& ui, QMenu* menu);
-  void apply_recent_list_filter(RecentListMenu& ui, const QString& filter_text);
+  void apply_recent_list_filter(RecentListMenu& ui, const QString& filter_text, int keep_row = -1);
   bool handle_recent_list_filter_key(RecentListMenu& ui, QKeyEvent& event);
   void open_recent_list_path(const RecentListMenu& ui, const QString& path);
   void open_recent_folder(const QString& dir);
@@ -2012,8 +2054,11 @@ private:
                                      bool is_folder, const QPoint& global_position);
   void reveal_path_in_file_explorer(const QString& path, bool is_file);
   // Drops one entry from the stored recent files or folders and refreshes the
-  // menus and the start panel (GitHub issue 157).
-  void remove_recent_path(const QString& path, bool is_folder);
+  // menus and the start panel (GitHub issue 157). An open Open Recent menu passes
+  // rebuild_menus = false: its list refills in place and the menus rebuild on the
+  // next File menu open (recent_menus_stale_).
+  void remove_recent_path(const QString& path, bool is_folder, bool rebuild_menus = true);
+  bool recent_menus_stale_{false};
   void open_recent_document(QString path);
   QAction* add_tool_action(QToolBar* palette, QActionGroup* group, QString label, CanvasTool tool,
                            QKeySequence shortcut);
@@ -2163,9 +2208,7 @@ private:
   QListWidget* layer_list_{nullptr};
   QLineEdit* layer_name_filter_edit_{nullptr};
   ChannelPanel* channel_panel_{nullptr};
-  QDockWidget* channel_dock_{nullptr};
   PathsPanel* paths_panel_{nullptr};
-  QDockWidget* paths_dock_{nullptr};
   std::optional<patchy::DocumentPathId> active_document_path_id_;
   // True while Stroke Path replays synthetic brush input: the per-stroke undo
   // pushes from the canvas's before-edit callback are suppressed so the whole
@@ -2317,6 +2360,8 @@ private:
   QComboBox* sponge_mode_combo_{nullptr};
   QComboBox* eyedropper_sample_size_combo_{nullptr};
   QComboBox* eyedropper_sample_layers_combo_{nullptr};
+  QPushButton* eyedropper_sets_foreground_button_{nullptr};
+  QPushButton* eyedropper_sets_background_button_{nullptr};
   QCheckBox* sponge_vibrance_check_{nullptr};
   QCheckBox* wand_contiguous_check_{nullptr};
   QCheckBox* fill_contiguous_check_{nullptr};
@@ -2518,7 +2563,10 @@ private:
   QToolButton* mask_edit_mode_chip_{nullptr};
   // Palette (indexed) mode UI: dock panel, status chip, advisory compliance scan.
   PalettePanel* palette_panel_{nullptr};
-  QDockWidget* palette_dock_{nullptr};
+  // The right-hand panel column (panel_column.hpp) and the splitter that puts it
+  // beside the document tabs; the splitter is the central widget.
+  PanelColumn* panel_column_{nullptr};
+  QSplitter* workspace_splitter_{nullptr};
   QToolButton* palette_mode_chip_{nullptr};
   QTimer* palette_compliance_timer_{nullptr};
   bool palette_compliance_clean_{true};
@@ -2538,7 +2586,13 @@ private:
   QAction* type_tool_action_{nullptr};
   QActionGroup* tool_action_group_{nullptr};
   QAction* float_document_action_{nullptr};
+  QAction* window_panels_separator_{nullptr};
   QAction* window_documents_separator_{nullptr};
+  std::vector<QAction*> window_panel_actions_;
+  QAction* window_reset_panels_separator_{nullptr};
+  QAction* window_reset_panels_action_{nullptr};
+  QStringList default_collapsed_panels_;
+  QStringList default_panel_order_;
   std::vector<QAction*> window_document_actions_;
   QAction* duplicate_layer_to_document_action_{nullptr};
   QAction* dock_document_action_{nullptr};
@@ -2786,6 +2840,7 @@ private:
   bool current_sponge_vibrance_{true};
   int current_eyedropper_sample_size_{1};
   bool current_eyedropper_sample_all_layers_{true};
+  bool current_eyedropper_picks_background_{false};
   bool view_rulers_visible_{false};
   MeasurementUnit ruler_unit_{MeasurementUnit::Pixels};
   std::vector<QPointer<UnitSpinBox>> ruler_unit_fields_;
@@ -2833,30 +2888,12 @@ private:
   bool pending_layer_opacity_edit_active_{false};
   bool pending_layer_fill_opacity_edit_active_{false};
   bool pending_layer_blend_edit_active_{false};
-  bool right_dock_resizing_{false};
-  QPoint right_dock_resize_start_global_;
-  int right_dock_resize_start_width_{0};
-  // Title-drag detach for tabbed right docks (see
-  // handle_right_dock_title_drag_event): the dock being tracked, where the
-  // press landed, and its offset within the dock so the float keeps the grab
-  // point under the cursor.
-  QPointer<QDockWidget> right_dock_title_drag_dock_;
-  QPoint right_dock_title_drag_press_global_;
-  QPoint right_dock_title_drag_offset_;
-  bool right_dock_title_drag_started_{false};
-  // Blank-area move and frame-strip resize of a floating dock tab-group
-  // window (see handle_dock_group_window_event). Empty edges = moving.
-  QPointer<QWidget> dock_group_drag_window_;
-  QPoint dock_group_drag_offset_;
-  QPoint dock_group_drag_press_global_;
-  QRect dock_group_drag_origin_rect_;
-  Qt::Edges dock_group_drag_edges_;
   // 0 until update_right_dock_minimum_width() measures the layers panel.
   int right_dock_minimum_width_{0};
-  // -1 until the chrome around the layers panel is measured from a laid-out
-  // dock; 0 is a valid measurement (frameless docks).
+  // -1 until the chrome around the layers panel is measured from the laid-out
+  // column; 0 is a valid measurement.
   int right_dock_chrome_width_{-1};
-  // 0 until the column is pinned to an exact width (the content-fit width at
+  // 0 until the column is set to an exact width (the content-fit width at
   // startup, or the width the user or a script picked).
   int right_dock_pinned_width_{0};
   // True until the user or a script picks a width: the column then tracks

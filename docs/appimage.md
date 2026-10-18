@@ -60,6 +60,18 @@ install -y podman uidmap`, one time). It builds the image from
    FUSE mount: `--headless --run-script` must end in `[done]`, and
    `PatchyLinux.AppImage patchy-mcp --check` must pass.
 
+**AppImage catalog** (appimage.github.io, entry `data/Patchy`, PR 10388 there): its test
+mounts the newest release's AppImage and runs its `code/appdir-lint.sh` on Ubuntu 22.04.
+That lint fails on any `desktop-file-validate` error from 22.04's desktop-file-utils 0.26,
+which predates Desktop Entry 1.5, so the build drops `SingleMainWindow` from the AppImage's
+copy of the desktop file (the Flatpak keeps it). It warns unless `.DirIcon` is a PNG, so the
+build points `.DirIcon` at a root copy of the 256 px PNG instead of linuxdeploy's SVG. The
+build fails if either check regresses. Still warnings, by choice: "Linux" in the file name
+(renaming breaks the zsync update name older installs follow), the dark default window, and
+"No appdata file" (the lint looks only for `*appdata.xml`; ours is the current
+`.metainfo.xml` name, which the worker still copies for screenshots). After a release with a
+fix, `/retest` on that PR reruns the test.
+
 All downloaded tools are pinned to release tags and SHA-256 in the Containerfile, and the
 base images are pinned by digest. To bump one, update tag and checksum together.
 
@@ -78,6 +90,21 @@ Patchy; `PatchyLinux.AppImage patchy-mcp [args]` (or a symlink to the AppImage n
 `patchy-mcp`) starts the bundled connector. The argument is
 `kAppImageConnectorArgument` (`src/ui/appimage_environment.hpp`). The root
 `.desktop` file and icon are `com.rtsoft.patchy`.
+
+AppRun is the only entry point. linuxdeploy wraps a custom AppRun in its own (the custom
+one renamed `AppRun.wrapped`) that sources linuxdeploy-plugin-qt's hook, and that hook
+forces `QT_QPA_PLATFORMTHEME=gtk2` on GNOME and XFCE. Qt 6 has no gtk2 theme, so the
+AppImage fell back to Qt's widget file dialog, under the desktop's light title bar
+(GitHub issue 156). The build moves `AppRun.wrapped` back, deletes the hook, and fails
+if linuxdeploy adds any other hook. AppRun then sets `QT_QPA_PLATFORMTHEME=xdgdesktopportal`
+when the user has not set one. Qt loads that bundled theme by itself only inside Flatpak
+and Snap. It wraps the theme Qt would otherwise pick (`gnome`, `kde`, `generic`: fonts,
+the color scheme and the global menu bar are unchanged) and adds the portal's file
+dialogs, GNOME's or KDE's own, as in the Flatpak. Where no FileChooser portal answers
+the startup version query, dialogs stay Qt's widget dialog. The headless GNOME rig
+D-Bus-activates its portals without `WAYLAND_DISPLAY`: run
+`dbus-update-activation-environment` on the rig bus before the first dialog, or the
+portal dialog never appears and Patchy waits on it.
 
 ## Running from a mount: app behavior
 

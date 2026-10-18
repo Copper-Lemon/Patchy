@@ -1094,6 +1094,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/canvas_widget_shared.cpp
       src/ui/canvas_alt_space_filter.hpp
       src/ui/canvas_alt_space_filter.cpp
+      src/ui/coalesced_pointer_input.hpp
+      src/ui/coalesced_pointer_input.cpp
       src/ui/canvas_widget_brush.cpp
       src/ui/canvas_widget_artboard.cpp
       src/ui/main_window_artboards.cpp
@@ -1277,6 +1279,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/palette_convert_dialog.cpp
       src/ui/palette_panel.hpp
       src/ui/palette_panel.cpp
+      src/ui/panel_column.hpp
+      src/ui/panel_column.cpp
       src/ui/pattern_library.hpp
       src/ui/pattern_library.cpp
       src/ui/pattern_manager_dialog.hpp
@@ -1520,6 +1524,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
     target_compile_options(patchy_ui PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/bigobj>)
     if(APPLE)
       target_sources(patchy_ui PRIVATE
+        src/ui/coalesced_pointer_input_mac.mm
         src/ui/dialog_utils_mac.mm
         src/ui/scanner_import_mac.mm
         src/ui/sound_effects_mac.mm

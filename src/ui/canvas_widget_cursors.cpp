@@ -345,8 +345,13 @@ void CanvasWidget::update_tool_cursor() {
   const bool alt_held = alt_color_pick_cursor_override_.has_value()
                             ? *alt_color_pick_cursor_override_
                             : (QApplication::keyboardModifiers() & Qt::AltModifier) != 0;
-  if (tool_ == CanvasTool::Eyedropper ||
-      (alt_held && tool_uses_alt_left_for_color_pick(tool_))) {
+  if (tool_ == CanvasTool::Eyedropper) {
+    // The badge names the color a click sets, Alt inverting the Sets option.
+    setCursor(eyedropper_target_cursor(
+        eyedropper_target_is_background(alt_held ? Qt::KeyboardModifiers(Qt::AltModifier) : Qt::NoModifier)));
+    return;
+  }
+  if (alt_held && tool_uses_alt_left_for_color_pick(tool_)) {
     setCursor(eyedropper_cursor());
     return;
   }

@@ -21175,10 +21175,6 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <translation>システムのタイトルバーを使用</translation>
     </message>
     <message>
-        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
-        <translation>メニューバー内の Patchy のウィンドウ操作ボタンの代わりに、デスクトップ自身のタイトルバーとウィンドウ枠を表示します。次回 Patchy を起動したときに有効になります。</translation>
-    </message>
-    <message>
         <source>System Title Bar</source>
         <translation>システムのタイトルバー</translation>
     </message>
@@ -21569,6 +21565,54 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
     <message>
         <source>Opening PDF</source>
         <translation>PDF を開いています</translation>
+    </message>
+    <message>
+        <source>Zoom presets</source>
+        <translation>ズームのプリセット</translation>
+    </message>
+    <message>
+        <source>Sets:</source>
+        <translation>設定先:</translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation>描画色</translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation>クリックで描画色を設定します。%ALT%+クリックで背景色を設定します</translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation>クリックで背景色を設定します。%ALT%+クリックで描画色を設定します</translation>
+    </message>
+    <message>
+        <source>Ro&amp;tate &amp;&amp; Flip</source>
+        <translation>回転と反転(&amp;T)</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>メニューバー内の Patchy のウィンドウ操作ボタンの代わりに、デスクトップ自身のタイトルバーとウィンドウ枠を表示します。デスクトップがアプリケーションのメニューをグローバルメニューバーに表示する場合は、既定でオンになります。次回 Patchy を起動したときに有効になります。</translation>
+    </message>
+    <message>
+        <source>Reset Panels</source>
+        <translation>パネルをリセット</translation>
+    </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation>パネルを折りたたむ</translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation>パネルを展開</translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation>タブグループを閉じる</translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
+        <translation>パネルを閉じる</translation>
     </message>
     <message>
         <source>Preparing page image %1 of %2...</source>

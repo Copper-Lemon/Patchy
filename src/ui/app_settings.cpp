@@ -44,6 +44,14 @@ QString cmyk_black_point_key() { return QStringLiteral("color/cmykBlackPointComp
 
 bool stored_system_title_bar() { return app_settings().value(system_title_bar_key(), false).toBool(); }
 
+std::optional<bool> stored_system_title_bar_choice() {
+  const auto settings = app_settings();
+  if (!settings.contains(system_title_bar_key())) {
+    return std::nullopt;
+  }
+  return settings.value(system_title_bar_key(), false).toBool();
+}
+
 void set_stored_system_title_bar(bool enabled) {
   auto settings = app_settings();
   settings.setValue(system_title_bar_key(), enabled);

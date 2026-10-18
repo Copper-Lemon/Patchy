@@ -4031,7 +4031,7 @@ void ui_parallel_region_patches_match_single_threaded() {
 void ui_layer_move_repaints_only_active_document_tab() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
 
   accept_new_document_dialog(420, 260);

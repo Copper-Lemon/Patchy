@@ -27,6 +27,7 @@
 #include <QRect>
 #include <QRegion>
 #include <QSize>
+#include <QSysInfo>
 #include <Qt>
 #include <QtGlobal>
 
@@ -691,6 +692,150 @@ int preview_composite_level_for_zoom(double zoom) noexcept {
   // composite-order divergence of blending downscaled sources. The clamp
   // bounds the scaled-document build cost at extreme zoom-out.
   return std::min(display_mip_level_for_zoom(zoom), 3);
+}
+
+namespace {
+
+// How one display-mip step averages a 4-byte pixel format: straight-alpha
+// formats weight their color by alpha (the premultiplied mean, unpremultiplied
+// once); premultiplied and opaque formats average every byte as it is.
+struct DisplayMipLayout {
+  bool straight_alpha{false};
+  int alpha_index{3};
+};
+
+std::optional<DisplayMipLayout> display_mip_layout(QImage::Format format) noexcept {
+  switch (format) {
+    case QImage::Format_RGBA8888:
+      return DisplayMipLayout{true, 3};
+    case QImage::Format_ARGB32:
+      return DisplayMipLayout{true, QSysInfo::ByteOrder == QSysInfo::LittleEndian ? 3 : 0};
+    case QImage::Format_RGBA8888_Premultiplied:
+    case QImage::Format_ARGB32_Premultiplied:
+    case QImage::Format_RGBX8888:
+    case QImage::Format_RGB32:
+      return DisplayMipLayout{};
+    default:
+      return std::nullopt;
+  }
+}
+
+void average_display_mip_pixel(const std::array<const std::uint8_t*, 4>& block, int count,
+                               DisplayMipLayout layout, std::uint8_t* out) noexcept {
+  const auto half = static_cast<std::uint32_t>(count / 2);
+  if (!layout.straight_alpha) {
+    for (int channel = 0; channel < 4; ++channel) {
+      std::uint32_t sum = 0;
+      for (int i = 0; i < count; ++i) {
+        sum += block[static_cast<std::size_t>(i)][channel];
+      }
+      out[channel] = static_cast<std::uint8_t>((sum + half) / static_cast<std::uint32_t>(count));
+    }
+    return;
+  }
+  std::uint32_t alpha_sum = 0;
+  for (int i = 0; i < count; ++i) {
+    alpha_sum += block[static_cast<std::size_t>(i)][layout.alpha_index];
+  }
+  out[layout.alpha_index] = static_cast<std::uint8_t>((alpha_sum + half) / static_cast<std::uint32_t>(count));
+  for (int channel = 0; channel < 4; ++channel) {
+    if (channel == layout.alpha_index) {
+      continue;
+    }
+    if (alpha_sum == 0) {
+      out[channel] = 0;
+      continue;
+    }
+    std::uint32_t weighted = 0;
+    for (int i = 0; i < count; ++i) {
+      const auto* pixel = block[static_cast<std::size_t>(i)];
+      weighted += static_cast<std::uint32_t>(pixel[channel]) * pixel[layout.alpha_index];
+    }
+    out[channel] = static_cast<std::uint8_t>((weighted + alpha_sum / 2) / alpha_sum);
+  }
+}
+
+// Writes target_rect of target from source; source and target share a format
+// that display_mip_layout supports.
+void halve_display_mip_rows(const QImage& source, QImage& target, QRect target_rect, DisplayMipLayout layout) {
+  const int source_width = source.width();
+  const int source_height = source.height();
+  for (int y = target_rect.top(); y <= target_rect.bottom(); ++y) {
+    const int top = y * 2;
+    const bool two_rows = top + 1 < source_height;
+    const auto* row0 = source.constScanLine(top);
+    const auto* row1 = source.constScanLine(two_rows ? top + 1 : top);
+    auto* out = target.scanLine(y);
+    for (int x = target_rect.left(); x <= target_rect.right(); ++x) {
+      const int left = x * 2;
+      const bool two_columns = left + 1 < source_width;
+      std::array<const std::uint8_t*, 4> block{};
+      int count = 0;
+      block[static_cast<std::size_t>(count++)] = row0 + static_cast<std::ptrdiff_t>(left) * 4;
+      if (two_columns) {
+        block[static_cast<std::size_t>(count++)] = row0 + static_cast<std::ptrdiff_t>(left + 1) * 4;
+      }
+      if (two_rows) {
+        block[static_cast<std::size_t>(count++)] = row1 + static_cast<std::ptrdiff_t>(left) * 4;
+        if (two_columns) {
+          block[static_cast<std::size_t>(count++)] = row1 + static_cast<std::ptrdiff_t>(left + 1) * 4;
+        }
+      }
+      average_display_mip_pixel(block, count, layout, out + static_cast<std::ptrdiff_t>(x) * 4);
+    }
+  }
+}
+
+}  // namespace
+
+QImage halved_display_mip(const QImage& source) {
+  if (source.isNull()) {
+    return {};
+  }
+  const auto layout = display_mip_layout(source.format());
+  if (!layout.has_value()) {
+    return halved_display_mip(source.convertToFormat(QImage::Format_ARGB32_Premultiplied));
+  }
+  QImage target(std::max(1, (source.width() + 1) / 2), std::max(1, (source.height() + 1) / 2), source.format());
+  if (target.isNull()) {
+    return {};
+  }
+  halve_display_mip_rows(source, target, target.rect(), *layout);
+  return target;
+}
+
+QRect halved_display_mip_rect(QRect source_rect) noexcept {
+  if (source_rect.isEmpty()) {
+    return {};
+  }
+  return QRect(QPoint(source_rect.left() >> 1, source_rect.top() >> 1),
+               QPoint(source_rect.right() >> 1, source_rect.bottom() >> 1));
+}
+
+void refresh_halved_display_mip(const QImage& source, QImage& target, QRect target_rect) {
+  target_rect = target_rect.intersected(target.rect());
+  if (source.isNull() || target_rect.isEmpty() ||
+      target.size() != QSize(std::max(1, (source.width() + 1) / 2), std::max(1, (source.height() + 1) / 2))) {
+    return;
+  }
+  if (const auto layout = display_mip_layout(source.format());
+      layout.has_value() && target.format() == source.format()) {
+    halve_display_mip_rows(source, target, target_rect, *layout);
+    return;
+  }
+  // An unsupported source went through ARGB32_Premultiplied: convert only the
+  // block rows and columns this rect reads, then copy the result in.
+  const QRect source_rect = QRect(target_rect.left() * 2, target_rect.top() * 2, target_rect.width() * 2,
+                                  target_rect.height() * 2)
+                                .intersected(source.rect());
+  const auto partial = halved_display_mip(source.copy(source_rect));
+  if (partial.isNull() || partial.format() != target.format()) {
+    return;
+  }
+  for (int y = 0; y < target_rect.height(); ++y) {
+    std::memcpy(target.scanLine(target_rect.top() + y) + static_cast<std::ptrdiff_t>(target_rect.left()) * 4,
+                partial.constScanLine(y), static_cast<std::size_t>(target_rect.width()) * 4U);
+  }
 }
 
 QRect rect_aligned_to_mip_grid(QRect rect, int level) noexcept {

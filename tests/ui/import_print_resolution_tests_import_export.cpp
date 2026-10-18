@@ -1093,7 +1093,7 @@ void ui_tile_preview_window_tracks_document_edits() {
 void ui_tile_preview_follows_document_switches_and_large_edits() {
   patchy::ui::MainWindow window;
   show_window(window);
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   auto& first_document = patchy::ui::MainWindowTestAccess::document(window);
   const auto fill_active_layer = [](patchy::Document& document, int red, int green, int blue) {
@@ -1342,7 +1342,7 @@ void ui_canvas_tiling_mode_paints_ghost_tiles_live() {
   }
 
   // Back on the first tab the mode is still on; toggling off restores the backdrop.
-  auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget());
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
   CHECK(tabs != nullptr);
   tabs->setCurrentWidget(canvas);
   QApplication::processEvents();

@@ -3230,6 +3230,164 @@ void ui_brush_smoothing_catch_up_on_end_completes_stroke() {
   CHECK(canvas_pixel(canvas, release_doc).red() < 40);
 }
 
+
+// GitHub issue 165: a busy GUI thread gets one mouse move per frame, and the
+// platform folds the skipped positions into it (Windows mouse history, X11
+// compression). Every folded position must reach the stroke as its own
+// sample, or a fast curve paints as straight chords between frames.
+void ui_brush_stroke_paints_every_coalesced_mouse_sample() {
+  for (const int brush_size : {1, 9}) {
+    for (const bool burst : {false, true}) {
+      patchy::Document document(240, 160, patchy::PixelFormat::rgba8());
+      document.add_pixel_layer("Paint",
+                               solid_pixels(240, 160, patchy::PixelFormat::rgba8(), QColor(Qt::white)));
+
+      patchy::ui::CanvasWidget canvas;
+      canvas.resize(320, 220);
+      canvas.set_document(&document);
+      canvas.set_tool(patchy::ui::CanvasTool::Brush);
+      canvas.set_zoom(1.0);
+      canvas.set_primary_color(Qt::black);
+      canvas.set_brush_size(brush_size);
+      canvas.set_brush_opacity(100);
+      canvas.set_brush_softness(0);
+      canvas.set_brush_smoothing(0);
+      canvas.show();
+      QApplication::processEvents();
+
+      // A half circle from the press to the one delivered move; the burst is
+      // every position in between, all folded into that single event.
+      const QPointF center(120.0, 120.0);
+      constexpr double kRadius = 80.0;
+      constexpr int kSamples = 40;
+      std::vector<QPoint> arc;
+      for (int i = 0; i <= kSamples; ++i) {
+        const auto angle = std::acos(-1.0) * (1.0 + static_cast<double>(i) / kSamples);
+        arc.emplace_back(static_cast<int>(std::lround(center.x() + kRadius * std::cos(angle))),
+                         static_cast<int>(std::lround(center.y() + kRadius * std::sin(angle))));
+      }
+      const auto widget_point = [&canvas](QPoint document_point) {
+        return canvas.widget_position_for_document_point(document_point);
+      };
+      int provider_calls = 0;
+      if (burst) {
+        canvas.set_coalesced_mouse_positions_provider([&](const QMouseEvent& event) -> std::vector<QPointF> {
+          ++provider_calls;
+          if (event.position().toPoint() != widget_point(arc.back())) {
+            return {};
+          }
+          std::vector<QPointF> folded;
+          for (std::size_t i = 1; i + 1 < arc.size(); ++i) {
+            folded.emplace_back(widget_point(arc[i]));
+          }
+          return folded;
+        });
+      }
+      send_mouse(canvas, QEvent::MouseButtonPress, widget_point(arc.front()), Qt::LeftButton, Qt::LeftButton);
+      send_mouse(canvas, QEvent::MouseMove, widget_point(arc.back()), Qt::NoButton, Qt::LeftButton);
+      send_mouse(canvas, QEvent::MouseButtonRelease, widget_point(arc.back()), Qt::LeftButton, Qt::NoButton);
+      QApplication::processEvents();
+
+      const auto image = canvas.grab().toImage();
+      const auto red_at = [&](QPoint document_point) {
+        return image.pixelColor(widget_point(document_point)).red();
+      };
+      // The chord the stroke used to paint runs straight across the middle.
+      const QPoint chord_middle(120, 120);
+      const QPoint arc_top(120, 40);
+      if (burst) {
+        CHECK(provider_calls >= 1);
+        int painted = 0;
+        for (const auto& point : arc) {
+          painted += red_at(point) < 80 ? 1 : 0;
+        }
+        CHECK(painted == static_cast<int>(arc.size()));
+        CHECK(red_at(chord_middle) > 200);
+      } else {
+        CHECK(red_at(chord_middle) < 80);
+        CHECK(red_at(arc_top) > 200);
+      }
+      save_widget_artifact("ui_brush_coalesced_" + std::string(burst ? "burst" : "single") + "_size" +
+                               std::to_string(brush_size),
+                           canvas);
+    }
+  }
+}
+
+void ui_coalesced_pointer_history_keeps_points_after_previous_sample() {
+  using patchy::ui::PointerHistoryPoint;
+  const std::vector<PointerHistoryPoint> history{
+      {10, 10, 100}, {9, 9, 99}, {9, 9, 98}, {7, 6, 97}, {4, 4, 95}, {2, 2, 93}};
+  // Newest first in, oldest first out; a repeated position keeps its newest
+  // entry, and the walk stops at the previous sample.
+  const auto recovered = patchy::ui::pointer_history_since(history, PointerHistoryPoint{4, 4, 95});
+  CHECK(recovered.size() == 2U);
+  CHECK(recovered.size() == 2U && recovered[0] == (PointerHistoryPoint{7, 6, 97}));
+  CHECK(recovered.size() == 2U && recovered[1] == (PointerHistoryPoint{9, 9, 99}));
+  // A previous sample the buffer no longer holds: everything newer than it.
+  CHECK(patchy::ui::pointer_history_since(history, PointerHistoryPoint{3, 3, 96}).size() == 2U);
+  // No anchor, or nothing but the current point: nothing to join.
+  CHECK(patchy::ui::pointer_history_since(history, std::nullopt).empty());
+  CHECK(patchy::ui::pointer_history_since(std::span(history).first(1), PointerHistoryPoint{4, 4, 95}).empty());
+  // The system tick wraps: 2 comes after 0xFFFFFFFE.
+  const std::vector<PointerHistoryPoint> wrapped{{5, 5, 4}, {4, 4, 2}, {3, 3, 0xFFFFFFFFU}, {2, 2, 0xFFFFFFFEU}};
+  const auto across = patchy::ui::pointer_history_since(wrapped, PointerHistoryPoint{2, 2, 0xFFFFFFFEU});
+  CHECK(across.size() == 2U);
+  CHECK(across.size() == 2U && across[0].x == 3 && across[1].x == 4);
+}
+
+// GitHub issue 165: zoomed out, every brush frame used to throw the display
+// mip chain away, so the next paint rebuilt it from the whole composite. The
+// chain is now patched under the stroke and must match a full rebuild.
+void ui_zoomed_out_brush_stroke_patches_display_mips_in_place() {
+  // Odd sizes and partly transparent pixels reach the odd-edge blocks and
+  // the alpha-weighted average.
+  constexpr int kWidth = 333;
+  constexpr int kHeight = 221;
+  patchy::PixelBuffer pixels(kWidth, kHeight, patchy::PixelFormat::rgba8());
+  for (int y = 0; y < kHeight; ++y) {
+    for (int x = 0; x < kWidth; ++x) {
+      auto* pixel = pixels.pixel(x, y);
+      pixel[0] = static_cast<std::uint8_t>((x * 7) % 256);
+      pixel[1] = static_cast<std::uint8_t>((y * 5) % 256);
+      pixel[2] = static_cast<std::uint8_t>(((x + y) * 3) % 256);
+      pixel[3] = static_cast<std::uint8_t>(40 + (x * 215) / kWidth);
+    }
+  }
+  patchy::Document document(kWidth, kHeight, patchy::PixelFormat::rgba8());
+  document.add_pixel_layer("Paint", std::move(pixels));
+
+  patchy::ui::CanvasWidget canvas;
+  canvas.resize(220, 180);
+  canvas.set_document(&document);
+  canvas.set_tool(patchy::ui::CanvasTool::Brush);
+  canvas.set_zoom(0.25);
+  canvas.set_primary_color(QColor(20, 200, 90));
+  canvas.set_brush_size(23);
+  canvas.set_brush_opacity(60);
+  canvas.set_brush_softness(50);
+  canvas.show();
+  QApplication::processEvents();
+  (void)canvas.grab();
+  const auto before = canvas.render_cache_diagnostics();
+  CHECK(before.display_mip_rebuilds >= 1);
+
+  drag_document_path(canvas, {QPoint(31, 17), QPoint(170, 140), QPoint(300, 40), QPoint(332, 220)}, 9);
+  QApplication::processEvents();
+  const auto patched = canvas.grab().toImage();
+  const auto after = canvas.render_cache_diagnostics();
+  CHECK(after.partial_patches > before.partial_patches);
+  CHECK(after.display_mip_rebuilds == before.display_mip_rebuilds);
+  save_image_artifact("ui_zoomed_out_brush_patched_mips", patched);
+
+  canvas.force_refresh();
+  QApplication::processEvents();
+  const auto rebuilt = canvas.grab().toImage();
+  CHECK(canvas.render_cache_diagnostics().display_mip_rebuilds > after.display_mip_rebuilds);
+  CHECK(patched.size() == rebuilt.size());
+  CHECK(patched == rebuilt);
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> brush_engine_stroke_tests_part1() {
@@ -3314,6 +3472,12 @@ std::vector<patchy::test::TestCase> brush_engine_stroke_tests_part1() {
        ui_brush_smoothing_pulled_string_short_drag_paints_only_press_dab},
       {"ui_brush_smoothing_catch_up_on_end_completes_stroke",
        ui_brush_smoothing_catch_up_on_end_completes_stroke},
+      {"ui_brush_stroke_paints_every_coalesced_mouse_sample",
+       ui_brush_stroke_paints_every_coalesced_mouse_sample},
+      {"ui_coalesced_pointer_history_keeps_points_after_previous_sample",
+       ui_coalesced_pointer_history_keeps_points_after_previous_sample},
+      {"ui_zoomed_out_brush_stroke_patches_display_mips_in_place",
+       ui_zoomed_out_brush_stroke_patches_display_mips_in_place},
       {"ui_copy_ignores_hidden_active_layer", ui_copy_ignores_hidden_active_layer},
       {"ui_copy_selected_layers_copies_composited_selection", ui_copy_selected_layers_copies_composited_selection},
       {"ui_eraser_on_background_paints_background_color_and_size_cursor",

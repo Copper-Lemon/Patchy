@@ -10,6 +10,7 @@
 #include "ui/document_float_window.hpp"
 #include "ui/export_documents_folder_dialog.hpp"
 #include "ui/main_window.hpp"
+#include "ui/panel_column.hpp"
 
 #include <QPoint>
 #include <QRect>
@@ -284,6 +285,24 @@ public:
     window.set_right_dock_stack_width(width);
   }
 
+  // The right-hand panel column (panel_column.hpp).
+  static PanelColumn* panel_column(MainWindow& window) { return window.panel_column_; }
+  // Opens, raises and expands a panel, as the Window menu does for a closed one.
+  static void show_panel(MainWindow& window, const QString& id) { window.show_panel(id); }
+  // A panel's section widget: the panel itself, or the whole tab group for a tab.
+  static QWidget* panel_section(MainWindow& window, const QString& id) {
+    return window.panel_column_ != nullptr ? window.panel_column_->section_widget(id) : nullptr;
+  }
+  // The saved panel layout without the offscreen gate (panel_layout_persists), so a test
+  // can write one window's layout and read it into the next before that one is shown.
+  static void write_panel_layout(MainWindow& window) { window.write_panel_layout(); }
+  static void read_panel_layout(MainWindow& window) { window.read_panel_layout(); }
+  static bool panel_layout_persists() { return MainWindow::panel_layout_persists(); }
+  static int right_dock_pinned_width(MainWindow& window) { return window.right_dock_pinned_width_; }
+  static bool right_dock_width_follows_content(MainWindow& window) {
+    return window.right_dock_width_follows_minimum_;
+  }
+
   // The narrowest column width at which no right panel scrolls sideways.
   static int right_dock_content_minimum_width(MainWindow& window) {
     window.update_right_dock_minimum_width();
@@ -397,6 +416,9 @@ public:
   // Makes the next use_custom_window_chrome() re-read the Linux "Use the system title
   // bar" preference (the app reads it once per process).
   static void reset_window_chrome_gate_cache() { MainWindow::reset_window_chrome_gate_cache(); }
+  static void set_global_menu_bar_probe(std::optional<bool> global) {
+    MainWindow::set_global_menu_bar_probe_for_testing(global);
+  }
 
   // Sessions in creation order (the multi-page PDF open adds one per page).
   static Document& session_document(MainWindow& window, std::size_t index) {

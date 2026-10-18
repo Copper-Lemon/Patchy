@@ -43,6 +43,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstring>
 #include <exception>
 #include <filesystem>
@@ -186,7 +187,7 @@ patchy::ui::CanvasWidget* active_canvas(patchy::ui::MainWindow& window) {
   if (auto* canvas = dynamic_cast<patchy::ui::CanvasWidget*>(window.centralWidget()); canvas != nullptr) {
     return canvas;
   }
-  if (auto* tabs = qobject_cast<QTabWidget*>(window.centralWidget()); tabs != nullptr) {
+  if (auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs")); tabs != nullptr) {
     return dynamic_cast<patchy::ui::CanvasWidget*>(tabs->currentWidget());
   }
   return nullptr;
@@ -1520,6 +1521,99 @@ void pdf_save_perf_if_available(int argc, char* argv[]) {
 
 }  // namespace
 
+// GitHub issue 165: fast brush strokes on a 4872x6836 image came out as straight
+// segments. Times what one mouse move and the following paint cost at fit zoom
+// and at 100%, for a small and a large brush; no fixture needed.
+void big_brush_stroke_perf() {
+  ensure_artifact_dir();
+  const auto image_path = std::filesystem::absolute("test-artifacts/perf_brush_stroke_4872x6836.png");
+  if (!std::filesystem::exists(image_path)) {
+    QImage image(4872, 6836, QImage::Format_RGB32);
+    image.fill(Qt::white);
+    CHECK(image.save(patchy::ui::to_qstring(image_path)));
+  }
+  patchy::ui::MainWindow window;
+  window.resize(1600, 1000);
+  if (qEnvironmentVariableIsSet("PATCHY_PERF_ONSCREEN")) {
+    window.showMaximized();
+  } else {
+    window.show();
+  }
+  QApplication::processEvents();
+  patchy::ui::MainWindowTestAccess::open_document_path(window, patchy::ui::to_qstring(image_path));
+  QApplication::processEvents();
+  auto* canvas = active_canvas(window);
+  CHECK(canvas != nullptr);
+  const auto settle = [canvas] {
+    const auto started = Clock::now();
+    while (!canvas->render_settled() && std::chrono::duration<double>(Clock::now() - started).count() < 60.0) {
+      canvas->repaint();
+      QApplication::processEvents();
+    }
+  };
+  settle();
+  canvas->set_tool(patchy::ui::CanvasTool::Brush);
+  canvas->set_primary_color(Qt::black);
+  canvas->set_brush_opacity(100);
+  canvas->set_brush_softness(0);
+  for (const bool fit : {true, false}) {
+    for (const int brush_size : {40, 300}) {
+      if (fit) {
+        canvas->fit_to_view();
+      } else {
+        canvas->set_zoom_centered(1.0);
+      }
+      canvas->set_brush_size(brush_size);
+      settle();
+      const auto center = QPointF(canvas->width() / 2.0, canvas->height() / 2.0);
+      const auto radius = std::min(canvas->width(), canvas->height()) * 0.35;
+      const auto at = [&](int index) {
+        const auto angle = index * 0.25;
+        return QPointF(center.x() + radius * std::cos(angle), center.y() + radius * std::sin(angle));
+      };
+      const auto send = [canvas](QEvent::Type type, QPointF position, Qt::MouseButton button,
+                                 Qt::MouseButtons buttons) {
+        QMouseEvent event(type, position, canvas->mapToGlobal(position), button, buttons, Qt::NoModifier);
+        QApplication::sendEvent(canvas, &event);
+      };
+      send(QEvent::MouseButtonPress, at(0), Qt::LeftButton, Qt::LeftButton);
+      canvas->repaint();
+      std::vector<double> move_ms;
+      std::vector<double> paint_ms;
+#ifdef Q_OS_WIN
+      // PATCHY_PERF_SAMPLER=1 attributes the moves and paints of each case.
+      std::unique_ptr<MainThreadSampler> sampler;
+      if (qEnvironmentVariableIsSet("PATCHY_PERF_SAMPLER")) {
+        sampler = std::make_unique<MainThreadSampler>();
+      }
+#endif
+      for (int index = 1; index <= 60; ++index) {
+        move_ms.push_back(elapsed_ms([&] { send(QEvent::MouseMove, at(index), Qt::NoButton, Qt::LeftButton); }));
+        paint_ms.push_back(elapsed_ms([&] { canvas->repaint(); }));
+      }
+#ifdef Q_OS_WIN
+      if (sampler) {
+        std::cout << "[SAMPLER_PHASE] brush_stroke " << (fit ? "fit" : "100%") << " size=" << brush_size << '\n';
+        sampler.reset();
+      }
+#endif
+      send(QEvent::MouseButtonRelease, at(60), Qt::LeftButton, Qt::NoButton);
+      QApplication::processEvents();
+      settle();
+      const auto summary = [](std::vector<double> values) {
+        std::sort(values.begin(), values.end());
+        std::ostringstream text;
+        text << std::fixed << std::setprecision(2) << "median=" << values[values.size() / 2]
+             << " max=" << values.back();
+        return text.str();
+      };
+      std::cout << "[perf] brush_stroke " << (fit ? "fit" : "100%") << " zoom=" << canvas->zoom()
+                << " size=" << brush_size << " move_ms " << summary(move_ms) << " paint_ms " << summary(paint_ms)
+                << '\n';
+    }
+  }
+}
+
 int main(int argc, char* argv[]) {
   patchy::test::suppress_crash_dialogs();
   // PATCHY_PERF_ONSCREEN=1 keeps the platform window real so paint timings include
@@ -1536,6 +1630,10 @@ int main(int argc, char* argv[]) {
     }
     if (argc > 1 && std::string_view(argv[1]) == "layerpanel") {
       quintavius_layer_panel_perf_if_available();
+      return 0;
+    }
+    if (argc > 1 && std::string_view(argv[1]) == "brushstroke") {
+      big_brush_stroke_perf();
       return 0;
     }
     if (argc > 1 && std::string_view(argv[1]) == "maskrotate") {

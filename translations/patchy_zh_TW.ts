@@ -21175,10 +21175,6 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
         <translation>使用系統標題列</translation>
     </message>
     <message>
-        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
-        <translation>顯示桌面本身的標題列和視窗框架，而不是功能表列中 Patchy 的視窗控制按鈕。下次啟動 Patchy 時生效。</translation>
-    </message>
-    <message>
         <source>System Title Bar</source>
         <translation>系統標題列</translation>
     </message>
@@ -21569,6 +21565,54 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
     <message>
         <source>Opening PDF</source>
         <translation>正在開啟 PDF</translation>
+    </message>
+    <message>
+        <source>Zoom presets</source>
+        <translation>縮放預設</translation>
+    </message>
+    <message>
+        <source>Sets:</source>
+        <translation>設定:</translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation>前景色</translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation>按一下設定前景色；%ALT%+按一下設定背景色</translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation>按一下設定背景色；%ALT%+按一下設定前景色</translation>
+    </message>
+    <message>
+        <source>Ro&amp;tate &amp;&amp; Flip</source>
+        <translation>旋轉與翻轉(&amp;T)</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>顯示桌面本身的標題列和視窗框架，而不是功能表列中 Patchy 的視窗控制按鈕。桌面在全域功能表列中顯示應用程式功能表時預設開啟。下次啟動 Patchy 時生效。</translation>
+    </message>
+    <message>
+        <source>Reset Panels</source>
+        <translation>重設面板</translation>
+    </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation>摺疊面板</translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation>展開面板</translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation>關閉索引標籤群組</translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
+        <translation>關閉面板</translation>
     </message>
     <message>
         <source>Preparing page image %1 of %2...</source>

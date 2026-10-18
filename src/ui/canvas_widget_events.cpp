@@ -155,6 +155,54 @@ bool tool_supports_opacity_digit_keys(CanvasTool tool) noexcept {
 
 constexpr int kAirbrushTimerIntervalMs = 50;
 
+// The rects one move event's stroke samples wrote, as a few bounding boxes: a
+// sample joins the running box while the box stays at most twice the area of
+// what it covers, so a fast arc composites along its path instead of its whole
+// bounding square (which can pass the full-refresh threshold).
+QRegion stroke_samples_dirty_region(const std::vector<QRect>& rects) {
+  constexpr int kMaxGroups = 16;
+  std::vector<QRect> groups;
+  QRect group;
+  std::int64_t group_member_area = 0;
+  const auto area = [](QRect rect) {
+    return static_cast<std::int64_t>(rect.width()) * static_cast<std::int64_t>(rect.height());
+  };
+  for (const auto& rect : rects) {
+    if (rect.isEmpty()) {
+      continue;
+    }
+    if (group.isEmpty()) {
+      group = rect;
+      group_member_area = area(rect);
+      continue;
+    }
+    const auto merged = group.united(rect);
+    if (area(merged) <= 2 * (group_member_area + area(rect))) {
+      group = merged;
+      group_member_area += area(rect);
+    } else {
+      groups.push_back(group);
+      group = rect;
+      group_member_area = area(rect);
+    }
+  }
+  if (!group.isEmpty()) {
+    groups.push_back(group);
+  }
+  QRegion region;
+  if (static_cast<int>(groups.size()) > kMaxGroups) {
+    QRect bounds;
+    for (const auto& rect : groups) {
+      bounds = bounds.united(rect);
+    }
+    return QRegion(bounds);
+  }
+  for (const auto& rect : groups) {
+    region += rect;
+  }
+  return region;
+}
+
 }  // namespace
 
 bool CanvasWidget::eventFilter(QObject* watched, QEvent* event) {
@@ -201,8 +249,9 @@ bool CanvasWidget::eventFilter(QObject* watched, QEvent* event) {
         // click would select (GitHub issue 73); refresh the outline from the
         // folded modifiers at the last pointer position, no motion needed.
         update_move_hover_outline(last_mouse_position_, modifiers);
-      } else if (key_event->key() == Qt::Key_Alt && tool_uses_alt_left_for_color_pick(tool_) &&
-                 !painting_ && !drawing_shape_) {
+      } else if (key_event->key() == Qt::Key_Alt &&
+                 (tool_uses_alt_left_for_color_pick(tool_) || tool_ == CanvasTool::Eyedropper) && !painting_ &&
+                 !drawing_shape_) {
         // Alt is the temporary-eyedropper modifier for paint/shape/fill tools;
         // swap to (or back from) the eyedropper cursor the instant it toggles.
         // Drive it from the folded modifier state (authoritative here, unlike the
@@ -759,10 +808,13 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
       (tool_ == CanvasTool::Eyedropper ||
        ((event->modifiers() & Qt::AltModifier) != 0 && tool_uses_alt_left_for_color_pick(tool_)));
   if (color_pick_press) {
-    // Photoshop's convention (GitHub issue 150): with the Eyedropper tool itself,
-    // Alt+click sets the background color. The paint tools' Alt eyedropper is
-    // the other branch of color_pick_press and keeps setting the foreground.
-    color_pick_to_background_ = tool_ == CanvasTool::Eyedropper && (event->modifiers() & Qt::AltModifier) != 0;
+    // With the Eyedropper tool itself a click sets the color its Sets option
+    // names, and Alt inverts that for the click: with Foreground (the default)
+    // Alt+click sets the background, Photoshop's convention (GitHub issues 150,
+    // 151). The paint tools' Alt eyedropper is the other branch of
+    // color_pick_press and always sets the foreground.
+    color_pick_to_background_ =
+        tool_ == CanvasTool::Eyedropper && eyedropper_target_is_background(event->modifiers());
     begin_color_pick(event->pos(), event->globalPosition().toPoint());
     event->accept();
     return;
@@ -849,6 +901,8 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
       clear_brush_stroke_tracking();
       begin_axis_constrained_stroke(QPointF(document_point));
       painting_ = true;
+      begin_coalesced_mouse_tracking(*this, *event, coalesced_mouse_state_);
+      sync_stroke_input_compression();
       last_document_position_ = document_point;
       last_document_position_f_ = QPointF(document_point);
       const auto dirty = connect_from.has_value() ? clone_brush_segment(connect_from->toPoint(), document_point)
@@ -914,6 +968,8 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
       }
       begin_axis_constrained_stroke(QPointF(document_point));
       painting_ = true;
+      begin_coalesced_mouse_tracking(*this, *event, coalesced_mouse_state_);
+      sync_stroke_input_compression();
       last_document_position_ = document_point;
       last_document_position_f_ = QPointF(document_point);
       const auto dirty = connect_from.has_value()
@@ -1352,6 +1408,8 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
       const auto stroke_brush_size = effective_brush_input().size;
       begin_axis_constrained_stroke(stroke_brush_size == 1 ? QPointF(document_point) : document_point_f);
       painting_ = true;
+      begin_coalesced_mouse_tracking(*this, *event, coalesced_mouse_state_);
+      sync_stroke_input_compression();
       last_document_position_ = document_point;
       last_document_position_f_ = document_point_f;
       // Axis constraint first (Shift-locked strokes stay locked), then the
@@ -1427,6 +1485,65 @@ void CanvasWidget::mousePressEvent(QMouseEvent* event) {
       update();
     }
   }
+}
+
+QRect CanvasWidget::advance_paint_stroke(QPoint document_point, QPointF document_point_f,
+                                         Qt::KeyboardModifiers modifiers, CanvasTool effective_tool) {
+  QRect dirty;
+  if (effective_tool == CanvasTool::Clone || effective_tool == CanvasTool::Healing) {
+    const auto constrained_point = axis_constrained_stroke_point(document_point, modifiers);
+    dirty = clone_brush_segment(last_document_position_, constrained_point);
+    last_document_position_ = constrained_point;
+    last_document_position_f_ = QPointF(constrained_point);
+  } else if (effective_tool == CanvasTool::Smudge) {
+    dirty = smudge_brush_segment(last_document_position_, document_point);
+    last_document_position_ = document_point;
+    last_document_position_f_ = document_point_f;
+  } else if (is_local_adjustment_tool(effective_tool)) {
+    const auto constrained_point = axis_constrained_stroke_point(document_point, modifiers);
+    dirty = local_adjustment_brush_segment(last_document_position_, constrained_point);
+    last_document_position_ = constrained_point;
+    last_document_position_f_ = QPointF(constrained_point);
+  } else if (effective_brush_input().size == 1) {
+    auto constrained_point = axis_constrained_stroke_point(document_point, modifiers);
+    if (stroke_stabilizer_.active() && tool_uses_stroke_stabilizer(effective_tool)) {
+      const auto smoothed = stabilized_stroke_point(QPointF(constrained_point), effective_tool);
+      constrained_point = QPoint(static_cast<int>(std::lround(smoothed.x())),
+                                 static_cast<int>(std::lround(smoothed.y())));
+    }
+    dirty = draw_brush_segment(last_document_position_, constrained_point, effective_tool == CanvasTool::Eraser);
+    last_document_position_ = constrained_point;
+    last_document_position_f_ = QPointF(constrained_point);
+  } else {
+    const auto constrained_point =
+        stabilized_stroke_point(axis_constrained_stroke_point(document_point_f, modifiers),
+                                effective_tool);
+    dirty = advance_smoothed_brush_stroke(constrained_point, effective_tool == CanvasTool::Eraser);
+    last_document_position_ = QPoint(static_cast<int>(std::lround(constrained_point.x())),
+                                     static_cast<int>(std::lround(constrained_point.y())));
+    last_document_position_f_ = constrained_point;
+  }
+  return dirty;
+}
+
+std::vector<QPointF> CanvasWidget::coalesced_stroke_positions(const QMouseEvent& event) {
+  if (handling_tablet_event_) {
+    // Qt already delivers every pen sample (the Windows pointer history, X11
+    // tablet motion is never compressed); the synthesized move carries one.
+    return {};
+  }
+  if (coalesced_mouse_positions_provider_) {
+    return coalesced_mouse_positions_provider_(event);
+  }
+  return coalesced_mouse_positions(*this, event, coalesced_mouse_state_);
+}
+
+void CanvasWidget::set_coalesced_mouse_positions_provider(CoalescedMousePositionsProvider provider) {
+  coalesced_mouse_positions_provider_ = std::move(provider);
+}
+
+void CanvasWidget::sync_stroke_input_compression() {
+  stroke_input_scope_.set_engaged(painting_);
 }
 
 void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
@@ -1693,42 +1810,17 @@ void CanvasWidget::mouseMoveEvent(QMouseEvent* event) {
     update();
   } else if (painting_) {
     clear_move_hover_outline();
-    QRect dirty;
-    if (effective_tool == CanvasTool::Clone || effective_tool == CanvasTool::Healing) {
-      const auto constrained_point = axis_constrained_stroke_point(document_point, event->modifiers());
-      dirty = clone_brush_segment(last_document_position_, constrained_point);
-      last_document_position_ = constrained_point;
-      last_document_position_f_ = QPointF(constrained_point);
-    } else if (effective_tool == CanvasTool::Smudge) {
-      dirty = smudge_brush_segment(last_document_position_, document_point);
-      last_document_position_ = document_point;
-      last_document_position_f_ = document_point_f;
-    } else if (is_local_adjustment_tool(effective_tool)) {
-      const auto constrained_point = axis_constrained_stroke_point(document_point, event->modifiers());
-      dirty = local_adjustment_brush_segment(last_document_position_, constrained_point);
-      last_document_position_ = constrained_point;
-      last_document_position_f_ = QPointF(constrained_point);
-    } else if (effective_brush_input().size == 1) {
-      auto constrained_point = axis_constrained_stroke_point(document_point, event->modifiers());
-      if (stroke_stabilizer_.active() && tool_uses_stroke_stabilizer(effective_tool)) {
-        const auto smoothed = stabilized_stroke_point(QPointF(constrained_point), effective_tool);
-        constrained_point = QPoint(static_cast<int>(std::lround(smoothed.x())),
-                                   static_cast<int>(std::lround(smoothed.y())));
-      }
-      dirty = draw_brush_segment(last_document_position_, constrained_point, effective_tool == CanvasTool::Eraser);
-      last_document_position_ = constrained_point;
-      last_document_position_f_ = QPointF(constrained_point);
-    } else {
-      const auto constrained_point =
-          stabilized_stroke_point(axis_constrained_stroke_point(document_point_f, event->modifiers()),
-                                  effective_tool);
-      dirty = advance_smoothed_brush_stroke(constrained_point, effective_tool == CanvasTool::Eraser);
-      last_document_position_ = QPoint(static_cast<int>(std::lround(constrained_point.x())),
-                                       static_cast<int>(std::lround(constrained_point.y())));
-      last_document_position_f_ = constrained_point;
+    // Every position the platform folded into this event gets its own stroke
+    // sample, so a slow frame joins the true path instead of a straight
+    // segment across it (GitHub issue 165); the canvas repaints once.
+    std::vector<QRect> dirty;
+    for (const auto& position : coalesced_stroke_positions(*event)) {
+      dirty.push_back(advance_paint_stroke(document_position(position.toPoint()), document_position_f(position),
+                                           event->modifiers(), effective_tool));
     }
-    if (!dirty.isEmpty()) {
-      active_edit_target_changed_impl(QRegion(dirty), DocumentChangeReason::BrushStrokePreview);
+    dirty.push_back(advance_paint_stroke(document_point, document_point_f, event->modifiers(), effective_tool));
+    if (const auto region = stroke_samples_dirty_region(dirty); !region.isEmpty()) {
+      active_edit_target_changed_impl(region, DocumentChangeReason::BrushStrokePreview);
     }
   } else if (drawing_shape_) {
     clear_move_hover_outline();
@@ -2358,6 +2450,7 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
       last_document_position_f_ = document_point_f;
     }
     painting_ = false;
+    sync_stroke_input_compression();
     last_stroke_end_document_ = last_document_position_f_;
     clone_source_cache_ = QImage();
     clone_source_deep_ = PixelBuffer{};
@@ -3982,6 +4075,7 @@ void CanvasWidget::focusOutEvent(QFocusEvent* event) {
   cancel_pointer_gestures();
   if (was_painting) {
     painting_ = false;
+    sync_stroke_input_compression();
     last_stroke_end_document_ = last_document_position_f_;
   }
   if (!was_painting && !drawing_shape_) {

@@ -21175,10 +21175,6 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
         <translation>시스템 제목 표시줄 사용</translation>
     </message>
     <message>
-        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
-        <translation>메뉴 모음의 Patchy 창 컨트롤 대신 데스크톱 자체의 제목 표시줄과 창 테두리를 표시합니다. 다음에 Patchy를 시작할 때 적용됩니다.</translation>
-    </message>
-    <message>
         <source>System Title Bar</source>
         <translation>시스템 제목 표시줄</translation>
     </message>
@@ -21569,6 +21565,54 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
     <message>
         <source>Opening PDF</source>
         <translation>PDF 여는 중</translation>
+    </message>
+    <message>
+        <source>Zoom presets</source>
+        <translation>확대/축소 사전 설정</translation>
+    </message>
+    <message>
+        <source>Sets:</source>
+        <translation>설정 대상:</translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation>전경색</translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation>클릭하면 전경색을 설정하고 %ALT%+클릭하면 배경색을 설정합니다</translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation>클릭하면 배경색을 설정하고 %ALT%+클릭하면 전경색을 설정합니다</translation>
+    </message>
+    <message>
+        <source>Ro&amp;tate &amp;&amp; Flip</source>
+        <translation>회전 및 뒤집기(&amp;T)</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>메뉴 모음의 Patchy 창 컨트롤 대신 데스크톱 자체의 제목 표시줄과 창 테두리를 표시합니다. 데스크톱이 애플리케이션 메뉴를 전역 메뉴 모음에 표시하는 경우 기본으로 켜집니다. 다음에 Patchy를 시작할 때 적용됩니다.</translation>
+    </message>
+    <message>
+        <source>Reset Panels</source>
+        <translation>패널 초기화</translation>
+    </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation>패널 접기</translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation>패널 펼치기</translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation>탭 그룹 닫기</translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
+        <translation>패널 닫기</translation>
     </message>
     <message>
         <source>Preparing page image %1 of %2...</source>

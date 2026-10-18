@@ -21167,10 +21167,6 @@ Patchy can download the update, replace this AppImage, and start again. You will
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>System Title Bar</source>
         <translation type="unfinished"></translation>
     </message>
@@ -21560,6 +21556,54 @@ Patchy can download the update, replace this AppImage, and start again. You will
     </message>
     <message>
         <source>Opening PDF</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Zoom presets</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Sets:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Ro&amp;tate &amp;&amp; Flip</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reset Panels</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

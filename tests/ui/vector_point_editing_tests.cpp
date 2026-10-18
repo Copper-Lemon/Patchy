@@ -767,10 +767,9 @@ void ui_layer_row_click_shows_anchors_for_shape_layer() {
 }
 
 // The path overlay reads at 100% on any image (GitHub issue 105, second pass):
-// the outline rides a dark halo outside its 2 px accent line, and anchors are
-// 10 px squares whose dark edge sits 5 px from the point (the 8 px glyph's edge
-// was at 4 px, and the bare 1.2 px outline had no halo).
-void ui_path_overlay_outline_has_halo_and_ten_pixel_anchors() {
+// the outline rides a dark halo outside its 2 px accent line (the bare 1.2 px
+// outline had none) and the anchors stay 8 px, Photoshop's scale.
+void ui_path_overlay_outline_has_halo() {
   VectorSettingsGuard settings_guard;
   patchy::ui::MainWindow window;
   show_window(window);
@@ -797,11 +796,11 @@ void ui_path_overlay_outline_has_halo_and_ten_pixel_anchors() {
   CHECK(above.red() > 240 && above.green() > 240 && above.blue() > 240);  // plain document
   CHECK(halo.lightness() < above.lightness() - 40 || is_accent(halo));
 
-  // The corner anchor: its antialiased dark edge (x +- 5) shades the row 6 px
-  // above the point, where the 8 px glyph (edge at 4 px) left plain document.
+  // The corner anchor's dark edge sits 4 px out; 6 px above it is plain document.
   const auto corner = canvas->widget_position_for_document_point(QPoint(100, 100));
-  CHECK(image.pixelColor(corner.x(), corner.y() - 6).lightness() < 200);
-  CHECK(image.pixelColor(corner.x(), corner.y() - 9).lightness() > 240);
+  CHECK(std::min(image.pixelColor(corner.x(), corner.y() - 4).lightness(),
+                 image.pixelColor(corner.x(), corner.y() - 5).lightness()) < 200);
+  CHECK(image.pixelColor(corner.x(), corner.y() - 7).lightness() > 240);
 }
 
 // Ctrl+H (Show Selection Edges, Photoshop's Extras toggle) hides the path
@@ -969,10 +968,9 @@ void ui_anchor_drag_repaints_the_old_handle_knobs() {
   canvas->removeEventFilter(&recorder);
 }
 
-// Curve handle knobs read and grab at 100% (GitHub issue 105, second pass): a
-// selected smooth anchor shows 12 px knobs (the old 8 px ones were too small to
-// see or hit), a press 8 px off a knob still grabs it (the radius was 7), and a
-// press nearer the anchor than the knob stays the anchor's.
+// Curve handle knobs grab at 100% (GitHub issue 105, second pass): a selected
+// smooth anchor shows its 8 px knobs, and a press 8 px off a knob still grabs it
+// (the radius was 7, too small to hit).
 void ui_path_handle_knobs_read_and_grab() {
   VectorSettingsGuard settings_guard;
   patchy::ui::MainWindow window;
@@ -1004,9 +1002,8 @@ void ui_path_handle_knobs_read_and_grab() {
   const auto image = canvas->grab().toImage();
   save_widget_artifact("ui_path_handle_knobs", *canvas);
 
-  // The out knob at (160, 30) sits on plain document: its dark rim spans at
-  // least 11 rows of the column through its center (the white band inside
-  // the rim counts as part of the disc).
+  // The out knob at (160, 30) sits on plain document: its dark rim spans the
+  // 8 px disc (the white band inside the rim counts as part of it).
   const auto knob = canvas->widget_position_for_document_point(QPoint(160, 30));
   int top = 0;
   int bottom = 0;
@@ -1016,7 +1013,7 @@ void ui_path_handle_knobs_read_and_grab() {
       bottom = std::max(bottom, dy);
     }
   }
-  CHECK(bottom - top + 1 >= 11);
+  CHECK(bottom - top + 1 >= 9 && bottom - top + 1 <= 11);
 
   // A press 8 px right of the knob grabs it and drags the handle.
   const auto press = knob + QPoint(8, 0);
@@ -1361,7 +1358,7 @@ std::vector<patchy::test::TestCase> vector_point_editing_tests() {
       {"ui_shape_layer_activation_drops_stale_path_target",
        ui_shape_layer_activation_drops_stale_path_target},
       {"ui_layer_row_click_shows_anchors_for_shape_layer", ui_layer_row_click_shows_anchors_for_shape_layer},
-      {"ui_path_overlay_outline_has_halo_and_ten_pixel_anchors", ui_path_overlay_outline_has_halo_and_ten_pixel_anchors},
+      {"ui_path_overlay_outline_has_halo", ui_path_overlay_outline_has_halo},
       {"ui_path_handle_knobs_read_and_grab", ui_path_handle_knobs_read_and_grab},
       {"ui_ctrl_h_hides_path_points_with_selection_edges",
        ui_ctrl_h_hides_path_points_with_selection_edges},

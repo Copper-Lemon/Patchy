@@ -21240,10 +21240,6 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
         <translation>Usar a barra de título do sistema</translation>
     </message>
     <message>
-        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. Takes effect the next time Patchy starts.</source>
-        <translation>Mostra a barra de título e a moldura de janela da área de trabalho em vez dos controles de janela do Patchy na barra de menus. Entra em vigor na próxima vez que o Patchy for iniciado.</translation>
-    </message>
-    <message>
         <source>System Title Bar</source>
         <translation>Barra de título do sistema</translation>
     </message>
@@ -21634,6 +21630,54 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
     <message>
         <source>Opening PDF</source>
         <translation>Abrindo PDF</translation>
+    </message>
+    <message>
+        <source>Zoom presets</source>
+        <translation>Predefinições de zoom</translation>
+    </message>
+    <message>
+        <source>Sets:</source>
+        <translation>Define:</translation>
+    </message>
+    <message>
+        <source>Foreground</source>
+        <translation>Primeiro plano</translation>
+    </message>
+    <message>
+        <source>A click sets the foreground color; %ALT%+click sets the background</source>
+        <translation>Um clique define a cor de primeiro plano; %ALT%+clique define a de plano de fundo</translation>
+    </message>
+    <message>
+        <source>A click sets the background color; %ALT%+click sets the foreground</source>
+        <translation>Um clique define a cor de plano de fundo; %ALT%+clique define a de primeiro plano</translation>
+    </message>
+    <message>
+        <source>Ro&amp;tate &amp;&amp; Flip</source>
+        <translation>Gi&amp;rar e inverter</translation>
+    </message>
+    <message>
+        <source>Shows the desktop&apos;s own title bar and window frame instead of Patchy&apos;s window controls in the menu bar. On by default where the desktop shows application menus in a global menu bar. Takes effect the next time Patchy starts.</source>
+        <translation>Mostra a barra de título e a moldura de janela da área de trabalho em vez dos controles de janela do Patchy na barra de menus. Ativado por padrão quando a área de trabalho mostra os menus dos aplicativos em uma barra de menus global. Entra em vigor na próxima vez que o Patchy for iniciado.</translation>
+    </message>
+    <message>
+        <source>Reset Panels</source>
+        <translation>Redefinir painéis</translation>
+    </message>
+    <message>
+        <source>Collapse Panel</source>
+        <translation>Recolher painel</translation>
+    </message>
+    <message>
+        <source>Expand Panel</source>
+        <translation>Expandir painel</translation>
+    </message>
+    <message>
+        <source>Close Tab Group</source>
+        <translation>Fechar grupo de abas</translation>
+    </message>
+    <message>
+        <source>Close Panel</source>
+        <translation>Fechar painel</translation>
     </message>
     <message>
         <source>Preparing page image %1 of %2...</source>

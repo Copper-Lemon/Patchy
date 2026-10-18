@@ -373,11 +373,12 @@ Other step-3 decisions:
   only moves the frame back on screen. This is also why dialogs
   are shown through `exec_dialog`/`run_non_modal_dialog`, never a bare
   `QDialog::exec`.
-- **Right-dock panel toggles repaint the whole window.** The wasm backing
-  store keeps stale pixels where a dock relayout moved content, so
-  `MainWindow::handle_right_dock_panel_toggled` calls `update()` after the
-  deferred relayout; the dock width handle relies on Qt's implicit
-  press-grab (explicit `grabMouse` is unreliable here).
+- **Right panel toggles repaint the whole window.** The wasm backing
+  store keeps stale pixels where a relayout moved content, so `create_docks`
+  calls `update()` whenever a panel expands, collapses, closes or reopens
+  ([right-docks.md](right-docks.md)); the column edge and dividers are
+  `QSplitter` handles, which rely on Qt's implicit press-grab (explicit
+  `grabMouse` is unreliable here).
 - **A window shown under an application-modal window never gets its
   keyboard back.** Qt marks windows created while an app-modal window is
   visible as blocked, the key path drops events for blocked windows (the
