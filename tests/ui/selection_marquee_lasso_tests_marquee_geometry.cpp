@@ -927,6 +927,66 @@ void ui_rulers_grid_guides_render_and_edit() {
   save_widget_artifact("ui_guides_editing", canvas);
 }
 
+// GitHub issue 197: at 1000% one screen pixel is a tenth of a document pixel, and a
+// dragged guide used to land wherever the pointer was (Y: 10.41 px). A free drag now
+// lands on the nearest whole pixel, halves up like the rest of the pixel grid, in the
+// readout and in the stored position. A guide loaded at a fraction keeps it until it is
+// actually dragged, and grabbing it off-center does not make it jump to the pointer.
+// The 40 x 30 document fits the canvas at 1000%, so the capture shows the guide.
+void ui_guide_drag_lands_on_whole_pixels() {
+  patchy::Document document(40, 30, patchy::PixelFormat::rgb8());
+  document.add_pixel_layer("Background", solid_pixels(40, 30, patchy::PixelFormat::rgb8(), Qt::white));
+  // A guide at 20.53125 px, the kind a PSD made elsewhere can carry.
+  document.guides().push_back(patchy::DocumentGuide{patchy::GuideOrientation::Horizontal, 20 * 32 + 17});
+
+  patchy::ui::CanvasWidget canvas;
+  canvas.resize(460, 340);
+  canvas.set_document(&document);
+  canvas.set_zoom(10.0);
+  canvas.set_rulers_visible(true);
+  canvas.set_guides_visible(true);
+  canvas.set_snap_enabled(false);
+  canvas.show();
+  QApplication::processEvents();
+
+  // A horizontal guide from the top ruler, released 4 and then 6 screen pixels (0.4 and
+  // 0.6 document pixels) below the top of row 10.
+  const auto row_10 = canvas.widget_position_for_document_point(QPoint(12, 10));
+  const QPoint top_ruler(row_10.x(), 12);
+  send_mouse(canvas, QEvent::MouseButtonPress, top_ruler, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(canvas, QEvent::MouseMove, row_10 + QPoint(0, 4), Qt::NoButton, Qt::LeftButton);
+  QApplication::processEvents();
+  save_widget_artifact("issue197_guide_drag_readout_1000pct", canvas);
+  auto readout = canvas.transform_drag_readout();
+  CHECK(readout.has_value());
+  if (readout.has_value() && !readout->canvas_lines.empty()) {
+    std::cout << "guide readout at 1000%: " << readout->canvas_lines[0].toStdString() << std::endl;
+    CHECK(readout->canvas_lines[0] == QStringLiteral("Y: 10 px"));
+  }
+  send_mouse(canvas, QEvent::MouseMove, row_10 + QPoint(0, 6), Qt::NoButton, Qt::LeftButton);
+  send_mouse(canvas, QEvent::MouseButtonRelease, row_10 + QPoint(0, 6), Qt::LeftButton, Qt::NoButton);
+  CHECK(document.guides().size() == 2);
+  if (document.guides().size() == 2) {
+    std::cout << "new guide position_32: " << document.guides().back().position_32 << std::endl;
+    CHECK(document.guides().back().position_32 == 11 * 32);
+  }
+
+  // A press on the fractional guide that never moves leaves it where it was.
+  canvas.set_tool(patchy::ui::CanvasTool::Move);
+  const auto on_fraction = canvas.widget_position_for_document_point(QPoint(12, 20)) + QPoint(0, 5);
+  send_mouse(canvas, QEvent::MouseButtonPress, on_fraction, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(canvas, QEvent::MouseButtonRelease, on_fraction, Qt::LeftButton, Qt::NoButton);
+  CHECK(document.guides().front().position_32 == 20 * 32 + 17);
+
+  // Dragging it 30 screen pixels (3 document pixels) keeps the grab point and rounds:
+  // 20.53 + 3 = 23.53 lands on 24.
+  send_mouse(canvas, QEvent::MouseButtonPress, on_fraction, Qt::LeftButton, Qt::LeftButton);
+  send_mouse(canvas, QEvent::MouseMove, on_fraction + QPoint(0, 30), Qt::NoButton, Qt::LeftButton);
+  send_mouse(canvas, QEvent::MouseButtonRelease, on_fraction + QPoint(0, 30), Qt::LeftButton, Qt::NoButton);
+  std::cout << "moved guide position_32: " << document.guides().front().position_32 << std::endl;
+  CHECK(document.guides().front().position_32 == 24 * 32);
+}
+
 // Dragging a guide shows its position beside the pointer in the ruler unit
 // (GitHub issue 36), mirrors it to the status bar, hides it while the drop
 // would remove the guide, and clears it on release.
@@ -2098,6 +2158,7 @@ std::vector<patchy::test::TestCase> selection_marquee_lasso_tests_part1() {
       {"ui_info_panel_shows_selection_rect", ui_info_panel_shows_selection_rect},
       {"ui_rulers_grid_guides_render_and_edit", ui_rulers_grid_guides_render_and_edit},
       {"ui_guide_drag_shows_position_readout", ui_guide_drag_shows_position_readout},
+      {"ui_guide_drag_lands_on_whole_pixels", ui_guide_drag_lands_on_whole_pixels},
       {"ui_deep_zoom_pixel_grid_matches_rendered_pixels",
        ui_deep_zoom_pixel_grid_matches_rendered_pixels},
       {"ui_deep_zoom_one_pixel_brush_marks_match_pixel_grid",
