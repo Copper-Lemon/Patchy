@@ -38,6 +38,7 @@ Required release handoff steps:
 
    Rules (reasons and details: "Local Windows release build" in [docs/building.md](docs/building.md)):
    - Builds, tests and batch files run only through `scripts\run-throttled.bat`, builds with `-j 20`. It refuses a second `cmake --build` on the box (exit 3): wait, or offload with `scripts\remote\remote-build.ps1 -Target windows`.
+   - Each offload host has one work tree, so parallel sessions each pin their own host (`-WindowsHost`); the orchestrating session assigns hosts and does the single merged local release build.
    - Run from the repository root in PowerShell or real cmd, never Git Bash. Require compile/link lines or `ninja: no work to do`, not just exit 0.
    - Iterate with `--target <the test/app you run>`; the full build (five LTCG links, about 12 minutes) runs once, at handoff.
    - A worktree configures once with `--preset release -DCMAKE_PREFIX_PATH=<main-checkout>/.deps/Qt/6.8.3/msvc2022_64`.
