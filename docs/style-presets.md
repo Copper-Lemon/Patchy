@@ -22,6 +22,13 @@ capture that stable state or widget handles. `layer_style_dialog_controls.{hpp,c
 shared color and numeric rows. Page object names, stacked indices, and translation
 contexts remain compatibility contracts for the UI tests.
 
+The settings pages sit in the `layerStyleOptionsScroll` scroll area (GitHub issue 190).
+`OptionsPaneHeightCap` keeps its minimum equal to the tallest page up to what the
+screen leaves (available height minus 40, measured before the dialog shows), so a
+tall screen opens and grows the dialog exactly as before and a short one scrolls
+the pane with OK/Cancel in view. `ui_layer_style_dialog_fits_a_short_screen` pins
+it on the 800 x 800 offscreen screen.
+
 ## StyleLibrary (src/ui/style_library.*)
 
 - Storage: `<settings dir>/styles/`: per entry a **single-style .asl file** named by storage UUID (self-contained: effects + optional blendOptions + the referenced pattern tiles), a JSON sidecar `{id, sourceId?, name, folder}`, and a cached thumbnail PNG (regenerated when missing or older than the .asl). `reload()` is .asl-driven; the sidecar overrides name/id/folder.
