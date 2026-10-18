@@ -1956,9 +1956,12 @@ void ui_layer_style_dialog_fits_a_short_screen() {
     const auto stack = dialog->findChild<QWidget*>(QStringLiteral("layerStyleOptionsStack"));
     CHECK(stack != nullptr);
     auto* pane = dialog->findChild<QScrollArea*>(QStringLiteral("layerStyleOptionsScroll"));
-    std::printf("layer style dialog %dx%d (minimum %d) at %d,%d on %dx%d available (stack minimum %d, pane %d)\n",
-                dialog->width(), dialog->height(), dialog->minimumHeight(), dialog->x(), dialog->y(),
-                available.width(), available.height(), stack != nullptr ? stack->minimumSizeHint().height() : -1,
+    const auto frame = dialog->frameGeometry();
+    std::printf("layer style dialog %dx%d (minimum %dx%d) frame %d,%d %dx%d on %d,%d %dx%d available "
+                "(stack minimum %d, pane %d)\n",
+                dialog->width(), dialog->height(), dialog->minimumWidth(), dialog->minimumHeight(), frame.x(),
+                frame.y(), frame.width(), frame.height(), available.x(), available.y(), available.width(),
+                available.height(), stack != nullptr ? stack->minimumSizeHint().height() : -1,
                 pane != nullptr ? pane->height() : -1);
     save_image_artifact("ui_layer_style_dialog_short_screen", dialog_on_screen_image(*dialog, available));
     if (stack != nullptr) {

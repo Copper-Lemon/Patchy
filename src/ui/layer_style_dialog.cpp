@@ -158,11 +158,14 @@ private:
 // LayoutRequest. The budget is measured before the dialog shows; when the
 // shown dialog still overflows `max_height` (Qt's own sizing adds what the
 // measurement missed), the first Show takes the overflow out of the pane.
-class OptionsPaneHeightCap final : public QObject {
+// A screen narrower than the dialog's minimum width (larger Linux fonts plus
+// the capped pane's scroll bar made it 803 px on an 800 px screen) takes the
+// width overflow out of the pane the same way, which then scrolls sideways.
+class OptionsPaneScreenCap final : public QObject {
 public:
-  OptionsPaneHeightCap(QDialog& dialog, QScrollArea& scroll, QWidget& pages, int budget, int max_height)
+  OptionsPaneScreenCap(QDialog& dialog, QScrollArea& scroll, QWidget& pages, int budget, QSize max_size)
       : QObject(&scroll), dialog_(dialog), scroll_(scroll), pages_(pages), budget_(budget),
-        max_height_(max_height) {
+        max_size_(max_size) {
     pages.installEventFilter(this);
     dialog.installEventFilter(this);
     sync();
@@ -181,26 +184,47 @@ protected:
 
 private:
   void fit_to_screen() {
-    if (max_height_ <= 0 || dialog_.layout() == nullptr) {
+    if (max_size_.isEmpty() || dialog_.layout() == nullptr) {
       return;
     }
     dialog_.layout()->activate();
-    const auto overflow = dialog_.height() - max_height_;
-    if (overflow <= 0) {
+    const auto height_overflow = dialog_.height() - max_size_.height();
+    const auto width_overflow = dialog_.width() - max_size_.width();
+    if (height_overflow <= 0 && width_overflow <= 0) {
       return;
     }
-    budget_ = std::max(kMinimumBudget, std::min(budget_, scroll_.minimumHeight() - overflow));
+    if (height_overflow > 0) {
+      budget_ = std::max(kMinimumBudget, std::min(budget_, scroll_.minimumHeight() - height_overflow));
+    }
+    if (width_overflow > 0) {
+      width_budget_ = std::max(kMinimumBudget, scroll_.minimumWidth() - width_overflow);
+      scroll_.setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    }
     sync();
+    // The new pane minimum has to reach the dialog's own minimum before the
+    // resize, or the resize clamps to the stale one: the dialog's top layout
+    // still counts as activated, so drop every cached hint on the way up.
+    for (QWidget* widget = &scroll_; widget != nullptr && widget != &dialog_; widget = widget->parentWidget()) {
+      widget->updateGeometry();
+    }
+    for (auto* layout : dialog_.findChildren<QLayout*>()) {
+      layout->invalidate();
+    }
     dialog_.layout()->activate();
-    dialog_.resize(dialog_.width(), std::max(max_height_, dialog_.minimumHeight()));
+    dialog_.resize(width_overflow > 0 ? std::max(max_size_.width(), dialog_.minimumWidth()) : dialog_.width(),
+                   height_overflow > 0 ? std::max(max_size_.height(), dialog_.minimumHeight())
+                                       : dialog_.height());
   }
 
   void sync() {
     const auto minimum = pages_.minimumSizeHint();
     const bool capped = minimum.height() > budget_;
     // A capped pane shows its scroll bar beside the pages, never over them.
-    const QSize size(minimum.width() + (capped ? scroll_.verticalScrollBar()->sizeHint().width() : 0),
-                     capped ? budget_ : minimum.height());
+    auto width = minimum.width() + (capped ? scroll_.verticalScrollBar()->sizeHint().width() : 0);
+    if (width_budget_ > 0) {
+      width = std::min(width, width_budget_);
+    }
+    const QSize size(width, capped ? budget_ : minimum.height());
     if (scroll_.minimumSize() != size) {
       scroll_.setMinimumSize(size);
     }
@@ -211,7 +235,8 @@ private:
   QScrollArea& scroll_;
   QWidget& pages_;
   int budget_;
-  int max_height_;
+  int width_budget_{0};  // 0 until a too-narrow screen sets one
+  QSize max_size_;
   bool fitted_{false};
 };
 
@@ -995,7 +1020,7 @@ std::optional<LayerStyleSettings> request_layer_style_settings(
   body->addWidget(category_pane);
 
   // The settings pages scroll when the screen is too short for the tallest
-  // one (GitHub issue 190); OptionsPaneHeightCap sizes the pane below.
+  // one (GitHub issue 190); OptionsPaneScreenCap sizes the pane below.
   auto* options_scroll = new QScrollArea(&dialog);
   options_scroll->setObjectName(QStringLiteral("layerStyleOptionsScroll"));
   options_scroll->setWidgetResizable(true);
@@ -3428,9 +3453,11 @@ std::optional<LayerStyleSettings> request_layer_style_settings(
   const auto natural_minimum = dialog.layout()->totalMinimumSize();
   int pane_budget = pages_minimum;
   int max_height = 0;
+  int max_width = 0;
   if (screen != nullptr) {
     const auto available = screen->availableGeometry();
     max_height = std::max(320, available.height() - 40);
+    max_width = available.width();
     const auto width = std::min(dialog.width(), std::max(natural_minimum.width(), available.width()));
     // The notices above the pages word-wrap, so their height depends on the
     // width the dialog opens with; the plain minimum counts one line each.
@@ -3441,7 +3468,7 @@ std::optional<LayerStyleSettings> request_layer_style_settings(
     pane_budget = std::max(120, pages_minimum - std::max(0, natural_height - max_height));
     dialog.resize(width, std::min(dialog.height(), max_height));
   }
-  new OptionsPaneHeightCap(dialog, *options_scroll, *controls, pane_budget, max_height);
+  new OptionsPaneScreenCap(dialog, *options_scroll, *controls, pane_budget, QSize(max_width, max_height));
 
   log_ui_profile("layer_style_dialog_build",
                  std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() -
