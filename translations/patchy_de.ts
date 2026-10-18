@@ -16318,10 +16318,6 @@ Speichern Sie Ihre Arbeit und schließen Sie Patchy, bevor Sie das Installations
         <translation>Die ausgewählten Ebenen sind ausgeblendet oder nicht bearbeitbar; nichts kopiert</translation>
     </message>
     <message>
-        <source>Nothing to copy</source>
-        <translation>Nichts zu kopieren</translation>
-    </message>
-    <message>
         <source>Copied %1 layer(s), %2 x %3 px</source>
         <translation>%1 Ebene(n) kopiert, %2 x %3 px</translation>
     </message>
@@ -21566,6 +21562,22 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
         <translation>Zeichenflächen können die Arbeitsfläche nicht größer als %1 x %1 px machen</translation>
+    </message>
+    <message>
+        <source>Could not complete the Cut command because the selected area is empty.</source>
+        <translation>Der Befehl „Ausschneiden“ konnte nicht ausgeführt werden, da der ausgewählte Bereich leer ist.</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Kopieren</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy command because the selected area is empty.</source>
+        <translation>Der Befehl „Kopieren“ konnte nicht ausgeführt werden, da der ausgewählte Bereich leer ist.</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy Merged command because the selected area is empty.</source>
+        <translation>Der Befehl „Auf eine Ebene reduziert kopieren“ konnte nicht ausgeführt werden, da der ausgewählte Bereich leer ist.</translation>
     </message>
 </context>
 <context>

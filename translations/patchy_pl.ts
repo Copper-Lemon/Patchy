@@ -17070,10 +17070,6 @@ Zapisz pracę i zamknij Patchy przed uruchomieniem instalatora.</translation>
         <translation>Wybrane warstwy są ukryte lub nieedytowalne; niczego nie skopiowano</translation>
     </message>
     <message>
-        <source>Nothing to copy</source>
-        <translation>Nie ma nic do skopiowania</translation>
-    </message>
-    <message>
         <source>Copied %1 layer(s), %2 x %3 px</source>
         <translation>Skopiowano %1 warstw, %2 x %3 px</translation>
     </message>
@@ -21631,6 +21627,22 @@ Patchy może pobrać aktualizację, zastąpić ten plik AppImage i uruchomić si
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
         <translation>Obszary robocze nie mogą powiększyć płótna ponad %1 x %1 px</translation>
+    </message>
+    <message>
+        <source>Could not complete the Cut command because the selected area is empty.</source>
+        <translation>Nie można wykonać polecenia Wytnij, ponieważ zaznaczony obszar jest pusty.</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Kopiuj</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy command because the selected area is empty.</source>
+        <translation>Nie można wykonać polecenia Kopiuj, ponieważ zaznaczony obszar jest pusty.</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy Merged command because the selected area is empty.</source>
+        <translation>Nie można wykonać polecenia Kopiuj scalone, ponieważ zaznaczony obszar jest pusty.</translation>
     </message>
 </context>
 <context>

@@ -2358,6 +2358,7 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
     reset_brush_smoothing();
     reset_axis_constrained_stroke();
     clear_brush_stroke_tracking();
+    close_stroke_growth_reserve();  // the final bounds, before the stroke is reported
     if (!dirty.isEmpty()) {
       active_edit_target_changed_impl(QRegion(dirty), DocumentChangeReason::BrushStrokeFinished);
     } else if (quick_mask_active_) {

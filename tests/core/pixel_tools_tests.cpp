@@ -10,6 +10,7 @@
 #include <cctype>
 #include <chrono>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <filesystem>
 #include <exception>
@@ -89,6 +90,94 @@ void tool_wide_brush_segment_is_fast_and_writes_artifact() {
   CHECK(center[2] == 230);
   CHECK(center[3] == 255);
   write_bmp_artifact("tool_wide_brush_segment", document);
+}
+
+// A pasted layer is only as big as what was pasted; a stroke that leaves it grows it dab by
+// dab. That growth must stay cheap (it used to re-copy the whole layer per dab, freezing a
+// long stroke), and the result must match painting on a canvas-sized layer. Under a
+// LayerGrowthReserve (the canvas opens one per stroke) the layer reallocates a few times
+// and close() trims it to the same bounds and bytes as exact per-dab growth.
+void tool_small_layer_grows_cheaply_under_a_long_stroke() {
+  constexpr std::int32_t side = 3000;
+  const auto paint = [](patchy::Document& document, patchy::LayerId layer_id) {
+    auto options = tool_options(200, 40, 40);
+    options.brush_size = 30;
+    double x = 32.0;
+    double y = 32.0;
+    while (x < side - 100) {
+      CHECK(!patchy::paint_brush_segment(document, layer_id, x, y, x + 4.0, y + 3.0, options, false).empty());
+      x += 4.0;
+      y += 3.0;
+    }
+    // Back over painted ground and out past the top edge of the grown area.
+    CHECK(!patchy::paint_brush_segment(document, layer_id, x, y, 600.0, 20.0, options, false).empty());
+  };
+  const auto small_document = [] {
+    patchy::Document document(side, side, patchy::PixelFormat::rgb8());
+    patchy::PixelBuffer pixels(64, 64, patchy::PixelFormat::rgba8());
+    pixels.clear(0);
+    pixels.pixel(10, 10)[3] = 255;
+    patchy::Layer layer(document.allocate_layer_id(), "Pasted Layer", std::move(pixels));
+    layer.set_bounds(patchy::Rect{0, 0, 64, 64});
+    document.add_layer(std::move(layer));
+    return document;
+  };
+  const auto timed = [](const std::function<void()>& work) {
+    const auto started = std::chrono::steady_clock::now();
+    work();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count();
+  };
+
+  auto exact_document = small_document();
+  const auto exact_id = active_tool_layer(exact_document);
+  const auto exact_ms = timed([&] { paint(exact_document, exact_id); });
+
+  auto reserved_document = small_document();
+  const auto reserved_id = active_tool_layer(reserved_document);
+  bool trimmed = false;
+  const auto reserved_ms = timed([&] {
+    patchy::LayerGrowthReserve reserve(reserved_id, patchy::Rect::from_size(side, side));
+    paint(reserved_document, reserved_id);
+    trimmed = reserve.close(*reserved_document.find_layer(reserved_id));
+  });
+  std::printf("  small-layer stroke: exact %lld ms, reserved %lld ms\n", static_cast<long long>(exact_ms),
+              static_cast<long long>(reserved_ms));
+  CHECK(trimmed);
+
+  patchy::Document full_document(side, side, patchy::PixelFormat::rgb8());
+  patchy::PixelBuffer full_pixels(side, side, patchy::PixelFormat::rgba8());
+  full_pixels.clear(0);
+  full_pixels.pixel(10, 10)[3] = 255;
+  const auto full_id = full_document.add_pixel_layer("Paint", std::move(full_pixels)).id();
+  paint(full_document, full_id);
+
+  const auto& exact = *std::as_const(exact_document).find_layer(exact_id);
+  const auto& reserved = *std::as_const(reserved_document).find_layer(reserved_id);
+  const auto& reference = *std::as_const(full_document).find_layer(full_id);
+  const auto bounds = exact.bounds();
+  CHECK(exact.pixels().width() == bounds.width && exact.pixels().height() == bounds.height);
+  CHECK(reserved.bounds().x == bounds.x && reserved.bounds().y == bounds.y &&
+        reserved.bounds().width == bounds.width && reserved.bounds().height == bounds.height);
+  CHECK(reserved.pixels().format() == exact.pixels().format());
+  CHECK(reserved.pixels().data().size() == exact.pixels().data().size() &&
+        std::equal(reserved.pixels().data().begin(), reserved.pixels().data().end(), exact.pixels().data().begin()));
+  bool same = true;
+  for (std::int32_t y = 0; y < side && same; ++y) {
+    for (std::int32_t x = 0; x < side; ++x) {
+      const auto* expected = reference.pixels().pixel(x, y);
+      if (!bounds.contains(x, y)) {
+        same = expected[3] == 0;
+      } else {
+        same = std::memcmp(expected, exact.pixels().pixel(x - bounds.x, y - bounds.y), 4) == 0;
+      }
+      if (!same) {
+        break;
+      }
+    }
+  }
+  CHECK(same);
+  CHECK(exact_ms < 8000);
+  CHECK(reserved_ms < 2000);
 }
 
 void tool_brush_segment_accepts_float_endpoints() {
@@ -1353,6 +1442,7 @@ std::vector<patchy::test::TestCase> pixel_tools_tests() {
        tool_one_pixel_brush_segment_snaps_fractional_points_to_one_pixel},
       {"tool_wide_brush_segment_is_fast_and_writes_artifact",
        tool_wide_brush_segment_is_fast_and_writes_artifact},
+      {"tool_small_layer_grows_cheaply_under_a_long_stroke", tool_small_layer_grows_cheaply_under_a_long_stroke},
       {"tool_brush_segment_accepts_float_endpoints", tool_brush_segment_accepts_float_endpoints},
       {"tool_brush_roundness_and_angle_shape_dabs", tool_brush_roundness_and_angle_shape_dabs},
       {"tool_eraser_clears_alpha_and_writes_artifact", tool_eraser_clears_alpha_and_writes_artifact},

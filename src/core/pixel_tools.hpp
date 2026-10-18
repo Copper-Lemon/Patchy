@@ -226,6 +226,37 @@ enum class CanvasAnchor {
 [[nodiscard]] Rect draw_linear_gradient(Document& document, LayerId layer_id, std::int32_t x0, std::int32_t y0,
                                         std::int32_t x1, std::int32_t y1, const EditOptions& options);
 void expand_layer_to_include_rect(Layer& layer, Rect document_rect);
+// Growth headroom for one stroke on one layer (docs/performance.md). While a reserve is
+// open on this thread, expand_layer_to_include_rect grows that layer well past each
+// requested rect (clamped to `limit`, usually the canvas), so a stroke that leaves a small
+// layer (a pasted one) reallocates a few times instead of on every dab. close() trims the
+// layer back to exactly what per-dab growth gives: its starting bounds united with every
+// requested rect, the same pixels byte for byte. Destroying an unclosed reserve skips the
+// trim. Reserves nest; only the innermost one applies.
+class LayerGrowthReserve {
+ public:
+  LayerGrowthReserve(LayerId layer_id, Rect limit) noexcept;
+  ~LayerGrowthReserve();
+  LayerGrowthReserve(const LayerGrowthReserve&) = delete;
+  LayerGrowthReserve& operator=(const LayerGrowthReserve&) = delete;
+  LayerGrowthReserve(LayerGrowthReserve&&) = delete;
+  LayerGrowthReserve& operator=(LayerGrowthReserve&&) = delete;
+
+  [[nodiscard]] LayerId layer_id() const noexcept { return layer_id_; }
+  // Trims `layer` (the reserved one; any other is left alone) and returns whether its
+  // bounds changed. Further expansion after close() is exact again.
+  bool close(Layer& layer);
+
+ private:
+  friend void expand_layer_to_include_rect(Layer& layer, Rect document_rect);
+  LayerId layer_id_{0};
+  Rect limit_{};
+  Rect exact_{};
+  bool exact_known_{false};
+  bool grown_{false};
+  bool closed_{false};
+  LayerGrowthReserve* previous_{nullptr};
+};
 // Source-over an RGBA8 document-space block through the native pixel writer.
 // The caller has already applied selection coverage to the source alpha.
 // Preserves layer metadata and supports the same palette/alpha-lock rules as painting.

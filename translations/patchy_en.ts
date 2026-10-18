@@ -16284,10 +16284,6 @@ Save your work and close Patchy before running the installer.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Nothing to copy</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Copied %1 layer(s), %2 x %3 px</source>
         <translation type="unfinished"></translation>
     </message>
@@ -21492,6 +21488,22 @@ Patchy can download the update, replace this AppImage, and start again. You will
     </message>
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not complete the Cut command because the selected area is empty.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy command because the selected area is empty.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy Merged command because the selected area is empty.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

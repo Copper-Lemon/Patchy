@@ -17070,10 +17070,6 @@ Save your work and close Patchy before running the installer.</source>
         <translation>Выбранные слои скрыты или недоступны для редактирования; ничего не скопировано</translation>
     </message>
     <message>
-        <source>Nothing to copy</source>
-        <translation>Нечего копировать</translation>
-    </message>
-    <message>
         <source>Copied %1 layer(s), %2 x %3 px</source>
         <translation>Скопировано %1 слоев, %2 x %3 пикселей</translation>
     </message>
@@ -21631,6 +21627,22 @@ Patchy может скачать обновление, заменить этот
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
         <translation>Монтажные области не могут сделать холст больше %1 x %1 px</translation>
+    </message>
+    <message>
+        <source>Could not complete the Cut command because the selected area is empty.</source>
+        <translation>Не удалось выполнить команду «Вырезать»: выделенная область пуста.</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Копировать</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy command because the selected area is empty.</source>
+        <translation>Не удалось выполнить команду «Копировать»: выделенная область пуста.</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy Merged command because the selected area is empty.</source>
+        <translation>Не удалось выполнить команду «Скопировать совмещённые данные»: выделенная область пуста.</translation>
     </message>
 </context>
 <context>

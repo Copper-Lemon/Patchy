@@ -17025,10 +17025,6 @@ Salve seu trabalho e feche o Patchy antes de executar o instalador.</translation
         <translation>As camadas selecionadas estão ocultas ou não podem ser editadas; nada copiado</translation>
     </message>
     <message>
-        <source>Nothing to copy</source>
-        <translation>Nada para copiar</translation>
-    </message>
-    <message>
         <source>Copied %1 layer(s), %2 x %3 px</source>
         <translation>Copiadas %1 camada(s), %2 x %3 px</translation>
     </message>
@@ -21566,6 +21562,22 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
         <translation>As pranchetas não podem deixar a tela maior que %1 x %1 px</translation>
+    </message>
+    <message>
+        <source>Could not complete the Cut command because the selected area is empty.</source>
+        <translation>Não foi possível concluir o comando Recortar porque a área selecionada está vazia.</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Copiar</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy command because the selected area is empty.</source>
+        <translation>Não foi possível concluir o comando Copiar porque a área selecionada está vazia.</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy Merged command because the selected area is empty.</source>
+        <translation>Não foi possível concluir o comando Copiar mesclado porque a área selecionada está vazia.</translation>
     </message>
 </context>
 <context>

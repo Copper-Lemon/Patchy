@@ -16318,10 +16318,6 @@ Guarde su trabajo y cierre Patchy antes de ejecutar el instalador.</translation>
         <translation>Las capas seleccionadas están ocultas o no son editables; no se copió nada</translation>
     </message>
     <message>
-        <source>Nothing to copy</source>
-        <translation>Nada que copiar</translation>
-    </message>
-    <message>
         <source>Copied %1 layer(s), %2 x %3 px</source>
         <translation>%1 capa(s) copiada(s), %2 x %3 px</translation>
     </message>
@@ -21566,6 +21562,22 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
         <translation>Las mesas de trabajo no pueden hacer el lienzo mayor de %1 x %1 px</translation>
+    </message>
+    <message>
+        <source>Could not complete the Cut command because the selected area is empty.</source>
+        <translation>No se pudo completar el comando Cortar porque el área seleccionada está vacía.</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Copiar</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy command because the selected area is empty.</source>
+        <translation>No se pudo completar el comando Copiar porque el área seleccionada está vacía.</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy Merged command because the selected area is empty.</source>
+        <translation>No se pudo completar el comando Copiar combinado porque el área seleccionada está vacía.</translation>
     </message>
 </context>
 <context>

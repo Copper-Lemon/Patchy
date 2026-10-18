@@ -16278,10 +16278,6 @@ Save your work and close Patchy before running the installer.</source>
         <translation>所选图层已隐藏或不可编辑；未拷贝任何内容</translation>
     </message>
     <message>
-        <source>Nothing to copy</source>
-        <translation>没有可拷贝的内容</translation>
-    </message>
-    <message>
         <source>Copied %1 layer(s), %2 x %3 px</source>
         <translation>已拷贝 %1 个图层，%2 x %3 px</translation>
     </message>
@@ -21501,6 +21497,22 @@ Patchy 可以下载更新、替换此 AppImage 并重新启动。在此之前会
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
         <translation>画板不能使画布大于 %1 x %1 px</translation>
+    </message>
+    <message>
+        <source>Could not complete the Cut command because the selected area is empty.</source>
+        <translation>无法完成“剪切”命令，因为选中的区域是空的。</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>拷贝</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy command because the selected area is empty.</source>
+        <translation>无法完成“拷贝”命令，因为选中的区域是空的。</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy Merged command because the selected area is empty.</source>
+        <translation>无法完成“合并拷贝”命令，因为选中的区域是空的。</translation>
     </message>
 </context>
 <context>

@@ -16980,10 +16980,6 @@ Save your work and close Patchy before running the installer.</source>
         <translation>선택한 레이어는 숨겨져 있거나 편집할 수 없습니다. 아무것도 복사되지 않았습니다</translation>
     </message>
     <message>
-        <source>Nothing to copy</source>
-        <translation>복사할 항목이 없습니다.</translation>
-    </message>
-    <message>
         <source>Copied %1 layer(s), %2 x %3 px</source>
         <translation>%1 레이어를 복사했습니다. %2 x %3px</translation>
     </message>
@@ -21501,6 +21497,22 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
         <translation>대지로 캔버스를 %1 x %1 px보다 크게 만들 수 없습니다</translation>
+    </message>
+    <message>
+        <source>Could not complete the Cut command because the selected area is empty.</source>
+        <translation>선택한 영역이 비어 있어 잘라내기 명령을 완료할 수 없습니다.</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>복사</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy command because the selected area is empty.</source>
+        <translation>선택한 영역이 비어 있어 복사 명령을 완료할 수 없습니다.</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy Merged command because the selected area is empty.</source>
+        <translation>선택한 영역이 비어 있어 병합하여 복사 명령을 완료할 수 없습니다.</translation>
     </message>
 </context>
 <context>

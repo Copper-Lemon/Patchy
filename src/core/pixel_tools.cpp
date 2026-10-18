@@ -7,6 +7,7 @@
 #include <array>
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include <limits>
 #include <utility>
 #include <vector>
@@ -1406,40 +1407,146 @@ std::array<float, 4> gradient_color_at_deep(const std::vector<GradientStop>& sor
           static_cast<float>(mixed[3] * opacity)};
 }
 
+namespace {
+
+thread_local LayerGrowthReserve* active_growth_reserve = nullptr;
+
+// `needed` widened on each side it grew past `old_bounds` by half the old size (at least
+// 256 px), clamped to `limit`, never smaller than `needed`.
+[[nodiscard]] Rect growth_with_headroom(Rect old_bounds, Rect needed, Rect limit) noexcept {
+  const auto margin_x = std::max<std::int64_t>(256, old_bounds.width / 2);
+  const auto margin_y = std::max<std::int64_t>(256, old_bounds.height / 2);
+  std::int64_t left = needed.x;
+  std::int64_t top = needed.y;
+  std::int64_t right = static_cast<std::int64_t>(needed.x) + needed.width;
+  std::int64_t bottom = static_cast<std::int64_t>(needed.y) + needed.height;
+  if (needed.x < old_bounds.x) {
+    left = std::max<std::int64_t>(left - margin_x, limit.x);
+  }
+  if (needed.y < old_bounds.y) {
+    top = std::max<std::int64_t>(top - margin_y, limit.y);
+  }
+  if (right > static_cast<std::int64_t>(old_bounds.x) + old_bounds.width) {
+    right = std::min<std::int64_t>(right + margin_x, static_cast<std::int64_t>(limit.x) + limit.width);
+  }
+  if (bottom > static_cast<std::int64_t>(old_bounds.y) + old_bounds.height) {
+    bottom = std::min<std::int64_t>(bottom + margin_y, static_cast<std::int64_t>(limit.y) + limit.height);
+  }
+  const Rect grown{static_cast<std::int32_t>(left), static_cast<std::int32_t>(top),
+                   static_cast<std::int32_t>(std::max<std::int64_t>(0, right - left)),
+                   static_cast<std::int32_t>(std::max<std::int64_t>(0, bottom - top))};
+  return unite_rect(grown, needed);
+}
+
+// The layer's pixels re-homed into `new_bounds` (which holds its bounds), the new area
+// filled the way canvas growth fills it.
+void regrow_layer_pixels(Layer& layer, Rect new_bounds) {
+  const auto& source = std::as_const(layer).pixels();
+  const auto old_bounds = layer.bounds();
+  const auto destination_format = canvas_resized_format_for_layer(layer, source);
+  PixelBuffer expanded(new_bounds.width, new_bounds.height, destination_format);
+  fill_resized_layer_background(expanded, layer);
+  const auto offset_x = old_bounds.x - new_bounds.x;
+  const auto offset_y = old_bounds.y - new_bounds.y;
+  if (destination_format == source.format()) {
+    const auto row_bytes = static_cast<std::size_t>(source.width()) * bytes_per_pixel(source.format());
+    for (std::int32_t y = 0; y < source.height(); ++y) {
+      std::memcpy(expanded.pixel(offset_x, offset_y + y), source.row(y).data(), row_bytes);
+    }
+  } else {
+    for (std::int32_t y = 0; y < source.height(); ++y) {
+      for (std::int32_t x = 0; x < source.width(); ++x) {
+        copy_resized_layer_pixel(source, expanded, x, y, offset_x + x, offset_y + y);
+      }
+    }
+  }
+  layer.set_pixels(std::move(expanded));
+  layer.set_bounds(new_bounds);
+}
+
+}  // namespace
+
+LayerGrowthReserve::LayerGrowthReserve(LayerId layer_id, Rect limit) noexcept
+    : layer_id_(layer_id), limit_(normalized_rect(limit)), previous_(active_growth_reserve) {
+  active_growth_reserve = this;
+}
+
+LayerGrowthReserve::~LayerGrowthReserve() {
+  // Reserves close in reverse order of opening; tolerate one that did not.
+  if (active_growth_reserve == this) {
+    active_growth_reserve = previous_;
+  }
+}
+
+bool LayerGrowthReserve::close(Layer& layer) {
+  if (closed_) {
+    return false;
+  }
+  closed_ = true;
+  if (active_growth_reserve == this) {
+    active_growth_reserve = previous_;
+  }
+  if (layer.id() != layer_id_ || !grown_ || !exact_known_) {
+    return false;
+  }
+  const auto bounds = layer.bounds();
+  const auto& source = std::as_const(layer).pixels();
+  // exact_ lies inside the grown bounds (every growth covered it) unless something else
+  // reshaped the layer meanwhile; then leave it as it is.
+  if (bounds == exact_ || source.empty() || unite_rect(bounds, exact_) != bounds) {
+    return false;
+  }
+  PixelBuffer trimmed(exact_.width, exact_.height, source.format());
+  const auto row_bytes = static_cast<std::size_t>(exact_.width) * bytes_per_pixel(source.format());
+  for (std::int32_t y = 0; y < exact_.height; ++y) {
+    std::memcpy(trimmed.row(y).data(), source.pixel(exact_.x - bounds.x, exact_.y - bounds.y + y), row_bytes);
+  }
+  layer.set_pixels(std::move(trimmed));
+  layer.set_bounds(exact_);
+  return true;
+}
+
 void expand_layer_to_include_rect(Layer& layer, Rect document_rect) {
   document_rect = normalized_rect(document_rect);
   if (document_rect.empty()) {
     return;
   }
+  auto* reserve = active_growth_reserve != nullptr && active_growth_reserve->layer_id_ == layer.id()
+                      ? active_growth_reserve
+                      : nullptr;
 
-  auto& source = layer.pixels();
+  const auto& source = std::as_const(layer).pixels();
   if (source.empty()) {
-    PixelBuffer expanded(document_rect.width, document_rect.height, PixelFormat::rgba8());
+    auto bounds = document_rect;
+    if (reserve != nullptr) {
+      reserve->exact_ = document_rect;
+      reserve->exact_known_ = true;
+      reserve->grown_ = true;
+      bounds = growth_with_headroom(document_rect, document_rect, reserve->limit_);
+    }
+    PixelBuffer expanded(bounds.width, bounds.height, PixelFormat::rgba8());
     expanded.clear(0);
     layer.set_pixels(std::move(expanded));
-    layer.set_bounds(document_rect);
+    layer.set_bounds(bounds);
     return;
   }
 
   const auto old_bounds = layer.bounds();
+  if (reserve != nullptr) {
+    // What per-dab growth would have made of the layer by now.
+    reserve->exact_ = unite_rect(reserve->exact_known_ ? reserve->exact_ : old_bounds, document_rect);
+    reserve->exact_known_ = true;
+  }
   const auto new_bounds = unite_rect(old_bounds, document_rect);
-  if (new_bounds.x == old_bounds.x && new_bounds.y == old_bounds.y && new_bounds.width == old_bounds.width &&
-      new_bounds.height == old_bounds.height) {
+  if (new_bounds == old_bounds) {
     return;
   }
-
-  const auto destination_format = canvas_resized_format_for_layer(layer, source);
-  PixelBuffer expanded(new_bounds.width, new_bounds.height, destination_format);
-  fill_resized_layer_background(expanded, layer);
-
-  for (std::int32_t y = 0; y < source.height(); ++y) {
-    for (std::int32_t x = 0; x < source.width(); ++x) {
-      copy_resized_layer_pixel(source, expanded, x, y, old_bounds.x - new_bounds.x + x, old_bounds.y - new_bounds.y + y);
-    }
+  if (reserve != nullptr) {
+    reserve->grown_ = true;
+    regrow_layer_pixels(layer, growth_with_headroom(old_bounds, new_bounds, reserve->limit_));
+    return;
   }
-
-  layer.set_pixels(std::move(expanded));
-  layer.set_bounds(new_bounds);
+  regrow_layer_pixels(layer, new_bounds);
 }
 
 Rect paint_tip_dab(Document& document, LayerId layer_id, double x, double y, const EditOptions& options,

@@ -1157,7 +1157,36 @@ void CanvasWidget::set_paint_stroke_history_callback(std::function<void(const Pa
   paint_stroke_history_callback_ = std::move(callback);
 }
 
+void CanvasWidget::open_stroke_growth_reserve() {
+  close_stroke_growth_reserve();
+  if (document_ == nullptr || quick_mask_active_ || layer_edit_target_ != LayerEditTarget::Content) {
+    return;
+  }
+  const auto* layer = active_pixel_layer();
+  if (layer == nullptr) {
+    return;
+  }
+  const auto canvas = patchy::Rect::from_size(document_->width(), document_->height());
+  if (unite_rect(layer->bounds(), canvas) == layer->bounds()) {
+    return;  // already covers the canvas: dabs never grow it
+  }
+  stroke_growth_reserve_.emplace(layer->id(), canvas);
+}
+
+void CanvasWidget::close_stroke_growth_reserve() {
+  if (!stroke_growth_reserve_.has_value()) {
+    return;
+  }
+  if (document_ != nullptr) {
+    if (auto* layer = document_->find_layer(stroke_growth_reserve_->layer_id()); layer != nullptr) {
+      static_cast<void>(stroke_growth_reserve_->close(*layer));
+    }
+  }
+  stroke_growth_reserve_.reset();
+}
+
 void CanvasWidget::arm_paint_stroke_history() {
+  open_stroke_growth_reserve();
   paint_stroke_history_armed_ = false;
   if (!paint_stroke_history_callback_ || document_ == nullptr || quick_mask_active_) {
     return;
@@ -1175,6 +1204,7 @@ void CanvasWidget::arm_paint_stroke_history() {
 }
 
 void CanvasWidget::finish_paint_stroke_history() {
+  close_stroke_growth_reserve();
   if (!paint_stroke_history_armed_) {
     return;
   }

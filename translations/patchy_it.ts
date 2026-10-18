@@ -16318,10 +16318,6 @@ Salva il lavoro e chiudi Patchy prima di eseguire il programma di installazione.
         <translation>I livelli selezionati sono nascosti o non modificabili; nulla è stato copiato</translation>
     </message>
     <message>
-        <source>Nothing to copy</source>
-        <translation>Niente da copiare</translation>
-    </message>
-    <message>
         <source>Copied %1 layer(s), %2 x %3 px</source>
         <translation>Copiati %1 livello/i, %2 x %3 px</translation>
     </message>
@@ -21566,6 +21562,22 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
         <translation>Le tavole da disegno non possono rendere il quadro più grande di %1 x %1 px</translation>
+    </message>
+    <message>
+        <source>Could not complete the Cut command because the selected area is empty.</source>
+        <translation>Impossibile completare il comando Taglia perché l&apos;area selezionata è vuota.</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Copia</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy command because the selected area is empty.</source>
+        <translation>Impossibile completare il comando Copia perché l&apos;area selezionata è vuota.</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy Merged command because the selected area is empty.</source>
+        <translation>Impossibile completare il comando Copia unione perché l&apos;area selezionata è vuota.</translation>
     </message>
 </context>
 <context>

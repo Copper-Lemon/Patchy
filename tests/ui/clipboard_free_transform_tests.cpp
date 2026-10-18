@@ -1,7 +1,9 @@
 #include <QClipboard>
 #include <QMenuBar>
+#include <QMessageBox>
 #include <QStatusBar>
 #include "ui/canvas_widget.hpp"
+#include "core/artboard.hpp"
 #include "core/layer_metadata.hpp"
 #include "core/layer_tree.hpp"
 #include "ui/edit_conversions.hpp"
@@ -27,6 +29,7 @@
 #include <QIODevice>
 #include <QPushButton>
 #include <QRegion>
+#include <QTimer>
 #include <QToolBar>
 #include <QUrl>
 #include <algorithm>
@@ -143,6 +146,200 @@ void ui_copy_merged_masks_to_the_selection_shape() {
     CHECK(image.pixelColor(1, 38).alpha() == 0);
   }
   QApplication::clipboard()->clear();
+}
+
+// A hard rectangular marquee, as the script API sets one.
+void select_document_rect(patchy::ui::CanvasWidget& canvas, QSize canvas_size, QRect rect) {
+  patchy::PixelBuffer coverage(canvas_size.width(), canvas_size.height(), patchy::PixelFormat::gray8());
+  coverage.clear(0);
+  for (int y = rect.top(); y <= rect.bottom(); ++y) {
+    for (int x = rect.left(); x <= rect.right(); ++x) {
+      coverage.pixel(x, y)[0] = 255;
+    }
+  }
+  canvas.apply_grayscale_to_selection(coverage);
+  QApplication::processEvents();
+}
+
+// Answers every "selected area is empty" box with OK and counts them.
+struct EmptyCopyBoxCounter {
+  int boxes{0};
+  QTimer timer;
+  EmptyCopyBoxCounter() {
+    timer.setInterval(20);
+    QObject::connect(&timer, &QTimer::timeout, [this] {
+      auto* box = qobject_cast<QMessageBox*>(find_top_level_dialog(QStringLiteral("copyEmptySelectionMessageBox")));
+      if (box == nullptr || !box->isVisible()) {
+        return;
+      }
+      ++boxes;
+      box->button(QMessageBox::Ok)->click();
+    });
+    timer.start();
+  }
+};
+
+// Copy, Cut and Copy Merged over only transparent pixels refuse as Photoshop does ("Could not
+// complete the Copy command because the selected area is empty."): the clipboard keeps what
+// it held, Cut records no undo step, and Paste does not make an invisible layer.
+void ui_copy_over_transparent_pixels_refuses_and_keeps_the_clipboard() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  patchy::Document source(80, 60, patchy::PixelFormat::rgba8());
+  auto paint = solid_pixels(80, 60, patchy::PixelFormat::rgba8(), QColor(Qt::transparent));
+  fill_pixel_rect(paint, QRect(0, 0, 20, 20), QColor(Qt::red));
+  source.add_pixel_layer("Paint", std::move(paint));
+  window.add_document_session(std::move(source), QStringLiteral("Empty copy"));
+  QApplication::processEvents();
+  auto* canvas = require_canvas(window);
+  using Access = patchy::ui::MainWindowTestAccess;
+
+  select_document_rect(*canvas, QSize(80, 60), QRect(0, 0, 20, 20));
+  QApplication::clipboard()->clear();
+  require_action(window, "editCopyAction")->trigger();
+  QApplication::processEvents();
+  CHECK(QApplication::clipboard()->image().size() == QSize(20, 20));
+
+  select_document_rect(*canvas, QSize(80, 60), QRect(40, 30, 30, 20));
+  EmptyCopyBoxCounter counter;
+  const auto undo_depth = Access::active_session_undo_depth(window);
+  for (const auto* action : {"editCopyAction", "editCutAction", "editCopyMergedAction"}) {
+    const auto before = counter.boxes;
+    require_action(window, action)->trigger();
+    QApplication::processEvents();
+    CHECK(counter.boxes == before + 1);
+    CHECK(QApplication::clipboard()->image().size() == QSize(20, 20));
+  }
+  CHECK(Access::active_session_undo_depth(window) == undo_depth);
+
+  // Paste brings back the red square copied first, not an empty layer.
+  const auto layers_before = std::as_const(Access::document(window)).layers().size();
+  require_action(window, "editPasteAction")->trigger();
+  QApplication::processEvents();
+  const auto& document = std::as_const(Access::document(window));
+  CHECK(document.layers().size() == layers_before + 1);
+  const auto* pasted = document.find_layer(document.active_layer_id().value_or(0));
+  CHECK(pasted != nullptr && pasted->pixels().width() == 20 && pasted->pixels().pixel(5, 5)[3] == 255);
+  QApplication::clipboard()->clear();
+}
+
+// Seth's report: a marquee over a black artboard with its transparent Layer 1 active. The
+// black is the artboard's paper, painted by the compositor and stored in no layer, so Copy
+// refuses; Copy Merged copies what shows, paper included.
+void ui_copy_over_artboard_paper_refuses_but_copy_merged_copies_it() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  patchy::Document source(120, 90, patchy::PixelFormat::rgba8());
+  auto board = patchy::make_artboard_group(source.allocate_layer_id(), "Artboard 1", patchy::Rect{0, 0, 120, 90},
+                                           patchy::ArtboardBackground::Black);
+  patchy::Layer layer1(source.allocate_layer_id(), "Layer 1",
+                       solid_pixels(120, 90, patchy::PixelFormat::rgba8(), QColor(Qt::transparent)));
+  const auto layer1_id = layer1.id();
+  board.add_child(std::move(layer1));
+  source.layers().push_back(std::move(board));
+  source.metadata().artboard_settings.emplace();
+  window.add_document_session(std::move(source), QStringLiteral("Black board"));
+  QApplication::processEvents();
+  using Access = patchy::ui::MainWindowTestAccess;
+  Access::select_layers(window, {layer1_id}, layer1_id);
+  QApplication::processEvents();
+  auto* canvas = require_canvas(window);
+  select_document_rect(*canvas, QSize(120, 90), QRect(30, 20, 40, 30));
+
+  EmptyCopyBoxCounter counter;
+  QApplication::clipboard()->clear();
+  require_action(window, "editCopyAction")->trigger();
+  QApplication::processEvents();
+  CHECK(counter.boxes == 1);
+  CHECK(QApplication::clipboard()->image().isNull());
+
+  require_action(window, "editCopyMergedAction")->trigger();
+  QApplication::processEvents();
+  CHECK(counter.boxes == 1);
+  const auto merged = QApplication::clipboard()->image();
+  CHECK(merged.size() == QSize(40, 30));
+  if (merged.size() == QSize(40, 30)) {
+    CHECK(color_close(merged.pixelColor(10, 10), QColor(Qt::black), 4));
+  }
+  QApplication::clipboard()->clear();
+}
+
+// Layer via Copy and Layer via Cut find a layer on an artboard (they used to look only at
+// the top level and report nothing visible) and put the new layer right above it, on the
+// same artboard.
+void ui_layer_via_copy_finds_a_layer_on_an_artboard() {
+  for (const auto* action : {"layerViaCopyAction", "layerViaCutAction"}) {
+    patchy::ui::MainWindow window;
+    show_window(window);
+    patchy::Document source(120, 90, patchy::PixelFormat::rgba8());
+    auto board = patchy::make_artboard_group(source.allocate_layer_id(), "Artboard 1", patchy::Rect{0, 0, 120, 90},
+                                             patchy::ArtboardBackground::White);
+    const auto board_id = board.id();
+    patchy::Layer art(source.allocate_layer_id(), "Art",
+                      solid_pixels(120, 90, patchy::PixelFormat::rgba8(), QColor(Qt::red)));
+    const auto art_id = art.id();
+    board.add_child(std::move(art));
+    source.layers().push_back(std::move(board));
+    source.metadata().artboard_settings.emplace();
+    window.add_document_session(std::move(source), QStringLiteral("Via copy board"));
+    QApplication::processEvents();
+    using Access = patchy::ui::MainWindowTestAccess;
+    Access::select_layers(window, {art_id}, art_id);
+    QApplication::processEvents();
+    select_document_rect(*require_canvas(window), QSize(120, 90), QRect(10, 10, 30, 20));
+
+    require_action(window, action)->trigger();
+    QApplication::processEvents();
+    const auto& document = std::as_const(Access::document(window));
+    const auto new_id = document.active_layer_id().value_or(0);
+    CHECK(new_id != art_id);
+    const auto* created = document.find_layer(new_id);
+    CHECK(created != nullptr && created->bounds() == (patchy::Rect{10, 10, 30, 20}));
+    const auto* owner = patchy::artboard_owning_layer(document, new_id);
+    CHECK(owner != nullptr && owner->id() == board_id);
+    if (owner != nullptr && owner->children().size() == 2U) {
+      CHECK(owner->children()[0].id() == art_id);
+      CHECK(owner->children()[1].id() == new_id);
+    }
+  }
+}
+
+// A stroke that leaves a small layer (a pasted one) grows it with headroom while it paints
+// (LayerGrowthReserve, docs/performance.md) and ends trimmed to exactly the painted area,
+// the same bounds per-dab growth gives: no headroom is left behind.
+void ui_brush_stroke_off_a_small_layer_ends_with_exact_bounds() {
+  patchy::Document document(400, 200, patchy::PixelFormat::rgba8());
+  document.add_pixel_layer("Background", solid_pixels(400, 200, patchy::PixelFormat::rgba8(), QColor(Qt::white)));
+  patchy::Layer pasted(document.allocate_layer_id(), "Pasted Layer",
+                       solid_pixels(40, 40, patchy::PixelFormat::rgba8(), QColor(Qt::transparent)));
+  pasted.set_bounds(patchy::Rect{20, 20, 40, 40});
+  const auto pasted_id = pasted.id();
+  document.add_layer(std::move(pasted));
+
+  patchy::ui::CanvasWidget canvas;
+  canvas.resize(820, 420);
+  canvas.set_document(&document);
+  canvas.set_zoom(1.0);
+  canvas.set_tool(patchy::ui::CanvasTool::Brush);
+  canvas.set_primary_color(QColor(220, 30, 30));
+  canvas.set_brush_size(10);
+  canvas.show();
+  QApplication::processEvents();
+  drag(canvas, canvas.widget_position_for_document_point(QPoint(40, 40)),
+       canvas.widget_position_for_document_point(QPoint(200, 40)));
+  QApplication::processEvents();
+
+  const auto* layer = std::as_const(document).find_layer(pasted_id);
+  CHECK(layer != nullptr);
+  if (layer == nullptr) {
+    return;
+  }
+  const auto bounds = layer->bounds();
+  CHECK(bounds.x == 20 && bounds.y == 20 && bounds.height == 40);
+  CHECK(bounds.x + bounds.width >= 200 && bounds.x + bounds.width <= 210);
+  CHECK(layer->pixels().width() == bounds.width && layer->pixels().height() == bounds.height);
+  const auto* painted = layer->pixels().pixel(150 - bounds.x, 40 - bounds.y);
+  CHECK(painted[3] == 255 && painted[0] > 180);
 }
 
 void ui_open_clipboard_shortcut_keeps_existing_document_and_uses_current_image() {
@@ -2303,10 +2500,13 @@ void ui_layer_via_copy_and_cut_match_photoshop_shortcuts() {
   QApplication::processEvents();
   require_action(window, "layerViaCutAction")->trigger();
   QApplication::processEvents();
-  CHECK(layer_list->item(0)->text() == QStringLiteral("Layer Via Cut"));
+  // Directly above its source, as in Photoshop: under the hidden Layer Via Copy.
+  CHECK(layer_list->item(0)->text() == QStringLiteral("Layer Via Copy"));
+  CHECK(layer_list->item(1)->text() == QStringLiteral("Layer Via Cut"));
+  CHECK(layer_list->item(2)->text() == QStringLiteral("Paint Layer"));
   CHECK(color_close(canvas_pixel(*canvas, QPoint(110, 80)), QColor(245, 30, 30), 45));
 
-  layer_list->item(0)->setCheckState(Qt::Unchecked);
+  layer_list->item(1)->setCheckState(Qt::Unchecked);
   QApplication::processEvents();
   CHECK(process_events_until([canvas] { return canvas->render_settled(); }, 10000));
   const auto revealed = canvas_pixel(*canvas, QPoint(110, 80));
@@ -2699,6 +2899,13 @@ std::vector<patchy::test::TestCase> clipboard_free_transform_tests() {
       {"ui_open_clipboard_creates_unsaved_document_with_exact_pixels",
        ui_open_clipboard_creates_unsaved_document_with_exact_pixels},
       {"ui_copy_merged_masks_to_the_selection_shape", ui_copy_merged_masks_to_the_selection_shape},
+      {"ui_copy_over_transparent_pixels_refuses_and_keeps_the_clipboard",
+       ui_copy_over_transparent_pixels_refuses_and_keeps_the_clipboard},
+      {"ui_copy_over_artboard_paper_refuses_but_copy_merged_copies_it",
+       ui_copy_over_artboard_paper_refuses_but_copy_merged_copies_it},
+      {"ui_layer_via_copy_finds_a_layer_on_an_artboard", ui_layer_via_copy_finds_a_layer_on_an_artboard},
+      {"ui_brush_stroke_off_a_small_layer_ends_with_exact_bounds",
+       ui_brush_stroke_off_a_small_layer_ends_with_exact_bounds},
       {"ui_open_clipboard_shortcut_keeps_existing_document_and_uses_current_image",
        ui_open_clipboard_shortcut_keeps_existing_document_and_uses_current_image},
       {"ui_open_clipboard_rejects_empty_and_non_image_data_without_creating_tabs",

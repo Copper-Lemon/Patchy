@@ -1572,6 +1572,11 @@ private:
   void arm_paint_stroke_history();
   // Emits the Finish event with the collected bounds (no-op when not armed).
   void finish_paint_stroke_history();
+  // The stroke's LayerGrowthReserve (docs/performance.md): opened by arm_paint_stroke_history
+  // for a pixel layer smaller than the canvas, closed (the layer trimmed to its exact
+  // growth) on release and by finish_paint_stroke_history, before the stroke is reported.
+  void open_stroke_growth_reserve();
+  void close_stroke_growth_reserve();
   [[nodiscard]] CanvasTool effective_tool_for_input() const noexcept;
   void clear_brush_stroke_tracking() noexcept;
   void begin_axis_constrained_stroke(QPointF document_point) noexcept;
@@ -2985,6 +2990,7 @@ private:
   // active_edit_target_changed_impl unions every reported region into the rect.
   bool paint_stroke_history_armed_{false};
   PaintStrokeHistoryEvent paint_stroke_history_event_{};
+  std::optional<patchy::LayerGrowthReserve> stroke_growth_reserve_{};
   std::function<void(QString, SelectionSnapshot, bool)> selection_history_callback_;
   std::function<void()> quick_mask_changed_callback_;
   std::function<bool(LayerId, QString, PixelBuffer, QRegion)> smart_filter_mask_committed_callback_;

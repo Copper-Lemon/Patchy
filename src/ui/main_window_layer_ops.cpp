@@ -522,14 +522,18 @@ std::optional<LayerCopyPixels> collect_layer_copy_pixels(const Document& documen
     return std::nullopt;
   }
 
+  // Anywhere in the tree (a layer on an artboard or in a folder), in stack order.
   const std::set<LayerId> selected(ids.begin(), ids.end());
   std::vector<const Layer*> layers_to_copy;
-  for (const auto& layer : document.layers()) {
-    if (!selected.contains(layer.id()) || layer.kind() != LayerKind::Pixel || !layer.visible()) {
-      continue;
+  const auto collect = [&](const auto& self, const std::vector<Layer>& layers) -> void {
+    for (const auto& layer : layers) {
+      if (selected.contains(layer.id()) && layer.kind() == LayerKind::Pixel && layer.visible()) {
+        layers_to_copy.push_back(&layer);
+      }
+      self(self, layer.children());
     }
-    layers_to_copy.push_back(&layer);
-  }
+  };
+  collect(collect, document.layers());
   if (layers_to_copy.empty()) {
     return std::nullopt;
   }
@@ -833,8 +837,7 @@ void MainWindow::cut_selection() {
     return;
   }
 
-  copy_selection();
-  if (!clipboard_.has_value() || clipboard_->pixels.empty()) {
+  if (!copy_selected_pixels(true) || !clipboard_.has_value() || clipboard_->pixels.empty()) {
     return;
   }
 
@@ -873,6 +876,20 @@ void MainWindow::copy_selection() {
     copy_selected_palette_color();
     return;
   }
+  static_cast<void>(copy_selected_pixels(false));
+}
+
+void MainWindow::report_empty_copy_area(const QString& title, const QString& text) {
+  if (unattended_automation()) {
+    show_status_error(text);
+    return;
+  }
+  statusBar()->showMessage(text);
+  static_cast<void>(show_warning_message(this, title, text, QMessageBox::Ok, QMessageBox::Ok,
+                                         QStringLiteral("copyEmptySelectionMessageBox")));
+}
+
+bool MainWindow::copy_selected_pixels(bool cutting) {
   if (canvas_ != nullptr) {
     canvas_->finish_free_transform();
   }
@@ -886,19 +903,19 @@ void MainWindow::copy_selection() {
   }
   if (ids.empty()) {
     show_status_error(tr("Select a layer to copy"));
-    return;
+    return false;
   }
 
   ids = root_drop_layer_ids(document().layers(), ids);
   if (ids.empty()) {
     show_status_error(tr("Select a layer to copy"));
-    return;
+    return false;
   }
 
   const auto selected_layers = find_layers_top_to_bottom(document().layers(), ids);
   if (selected_layers.empty()) {
     show_status_error(tr("Select a layer to copy"));
-    return;
+    return false;
   }
 
   const auto contains_non_pixel_layer =
@@ -930,7 +947,7 @@ void MainWindow::copy_selection() {
       set_system_clipboard_image(rendered);
     }
     statusBar()->showMessage(tr("Copied %1 layer(s)").arg(static_cast<qulonglong>(selected_layers.size())));
-    return;
+    return true;
   }
 
   const std::set<LayerId> selected(ids.begin(), ids.end());
@@ -946,7 +963,7 @@ void MainWindow::copy_selection() {
     clipboard_.reset();
     clear_system_clipboard();
     statusBar()->showMessage(tr("Selected layers are hidden or not editable; nothing copied"));
-    return;
+    return false;
   }
 
   Rect copy_rect;
@@ -957,12 +974,18 @@ void MainWindow::copy_selection() {
       copy_rect = unite_rect(copy_rect, layer->bounds());
     }
   }
+  const auto report_empty = [this, cutting] {
+    if (cutting) {
+      report_empty_copy_area(tr("Cut"), tr("Could not complete the Cut command because the selected area is empty."));
+    } else {
+      report_empty_copy_area(tr("Copy"),
+                             tr("Could not complete the Copy command because the selected area is empty."));
+    }
+  };
   copy_rect = intersect_copy_rect(copy_rect, Rect::from_size(document().width(), document().height()));
   if (copy_rect.empty()) {
-    clipboard_.reset();
-    clear_system_clipboard();
-    statusBar()->showMessage(tr("Nothing to copy"));
-    return;
+    report_empty();
+    return false;
   }
 
   PixelBuffer copied;
@@ -980,6 +1003,12 @@ void MainWindow::copy_selection() {
     copied = pixels_from_image_at_depth(image, std::as_const(document()).color_state().bit_depth);
     apply_selection_mask(copied, copy_rect, *canvas_);
   }
+  // Only transparent pixels under the marquee (artboard paper is the compositor's, not a
+  // layer's): Photoshop refuses, and so do we, rather than pasting an invisible layer.
+  if (!has_visible_pixels(copied)) {
+    report_empty();
+    return false;
+  }
 
   clipboard_ = ClipboardPayload{std::move(copied), QPoint(copy_rect.x, copy_rect.y)};
   set_system_clipboard_image(display_qimage_from_pixel_buffer(clipboard_->pixels));
@@ -988,6 +1017,7 @@ void MainWindow::copy_selection() {
           .arg(static_cast<qulonglong>(layers_to_copy.size()))
           .arg(copy_rect.width)
           .arg(copy_rect.height));
+  return true;
 }
 
 void MainWindow::copy_merged() {
@@ -998,8 +1028,12 @@ void MainWindow::copy_merged() {
   if (canvas_->selected_document_rect().has_value()) {
     copy_rect = intersect_copy_rect(copy_rect, to_core_rect(*canvas_->selected_document_rect()));
   }
+  const auto report_empty = [this] {
+    report_empty_copy_area(tr("Copy Merged"),
+                           tr("Could not complete the Copy Merged command because the selected area is empty."));
+  };
   if (copy_rect.empty()) {
-    statusBar()->showMessage(tr("Nothing to copy"));
+    report_empty();
     return;
   }
 
@@ -1013,6 +1047,10 @@ void MainWindow::copy_merged() {
   // The selection's shape, not just its bounding box (a lasso or Object Selection), with soft
   // edges kept: the same mask Copy applies.
   apply_selection_mask(copied, copy_rect, *canvas_);
+  if (!has_visible_pixels(copied)) {
+    report_empty();
+    return;
+  }
   clipboard_ = ClipboardPayload{std::move(copied), QPoint(copy_rect.x, copy_rect.y)};
   set_system_clipboard_image(display_qimage_from_pixel_buffer(clipboard_->pixels));
   statusBar()->showMessage(tr("Copied merged %1 x %2 px").arg(copy_rect.width).arg(copy_rect.height));
@@ -1390,7 +1428,10 @@ void MainWindow::layer_via_copy() {
   push_undo_snapshot(tr("Layer via copy"));
   Layer copied(doc.allocate_layer_id(), tr("Layer Via Copy").toStdString(), payload->pixels);
   copied.set_bounds(Rect{payload->origin.x(), payload->origin.y(), copied.pixels().width(), copied.pixels().height()});
-  doc.add_layer(std::move(copied));
+  // Directly above the topmost source, so a layer on an artboard or in a folder stays there.
+  const auto copied_id = copied.id();
+  insert_layer_after_anchor(doc, std::move(copied), payload->source_layer_ids.back());
+  doc.set_active_layer(copied_id);
   refresh_layer_list();
   refresh_layer_controls();
   canvas_->document_changed(to_qrect(payload->document_rect));
@@ -1439,7 +1480,9 @@ void MainWindow::layer_via_cut() {
 
   Layer cut_layer(doc.allocate_layer_id(), tr("Layer Via Cut").toStdString(), std::move(payload->pixels));
   cut_layer.set_bounds(Rect{payload->origin.x(), payload->origin.y(), cut_layer.pixels().width(), cut_layer.pixels().height()});
-  doc.add_layer(std::move(cut_layer));
+  const auto cut_id = cut_layer.id();
+  insert_layer_after_anchor(doc, std::move(cut_layer), payload->source_layer_ids.back());
+  doc.set_active_layer(cut_id);
   refresh_layer_list();
   refresh_layer_controls();
   canvas_->document_changed(to_qrect(affected));

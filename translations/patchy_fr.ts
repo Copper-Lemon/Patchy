@@ -16318,10 +16318,6 @@ Enregistrez votre travail et fermez Patchy avant de lancer le programme d&apos;i
         <translation>Les calques sélectionnés sont masqués ou non modifiables ; rien n&apos;a été copié</translation>
     </message>
     <message>
-        <source>Nothing to copy</source>
-        <translation>Rien à copier</translation>
-    </message>
-    <message>
         <source>Copied %1 layer(s), %2 x %3 px</source>
         <translation>%1 calque(s) copié(s), %2 x %3 px</translation>
     </message>
@@ -21566,6 +21562,22 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
         <translation>Les plans de travail ne peuvent pas agrandir la zone de travail au-delà de %1 x %1 px</translation>
+    </message>
+    <message>
+        <source>Could not complete the Cut command because the selected area is empty.</source>
+        <translation>Impossible d&apos;exécuter la commande Couper, car la zone sélectionnée est vide.</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Copier</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy command because the selected area is empty.</source>
+        <translation>Impossible d&apos;exécuter la commande Copier, car la zone sélectionnée est vide.</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy Merged command because the selected area is empty.</source>
+        <translation>Impossible d&apos;exécuter la commande Copier avec fusion, car la zone sélectionnée est vide.</translation>
     </message>
 </context>
 <context>

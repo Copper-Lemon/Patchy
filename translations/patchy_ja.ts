@@ -14888,10 +14888,6 @@ To update, paste this into a terminal:
         <translation>選択したレイヤーは非表示または編集不可のため、コピーしませんでした</translation>
     </message>
     <message>
-        <source>Nothing to copy</source>
-        <translation>コピーするものがありません</translation>
-    </message>
-    <message>
         <source>Copied %1 layer(s), %2 x %3 px</source>
         <translation>%1 個のレイヤーをコピーしました、%2 x %3 px</translation>
     </message>
@@ -21501,6 +21497,22 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
     <message>
         <source>Artboards cannot make the canvas larger than %1 x %1 px</source>
         <translation>アートボードでキャンバスを %1 x %1 px より大きくすることはできません</translation>
+    </message>
+    <message>
+        <source>Could not complete the Cut command because the selected area is empty.</source>
+        <translation>選択範囲が空のため、「カット」を完了できませんでした。</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>コピー</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy command because the selected area is empty.</source>
+        <translation>選択範囲が空のため、「コピー」を完了できませんでした。</translation>
+    </message>
+    <message>
+        <source>Could not complete the Copy Merged command because the selected area is empty.</source>
+        <translation>選択範囲が空のため、「結合部分をコピー」を完了できませんでした。</translation>
     </message>
 </context>
 <context>

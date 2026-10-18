@@ -1043,6 +1043,13 @@ private:
   void cut_selection();
   void copy_selection();
   void copy_merged();
+  // Copy's work after the picker and Palette routing; false when nothing reached the
+  // clipboard (a marquee over transparent pixels keeps the previous clipboard, as in
+  // Photoshop). `cutting` only picks the refusal's wording.
+  bool copy_selected_pixels(bool cutting);
+  // "Could not complete the <command> command because the selected area is empty.": a
+  // warning box, or a status error when unattended.
+  void report_empty_copy_area(const QString& title, const QString& text);
   void paste_clipboard(bool in_place = false);
   void clear_system_clipboard();
   void set_system_clipboard_image(const QImage& image);
