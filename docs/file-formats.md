@@ -77,9 +77,9 @@ Everything except PSD/Aseprite flat-exports through `write_flat_image_file`. `Im
 
 ## Save progress
 
-Save, Save As and Export Flat Image run their writer through `MainWindow::run_save_write` (`SaveHost::run_write` from `DocumentSaveCoordinator::write_prepared`). A save that passes 400 ms (`PATCHY_SAVE_PROGRESS_DELAY_MS` overrides it for tests) shows `saveProgressDialog`. While it runs, user input waits, but paint and timers keep going. PSD/PSB and the raster formats write a copy-on-write snapshot on a worker thread (`launch_async`, inline on wasm), which is how recovery writes. The writer reports through `SaveProgress`:
+Save, Save As and Export Flat Image (every format but SVG and Aseprite) run their writer through `MainWindow::run_save_write` (`SaveHost::run_write` from `DocumentSaveCoordinator::write_prepared`). A save that passes 400 ms (`PATCHY_SAVE_PROGRESS_DELAY_MS` overrides it for tests) shows `saveProgressDialog`. While it runs, user input waits, but paint and timers keep going. PSD/PSB and the raster formats write a copy-on-write snapshot on a worker thread (`launch_async`, inline on wasm), which is how recovery writes. The writer reports through `SaveProgress`:
 - PSD: `psd::WriteOptions::progress` reports compositing, then each top-level layer by name (an artboard's name on an artboard document), then writing. It never changes the bytes (`psd_write_progress_reports_layers_and_keeps_bytes`).
-- PDF: writes on the UI thread, because its editable pages paint text through Qt, and reports each page through `report_save_progress` (`ScopedSaveProgress`); each report pumps the dialog.
+- PDF: reports each page through `report_save_progress` (`ScopedSaveProgress`). PDF writes on the worker too, editable pages included: Qt paints text on a non-GUI thread, and the font caches the text painter shares with the UI (`text_font_service.cpp`) are locked.
 
 Scripted and unattended saves never show the dialog. Test: `ui_save_shows_progress_with_artboard_names`.
 

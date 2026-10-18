@@ -21562,6 +21562,18 @@ Patchy 可以下載更新、取代這個 AppImage 並重新啟動。在此之前
         <source>Crop does not apply to a document with artboards; resize an artboard with the Artboard tool</source>
         <translation>裁切不適用於含工作區域的文件；請使用工作區域工具調整工作區域大小</translation>
     </message>
+    <message>
+        <source>Preparing page images...</source>
+        <translation>正在準備頁面影像...</translation>
+    </message>
+    <message>
+        <source>Opening PDF</source>
+        <translation>正在開啟 PDF</translation>
+    </message>
+    <message>
+        <source>Preparing page image %1 of %2...</source>
+        <translation>正在準備第 %1 頁影像（共 %2 頁）...</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

@@ -9,6 +9,8 @@
 #include "psd/psd_text_engine_block.hpp"
 #include "psd/psd_text_runs.hpp"
 
+#include <QMutex>
+#include <mutex>
 #include <QApplication>
 #include <QByteArray>
 #include <QDir>
@@ -143,15 +145,24 @@ std::optional<AvailableTextFamilyStyle> font_database_family_style_split(const Q
 // suites stay hermetic.
 std::optional<AvailableTextFamilyStyle> platform_installed_family_style_match(const QString& requested,
                                                                               bool consult_name_tables) {
+  // Locked: PDF saves draw text on a worker thread (docs/file-formats.md, "Save progress").
   static QHash<QString, std::optional<AvailableTextFamilyStyle>> cache;
-  static bool invalidation_connected = false;
-  if (!invalidation_connected && qGuiApp != nullptr) {
-    invalidation_connected = true;
-    QObject::connect(qGuiApp, &QGuiApplication::fontDatabaseChanged, qGuiApp, [] { cache.clear(); });
+  static QMutex cache_mutex;
+  static std::once_flag invalidation_connected;
+  if (qGuiApp != nullptr) {
+    std::call_once(invalidation_connected, [] {
+      QObject::connect(qGuiApp, &QGuiApplication::fontDatabaseChanged, qGuiApp, [] {
+        const QMutexLocker lock(&cache_mutex);
+        cache.clear();
+      });
+    });
   }
   const auto cache_key = requested.toCaseFolded() + (consult_name_tables ? QStringLiteral("|names") : QString());
-  if (const auto it = cache.constFind(cache_key); it != cache.constEnd()) {
-    return *it;
+  {
+    const QMutexLocker lock(&cache_mutex);
+    if (const auto it = cache.constFind(cache_key); it != cache.constEnd()) {
+      return *it;
+    }
   }
   std::optional<AvailableTextFamilyStyle> match;
   if (const auto installed = psd::installed_font_for_name(requested.toUtf8().toStdString());
@@ -192,7 +203,10 @@ std::optional<AvailableTextFamilyStyle> platform_installed_family_style_match(co
       match = AvailableTextFamilyStyle{indexed->family, indexed->style};
     }
   }
-  cache.insert(cache_key, match);
+  {
+    const QMutexLocker lock(&cache_mutex);
+    cache.insert(cache_key, match);
+  }
   return match;
 }
 
@@ -251,13 +265,19 @@ QStringList available_text_family_styles(const QString& family) {
   // Rebuilt on every caret move via the options-bar sync, so cache per family. User font drops
   // and the registry fallback registration both fire fontDatabaseChanged, which resets it.
   static QHash<QString, QStringList> cache;
-  static bool invalidation_connected = false;
-  if (!invalidation_connected && qGuiApp != nullptr) {
-    invalidation_connected = true;
-    QObject::connect(qGuiApp, &QGuiApplication::fontDatabaseChanged, qGuiApp, [] { cache.clear(); });
+  static QMutex cache_mutex;  // PDF saves draw text on a worker thread
+  static std::once_flag invalidation_connected;
+  if (qGuiApp != nullptr) {
+    std::call_once(invalidation_connected, [] {
+      QObject::connect(qGuiApp, &QGuiApplication::fontDatabaseChanged, qGuiApp, [] {
+        const QMutexLocker lock(&cache_mutex);
+        cache.clear();
+      });
+    });
   }
   const auto resolved = canonical_text_display_family(family);
   const auto cache_key = resolved.toCaseFolded();
+  const QMutexLocker lock(&cache_mutex);
   if (const auto it = cache.constFind(cache_key); it != cache.constEnd()) {
     return *it;
   }

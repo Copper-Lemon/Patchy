@@ -278,8 +278,13 @@ QString format_image_size_bytes(std::int32_t width, std::int32_t height, PixelFo
 // The preview's source: the flattened document as RGBA8, reduced once (smoothly) to at
 // most four times the preview box when larger, since the box cannot show more detail;
 // a small document keeps its exact pixels so an enlargement previews true.
-PixelBuffer image_size_preview_source(const Document& document, QSize preview_size) {
-  auto image = qimage_from_document(document, true).convertToFormat(QImage::Format_RGBA8888);
+PixelBuffer image_size_preview_source(const Document& document, QSize preview_size, const QImage& composite) {
+  // The canvas's current composite when it has one: compositing a 365 Mpx page grid again
+  // kept the dialog from opening for seconds.
+  auto image = (!composite.isNull() && composite.size() == QSize(document.width(), document.height())
+                    ? composite
+                    : qimage_from_document(document, true))
+                   .convertToFormat(QImage::Format_RGBA8888);
   const QSize bound = preview_size * 4;
   if (image.width() > bound.width() || image.height() > bound.height()) {
     image = image.scaled(bound, Qt::KeepAspectRatio, Qt::SmoothTransformation).convertToFormat(QImage::Format_RGBA8888);
@@ -333,7 +338,8 @@ ThemedQss canvas_color_swatch_style(QColor color) {
                           .arg(color.blue()));
 }
 
-std::optional<ImageSizeSettings> request_image_size_settings(QWidget* parent, const Document& document) {
+std::optional<ImageSizeSettings> request_image_size_settings(QWidget* parent, const Document& document,
+                                                            const QImage& composite = {}) {
   QDialog dialog(parent);
   dialog.setObjectName(QStringLiteral("patchyImageSizeDialog"));
   dialog.setWindowTitle(QObject::tr("Image Size"));
@@ -406,7 +412,7 @@ std::optional<ImageSizeSettings> request_image_size_settings(QWidget* parent, co
   preview->setFixedSize(276, 304);
   preview->setAlignment(Qt::AlignCenter);
   // Flattened once; every size or method change re-resamples it (update_summary).
-  const auto preview_source = image_size_preview_source(document, preview->size());
+  const auto preview_source = image_size_preview_source(document, preview->size(), composite);
   body->addWidget(preview, 0, Qt::AlignTop);
 
   auto* controls = new QWidget(&dialog);
@@ -1425,7 +1431,8 @@ void MainWindow::resize_image_dialog() {
   // resampled and its text layers re-rendered (docs/text-tool.md, mutating actions).
   finish_active_text_editor();
   auto& doc = document();
-  const auto settings = request_image_size_settings(this, doc);
+  const auto settings =
+      request_image_size_settings(this, doc, canvas_ != nullptr ? canvas_->current_composite() : QImage());
   if (!settings.has_value()) {
     return;
   }

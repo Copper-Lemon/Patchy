@@ -21692,6 +21692,18 @@ Patchy может скачать обновление, заменить этот
         <source>Crop does not apply to a document with artboards; resize an artboard with the Artboard tool</source>
         <translation>Кадрирование не применяется к документу с монтажными областями; измените размер монтажной области инструментом «Монтажная область»</translation>
     </message>
+    <message>
+        <source>Preparing page images...</source>
+        <translation>Подготовка изображений страниц...</translation>
+    </message>
+    <message>
+        <source>Opening PDF</source>
+        <translation>Открытие PDF</translation>
+    </message>
+    <message>
+        <source>Preparing page image %1 of %2...</source>
+        <translation>Подготовка изображения страницы %1 из %2...</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

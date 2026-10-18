@@ -20,6 +20,8 @@ Reference file: 86 MB, 85 pages, each one 3496x5019 8-bit gray JPEG 2000 image (
 
 Timing caveat: `run-throttled.bat` runs at below-normal priority, and on a hybrid CPU Windows moves sustained background-priority work to the E-cores after about 3 s, so the same render reads 490 ms early in a run and 1100 ms later. Judge import changes by the non-render stages, or by one real open with `PATCHY_UI_PROFILE=1`.
 
+Editable export of a big canvas: each raster chunk composites only its own render area (`flatten_document_rgba8_rect`, the compositor's clip) in horizontal bands of about 4 Mpx on workers (`flatten_area_in_bands`, pdf_export_editable.cpp). It used to flatten the whole canvas once per layer: on a 25554 x 14296 page grid that was 1.1 s per page image and 14 s for a canvas-sized layer, 41 s for the save. Opening an editable PDF decodes and resamples its page images (`render_pending_pdf_image_layers`) on workers, four at a time to bound memory, behind `pdfPageImagesProgressDialog` once the wait passes 400 ms.
+
 Not done, in order of what they would buy on a long scanned PDF:
 - **Multi-process rendering.** PDFium's lock is per process, so N render-worker `patchy.exe` processes would cut the 85-page open from about 45 s to under 10 s here. Needs an early `main()` branch ahead of single-instance forwarding, a password channel off the command line, crash/cancel handling, and an in-process fallback.
 - **Lazy page documents.** Decode a page's pixels the first time it is shown or edited (pass-through never needs untouched pixels); every reader of a document (thumbnails, scripts, commands) would have to cope with a pixel-less session.

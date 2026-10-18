@@ -21627,6 +21627,18 @@ O Patchy pode baixar a atualização, substituir este AppImage e iniciar novamen
         <source>Crop does not apply to a document with artboards; resize an artboard with the Artboard tool</source>
         <translation>Cortar não se aplica a um documento com pranchetas; redimensione uma prancheta com a ferramenta Prancheta</translation>
     </message>
+    <message>
+        <source>Preparing page images...</source>
+        <translation>Preparando as imagens das páginas...</translation>
+    </message>
+    <message>
+        <source>Opening PDF</source>
+        <translation>Abrindo PDF</translation>
+    </message>
+    <message>
+        <source>Preparing page image %1 of %2...</source>
+        <translation>Preparando a imagem de página %1 de %2...</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

@@ -619,10 +619,32 @@ void artboard_canvas_limits_background_and_masked_conversion() {
         converted.children()[0].vector_mask() != nullptr);
 }
 
+// flatten_document_rgba8_rect (the editable PDF writer's per-chunk and banded composite)
+// equals the same rect cut from the full flatten, across artboard clips, a blended and
+// faded artboard, spill and a loose layer.
+void artboard_rect_flatten_matches_the_full_flatten() {
+  const auto document = clip_scene();
+  const auto full = patchy::flatten_document_rgba8(document);
+  for (const auto rect : {Rect{0, 0, 750, 380}, Rect{180, 40, 400, 300}, Rect{440, 0, 20, 380},
+                          Rect{700, 360, 200, 200}, Rect{0, 125, 750, 1}}) {
+    const auto clipped = patchy::intersect_rect(rect, Rect{0, 0, 750, 380});
+    const auto part = patchy::flatten_document_rgba8_rect(document, rect);
+    CHECK(part.width() == clipped.width && part.height() == clipped.height);
+    bool same = part.width() == clipped.width && part.height() == clipped.height;
+    for (std::int32_t y = 0; same && y < clipped.height; ++y) {
+      for (std::int32_t x = 0; same && x < clipped.width; ++x) {
+        same = std::equal(part.pixel(x, y), part.pixel(x, y) + 4, full.pixel(clipped.x + x, clipped.y + y));
+      }
+    }
+    CHECK(same);
+  }
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> artboard_tests() {
   return {
+      {"artboard_rect_flatten_matches_the_full_flatten", artboard_rect_flatten_matches_the_full_flatten},
       {"artboard_model_names_order_and_lookup", artboard_model_names_order_and_lookup},
       {"artboard_canvas_limits_background_and_masked_conversion",
        artboard_canvas_limits_background_and_masked_conversion},

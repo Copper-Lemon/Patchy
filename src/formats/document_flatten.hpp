@@ -12,6 +12,11 @@ namespace patchy {
 // document alpha exports non-destructively: the original colors stay intact and the mask
 // becomes the alpha channel, matching the BMP/PNG export semantics.
 [[nodiscard]] PixelBuffer flatten_document_rgba8(const Document& document);
+// The same composite limited to `rect` (clipped to the canvas): a rect-sized buffer whose
+// (0, 0) is rect's top-left; empty when nothing is left. The compositor's clip keeps effects
+// that reach into the rect, so it matches the full flatten's pixels there. Skips the
+// native-CMYK and single-masked-layer shortcuts unless rect is the whole canvas.
+[[nodiscard]] PixelBuffer flatten_document_rgba8_rect(const Document& document, Rect rect);
 
 struct IndexedFlattenResult {
   std::int32_t width{0};

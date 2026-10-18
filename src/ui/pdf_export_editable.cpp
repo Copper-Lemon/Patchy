@@ -2,16 +2,21 @@
 #include "ui/pdf_export.hpp"
 
 #include "core/layer_metadata.hpp"
+#include "core/layer_render_utils.hpp"
 #include "core/pattern_resource.hpp"
 #include "core/vector_shape.hpp"
 #include "formats/document_flatten.hpp"
 #include "formats/pdf_text_merge.hpp"
 #include "formats/vector_export_plan.hpp"
+#include "ui/background_workers.hpp"
 #include "ui/edit_conversions.hpp"
 #include "ui/qt_paths.hpp"
 #include "ui/text_layer_painter.hpp"
 #include "ui/ui_profile.hpp"
 
+#include <cstring>
+#include <future>
+#include <thread>
 #include <QBrush>
 #include <QColor>
 #include <QFile>
@@ -49,6 +54,37 @@
 // the walk is forward with no reversal.
 namespace patchy::ui::pdf_detail {
 namespace {
+
+// flatten_document_rgba8_rect over `area` in horizontal bands on workers (each band its own
+// buffer; the layers are only read), then stitched: a 365 Mpx page grid's background took
+// 14 s as one band. The compositor's clip makes the bands match one flatten.
+PixelBuffer flatten_area_in_bands(const Document& scratch, Rect area) {
+  constexpr std::int64_t kBandPixels = 4'000'000;
+  const auto total = static_cast<std::int64_t>(area.width) * area.height;
+  const int workers = kBackgroundWorkRunsInline ? 1 : std::max(1, static_cast<int>(std::thread::hardware_concurrency()));
+  const int bands = static_cast<int>(std::clamp<std::int64_t>(total / kBandPixels, 1, std::min(workers, area.height)));
+  if (bands <= 1) {
+    return flatten_document_rgba8_rect(scratch, area);
+  }
+  std::vector<std::future<PixelBuffer>> parts;
+  std::vector<Rect> rects;
+  for (int band = 0; band < bands; ++band) {
+    const int top = area.y + static_cast<int>(static_cast<std::int64_t>(area.height) * band / bands);
+    const int bottom = area.y + static_cast<int>(static_cast<std::int64_t>(area.height) * (band + 1) / bands);
+    rects.push_back(Rect{area.x, top, area.width, bottom - top});
+    parts.push_back(launch_async([&scratch, rect = rects.back()] { return flatten_document_rgba8_rect(scratch, rect); }));
+  }
+  PixelBuffer stitched(area.width, area.height, PixelFormat::rgba8());
+  const auto row_bytes = static_cast<std::size_t>(area.width) * 4U;
+  for (std::size_t index = 0; index < parts.size(); ++index) {
+    const auto part = parts[index].get();
+    for (int y = 0; y < part.height(); ++y) {
+      std::memcpy(stitched.row(rects[index].y - area.y + y).data(), std::as_const(part).row(y).data(), row_bytes);
+    }
+  }
+  return stitched;
+}
+
 
 using vector_export::Unit;
 
@@ -320,16 +356,26 @@ struct Writer {
   void emit_raster_chunk(std::vector<Layer> layers, double opacity) {
     Document scratch(document.width(), document.height(), PixelFormat::rgba8());
     scratch.metadata().patterns = document.metadata().patterns;
+    // Only the chunk's own render area composites: a canvas-sized flatten per layer cost
+    // over a second each on a grid of scanned pages (docs/pdf-performance.md).
+    Rect area;
     for (auto& layer : layers) {
+      area = unite_rect(area, layer_render_bounds(std::as_const(layer)));
       scratch.add_layer(std::move(layer));
     }
     const auto flatten_started = std::chrono::steady_clock::now();
-    const auto pixels = flatten_document_rgba8(scratch);
-    const auto bounds = vector_export::opaque_bounds(pixels);
+    area = intersect_rect(area, Rect::from_size(document.width(), document.height()));
+    if (area.empty()) {
+      return;
+    }
+    const auto pixels = flatten_area_in_bands(scratch, area);
+    auto bounds = vector_export::opaque_bounds(pixels);
     if (!bounds.has_value()) {
       return;  // nothing visible, nothing to embed
     }
     const QImage image = display_qimage_from_pixel_buffer(vector_export::crop_pixels(pixels, *bounds));
+    bounds->x += area.x;
+    bounds->y += area.y;
     log_ui_profile("pdf_export.raster_chunk_flatten",
                    std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - flatten_started).count());
     const UiProfileScope profile_scope("pdf_export.raster_chunk_draw");

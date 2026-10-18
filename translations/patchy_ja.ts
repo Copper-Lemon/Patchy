@@ -21562,6 +21562,18 @@ Patchy はアップデートをダウンロードし、この AppImage を置き
         <source>Crop does not apply to a document with artboards; resize an artboard with the Artboard tool</source>
         <translation>アートボードのあるドキュメントには切り抜きは適用されません。アートボードのサイズはアートボードツールで変更してください</translation>
     </message>
+    <message>
+        <source>Preparing page images...</source>
+        <translation>ページ画像を準備中...</translation>
+    </message>
+    <message>
+        <source>Opening PDF</source>
+        <translation>PDF を開いています</translation>
+    </message>
+    <message>
+        <source>Preparing page image %1 of %2...</source>
+        <translation>ページ画像 %1 / %2 を準備中...</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

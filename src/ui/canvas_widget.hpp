@@ -858,6 +858,10 @@ public:
   // pending and no fire-and-forget async refresh in flight. Used by the
   // profiling stress test's settle loop.
   [[nodiscard]] bool render_settled() const noexcept;
+  // The full composite the canvas shows, when it is current (null otherwise): dialogs that
+  // need a picture of the whole document (Image Size's preview) reuse it instead of
+  // compositing again.
+  [[nodiscard]] QImage current_composite() const;
   // A deferred Move commit is still rendering its accurate patches.
   [[nodiscard]] bool move_commit_job_pending() const noexcept;
   void set_vector_preview_enabled(bool enabled);

@@ -21562,6 +21562,18 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
         <source>Crop does not apply to a document with artboards; resize an artboard with the Artboard tool</source>
         <translation>대지가 있는 문서에는 자르기가 적용되지 않습니다. 대지 도구로 대지의 크기를 조정하세요</translation>
     </message>
+    <message>
+        <source>Preparing page images...</source>
+        <translation>페이지 이미지 준비 중...</translation>
+    </message>
+    <message>
+        <source>Opening PDF</source>
+        <translation>PDF 여는 중</translation>
+    </message>
+    <message>
+        <source>Preparing page image %1 of %2...</source>
+        <translation>페이지 이미지 %1/%2 준비 중...</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

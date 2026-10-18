@@ -1598,6 +1598,14 @@ void CanvasWidget::patch_display_mips(const std::vector<RenderedDocumentPatch>& 
   }
 }
 
+QImage CanvasWidget::current_composite() const {
+  if (document_ == nullptr || render_cache_dirty_ || render_cache_.isNull() ||
+      render_cache_.size() != QSize(document_->width(), document_->height())) {
+    return {};
+  }
+  return render_cache_;
+}
+
 int CanvasWidget::display_mip_levels_for_testing() const noexcept {
   return static_cast<int>(display_mip_cache_.size());
 }

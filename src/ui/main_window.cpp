@@ -60,6 +60,7 @@
 #include <QDragMoveEvent>
 #include <QDropEvent>
 #include <QElapsedTimer>
+#include <QProgressDialog>
 #include <QEvent>
 #include <QEventLoop>
 #include <QFileInfo>
@@ -179,6 +180,8 @@
 
 
 #include <algorithm>
+#include <thread>
+#include <deque>
 #include <array>
 #include <chrono>
 #include <cstddef>
@@ -8925,7 +8928,13 @@ void MainWindow::record_text_layout_metrics_for_reopened_text(Document& target) 
 }
 
 void MainWindow::render_pending_pdf_image_layers(Document& target) {
-  const auto process = [&](auto&& self, std::vector<Layer>& layers) -> void {
+  struct Job {
+    Layer* layer;
+    SmartObjectPlacement placement;
+    const SmartObjectSource* source;
+  };
+  std::vector<Job> jobs;
+  const auto collect = [&](auto&& self, std::vector<Layer>& layers) -> void {
     for (auto& layer : layers) {
       if (!layer.children().empty()) {
         self(self, layer.children());
@@ -8939,24 +8948,90 @@ void MainWindow::render_pending_pdf_image_layers(Document& target) {
       if (!placement.has_value()) {
         continue;
       }
-      const auto* source = target.metadata().smart_objects.find(placement->uuid);
+      const auto* source = std::as_const(target).metadata().smart_objects.find(placement->uuid);
       if (source == nullptr) {
         continue;
       }
-      const auto image = decode_smart_object_source_image(*source);
-      if (!image.has_value()) {
-        continue;
-      }
-      auto rendered = render_smart_object_pixels(*image, *placement, CanvasWidget::TransformInterpolation::Bicubic);
-      if (!rendered.has_value()) {
-        continue;
-      }
-      layer.set_pixels(pixels_from_image_at_depth(rendered->image, target.color_state().bit_depth));
-      layer.set_bounds(rendered->bounds);
-      metadata[kLayerMetadataSmartObjectRasterStatus] = kSmartObjectRasterStatusPatchy;
+      jobs.push_back({&layer, *placement, source});
     }
   };
-  process(process, target.layers());
+  collect(collect, target.layers());
+
+  // Decoding and resampling every page image was most of an open's wait (16 scanned pages,
+  // about 0.4 s each, all on this thread). They run on workers, a few at a time to bound
+  // memory, while this thread keeps painting a progress dialog once the wait is noticeable.
+  // The document is not attached to a session yet, so nothing else touches it meanwhile.
+  using Result = std::optional<std::pair<PixelBuffer, Rect>>;
+  const auto depth = std::as_const(target).color_state().bit_depth;
+  const auto decode = [depth](const SmartObjectSource* source, SmartObjectPlacement placement) -> Result {
+    const auto image = decode_smart_object_source_image(*source);
+    if (!image.has_value()) {
+      return std::nullopt;
+    }
+    auto rendered = render_smart_object_pixels(*image, placement, CanvasWidget::TransformInterpolation::Bicubic);
+    if (!rendered.has_value()) {
+      return std::nullopt;
+    }
+    return std::make_pair(pixels_from_image_at_depth(rendered->image, depth), rendered->bounds);
+  };
+  const std::size_t window = std::max<std::size_t>(1, std::min<std::size_t>(4, std::thread::hardware_concurrency() / 2));
+  std::deque<std::future<Result>> pending;
+  std::unique_ptr<QProgressDialog> progress;
+  QElapsedTimer clock;
+  clock.start();
+  std::size_t applied = 0;
+  const auto pump = [&] {
+    if (progress == nullptr && clock.elapsed() >= 400 && !unattended_automation()) {
+      progress = std::make_unique<QProgressDialog>(tr("Preparing page images..."), QString(), 0,
+                                                   static_cast<int>(jobs.size()), this);
+      progress->setObjectName(QStringLiteral("pdfPageImagesProgressDialog"));
+      progress->setWindowTitle(tr("Opening PDF"));
+      progress->setWindowModality(Qt::WindowModal);
+      progress->setMinimumDuration(0);
+      progress->setCancelButton(nullptr);
+      progress->setAutoClose(false);
+      progress->setAutoReset(false);
+      remember_dialog_position(*progress);
+      progress->show();
+    }
+    if (progress != nullptr) {
+      progress->setLabelText(tr("Preparing page image %1 of %2...")
+                                 .arg(static_cast<int>(applied) + 1)
+                                 .arg(static_cast<int>(jobs.size())));
+      progress->setValue(static_cast<int>(applied));
+    }
+    QApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 15);
+  };
+  const auto apply_oldest = [&] {
+    auto& future = pending.front();
+    while (future.wait_for(std::chrono::milliseconds(15)) != std::future_status::ready) {
+      pump();
+    }
+    auto result = future.get();
+    pending.pop_front();
+    auto& layer = *jobs[applied].layer;
+    ++applied;
+    if (!result.has_value()) {
+      return;
+    }
+    layer.set_pixels(std::move(result->first));
+    layer.set_bounds(result->second);
+    layer.metadata()[kLayerMetadataSmartObjectRasterStatus] = kSmartObjectRasterStatusPatchy;
+  };
+  for (const auto& job : jobs) {
+    if (pending.size() >= window) {
+      apply_oldest();
+    }
+    pending.push_back(launch_async([decode, source = job.source, placement = job.placement] {
+      return decode(source, placement);
+    }));
+  }
+  while (!pending.empty()) {
+    apply_oldest();
+  }
+  if (progress != nullptr) {
+    progress->close();
+  }
   // An editable page that is one image carries its source bytes from the reader, but its
   // pixels only exist now: fingerprint the composite so an unchanged page can export
   // those bytes. Flattened pages arrive already stamped.

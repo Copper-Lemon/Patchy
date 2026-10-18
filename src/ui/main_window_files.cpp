@@ -4478,15 +4478,12 @@ void MainWindow::export_flat_image() {
       export_notes_suffix = export_notes_suffix_for(svg_notices);
     } else {
       std::vector<std::string> writer_notices;
-      // The Saving dialog, like Save: a raster export writes a snapshot on a worker, a PDF
-      // writes here and reports its pages.
-      const bool pdf = is_pdf_extension(extension);
-      const Document snapshot = pdf ? Document{} : Document(std::as_const(document()));
-      const Document& source = pdf ? std::as_const(document()) : snapshot;
-      run_save_write(path, /*on_worker*/ !pdf, /*show_progress*/ true,
-                     [&source, &path, &extension, &effective_image_options, &writer_notices](SaveProgress& progress) {
+      // The Saving dialog, like Save: the export writes a snapshot on a worker.
+      const Document snapshot = std::as_const(document());
+      run_save_write(path, /*on_worker*/ true, /*show_progress*/ true,
+                     [&snapshot, &path, &extension, &effective_image_options, &writer_notices](SaveProgress& progress) {
                        const ScopedSaveProgress scope(progress);
-                       write_flat_image_file(source, path, extension, effective_image_options, &writer_notices);
+                       write_flat_image_file(snapshot, path, extension, effective_image_options, &writer_notices);
                      });
       export_notes_suffix = export_notes_suffix_for(writer_notices);
     }

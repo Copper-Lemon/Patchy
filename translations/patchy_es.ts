@@ -21627,6 +21627,18 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
         <source>Crop does not apply to a document with artboards; resize an artboard with the Artboard tool</source>
         <translation>Recortar no se aplica a un documento con mesas de trabajo; cambie el tamaño de una mesa de trabajo con la herramienta Mesa de trabajo</translation>
     </message>
+    <message>
+        <source>Preparing page images...</source>
+        <translation>Preparando las imágenes de las páginas...</translation>
+    </message>
+    <message>
+        <source>Opening PDF</source>
+        <translation>Abriendo PDF</translation>
+    </message>
+    <message>
+        <source>Preparing page image %1 of %2...</source>
+        <translation>Preparando la imagen de página %1 de %2...</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

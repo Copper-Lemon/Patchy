@@ -21627,6 +21627,18 @@ Patchy peut télécharger la mise à jour, remplacer cet AppImage et redémarrer
         <source>Crop does not apply to a document with artboards; resize an artboard with the Artboard tool</source>
         <translation>Le recadrage ne s&apos;applique pas à un document avec des plans de travail ; redimensionnez un plan de travail avec l&apos;outil Plan de travail</translation>
     </message>
+    <message>
+        <source>Preparing page images...</source>
+        <translation>Préparation des images des pages...</translation>
+    </message>
+    <message>
+        <source>Opening PDF</source>
+        <translation>Ouverture du PDF</translation>
+    </message>
+    <message>
+        <source>Preparing page image %1 of %2...</source>
+        <translation>Préparation de l&apos;image de page %1 sur %2...</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

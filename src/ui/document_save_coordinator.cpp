@@ -178,16 +178,14 @@ std::optional<DocumentSaveResult> DocumentSaveCoordinator::write_prepared(
     svg::DocumentIo::write_file(document_for_8bit_writer(target->document, narrowed), to_filesystem_path(path),
                                 &writer_notices);
   } else {
-    // Editable PDF keeps layers and reports what it baked, like the SVG writer. PDF writes
-    // on this thread (its editable pages paint text through Qt) and reports each page;
-    // the raster formats write a snapshot on a worker.
-    const bool pdf = extension == QStringLiteral("pdf");
-    const Document snapshot = pdf ? Document{} : Document(std::as_const(target->document));
-    const Document& source = pdf ? std::as_const(target->document) : snapshot;
-    host_.run_write(path, /*on_worker*/ !pdf, !quiet,
-                    [&source, &path, &extension, &effective_image_options, &writer_notices](SaveProgress& progress) {
+    // Editable PDF keeps layers and reports what it baked, like the SVG writer. Every flat
+    // format and PDF writes a copy-on-write snapshot on a worker (a one-page PDF of a grid
+    // of scanned pages took 10 s on this thread); PDF reports its pages.
+    const Document snapshot = std::as_const(target->document);
+    host_.run_write(path, /*on_worker*/ true, !quiet,
+                    [&snapshot, &path, &extension, &effective_image_options, &writer_notices](SaveProgress& progress) {
                       const ScopedSaveProgress scope(progress);
-                      write_flat_image_file(source, path, extension, effective_image_options, &writer_notices);
+                      write_flat_image_file(snapshot, path, extension, effective_image_options, &writer_notices);
                     });
   }
   host_.offer_download(path);

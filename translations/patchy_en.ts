@@ -21554,6 +21554,18 @@ Patchy can download the update, replace this AppImage, and start again. You will
         <source>Crop does not apply to a document with artboards; resize an artboard with the Artboard tool</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Preparing page images...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Opening PDF</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Preparing page image %1 of %2...</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>

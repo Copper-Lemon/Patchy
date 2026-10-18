@@ -21627,6 +21627,18 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
         <source>Crop does not apply to a document with artboards; resize an artboard with the Artboard tool</source>
         <translation>Freistellen gilt nicht für ein Dokument mit Zeichenflächen; ändern Sie die Größe einer Zeichenfläche mit dem Zeichenflächen-Werkzeug</translation>
     </message>
+    <message>
+        <source>Preparing page images...</source>
+        <translation>Seitenbilder werden vorbereitet...</translation>
+    </message>
+    <message>
+        <source>Opening PDF</source>
+        <translation>PDF wird geöffnet</translation>
+    </message>
+    <message>
+        <source>Preparing page image %1 of %2...</source>
+        <translation>Seitenbild %1 von %2 wird vorbereitet...</translation>
+    </message>
 </context>
 <context>
     <name>patchy::ui::MarkdownViewerDialog</name>
