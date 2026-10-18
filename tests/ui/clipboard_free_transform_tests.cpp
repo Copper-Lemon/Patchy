@@ -443,8 +443,8 @@ void ui_copy_paste_and_transform_pasted_layer_work() {
   CHECK(layer_list->count() == layers_before + 1);
   const auto pasted_rect = canvas->active_layer_document_rect();
   CHECK(pasted_rect.has_value());
-  CHECK(pasted_rect->topLeft() == QPoint(qRound((1024 - copied_selection_rect->width()) / 2.0),
-                                        qRound((768 - copied_selection_rect->height()) / 2.0)));
+  // The marquee left by Copy centers the paste on itself: back in place (GitHub issue 193).
+  CHECK(pasted_rect->topLeft() == copied_selection_rect->topLeft());
   CHECK(pasted_rect->size() == copied_selection_rect->size());
   CHECK(!canvas->has_selection());
   require_action_by_text(window, QStringLiteral("Move"))->trigger();
@@ -516,6 +516,78 @@ void ui_paste_clears_selection_and_undo_restores_it() {
   require_hotkey_action(window, QStringLiteral("edit.undo"))->trigger();
   QApplication::processEvents();
   CHECK(canvas->selected_document_rect() == copied_selection_rect);
+}
+
+// Edit > Paste of pixels copied from this document comes back where they were (GitHub issue
+// 193). The marquee Copy and Cut leave active centers the paste on itself (Photoshop 2026); after
+// a Deselect the pixels go back to their place while it is in view, and to the view center once
+// the view has moved away. Another document gets its view center, as an external image does.
+void ui_paste_returns_copied_pixels_to_their_place() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  const QSize size(400, 300);
+  const QRect source_rect(40, 30, 80, 60);
+  patchy::Document source(size.width(), size.height(), patchy::PixelFormat::rgba8());
+  auto paint = solid_pixels(size.width(), size.height(), patchy::PixelFormat::rgba8(), QColor(Qt::white));
+  fill_pixel_rect(paint, source_rect, QColor(240, 120, 20));
+  source.add_pixel_layer("Paint", std::move(paint));
+  window.add_document_session(std::move(source), QStringLiteral("Paste place"));
+  QApplication::processEvents();
+  auto* canvas = require_canvas(window);
+  canvas->fit_to_view();
+  QApplication::processEvents();
+  const auto pasted_rect = [&] { return canvas->active_layer_document_rect().value_or(QRect()); };
+  const auto view_center = [&] {
+    return canvas->document_point_for_widget_position(QPointF(canvas->width() / 2.0, canvas->height() / 2.0));
+  };
+
+  // Cut leaves a hole and the marquee; Paste fills the hole again.
+  select_document_rect(*canvas, size, source_rect);
+  require_action(window, "editCutAction")->trigger();
+  require_action(window, "editPasteAction")->trigger();
+  QApplication::processEvents();
+  save_widget_artifact("ui_paste_returns_copied_pixels_to_their_place", *canvas);
+  if (pasted_rect() != source_rect) {
+    std::printf("  paste with the marquee kept landed at %d,%d %dx%d\n", pasted_rect().x(), pasted_rect().y(),
+                pasted_rect().width(), pasted_rect().height());
+  }
+  CHECK(pasted_rect() == source_rect);
+
+  // Copy, Deselect, Paste with the place in view: back in place.
+  select_document_rect(*canvas, size, source_rect);
+  require_action(window, "editCopyAction")->trigger();
+  require_hotkey_action(window, QStringLiteral("select.deselect"))->trigger();
+  QApplication::processEvents();
+  CHECK(!canvas->has_selection());
+  require_action(window, "editPasteAction")->trigger();
+  QApplication::processEvents();
+  CHECK(pasted_rect() == source_rect);
+
+  // Zoomed in on the far corner, the place is out of view: the view center.
+  canvas->zoom_to_document_rect(QRect(300, 220, 60, 50));
+  QApplication::processEvents();
+  CHECK(!canvas->rect().contains(canvas->widget_position_for_document_point(source_rect.center())));
+  require_action(window, "editPasteAction")->trigger();
+  QApplication::processEvents();
+  CHECK(pasted_rect() != source_rect);
+  CHECK(pasted_rect().size() == source_rect.size());
+  CHECK(pasted_rect().contains(view_center().toPoint()));
+
+  // Another document of the same size: centered, not in place.
+  patchy::Document other(size.width(), size.height(), patchy::PixelFormat::rgba8());
+  other.add_pixel_layer("Other", solid_pixels(size.width(), size.height(), patchy::PixelFormat::rgba8(),
+                                              QColor(Qt::white)));
+  window.add_document_session(std::move(other), QStringLiteral("Paste other"));
+  QApplication::processEvents();
+  canvas = require_canvas(window);
+  canvas->fit_to_view();
+  QApplication::processEvents();
+  require_action(window, "editPasteAction")->trigger();
+  QApplication::processEvents();
+  CHECK(pasted_rect() == QRect(QPoint((size.width() - source_rect.width()) / 2,
+                                      (size.height() - source_rect.height()) / 2),
+                               source_rect.size()));
+  QApplication::clipboard()->clear();
 }
 
 void ui_external_clipboard_image_paste_creates_centered_layer() {
@@ -809,6 +881,8 @@ void ui_paste_selection_centers_in_panned_zoomed_view() {
     const auto& source = patchy::ui::MainWindowTestAccess::document(window);
     CHECK(source.layers().front().pixels().pixel(0, 0)[3] ==
           (std::strcmp(copy_action, "editCutAction") == 0 ? 0 : 255));
+    // Without the marquee, and with the copied place out of view: the view center.
+    canvas->clear_selection();
     canvas->zoom_to_document_rect(QRect(180, 120, 400, 300));
     require_action(window, "editPasteAction")->trigger();
     QApplication::processEvents();
@@ -823,7 +897,7 @@ void ui_paste_selection_centers_in_panned_zoomed_view() {
     CHECK(std::memcmp(pasted->pixels().data().data(), expected.data().data(), expected.byte_size()) == 0);
 
     require_hotkey_action(window, QStringLiteral("edit.undo"))->trigger();
-    CHECK(canvas->selected_document_rect() == QRect(860, 660, 80, 60));
+    CHECK(patchy::ui::MainWindowTestAccess::document(window).layers().size() == 1U);
     require_hotkey_action(window, QStringLiteral("edit.redo"))->trigger();
     CHECK(canvas->active_layer_document_rect() == QRect(340, 240, 80, 60));
     CHECK(!canvas->has_selection());
@@ -834,6 +908,7 @@ void ui_paste_selection_clamps_to_each_canvas_edge() {
   patchy::ui::MainWindow window;
   prepare_paste_selection(window, "editCopyAction");
   auto* canvas = require_canvas(window);
+  canvas->clear_selection();
   const std::array<std::pair<QRect, QPoint>, 4> cases{{
       {QRect(0, 0, 20, 20), QPoint(0, 0)},
       {QRect(1180, 0, 20, 20), QPoint(1120, 0)},
@@ -906,6 +981,7 @@ void ui_external_clipboard_paste_in_place_falls_back_to_view_center() {
   QApplication::clipboard()->setImage(image);
   QApplication::processEvents();
   auto* canvas = require_canvas(window);
+  canvas->clear_selection();
   for (const auto* action : {"editPasteAction", "editPasteInPlaceAction"}) {
     // A paste activates the Move tool, whose options row can differ in height
     // from the previous tool's and resize the viewport, so re-frame the view
@@ -2942,6 +3018,7 @@ std::vector<patchy::test::TestCase> clipboard_free_transform_tests() {
       {"ui_whole_layer_copy_puts_its_pixels_on_the_system_clipboard",
        ui_whole_layer_copy_puts_its_pixels_on_the_system_clipboard},
       {"ui_paste_clears_selection_and_undo_restores_it", ui_paste_clears_selection_and_undo_restores_it},
+      {"ui_paste_returns_copied_pixels_to_their_place", ui_paste_returns_copied_pixels_to_their_place},
       {"ui_paste_file_urls_adds_layers", ui_paste_file_urls_adds_layers},
       {"ui_external_clipboard_image_paste_creates_centered_layer",
        ui_external_clipboard_image_paste_creates_centered_layer},

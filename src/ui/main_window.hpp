@@ -413,6 +413,9 @@ private:
     // Pixel copies: the top-left of the artboard they were copied from, so Paste in Place
     // onto another artboard keeps their place on the artboard (docs/artboards.md).
     std::optional<QPoint> source_artboard_origin{};
+    // Pixel copies: the session they were copied from, so Paste can put them back in place
+    // in that document (GitHub issue 193, docs/tools.md "Clipboard pixel placement").
+    std::int64_t source_session_id{0};
   };
 
   // Defaults match the Round startup preset (brush_presets.cpp); load_tool_settings()

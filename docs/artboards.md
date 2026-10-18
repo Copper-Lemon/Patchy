@@ -62,7 +62,8 @@ Photoshop 2026's behavior, captured on one scene (A 0,0,300,300 with A1; B 400,0
 | Merge Visible | merges everything into one layer, artboards gone | Patchy's command stamps a merged copy and keeps the layers |
 | New Layer | inside the selected layer's artboard, or inside the selected artboard on top | same (`insert_layer_after_anchor`) |
 | Select All | the active layer's artboard | same (`CanvasWidget::select_all`) |
-| Paste | into the target artboard, centered on it | same (pixel paste; the view center otherwise) |
+| Paste | into the target artboard, centered on it | same (pixel paste; [tools.md](tools.md) "Clipboard pixel placement" off artboards) |
+| Paste with a marquee active | centered on the marquee, into the artboard under its center (the root when none), whichever layer is selected | same |
 | Paste in Place onto another artboard | keeps the place on the artboard | same (`ClipboardPayload::source_artboard_origin`) |
 | Duplicate artboard | 100 px right of the original | 100 px right of the rightmost artboard (`place_duplicated_artboards`; the same spot here); canvas growth amounts differ |
 | Save As a flat format | shrinkwraps the canvas to artboards plus loose content first | writes the canvas as it is; Image > Fit Canvas to Artboards does the shrinkwrap |
