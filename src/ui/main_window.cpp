@@ -4399,6 +4399,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
   });
 #endif
   create_docks();
+  install_window_panel_entries();
   hotkey_registry_.apply_to_actions();
   // Script hotkeys must work from the first keypress, before File > Scripts was ever
   // opened: register every script's command now (docs/scripting.md "Script hotkeys").

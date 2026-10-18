@@ -1969,44 +1969,51 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
     register_document_action(action);
   }
 
-  float_document_action_ = window_menu->addAction(tr("Float in &Window"));
+  // Window > Arrange holds the document-window commands, as Photoshop's does; the panel
+  // and toolbar toggles follow at the top level (install_window_panel_entries, GitHub
+  // issue 163). "Arran&ge" is the Layer menu's source text, so it shares its translations.
+  auto* window_arrange_menu = window_menu->addMenu(tr("Arran&ge"));
+  window_arrange_menu->setObjectName(QStringLiteral("windowArrangeMenu"));
+  bind_action_text(window_arrange_menu->menuAction(), QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Arran&ge"));
+  window_arrange_menu->menuAction()->setProperty(kWorksWithoutDocumentProperty, true);
+  float_document_action_ = window_arrange_menu->addAction(tr("Float in &Window"));
   float_document_action_->setObjectName(QStringLiteral("windowFloatDocumentAction"));
   bind_action_text(float_document_action_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Float in &Window"));
   register_hotkey(float_document_action_, "window.float_document", QKeySequence());
   connect(float_document_action_, &QAction::triggered, this, [this] { float_active_document(); });
   register_document_action(float_document_action_);
 
-  dock_document_action_ = window_menu->addAction(tr("&Dock to Tabs"));
+  dock_document_action_ = window_arrange_menu->addAction(tr("&Dock to Tabs"));
   dock_document_action_->setObjectName(QStringLiteral("windowDockDocumentAction"));
   bind_action_text(dock_document_action_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "&Dock to Tabs"));
   register_hotkey(dock_document_action_, "window.dock_document", QKeySequence());
   connect(dock_document_action_, &QAction::triggered, this, [this] { dock_active_document(); });
   register_document_action(dock_document_action_);
 
-  float_all_action_ = window_menu->addAction(tr("Float A&ll in Windows"));
+  float_all_action_ = window_arrange_menu->addAction(tr("Float A&ll in Windows"));
   float_all_action_->setObjectName(QStringLiteral("windowFloatAllAction"));
   bind_action_text(float_all_action_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Float A&ll in Windows"));
   register_hotkey(float_all_action_, "window.float_all", QKeySequence());
   connect(float_all_action_, &QAction::triggered, this, [this] { float_all_documents(); });
   register_document_action(float_all_action_);
 
-  consolidate_tabs_action_ = window_menu->addAction(tr("&Consolidate All to Tabs"));
+  consolidate_tabs_action_ = window_arrange_menu->addAction(tr("&Consolidate All to Tabs"));
   consolidate_tabs_action_->setObjectName(QStringLiteral("windowConsolidateTabsAction"));
   bind_action_text(consolidate_tabs_action_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "&Consolidate All to Tabs"));
   register_hotkey(consolidate_tabs_action_, "window.consolidate_all_to_tabs", QKeySequence());
   connect(consolidate_tabs_action_, &QAction::triggered, this, [this] { consolidate_all_to_tabs(); });
   register_document_action(consolidate_tabs_action_);
 
-  window_menu->addSeparator();
+  window_arrange_menu->addSeparator();
 
-  tile_windows_action_ = window_menu->addAction(tr("&Tile"));
+  tile_windows_action_ = window_arrange_menu->addAction(tr("&Tile"));
   tile_windows_action_->setObjectName(QStringLiteral("windowTileAction"));
   bind_action_text(tile_windows_action_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "&Tile"));
   register_hotkey(tile_windows_action_, "window.tile_windows", QKeySequence());
   connect(tile_windows_action_, &QAction::triggered, this, [this] { tile_float_windows(); });
   register_document_action(tile_windows_action_);
 
-  cascade_windows_action_ = window_menu->addAction(tr("Ca&scade"));
+  cascade_windows_action_ = window_arrange_menu->addAction(tr("Ca&scade"));
   cascade_windows_action_->setObjectName(QStringLiteral("windowCascadeAction"));
   bind_action_text(cascade_windows_action_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Ca&scade"));
   register_hotkey(cascade_windows_action_, "window.cascade_windows", QKeySequence());
@@ -2023,9 +2030,8 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
   consolidate_tabs_action_->setVisible(false);
   tile_windows_action_->setVisible(false);
   cascade_windows_action_->setVisible(false);
+  window_arrange_menu->menuAction()->setVisible(false);
 #endif
-
-  window_menu->addSeparator();
 
   auto* screen_size_menu = window_menu->addMenu(tr("Set Screen Size"));
   screen_size_menu->setObjectName(QStringLiteral("windowSetScreenSizeMenu"));
@@ -2057,6 +2063,9 @@ void MainWindow::build_menu_bar_actions(ActionBuildContext& ctx) {
     }
   });
   register_document_action(force_refresh_action);
+
+  // The panel and toolbar toggles go between these two separators once the docks exist.
+  window_panels_separator_ = window_menu->addSeparator();
 
   // Photoshop lists the open documents at the bottom of the Window menu. The
   // entries are rebuilt each time the menu opens (dynamic actions, no hotkey

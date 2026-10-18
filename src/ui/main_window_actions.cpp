@@ -110,11 +110,10 @@ void MainWindow::create_actions() {
 
 // The translation-binding pass of create_actions(): binds retranslatable text
 // sources to the actions and widgets the three build phases created (reaching
-// them through the ActionBuildContext) and registers the toolbars'
-// toggle-view actions in the Window menu.
+// them through the ActionBuildContext) and prepares the toolbars'
+// toggle-view actions for the Window menu.
 void MainWindow::bind_action_translations(ActionBuildContext& ctx) {
-  ctx.window_menu->addAction(ctx.tool_palette->toggleViewAction());
-  ctx.window_menu->addAction(ctx.options_toolbar->toggleViewAction());
+  // The toggles join the Window menu with the panels (install_window_panel_entries).
   for (auto* toggle : {ctx.tool_palette->toggleViewAction(), ctx.options_toolbar->toggleViewAction()}) {
     toggle->setProperty(kWorksWithoutDocumentProperty, true);
   }

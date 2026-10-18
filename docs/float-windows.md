@@ -1,10 +1,10 @@
 # Float windows: documents can leave the tab bar
 
-Window > Float in Window (also on the tab context menu) moves a document's canvas out of
+Window > Arrange > Float in Window (also on the tab context menu) moves a document's canvas out of
 the tab widget into a `DocumentFloatWindow` (src/ui/document_float_window.{hpp,cpp}): a
 MainWindow-parented `Qt::Window` with a native frame, so two documents can be visible at
 once (a second monitor works) while every panel stays in the main window and follows the
-focused document. Window > Dock to Tabs and Window > Consolidate All to Tabs reverse it
+focused document. Window > Arrange > Dock to Tabs and Consolidate All to Tabs reverse it
 (the tab returns at its remembered index, clamped); closing a float closes that document
 with the usual save prompt, and Cancel keeps both the window and the document. Hotkey ids
 (persisted, never rename): `window.float_document`, `window.dock_document`,
@@ -31,7 +31,7 @@ activates the session by id). `ui_window_menu_lists_open_documents` pins it.
   session id, never a window pointer. While the drag hovers the zone, a translucent
   palette-Highlight overlay (`floatDockHighlight`, mouse-transparent, lazily created)
   lights the strip so the user can see that releasing will dock.
-- **Window > Float All in Windows / Tile / Cascade**: Photoshop's arrange semantics.
+- **Window > Arrange > Float All in Windows / Tile / Cascade**: Photoshop's arrange semantics.
   Tile and Cascade first float every document, then lay the float windows out over the
   DOCUMENT WORKSPACE (`document_workspace_global()`: the tab-widget area, so the tool
   palette, options bar, and panels stay visible; falls back to the screen's work area

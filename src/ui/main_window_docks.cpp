@@ -31,6 +31,7 @@
 #include "ui/brush_dynamics_popup.hpp"
 #include "ui/brush_tip_manager_dialog.hpp"
 #include "ui/filter_workflows.hpp"
+#include "ui/hotkey_registry.hpp"
 #include "ui/dialog_utils.hpp"
 #include "ui/document_float_window.hpp"
 #include "ui/color_panel.hpp"
@@ -51,6 +52,7 @@
 #include <QApplication>
 #include <QColor>
 #include <QComboBox>
+#include <QCollator>
 #include <QDockWidget>
 #include <QDoubleSpinBox>
 #include <QEnterEvent>
@@ -70,6 +72,8 @@
 #include <QMainWindow>
 #include <QMargins>
 #include <QMenu>
+#include <QMenuBar>
+#include <QPointer>
 #include <QMimeData>
 #include <QMouseEvent>
 #include <QObject>
@@ -89,6 +93,7 @@
 #include <QTabWidget>
 #include <QTextEdit>
 #include <QTimer>
+#include <QToolBar>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -1237,6 +1242,134 @@ bool MainWindow::handle_dock_group_window_event(QObject* watched, QEvent* event)
     }
   }
   return false;
+}
+
+namespace {
+
+// The property naming the dock a Window menu panel entry toggles.
+constexpr char kWindowPanelDockProperty[] = "patchy.windowPanelDock";
+
+QToolButton* dock_collapse_button(QDockWidget& dock) {
+  auto* title = dock.titleBarWidget();
+  if (title == nullptr) {
+    return nullptr;
+  }
+  for (auto* button : title->findChildren<QToolButton*>()) {
+    if (button->property("dockCollapseButton").toBool()) {
+      return button;
+    }
+  }
+  return nullptr;
+}
+
+// A dock behind another tab of its group still reports isVisible(). QMainWindow's dock tab
+// bars (its direct QTabBar children) carry each dock's address as the tab data, so the
+// dock is in front when its tab is the bar's current one.
+bool dock_is_front_tab(QMainWindow& window, QDockWidget& dock) {
+  if (dock.isFloating() || window.tabifiedDockWidgets(&dock).isEmpty()) {
+    return true;
+  }
+  const auto id = reinterpret_cast<quintptr>(&dock);
+  for (auto* bar : window.findChildren<QTabBar*>(Qt::FindDirectChildrenOnly)) {
+    for (int index = 0; index < bar->count(); ++index) {
+      if (bar->tabData(index).value<quintptr>() == id) {
+        return index == bar->currentIndex();
+      }
+    }
+  }
+  return true;
+}
+
+// Photoshop's rule: picking a panel that is open and in front closes it; picking one that
+// is closed, behind another tab or collapsed brings it forward and expands it.
+void toggle_window_panel(QMainWindow& window, QDockWidget& dock) {
+  auto* collapse = dock_collapse_button(dock);
+  const bool expanded = collapse == nullptr || collapse->isChecked() || dock.isFloating();
+  if (!dock.isHidden() && dock_is_front_tab(window, dock) && expanded) {
+    dock.close();
+    return;
+  }
+  dock.show();
+  dock.raise();
+  if (!expanded) {
+    collapse->setChecked(true);
+  }
+}
+
+}  // namespace
+
+void MainWindow::install_window_panel_entries() {
+  auto* window_menu = menuBar()->findChild<QMenu*>(QStringLiteral("windowMenu"));
+  if (window_menu == nullptr || window_panels_separator_ == nullptr) {
+    return;
+  }
+  struct PanelEntry {
+    const char* dock_name;
+    const char* action_name;
+    const char* title;
+  };
+  // The docks' own title sources, so each entry shares its panel's translation.
+  static constexpr PanelEntry kPanels[] = {
+      {"layersDock", "windowPanelLayersAction", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Layers")},
+      {"channelsDock", "windowPanelChannelsAction", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Channels")},
+      {"pathsDock", "windowPanelPathsAction", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Paths")},
+      {"historyDock", "windowPanelHistoryAction", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "History")},
+      {"propertiesDock", "windowPanelPropertiesAction",
+       QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Properties")},
+      {"infoDock", "windowPanelInfoAction", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Info")},
+      {"paletteDock", "windowPanelPaletteAction", QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Palette")},
+  };
+  for (const auto& panel : kPanels) {
+    auto* dock = findChild<QDockWidget*>(QLatin1String(panel.dock_name));
+    if (dock == nullptr) {
+      continue;
+    }
+    auto* action = new QAction(window_menu);
+    action->setObjectName(QLatin1String(panel.action_name));
+    action->setCheckable(true);
+    action->setChecked(!dock->isHidden());
+    action->setMenuRole(QAction::NoRole);
+    action->setProperty(kWorksWithoutDocumentProperty, true);
+    action->setProperty(kWindowPanelDockProperty, QVariant::fromValue<QObject*>(dock));
+    bind_action_text(action, panel.title);
+    connect(action, &QAction::triggered, this, [this, action, dock = QPointer<QDockWidget>(dock)] {
+      if (dock != nullptr) {
+        toggle_window_panel(*this, *dock);
+        action->setChecked(!dock->isHidden());
+      }
+    });
+    window_panel_actions_.push_back(action);
+  }
+  for (const auto* toolbar_name : {"toolPalette", "Options"}) {
+    if (auto* toolbar = findChild<QToolBar*>(QLatin1String(toolbar_name)); toolbar != nullptr) {
+      window_panel_actions_.push_back(toolbar->toggleViewAction());
+    }
+  }
+  sort_window_panel_entries();
+  connect(window_menu, &QMenu::aboutToShow, this, [this] { sort_window_panel_entries(); });
+}
+
+void MainWindow::sort_window_panel_entries() {
+  auto* window_menu = menuBar()->findChild<QMenu*>(QStringLiteral("windowMenu"));
+  if (window_menu == nullptr || window_documents_separator_ == nullptr) {
+    return;
+  }
+  // Alphabetical in the current language, like Photoshop's panel list; the menu reads the
+  // order each time it opens, so a language switch re-sorts it.
+  QCollator collator;
+  collator.setCaseSensitivity(Qt::CaseInsensitive);
+  auto sorted = window_panel_actions_;
+  std::sort(sorted.begin(), sorted.end(), [&collator](const QAction* left, const QAction* right) {
+    return collator.compare(clean_action_text(left), clean_action_text(right)) < 0;
+  });
+  for (auto* action : sorted) {
+    window_menu->removeAction(action);
+    window_menu->insertAction(window_documents_separator_, action);
+    if (auto* dock = qobject_cast<QDockWidget*>(action->property(kWindowPanelDockProperty).value<QObject*>());
+        dock != nullptr) {
+      action->setChecked(!dock->isHidden());
+    }
+  }
 }
 
 void MainWindow::create_docks() {

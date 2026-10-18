@@ -524,6 +524,10 @@ private:
   void resize_window_from_global_point(QPoint global_position);
   void set_window_screen_size(QSize physical_size);
   void create_docks();
+  // Window menu toggles for the side panels and the two toolbars, sorted by their current
+  // text each time the menu opens (GitHub issue 163). Runs once, after create_docks.
+  void install_window_panel_entries();
+  void sort_window_panel_entries();
   void create_palette_dock();
   // Palette (indexed) mode plumbing. Every document-palette mutation goes through
   // these so the undo snapshot, the revision bump (app-globally unique values,
@@ -2434,7 +2438,9 @@ private:
   QAction* type_tool_action_{nullptr};
   QActionGroup* tool_action_group_{nullptr};
   QAction* float_document_action_{nullptr};
+  QAction* window_panels_separator_{nullptr};
   QAction* window_documents_separator_{nullptr};
+  std::vector<QAction*> window_panel_actions_;
   std::vector<QAction*> window_document_actions_;
   QAction* duplicate_layer_to_document_action_{nullptr};
   QAction* dock_document_action_{nullptr};

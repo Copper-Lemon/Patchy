@@ -47,6 +47,7 @@
 #include <QTimer>
 #include <QWidgetAction>
 #include <QAbstractButton>
+#include <QTabBar>
 #include <QToolBar>
 #include <QToolButton>
 #include <QWidget>
@@ -830,6 +831,116 @@ void ui_start_panel_shows_about_info_and_update_status() {
   save_widget_artifact("ui_start_panel_about_info", window);
   panel->set_update_status(QString());
   CHECK(!status->isVisible());
+}
+
+// GitHub issue 163: the Window menu lists every side panel and both toolbars as checkable
+// entries, alphabetically, with the document-window commands under Window > Arrange.
+// Picking a closed, background-tab or collapsed panel brings it forward expanded; picking
+// one already in front closes it.
+void ui_window_menu_lists_panels_and_toolbars() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* window_menu = window.findChild<QMenu*>(QStringLiteral("windowMenu"));
+  auto* arrange_menu = window.findChild<QMenu*>(QStringLiteral("windowArrangeMenu"));
+  CHECK(window_menu != nullptr && arrange_menu != nullptr);
+  if (window_menu == nullptr || arrange_menu == nullptr) {
+    return;
+  }
+  CHECK(window_menu->actions().contains(arrange_menu->menuAction()));
+  for (const char* name : {"windowFloatDocumentAction", "windowDockDocumentAction", "windowFloatAllAction",
+                           "windowConsolidateTabsAction", "windowTileAction", "windowCascadeAction"}) {
+    CHECK(arrange_menu->actions().contains(require_action(window, name)));
+    CHECK(!window_menu->actions().contains(require_action(window, name)));
+  }
+
+  emit window_menu->aboutToShow();
+  QApplication::processEvents();
+  QStringList entry_texts;
+  for (auto* action : window_menu->actions()) {
+    if (action->isCheckable() && !action->objectName().startsWith(QStringLiteral("windowDocument"))) {
+      entry_texts << action->text().remove(QLatin1Char('&'));
+      CHECK(action->isChecked());
+    }
+  }
+  CHECK(entry_texts == QStringList({QStringLiteral("Channels"), QStringLiteral("History"), QStringLiteral("Info"),
+                                    QStringLiteral("Layers"), QStringLiteral("Options"), QStringLiteral("Palette"),
+                                    QStringLiteral("Paths"), QStringLiteral("Properties"),
+                                    QStringLiteral("Tool Palette")}));
+
+  auto* history_dock = window.findChild<QDockWidget*>(QStringLiteral("historyDock"));
+  auto* history_toggle = window.findChild<QToolButton*>(QStringLiteral("historyDockCollapseButton"));
+  auto* history_entry = require_action(window, "windowPanelHistoryAction");
+  CHECK(history_dock != nullptr && history_toggle != nullptr);
+  if (history_dock == nullptr || history_toggle == nullptr) {
+    return;
+  }
+  // Collapsed: the entry expands it and leaves it open.
+  history_toggle->setChecked(false);
+  QApplication::processEvents();
+  history_entry->trigger();
+  QApplication::processEvents();
+  CHECK(!history_dock->isHidden());
+  CHECK(history_toggle->isChecked());
+  CHECK(history_entry->isChecked());
+  // In front and expanded: the entry closes it, and the next pick brings it back.
+  history_entry->trigger();
+  QApplication::processEvents();
+  CHECK(history_dock->isHidden());
+  CHECK(!history_entry->isChecked());
+  history_entry->trigger();
+  QApplication::processEvents();
+  CHECK(!history_dock->isHidden() && history_dock->isVisible());
+  CHECK(history_entry->isChecked());
+
+  // Behind another tab of its group: the entry brings its tab forward instead of closing
+  // it. A background tab still reports isVisible(); the dock tab bar's current tab says
+  // which dock is in front (its tab data is the dock's address).
+  auto* layers_dock = window.findChild<QDockWidget*>(QStringLiteral("layersDock"));
+  auto* channels_dock = window.findChild<QDockWidget*>(QStringLiteral("channelsDock"));
+  CHECK(layers_dock != nullptr && channels_dock != nullptr);
+  const auto front_tab = [&window](QDockWidget* dock) {
+    for (auto* bar : window.findChildren<QTabBar*>(Qt::FindDirectChildrenOnly)) {
+      for (int index = 0; index < bar->count(); ++index) {
+        if (bar->tabData(index).value<quintptr>() == reinterpret_cast<quintptr>(dock)) {
+          return index == bar->currentIndex();
+        }
+      }
+    }
+    return false;
+  };
+  if (layers_dock != nullptr && channels_dock != nullptr) {
+    CHECK(front_tab(layers_dock) && !front_tab(channels_dock));
+    require_action(window, "windowPanelChannelsAction")->trigger();
+    QApplication::processEvents();
+    CHECK(front_tab(channels_dock));
+    CHECK(!layers_dock->isHidden());
+    require_action(window, "windowPanelLayersAction")->trigger();
+    QApplication::processEvents();
+    CHECK(front_tab(layers_dock));
+    CHECK(!channels_dock->isHidden());
+  }
+
+  // The toolbars keep Qt's own toggle.
+  auto* tool_palette = window.findChild<QToolBar*>(QStringLiteral("toolPalette"));
+  CHECK(tool_palette != nullptr);
+  if (tool_palette != nullptr) {
+    CHECK(window_menu->actions().contains(tool_palette->toggleViewAction()));
+    tool_palette->toggleViewAction()->trigger();
+    QApplication::processEvents();
+    CHECK(tool_palette->isHidden());
+    tool_palette->toggleViewAction()->trigger();
+    QApplication::processEvents();
+    CHECK(!tool_palette->isHidden());
+  }
+
+  // Captures for review: test-artifacts/menu_windowMenu.png and menu_windowArrangeMenu.png.
+  for (auto* menu : {window_menu, arrange_menu}) {
+    emit window_menu->aboutToShow();
+    menu->popup(window.mapToGlobal(QPoint(40, 40)));
+    QApplication::processEvents();
+    save_widget_artifact("menu_" + menu->objectName().toStdString(), *menu);
+    menu->hide();
+  }
 }
 
 void ui_main_window_renders_color_controls() {
@@ -2306,6 +2417,7 @@ std::vector<patchy::test::TestCase> app_shell_tests_part1() {
       {"ui_start_panel_recent_filter_narrows_rows_and_opens_match", ui_start_panel_recent_filter_narrows_rows_and_opens_match},
       {"ui_start_panel_shows_about_info_and_update_status", ui_start_panel_shows_about_info_and_update_status},
       {"ui_main_window_renders_color_controls", ui_main_window_renders_color_controls},
+      {"ui_window_menu_lists_panels_and_toolbars", ui_window_menu_lists_panels_and_toolbars},
       {"ui_tool_palette_overflow_hides_quick_mask_before_swatches", ui_tool_palette_overflow_hides_quick_mask_before_swatches},
       {"ui_tool_palette_extension_survives_resize_cycles", ui_tool_palette_extension_survives_resize_cycles},
       {"ui_tool_palette_extension_button_expands_palette", ui_tool_palette_extension_button_expands_palette},
