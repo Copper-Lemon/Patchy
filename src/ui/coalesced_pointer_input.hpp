@@ -6,9 +6,12 @@
 // sample per frame and fast curves came out as straight segments; the system
 // mouse history (GetMouseMovePointsEx) still holds the skipped positions.
 // X11 drops queued motion events unless Qt::AA_CompressHighFrequencyEvents is
-// off, which CanvasWidget turns off for the length of a paint stroke.
+// off, and AppKit coalesces mouse and tablet drags unless NSEvent's mouse
+// coalescing is off; CanvasWidget turns both off for the length of a paint
+// stroke.
 
 #include <QPointF>
+#include <QtGlobal>
 
 #include <cstdint>
 #include <optional>
@@ -53,9 +56,16 @@ void begin_coalesced_mouse_tracking(const QWidget& widget, const QMouseEvent& ev
 [[nodiscard]] std::vector<QPointF> coalesced_mouse_positions(const QWidget& widget, const QMouseEvent& event,
                                                              CoalescedMouseState& state);
 
-// Holds Qt::AA_CompressHighFrequencyEvents off while engaged and puts the
-// previous value back on release or destruction. Qt reads the attribute per
-// queued event, so it can follow a stroke's press and release.
+#ifdef Q_OS_MACOS
+// [NSEvent setMouseCoalescingEnabled:]; returns the previous setting
+// (coalesced_pointer_input_mac.mm).
+bool set_mac_mouse_coalescing_enabled(bool enabled);
+#endif
+
+// Holds Qt::AA_CompressHighFrequencyEvents (and, on macOS, AppKit's mouse
+// coalescing) off while engaged and puts the previous values back on release
+// or destruction. Both are read per incoming event, so they can follow a
+// stroke's press and release.
 class UncompressedPointerInputScope {
  public:
   UncompressedPointerInputScope() = default;
@@ -69,6 +79,7 @@ class UncompressedPointerInputScope {
  private:
   bool engaged_{false};
   bool saved_compression_{true};
+  bool saved_mac_coalescing_{true};
 };
 
 }  // namespace patchy::ui

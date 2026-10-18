@@ -174,8 +174,14 @@ void UncompressedPointerInputScope::set_engaged(bool engaged) {
   if (engaged) {
     saved_compression_ = QCoreApplication::testAttribute(Qt::AA_CompressHighFrequencyEvents);
     QCoreApplication::setAttribute(Qt::AA_CompressHighFrequencyEvents, false);
+#ifdef Q_OS_MACOS
+    saved_mac_coalescing_ = set_mac_mouse_coalescing_enabled(false);
+#endif
   } else {
     QCoreApplication::setAttribute(Qt::AA_CompressHighFrequencyEvents, saved_compression_);
+#ifdef Q_OS_MACOS
+    set_mac_mouse_coalescing_enabled(saved_mac_coalescing_);
+#endif
   }
   engaged_ = engaged;
 }

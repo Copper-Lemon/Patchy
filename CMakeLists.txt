@@ -1517,6 +1517,7 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
     target_compile_options(patchy_ui PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/bigobj>)
     if(APPLE)
       target_sources(patchy_ui PRIVATE
+        src/ui/coalesced_pointer_input_mac.mm
         src/ui/dialog_utils_mac.mm
         src/ui/scanner_import_mac.mm
         src/ui/sound_effects_mac.mm
