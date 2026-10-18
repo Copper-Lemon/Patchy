@@ -8,6 +8,10 @@
 #include <iterator>
 #include <string_view>
 #include <vector>
+#ifndef __EMSCRIPTEN__
+#include <chrono>
+#include <thread>
+#endif
 #ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -193,23 +197,37 @@ int main(int argc, char** argv) {
                  std::make_move_iterator(group.end()));
   }
 
+  // Proves the timeout below fires: run with PATCHY_TEST_TIMEOUT_SELFTEST=1 and a short
+  // PATCHY_TEST_TIMEOUT_SECONDS; the run must end with this test's timeout [FAIL] line.
+  if (patchy::test::environment_value("PATCHY_TEST_TIMEOUT_SELFTEST") == "1") {
+    tests.push_back({"test_harness_timeout_selftest", [] {
+#ifndef __EMSCRIPTEN__
+                       std::this_thread::sleep_for(std::chrono::hours(1));
+#endif
+                     }});
+  }
+
   int failures = 0;
   const std::string_view name_filter =
       argc > 1 && argv[1] != nullptr ? std::string_view(argv[1])
                                      : std::string_view{};
+  patchy::test::TestWatchdog watchdog(patchy::test::test_timeout_seconds(300));
   for (const auto& test : tests) {
     if (!name_filter.empty() &&
         std::string_view(test.name).find(name_filter) ==
             std::string_view::npos) {
       continue;
     }
+    // Flushed per test so the log shows how far a run got if it is killed.
+    watchdog.begin(test.name);
     try {
       test.run();
-      std::cout << "[PASS] " << test.name << '\n';
+      std::cout << "[PASS] " << test.name << std::endl;
     } catch (const std::exception& error) {
       ++failures;
-      std::cerr << "[FAIL] " << test.name << ": " << error.what() << '\n';
+      std::cerr << "[FAIL] " << test.name << ": " << error.what() << std::endl;
     }
+    watchdog.end();
   }
 
   return failures == 0 ? 0 : 1;

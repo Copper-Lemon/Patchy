@@ -65,16 +65,18 @@ Offscreen does not clear `QApplication::keyboardModifiers()` after synthetic key
 
 ## Failure and lifetime traps
 
-- Timer-driven checks wait for observable state with a bounded deadline. A fixed
-  sleep does not guarantee a number of timer deliveries on a busy machine. The
-  Airbrush opacity-cap test retains its pixel bounds and PSD round trip while
-  allowing delayed timer delivery.
+- Timer-driven checks wait for observable state with a bounded deadline: a busy machine
+  delivers fewer timer ticks than a fixed sleep assumes (the Airbrush opacity-cap test).
 - A wall-clock limit in a test is a hang guard, never a performance bound: give it
-  minutes (`kRawDialogDeadlineMs` in `camera_raw_heif_tests.cpp` is 120 s), because a
-  concurrent build or another suite on the machine must not turn it into a failure.
-  A fixed sleep is never a synchronization primitive; wait for the state itself
-  (`process_events_until`, or the marker file a script writes, as `protocol_edges` in
-  `tests/mcp_client_tests.py` does before it cancels).
+  minutes (`kRawDialogDeadlineMs` in `camera_raw_heif_tests.cpp` is 120 s). Never sleep
+  to synchronize; wait for the state (`process_events_until`, or a script's marker file
+  as `protocol_edges` in `tests/mcp_client_tests.py` does).
+- Every test runs under a per-test timeout (`TestWatchdog`, tests/test_harness.hpp):
+  300 s core, 600 s UI, four times that in Debug; `PATCHY_TEST_TIMEOUT_SECONDS` overrides,
+  0 disables. On expiry the run prints `[FAIL] <test>: timed out`, the UI suite lists its
+  open windows (a modal dialog nobody answers is the usual cause), and it exits 124. A new
+  prompt must stay off under tests and unattended runs. `PATCHY_TEST_TIMEOUT_SELFTEST=1`
+  adds a self-test that hangs on purpose.
 - A debounced worker's start is not a fixed offset from the trigger. To prove work runs
   off the event loop, park the worker, wait for it to start, and check that a UI timer
   fires while it is still parked
@@ -82,7 +84,7 @@ Offscreen does not clear `QApplication::keyboardModifiers()` after synthetic key
 
 - A test that sets an environment variable declares an `EnvironmentVariableRestorer` (tests/ui/ui_test_support.hpp) before the `qputenv`, never a trailing `qunsetenv`: a failed `CHECK` skips the cleanup and the value leaks into every later test (a leaked 300 ms `PATCHY_SCRIPT_TIMEOUT_MS` once killed 16 later scripted runs).
 - The test `CHECK()` macro throws. A failure while a MainWindow still owns an open inline text editor can abort during unwind without printing a `[FAIL]` line. Commit or close the editor before assertions that may throw.
-- The test binaries can exit 0 even when tests fail. Never trust the exit code alone; grep the output for `[FAIL]` to judge a run. Both runners print `[PASS]` on stdout and `[FAIL]` on stderr, so when a run is captured to files, grep the stderr capture (a stdout-only grep reports zero failures for any run).
+- The test binaries can exit 0 even when tests fail: judge a run by its `[FAIL]` lines too. Runners print `[PASS]` on stdout and `[FAIL]` on stderr, so grep the stderr capture (a stdout-only grep finds no failures).
 - Never let a driver lambda (a `QTimer::singleShot` body or any slot) throw across Qt event dispatch; Qt does not support it, and on macOS the suite aborts in the CFRunLoop frames. Wrap the driver body in try/catch and pass `std::current_exception()` to `patchy::ui::unwind_non_modal_dialog_loop` when the code under test is parked in `run_non_modal_dialog`. `ui_filter_gallery_unwinding_call_disarms_in_flight_renders` is the reference.
 - Clicking a layer-row content or mask thumbnail may rebuild and delete the row widget between press and release. Use `click_layer_row_thumbnail(...)`, which refetches the widget for both events; never retain the old pointer.
 - If the UI suite dies with an access violation, read the symbolized stack appended by the dbghelp vectored handler in `tests/ui/main.cpp`. It also writes `test-artifacts/crash-<pid>.dmp`; when the walk prints no frames (a fault inside the heap manager), symbolize it offline against `build\release`.
