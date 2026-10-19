@@ -2373,8 +2373,9 @@ void CanvasWidget::mouseReleaseEvent(QMouseEvent* event) {
   }
 
   if (dragging_warp_handle_) {
-    set_warp_handle_document_position(warp_drag_index_, document_position_f(event->position()));
+    // Cleared first: the release renders the resting (full-quality) preview.
     dragging_warp_handle_ = false;
+    set_warp_handle_document_position(warp_drag_index_, document_position_f(event->position()));
     warp_drag_index_ = -1;
     update();
     return;

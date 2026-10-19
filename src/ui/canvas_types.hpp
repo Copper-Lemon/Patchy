@@ -334,6 +334,11 @@ struct CanvasRenderCacheDiagnostics {
   // Times a transform session built its base cache from the preview-scaled
   // document (display-resolution compositing at zoom <= 50%).
   int transform_scaled_bases{0};
+  // Warp Transform preview renders composited from the preview-scaled document
+  // (zoom <= 50%), and the output pixel count of the latest preview render at its
+  // own level (GitHub #200: bounded by the view, never the whole layer).
+  int warp_scaled_previews{0};
+  std::uint64_t warp_preview_last_pixels{0};
 };
 
 }  // namespace patchy::ui

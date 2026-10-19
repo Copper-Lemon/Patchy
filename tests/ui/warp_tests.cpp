@@ -4,6 +4,7 @@
 #include "core/layer_metadata.hpp"
 #include "core/smart_object.hpp"
 #include "core/text_warp.hpp"
+#include "core/warp_mesh.hpp"
 #include "ui/smart_object_render.hpp"
 #include "ui/pattern_library.hpp"
 #include "ui/brush_tip_library.hpp"
@@ -45,6 +46,7 @@
 #include <algorithm>
 #include <atomic>
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <cmath>
 #include <cstring>
@@ -2380,10 +2382,182 @@ void ui_warp_toggle_refuses_text_layer_and_keeps_transform() {
   CHECK(!canvas->free_transform_active());
 }
 
+// GitHub #200: the warp resampler splits output rows across workers and can clip to
+// a rect; both must reproduce the sequential, unclipped bytes (the commit and the
+// preview share it).
+void ui_warp_resample_parallel_and_clipped_match_sequential() {
+  QImage source(420, 300, QImage::Format_RGBA8888);
+  std::uint64_t seed = 0x2545F4914F6CDD1DULL;
+  for (int y = 0; y < source.height(); ++y) {
+    auto* row = source.scanLine(y);
+    for (int x = 0; x < source.width() * 4; ++x) {
+      seed ^= seed << 13U;
+      seed ^= seed >> 7U;
+      seed ^= seed << 17U;
+      row[x] = static_cast<std::uint8_t>(seed);
+    }
+  }
+  // A bent cage with a fold, so first-writer-wins ordering matters.
+  auto mesh = patchy::identity_warp_mesh(0.0, 0.0, 420.0, 300.0, 4, 4);
+  mesh.xs[5] += 260.0;
+  mesh.ys[5] += 120.0;
+  mesh.xs[3] += 90.0;
+  mesh.ys[3] -= 60.0;
+  const std::array<double, 8> quad{10.0, 20.0, 530.0, 20.0, 530.0, 380.0, 10.0, 380.0};
+  const auto grid = patchy::build_warp_surface_grid(mesh, quad, 420.0, 300.0, 4.0, 128);
+  CHECK(grid.has_value());
+  const auto interpolation = patchy::ui::CanvasWidget::TransformInterpolation::Bicubic;
+  qputenv("PATCHY_RENDER_SINGLE_THREADED", "1");
+  const auto sequential = patchy::ui::resample_warped_rgba8(source, *grid, interpolation);
+  qunsetenv("PATCHY_RENDER_SINGLE_THREADED");
+  const auto parallel = patchy::ui::resample_warped_rgba8(source, *grid, interpolation);
+  CHECK(!sequential.image.isNull());
+  CHECK(sequential.bounds.x == parallel.bounds.x && sequential.bounds.y == parallel.bounds.y);
+  CHECK(sequential.image == parallel.image);
+
+  const patchy::Rect clip{140, 90, 230, 170};
+  const auto clipped = patchy::ui::resample_warped_rgba8(source, *grid, interpolation, clip);
+  CHECK(clipped.bounds.x == clip.x && clipped.bounds.y == clip.y);
+  CHECK(clipped.bounds.width == clip.width && clipped.bounds.height == clip.height);
+  CHECK(clipped.image == sequential.image.copy(clip.x - sequential.bounds.x, clip.y - sequential.bounds.y,
+                                               clip.width, clip.height));
+  const auto outside =
+      patchy::ui::resample_warped_rgba8(source, *grid, interpolation, patchy::Rect{2000, 2000, 50, 50});
+  CHECK(outside.image.isNull());
+}
+
+// GitHub #200: a warp handle drag renders at view resolution. Zoomed out, frames
+// composite from the preview-scaled document; at 100% they cover only the view; the
+// release renders the resting preview, which matches the committed result on screen.
+void ui_warp_drag_preview_renders_at_view_resolution() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  constexpr int kWidth = 2400;
+  constexpr int kHeight = 1600;
+  patchy::Document built(kWidth, kHeight, patchy::PixelFormat::rgba8());
+  patchy::PixelBuffer backdrop(kWidth, kHeight, patchy::PixelFormat::rgba8());
+  backdrop.clear(255);
+  built.add_layer(patchy::Layer(built.allocate_layer_id(), "Backdrop", std::move(backdrop)));
+  patchy::PixelBuffer art(kWidth, kHeight, patchy::PixelFormat::rgba8());
+  for (std::int32_t y = 0; y < kHeight; ++y) {
+    for (std::int32_t x = 0; x < kWidth; ++x) {
+      auto* px = art.pixel(x, y);
+      // Bands plus per-pixel noise (a one-pixel misplacement shows), and blue kept
+      // low so the blue cage overlay can be told apart from the art below.
+      auto noise = static_cast<std::uint64_t>(y) * 0x9E3779B97F4A7C15ULL + static_cast<std::uint64_t>(x);
+      noise = (noise ^ (noise >> 30U)) * 0xBF58476D1CE4E5B9ULL;
+      noise = (noise ^ (noise >> 27U)) * 0x94D049BB133111EBULL;
+      noise ^= noise >> 31U;
+      const bool band = ((x / 160) + (y / 160)) % 2 == 0;
+      px[0] = static_cast<std::uint8_t>((band ? 200 : 40) + (noise & 39U));
+      px[1] = static_cast<std::uint8_t>((band ? 90 : 150) + ((noise >> 8U) & 39U));
+      px[2] = static_cast<std::uint8_t>(40 + ((noise >> 16U) & 63U));
+      px[3] = 255;
+    }
+  }
+  patchy::Layer layer(built.allocate_layer_id(), "Warp me", std::move(art));
+  const auto layer_id = layer.id();
+  built.add_layer(std::move(layer));
+  built.set_active_layer(layer_id);
+  window.add_document_session(std::move(built), QStringLiteral("Warp view"));
+  QApplication::processEvents();
+  auto* canvas = patchy::ui::MainWindowTestAccess::canvas(window);
+  CHECK(canvas != nullptr);
+  canvas->set_zoom_centered(0.25);
+  QApplication::processEvents();
+
+  require_action(window, "editWarpTransformAction")->trigger();
+  QApplication::processEvents();
+  CHECK(canvas->warp_transform_active());
+  const auto drag = [canvas](int handle, QPoint step) {
+    const auto start = canvas->widget_position_f(canvas->warp_handle_document_position(handle)).toPoint();
+    send_mouse(*canvas, QEvent::MouseButtonPress, start, Qt::LeftButton, Qt::LeftButton);
+    for (int frame = 1; frame <= 4; ++frame) {
+      send_mouse(*canvas, QEvent::MouseMove, start + step * frame, Qt::NoButton, Qt::LeftButton);
+      canvas->repaint();
+    }
+    return start + step * 4;
+  };
+
+  // Zoomed out (25%: composite level 2): frames come from the scaled document.
+  const auto before_zoomed_out = canvas->render_cache_diagnostics();
+  const auto end_zoomed_out = drag(5, QPoint(6, 4));
+  const auto during_zoomed_out = canvas->render_cache_diagnostics();
+  CHECK(during_zoomed_out.warp_scaled_previews >= before_zoomed_out.warp_scaled_previews + 4);
+  CHECK(during_zoomed_out.warp_preview_last_pixels <=
+        static_cast<std::uint64_t>(kWidth / 4 + 64) * static_cast<std::uint64_t>(kHeight / 4 + 64));
+  send_mouse(*canvas, QEvent::MouseButtonRelease, end_zoomed_out, Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+
+  // 100%: a frame renders the view, not the 3.8 Mpx layer. Arriving through a
+  // zoom-to-rect leaves a fractional pan, where a patch must still land on whole
+  // pixels like the image around it.
+  canvas->zoom_to_document_rect(QRect(613, 411, 1001, 667));
+  canvas->set_zoom_centered(1.0);
+  QApplication::processEvents();
+  const auto view_pixels =
+      static_cast<std::uint64_t>(canvas->width() + 16) * static_cast<std::uint64_t>(canvas->height() + 16);
+  const auto end_full = drag(5, QPoint(-5, 3));
+  const auto during_full = canvas->render_cache_diagnostics();
+  CHECK(during_full.warp_preview_last_pixels <= view_pixels);
+  CHECK(during_full.warp_preview_last_pixels < static_cast<std::uint64_t>(kWidth) * kHeight / 2);
+  send_mouse(*canvas, QEvent::MouseButtonRelease, end_full, Qt::LeftButton, Qt::NoButton);
+  QApplication::processEvents();
+
+  // Zooming back out re-renders the resting preview at the new level.
+  const auto before_zoom = canvas->render_cache_diagnostics();
+  canvas->set_zoom_centered(0.25);
+  QApplication::processEvents();
+  CHECK(canvas->render_cache_diagnostics().warp_scaled_previews > before_zoom.warp_scaled_previews);
+  // Back to the same fractional-pan 100% view (the view refresh renders it), so the
+  // commit below is captured from exactly this view.
+  canvas->zoom_to_document_rect(QRect(613, 411, 1001, 667));
+  canvas->set_zoom_centered(1.0);
+  QApplication::processEvents();
+  canvas->repaint();
+  const auto resting = canvas->grab().toImage();
+  save_widget_artifact("warp_view_resolution_resting", *canvas);
+
+  // The resting preview is the commit's own render on screen (the cage overlay aside).
+  canvas->finish_warp_transform();
+  const auto settle_started = std::chrono::steady_clock::now();
+  while (!canvas->render_settled() &&
+         std::chrono::steady_clock::now() - settle_started < std::chrono::seconds(30)) {
+    canvas->repaint();
+    QApplication::processEvents();
+  }
+  CHECK(!canvas->warp_transform_active());
+  canvas->repaint();
+  const auto committed = canvas->grab().toImage();
+  save_widget_artifact("warp_view_resolution_committed", *canvas);
+  CHECK(resting.size() == committed.size());
+  const auto resting_rgb = resting.convertToFormat(QImage::Format_RGB32);
+  const auto committed_rgb = committed.convertToFormat(QImage::Format_RGB32);
+  std::int64_t differing = 0;
+  for (int y = 0; y < resting_rgb.height(); ++y) {
+    const auto* a = reinterpret_cast<const QRgb*>(resting_rgb.constScanLine(y));
+    const auto* b = reinterpret_cast<const QRgb*>(committed_rgb.constScanLine(y));
+    for (int x = 0; x < resting_rgb.width(); ++x) {
+      const auto delta = std::max({std::abs(qRed(a[x]) - qRed(b[x])), std::abs(qGreen(a[x]) - qGreen(b[x])),
+                                   std::abs(qBlue(a[x]) - qBlue(b[x]))});
+      // The cage lines and handles draw in light blue and white, which raise blue
+      // over the low-blue art; everything else must match the commit.
+      const bool overlay = qBlue(a[x]) > qBlue(b[x]) + 8;
+      if (delta > 8 && !overlay) {
+        ++differing;
+      }
+    }
+  }
+  CHECK(differing < static_cast<std::int64_t>(resting_rgb.width()) * resting_rgb.height() / 500);
+}
+
 }  // namespace
 
 std::vector<patchy::test::TestCase> warp_tests() {
   return {
+      {"ui_warp_resample_parallel_and_clipped_match_sequential",
+       ui_warp_resample_parallel_and_clipped_match_sequential},
+      {"ui_warp_drag_preview_renders_at_view_resolution", ui_warp_drag_preview_renders_at_view_resolution},
       {"ui_warp_render_matches_photoshop_preview_if_available",
        ui_warp_render_matches_photoshop_preview_if_available},
       {"ui_warped_smart_object_free_transform_rerenders", ui_warped_smart_object_free_transform_rerenders},

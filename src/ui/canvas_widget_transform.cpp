@@ -48,6 +48,7 @@
 #include <QSize>
 #include <QSizeF>
 #include <QString>
+#include <QTimer>
 #include <QTransform>
 #include <Qt>
 #include <QtGlobal>
@@ -62,6 +63,7 @@
 #include <cstring>
 #include <functional>
 #include <future>
+#include <limits>
 #include <optional>
 #include <ratio>
 #include <span>
@@ -789,7 +791,8 @@ TransformedImage resample_transformed_rgba8(const QImage& source, const QTransfo
 }
 
 TransformedImage resample_warped_rgba8(const QImage& source, const WarpSurfaceGrid& grid,
-                                       CanvasWidget::TransformInterpolation interpolation) {
+                                       CanvasWidget::TransformInterpolation interpolation,
+                                       const std::optional<Rect>& clip) {
   // 16/32-bit layer images warp in float and come back in their own format, as in
   // resample_transformed_rgba8.
   const auto deep_format = deep_qimage_format(source.format());
@@ -800,18 +803,31 @@ TransformedImage resample_warped_rgba8(const QImage& source, const WarpSurfaceGr
   if (min_x_it == grid.doc_xs.end() || min_y_it == grid.doc_ys.end()) {
     return TransformedImage{QImage(), Rect{}};
   }
-  const auto left = static_cast<int>(std::floor(*min_x_it)) - 1;
-  const auto top = static_cast<int>(std::floor(*min_y_it)) - 1;
-  const auto right = static_cast<int>(std::ceil(*max_x_it)) + 1;
-  const auto bottom = static_cast<int>(std::ceil(*max_y_it)) + 1;
+  auto left = static_cast<int>(std::floor(*min_x_it)) - 1;
+  auto top = static_cast<int>(std::floor(*min_y_it)) - 1;
+  auto right = static_cast<int>(std::ceil(*max_x_it)) + 1;
+  auto bottom = static_cast<int>(std::ceil(*max_y_it)) + 1;
+  // A warp has no single scale; its unclipped output extent over the source extent
+  // stands in (taken before the clip, so a clipped preview resolves Automatic the
+  // way the full render does).
+  const auto source_area = static_cast<double>(std::max(1, converted.width())) * std::max(1, converted.height());
+  interpolation = resolve_automatic_interpolation(
+      interpolation, static_cast<double>(std::max(1, right - left)) * std::max(1, bottom - top) / source_area);
+  if (clip.has_value()) {
+    // Output pixels outside the clip are skipped, never computed: each pixel is a
+    // pure function of its own position, so the kept ones match the full render.
+    left = std::max(left, clip->x);
+    top = std::max(top, clip->y);
+    right = std::min(right, clip->x + clip->width);
+    bottom = std::min(bottom, clip->y + clip->height);
+    if (right <= left || bottom <= top) {
+      return TransformedImage{QImage(), Rect{}};
+    }
+  }
   QImage transformed(std::max(1, right - left), std::max(1, bottom - top),
                      deep_format.has_value() ? QImage::Format_RGBA32FPx4 : QImage::Format_RGBA8888);
   transformed.fill(Qt::transparent);
   std::vector<std::uint8_t> covered(static_cast<std::size_t>(transformed.width()) * transformed.height(), 0);
-  // A warp has no single scale; its output extent over the source extent stands in.
-  const auto source_area = static_cast<double>(std::max(1, converted.width())) * std::max(1, converted.height());
-  interpolation = resolve_automatic_interpolation(
-      interpolation, static_cast<double>(transformed.width()) * transformed.height() / source_area);
 
   const auto sample_at = [&converted, interpolation](QPointF source_point) {
     switch (interpolation) {
@@ -824,69 +840,98 @@ TransformedImage resample_warped_rgba8(const QImage& source, const WarpSurfaceGr
     }
   };
 
-  for (int cell_row = 0; cell_row + 1 < grid.rows; ++cell_row) {
-    for (int cell_column = 0; cell_column + 1 < grid.columns; ++cell_column) {
-      const auto i00 = static_cast<std::size_t>(cell_row * grid.columns + cell_column);
-      const auto i10 = i00 + 1;
-      const auto i01 = i00 + static_cast<std::size_t>(grid.columns);
-      const auto i11 = i01 + 1;
-      const double cell_min_x = std::min({grid.doc_xs[i00], grid.doc_xs[i10], grid.doc_xs[i11], grid.doc_xs[i01]});
-      const double cell_max_x = std::max({grid.doc_xs[i00], grid.doc_xs[i10], grid.doc_xs[i11], grid.doc_xs[i01]});
-      const double cell_min_y = std::min({grid.doc_ys[i00], grid.doc_ys[i10], grid.doc_ys[i11], grid.doc_ys[i01]});
-      const double cell_max_y = std::max({grid.doc_ys[i00], grid.doc_ys[i10], grid.doc_ys[i11], grid.doc_ys[i01]});
-      const int px_start = std::max(left, static_cast<int>(std::floor(cell_min_x)));
-      const int px_end = std::min(right, static_cast<int>(std::ceil(cell_max_x)) + 1);
-      const int py_start = std::max(top, static_cast<int>(std::floor(cell_min_y)));
-      const int py_end = std::min(bottom, static_cast<int>(std::ceil(cell_max_y)) + 1);
-      for (int py = py_start; py < py_end; ++py) {
-        auto* row = transformed.scanLine(py - top);
-        auto* coverage_row = covered.data() + static_cast<std::size_t>(py - top) * transformed.width();
-        for (int px = px_start; px < px_end; ++px) {
-          if (coverage_row[px - left] != 0) {
-            continue;  // first writer wins on folds (row-major cell order)
-          }
-          const auto st = invert_bilinear_cell(px + 0.5, py + 0.5, grid.doc_xs[i00], grid.doc_ys[i00],
-                                               grid.doc_xs[i10], grid.doc_ys[i10], grid.doc_xs[i11],
-                                               grid.doc_ys[i11], grid.doc_xs[i01], grid.doc_ys[i01]);
-          if (!st.has_value()) {
-            continue;
-          }
-          const double s = (*st)[0];
-          const double t = (*st)[1];
-          const double source_x = (1.0 - t) * ((1.0 - s) * grid.source_xs[i00] + s * grid.source_xs[i10]) +
-                                  t * ((1.0 - s) * grid.source_xs[i01] + s * grid.source_xs[i11]);
-          const double source_y = (1.0 - t) * ((1.0 - s) * grid.source_ys[i00] + s * grid.source_ys[i10]) +
-                                  t * ((1.0 - s) * grid.source_ys[i01] + s * grid.source_ys[i11]);
-          const auto sample = sample_at(QPointF(source_x, source_y));
-          if (deep_format.has_value()) {
-            auto* deep_pixel = reinterpret_cast<float*>(row) + static_cast<std::size_t>(px - left) * 4U;
-            const auto deep_alpha = std::clamp(sample.a, 0.0, 255.0);
-            const auto unpremultiply = [deep_alpha](double value) {
-              return deep_alpha <= 0.0 ? 0.0F : static_cast<float>(std::max(0.0, value / deep_alpha));
-            };
-            deep_pixel[0] = unpremultiply(sample.r);
-            deep_pixel[1] = unpremultiply(sample.g);
-            deep_pixel[2] = unpremultiply(sample.b);
-            deep_pixel[3] = static_cast<float>(deep_alpha / 255.0);
+  // Rows split across workers. Each worker walks every cell in the same row-major
+  // order but writes only its own band of output rows, so every pixel sees the same
+  // sequence of cells as the sequential walk and first-writer-wins on folds resolves
+  // identically: the result is byte-identical for any worker count. The single
+  // detach up front matters: concurrent scanLine() calls would race on QImage's
+  // copy-on-write bookkeeping.
+  auto* transformed_bits = transformed.bits();
+  const auto transformed_stride = static_cast<std::size_t>(transformed.bytesPerLine());
+  const auto transformed_width = transformed.width();
+  const auto resample_band = [&](int band_top, int band_bottom) {
+    for (int cell_row = 0; cell_row + 1 < grid.rows; ++cell_row) {
+      for (int cell_column = 0; cell_column + 1 < grid.columns; ++cell_column) {
+        const auto i00 = static_cast<std::size_t>(cell_row * grid.columns + cell_column);
+        const auto i10 = i00 + 1;
+        const auto i01 = i00 + static_cast<std::size_t>(grid.columns);
+        const auto i11 = i01 + 1;
+        const double cell_min_x = std::min({grid.doc_xs[i00], grid.doc_xs[i10], grid.doc_xs[i11], grid.doc_xs[i01]});
+        const double cell_max_x = std::max({grid.doc_xs[i00], grid.doc_xs[i10], grid.doc_xs[i11], grid.doc_xs[i01]});
+        const double cell_min_y = std::min({grid.doc_ys[i00], grid.doc_ys[i10], grid.doc_ys[i11], grid.doc_ys[i01]});
+        const double cell_max_y = std::max({grid.doc_ys[i00], grid.doc_ys[i10], grid.doc_ys[i11], grid.doc_ys[i01]});
+        const int px_start = std::max(left, static_cast<int>(std::floor(cell_min_x)));
+        const int px_end = std::min(right, static_cast<int>(std::ceil(cell_max_x)) + 1);
+        const int py_start = std::max(band_top, static_cast<int>(std::floor(cell_min_y)));
+        const int py_end = std::min(band_bottom, static_cast<int>(std::ceil(cell_max_y)) + 1);
+        for (int py = py_start; py < py_end; ++py) {
+          auto* row = transformed_bits + static_cast<std::size_t>(py - top) * transformed_stride;
+          auto* coverage_row = covered.data() + static_cast<std::size_t>(py - top) * transformed_width;
+          for (int px = px_start; px < px_end; ++px) {
+            if (coverage_row[px - left] != 0) {
+              continue;  // first writer wins on folds (row-major cell order)
+            }
+            const auto st = invert_bilinear_cell(px + 0.5, py + 0.5, grid.doc_xs[i00], grid.doc_ys[i00],
+                                                 grid.doc_xs[i10], grid.doc_ys[i10], grid.doc_xs[i11],
+                                                 grid.doc_ys[i11], grid.doc_xs[i01], grid.doc_ys[i01]);
+            if (!st.has_value()) {
+              continue;
+            }
+            const double s = (*st)[0];
+            const double t = (*st)[1];
+            const double source_x = (1.0 - t) * ((1.0 - s) * grid.source_xs[i00] + s * grid.source_xs[i10]) +
+                                    t * ((1.0 - s) * grid.source_xs[i01] + s * grid.source_xs[i11]);
+            const double source_y = (1.0 - t) * ((1.0 - s) * grid.source_ys[i00] + s * grid.source_ys[i10]) +
+                                    t * ((1.0 - s) * grid.source_ys[i01] + s * grid.source_ys[i11]);
+            const auto sample = sample_at(QPointF(source_x, source_y));
+            if (deep_format.has_value()) {
+              auto* deep_pixel = reinterpret_cast<float*>(row) + static_cast<std::size_t>(px - left) * 4U;
+              const auto deep_alpha = std::clamp(sample.a, 0.0, 255.0);
+              const auto unpremultiply = [deep_alpha](double value) {
+                return deep_alpha <= 0.0 ? 0.0F : static_cast<float>(std::max(0.0, value / deep_alpha));
+              };
+              deep_pixel[0] = unpremultiply(sample.r);
+              deep_pixel[1] = unpremultiply(sample.g);
+              deep_pixel[2] = unpremultiply(sample.b);
+              deep_pixel[3] = static_cast<float>(deep_alpha / 255.0);
+              coverage_row[px - left] = 1;
+              continue;
+            }
+            auto* pixel = row + static_cast<std::ptrdiff_t>(px - left) * 4;
+            const auto alpha = clamp_sample_channel(sample.a);
+            pixel[3] = alpha;
+            if (alpha == 0) {
+              pixel[0] = 0;
+              pixel[1] = 0;
+              pixel[2] = 0;
+            } else {
+              pixel[0] = clamp_sample_channel(sample.r * 255.0 / static_cast<double>(alpha));
+              pixel[1] = clamp_sample_channel(sample.g * 255.0 / static_cast<double>(alpha));
+              pixel[2] = clamp_sample_channel(sample.b * 255.0 / static_cast<double>(alpha));
+            }
             coverage_row[px - left] = 1;
-            continue;
           }
-          auto* pixel = row + static_cast<std::ptrdiff_t>(px - left) * 4;
-          const auto alpha = clamp_sample_channel(sample.a);
-          pixel[3] = alpha;
-          if (alpha == 0) {
-            pixel[0] = 0;
-            pixel[1] = 0;
-            pixel[2] = 0;
-          } else {
-            pixel[0] = clamp_sample_channel(sample.r * 255.0 / static_cast<double>(alpha));
-            pixel[1] = clamp_sample_channel(sample.g * 255.0 / static_cast<double>(alpha));
-            pixel[2] = clamp_sample_channel(sample.b * 255.0 / static_cast<double>(alpha));
-          }
-          coverage_row[px - left] = 1;
         }
       }
     }
+  };
+
+  const auto area = static_cast<std::int64_t>(transformed.width()) * transformed.height();
+  const auto workers = patchy::max_blocking_fanout_workers(
+      std::clamp(std::min(transformed.height() / kResampleRowsPerWorker, patchy::hardware_worker_threads()), 1, 16));
+  if (area >= kResampleParallelMinArea && workers >= 2 &&
+      !qEnvironmentVariableIsSet("PATCHY_RENDER_SINGLE_THREADED")) {
+    std::vector<std::future<void>> bands;
+    bands.reserve(static_cast<std::size_t>(workers));
+    const auto rows_per_band = (transformed.height() + workers - 1) / workers;
+    for (int start = top; start < bottom; start += rows_per_band) {
+      bands.push_back(std::async(std::launch::async, resample_band, start, std::min(start + rows_per_band, bottom)));
+    }
+    for (auto& band : bands) {
+      band.get();
+    }
+  } else {
+    resample_band(top, bottom);
   }
   const auto bounds = Rect{left, top, transformed.width(), transformed.height()};
   if (deep_format.has_value() && *deep_format != QImage::Format_RGBA32FPx4) {
@@ -3726,11 +3771,7 @@ bool CanvasWidget::begin_warp_transform() {
   warp_entry_changed_ = entry_changed;
   warp_style_ = QStringLiteral("warpCustom");
   warp_style_value_ = 0.0;
-  warp_base_cache_ = QImage();
-  warp_base_cache_scale_level_ = 0;
-  warp_base_display_mip_cache_.clear();
-  warp_base_display_mip_source_key_ = 0;
-  warp_preview_patches_.clear();
+  clear_warp_preview_caches();
   set_move_transform_controls_layer(std::nullopt);
   prepare_warp_source();
   setCursor(Qt::ArrowCursor);
@@ -3840,31 +3881,145 @@ bool CanvasWidget::prepare_warp_source() {
   if (!deep_qimage_format(warp_source_image_.format()).has_value()) {
     warp_source_image_ = warp_source_image_.convertToFormat(QImage::Format_RGBA8888);
   }
-  if (warp_base_cache_.isNull()) {
-    // Hidden via render overrides (set_visible toggles bumped revisions and
-    // cold-invalidated the style-mask caches), banded across workers, and at
-    // zoom <= 50% composited from the preview-scaled document.
-    warp_base_cache_scale_level_ = 0;
-    const std::vector<LayerId> hidden{*warp_layer_id_};
-    if (const auto composite_level = preview_composite_level_for_zoom(view_zoom()); composite_level >= 1) {
-      if (auto* scaled_document = preview_scaled_document_for_level(composite_level)) {
-        const QRect scaled_canvas(0, 0, scaled_document->width(), scaled_document->height());
-        auto base = qimage_from_document_rect_with_hidden_layers_banded(*scaled_document, scaled_canvas, true, hidden)
-                        .convertToFormat(QImage::Format_RGBA8888);
-        if (!base.isNull()) {
-          warp_base_cache_ = std::move(base);
-          warp_base_cache_scale_level_ = composite_level;
-        }
-      }
-    }
-    if (warp_base_cache_.isNull()) {
-      const QRect canvas_rect(0, 0, document_->width(), document_->height());
-      warp_base_cache_ = qimage_from_document_rect_with_hidden_layers_banded(*document_, canvas_rect, true, hidden)
-                             .convertToFormat(QImage::Format_RGBA8888);
-    }
-  }
+  warp_source_mips_.clear();
+  ensure_warp_base_cache();
   refresh_warp_preview_cache();
   return true;
+}
+
+void CanvasWidget::ensure_warp_base_cache() {
+  if (!warping_layer_ || document_ == nullptr || !warp_layer_id_.has_value() || !warp_base_cache_.isNull()) {
+    return;
+  }
+  // Hidden via render overrides (set_visible toggles bumped revisions and
+  // cold-invalidated the style-mask caches), banded across workers, and at
+  // zoom <= 50% composited from the preview-scaled document.
+  warp_base_cache_scale_level_ = 0;
+  warp_base_display_mip_cache_.clear();
+  warp_base_display_mip_source_key_ = 0;
+  const std::vector<LayerId> hidden{*warp_layer_id_};
+  if (const auto composite_level = preview_composite_level_for_zoom(view_zoom()); composite_level >= 1) {
+    if (auto* scaled_document = preview_scaled_document_for_level(composite_level)) {
+      const QRect scaled_canvas(0, 0, scaled_document->width(), scaled_document->height());
+      auto base = qimage_from_document_rect_with_hidden_layers_banded(*scaled_document, scaled_canvas, true, hidden)
+                      .convertToFormat(QImage::Format_RGBA8888);
+      if (!base.isNull()) {
+        warp_base_cache_ = std::move(base);
+        warp_base_cache_scale_level_ = composite_level;
+      }
+    }
+  }
+  if (warp_base_cache_.isNull()) {
+    const QRect canvas_rect(0, 0, document_->width(), document_->height());
+    warp_base_cache_ = qimage_from_document_rect_with_hidden_layers_banded(*document_, canvas_rect, true, hidden)
+                           .convertToFormat(QImage::Format_RGBA8888);
+  }
+}
+
+void CanvasWidget::clear_warp_preview_caches() {
+  warp_base_cache_ = QImage();
+  warp_base_cache_scale_level_ = 0;
+  warp_base_display_mip_cache_.clear();
+  warp_base_display_mip_source_key_ = 0;
+  warp_preview_patches_.clear();
+  warp_preview_patches_scale_level_ = 0;
+  warp_preview_covered_rect_ = QRect();
+  warp_source_mips_.clear();
+}
+
+const QImage& CanvasWidget::warp_source_for_level(int level) {
+  static const QImage kNull;
+  if (level <= 0) {
+    return warp_source_image_;
+  }
+  while (static_cast<int>(warp_source_mips_.size()) < level) {
+    const QImage& previous = warp_source_mips_.empty() ? warp_source_image_ : warp_source_mips_.back();
+    if (previous.isNull()) {
+      return kNull;
+    }
+    QImage next;
+    if (deep_qimage_format(previous.format()).has_value()) {
+      // 16/32-bit sources keep their depth; the 8-bit box filter below has no
+      // deep layout.
+      next = previous.scaled(std::max(1, (previous.width() + 1) / 2), std::max(1, (previous.height() + 1) / 2),
+                             Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+      if (!next.isNull() && next.format() != previous.format()) {
+        next = next.convertToFormat(previous.format());
+      }
+    } else {
+      // RGBA8888 straight alpha (prepare_warp_source): alpha-weighted 2x2 boxes, so
+      // transparent texels never bleed color into the mip.
+      next = halved_display_mip(previous);
+    }
+    if (next.isNull()) {
+      return kNull;
+    }
+    warp_source_mips_.push_back(std::move(next));
+  }
+  return warp_source_mips_[static_cast<std::size_t>(level - 1)];
+}
+
+QRect CanvasWidget::warp_preview_view_rect(double margin_fraction) const {
+  if (document_ == nullptr) {
+    return {};
+  }
+  const QRect canvas_rect(0, 0, document_->width(), document_->height());
+  if (width() <= 0 || height() <= 0) {
+    return canvas_rect;
+  }
+  // All four corners: the bounding box stays right under a rotated view.
+  double left = std::numeric_limits<double>::max();
+  double top = std::numeric_limits<double>::max();
+  double right = std::numeric_limits<double>::lowest();
+  double bottom = std::numeric_limits<double>::lowest();
+  for (const auto corner : {QPointF(0.0, 0.0), QPointF(width(), 0.0), QPointF(width(), height()),
+                            QPointF(0.0, height())}) {
+    const auto point = document_position_f(corner);
+    left = std::min(left, point.x());
+    top = std::min(top, point.y());
+    right = std::max(right, point.x());
+    bottom = std::max(bottom, point.y());
+  }
+  const QRectF view(QPointF(left, top), QPointF(right, bottom));
+  // Four extra pixels cover the smooth display scaling at the view edge.
+  const auto margin_x = view.width() * margin_fraction + 4.0;
+  const auto margin_y = view.height() * margin_fraction + 4.0;
+  return view.adjusted(-margin_x, -margin_y, margin_x, margin_y).toAlignedRect().intersected(canvas_rect);
+}
+
+void CanvasWidget::schedule_warp_preview_view_refresh() {
+  if (!warping_layer_ || dragging_warp_handle_ || warp_preview_view_refresh_pending_) {
+    return;
+  }
+  warp_preview_view_refresh_pending_ = true;
+  // Deferred so a burst of wheel steps or pan moves re-renders once.
+  QTimer::singleShot(0, this, [this] {
+    warp_preview_view_refresh_pending_ = false;
+    refresh_warp_preview_for_view();
+  });
+}
+
+void CanvasWidget::refresh_warp_preview_for_view() {
+  if (!warping_layer_ || dragging_warp_handle_ || document_ == nullptr || warp_source_image_.isNull()) {
+    return;
+  }
+  const auto level = preview_composite_level_for_zoom(view_zoom());
+  bool changed = false;
+  if (warp_base_cache_scale_level_ > level) {
+    // Zoomed in past the base's level: a coarser base would stay blurry for the
+    // rest of the session.
+    warp_base_cache_ = QImage();
+    ensure_warp_base_cache();
+    changed = true;
+  }
+  if (level != warp_preview_patches_scale_level_ ||
+      !warp_preview_covered_rect_.contains(warp_preview_view_rect(0.0))) {
+    refresh_warp_preview_cache();
+    changed = true;
+  }
+  if (changed && isVisible()) {
+    update();
+  }
 }
 
 std::array<double, 8> CanvasWidget::warp_document_quad() const {
@@ -3880,37 +4035,106 @@ std::array<double, 8> CanvasWidget::warp_document_quad() const {
 
 void CanvasWidget::refresh_warp_preview_cache() {
   warp_preview_patches_.clear();
+  warp_preview_patches_scale_level_ = 0;
+  warp_preview_covered_rect_ = QRect();
   if (!warping_layer_ || document_ == nullptr || !warp_layer_id_.has_value() || warp_source_image_.isNull()) {
     return;
   }
-  // Interactive quality: 16 px cells (commit re-renders at 4 px).
-  const auto grid = build_warp_surface_grid(warp_mesh_, warp_document_quad(), warp_source_image_.width(),
-                                            warp_source_image_.height(), 16.0, 64);
-  if (!grid.has_value()) {
-    return;
+  // View resolution (GitHub #200): rendering the whole layer at full resolution per
+  // handle move took seconds a frame on large images. The preview renders at the
+  // display's composite level from the preview-scaled document (the base comes from
+  // the same document) and covers only the document area on screen. A drag frame
+  // samples bilinearly through 16 px cells; the resting frame (release, presets,
+  // view changes) uses the session's interpolation and the commit's 4 px cells over
+  // the view plus half a view per side, so ordinary pans stay inside it. The commit
+  // still bakes the full-resolution source (bake_warp_into_layer).
+  const bool interactive = dragging_warp_handle_;
+  const QRect canvas_rect(0, 0, document_->width(), document_->height());
+  int level = preview_composite_level_for_zoom(view_zoom());
+  Document* scaled_document = level >= 1 ? preview_scaled_document_for_level(level) : nullptr;
+  const QImage* source = &warp_source_image_;
+  if (scaled_document != nullptr) {
+    source = &warp_source_for_level(level);
   }
-  const auto warped = resample_warped_rgba8(warp_source_image_, *grid, transform_interpolation_);
-  if (warped.image.isNull()) {
-    return;
+  if (scaled_document == nullptr || source->isNull()) {
+    level = 0;
+    scaled_document = nullptr;
+    source = &warp_source_image_;
   }
-  const auto* layer = std::as_const(*document_).find_layer(*warp_layer_id_);
+  const Document& composite_document = scaled_document != nullptr ? *scaled_document : std::as_const(*document_);
+  const auto* layer = composite_document.find_layer(*warp_layer_id_);
   if (layer == nullptr) {
     return;
   }
+  auto covered = warp_preview_view_rect(interactive ? 0.0 : 0.5);
+  if (level >= 1) {
+    covered = rect_aligned_to_mip_grid(covered, level).intersected(canvas_rect);
+  }
+  warp_preview_covered_rect_ = covered;
+  if (covered.isEmpty()) {
+    return;
+  }
+  const double scale = 1.0 / static_cast<double>(1 << level);
+  auto quad = warp_document_quad();
+  for (auto& value : quad) {
+    value *= scale;
+  }
+  const auto grid = build_warp_surface_grid(warp_mesh_, quad, warp_source_image_.width() * scale,
+                                            warp_source_image_.height() * scale, interactive ? 16.0 : 4.0,
+                                            interactive ? 64 : 128);
+  if (!grid.has_value()) {
+    return;
+  }
+  const auto [min_x, max_x] = std::minmax_element(grid->doc_xs.begin(), grid->doc_xs.end());
+  const auto [min_y, max_y] = std::minmax_element(grid->doc_ys.begin(), grid->doc_ys.end());
+  const auto grid_left = static_cast<int>(std::floor(*min_x)) - 1;
+  const auto grid_top = static_cast<int>(std::floor(*min_y)) - 1;
+  const Rect grid_bounds{grid_left, grid_top, static_cast<int>(std::ceil(*max_x)) + 1 - grid_left,
+                         static_cast<int>(std::ceil(*max_y)) + 1 - grid_top};
+  // Layer effects reach past the pixels that cast them (a shadow's offset, a glow's
+  // spread), so the resample keeps that reach around the covered area.
+  const auto effect_bounds = layer_bounds_with_effects(*layer, grid_bounds);
+  const auto reach = std::max({grid_bounds.x - effect_bounds.x, grid_bounds.y - effect_bounds.y,
+                               effect_bounds.x + effect_bounds.width - grid_bounds.x - grid_bounds.width,
+                               effect_bounds.y + effect_bounds.height - grid_bounds.y - grid_bounds.height, 0});
+  const auto scaled_covered = level >= 1 ? preview_scaled_document_rect(covered, level) : covered;
+  const auto clip = scaled_covered.adjusted(-reach, -reach, reach, reach);
+  auto interpolation = transform_interpolation_;
+  if (interactive && interpolation != TransformInterpolation::NearestNeighbor) {
+    interpolation = TransformInterpolation::Bilinear;
+  }
+  const auto warped = resample_warped_rgba8(*source, *grid, interpolation,
+                                            Rect{clip.x(), clip.y(), clip.width(), clip.height()});
+  if (warped.image.isNull()) {
+    return;
+  }
+  render_cache_diagnostics_.warp_preview_last_pixels =
+      static_cast<std::uint64_t>(warped.image.width()) * static_cast<std::uint64_t>(warped.image.height());
   const auto warped_pixels = pixels_from_image_native(warped.image);
   // Region-limited over the base cache (which excludes the layer): the warped
   // content only contributes inside its own effect bounds, so recompositing
   // the whole document per handle move - the warp drag's dominant cost - is
   // replaced by one bounded patch render.
-  const QRect canvas_rect(0, 0, document_->width(), document_->height());
-  const auto patch_rect = to_qrect(layer_bounds_with_effects(*layer, warped.bounds)).intersected(canvas_rect);
+  const QRect composite_canvas(0, 0, composite_document.width(), composite_document.height());
+  const auto patch_rect =
+      to_qrect(layer_bounds_with_effects(*layer, warped.bounds)).intersected(composite_canvas).intersected(scaled_covered);
   if (patch_rect.isEmpty()) {
     return;
   }
   warp_preview_patches_ = qimage_patches_from_document_region_with_layer_pixels(
-      *document_, QRegion(patch_rect), true, *warp_layer_id_, warped_pixels, warped.bounds);
+      composite_document, QRegion(patch_rect), true, *warp_layer_id_, warped_pixels, warped.bounds);
   for (auto& patch : warp_preview_patches_) {
     patch.image = patch.image.convertToFormat(QImage::Format_RGBA8888);
+    if (level >= 1) {
+      // Full-res document_rect for the update/paint math; the image is its mip.
+      patch.document_rect = QRect(patch.document_rect.x() << level, patch.document_rect.y() << level,
+                                  patch.document_rect.width() << level, patch.document_rect.height() << level)
+                                .intersected(canvas_rect);
+    }
+  }
+  warp_preview_patches_scale_level_ = level;
+  if (level >= 1) {
+    ++render_cache_diagnostics_.warp_scaled_previews;
   }
 }
 
@@ -4057,11 +4281,7 @@ void CanvasWidget::reset_warp_state() {
   warp_style_ = QStringLiteral("warpCustom");
   warp_style_value_ = 0.0;
   warp_source_image_ = QImage();
-  warp_base_cache_ = QImage();
-  warp_base_cache_scale_level_ = 0;
-  warp_base_display_mip_cache_.clear();
-  warp_base_display_mip_source_key_ = 0;
-  warp_preview_patches_.clear();
+  clear_warp_preview_caches();
   warp_entry_changed_ = false;
 }
 
@@ -4257,11 +4477,7 @@ bool CanvasWidget::resume_pending_warp_session() {
   warp_style_ = pending_warp_style_;
   warp_style_value_ = pending_warp_style_value_;
   warp_source_image_ = pending_warp_source_image_;
-  warp_base_cache_ = QImage();
-  warp_base_cache_scale_level_ = 0;
-  warp_base_display_mip_cache_.clear();
-  warp_base_display_mip_source_key_ = 0;
-  warp_preview_patches_.clear();
+  clear_warp_preview_caches();
   reset_free_transform_session_state();
   clear_pending_warp();
   set_move_transform_controls_layer(std::nullopt);
