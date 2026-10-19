@@ -2109,6 +2109,78 @@ void ui_move_tool_hover_outlines_opaque_bounds() {
   CHECK(count_pixels_close(cleared, expected_outline.normalized().adjusted(-2, -2, 2, 2), outline_color, 18) < 6);
 }
 
+// The Move tool's layer outline is light-blue dashes over a solid dark line on
+// the first pixels outside the layer, so every side keeps an edge on a light
+// background at every zoom and the layer's own pixels stay uncovered.
+void ui_move_layer_outline_reads_on_every_side_at_every_zoom() {
+  const QColor background_color(232, 232, 232);
+  const QColor layer_color(230, 120, 40);
+  patchy::Document document(160, 120, patchy::PixelFormat::rgba8());
+  document.add_pixel_layer("Background", solid_pixels(160, 120, patchy::PixelFormat::rgba8(), background_color));
+  const QRect layer_rect(53, 37, 41, 27);
+  patchy::Layer target(document.allocate_layer_id(), "Outline Target",
+                       solid_pixels(layer_rect.width(), layer_rect.height(), patchy::PixelFormat::rgba8(), layer_color));
+  target.set_bounds(patchy::Rect{layer_rect.x(), layer_rect.y(), layer_rect.width(), layer_rect.height()});
+  document.add_layer(std::move(target));
+
+  patchy::ui::CanvasWidget canvas;
+  canvas.resize(640, 480);
+  canvas.set_document(&document);
+  canvas.set_tool(patchy::ui::CanvasTool::Move);
+  canvas.set_auto_select_layer(true);
+  canvas.set_show_transform_controls(false);
+  canvas.show();
+  QApplication::processEvents();
+
+  const QColor dark(18, 20, 24);
+  const QColor blue(95, 170, 255);
+  QList<QImage> strips;
+  for (const double zoom : {1.0 / 3.0, 2.0 / 3.0, 1.0, 1.5, 3.0}) {
+    canvas.set_zoom_centered(zoom);
+    QApplication::processEvents();
+    send_mouse(canvas, QEvent::MouseMove, canvas.widget_position_for_document_point(layer_rect.center()),
+               Qt::NoButton, Qt::NoButton);
+    const auto image = canvas.grab().toImage();
+    const auto top_left = canvas.widget_position_for_document_point(layer_rect.topLeft());
+    const auto end = canvas.widget_position_for_document_point(layer_rect.bottomRight() + QPoint(1, 1));
+    // The ring: column top_left.x - 1 and end.x, row top_left.y - 1 and end.y.
+    const std::array<std::pair<const char*, QRect>, 4> sides = {{
+        {"top", QRect(QPoint(top_left.x() - 1, top_left.y() - 1), QPoint(end.x(), top_left.y() - 1))},
+        {"bottom", QRect(QPoint(top_left.x() - 1, end.y()), QPoint(end.x(), end.y()))},
+        {"left", QRect(QPoint(top_left.x() - 1, top_left.y() - 1), QPoint(top_left.x() - 1, end.y()))},
+        {"right", QRect(QPoint(end.x(), top_left.y() - 1), QPoint(end.x(), end.y()))},
+    }};
+    for (const auto& [side, line] : sides) {
+      const int length = line.width() * line.height();
+      const int dark_pixels = count_pixels_close(image, line, dark, 24);
+      const int blue_pixels = count_pixels_close(image, line, blue, 24);
+      if (dark_pixels + blue_pixels != length || dark_pixels < length / 4 || blue_pixels < length / 4) {
+        std::cerr << "ui_move_layer_outline zoom " << zoom << ' ' << side << ": " << dark_pixels << " dark + "
+                  << blue_pixels << " blue of " << length << '\n';
+      }
+      // Every pixel on the line is the outline (no background shows through a
+      // gap), and the dark line is there to contrast with the light grey.
+      CHECK(dark_pixels + blue_pixels == length);
+      CHECK(dark_pixels >= length / 4);
+      CHECK(blue_pixels >= length / 4);
+    }
+    // The layer's own edge pixels stay uncovered.
+    const QRect inner(top_left, end - QPoint(1, 1));
+    for (const auto& edge : {QRect(inner.left(), inner.top(), inner.width(), 1),
+                             QRect(inner.left(), inner.bottom(), inner.width(), 1),
+                             QRect(inner.left(), inner.top(), 1, inner.height()),
+                             QRect(inner.right(), inner.top(), 1, inner.height())}) {
+      CHECK(count_pixels_close(image, edge, dark, 24) == 0);
+      CHECK(count_pixels_close(image, edge, blue, 24) == 0);
+    }
+
+    // A 4x close-up of the layer and its ring for the artifact sheet.
+    const auto crop = image.copy(QRect(top_left - QPoint(8, 8), end + QPoint(8, 8)));
+    strips.push_back(crop.scaled(crop.size() * 4, Qt::IgnoreAspectRatio, Qt::FastTransformation));
+  }
+  save_stacked_artifact("ui_move_layer_outline_zooms", strips);
+}
+
 // A layer whose Move rect (opaque extent) has a transparent middle: two
 // opaque squares at the rect's opposite corners.
 patchy::LayerId add_hollow_layer(patchy::Document& document, const char* name, QRect first_square,
@@ -5027,7 +5099,10 @@ void ui_move_cold_preview_is_async_and_uses_latest_delta() {
   scene.canvas->set_selected_layer_ids({scene.layer_id});
   scene.canvas->set_rulers_visible(false);
   qputenv("PATCHY_PROCESSING_RENDER_TEST_DELAY_MS", QByteArray("1200"));
-  const QRect badge_area(0, 0, scene.canvas->width(), 80);
+  // The band ends above the drag outline, which sits on the row just outside
+  // the layer's top edge.
+  const int layer_top = scene.canvas->widget_position_for_document_point(QPoint(40, 40)).y();
+  const QRect badge_area(0, 0, scene.canvas->width(), std::min(80, layer_top - 1));
   const auto no_badge = render_widget_image(*scene.canvas).copy(badge_area);
   const auto before = scene.canvas->render_cache_diagnostics();
   const auto start = scene.canvas->widget_position_for_document_point(QPoint(70, 70));
@@ -5156,6 +5231,8 @@ std::vector<patchy::test::TestCase> move_tool_processing_overlay_tests() {
       {"ui_move_preview_keeps_underlying_layers_steady_when_zoomed_out",
        ui_move_preview_keeps_underlying_layers_steady_when_zoomed_out},
       {"ui_move_tool_hover_outlines_opaque_bounds", ui_move_tool_hover_outlines_opaque_bounds},
+      {"ui_move_layer_outline_reads_on_every_side_at_every_zoom",
+       ui_move_layer_outline_reads_on_every_side_at_every_zoom},
       {"ui_move_ctrl_hover_outlines_layer_with_auto_select_off", ui_move_ctrl_hover_outlines_layer_with_auto_select_off},
       {"ui_move_tool_outlines_and_moves_off_canvas_layer", ui_move_tool_outlines_and_moves_off_canvas_layer},
       {"ui_move_tool_uses_text_rect_for_hit_and_hover",

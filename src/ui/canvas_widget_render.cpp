@@ -183,6 +183,27 @@ QRegion outset_region(const QRegion& region, int amount) {
   return expanded;
 }
 
+// The Move tool's layer outline (hover, selection-rectangle preview, drag):
+// light-blue dashes over a solid dark line on the first widget pixels outside
+// the content box [top_left, end) (end exclusive), so it never covers the art
+// and reads on light, dark and blue pixels alike. A layer narrower than a
+// widget pixel (top_left == end) still gets a 2 px ring. Like the marching
+// ants, the pair is theme-exempt (docs/ui-conventions.md): it sits on
+// artwork, not on chrome.
+void draw_move_layer_outline(QPainter& painter, QPoint top_left, QPoint end) {
+  painter.save();
+  painter.setRenderHint(QPainter::Antialiasing, false);
+  painter.setBrush(Qt::NoBrush);
+  // A 1 px aliased drawRect covers left()..right() + 1, so the ring lands on
+  // top_left - 1 and end.
+  const QRect ring(top_left - QPoint(1, 1), end - QPoint(1, 1));
+  painter.setPen(QPen(QColor(18, 20, 24), 1));
+  painter.drawRect(ring);
+  painter.setPen(QPen(QColor(95, 170, 255), 1, Qt::DashLine));
+  painter.drawRect(ring);
+  painter.restore();
+}
+
 }  // namespace
 
 CanvasWidget::RenderCacheDiagnostics CanvasWidget::render_cache_diagnostics() const noexcept {
@@ -1018,27 +1039,19 @@ void CanvasWidget::paintEvent(QPaintEvent* event) {
   }
   painter.restore();
 
-  if (moving_layer_ && !moving_layers_.empty() && !draw_transform_overlay) {
-    painter.setPen(QPen(QColor(95, 170, 255), 1, Qt::DashLine));
-    for (const auto& moving_layer : moving_layers_) {
-      const auto outline_rect = moving_layer_outline_rect(moving_layer, move_preview_delta_);
-      if (!outline_rect.isEmpty()) {
-        const QRect layer_target(widget_position(outline_rect.topLeft()),
-                                 widget_position(outline_rect.bottomRight() + QPoint(1, 1)));
-        painter.drawRect(layer_target.normalized().adjusted(0, 0, -1, -1));
-      }
-    }
-  }
-  const auto draw_hover_outline = [&](const QRect& outline_rect) {
+  const auto draw_layer_outline = [&](const QRect& outline_rect) {
     if (!outline_rect.isEmpty()) {
-      painter.setPen(QPen(QColor(95, 170, 255), 1, Qt::DashLine));
-      const QRect hover_target(widget_position(outline_rect.topLeft()),
-                               widget_position(outline_rect.bottomRight() + QPoint(1, 1)));
-      painter.drawRect(hover_target.normalized().adjusted(0, 0, -1, -1));
+      draw_move_layer_outline(painter, widget_position(outline_rect.topLeft()),
+                              widget_position(outline_rect.bottomRight() + QPoint(1, 1)));
     }
   };
+  if (moving_layer_ && !moving_layers_.empty() && !draw_transform_overlay) {
+    for (const auto& moving_layer : moving_layers_) {
+      draw_layer_outline(moving_layer_outline_rect(moving_layer, move_preview_delta_));
+    }
+  }
   if (tool_ == CanvasTool::Move && !moving_layer_ && !draw_transform_overlay && move_hover_outline_rect_.has_value()) {
-    draw_hover_outline(*move_hover_outline_rect_);
+    draw_layer_outline(*move_hover_outline_rect_);
   }
   // A selection rectangle outlines what releasing it would select, with the
   // hover outline (GitHub issue 171).
@@ -1046,7 +1059,7 @@ void CanvasWidget::paintEvent(QPaintEvent* event) {
     const auto& gesture = *move_layer_selection_gesture_;
     for (const auto id : gesture.preview_ids) {
       if (const auto found = gesture.target_outlines.find(id); found != gesture.target_outlines.end()) {
-        draw_hover_outline(found->second);
+        draw_layer_outline(found->second);
       }
     }
   }
