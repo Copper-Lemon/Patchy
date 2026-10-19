@@ -156,6 +156,14 @@ void ui_layer_fx_and_smart_badges_stay_visible_in_narrow_panel() {
   CHECK(layers_dock->width() == narrow_width);
   assert_badges_visible();
   save_widget_artifact("ui_layer_fx_smart_badges_narrow_panel", *layers_dock);
+  // At the compact width, the panel's rows wrapped (GitHub issue 199), the badges still show.
+  const int compact_width = patchy::ui::MainWindowTestAccess::right_dock_compact_width(window);
+  patchy::ui::MainWindowTestAccess::set_right_dock_stack_width(window, compact_width);
+  QApplication::processEvents();
+  QApplication::processEvents();
+  CHECK(layers_dock->width() == compact_width);
+  assert_badges_visible();
+  save_widget_artifact("ui_layer_fx_smart_badges_compact_panel", *layers_dock);
 }
 
 // The smart-object badge is a clickable icon button on the row's details line (it

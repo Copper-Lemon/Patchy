@@ -2944,6 +2944,12 @@ private:
   bool pending_layer_blend_edit_active_{false};
   // 0 until update_right_dock_minimum_width() measures the layers panel.
   int right_dock_minimum_width_{0};
+  // The narrowest column width at which the Layers panel fits whole, every row
+  // wrapped (GitHub issue 199); 0 until measured with right_dock_minimum_width_.
+  int right_dock_compact_width_{0};
+  // The Layers panel layout's minimum height when its last layout request came
+  // in; rows wrapping in a narrow column raise it.
+  int layers_panel_minimum_height_{0};
   // -1 until the chrome around the layers panel is measured from the laid-out
   // column; 0 is a valid measurement.
   int right_dock_chrome_width_{-1};

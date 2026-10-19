@@ -303,10 +303,17 @@ public:
     return window.right_dock_width_follows_minimum_;
   }
 
-  // The narrowest column width at which no right panel scrolls sideways.
+  // The width the column opens at and snaps to, the Layers footer on one row.
   static int right_dock_content_minimum_width(MainWindow& window) {
     window.update_right_dock_minimum_width();
     return window.right_dock_minimum_width_;
+  }
+
+  // The narrowest column width at which the Layers panel fits whole, its rows
+  // wrapped (GitHub issue 199); below it the panel scrolls sideways.
+  static int right_dock_compact_width(MainWindow& window) {
+    window.update_right_dock_minimum_width();
+    return window.right_dock_compact_width_;
   }
 
   // The client height that keeps the whole frame on the window's screen (GitHub issue 108).
