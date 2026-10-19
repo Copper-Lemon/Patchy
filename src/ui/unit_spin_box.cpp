@@ -417,6 +417,26 @@ double UnitSpinBox::valueFromText(const QString& text) const {
   return std::clamp(*converted, minimum(), maximum());
 }
 
+QString trim_trailing_decimal_zeros(QString text, const QLocale& locale) {
+  const auto point = locale.decimalPoint();
+  if (!text.contains(point)) {
+    return text;
+  }
+  while (text.endsWith(QLatin1Char('0'))) {
+    text.chop(1);
+  }
+  if (text.endsWith(point)) {
+    text.chop(point.size());
+  }
+  return text;
+}
+
+TrimmedDoubleSpinBox::TrimmedDoubleSpinBox(QWidget* parent) : QDoubleSpinBox(parent) {}
+
+QString TrimmedDoubleSpinBox::textFromValue(double value) const {
+  return trim_trailing_decimal_zeros(QDoubleSpinBox::textFromValue(value), locale());
+}
+
 void UnitSpinBox::set_trim_trailing_zeros(bool enabled) {
   if (trim_trailing_zeros_ == enabled) {
     return;
@@ -428,17 +448,7 @@ void UnitSpinBox::set_trim_trailing_zeros(bool enabled) {
 
 QString UnitSpinBox::textFromValue(double value) const {
   const auto trimmed = [this](QString text) {
-    const auto point = locale().decimalPoint();
-    if (!trim_trailing_zeros_ || !text.contains(point)) {
-      return text;
-    }
-    while (text.endsWith(QLatin1Char('0'))) {
-      text.chop(1);
-    }
-    if (text.endsWith(point)) {
-      text.chop(point.size());
-    }
-    return text;
+    return trim_trailing_zeros_ ? trim_trailing_decimal_zeros(std::move(text), locale()) : text;
   };
   if (display_ == native_) {
     return trimmed(QDoubleSpinBox::textFromValue(value));

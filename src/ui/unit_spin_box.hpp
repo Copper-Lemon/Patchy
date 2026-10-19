@@ -66,6 +66,24 @@ struct UnitConversionContext {
 // helpers produce (" px", " in", " cm", " mm", " pt", "%", the degree sign).
 [[nodiscard]] QString spin_unit_suffix(SpinUnit unit);
 
+// Drops trailing zeros after `locale`'s decimal point, and then a bare point, from a
+// formatted number: "12.000" -> "12", "1.50" -> "1.5". Text without a decimal point
+// is returned unchanged.
+[[nodiscard]] QString trim_trailing_decimal_zeros(QString text, const QLocale& locale);
+
+// A unitless QDoubleSpinBox (aspect-ratio parts) that always displays trimmed
+// numbers, as UnitSpinBox::set_trim_trailing_zeros does: "1", "1.5", never "1.00".
+// decimals() still sets the precision a typed value keeps.
+class TrimmedDoubleSpinBox : public QDoubleSpinBox {
+  Q_OBJECT
+
+ public:
+  explicit TrimmedDoubleSpinBox(QWidget* parent = nullptr);
+
+ protected:
+  QString textFromValue(double value) const override;
+};
+
 // A QDoubleSpinBox that accepts a unit token after the number and converts it into
 // the field's native unit (Photoshop's numeric-field behavior). Plain numbers behave
 // exactly like the stock spin box; the display always shows the native unit.

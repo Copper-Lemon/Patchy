@@ -999,7 +999,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   // swaps the two sets.
   marquee_ratio_option_widgets_.push_back(
       add_option_label(QT_TR_NOOP("Width:"), {CanvasTool::Marquee, CanvasTool::EllipticalMarquee}));
-  auto* ratio_width = new QDoubleSpinBox(toolbar);
+  auto* ratio_width = new TrimmedDoubleSpinBox(toolbar);
   ratio_width->setObjectName(QStringLiteral("selectionRatioWidthSpin"));
   ratio_width->setRange(0.01, 1000.0);
   ratio_width->setDecimals(2);
@@ -1010,7 +1010,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
       add_option_widget(ratio_width, {CanvasTool::Marquee, CanvasTool::EllipticalMarquee}));
   marquee_ratio_option_widgets_.push_back(
       add_option_label(QT_TR_NOOP("Height:"), {CanvasTool::Marquee, CanvasTool::EllipticalMarquee}));
-  auto* ratio_height = new QDoubleSpinBox(toolbar);
+  auto* ratio_height = new TrimmedDoubleSpinBox(toolbar);
   ratio_height->setObjectName(QStringLiteral("selectionRatioHeightSpin"));
   ratio_height->setRange(0.01, 1000.0);
   ratio_height->setDecimals(2);
@@ -1132,7 +1132,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   });
   bind_tooltip(crop_ratio_preset_combo_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Aspect ratio preset for the crop box"));
   crop_ratio_option_widgets_.push_back(add_option_widget(crop_ratio_preset_combo_, {CanvasTool::Crop}));
-  crop_ratio_w_spin_ = new QDoubleSpinBox(toolbar);
+  crop_ratio_w_spin_ = new TrimmedDoubleSpinBox(toolbar);
   crop_ratio_w_spin_->setObjectName(QStringLiteral("cropRatioWidthSpin"));
   crop_ratio_w_spin_->setRange(0.0, 10000.0);
   crop_ratio_w_spin_->setDecimals(2);
@@ -1144,7 +1144,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   crop_ratio_separator->setProperty("optionLabel", true);
   crop_ratio_separator->setAlignment(Qt::AlignVCenter);
   crop_ratio_option_widgets_.push_back(add_option_widget(crop_ratio_separator, {CanvasTool::Crop}));
-  crop_ratio_h_spin_ = new QDoubleSpinBox(toolbar);
+  crop_ratio_h_spin_ = new TrimmedDoubleSpinBox(toolbar);
   crop_ratio_h_spin_->setObjectName(QStringLiteral("cropRatioHeightSpin"));
   crop_ratio_h_spin_->setRange(0.0, 10000.0);
   crop_ratio_h_spin_->setDecimals(2);
