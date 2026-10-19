@@ -526,6 +526,13 @@ void ui_marquee_corner_radius_rounds_selection() {
   CHECK(feather_field->height() == radius->height());
   CHECK(feather_field->y() == radius->y());
   CHECK(feather_field->parentWidget()->rect().contains(feather_field->geometry()));
+  if (auto* anti_alias = window.findChild<QWidget*>(QStringLiteral("selectionAntiAliasCheck"));
+      anti_alias != nullptr && anti_alias->isVisible()) {
+    auto* bar = feather_field->parentWidget();
+    const QRect strip(feather_label->x() - 8, 0, anti_alias->geometry().right() + 16 - feather_label->x(),
+                      bar->height());
+    save_image_artifact("issue160_feather_field", bar->grab(strip).toImage());
+  }
   radius->setValue(30);
   QApplication::processEvents();
   CHECK(canvas->marquee_corner_radius() == 30);

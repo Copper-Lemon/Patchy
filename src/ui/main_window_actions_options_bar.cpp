@@ -137,21 +137,11 @@ protected:
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    const bool framed = objectName() == QStringLiteral("moveAutoSelectCheck") ||
-                        objectName() == QStringLiteral("selectionAntiAliasCheck") ||
-                        objectName() == QStringLiteral("cloneAlignedCheck") ||
-                        objectName() == QStringLiteral("shapeFillCheck");
     // Every color here is a role: this glyph is painted, not styled, so it would
-    // otherwise stay dark-on-dark in the Light scheme.
+    // otherwise stay dark-on-dark in the Light scheme. No box ever gets a field
+    // frame behind it: Auto-Select and Anti-alias once did and read as buttons
+    // beside their plain neighbours (GitHub issue 167).
     const auto& colors = theme();
-    if (framed) {
-      painter.fillRect(rect(), colors.field_bg);
-      painter.setPen(QPen(colors.field_inset_border, 1));
-      painter.drawRect(rect().adjusted(0, 0, -1, -1));
-      painter.setPen(QPen(colors.field_bevel_top, 1));
-      painter.drawLine(rect().topLeft(), rect().topRight());
-    }
-
     const QRect box(7, (height() - 14) / 2, 14, 14);
     painter.setBrush(isChecked() ? colors.accent : colors.checkbox_compact_bg);
     painter.setPen(
@@ -597,6 +587,12 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
     };
   };
 
+  // Separators group the row: pivot | position | size | angle | interpolation and the
+  // warp toggle | apply and cancel (GitHub issue 181).
+  const auto add_transform_separator = [this, make_option_separator] {
+    transform_option_actions_.push_back(make_option_separator());
+  };
+  add_transform_separator();
   make_transform_label(QT_TR_NOOP("X:"));
   transform_x_spin_ = make_transform_spin(QStringLiteral("freeTransformXSpin"), -30000.0, 30000.0, 2,
                                           SpinUnit::Pixels);
@@ -609,6 +605,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   transform_y_spin_->set_context_provider(document_axis_context(false));
   register_ruler_unit_field(transform_y_spin_);
   bind_tooltip(transform_y_spin_, QT_TR_NOOP("Reference Y position"));
+  add_transform_separator();
   make_transform_label(QT_TR_NOOP("W:"));
   transform_scale_x_spin_ = make_transform_spin(QStringLiteral("freeTransformScaleXSpin"), -10000.0, 10000.0, 2,
                                                  SpinUnit::Percent);
@@ -635,6 +632,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   connect(transform_scale_y_spin_, &UnitSpinBox::display_unit_changed, transform_scale_x_spin_,
           &UnitSpinBox::set_display_unit);
   bind_tooltip(transform_scale_y_spin_, QT_TR_NOOP("Vertical scale"));
+  add_transform_separator();
   make_transform_label(QT_TR_NOOP("Angle:"));
   transform_rotation_spin_ = make_transform_spin(QStringLiteral("freeTransformRotationSpin"), -3600.0, 3600.0, 2,
                                                  SpinUnit::Degrees);
@@ -647,6 +645,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
       }
     }
   });
+  add_transform_separator();
   transform_interpolation_combo_ = new QComboBox(toolbar);
   transform_interpolation_combo_->setObjectName(QStringLiteral("freeTransformInterpolationCombo"));
   bind_tooltip(transform_interpolation_combo_, QT_TR_NOOP("Interpolation"));
@@ -809,6 +808,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   transform_warp_mode_button_->setIconSize(QSize(20, 20));
   transform_warp_mode_button_->setProperty("optionsSessionButton", true);
   add_session_option_widget(transform_warp_mode_button_);
+  transform_session_actions_.push_back(make_option_separator());
   transform_apply_button_ = new QPushButton(toolbar);
   transform_apply_button_->setObjectName(QStringLiteral("freeTransformApplyButton"));
   transform_apply_button_->setIcon(simple_icon(QStringLiteral("ok"), QColor(160, 220, 165)));
@@ -2934,27 +2934,30 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
     schedule_save_tool_settings();
   });
 
-  auto* line_arrow_start = new CheckGlyphBox(tr("Arrow start"), toolbar);
-
-  bind_widget_text(line_arrow_start, QT_TR_NOOP("Arrow start"));
-  line_arrow_start->setObjectName(QStringLiteral("lineArrowStartCheck"));
-  bind_tooltip(line_arrow_start, QT_TR_NOOP("Add an arrowhead at the line start"));
-  add_option_widget(line_arrow_start, {CanvasTool::Line});
-  vector_vector_mode_option_widgets_.push_back(line_arrow_start);
-  connect(line_arrow_start, &QCheckBox::toggled, this, [this](bool checked) {
-    current_line_arrow_start_ = checked;
-    schedule_save_tool_settings();
-  });
-  auto* line_arrow_end = new CheckGlyphBox(tr("Arrow end"), toolbar);
-  bind_widget_text(line_arrow_end, QT_TR_NOOP("Arrow end"));
-  line_arrow_end->setObjectName(QStringLiteral("lineArrowEndCheck"));
-  bind_tooltip(line_arrow_end, QT_TR_NOOP("Add an arrowhead at the line end"));
-  add_option_widget(line_arrow_end, {CanvasTool::Line});
-  vector_vector_mode_option_widgets_.push_back(line_arrow_end);
-  connect(line_arrow_end, &QCheckBox::toggled, this, [this](bool checked) {
-    current_line_arrow_end_ = checked;
-    schedule_save_tool_settings();
-  });
+  // Arrowheads are two glyph toggles like the Type bar's align buttons. The old
+  // "Arrow start" / "Arrow end" checkboxes made the Line row the widest one that
+  // cannot shrink, and it wrapped Appearance... onto a second line (GitHub issue 174).
+  const auto make_line_arrow_button = [this, toolbar, add_option_widget](const char* object_name, bool at_end,
+                                                                         const char* tooltip, bool& setting) {
+    auto* button = new QPushButton(toolbar);
+    button->setObjectName(QLatin1String(object_name));
+    button->setIcon(line_arrowhead_icon(at_end));
+    button->setCheckable(true);
+    button->setChecked(setting);
+    bind_tooltip(button, tooltip);
+    button->setFixedSize(30, 26);
+    button->setFocusPolicy(Qt::NoFocus);
+    add_option_widget(button, {CanvasTool::Line});
+    vector_vector_mode_option_widgets_.push_back(button);
+    connect(button, &QPushButton::toggled, this, [this, &setting](bool checked) {
+      setting = checked;
+      schedule_save_tool_settings();
+    });
+  };
+  make_line_arrow_button("lineArrowStartButton", false, QT_TR_NOOP("Add an arrowhead at the line start"),
+                         current_line_arrow_start_);
+  make_line_arrow_button("lineArrowEndButton", true, QT_TR_NOOP("Add an arrowhead at the line end"),
+                         current_line_arrow_end_);
 
   auto* fill_shapes = new CheckGlyphBox(tr("Fill"), toolbar);
   fill_shapes->setObjectName(QStringLiteral("shapeFillCheck"));

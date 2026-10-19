@@ -462,6 +462,109 @@ void ui_options_bar_drops_duplicate_sliders_before_wrapping() {
   CHECK(size_slider->isVisible() && opacity_slider->isVisible());
 }
 
+void ui_options_bar_checkboxes_paint_without_a_frame() {
+  // GitHub issue 167: Auto-Select (Move) and Anti-alias (selection tools) painted a field
+  // frame behind their glyph and text, so they read as buttons beside the plain Show
+  // Transform Controls and Snap boxes. Every options-bar checkbox now shows the bar's own
+  // surface at its corners, the same pixel as the gap beside it.
+  patchy::ui::MainWindow window;
+  show_window(window);
+  window.resize(1600, 800);
+  auto* options = window.findChild<QWidget*>(QStringLiteral("OptionsContent"));
+  CHECK(options != nullptr);
+  const auto settle = [] {
+    QApplication::processEvents();
+    process_events_for(20);
+  };
+  const auto check_plain = [&](const char* tool, const char* check_name) {
+    require_action(window, tool)->trigger();
+    settle();
+    auto* check = window.findChild<QCheckBox*>(QString::fromLatin1(check_name));
+    CHECK(check != nullptr);
+    if (check == nullptr) {
+      return;
+    }
+    CHECK(check->isVisible());
+    CHECK(check->parentWidget() == options);
+    const QImage bar = options->grab().toImage();
+    const QRect box = check->geometry();
+    // The flow puts 4 px between controls; 2 px left of the box is bar surface.
+    const QColor gap = bar.pixelColor(box.left() - 2, box.center().y());
+    for (const QPoint corner : {box.topLeft(), box.topRight(), box.bottomLeft(), box.bottomRight()}) {
+      const QColor pixel = bar.pixelColor(corner);
+      if (pixel != gap) {
+        std::fprintf(stderr, "  %s corner (%d,%d) is %s, bar is %s\n", check_name, corner.x(), corner.y(),
+                     qPrintable(pixel.name()), qPrintable(gap.name()));
+      }
+      CHECK(pixel == gap);
+    }
+  };
+  check_plain("toolMoveAction", "moveAutoSelectCheck");
+  check_plain("toolMoveAction", "moveShowTransformControlsCheck");
+  check_plain("toolMarqueeAction", "selectionAntiAliasCheck");
+  check_plain("toolCloneAction", "cloneAlignedCheck");
+  // The Move row as the reporter saw it, for the issue reply.
+  require_action(window, "toolMoveAction")->trigger();
+  settle();
+  auto* auto_select = window.findChild<QCheckBox*>(QStringLiteral("moveAutoSelectCheck"));
+  auto* snap = window.findChild<QCheckBox*>(QStringLiteral("moveSnapCheck"));
+  if (auto_select != nullptr && snap != nullptr) {
+    const QRect strip(0, 0, snap->geometry().right() + 8, options->height());
+    save_image_artifact("issue167_move_checkboxes", options->grab(strip).toImage());
+  }
+}
+
+void ui_line_options_bar_fits_one_row_with_room_to_spare() {
+  // GitHub issue 174: the Line tool's Shape-mode row was about 1330 px with nothing that
+  // collapses, so a desktop with slightly wider fonts than the offscreen ones wrapped
+  // Appearance... onto a second line at 1366 px. The arrowheads are glyph toggles now and
+  // the row keeps 100 px of slack under that width.
+  patchy::ui::MainWindow window;
+  show_window(window);
+  auto* options = window.findChild<QWidget*>(QStringLiteral("OptionsContent"));
+  auto* mode = window.findChild<QComboBox*>(QStringLiteral("vectorModeCombo"));
+  CHECK(options != nullptr && mode != nullptr);
+  const auto settle = [] {
+    QApplication::processEvents();
+    process_events_for(20);
+  };
+  window.resize(2600, 800);
+  require_action(window, "toolLineAction")->trigger();
+  settle();
+  mode->setCurrentIndex(0);  // Shape, the widest Line row
+  settle();
+  const auto [right, lines] = options_row_extent(*options);
+  std::printf("  Line (Shape) natural row %d px\n", right);
+  CHECK(lines == 1);
+  CHECK(right <= 1366 - 100);
+
+  // Same height as the bar's other push buttons (the QSS pins them), such as the W/H link.
+  auto* link = window.findChild<QPushButton*>(QStringLiteral("vectorShapeLinkSizeButton"));
+  CHECK(link != nullptr && link->isVisible());
+  for (const auto* name : {"lineArrowStartButton", "lineArrowEndButton"}) {
+    auto* button = window.findChild<QPushButton*>(QString::fromLatin1(name));
+    CHECK(button != nullptr);
+    if (button == nullptr || link == nullptr) {
+      continue;
+    }
+    CHECK(button->isVisible() && button->isCheckable());
+    CHECK(button->text().isEmpty() && !button->icon().isNull() && !button->toolTip().isEmpty());
+    CHECK(button->height() == link->height());
+    CHECK(button->geometry().center().y() == link->geometry().center().y());
+  }
+
+  window.resize(1366, 738);
+  settle();
+  auto* appearance = window.findChild<QPushButton*>(QStringLiteral("vectorAppearanceButton"));
+  CHECK(appearance != nullptr && appearance->isVisible());
+  CHECK(options_row_extent(*options).second == 1);
+  if (appearance != nullptr) {
+    CHECK(std::abs(appearance->geometry().center().y() - mode->geometry().center().y()) <= 2);
+    const QRect strip(0, 0, appearance->geometry().right() + 8, options->height());
+    save_image_artifact("issue174_line_row_1366", options->grab(strip).toImage());
+  }
+}
+
 void ui_text_options_bar_size_shows_photoshop_precision() {
   // Photoshop's type size shows at most two decimals and drops trailing zeros. Patchy
   // stores whole pixels, so the third decimal ("14.446 pt") was false precision.
@@ -4621,6 +4724,8 @@ std::vector<patchy::test::TestCase> canvas_view_tools_tests() {
       {"ui_options_bar_keeps_one_height_across_tools", ui_options_bar_keeps_one_height_across_tools},
       {"ui_options_bar_drops_duplicate_sliders_before_wrapping",
        ui_options_bar_drops_duplicate_sliders_before_wrapping},
+      {"ui_options_bar_checkboxes_paint_without_a_frame", ui_options_bar_checkboxes_paint_without_a_frame},
+      {"ui_line_options_bar_fits_one_row_with_room_to_spare", ui_line_options_bar_fits_one_row_with_room_to_spare},
       {"ui_text_options_bar_size_shows_photoshop_precision", ui_text_options_bar_size_shows_photoshop_precision},
       {"ui_options_bar_spinboxes_show_their_extremes_unclipped",
        ui_options_bar_spinboxes_show_their_extremes_unclipped},

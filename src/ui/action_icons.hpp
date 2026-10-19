@@ -45,6 +45,9 @@ QIcon distribute_mode_icon(DistributeMode mode);
 // Qt::AlignRight; `vertical` turns the lines into columns aligned top, center, or
 // bottom, for vertical type.
 QIcon text_alignment_icon(Qt::Alignment alignment, bool vertical);
+// Line tool arrowhead toggles on the options bar: a line with a filled head at its
+// start (left) or end (right).
+QIcon line_arrowhead_icon(bool at_end);
 
 // A one-off procedural mark: a glyph outside the shared icon vocabulary, drawn by
 // the caller against an `authored_size` square area with the ink handed to it.

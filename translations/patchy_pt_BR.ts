@@ -14598,16 +14598,8 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>Forma:</translation>
     </message>
     <message>
-        <source>Arrow start</source>
-        <translation>Início da seta</translation>
-    </message>
-    <message>
         <source>Add an arrowhead at the line start</source>
         <translation>Adicione uma ponta de seta no início da linha</translation>
-    </message>
-    <message>
-        <source>Arrow end</source>
-        <translation>Extremidade da seta</translation>
     </message>
     <message>
         <source>Add an arrowhead at the line end</source>
