@@ -177,6 +177,7 @@
 #include "ui/qt_geometry.hpp"
 #include "ui/splash_dialog.hpp"
 #include "ui/update_checker.hpp"
+#include "ui/status_document_info.hpp"
 #include "ui/zoom_status_bar.hpp"
 #include "ui/tool_palette_footer.hpp"
 #include "ui/theme_manager.hpp"
@@ -4588,6 +4589,13 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
       canvas_->fit_to_view();
     }
   });
+  // Document info after Fit (GitHub issues 202 and 206; docs/view-navigation.md): the
+  // active document's dimensions, resolution, color mode and depth, with the profile
+  // and memory use in its tooltip.
+  status_document_info_label_ = new StatusDocumentInfoLabel(zoom_status_controls_);
+  zoom_controls_layout->addWidget(status_document_info_label_);
+  connect(zoom_status_bar_, &ZoomStatusBar::resized, this, [this] { refresh_status_document_info(); });
+  register_retranslation([this] { refresh_status_document_info(); });
   zoom_status_bar_->set_left_widget(zoom_status_controls_);
   refresh_document_info();
   statusBar()->showMessage(tr("Ready"));

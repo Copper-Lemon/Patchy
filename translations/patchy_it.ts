@@ -23716,6 +23716,70 @@ Patchy può scaricare l&apos;aggiornamento, sostituire questo AppImage e riavvia
     </message>
 </context>
 <context>
+    <name>patchy::ui::StatusDocumentInfoLabel</name>
+    <message>
+        <source>%1 px/cm</source>
+        <translation>%1 px/cm</translation>
+    </message>
+    <message>
+        <source>%1 ppi</source>
+        <translation>%1 ppi</translation>
+    </message>
+    <message>
+        <source>%1 × %2 px/cm</source>
+        <translation>%1 × %2 px/cm</translation>
+    </message>
+    <message>
+        <source>%1 × %2 ppi</source>
+        <translation>%1 × %2 ppi</translation>
+    </message>
+    <message>
+        <source>Indexed</source>
+        <translation>Scala di colore</translation>
+    </message>
+    <message>
+        <source>CMYK Proof</source>
+        <translation>Prova CMYK</translation>
+    </message>
+    <message>
+        <source>RGB</source>
+        <translation>RGB</translation>
+    </message>
+    <message>
+        <source>8-bit</source>
+        <translation>8 bit</translation>
+    </message>
+    <message>
+        <source>16-bit</source>
+        <translation>16 bit</translation>
+    </message>
+    <message>
+        <source>32-bit float</source>
+        <translation>32 bit float</translation>
+    </message>
+    <message>
+        <source>%1 × %2 px</source>
+        <translation>%1 × %2 px</translation>
+    </message>
+    <message>
+        <source>%1 %2</source>
+        <comment>status bar: color mode, then bit depth</comment>
+        <translation>%1 %2</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <translation>Nessuno</translation>
+    </message>
+    <message>
+        <source>Color profile: %1</source>
+        <translation>Profilo colore: %1</translation>
+    </message>
+    <message>
+        <source>Memory: %1</source>
+        <translation>Memoria: %1</translation>
+    </message>
+</context>
+<context>
     <name>patchy::ui::StyleBrowserWidget</name>
     <message>
         <source>%1 (%2)</source>

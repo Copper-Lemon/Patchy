@@ -23645,6 +23645,70 @@ Patchy가 업데이트를 다운로드하고 이 AppImage를 교체한 다음 �
     </message>
 </context>
 <context>
+    <name>patchy::ui::StatusDocumentInfoLabel</name>
+    <message>
+        <source>%1 px/cm</source>
+        <translation>%1px/cm</translation>
+    </message>
+    <message>
+        <source>%1 ppi</source>
+        <translation>%1ppi</translation>
+    </message>
+    <message>
+        <source>%1 × %2 px/cm</source>
+        <translation>%1 × %2px/cm</translation>
+    </message>
+    <message>
+        <source>%1 × %2 ppi</source>
+        <translation>%1 × %2ppi</translation>
+    </message>
+    <message>
+        <source>Indexed</source>
+        <translation>인덱스</translation>
+    </message>
+    <message>
+        <source>CMYK Proof</source>
+        <translation>CMYK 교정</translation>
+    </message>
+    <message>
+        <source>RGB</source>
+        <translation>RGB</translation>
+    </message>
+    <message>
+        <source>8-bit</source>
+        <translation>8비트</translation>
+    </message>
+    <message>
+        <source>16-bit</source>
+        <translation>16비트</translation>
+    </message>
+    <message>
+        <source>32-bit float</source>
+        <translation>32비트 부동 소수점</translation>
+    </message>
+    <message>
+        <source>%1 × %2 px</source>
+        <translation>%1 × %2픽셀</translation>
+    </message>
+    <message>
+        <source>%1 %2</source>
+        <comment>status bar: color mode, then bit depth</comment>
+        <translation>%1 %2</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <translation>없음</translation>
+    </message>
+    <message>
+        <source>Color profile: %1</source>
+        <translation>색상 프로파일: %1</translation>
+    </message>
+    <message>
+        <source>Memory: %1</source>
+        <translation>메모리: %1</translation>
+    </message>
+</context>
+<context>
     <name>patchy::ui::StyleBrowserWidget</name>
     <message>
         <source>%1 (%2)</source>

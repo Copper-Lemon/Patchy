@@ -325,6 +325,7 @@ void ZoomStatusBar::paint_warning_icon(QPainter& painter, const QRect& icon_rect
 void ZoomStatusBar::resizeEvent(QResizeEvent* event) {
   QStatusBar::resizeEvent(event);
   position_left_widget();
+  emit resized();
 }
 
 QSize ZoomStatusBar::minimumSizeHint() const {

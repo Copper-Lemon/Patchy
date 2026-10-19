@@ -89,6 +89,10 @@ public:
   [[nodiscard]] bool error_message_active() const;
   [[nodiscard]] bool error_flash_running() const;
 
+signals:
+  // After every size change, so left-side widgets can refit their text.
+  void resized();
+
 protected:
   void paintEvent(QPaintEvent* event) override;
   void resizeEvent(QResizeEvent* event) override;

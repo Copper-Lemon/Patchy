@@ -23716,6 +23716,70 @@ Patchy kann das Update herunterladen, dieses AppImage ersetzen und neu starten. 
     </message>
 </context>
 <context>
+    <name>patchy::ui::StatusDocumentInfoLabel</name>
+    <message>
+        <source>%1 px/cm</source>
+        <translation>%1 px/cm</translation>
+    </message>
+    <message>
+        <source>%1 ppi</source>
+        <translation>%1 ppi</translation>
+    </message>
+    <message>
+        <source>%1 × %2 px/cm</source>
+        <translation>%1 × %2 px/cm</translation>
+    </message>
+    <message>
+        <source>%1 × %2 ppi</source>
+        <translation>%1 × %2 ppi</translation>
+    </message>
+    <message>
+        <source>Indexed</source>
+        <translation>Indiziert</translation>
+    </message>
+    <message>
+        <source>CMYK Proof</source>
+        <translation>CMYK-Proof</translation>
+    </message>
+    <message>
+        <source>RGB</source>
+        <translation>RGB</translation>
+    </message>
+    <message>
+        <source>8-bit</source>
+        <translation>8 Bit</translation>
+    </message>
+    <message>
+        <source>16-bit</source>
+        <translation>16 Bit</translation>
+    </message>
+    <message>
+        <source>32-bit float</source>
+        <translation>32 Bit (Float)</translation>
+    </message>
+    <message>
+        <source>%1 × %2 px</source>
+        <translation>%1 × %2 px</translation>
+    </message>
+    <message>
+        <source>%1 %2</source>
+        <comment>status bar: color mode, then bit depth</comment>
+        <translation>%1 %2</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <translation>Keins</translation>
+    </message>
+    <message>
+        <source>Color profile: %1</source>
+        <translation>Farbprofil: %1</translation>
+    </message>
+    <message>
+        <source>Memory: %1</source>
+        <translation>Speicher: %1</translation>
+    </message>
+</context>
+<context>
     <name>patchy::ui::StyleBrowserWidget</name>
     <message>
         <source>%1 (%2)</source>

@@ -23643,6 +23643,70 @@ Patchy can download the update, replace this AppImage, and start again. You will
     </message>
 </context>
 <context>
+    <name>patchy::ui::StatusDocumentInfoLabel</name>
+    <message>
+        <source>%1 px/cm</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 ppi</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 × %2 px/cm</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 × %2 ppi</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Indexed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>CMYK Proof</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>RGB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>8-bit</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>16-bit</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>32-bit float</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 × %2 px</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 %2</source>
+        <comment>status bar: color mode, then bit depth</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>None</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Color profile: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Memory: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>patchy::ui::StyleBrowserWidget</name>
     <message>
         <source>%1 (%2)</source>

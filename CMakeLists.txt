@@ -1426,6 +1426,8 @@ ${PATCHY_LUPDATE_MANIFEST_SOURCES}
       src/ui/warp_text_dialog.cpp
       src/ui/window_effects.hpp
       src/ui/window_effects.cpp
+      src/ui/status_document_info.hpp
+      src/ui/status_document_info.cpp
       src/ui/zoom_status_bar.hpp
       src/ui/zoom_status_bar.cpp
       src/ui/icons.qrc

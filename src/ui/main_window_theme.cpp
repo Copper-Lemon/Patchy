@@ -567,7 +567,7 @@ QString photoshop_style_template() {
       color: @status_text;
       border: 1px solid transparent;
       border-radius: 3px;
-      padding: 0 5px;
+      padding: 0 1px;
       min-height: 16px;
       max-height: 16px;
       min-width: 0;
@@ -580,6 +580,12 @@ QString photoshop_style_template() {
     }
     QToolButton#statusZoomFitButton:disabled {
       color: @status_text_disabled;
+    }
+    QLabel#statusDocumentInfoLabel {
+      background: transparent;
+      color: @status_text;
+      padding: 0;
+      font-size: 11px;
     }
     QLabel#canvasInfoLabel, QLabel#documentInfoLabel {
       color: @info_text;

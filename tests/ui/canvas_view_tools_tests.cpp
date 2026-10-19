@@ -14,6 +14,11 @@
 #include "ui/app_settings.hpp"
 #include "ui/zoomable_image_preview.hpp"
 #include "ui/zoom_status_bar.hpp"
+#include "ui/status_document_info.hpp"
+#include "ui/script_engine.hpp"
+#include "color/color_management.hpp"
+#include "core/pixel_depth.hpp"
+#include "formats/metadata/metadata_view.hpp"
 #include "ui/canvas_widget_shared.hpp"
 #include "synthetic_dng.hpp"
 #include "test_fonts.hpp"
@@ -23,6 +28,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QByteArray>
+#include <QColorSpace>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
@@ -41,6 +47,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QLocale>
 #include <QMouseEvent>
 #include <QMenu>
 #include <QMimeData>
@@ -52,6 +59,7 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include <QStringList>
+#include <QScopeGuard>
 #include <QScrollArea>
 #include <QSplitter>
 #include <QScrollBar>
@@ -65,6 +73,7 @@
 #include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
+#include <QToolTip>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 #include <QWheelEvent>
@@ -885,6 +894,261 @@ void ui_status_bar_zoom_box_wheel_scrub_and_buttons() {
   show_window_empty(empty);
   auto* empty_controls = empty.statusBar()->findChild<QWidget*>(QStringLiteral("statusZoomControls"));
   CHECK(empty_controls != nullptr && !empty_controls->isEnabled());
+}
+
+// A 1920 x 1080 RGB document at 72 ppi with one full-canvas pixel layer, the
+// known document the status-bar document info tests read (issues 202 and 206).
+patchy::Document status_info_test_document(int width = 1920, int height = 1080, double ppi = 72.0) {
+  patchy::Document document(width, height, patchy::PixelFormat::rgba8());
+  document.print_settings().horizontal_ppi = ppi;
+  document.print_settings().vertical_ppi = ppi;
+  document.add_pixel_layer("Background", patchy::PixelBuffer(width, height, patchy::PixelFormat::rgba8()));
+  return document;
+}
+
+patchy::ui::StatusDocumentInfoLabel* require_status_document_info(patchy::ui::MainWindow& window) {
+  auto* info = window.statusBar()->findChild<patchy::ui::StatusDocumentInfoLabel*>(
+      QStringLiteral("statusDocumentInfoLabel"));
+  CHECK(info != nullptr);
+  return info;
+}
+
+QString status_info_memory(std::uint64_t bytes) {
+  return QLocale().formattedDataSize(static_cast<qint64>(bytes), 1, QLocale::DataSizeTraditionalFormat);
+}
+
+// Grabs the tooltip Qt shows for `widget` (its QTipLabel), or a null image.
+QImage grab_status_tooltip(QWidget& widget) {
+  QToolTip::showText(widget.mapToGlobal(QPoint(4, widget.height())), widget.toolTip(), &widget);
+  QApplication::processEvents();
+  QImage image;
+  for (auto* top : QApplication::topLevelWidgets()) {
+    if (top->inherits("QTipLabel") && top->isVisible()) {
+      image = top->grab().toImage();
+    }
+  }
+  QToolTip::hideText();
+  QApplication::processEvents();
+  return image;
+}
+
+// The status-bar document info field (issues 202 and 206) shows the dimensions,
+// resolution, color mode and bit depth of a known document, follows depth and mode
+// changes, and keeps the profile and memory use in its tooltip.
+void ui_status_bar_document_info_shows_document_facts() {
+  patchy::set_deep_editing_override(true);
+  const auto restore = qScopeGuard([] { patchy::set_deep_editing_override(std::nullopt); });
+  using patchy::ui::StatusDocumentInfoLabel;
+  const auto dot = StatusDocumentInfoLabel::separator();
+  const QString dims = QStringLiteral("1920 × 1080 px");
+  {
+    patchy::ui::MainWindow window;
+    show_window(window);
+    window.add_document_session(status_info_test_document(), QStringLiteral("Status Info"));
+    window.resize(1366, 768);
+    QApplication::processEvents();
+    auto* info = require_status_document_info(window);
+    if (info == nullptr) {
+      return;
+    }
+    CHECK(!info->isHidden());
+    CHECK(info->text() == dims + dot + QStringLiteral("72 ppi") + dot + QStringLiteral("RGB 8-bit"));
+    const auto memory = QStringLiteral("Memory: ") + status_info_memory(1920ULL * 1080ULL * 4ULL);
+    CHECK(patchy::ui::document_layer_bytes(patchy::ui::MainWindowTestAccess::document(window)) ==
+          1920ULL * 1080ULL * 4ULL);
+    CHECK(info->toolTip() == (QStringList{info->text(), QStringLiteral("Color profile: None"), memory}
+                                  .join(QLatin1Char('\n'))));
+
+    // An embedded profile shows in the tooltip by its description.
+    const auto srgb = QColorSpace(QColorSpace::SRgb).iccProfile();
+    const auto* srgb_bytes = reinterpret_cast<const std::uint8_t*>(srgb.constData());
+    const std::vector<std::uint8_t> icc(srgb_bytes, srgb_bytes + srgb.size());
+    const auto summary = patchy::metadata::summarize_icc(icc);
+    CHECK(summary.has_value() && !summary->description.empty());
+    patchy::ui::MainWindowTestAccess::document(window).color_state().embedded_icc_profile = icc;
+    patchy::ui::MainWindowTestAccess::refresh_document_info(window);
+    const auto profile_name =
+        summary.has_value() ? QString::fromStdString(summary->description).trimmed() : QString();
+    CHECK(info->toolTip().contains(QStringLiteral("Color profile: ") + profile_name));
+
+    // 16 bits a channel: the field and the memory figure follow.
+    require_action(window, "imageMode16BitAction")->trigger();
+    QApplication::processEvents();
+    CHECK(info->text() == dims + dot + QStringLiteral("72 ppi") + dot + QStringLiteral("RGB 16-bit"));
+    CHECK(info->toolTip().endsWith(QStringLiteral("Memory: ") + status_info_memory(1920ULL * 1080ULL * 8ULL)));
+    window.statusBar()->showMessage(QStringLiteral("Brush Tool: drag to paint. Shift-click paints a straight line."));
+    QApplication::processEvents();
+    save_widget_artifact("ui_status_document_info_16bit", *window.statusBar());
+    const auto tip = grab_status_tooltip(*info);
+    if (!tip.isNull()) {
+      CHECK(tip.save(QStringLiteral("test-artifacts/ui_status_document_info_tooltip.png")));
+    }
+
+    // CMYK Proof names the working CMYK profile it shows through.
+    if (patchy::working_cmyk_space()->has_profile()) {
+      require_action(window, "imageModeCmykProofAction")->trigger();
+      QApplication::processEvents();
+      CHECK(info->text() == dims + dot + QStringLiteral("72 ppi") + dot + QStringLiteral("CMYK Proof 16-bit"));
+      CHECK(info->toolTip().contains(QStringLiteral("Color profile: ") +
+                                     QString::fromStdString(patchy::working_cmyk_space()->profile_description())));
+      require_action(window, "imageModeRgbAction")->trigger();
+      QApplication::processEvents();
+      CHECK(info->text().endsWith(QStringLiteral("RGB 16-bit")));
+    }
+  }
+
+  // Indexed documents, px/cm resolutions and per-axis resolutions.
+  const StatusDocumentInfoLabel::ColorContext rgb;
+  auto indexed = status_info_test_document(640, 480, 72.0);
+  indexed.palette_editing() = patchy::DocumentPaletteEditing{};
+  CHECK(StatusDocumentInfoLabel::describe(indexed, rgb).parts.last() == QStringLiteral("Indexed 8-bit"));
+  auto per_cm = status_info_test_document(400, 300, 72.0);
+  per_cm.print_settings().horizontal_resolution_display_unit = 2;
+  CHECK(StatusDocumentInfoLabel::describe(per_cm, rgb).parts.at(1) ==
+        QLocale().toString(28.35, 'f', 2) + QStringLiteral(" px/cm"));
+  auto anisotropic = status_info_test_document(400, 300, 300.0);
+  anisotropic.print_settings().vertical_ppi = 150.0;
+  CHECK(StatusDocumentInfoLabel::describe(anisotropic, rgb).parts.at(1) == QStringLiteral("300 × 150 ppi"));
+}
+
+// When the bar is narrow the trailing parts drop off whole, never mid-text, and the
+// dimensions always stay.
+void ui_status_bar_document_info_drops_parts_when_narrow() {
+  using patchy::ui::StatusDocumentInfoLabel;
+  const auto dot = StatusDocumentInfoLabel::separator();
+  StatusDocumentInfoLabel field;
+  auto info = StatusDocumentInfoLabel::describe(status_info_test_document(), {});
+  field.set_info(info);
+  CHECK(!field.isHidden());
+  const auto full = info.parts.join(dot);
+  const auto two = info.parts.at(0) + dot + info.parts.at(1);
+  const auto metrics = field.fontMetrics();
+  field.set_width_budget(metrics.horizontalAdvance(full));
+  CHECK(field.text() == full);
+  field.set_width_budget(metrics.horizontalAdvance(full) - 1);
+  CHECK(field.text() == two);
+  field.set_width_budget(metrics.horizontalAdvance(two) - 1);
+  CHECK(field.text() == info.parts.at(0));
+  field.set_width_budget(4);
+  CHECK(field.text() == info.parts.at(0));
+  CHECK(field.toolTip().startsWith(full));
+  field.set_info({});
+  CHECK(field.isHidden());
+
+  // In the window: a narrower bar shows a shorter prefix of the same line.
+  patchy::ui::MainWindow window;
+  show_window(window);
+  window.add_document_session(status_info_test_document(), QStringLiteral("Status Info"));
+  window.resize(1366, 768);
+  QApplication::processEvents();
+  auto* label = require_status_document_info(window);
+  if (label == nullptr) {
+    return;
+  }
+  CHECK(label->text() == full);
+  // Sized directly so the window's own minimum width cannot hide the case.
+  window.statusBar()->resize(600, window.statusBar()->height());
+  CHECK(full.startsWith(label->text()));
+  CHECK(label->text().startsWith(info.parts.at(0)));
+  CHECK(label->text().size() < full.size());
+  window.resize(1366, 768);
+  QApplication::processEvents();
+  CHECK(label->text() == full);
+}
+
+// The field is hidden with no document, then follows the active document and Image Size.
+void ui_status_bar_document_info_follows_active_document() {
+  patchy::ui::MainWindow window;
+  show_window_empty(window);
+  auto* info = require_status_document_info(window);
+  if (info == nullptr) {
+    return;
+  }
+  CHECK(info->isHidden());
+  window.add_document_session(status_info_test_document(1920, 1080, 72.0), QStringLiteral("Wide"));
+  window.add_document_session(status_info_test_document(800, 600, 300.0), QStringLiteral("Small"));
+  QApplication::processEvents();
+  const auto dot = patchy::ui::StatusDocumentInfoLabel::separator();
+  CHECK(!info->isHidden());
+  CHECK(info->parts().at(0) == QStringLiteral("800 × 600 px") && info->parts().at(1) == QStringLiteral("300 ppi"));
+  auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("documentTabs"));
+  CHECK(tabs != nullptr && tabs->count() == 2);
+  if (tabs == nullptr) {
+    return;
+  }
+  tabs->setCurrentIndex(0);
+  QApplication::processEvents();
+  CHECK(info->text().startsWith(QStringLiteral("1920 × 1080 px") + dot + QStringLiteral("72 ppi")));
+  tabs->setCurrentIndex(1);
+  QApplication::processEvents();
+  CHECK(info->text().startsWith(QStringLiteral("800 × 600 px")));
+
+  // Image Size (here through the script API, the dialog's own resize path).
+  auto& host = window.script_engine_host();
+  patchy::ui::ScriptEngineHost::RunOptions options;
+  options.name = QStringLiteral("Resize");
+  options.unattended = true;
+  CHECK(host.run_source(QStringLiteral("app.activeDocument.resizeImage(400, 300);"), options));
+  CHECK(process_events_until([&] { return !host.run_active(); }));
+  CHECK(!host.last_run_had_error());
+  QApplication::processEvents();
+  CHECK(info->text().startsWith(QStringLiteral("400 × 300 px")));
+
+  // Closing the unchanged document leaves the resized one shown. (The resized one
+  // is not closed here: it has unsaved changes, so closing it would ask to save.)
+  CHECK(patchy::ui::MainWindowTestAccess::close_document_tab(window, 0));
+  QApplication::processEvents();
+  CHECK(info->text().startsWith(QStringLiteral("400 × 300 px")));
+}
+
+// The status bar at a 1366 px window keeps the zoom box and the document info
+// field on its one line, with room left for the status message.
+void ui_status_bar_document_info_fits_at_1366() {
+  patchy::ui::MainWindow window;
+  show_window(window);
+  window.add_document_session(status_info_test_document(), QStringLiteral("Status Info"));
+  window.resize(1366, 768);
+  QApplication::processEvents();
+  auto* bar = window.statusBar();
+  bar->showMessage(QStringLiteral("Brush Tool: drag to paint. Shift-click paints a straight line."));
+  QApplication::processEvents();
+  save_widget_artifact("ui_status_bar_document_info_1366", *bar);
+
+  CHECK(window.width() == 1366);
+  auto* controls = bar->findChild<QWidget*>(QStringLiteral("statusZoomControls"));
+  auto* zoom_edit = bar->findChild<QWidget*>(QStringLiteral("statusZoomEdit"));
+  auto* fit = bar->findChild<QToolButton*>(QStringLiteral("statusZoomFitButton"));
+  auto* info = bar->findChild<QLabel*>(QStringLiteral("statusDocumentInfoLabel"));
+  CHECK(controls != nullptr && zoom_edit != nullptr && fit != nullptr && info != nullptr);
+  if (controls == nullptr || zoom_edit == nullptr || fit == nullptr || info == nullptr) {
+    return;
+  }
+  CHECK(info->isVisible());
+  const auto dot = patchy::ui::StatusDocumentInfoLabel::separator();
+  CHECK(info->text() == QStringLiteral("1920 × 1080 px") + dot + QStringLiteral("72 ppi") + dot +
+                            QStringLiteral("RGB 8-bit"));
+  // Zoom box, Fit and the field sit close together on the one bar line.
+  const auto fit_rect = QRect(fit->mapTo(bar, QPoint()), fit->size());
+  const auto info_rect = QRect(info->mapTo(bar, QPoint()), info->size());
+  const auto box_right = zoom_edit->mapTo(bar, QPoint(zoom_edit->width(), 0)).x();
+  // Fit's text sits centered with the same gap to the box as to the field.
+  const auto gap_before = fit_rect.left() - box_right;
+  const auto gap_after = info_rect.left() - (fit_rect.right() + 1);
+  CHECK(gap_before >= 0 && gap_before <= 4);
+  CHECK(std::abs(gap_after - gap_before) <= 1);
+  CHECK(fit->width() <= fit->fontMetrics().horizontalAdvance(fit->text()) +
+                            2 * fit->fontMetrics().horizontalAdvance(QLatin1Char(' ')) + 8);
+  CHECK(info_rect.top() >= 0 && info_rect.bottom() < bar->height());
+  CHECK(controls->height() <= bar->height());
+  CHECK(bar->minimumSizeHint().width() <= 1366);
+  // The message keeps most of the bar.
+  CHECK(info_rect.right() < bar->width() / 3);
+  // One line: the field adds no height to the bar a window without it has.
+  patchy::ui::MainWindow empty;
+  show_window_empty(empty);
+  empty.resize(1366, 768);
+  QApplication::processEvents();
+  CHECK(bar->height() == empty.statusBar()->height());
 }
 
 void ui_zoom_tool_double_click_keeps_view_centered_at_actual_pixels() {
@@ -4299,6 +4563,12 @@ std::vector<patchy::test::TestCase> canvas_view_tools_tests() {
        ui_canvas_trackpad_scroll_ignored_during_pointer_gesture},
       {"ui_status_bar_zoom_percent_box_edits_zoom", ui_status_bar_zoom_percent_box_edits_zoom},
       {"ui_status_bar_zoom_box_wheel_scrub_and_buttons", ui_status_bar_zoom_box_wheel_scrub_and_buttons},
+      {"ui_status_bar_document_info_fits_at_1366", ui_status_bar_document_info_fits_at_1366},
+      {"ui_status_bar_document_info_shows_document_facts", ui_status_bar_document_info_shows_document_facts},
+      {"ui_status_bar_document_info_drops_parts_when_narrow",
+       ui_status_bar_document_info_drops_parts_when_narrow},
+      {"ui_status_bar_document_info_follows_active_document",
+       ui_status_bar_document_info_follows_active_document},
       {"ui_zoom_tool_double_click_keeps_view_centered_at_actual_pixels",
        ui_zoom_tool_double_click_keeps_view_centered_at_actual_pixels},
       {"ui_image_resize_recenters_view_and_zoom_double_click_shows_document",

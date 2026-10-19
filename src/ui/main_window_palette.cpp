@@ -963,6 +963,7 @@ void MainWindow::refresh_image_mode_actions() {
   image_mode_indexed_action_->setChecked(false);
   (indexed ? image_mode_indexed_action_ : cmyk_proof ? image_mode_cmyk_proof_action_ : image_mode_rgb_action_)
       ->setChecked(true);
+  refresh_status_document_info();  // the color readout names the mode
 }
 
 void MainWindow::refresh_bit_depth_actions() {
@@ -998,6 +999,7 @@ void MainWindow::refresh_bit_depth_actions() {
   if (image_mode_indexed_action_ != nullptr) {
     image_mode_indexed_action_->setEnabled(has_active_document() && depth == BitDepth::UInt8);
   }
+  refresh_status_document_info();  // the color and memory readouts follow the depth
 }
 
 void MainWindow::convert_document_bit_depth(BitDepth depth) {
