@@ -84,6 +84,7 @@ class MainWindowTestAccess {
   }
   static void refresh_layer_list(MainWindow& window) { window.refresh_layer_list(); }
   static void edit_active_layer_style(MainWindow& window) { window.edit_active_layer_style(); }
+  static void undo(MainWindow& window) { window.undo(); }
 };
 
 }  // namespace patchy::ui
@@ -1524,6 +1525,157 @@ void pdf_save_perf_if_available(int argc, char* argv[]) {
 // GitHub issue 165: fast brush strokes on a 4872x6836 image came out as straight
 // segments. Times what one mouse move and the following paint cost at fit zoom
 // and at 100%, for a small and a large brush; no fixture needed.
+// GitHub #200: a Warp Transform handle drag on a large image. A 6000x4000 noise
+// layer over a white backdrop; one corner handle drags at fit zoom and one interior
+// handle at 100%. Each frame is the mouse move plus its repaint. Asserts the frame
+// ceiling, prints the numbers, and saves a mid-drag and a resting capture per zoom.
+void warp_drag_perf() {
+  ensure_artifact_dir();
+  constexpr int kWidth = 6000;
+  constexpr int kHeight = 4000;
+  patchy::Document document(kWidth, kHeight, patchy::PixelFormat::rgba8());
+  patchy::PixelBuffer backdrop(kWidth, kHeight, patchy::PixelFormat::rgba8());
+  backdrop.clear(255);
+  document.add_layer(patchy::Layer(document.allocate_layer_id(), "Backdrop", std::move(backdrop)));
+  // Smooth bands plus noise: the captures show the bend, the noise keeps every
+  // sample distinct so no path can shortcut on flat color.
+  patchy::PixelBuffer art(kWidth, kHeight, patchy::PixelFormat::rgba8());
+  std::uint64_t seed = 0x9E3779B97F4A7C15ULL;
+  for (int y = 0; y < kHeight; ++y) {
+    auto row = art.row(y);
+    for (int x = 0; x < kWidth; ++x) {
+      seed += 0x9E3779B97F4A7C15ULL;
+      auto z = seed;
+      z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
+      z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
+      z ^= z >> 31;
+      const bool band = ((x / 400) + (y / 400)) % 2 == 0;
+      auto* pixel = row.data() + static_cast<std::size_t>(x) * 4U;
+      pixel[0] = static_cast<std::uint8_t>((band ? 200 : 40) + (z & 31U));
+      pixel[1] = static_cast<std::uint8_t>((band ? 90 : 150) + ((z >> 8) & 31U));
+      pixel[2] = static_cast<std::uint8_t>((band ? 40 : 200) + ((z >> 16) & 31U));
+      pixel[3] = 255;
+    }
+  }
+  patchy::Layer layer(document.allocate_layer_id(), "Warped", std::move(art));
+  const auto layer_id = layer.id();
+  document.add_layer(std::move(layer));
+
+  patchy::ui::MainWindow window;
+  window.resize(1600, 1000);
+  if (qEnvironmentVariableIsSet("PATCHY_PERF_ONSCREEN")) {
+    window.showMaximized();
+  } else {
+    window.show();
+  }
+  QApplication::processEvents();
+  window.add_document_session(std::move(document), QStringLiteral("Warp Drag Perf"));
+  QApplication::processEvents();
+  auto* canvas = active_canvas(window);
+  CHECK(canvas != nullptr);
+  const auto settle = [canvas] {
+    const auto started = Clock::now();
+    while (!canvas->render_settled() && std::chrono::duration<double>(Clock::now() - started).count() < 60.0) {
+      canvas->repaint();
+      QApplication::processEvents();
+    }
+  };
+  settle();
+  auto* layer_list = window.findChild<QListWidget*>(QStringLiteral("layerList"));
+  CHECK(layer_list != nullptr);
+  for (int row = 0; row < layer_list->count(); ++row) {
+    auto* item = layer_list->item(row);
+    if (static_cast<patchy::LayerId>(item->data(patchy::ui::kLayerIdRole).toULongLong()) == layer_id) {
+      layer_list->clearSelection();
+      layer_list->setCurrentItem(item);
+      item->setSelected(true);
+    }
+  }
+  QApplication::processEvents();
+  auto* warp_action = window.findChild<QAction*>(QStringLiteral("editWarpTransformAction"));
+  CHECK(warp_action != nullptr);
+
+  struct Result {
+    std::string zoom;
+    double median_ms{0.0};
+    double release_ms{0.0};
+  };
+  std::vector<Result> results;
+  for (const bool fit : {true, false}) {
+    // Corner handle (index 3, top right) at fit; an interior handle (index 5) at
+    // 100%, centered in the view so the whole drag stays on screen.
+    const int handle = fit ? 3 : 5;
+    canvas->fit_to_view();
+    settle();
+    const auto setup_started = Clock::now();
+    warp_action->trigger();
+    QApplication::processEvents();
+    const auto begin_ms = std::chrono::duration<double, std::milli>(Clock::now() - setup_started).count();
+    CHECK(canvas->warp_transform_active());
+    if (!fit) {
+      const auto handle_point = canvas->warp_handle_document_position(handle).toPoint();
+      canvas->zoom_to_document_rect(QRect(handle_point - QPoint(400, 250), QSize(800, 500)));
+      canvas->set_zoom_centered(1.0);
+      settle();
+    }
+    const auto handle_widget = canvas->widget_position_f(canvas->warp_handle_document_position(handle)).toPoint();
+    const QPoint step = fit ? QPoint(5, 4) : QPoint(-6, 5);
+    send_mouse(*canvas, QEvent::MouseButtonPress, handle_widget, Qt::LeftButton, Qt::LeftButton);
+    canvas->repaint();
+    constexpr int kFrames = 30;
+    std::vector<double> frames;
+    frames.reserve(kFrames);
+    for (int frame = 1; frame <= kFrames; ++frame) {
+      frames.push_back(elapsed_ms([&] {
+        send_mouse(*canvas, QEvent::MouseMove, handle_widget + step * frame, Qt::NoButton, Qt::LeftButton);
+        canvas->repaint();
+      }));
+    }
+    const auto zoom_name = std::string(fit ? "fit" : "100");
+    CHECK(canvas->grab().save(QString::fromStdString("test-artifacts/warp_drag_" + zoom_name + "_drag.png")));
+    const auto release_ms = elapsed_ms([&] {
+      send_mouse(*canvas, QEvent::MouseButtonRelease, handle_widget + step * kFrames, Qt::LeftButton,
+                 Qt::NoButton);
+      canvas->repaint();
+    });
+    CHECK(canvas->grab().save(QString::fromStdString("test-artifacts/warp_drag_" + zoom_name + "_rest.png")));
+    const auto commit_ms = elapsed_ms([&] {
+      send_key(*canvas, Qt::Key_Return);
+      settle();
+    });
+    CHECK(!canvas->warp_transform_active());
+    CHECK(canvas->grab().save(QString::fromStdString("test-artifacts/warp_drag_" + zoom_name + "_commit.png")));
+
+    auto sorted = frames;
+    std::sort(sorted.begin(), sorted.end());
+    double total = 0.0;
+    for (const auto value : frames) {
+      total += value;
+    }
+    std::cout << std::fixed << std::setprecision(1) << "[PERF] warpdrag " << kWidth << 'x' << kHeight
+              << " zoom=" << zoom_name << " (" << canvas->zoom() << ") begin_ms=" << begin_ms
+              << " first_frame_ms=" << frames.front() << " frame_avg_ms=" << total / kFrames
+              << " frame_median_ms=" << sorted[sorted.size() / 2] << " frame_max_ms=" << sorted.back()
+              << " release_ms=" << release_ms << " commit_ms=" << commit_ms
+              << " threads=" << patchy::hardware_worker_threads() << '\n';
+    results.push_back(Result{zoom_name, sorted[sorted.size() / 2], release_ms});
+    // Undo the bake so the next zoom drags the same unwarped layer.
+    patchy::ui::MainWindowTestAccess::undo(window);
+    settle();
+  }
+  // Ceilings: a drag frame must stay interactive, and the resting render on release
+  // is one bounded pass.
+  constexpr double kFrameCeilingMs = 100.0;
+  constexpr double kReleaseCeilingMs = 1000.0;
+  for (const auto& result : results) {
+    if (result.median_ms >= kFrameCeilingMs || result.release_ms >= kReleaseCeilingMs) {
+      std::cout << "[FAIL] warpdrag zoom=" << result.zoom << " over its ceiling\n";
+    }
+    CHECK(result.median_ms < kFrameCeilingMs);
+    CHECK(result.release_ms < kReleaseCeilingMs);
+  }
+}
+
 void big_brush_stroke_perf() {
   ensure_artifact_dir();
   const auto image_path = std::filesystem::absolute("test-artifacts/perf_brush_stroke_4872x6836.png");
@@ -1640,6 +1792,10 @@ int main(int argc, char* argv[]) {
       masked_layer_rotate_perf();
       return 0;
     }
+    if (argc > 1 && std::string_view(argv[1]) == "warpdrag") {
+      warp_drag_perf();
+      return 0;
+    }
     if (argc > 1 && std::string_view(argv[1]) == "manylayers") {
       many_layers_select_and_move_perf_if_available();
       return 0;
@@ -1659,6 +1815,7 @@ int main(int argc, char* argv[]) {
     quintavius_layer_panel_perf_if_available();
     many_layers_select_and_move_perf_if_available();
     masked_layer_rotate_perf();
+    warp_drag_perf();
   } catch (const std::exception& error) {
     std::cerr << "[FAIL] " << error.what() << '\n';
     return 1;

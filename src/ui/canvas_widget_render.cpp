@@ -818,7 +818,7 @@ void CanvasWidget::paintEvent(QPaintEvent* event) {
       }
     }
   };
-  const auto draw_document_patch = [&painter, &target_rect, pixel_aligned_view, this,
+  const auto draw_document_patch = [&painter, &target_rect, pixel_aligned_view, &pixel_aligned_target_rect, this,
                                     exposed_rect](const RenderedDocumentPatch& source_patch, bool clear_under_patch) {
     if (source_patch.image.isNull() || source_patch.document_rect.isEmpty()) {
       return;
@@ -836,7 +836,8 @@ void CanvasWidget::paintEvent(QPaintEvent* event) {
     // (composited from the scaled document, same source as the scaled base),
     // so it draws directly - no checkerboard wipe (the base excludes the
     // moving layers) and no re-downscale.
-    if (moving_layer_ && !moving_layers_.empty() && move_preview_patches_scale_level_ > 0) {
+    if ((moving_layer_ && !moving_layers_.empty() && move_preview_patches_scale_level_ > 0) ||
+        (warping_layer_ && warp_preview_patches_scale_level_ > 0)) {
       painter.drawImage(patch_target, patch.image, QRectF(patch.image.rect()));
       return;
     }
@@ -910,8 +911,19 @@ void CanvasWidget::paintEvent(QPaintEvent* event) {
       }
     }
 
-    if (pixel_aligned_view) {
-      painter.drawImage(patch_target.toAlignedRect(), patch.image, patch.image.rect());
+    if (pixel_aligned_view && document_ != nullptr && document_->width() > 0 && document_->height() > 0) {
+      // Placed by the base image's own mapping (pixel_aligned_target_rect), so a
+      // patch pixel lands exactly on the base pixel it replaces. Rounding the
+      // patch's own float rect (toAlignedRect, or widget_position per corner) put
+      // it a pixel off the base under a fractional pan: outward rounding stretched
+      // it, and std::round sends a negative half-pixel pan the other way.
+      const auto& base = pixel_aligned_target_rect;
+      const double scale_x = static_cast<double>(base.width()) / static_cast<double>(document_->width());
+      const double scale_y = static_cast<double>(base.height()) / static_cast<double>(document_->height());
+      const auto& rect = patch.document_rect;
+      painter.drawImage(QRectF(base.x() + rect.x() * scale_x, base.y() + rect.y() * scale_y,
+                               rect.width() * scale_x, rect.height() * scale_y),
+                        patch.image, QRectF(patch.image.rect()));
     } else {
       painter.drawImage(patch_target, patch.image, QRectF(patch.image.rect()));
     }

@@ -309,6 +309,8 @@ void CanvasWidget::shift_view_for_document_offset(QPoint document_shift) {
 void CanvasWidget::notify_view_changed() {
   ZoomTraceScope trace("view_changed", zoom_);
   sync_scroll_bars();  // before the callback so observers see consistent bars
+  // The warp preview covers only the area on screen at the view's level.
+  schedule_warp_preview_view_refresh();
   if (view_changed_callback_) {
     view_changed_callback_();
   }

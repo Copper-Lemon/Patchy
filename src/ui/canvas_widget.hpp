@@ -2177,7 +2177,26 @@ private:
   // the document through warp_content_to_document_ (for smart objects the mesh
   // hull -> Trnf homography, for pixel layers the layer-bounds translation).
   bool prepare_warp_source();
+  // Builds warp_base_cache_ (the document with the warped layer hidden) at the
+  // current zoom's composite level when it is missing.
+  void ensure_warp_base_cache();
+  // Renders warp_preview_patches_ at view resolution (GitHub #200): the display's
+  // composite level, only the on-screen document area (plus half a view per side
+  // at rest), drag frames with bilinear samples and 16 px cells, resting frames
+  // with the session's interpolation and the commit's 4 px cells.
   void refresh_warp_preview_cache();
+  // After a zoom or pan: re-renders the resting preview when the view left the
+  // rendered area or changed composite level (deferred to the event loop).
+  void schedule_warp_preview_view_refresh();
+  void refresh_warp_preview_for_view();
+  // The document area on screen, grown by margin_fraction of its size per side and
+  // clipped to the canvas (the whole canvas while the widget has no size).
+  [[nodiscard]] QRect warp_preview_view_rect(double margin_fraction) const;
+  // warp_source_image_ box-halved `level` times (cached per session); a null image
+  // when the mip cannot be built.
+  [[nodiscard]] const QImage& warp_source_for_level(int level);
+  // Drops every per-session warp preview cache (base, its mips, patches, source mips).
+  void clear_warp_preview_caches();
   [[nodiscard]] std::array<double, 8> warp_document_quad() const;
   // Bakes (mesh, content->document map) into the layer at commit quality and, for
   // smart objects, writes the mesh + hull-quad placement metadata. Shared by the
@@ -3057,6 +3076,14 @@ private:
   // Bounded patches of the warped layer over its effect rect, drawn above the
   // (layer-hidden) base cache.
   std::vector<RenderedDocumentPatch> warp_preview_patches_{};
+  // Composite level the patches rendered at (their images are that mip of their
+  // full-res document_rect; 0 = full-res), and the full-res document area they are
+  // valid for (outside it the warped layer was not rendered).
+  int warp_preview_patches_scale_level_{0};
+  QRect warp_preview_covered_rect_{};
+  // warp_source_image_ halved once per entry (index 0 = level 1), built on demand.
+  std::vector<QImage> warp_source_mips_{};
+  bool warp_preview_view_refresh_pending_{false};
   // True when warp_content_to_document_ carries a composed free-transform stage
   // (the single-session toggle), so commit must bake even with an untouched mesh.
   bool warp_entry_changed_{false};
@@ -3158,9 +3185,12 @@ TransformedImage resample_transformed_rgba8(const QImage& source, const QTransfo
                                             CanvasWidget::TransformInterpolation interpolation);
 // Warp-mesh variant: inverts each cell of the forward-evaluated surface grid
 // (core/warp_mesh) per output pixel; folds resolve first-writer-wins in row-major
-// cell order (deterministic simplification).
+// cell order (deterministic simplification). Output rows split across workers,
+// byte-identical to the sequential walk. `clip` (grid document space) limits the
+// output to that rect; the kept pixels equal the unclipped render's.
 TransformedImage resample_warped_rgba8(const QImage& source, const WarpSurfaceGrid& grid,
-                                       CanvasWidget::TransformInterpolation interpolation);
+                                       CanvasWidget::TransformInterpolation interpolation,
+                                       const std::optional<Rect>& clip = std::nullopt);
 // Gray8 variant for linked layer masks (multi-target Free Transform commit):
 // samples outside the source read as `default_color`, never 0, so a transformed
 // mask blends toward its implicit surround instead of growing a fringe at the
