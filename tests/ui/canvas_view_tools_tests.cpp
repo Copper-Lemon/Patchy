@@ -453,6 +453,58 @@ void ui_options_bar_drops_duplicate_sliders_before_wrapping() {
   CHECK(size_slider->isVisible() && opacity_slider->isVisible());
 }
 
+void ui_options_bar_checkboxes_paint_without_a_frame() {
+  // GitHub issue 167: Auto-Select (Move) and Anti-alias (selection tools) painted a field
+  // frame behind their glyph and text, so they read as buttons beside the plain Show
+  // Transform Controls and Snap boxes. Every options-bar checkbox now shows the bar's own
+  // surface at its corners, the same pixel as the gap beside it.
+  patchy::ui::MainWindow window;
+  show_window(window);
+  window.resize(1600, 800);
+  auto* options = window.findChild<QWidget*>(QStringLiteral("OptionsContent"));
+  CHECK(options != nullptr);
+  const auto settle = [] {
+    QApplication::processEvents();
+    process_events_for(20);
+  };
+  const auto check_plain = [&](const char* tool, const char* check_name) {
+    require_action(window, tool)->trigger();
+    settle();
+    auto* check = window.findChild<QCheckBox*>(QString::fromLatin1(check_name));
+    CHECK(check != nullptr);
+    if (check == nullptr) {
+      return;
+    }
+    CHECK(check->isVisible());
+    CHECK(check->parentWidget() == options);
+    const QImage bar = options->grab().toImage();
+    const QRect box = check->geometry();
+    // The flow puts 4 px between controls; 2 px left of the box is bar surface.
+    const QColor gap = bar.pixelColor(box.left() - 2, box.center().y());
+    for (const QPoint corner : {box.topLeft(), box.topRight(), box.bottomLeft(), box.bottomRight()}) {
+      const QColor pixel = bar.pixelColor(corner);
+      if (pixel != gap) {
+        std::fprintf(stderr, "  %s corner (%d,%d) is %s, bar is %s\n", check_name, corner.x(), corner.y(),
+                     qPrintable(pixel.name()), qPrintable(gap.name()));
+      }
+      CHECK(pixel == gap);
+    }
+  };
+  check_plain("toolMoveAction", "moveAutoSelectCheck");
+  check_plain("toolMoveAction", "moveShowTransformControlsCheck");
+  check_plain("toolMarqueeAction", "selectionAntiAliasCheck");
+  check_plain("toolCloneAction", "cloneAlignedCheck");
+  // The Move row as the reporter saw it, for the issue reply.
+  require_action(window, "toolMoveAction")->trigger();
+  settle();
+  auto* auto_select = window.findChild<QCheckBox*>(QStringLiteral("moveAutoSelectCheck"));
+  auto* snap = window.findChild<QCheckBox*>(QStringLiteral("moveSnapCheck"));
+  if (auto_select != nullptr && snap != nullptr) {
+    const QRect strip(0, 0, snap->geometry().right() + 8, options->height());
+    save_image_artifact("issue167_move_checkboxes", options->grab(strip).toImage());
+  }
+}
+
 void ui_text_options_bar_size_shows_photoshop_precision() {
   // Photoshop's type size shows at most two decimals and drops trailing zeros. Patchy
   // stores whole pixels, so the third decimal ("14.446 pt") was false precision.
@@ -4347,6 +4399,7 @@ std::vector<patchy::test::TestCase> canvas_view_tools_tests() {
       {"ui_options_bar_keeps_one_height_across_tools", ui_options_bar_keeps_one_height_across_tools},
       {"ui_options_bar_drops_duplicate_sliders_before_wrapping",
        ui_options_bar_drops_duplicate_sliders_before_wrapping},
+      {"ui_options_bar_checkboxes_paint_without_a_frame", ui_options_bar_checkboxes_paint_without_a_frame},
       {"ui_text_options_bar_size_shows_photoshop_precision", ui_text_options_bar_size_shows_photoshop_precision},
       {"ui_options_bar_spinboxes_show_their_extremes_unclipped",
        ui_options_bar_spinboxes_show_their_extremes_unclipped},

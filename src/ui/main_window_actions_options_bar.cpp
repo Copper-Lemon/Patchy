@@ -137,21 +137,11 @@ protected:
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    const bool framed = objectName() == QStringLiteral("moveAutoSelectCheck") ||
-                        objectName() == QStringLiteral("selectionAntiAliasCheck") ||
-                        objectName() == QStringLiteral("cloneAlignedCheck") ||
-                        objectName() == QStringLiteral("shapeFillCheck");
     // Every color here is a role: this glyph is painted, not styled, so it would
-    // otherwise stay dark-on-dark in the Light scheme.
+    // otherwise stay dark-on-dark in the Light scheme. No box ever gets a field
+    // frame behind it: Auto-Select and Anti-alias once did and read as buttons
+    // beside their plain neighbours (GitHub issue 167).
     const auto& colors = theme();
-    if (framed) {
-      painter.fillRect(rect(), colors.field_bg);
-      painter.setPen(QPen(colors.field_inset_border, 1));
-      painter.drawRect(rect().adjusted(0, 0, -1, -1));
-      painter.setPen(QPen(colors.field_bevel_top, 1));
-      painter.drawLine(rect().topLeft(), rect().topRight());
-    }
-
     const QRect box(7, (height() - 14) / 2, 14, 14);
     painter.setBrush(isChecked() ? colors.accent : colors.checkbox_compact_bg);
     painter.setPen(
