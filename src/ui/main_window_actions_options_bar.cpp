@@ -587,6 +587,12 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
     };
   };
 
+  // Separators group the row: pivot | position | size | angle | interpolation and the
+  // warp toggle | apply and cancel (GitHub issue 181).
+  const auto add_transform_separator = [this, make_option_separator] {
+    transform_option_actions_.push_back(make_option_separator());
+  };
+  add_transform_separator();
   make_transform_label(QT_TR_NOOP("X:"));
   transform_x_spin_ = make_transform_spin(QStringLiteral("freeTransformXSpin"), -30000.0, 30000.0, 2,
                                           SpinUnit::Pixels);
@@ -599,6 +605,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   transform_y_spin_->set_context_provider(document_axis_context(false));
   register_ruler_unit_field(transform_y_spin_);
   bind_tooltip(transform_y_spin_, QT_TR_NOOP("Reference Y position"));
+  add_transform_separator();
   make_transform_label(QT_TR_NOOP("W:"));
   transform_scale_x_spin_ = make_transform_spin(QStringLiteral("freeTransformScaleXSpin"), -10000.0, 10000.0, 2,
                                                  SpinUnit::Percent);
@@ -625,6 +632,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   connect(transform_scale_y_spin_, &UnitSpinBox::display_unit_changed, transform_scale_x_spin_,
           &UnitSpinBox::set_display_unit);
   bind_tooltip(transform_scale_y_spin_, QT_TR_NOOP("Vertical scale"));
+  add_transform_separator();
   make_transform_label(QT_TR_NOOP("Angle:"));
   transform_rotation_spin_ = make_transform_spin(QStringLiteral("freeTransformRotationSpin"), -3600.0, 3600.0, 2,
                                                  SpinUnit::Degrees);
@@ -637,6 +645,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
       }
     }
   });
+  add_transform_separator();
   transform_interpolation_combo_ = new QComboBox(toolbar);
   transform_interpolation_combo_->setObjectName(QStringLiteral("freeTransformInterpolationCombo"));
   bind_tooltip(transform_interpolation_combo_, QT_TR_NOOP("Interpolation"));
@@ -799,6 +808,7 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
   transform_warp_mode_button_->setIconSize(QSize(20, 20));
   transform_warp_mode_button_->setProperty("optionsSessionButton", true);
   add_session_option_widget(transform_warp_mode_button_);
+  transform_session_actions_.push_back(make_option_separator());
   transform_apply_button_ = new QPushButton(toolbar);
   transform_apply_button_->setObjectName(QStringLiteral("freeTransformApplyButton"));
   transform_apply_button_->setIcon(simple_icon(QStringLiteral("ok"), QColor(160, 220, 165)));

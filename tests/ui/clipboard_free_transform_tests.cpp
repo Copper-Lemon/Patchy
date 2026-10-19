@@ -18,6 +18,7 @@
 #include <QComboBox>
 #include <QDir>
 #include <QDoubleSpinBox>
+#include <QFrame>
 #include <QFile>
 #include <QFileInfo>
 #include <QImage>
@@ -1292,6 +1293,49 @@ void ui_transform_numeric_controls_apply_values() {
   QApplication::processEvents();
   CHECK(canvas->free_transform_active());
   CHECK(x->isVisible());
+  {
+    // Separators group the row (GitHub issue 181): pivot | X Y | W H | Angle |
+    // interpolation and warp toggle | apply and cancel. Wide enough for one row.
+    window.resize(1800, 900);
+    QApplication::processEvents();
+    auto* options = window.findChild<QWidget*>(QStringLiteral("OptionsContent"));
+    auto* pivot = window.findChild<QComboBox*>(QStringLiteral("freeTransformReferenceCombo"));
+    auto* warp_mode = window.findChild<QPushButton*>(QStringLiteral("transformWarpModeButton"));
+    CHECK(options != nullptr && pivot != nullptr && warp_mode != nullptr);
+    std::vector<QFrame*> separators;
+    if (options != nullptr) {
+      for (auto* frame : options->findChildren<QFrame*>(QStringLiteral("optionSeparator"), Qt::FindDirectChildrenOnly)) {
+        if (frame->isVisible()) {
+          separators.push_back(frame);
+        }
+      }
+    }
+    CHECK(separators.size() == 5);
+    const auto separated = [&](const QWidget* left, const QWidget* right) {
+      return std::any_of(separators.begin(), separators.end(), [&](const QFrame* frame) {
+        return frame->geometry().left() > left->geometry().right() &&
+               frame->geometry().right() < right->geometry().left() &&
+               std::abs(frame->geometry().center().y() - right->geometry().center().y()) <= 3;
+      });
+    };
+    if (pivot != nullptr && warp_mode != nullptr) {
+      CHECK(separated(pivot, x));
+      CHECK(!separated(x, y));
+      CHECK(separated(y, scale_x));
+      CHECK(!separated(scale_x, scale_y));
+      CHECK(separated(scale_y, rotation));
+      CHECK(separated(rotation, interpolation));
+      CHECK(!separated(interpolation, warp_mode));
+      CHECK(separated(warp_mode, apply));
+    }
+    if (options != nullptr) {
+      auto* cancel = window.findChild<QPushButton*>(QStringLiteral("freeTransformCancelButton"));
+      if (cancel != nullptr) {
+        const QRect strip(0, 0, cancel->geometry().right() + 8, options->height());
+        save_image_artifact("issue181_free_transform_row", options->grab(strip).toImage());
+      }
+    }
+  }
   CHECK(interpolation->currentText() == QStringLiteral("Bicubic"));
   // Photoshop's six choices in its order; the appended ones reach the canvas.
   CHECK(interpolation->count() == 6);
