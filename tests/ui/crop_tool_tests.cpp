@@ -66,6 +66,49 @@ void ui_crop_tool_activates_with_c_hotkey() {
   CHECK(window.statusBar()->currentMessage().startsWith(QStringLiteral("Crop: drag the handles")));
 }
 
+// The ratio fields drop trailing zeros like the pixel fields beside them: "0" for
+// unconstrained, "2", "1.5", never "2.00" (GitHub issue 201).
+void ui_crop_ratio_fields_show_trimmed_numbers() {
+  SettingsValueRestorer saved_ratio_w(QStringLiteral("tools/cropRatioWidth"));
+  SettingsValueRestorer saved_ratio_h(QStringLiteral("tools/cropRatioHeight"));
+  patchy::ui::MainWindow window;
+  show_window(window);
+  require_canvas(window);
+  require_action(window, "toolCropAction")->trigger();
+  QApplication::processEvents();
+  auto* ratio_w = window.findChild<QDoubleSpinBox*>(QStringLiteral("cropRatioWidthSpin"));
+  auto* ratio_h = window.findChild<QDoubleSpinBox*>(QStringLiteral("cropRatioHeightSpin"));
+  CHECK(ratio_w != nullptr && ratio_h != nullptr);
+  if (ratio_w == nullptr || ratio_h == nullptr) {
+    return;
+  }
+  CHECK(ratio_w->decimals() == 2);
+  ratio_w->setValue(0.0);
+  ratio_h->setValue(0.0);
+  QApplication::processEvents();
+  CHECK(ratio_w->text() == QStringLiteral("0") && ratio_h->text() == QStringLiteral("0"));
+  ratio_w->setValue(2.0);
+  ratio_h->setValue(1.0);
+  QApplication::processEvents();
+  CHECK(ratio_w->text() == QStringLiteral("2") && ratio_h->text() == QStringLiteral("1"));
+  ratio_w->setValue(1.5);
+  QApplication::processEvents();
+  CHECK(ratio_w->text() == QStringLiteral("1.5"));
+  // Typing keeps two decimals of input; "1.50" displays as "1.5".
+  auto* editor = ratio_h->findChild<QLineEdit*>();
+  CHECK(editor != nullptr);
+  if (editor != nullptr) {
+    editor->setText(QStringLiteral("1.25"));
+    ratio_h->interpretText();
+    CHECK(ratio_h->value() == 1.25);
+    CHECK(ratio_h->text() == QStringLiteral("1.25"));
+    editor->setText(QStringLiteral("1.50"));
+    ratio_h->interpretText();
+    CHECK(ratio_h->value() == 1.5);
+    CHECK(ratio_h->text() == QStringLiteral("1.5"));
+  }
+}
+
 void ui_crop_drag_out_geometry() {
   SettingsValueRestorer saved_ratio_w(QStringLiteral("tools/cropRatioWidth"));
   SettingsValueRestorer saved_ratio_h(QStringLiteral("tools/cropRatioHeight"));
@@ -1205,6 +1248,7 @@ void ui_crop_delete_options_crop_and_delete_layers() {
 std::vector<patchy::test::TestCase> crop_tool_tests() {
   return {
       {"ui_crop_tool_activates_with_c_hotkey", ui_crop_tool_activates_with_c_hotkey},
+      {"ui_crop_ratio_fields_show_trimmed_numbers", ui_crop_ratio_fields_show_trimmed_numbers},
       {"ui_crop_drag_out_geometry", ui_crop_drag_out_geometry},
       {"ui_crop_tool_frames_canvas_and_fits_ratio", ui_crop_tool_frames_canvas_and_fits_ratio},
       {"ui_crop_tool_adopts_active_selection", ui_crop_tool_adopts_active_selection},

@@ -620,10 +620,14 @@ void ui_marquee_fixed_size_and_ratio_options_work() {
   CHECK(!width->isVisible() && !height->isVisible());
   CHECK(ratio_width->value() == 1.0 && ratio_height->value() == 1.0);
   CHECK(ratio_width->suffix().isEmpty() && !ratio_width->text().contains(QStringLiteral("px")));
+  // Whole ratio parts read like the pixel fields, without ".00".
+  CHECK(ratio_width->text() == QStringLiteral("1") && ratio_height->text() == QStringLiteral("1"));
   save_widget_artifact("ui_marquee_fixed_ratio_options_bar", *window.findChild<QToolBar*>(QStringLiteral("Options")));
   ratio_width->setValue(2);
   ratio_height->setValue(1);
   QApplication::processEvents();
+  CHECK(ratio_width->text() == QStringLiteral("2") && ratio_height->text() == QStringLiteral("1"));
+  save_widget_artifact("ui_marquee_fixed_ratio_options_bar_2_1", *window.findChild<QToolBar*>(QStringLiteral("Options")));
   CHECK(width->value() == 80 && height->value() == 50);
   CHECK(canvas->marquee_style() == patchy::ui::CanvasWidget::MarqueeStyle::FixedRatio);
   drag(*canvas, canvas->widget_position_for_document_point(QPoint(180, 40)),
@@ -642,6 +646,19 @@ void ui_marquee_fixed_size_and_ratio_options_work() {
   QApplication::processEvents();
   CHECK(width->isVisible() && height->isVisible() && width->value() == 80);
   CHECK(!ratio_width->isVisible() && !ratio_height->isVisible());
+
+  // A fractional part keeps its significant decimals only: typed "1.50" is 1.5 and
+  // reads "1.5"; 0.25 keeps both decimals.
+  auto* ratio_editor = ratio_width->findChild<QLineEdit*>();
+  CHECK(ratio_editor != nullptr);
+  if (ratio_editor != nullptr) {
+    ratio_editor->setText(QStringLiteral("1.50"));
+    ratio_width->interpretText();
+    CHECK(ratio_width->value() == 1.5);
+    CHECK(ratio_width->text() == QStringLiteral("1.5"));
+  }
+  ratio_height->setValue(0.25);
+  CHECK(ratio_height->text() == QStringLiteral("0.25"));
 }
 
 // Style: Normal greys out the marquee's Width and Height, and a click on a greyed field's
