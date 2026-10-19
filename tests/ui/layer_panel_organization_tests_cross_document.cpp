@@ -30,11 +30,13 @@
 #include <QColor>
 #include <QComboBox>
 #include <QDialog>
+#include <QFontMetrics>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QTabWidget>
 #include <QTimer>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <optional>
 #include <set>
@@ -468,6 +470,44 @@ void ui_duplicate_layer_to_document_dialog_copies() {
   CHECK(std::as_const(*created_document).layers().front().bounds().x == 10);
 }
 
+void ui_duplicate_layer_to_document_dialog_fits_title_and_destinations() {
+  // GitHub issue 209: with no other document open the dialog came up about 200 px wide,
+  // the title bar read "Du...er" and the destination combo "New D...ument".
+  patchy::ui::MainWindow window;
+  show_window_empty(window);
+  window.add_document_session(cross_document_source(), QStringLiteral("Only"));
+  QApplication::processEvents();
+  bool saw_dialog = false;
+  QTimer::singleShot(0, [&] {
+    auto* dialog = window.findChild<QDialog*>(QStringLiteral("duplicateLayerToDocumentDialog"));
+    CHECK(dialog != nullptr);
+    if (dialog == nullptr) {
+      return;
+    }
+    auto* combo = dialog->findChild<QComboBox*>(QStringLiteral("duplicateLayerTargetCombo"));
+    CHECK(combo != nullptr);
+    if (combo != nullptr) {
+      CHECK(combo->count() == 1);
+      const QFontMetrics metrics(combo->font());
+      const int text_width = metrics.horizontalAdvance(combo->itemText(0));
+      std::printf("  dialog %d px (title %d px), combo %d px (\"%s\" %d px)\n", dialog->width(),
+                  metrics.horizontalAdvance(dialog->windowTitle()), combo->width(),
+                  qPrintable(combo->itemText(0)), text_width);
+      // Text plus the frame padding and the drop-down arrow.
+      CHECK(combo->width() >= text_width + 40);
+      // The title plus room for a system title bar's icon and three buttons.
+      CHECK(dialog->width() >= metrics.horizontalAdvance(dialog->windowTitle()) + 150);
+      CHECK(dialog->width() >= 360);
+      save_widget_artifact("issue209_duplicate_layer_dialog", *dialog);
+    }
+    saw_dialog = true;
+    dialog->reject();
+  });
+  require_action(window, "layerDuplicateToDocumentAction")->trigger();
+  QApplication::processEvents();
+  CHECK(saw_dialog);
+}
+
 void ui_layer_alt_drag_duplicates_in_panel() {
   patchy::ui::MainWindow window;
   show_window_empty(window);
@@ -522,6 +562,8 @@ std::vector<patchy::test::TestCase> layer_panel_organization_tests_cross_documen
       {"ui_layer_drag_to_other_document_respects_edit_lock", ui_layer_drag_to_other_document_respects_edit_lock},
       {"ui_layer_drag_group_mask_style_and_shape_survive", ui_layer_drag_group_mask_style_and_shape_survive},
       {"ui_duplicate_layer_to_document_dialog_copies", ui_duplicate_layer_to_document_dialog_copies},
+      {"ui_duplicate_layer_to_document_dialog_fits_title_and_destinations",
+       ui_duplicate_layer_to_document_dialog_fits_title_and_destinations},
       {"ui_layer_drag_smart_object_adopts_source", ui_layer_drag_smart_object_adopts_source},
       {"ui_layer_alt_drag_duplicates_in_panel", ui_layer_alt_drag_duplicates_in_panel},
   };

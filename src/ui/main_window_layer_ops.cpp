@@ -12,7 +12,9 @@
 #include <QApplication>
 #include <QByteArray>
 #include <QColor>
+#include <QAbstractItemView>
 #include <QComboBox>
+#include <QFontMetrics>
 #include <QCoreApplication>
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -2346,6 +2348,20 @@ void MainWindow::duplicate_layer_to_document() {
   target_combo->addItem(tr("New Document"), QVariant::fromValue<qlonglong>(0));
   form->addRow(tr("Destination:"), target_combo);
   layout->addLayout(form);
+  // At its size hint the dialog was about 200 px wide, which cut the title bar to
+  // "Du...er" and the destination to "New D...ument" (GitHub issue 209). The closed
+  // combo fits the longest destination up to a cap (long document titles elide
+  // there but not in the list), and the dialog leaves the title room for the
+  // window icon and buttons a system title bar adds.
+  target_combo->ensurePolished();
+  const QFontMetrics metrics(target_combo->font());
+  int widest_destination = 0;
+  for (int i = 0; i < target_combo->count(); ++i) {
+    widest_destination = std::max(widest_destination, metrics.horizontalAdvance(target_combo->itemText(i)));
+  }
+  target_combo->setMinimumWidth(std::min(widest_destination + 48, 420));
+  target_combo->view()->setMinimumWidth(widest_destination + 36);
+  dialog.setMinimumWidth(std::max(360, metrics.horizontalAdvance(dialog.windowTitle()) + 200));
   auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
   layout->addWidget(buttons);
   connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
