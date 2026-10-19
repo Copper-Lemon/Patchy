@@ -54,6 +54,22 @@ RELEASE_MANIFEST="$ROOT/build/flatpak-release-manifest.yml"
 python3 "$ROOT/scripts/release/prepare-flatpak-manifest.py" --root "$ROOT" --output "$RELEASE_MANIFEST"
 nice -n 10 flatpak-builder --jobs="$JOBS" --force-clean --repo="$REPO_DIR" "$BUILD_DIR" "$RELEASE_MANIFEST"
 
+# The exported desktop entry and the AppStream metainfo must validate with this host's
+# tools when they are installed (GitHub issue 208). The AppImage build checks its own copy
+# of the desktop file with Ubuntu 22.04's older validator (docs/appimage.md).
+if command -v desktop-file-validate >/dev/null; then
+  desktop-file-validate "$BUILD_DIR/export/share/applications/$APP_ID.desktop" \
+    || { echo "ERROR: the Flatpak's desktop file fails desktop-file-validate" >&2; exit 1; }
+else
+  echo "NOTE: desktop-file-validate is not installed; the desktop file was not validated" >&2
+fi
+if command -v appstreamcli >/dev/null; then
+  appstreamcli validate --no-net "$BUILD_DIR/files/share/metainfo/$APP_ID.metainfo.xml" \
+    || { echo "ERROR: the Flatpak's metainfo fails appstreamcli validate" >&2; exit 1; }
+else
+  echo "NOTE: appstreamcli is not installed; the metainfo was not validated" >&2
+fi
+
 # Proves the sandboxed app runs with no display before any bundle exists. The Qt
 # offscreen platform comes from the org.kde.Platform runtime, not from this repo, so
 # this is the one check that the runtime still ships it and that --headless works

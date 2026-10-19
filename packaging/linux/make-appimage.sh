@@ -73,6 +73,19 @@ APPIMAGE="$ROOT/build/package/Patchy-$VERSION-x86_64.AppImage"
 [ -s "$APPIMAGE" ] || { echo "ERROR: the container did not write $APPIMAGE" >&2; exit 1; }
 chmod +x "$APPIMAGE"
 
+# The container validated the desktop file with 22.04's desktop-file-validate (what the
+# AppImage catalog runs, GitHub issue 208); check it and the metainfo again with this
+# host's newer tools when they are installed.
+APPDIR="$ROOT/build/appimage-appdir"
+if command -v desktop-file-validate >/dev/null; then
+  desktop-file-validate "$APPDIR/com.rtsoft.patchy.desktop" \
+    || { echo "ERROR: the AppImage's desktop file fails desktop-file-validate" >&2; exit 1; }
+fi
+if command -v appstreamcli >/dev/null; then
+  appstreamcli validate --no-net "$APPDIR/usr/share/metainfo/com.rtsoft.patchy.metainfo.xml" \
+    || { echo "ERROR: the AppImage's metainfo fails appstreamcli validate" >&2; exit 1; }
+fi
+
 # The same checks as inside the container, now through the AppImage runtime's own FUSE
 # mount on this (newer) distro: what a user's double-click does.
 echo "== host smoke check (FUSE mount) =="

@@ -66,11 +66,17 @@ That lint fails on any `desktop-file-validate` error from 22.04's desktop-file-u
 which predates Desktop Entry 1.5, so the build drops `SingleMainWindow` from the AppImage's
 copy of the desktop file (the Flatpak keeps it). It warns unless `.DirIcon` is a PNG, so the
 build points `.DirIcon` at a root copy of the 256 px PNG instead of linuxdeploy's SVG. The
-build fails if either check regresses. Still warnings, by choice: "Linux" in the file name
+build fails if either check regresses. Releases up to 1.13 shipped `SingleMainWindow` and
+failed the lint (GitHub issue 208); a newer host validator (24.04's 0.27) accepts the key,
+so reproduce with 22.04's. Still warnings, by choice: "Linux" in the file name
 (renaming breaks the zsync update name older installs follow), the dark default window, and
 "No appdata file" (the lint looks only for `*appdata.xml`; ours is the current
-`.metainfo.xml` name, which the worker still copies for screenshots). After a release with a
-fix, `/retest` on that PR reruns the test.
+`.metainfo.xml` name, which the worker still copies for screenshots). Keep that name: under
+it the lint would run `appstreamcli validate-tree`, and 22.04's AppStream 0.15 fails our
+metainfo on the 1.0 `<developer>` tag and `vcs-browser` URL type. `make-appimage.sh` and
+`make-flatpak.sh` also validate the shipped desktop file and metainfo with the host's
+`desktop-file-validate` and `appstreamcli` when installed. After a release with a fix,
+`/retest` on that PR reruns the test.
 
 All downloaded tools are pinned to release tags and SHA-256 in the Containerfile, and the
 base images are pinned by digest. To bump one, update tag and checksum together.

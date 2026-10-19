@@ -133,6 +133,10 @@ scalable SVG share the folded source artwork; regenerate with
 `scripts/dev/generate-branding.py` (see [branding](../branding/README.md)). Each version
 bump adds a metainfo `<release>` with a short `<description>` (docs/release-process.md).
 The metainfo screenshots are raw GitHub URLs at a release tag, so they keep resolving.
+`make-flatpak.sh` fails when the exported desktop file or the metainfo does not pass the
+host's `desktop-file-validate` or `appstreamcli validate --no-net` (each skipped with a note
+when not installed). The AppImage ships a copy of the desktop file without the Desktop
+Entry 1.5 `SingleMainWindow` key ([docs/appimage.md](../../docs/appimage.md)).
 
 ## Sandbox notes
 
