@@ -2909,6 +2909,120 @@ void ui_layer_blend_row_wraps_in_narrow_panel() {
   }
 }
 
+// GitHub issue 199: below the width the column opens at, the Layers panel
+// rows wrap instead of clipping: the footer buttons narrow and then wrap four
+// over four, Fill drops under Opacity, and the name filter takes a line of its
+// own. The compact width (every row wrapped) sits far under the opening width,
+// and there every control is whole, apart, and inside the panel, with no
+// sideways scroll. Narrower than that the panel scrolls sideways.
+void ui_layer_panel_compact_width_keeps_controls_whole() {
+  auto& manager = patchy::ui::LocalizationManager::instance();
+  const auto restore_language = qScopeGuard([&manager] { manager.set_language(QStringLiteral("en"), false); });
+  for (const auto& code : {QStringLiteral("en"), QStringLiteral("ru"), QStringLiteral("pl")}) {
+    CHECK(manager.set_language(code, false));
+    patchy::ui::MainWindow window;
+    show_window(window);
+    patchy::Document document(320, 240, patchy::PixelFormat::rgb8());
+    document.add_pixel_layer("Background", solid_pixels(320, 240, patchy::PixelFormat::rgb8(), QColor(245, 245, 245)));
+    document.add_pixel_layer("Sky", solid_pixels(320, 240, patchy::PixelFormat::rgba8(), QColor(90, 150, 220)));
+    document.add_pixel_layer("Hills", solid_pixels(320, 240, patchy::PixelFormat::rgba8(), QColor(70, 140, 60)));
+    window.add_document_session(std::move(document), QStringLiteral("Compact Layers"));
+    QApplication::processEvents();
+    QWidget* column = patchy::ui::MainWindowTestAccess::panel_column(window);
+    auto* layers_page = window.findChild<QWidget*>(QStringLiteral("layersDock"));
+    auto* panel = window.findChild<QWidget*>(QStringLiteral("layersPanel"));
+    auto* overflow =
+        layers_page != nullptr ? layers_page->findChild<QScrollArea*>(QStringLiteral("rightDockOverflowScroll")) : nullptr;
+    auto* new_button = window.findChild<QPushButton*>(QStringLiteral("layerNewButton"));
+    auto* delete_button = window.findChild<QPushButton*>(QStringLiteral("layerDeleteButton"));
+    CHECK(column != nullptr && panel != nullptr && overflow != nullptr);
+    CHECK(new_button != nullptr && delete_button != nullptr);
+
+    const auto opening = patchy::ui::MainWindowTestAccess::right_dock_content_minimum_width(window);
+    const auto compact = patchy::ui::MainWindowTestAccess::right_dock_compact_width(window);
+    std::cout << "[INFO] " << code.toStdString() << ": Layers column opens at " << opening << " px, compact width "
+              << compact << " px\n";
+    CHECK(compact <= opening - 90);
+    if (code == QStringLiteral("en")) {
+      CHECK(compact <= 270);
+    }
+
+    patchy::ui::MainWindowTestAccess::set_right_dock_stack_width(window, compact);
+    // Three passes: each wrapped row re-requests the layout once after the pass
+    // that wrapped it.
+    for (int pass = 0; pass < 3; ++pass) {
+      QApplication::processEvents();
+    }
+    CHECK(column->width() == compact);
+    CHECK(!overflow->horizontalScrollBar()->isVisible());
+    CHECK(panel->width() == overflow->viewport()->width());
+    // The footer wrapped rather than squeezing its buttons under the compact width.
+    CHECK(delete_button->y() > new_button->geometry().bottom());
+
+    struct Control {
+      const char* name;
+      bool natural_width;  // laid out at its own width hint, never narrower
+    };
+    const std::array<Control, 17> controls{{
+        {"layerBlendModeCombo", true},     {"layerOpacitySpin", true},         {"layerFillOpacitySpin", true},
+        {"layerLockTransparentButton", true}, {"layerLockPixelsButton", true}, {"layerLockPositionButton", true},
+        {"layerLockAllButton", true},      {"layerNameFilterEdit", false},     {"layerList", false},
+        {"layerNewButton", false},         {"layerNewFolderButton", false},    {"layerNewAdjustmentButton", false},
+        {"layerAddMaskButton", false},     {"layerDuplicateButton", false},    {"layerRenameButton", false},
+        {"layerAnimationButton", false},   {"layerDeleteButton", false},
+    }};
+    std::vector<QRect> rects;
+    for (const auto& control : controls) {
+      auto* widget = panel->findChild<QWidget*>(QLatin1String(control.name));
+      CHECK(widget != nullptr);
+      CHECK(widget->isVisible());
+      const QRect rect(widget->mapTo(panel, QPoint()), widget->size());
+      if (!panel->rect().contains(rect)) {
+        std::cout << "[INFO] " << control.name << " leaves the panel: " << rect.x() << "," << rect.y() << " "
+                  << rect.width() << "x" << rect.height() << " in " << panel->width() << "x" << panel->height()
+                  << "\n";
+      }
+      CHECK(panel->rect().contains(rect));
+      if (control.natural_width) {
+        CHECK(rect.width() >= std::min(widget->sizeHint().width(), widget->maximumWidth()));
+      }
+      if (auto* button = qobject_cast<QAbstractButton*>(widget); button != nullptr) {
+        CHECK(rect.width() >= button->iconSize().width() + 4);
+      }
+      for (const auto& other : rects) {
+        CHECK(!rect.intersects(other));
+      }
+      rects.push_back(rect);
+    }
+    auto* filter = panel->findChild<QLineEdit*>(QStringLiteral("layerNameFilterEdit"));
+    auto* layer_list = panel->findChild<QListWidget*>(QStringLiteral("layerList"));
+    CHECK(filter != nullptr && layer_list != nullptr);
+    CHECK(filter->width() >= 90);
+    CHECK(layer_list->height() >= 48);
+    save_widget_artifact("ui_layer_panel_compact_width_" + code.toStdString(), *column);
+
+    // Narrower than the compact width the panel keeps it and scrolls sideways.
+    patchy::ui::MainWindowTestAccess::set_right_dock_stack_width(window, compact - 20);
+    for (int pass = 0; pass < 3; ++pass) {
+      QApplication::processEvents();
+    }
+    CHECK(overflow->horizontalScrollBar()->isVisible());
+
+    // Back at the opening width, the footer is one row of full-width buttons.
+    patchy::ui::MainWindowTestAccess::set_right_dock_stack_width(window, opening);
+    for (int pass = 0; pass < 3; ++pass) {
+      QApplication::processEvents();
+    }
+    CHECK(!overflow->horizontalScrollBar()->isVisible());
+    CHECK(delete_button->y() == new_button->y());
+    CHECK(delete_button->width() == delete_button->maximumWidth());
+    // The name filter is back beside the Lock buttons.
+    auto* lock_all = panel->findChild<QWidget*>(QStringLiteral("layerLockAllButton"));
+    CHECK(lock_all != nullptr);
+    CHECK(std::abs(filter->geometry().center().y() - lock_all->geometry().center().y()) <= 1);
+  }
+}
+
 patchy::Document make_name_filter_document() {
   patchy::Document document(48, 48, patchy::PixelFormat::rgb8());
   document.add_pixel_layer("Background",
@@ -3923,6 +4037,7 @@ std::vector<patchy::test::TestCase> layer_panel_organization_tests() {
       {"ui_layer_fill_opacity_control_updates_active_layer",
        ui_layer_fill_opacity_control_updates_active_layer},
       {"ui_layer_blend_row_wraps_in_narrow_panel", ui_layer_blend_row_wraps_in_narrow_panel},
+      {"ui_layer_panel_compact_width_keeps_controls_whole", ui_layer_panel_compact_width_keeps_controls_whole},
       {"ui_right_dock_opens_at_content_width_without_gap", ui_right_dock_opens_at_content_width_without_gap},
       {"ui_layer_filter_shows_matching_rows_and_ancestor_folders",
        ui_layer_filter_shows_matching_rows_and_ancestor_folders},

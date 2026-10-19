@@ -3338,7 +3338,9 @@ void ui_right_docks_collapse_layers_show_metadata_and_info_updates() {
   for (const auto* button : layer_action_buttons) {
     if (button->property("layerActionButton").toBool()) {
       ++visible_layer_action_buttons;
-      CHECK(button->minimumWidth() >= 40);
+      // Full width in one footer row; a narrow column narrows them (GitHub issue 199).
+      CHECK(button->maximumWidth() >= 40);
+      CHECK(button->minimumWidth() >= 32);
       CHECK(button->minimumHeight() >= 34);
       CHECK(button->iconSize().width() >= 24);
       CHECK(button->iconSize().height() >= 24);
@@ -4311,7 +4313,8 @@ void ui_short_panel_scroll_bar_drags_by_handle() {
 }
 
 // The column drags narrower than its panels' content (GitHub issue 96): the
-// width the user picks is kept and each panel scrolls sideways, with the
+// width the user picks is kept and, below the Layers panel's compact width
+// (every row wrapped, GitHub issue 199), each panel scrolls sideways, with the
 // scroll bar at the bottom, instead of the drag stopping at the content width.
 void ui_right_dock_drags_below_content_minimum_with_scroll() {
   patchy::ui::MainWindow window;
@@ -4330,10 +4333,11 @@ void ui_right_dock_drags_below_content_minimum_with_scroll() {
   CHECK(layers_dock->width() == content_minimum);
   CHECK(!overflow->horizontalScrollBar()->isVisible());
 
-  // Drag right, past the content width.
+  // Drag right, past the content width and the compact width.
   const auto start = handle->rect().center();
-  const auto narrow_delta = content_minimum - 200;
-  CHECK(narrow_delta > 0);
+  const auto narrow_width = patchy::ui::MainWindowTestAccess::right_dock_compact_width(window) - 40;
+  const auto narrow_delta = content_minimum - narrow_width;
+  CHECK(narrow_width >= 120 && narrow_delta > 0);
   // One move: the splitter handle travels with the drag, so a second move in its own
   // coordinates would overshoot.
   QTest::mousePress(handle, Qt::LeftButton, Qt::NoModifier, start);
@@ -4341,8 +4345,8 @@ void ui_right_dock_drags_below_content_minimum_with_scroll() {
   QTest::mouseRelease(handle, Qt::LeftButton, Qt::NoModifier, start + QPoint(narrow_delta, 0));
   QApplication::processEvents();
   QApplication::processEvents();
-  CHECK(layers_dock->width() == 200);
-  CHECK(history_dock->width() == 200);
+  CHECK(layers_dock->width() == narrow_width);
+  CHECK(history_dock->width() == narrow_width);
   auto* bar = overflow->horizontalScrollBar();
   CHECK(bar->isVisible());
   CHECK(bar->maximum() > 0);

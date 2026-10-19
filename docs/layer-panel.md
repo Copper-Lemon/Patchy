@@ -44,7 +44,7 @@ The layer list may omit rows entirely: collapsed folders and the Layers panel na
 
 ## Blend and opacity row
 
-Dragging the "Opacity:" or "Fill:" prefix scrubs the value (`install_prefix_scrub`, [ui-conventions.md](ui-conventions.md) Options bar): the drag ends with `editingFinished`, so `finish_pending_layer_opacity_edit` closes it as one undo entry; a click on the prefix focuses the field with the number selected. Combos from `add_blend_mode_items` also step with Left/Right. Panel blend changes merge into one undo entry until a pause or another history change (`ui_layer_blend_mode_steps_coalesce_into_one_undo_entry`). `WrappingBlendRowLayout` wraps Opacity and Fill under the combo when one line does not fit ([right-docks.md](right-docks.md), #96, `ui_layer_blend_row_wraps_in_narrow_panel`).
+Dragging the "Opacity:" or "Fill:" prefix scrubs the value (`install_prefix_scrub`, [ui-conventions.md](ui-conventions.md) Options bar): the drag ends with `editingFinished`, so `finish_pending_layer_opacity_edit` closes it as one undo entry; a click on the prefix focuses the field with the number selected. Combos from `add_blend_mode_items` also step with Left/Right. Panel blend changes merge into one undo entry until a pause or another history change (`ui_layer_blend_mode_steps_coalesce_into_one_undo_entry`). The blend row, the lock/filter row and the footer wrap in a narrow column (#96, #199; [right-docks.md](right-docks.md)).
 
 ## Click selection
 
@@ -132,7 +132,7 @@ The visibility eye (`layerVisibilityCheck`) does not toggle through its QToolBut
 
 ## Add Layer Mask button
 
-The footer's `layerAddMaskButton` runs `MainWindow::add_layer_mask` (reveal-all, or from the active selection). It is deliberately NOT a registered document widget: `refresh_add_layer_mask_button_state` owns its enabled state from `can_add_layer_mask` (exactly one selected layer that is the active one, kind pixel/adjustment/group, no raster mask yet, image pixels unlocked, no preview-dialog lock), called from `refresh_layer_controls` and `update_document_action_state`. Pinned by `ui_layer_add_mask_button_tracks_selection_and_adds_mask`. The footer button row must stay within 340 px: it sets the dock's minimum width (`ui_layer_fx_and_smart_badges_stay_visible_in_narrow_panel`).
+The footer's `layerAddMaskButton` runs `MainWindow::add_layer_mask` (reveal-all, or from the active selection). It is deliberately NOT a registered document widget: `refresh_add_layer_mask_button_state` owns its enabled state from `can_add_layer_mask` (exactly one selected layer that is the active one, kind pixel/adjustment/group, no raster mask yet, image pixels unlocked, no preview-dialog lock), called from `refresh_layer_controls` and `update_document_action_state`. Pinned by `ui_layer_add_mask_button_tracks_selection_and_adds_mask`. The footer's one-row width sets the column's opening width (`ui_layer_fx_and_smart_badges_stay_visible_in_narrow_panel`).
 
 ## Animation preview
 

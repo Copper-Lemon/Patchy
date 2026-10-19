@@ -129,6 +129,13 @@ constexpr int kRightDockFloorWidth = 120;
 // A handle drag that ends within this many pixels of the content-fit width
 // lands exactly on it, the width with no dead strip and no sideways scroll.
 constexpr int kRightDockSnapDistance = 10;
+// The layer list's narrowest width: a top-level row with a mask, its link and
+// two badges (251 px offscreen) stays whole, badges included. Wider than every
+// wrapped row, it sets the Layers panel's compact width (GitHub issue 199).
+constexpr int kLayerListMinimumWidth = 256;
+// The name filter's narrowest width beside the Lock buttons; below it the
+// filter takes a line of its own.
+constexpr int kLayerNameFilterMinimumWidth = 90;
 // Width the column chrome adds around the Layers panel before it is measured: a
 // column at width W gives the panel W minus this.
 constexpr int kRightDockChromeWidth = 18;
@@ -140,25 +147,26 @@ constexpr int kHistoryDockPreferredHeight = 190;
 constexpr int kPropertiesDockMaximumHeight = 230;
 constexpr int kPaletteDockPreferredHeight = 320;
 
-// The Layers panel's blend/opacity row (GitHub issue 96): the first item (the
-// blend combo) and the rest (Opacity, Fill) share one line when the panel is
-// wide enough and the rest wrap onto a second line when it is not. Every item
-// keeps its natural width, packed left. The minimum width is the wrapped
-// width, so long translated prefixes no longer set the right dock's minimum;
-// the minimum height follows the line count of the last laid-out width.
-class WrappingBlendRowLayout final : public QLayout {
+// The Layers panel rows that wrap instead of clipping (GitHub issues 96 and 199).
+// Each reports two widths: minimumSize() is the narrowest width it fits whole,
+// which sets the column's compact width, and comfortable_width() the width the
+// column opens at (the old minimum, so the panel opens exactly as before). The
+// minimum height follows the line count of the last laid-out width.
+class WrappingPanelRowLayout : public QLayout {
 public:
-  explicit WrappingBlendRowLayout(int spacing) {
-    setContentsMargins(0, 0, 0, 0);
-    setSpacing(spacing);
-  }
-  ~WrappingBlendRowLayout() override {
-    while (auto* item = WrappingBlendRowLayout::takeAt(0)) {
+  [[nodiscard]] virtual int comfortable_width() const = 0;
+
+  ~WrappingPanelRowLayout() override {
+    while (auto* item = WrappingPanelRowLayout::takeAt(0)) {
       delete item;
     }
   }
 
   void addItem(QLayoutItem* item) override { items_.push_back(item); }
+  void add_layout(QLayout* layout) {
+    addChildLayout(layout);
+    addItem(layout);
+  }
   [[nodiscard]] int count() const override { return static_cast<int>(items_.size()); }
   [[nodiscard]] QLayoutItem* itemAt(int index) const override {
     return index >= 0 && index < count() ? items_[static_cast<std::size_t>(index)] : nullptr;
@@ -173,49 +181,20 @@ public:
   }
   [[nodiscard]] Qt::Orientations expandingDirections() const override { return {}; }
   [[nodiscard]] bool hasHeightForWidth() const override { return true; }
-  [[nodiscard]] int heightForWidth(int width) const override {
-    return lines_height(wraps(width - horizontal_margins())) + vertical_margins();
-  }
-  [[nodiscard]] QSize minimumSize() const override {
-    return {wrapped_width() + horizontal_margins(), lines_height(wrapped_) + vertical_margins()};
-  }
-  [[nodiscard]] QSize sizeHint() const override {
-    return {one_line_width() + horizontal_margins(), lines_height(false) + vertical_margins()};
-  }
 
-  void setGeometry(const QRect& rect) override {
-    QLayout::setGeometry(rect);
-    const auto area = contentsRect();
-    const auto wrapped = wraps(area.width());
-    const auto first_height = line_height(0, wrapped ? 1 : count());
-    auto x = area.x();
-    auto y = area.y();
-    auto height = first_height;
+protected:
+  WrappingPanelRowLayout() { setContentsMargins(0, 0, 0, 0); }
+
+  [[nodiscard]] QLayoutItem* item(int index) const { return items_[static_cast<std::size_t>(index)]; }
+  [[nodiscard]] std::vector<int> visible_items() const {
+    std::vector<int> visible;
     for (int index = 0; index < count(); ++index) {
-      auto* item = items_[static_cast<std::size_t>(index)];
-      if (item->isEmpty()) {
-        continue;
+      if (!item(index)->isEmpty()) {
+        visible.push_back(index);
       }
-      if (wrapped && index == 1) {
-        x = area.x();
-        y += first_height + spacing();
-        height = line_height(1, count());
-      }
-      const auto hint = item->sizeHint();
-      const auto width = std::min(hint.width(), std::max(0, area.right() + 1 - x));
-      item->setGeometry(QRect(x, y + (height - hint.height()) / 2, width, hint.height()));
-      x += width + spacing();
     }
-    if (wrapped != wrapped_) {
-      // The line count changed, so the minimum height did too. Re-request the
-      // enclosing layout once this pass is over; the next pass is stable
-      // because the wrap depends on the width alone.
-      wrapped_ = wrapped;
-      QTimer::singleShot(0, this, [this] { invalidate(); });
-    }
+    return visible;
   }
-
-private:
   [[nodiscard]] int horizontal_margins() const {
     const auto margins = contentsMargins();
     return margins.left() + margins.right();
@@ -224,45 +203,261 @@ private:
     const auto margins = contentsMargins();
     return margins.top() + margins.bottom();
   }
-  // Natural width of items [first, last) on one line.
-  [[nodiscard]] int run_width(int first, int last) const {
-    int width = 0;
-    int shown = 0;
-    for (int index = first; index < last; ++index) {
-      const auto* item = items_[static_cast<std::size_t>(index)];
-      if (!item->isEmpty()) {
-        width += item->sizeHint().width();
-        ++shown;
-      }
+  // Called from setGeometry with the line count it just laid out. A change moves
+  // the minimum height, so the enclosing layout is re-requested once this pass is
+  // over; the next pass is stable because the wrap depends on the width alone.
+  void note_line_count(int lines) {
+    if (lines != laid_out_lines_) {
+      laid_out_lines_ = lines;
+      QTimer::singleShot(0, this, [this] { invalidate(); });
     }
-    return width + std::max(0, shown - 1) * spacing();
   }
-  [[nodiscard]] int line_height(int first, int last) const {
-    int height = 0;
-    for (int index = first; index < last; ++index) {
-      const auto* item = items_[static_cast<std::size_t>(index)];
-      if (!item->isEmpty()) {
-        height = std::max(height, item->sizeHint().height());
+  [[nodiscard]] int laid_out_lines() const { return laid_out_lines_; }
+
+private:
+  std::vector<QLayoutItem*> items_;
+  int laid_out_lines_{1};
+};
+
+// The blend/opacity row and the lock/filter row. Items keep their natural
+// widths, packed left. While the row does not fit one line, the first item
+// takes a line of its own (the blend combo; the Lock buttons) and the rest pack
+// greedily onto the lines below, so its narrowest width is its widest item. A
+// stretch item (the name filter) takes the rest of its line and counts as
+// stretch_minimum wide when the row decides what fits.
+class WrappingControlRowLayout final : public WrappingPanelRowLayout {
+public:
+  explicit WrappingControlRowLayout(int spacing) { setSpacing(spacing); }
+
+  void set_stretch_widget(QWidget* widget, int minimum_width) {
+    stretch_widget_ = widget;
+    stretch_minimum_ = minimum_width;
+  }
+
+  [[nodiscard]] int heightForWidth(int width) const override {
+    return lines_height(line_starts(width - horizontal_margins())) + vertical_margins();
+  }
+  [[nodiscard]] QSize minimumSize() const override {
+    int width = 0;
+    for (const auto index : visible_items()) {
+      width = std::max(width, item_width(index));
+    }
+    return {width + horizontal_margins(), laid_out_height() + vertical_margins()};
+  }
+  [[nodiscard]] QSize sizeHint() const override {
+    const auto visible = visible_items();
+    return {run_width(visible, 0, visible.size()) + horizontal_margins(),
+            line_height(visible, 0, visible.size()) + vertical_margins()};
+  }
+  // The first item over the rest on one line: the blend row's wrapped width
+  // (GitHub issue 96), so long translated prefixes still wrap at the opening
+  // width rather than widen the column.
+  [[nodiscard]] int comfortable_width() const override {
+    const auto visible = visible_items();
+    if (visible.empty()) {
+      return horizontal_margins();
+    }
+    return std::max(item_width(visible.front()), run_width(visible, 1, visible.size())) + horizontal_margins();
+  }
+
+  void setGeometry(const QRect& rect) override {
+    QLayout::setGeometry(rect);
+    const auto area = contentsRect();
+    const auto visible = visible_items();
+    const auto starts = line_starts(area.width());
+    auto y = area.y();
+    for (std::size_t line = 0; line < starts.size(); ++line) {
+      const auto first = starts[line];
+      const auto last = line + 1 < starts.size() ? starts[line + 1] : visible.size();
+      const auto height = line_height(visible, first, last);
+      auto x = area.x();
+      for (auto position = first; position < last; ++position) {
+        auto* line_item = item(visible[position]);
+        const auto hint = line_item->sizeHint();
+        const auto remaining = std::max(0, area.right() + 1 - x);
+        const auto width = is_stretch(line_item) ? remaining : std::min(hint.width(), remaining);
+        line_item->setGeometry(QRect(x, y + (height - hint.height()) / 2, width, hint.height()));
+        x += width + spacing();
       }
+      y += height + spacing();
+    }
+    note_line_count(static_cast<int>(std::max<std::size_t>(1, starts.size())));
+  }
+
+private:
+  [[nodiscard]] bool is_stretch(QLayoutItem* candidate) const {
+    return stretch_widget_ != nullptr && candidate->widget() == stretch_widget_;
+  }
+  [[nodiscard]] int item_width(int index) const {
+    auto* candidate = item(index);
+    return is_stretch(candidate) ? std::max(stretch_minimum_, candidate->minimumSize().width())
+                                 : candidate->sizeHint().width();
+  }
+  // Natural width of the visible items [first, last) on one line.
+  [[nodiscard]] int run_width(const std::vector<int>& visible, std::size_t first, std::size_t last) const {
+    int width = 0;
+    for (auto position = first; position < last; ++position) {
+      width += item_width(visible[position]);
+    }
+    return width + static_cast<int>(last > first ? last - first - 1 : 0) * spacing();
+  }
+  [[nodiscard]] int line_height(const std::vector<int>& visible, std::size_t first, std::size_t last) const {
+    int height = 0;
+    for (auto position = first; position < last; ++position) {
+      height = std::max(height, item(visible[position])->sizeHint().height());
     }
     return height;
   }
-  [[nodiscard]] int one_line_width() const { return run_width(0, count()); }
-  [[nodiscard]] int wrapped_width() const {
-    return std::max(run_width(0, std::min(1, count())), run_width(1, count()));
-  }
-  [[nodiscard]] bool wraps(int content_width) const {
-    return count() > 1 && content_width < one_line_width();
-  }
-  [[nodiscard]] int lines_height(bool wrapped) const {
-    if (!wrapped) {
-      return line_height(0, count());
+  // Positions in visible_items() where each line starts at this content width.
+  [[nodiscard]] std::vector<std::size_t> line_starts(int width) const {
+    const auto visible = visible_items();
+    if (visible.empty()) {
+      return {};
     }
-    return line_height(0, 1) + spacing() + line_height(1, count());
+    if (run_width(visible, 0, visible.size()) <= width) {
+      return {0};
+    }
+    std::vector<std::size_t> starts{0};
+    int used = 0;
+    for (std::size_t position = 1; position < visible.size(); ++position) {
+      const auto extent = item_width(visible[position]);
+      if (position == 1 || used + spacing() + extent > width) {
+        starts.push_back(position);
+        used = extent;
+      } else {
+        used += spacing() + extent;
+      }
+    }
+    return starts;
+  }
+  [[nodiscard]] int lines_height(const std::vector<std::size_t>& starts) const {
+    const auto visible = visible_items();
+    int height = 0;
+    for (std::size_t line = 0; line < starts.size(); ++line) {
+      const auto last = line + 1 < starts.size() ? starts[line + 1] : visible.size();
+      height += line_height(visible, starts[line], last);
+    }
+    return height + static_cast<int>(starts.empty() ? 0 : starts.size() - 1) * spacing();
+  }
+  // The height at the line count last laid out: the first line, then each
+  // wrapped line at the tallest item after the first.
+  [[nodiscard]] int laid_out_height() const {
+    const auto visible = visible_items();
+    if (visible.empty()) {
+      return 0;
+    }
+    const auto lines = laid_out_lines();
+    if (lines <= 1) {
+      return line_height(visible, 0, visible.size());
+    }
+    return line_height(visible, 0, 1) + (lines - 1) * (line_height(visible, 1, visible.size()) + spacing());
   }
 
-  std::vector<QLayoutItem*> items_;
-  bool wrapped_{false};
+  QWidget* stretch_widget_{nullptr};
+  int stretch_minimum_{0};
+};
+
+// The Layers panel footer (GitHub issue 199). The buttons sit at their maximum
+// width in one row while it fits, the width the column opens at. Narrower, they
+// share the row evenly down to their minimum width (the theme's
+// layerActionButton rule sets both), then wrap into balanced rows (eight
+// buttons: four over four), so the footer never holds the column wider.
+class WrappingButtonRowLayout final : public WrappingPanelRowLayout {
+public:
+  WrappingButtonRowLayout(int natural_spacing, int compact_spacing)
+      : natural_spacing_(natural_spacing), compact_spacing_(compact_spacing) {
+    setSpacing(natural_spacing);
+  }
+
+  [[nodiscard]] int heightForWidth(int width) const override {
+    return rows_height(arrange(width - horizontal_margins()).rows) + vertical_margins();
+  }
+  [[nodiscard]] QSize minimumSize() const override {
+    // Two rows bound the narrowest width; the other panel rows are wider anyway.
+    const auto columns = (static_cast<int>(visible_items().size()) + 1) / 2;
+    const auto width = columns * compact_width() + std::max(0, columns - 1) * compact_spacing_;
+    return {width + horizontal_margins(), rows_height(laid_out_lines()) + vertical_margins()};
+  }
+  [[nodiscard]] QSize sizeHint() const override { return {comfortable_width(), rows_height(1) + vertical_margins()}; }
+  [[nodiscard]] int comfortable_width() const override {
+    const auto buttons = static_cast<int>(visible_items().size());
+    return buttons * natural_width() + std::max(0, buttons - 1) * natural_spacing_ + horizontal_margins();
+  }
+
+  void setGeometry(const QRect& rect) override {
+    QLayout::setGeometry(rect);
+    const auto area = contentsRect();
+    const auto visible = visible_items();
+    const auto arrangement = arrange(area.width());
+    const auto height = button_height();
+    for (std::size_t position = 0; position < visible.size(); ++position) {
+      const auto column = static_cast<int>(position) % arrangement.columns;
+      const auto row = static_cast<int>(position) / arrangement.columns;
+      item(visible[position])
+          ->setGeometry(QRect(area.x() + column * (arrangement.button_width + arrangement.spacing),
+                              area.y() + row * (height + natural_spacing_), arrangement.button_width, height));
+    }
+    note_line_count(std::max(1, arrangement.rows));
+  }
+
+private:
+  struct Arrangement {
+    int columns{1};
+    int rows{0};
+    int button_width{0};
+    int spacing{0};
+  };
+
+  [[nodiscard]] int button_height() const {
+    int height = 0;
+    for (const auto index : visible_items()) {
+      height = std::max(height, item(index)->sizeHint().height());
+    }
+    return height;
+  }
+  // The narrowest maximum and the widest minimum width among the buttons.
+  [[nodiscard]] int natural_width() const {
+    int width = 0;
+    for (const auto index : visible_items()) {
+      const auto extent = item(index)->maximumSize().width();
+      width = width == 0 ? extent : std::min(width, extent);
+    }
+    return std::max(width, compact_width());
+  }
+  [[nodiscard]] int compact_width() const {
+    int width = 0;
+    for (const auto index : visible_items()) {
+      width = std::max(width, item(index)->minimumSize().width());
+    }
+    return width;
+  }
+  [[nodiscard]] int rows_height(int rows) const {
+    return rows * button_height() + std::max(0, rows - 1) * natural_spacing_;
+  }
+  [[nodiscard]] Arrangement arrange(int width) const {
+    const auto buttons = static_cast<int>(visible_items().size());
+    if (buttons == 0) {
+      return {};
+    }
+    const auto natural = natural_width();
+    const auto compact = compact_width();
+    if (buttons * natural + (buttons - 1) * natural_spacing_ <= width) {
+      return {buttons, 1, natural, natural_spacing_};
+    }
+    // The fewest rows whose columns still fit at the compact width; one column
+    // at the compact width when nothing does (the panel scrolls sideways then).
+    for (int rows = 1; rows < buttons; ++rows) {
+      const auto columns = (buttons + rows - 1) / rows;
+      const auto button_width = (width - (columns - 1) * compact_spacing_) / columns;
+      if (button_width >= compact) {
+        return {columns, (buttons + columns - 1) / columns, std::min(button_width, natural), compact_spacing_};
+      }
+    }
+    return {1, buttons, compact, compact_spacing_};
+  }
+
+  int natural_spacing_;
+  int compact_spacing_;
 };
 
 }  // namespace
@@ -396,11 +591,23 @@ void MainWindow::update_right_dock_minimum_width() {
     right_dock_chrome_width_ = std::min(panel_column_->width() - layers_viewport->width(), 64);
   }
   const auto chrome = right_dock_chrome_width_ >= 0 ? right_dock_chrome_width_ : kRightDockChromeWidth;
-  // The panel layout's minimum covers the footer buttons and the blend row at
-  // its wrapped width, whose spin boxes re-measure for the translated
+  // The panel layout's minimum is every row fully wrapped: below it the panel
+  // scrolls sideways (GitHub issue 199).
+  right_dock_compact_width_ = std::max(kRightDockFloorWidth, panel_layout->minimumSize().width() + chrome);
+  // The content-fit width takes each wrapping row at its comfortable width: the
+  // footer buttons on one row and the blend row with Opacity and Fill on one
+  // line under the combo, whose spin boxes re-measure for the translated
   // prefixes, so a column at this width clips neither the Fill spin box nor
   // the popup chevrons.
-  const auto minimum = std::max(kRightDockMinimumWidth, panel_layout->minimumSize().width() + chrome);
+  int content_width = 0;
+  for (int index = 0; index < panel_layout->count(); ++index) {
+    auto* item = panel_layout->itemAt(index);
+    const auto* row = dynamic_cast<const WrappingPanelRowLayout*>(item->layout());
+    content_width = std::max(content_width, row != nullptr ? row->comfortable_width() : item->minimumSize().width());
+  }
+  const auto margins = panel_layout->contentsMargins();
+  content_width += margins.left() + margins.right();
+  const auto minimum = std::max(kRightDockMinimumWidth, content_width + chrome);
   if (minimum == right_dock_minimum_width_) {
     return;
   }
@@ -415,6 +622,33 @@ void MainWindow::update_right_dock_minimum_width() {
 }
 
 bool MainWindow::handle_right_dock_resize_event(QObject* watched, QEvent* event) {
+  if (event->type() == QEvent::LayoutRequest && layer_list_ != nullptr && watched == layer_list_->parentWidget()) {
+    // A narrow column wraps the Layers panel's rows (GitHub issue 199), which
+    // raises the panel's minimum height. When that pushes the window's minimum
+    // past the screen, refit the floors. Only then: the refit also raises the
+    // panel's own floor to the wrapped height.
+    const auto* panel_layout = layer_list_->parentWidget()->layout();
+    const auto height = panel_layout != nullptr ? panel_layout->minimumSize().height() : 0;
+    const auto grew = height > layers_panel_minimum_height_;
+    layers_panel_minimum_height_ = height;
+    if (grew && isVisible()) {
+      QTimer::singleShot(0, this, [this] {
+        const auto budget = available_window_height();
+        if (budget <= 0 || layout() == nullptr || panel_column_ == nullptr || workspace_splitter_ == nullptr) {
+          return;
+        }
+        // The splitter does not pass the column's minimum on to the window's
+        // layout by itself (see fit_right_dock_floors_to_screen).
+        panel_column_->updateGeometry();
+        workspace_splitter_->updateGeometry();
+        layout()->invalidate();
+        if (minimumSizeHint().height() > budget) {
+          fit_right_dock_floors_to_screen();
+        }
+      });
+    }
+    return false;
+  }
   if (panel_column_ == nullptr || watched != panel_column_ || event->type() != QEvent::Show) {
     return false;
   }
@@ -763,6 +997,9 @@ void MainWindow::create_docks() {
   auto* layers_panel = new QWidget(this);
   layers_panel->setObjectName(QStringLiteral("layersPanel"));
   layers_panel->setMinimumHeight(240);
+  // Its layout requests tell handle_right_dock_resize_event when wrapped rows
+  // raise the panel's minimum height (GitHub issue 199).
+  layers_panel->installEventFilter(this);
   auto* layers_layout = new QVBoxLayout(layers_panel);
   layers_layout->setContentsMargins(6, 6, 6, 6);
   layers_layout->setSpacing(6);
@@ -971,7 +1208,7 @@ void MainWindow::create_docks() {
   });
   layer_list_ = layer_list;
   layer_list_->setObjectName(QStringLiteral("layerList"));
-  layer_list_->setMinimumWidth(250);
+  layer_list_->setMinimumWidth(kLayerListMinimumWidth);
   layer_list_->setMinimumHeight(120);
   layer_list_->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
   layer_list_->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
@@ -1062,9 +1299,10 @@ void MainWindow::create_docks() {
   // slider, so the panel spends one line here instead of three. When the
   // stack is narrower than that line (long translated prefixes make it wider
   // than the footer buttons), Opacity and Fill wrap onto a second line
-  // instead of raising the dock's minimum width. No extra side insets: the
-  // panel margin alone places the row.
-  auto* blend_opacity_row = new WrappingBlendRowLayout(6);
+  // instead of raising the dock's minimum width, and Fill onto a third in a
+  // narrower column (GitHub issue 199). No extra side insets: the panel margin
+  // alone places the row.
+  auto* blend_opacity_row = new WrappingControlRowLayout(6);
   blend_combo_ = new QComboBox(layers_panel);
   add_blend_mode_items(blend_combo_);
   blend_combo_->setObjectName(QStringLiteral("layerBlendModeCombo"));
@@ -1117,17 +1355,19 @@ void MainWindow::create_docks() {
   });
   layers_layout->addLayout(blend_opacity_row);
 
-  // Plain left-packed row: the label, buttons, and filter hug the left edge
-  // with the filter absorbing the leftover width (a grid here split the extra
-  // space across its columns and stranded the buttons mid-panel). Flush with
-  // the panel margin like the blend row, so the filter's right edge tracks
-  // the layer list's.
-  auto* lock_row = new QHBoxLayout();
-  lock_row->setContentsMargins(0, 0, 0, 0);
-  lock_row->setSpacing(6);
+  // Left-packed row: the label, buttons, and filter hug the left edge with the
+  // filter absorbing the leftover width (a grid here split the extra space
+  // across its columns and stranded the buttons mid-panel). Flush with the
+  // panel margin like the blend row, so the filter's right edge tracks the
+  // layer list's. In a narrow column the filter wraps onto a line of its own
+  // (GitHub issue 199).
+  auto* lock_row = new WrappingControlRowLayout(6);
+  auto* lock_group = new QHBoxLayout();
+  lock_group->setContentsMargins(0, 0, 0, 0);
+  lock_group->setSpacing(6);
   auto* lock_label = new QLabel(tr("Lock"), layers_panel);
   bind_widget_text(lock_label, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Lock"));
-  lock_row->addWidget(lock_label);
+  lock_group->addWidget(lock_label);
   auto* lock_controls = new QHBoxLayout();
   lock_controls->setContentsMargins(0, 0, 0, 0);
   lock_controls->setSpacing(4);
@@ -1179,19 +1419,20 @@ void MainWindow::create_docks() {
   bind_widget_text(layer_name_filter_edit_, QT_TRANSLATE_NOOP("patchy::ui::MainWindow", "Filter layers by name..."));
   connect(layer_name_filter_edit_, &QLineEdit::textChanged, this, [this] { refresh_layer_list(); });
   register_document_widget(layer_name_filter_edit_);
+  lock_group->addLayout(lock_controls);
+  lock_row->add_layout(lock_group);
   // Rides the otherwise-empty stretch space beside the lock buttons instead of
-  // spending a panel row of its own.
-  lock_controls->addWidget(layer_name_filter_edit_, 1);
-  lock_row->addLayout(lock_controls, 1);
+  // spending a panel row of its own, until that space drops under a few
+  // characters' typing room.
+  lock_row->addWidget(layer_name_filter_edit_);
+  lock_row->set_stretch_widget(layer_name_filter_edit_, kLayerNameFilterMinimumWidth);
   layers_layout->addLayout(lock_row);
   layers_layout->addWidget(layer_list_, 1);
 
-  auto* layer_buttons = new QHBoxLayout();
-  layer_buttons->setContentsMargins(0, 0, 0, 0);
-  // Eight 38 px buttons at 5 px spacing total 339 px: one under the 340 px the
-  // seven-button row took, so the mask button did not raise the dock's minimum
-  // width (ui_layer_fx_and_smart_badges_stay_visible_in_narrow_panel).
-  layer_buttons->setSpacing(5);
+  // One row of full-width buttons at 5 px spacing is the row the column opens
+  // to fit. A narrower column narrows them at 3 px spacing, then wraps them four
+  // over four (GitHub issue 199).
+  auto* layer_buttons = new WrappingButtonRowLayout(5, 3);
   auto* add_button = new QPushButton(layers_panel);
   auto* add_folder_button = new QPushButton(layers_panel);
   auto* adjustment_button = new QToolButton(layers_panel);
@@ -1261,7 +1502,6 @@ void MainWindow::create_docks() {
   layer_buttons->addWidget(rename_button);
   layer_buttons->addWidget(animation_button);
   layer_buttons->addWidget(delete_button);
-  layer_buttons->addStretch(1);
   layers_layout->addLayout(layer_buttons);
   connect(add_button, &QPushButton::clicked, this, [this] { add_layer(); });
   connect(add_folder_button, &QPushButton::clicked, this, [this] { create_layer_folder(); });

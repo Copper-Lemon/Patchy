@@ -749,7 +749,8 @@ QString photoshop_style_template() {
     }
     QPushButton[layerActionButton="true"], QToolButton[layerActionButton="true"] {
       padding: 0;
-      min-width: 38px;
+      /* The Layers footer narrows its buttons down to min-width before it wraps (issue 199). */
+      min-width: 30px;
       max-width: 38px;
       min-height: 34px;
       max-height: 34px;
