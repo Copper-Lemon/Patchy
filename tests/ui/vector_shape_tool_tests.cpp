@@ -1252,8 +1252,9 @@ void ui_line_arrowheads_extend_the_shape() {
   auto* weight_spin = window.findChild<QDoubleSpinBox*>(QStringLiteral("vectorLineWeightSpin"));
   CHECK(weight_spin != nullptr);
   weight_spin->setValue(6);
-  auto* arrow_end = window.findChild<QCheckBox*>(QStringLiteral("lineArrowEndCheck"));
-  CHECK(arrow_end != nullptr);
+  // A glyph toggle since GitHub issue 174 (the checkboxes made the row wrap).
+  auto* arrow_end = window.findChild<QPushButton*>(QStringLiteral("lineArrowEndButton"));
+  CHECK(arrow_end != nullptr && arrow_end->isCheckable());
   arrow_end->setChecked(true);
 
   drag(*canvas, canvas->widget_position_for_document_point(QPoint(100, 200)),

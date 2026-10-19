@@ -18282,14 +18282,6 @@ Clipped to the layer below</source>
         <translation>シェイプ:</translation>
     </message>
     <message>
-        <source>Arrow start</source>
-        <translation>開始点に矢印</translation>
-    </message>
-    <message>
-        <source>Arrow end</source>
-        <translation>終了点に矢印</translation>
-    </message>
-    <message>
         <source>Add an arrowhead at the line start</source>
         <translation>ラインの開始点に矢じりを付けます</translation>
     </message>

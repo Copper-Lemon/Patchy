@@ -14563,16 +14563,8 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>모양:</translation>
     </message>
     <message>
-        <source>Arrow start</source>
-        <translation>화살표 시작</translation>
-    </message>
-    <message>
         <source>Add an arrowhead at the line start</source>
         <translation>선 시작 부분에 화살촉 추가</translation>
-    </message>
-    <message>
-        <source>Arrow end</source>
-        <translation>화살표 끝</translation>
     </message>
     <message>
         <source>Add an arrowhead at the line end</source>

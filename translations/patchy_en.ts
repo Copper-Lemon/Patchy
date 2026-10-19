@@ -14210,15 +14210,7 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Arrow start</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Add an arrowhead at the line start</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Arrow end</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

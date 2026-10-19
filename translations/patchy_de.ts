@@ -14226,16 +14226,8 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>Form:</translation>
     </message>
     <message>
-        <source>Arrow start</source>
-        <translation>Pfeil am Anfang</translation>
-    </message>
-    <message>
         <source>Add an arrowhead at the line start</source>
         <translation>Pfeilspitze am Linienanfang hinzufügen</translation>
-    </message>
-    <message>
-        <source>Arrow end</source>
-        <translation>Pfeil am Ende</translation>
     </message>
     <message>
         <source>Add an arrowhead at the line end</source>

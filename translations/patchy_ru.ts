@@ -14633,16 +14633,8 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>Фигура:</translation>
     </message>
     <message>
-        <source>Arrow start</source>
-        <translation>Начало стрелки</translation>
-    </message>
-    <message>
         <source>Add an arrowhead at the line start</source>
         <translation>Добавьте стрелку в начале строки</translation>
-    </message>
-    <message>
-        <source>Arrow end</source>
-        <translation>Конец стрелки</translation>
     </message>
     <message>
         <source>Add an arrowhead at the line end</source>

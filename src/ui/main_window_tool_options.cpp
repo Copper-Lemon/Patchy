@@ -66,6 +66,7 @@
 #include <QAbstractItemView>
 #include <QAction>
 #include <QByteArray>
+#include <QAbstractButton>
 #include <QCheckBox>
 #include <QColor>
 #include <QDialog>
@@ -1967,12 +1968,12 @@ void MainWindow::load_tool_settings() {
       settings.value(QStringLiteral("tools/lineArrowStart"), current_line_arrow_start_).toBool();
   current_line_arrow_end_ =
       settings.value(QStringLiteral("tools/lineArrowEnd"), current_line_arrow_end_).toBool();
-  if (auto* arrow_start = findChild<QCheckBox*>(QStringLiteral("lineArrowStartCheck"));
+  if (auto* arrow_start = findChild<QAbstractButton*>(QStringLiteral("lineArrowStartButton"));
       arrow_start != nullptr) {
     QSignalBlocker blocker(arrow_start);
     arrow_start->setChecked(current_line_arrow_start_);
   }
-  if (auto* arrow_end = findChild<QCheckBox*>(QStringLiteral("lineArrowEndCheck"));
+  if (auto* arrow_end = findChild<QAbstractButton*>(QStringLiteral("lineArrowEndButton"));
       arrow_end != nullptr) {
     QSignalBlocker blocker(arrow_end);
     arrow_end->setChecked(current_line_arrow_end_);

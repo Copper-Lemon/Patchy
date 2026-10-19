@@ -76,7 +76,7 @@ Custom Shape stamps a library shape into the drag rect (Shift keeps it
 square). Both are vector-only: the combo greys out Pixels (and the Pen) and
 shows the effective mode (Path) without changing it. They write plain paths
 (PS's polygon/custom origination descriptors: unprobed). The Line tool has
-arrow start/end checkboxes (head width 5x, length 10x the weight, PS's
+start/end arrowhead glyph toggles (head width 5x, length 10x the weight, PS's
 proportions) encoded through the probed keyOriginLine arrow keys. The
 CustomShapeLibrary (JSON sidecars in a `shapes` folder beside the settings
 file, unit-box paths, v1 text codec) ships 17 builtins: ids shape.builtin.*

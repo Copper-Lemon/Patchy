@@ -14191,16 +14191,8 @@ Fedora (RPM Fusion): sudo dnf install libheif-freeworld</translation>
         <translation>形狀:</translation>
     </message>
     <message>
-        <source>Arrow start</source>
-        <translation>起點箭頭</translation>
-    </message>
-    <message>
         <source>Add an arrowhead at the line start</source>
         <translation>在線條的起點加上箭頭</translation>
-    </message>
-    <message>
-        <source>Arrow end</source>
-        <translation>終點箭頭</translation>
     </message>
     <message>
         <source>Add an arrowhead at the line end</source>

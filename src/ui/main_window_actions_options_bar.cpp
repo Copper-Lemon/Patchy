@@ -2934,27 +2934,30 @@ void MainWindow::build_options_bar(ActionBuildContext& ctx) {
     schedule_save_tool_settings();
   });
 
-  auto* line_arrow_start = new CheckGlyphBox(tr("Arrow start"), toolbar);
-
-  bind_widget_text(line_arrow_start, QT_TR_NOOP("Arrow start"));
-  line_arrow_start->setObjectName(QStringLiteral("lineArrowStartCheck"));
-  bind_tooltip(line_arrow_start, QT_TR_NOOP("Add an arrowhead at the line start"));
-  add_option_widget(line_arrow_start, {CanvasTool::Line});
-  vector_vector_mode_option_widgets_.push_back(line_arrow_start);
-  connect(line_arrow_start, &QCheckBox::toggled, this, [this](bool checked) {
-    current_line_arrow_start_ = checked;
-    schedule_save_tool_settings();
-  });
-  auto* line_arrow_end = new CheckGlyphBox(tr("Arrow end"), toolbar);
-  bind_widget_text(line_arrow_end, QT_TR_NOOP("Arrow end"));
-  line_arrow_end->setObjectName(QStringLiteral("lineArrowEndCheck"));
-  bind_tooltip(line_arrow_end, QT_TR_NOOP("Add an arrowhead at the line end"));
-  add_option_widget(line_arrow_end, {CanvasTool::Line});
-  vector_vector_mode_option_widgets_.push_back(line_arrow_end);
-  connect(line_arrow_end, &QCheckBox::toggled, this, [this](bool checked) {
-    current_line_arrow_end_ = checked;
-    schedule_save_tool_settings();
-  });
+  // Arrowheads are two glyph toggles like the Type bar's align buttons. The old
+  // "Arrow start" / "Arrow end" checkboxes made the Line row the widest one that
+  // cannot shrink, and it wrapped Appearance... onto a second line (GitHub issue 174).
+  const auto make_line_arrow_button = [this, toolbar, add_option_widget](const char* object_name, bool at_end,
+                                                                         const char* tooltip, bool& setting) {
+    auto* button = new QPushButton(toolbar);
+    button->setObjectName(QLatin1String(object_name));
+    button->setIcon(line_arrowhead_icon(at_end));
+    button->setCheckable(true);
+    button->setChecked(setting);
+    bind_tooltip(button, tooltip);
+    button->setFixedSize(30, 26);
+    button->setFocusPolicy(Qt::NoFocus);
+    add_option_widget(button, {CanvasTool::Line});
+    vector_vector_mode_option_widgets_.push_back(button);
+    connect(button, &QPushButton::toggled, this, [this, &setting](bool checked) {
+      setting = checked;
+      schedule_save_tool_settings();
+    });
+  };
+  make_line_arrow_button("lineArrowStartButton", false, QT_TR_NOOP("Add an arrowhead at the line start"),
+                         current_line_arrow_start_);
+  make_line_arrow_button("lineArrowEndButton", true, QT_TR_NOOP("Add an arrowhead at the line end"),
+                         current_line_arrow_end_);
 
   auto* fill_shapes = new CheckGlyphBox(tr("Fill"), toolbar);
   fill_shapes->setObjectName(QStringLiteral("shapeFillCheck"));

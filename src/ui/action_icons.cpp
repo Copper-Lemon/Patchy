@@ -579,6 +579,25 @@ QIcon up_direction_arrow_icon(int direction) {
                            &ThemePalette::icon_ink, std::move(glyph));
 }
 
+QIcon line_arrowhead_icon(bool at_end) {
+  // Drawn in a 22-unit square: a horizontal line with a filled head at its left
+  // (start) or right (end) tip, the way the Line tool draws it.
+  auto glyph = [at_end](QPainter& painter, const QColor& ink) {
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    if (!at_end) {
+      painter.setTransform(QTransform(-1.0, 0.0, 0.0, 1.0, 22.0, 0.0), true);
+    }
+    painter.setPen(QPen(ink, 2.0, Qt::SolidLine, Qt::FlatCap));
+    painter.drawLine(QPointF(2.5, 11.0), QPointF(13.0, 11.0));
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(ink);
+    const QPointF head[] = {QPointF(19.5, 11.0), QPointF(11.5, 5.5), QPointF(11.5, 16.5)};
+    painter.drawPolygon(head, 3);
+  };
+  return themed_glyph_icon(at_end ? QStringLiteral("line-arrowhead-end") : QStringLiteral("line-arrowhead-start"),
+                           22.0, &ThemePalette::icon_ink, std::move(glyph));
+}
+
 QIcon align_edge_icon(AlignEdge edge) {
   // Drawn in a 22-unit square: the anchor line marks the edge or center the
   // bars line up with; the bars are 10 and 6 units long so the metaphor reads

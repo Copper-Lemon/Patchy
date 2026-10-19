@@ -17,7 +17,7 @@ How the Options bar keeps one height and fits narrow windows (GitHub issue 91). 
 
 ## Text bar
 
-- At 1366 px every tool row must fit on one line: `ui_options_bar_keeps_one_height_across_tools` checks it and prints each row's natural width. A new control on a long row (Text, Brush, Clone) needs that budget.
+- At 1366 px every tool row must fit on one line: `ui_options_bar_keeps_one_height_across_tools` checks it and prints each row's natural width. A new control on a long row (Text, Brush, Clone) needs that budget. Line (Shape mode) has no collapsible slider, so `ui_line_options_bar_fits_one_row_with_room_to_spare` keeps it 100 px under that width for wider desktop fonts; its arrowheads are glyph toggles, not checkboxes (GitHub issue 174).
 - Text Size shows Photoshop's precision: at most two decimals, trailing zeros dropped ("12 pt", "14.45 pt"; `UnitSpinBox::set_trim_trailing_zeros`). Sizes are whole pixels underneath (`text_points_to_pixels`), so two decimals round-trip every pixel size below 7200 ppi. The automatic size compares against the value the field holds after rounding (`text_size_auto_points_`).
 - A field whose displayed max is narrower than its realistic values sizes itself from `kToolbarSpinboxWidthSampleProperty` (Text Size: 888.88 pt).
 - The font family combo's popup sizes itself; the style combo's list opens wider than the closed control.
