@@ -23716,6 +23716,70 @@ Patchy puede descargar la actualización, reemplazar este AppImage y volver a in
     </message>
 </context>
 <context>
+    <name>patchy::ui::StatusDocumentInfoLabel</name>
+    <message>
+        <source>%1 px/cm</source>
+        <translation>%1 px/cm</translation>
+    </message>
+    <message>
+        <source>%1 ppi</source>
+        <translation>%1 ppp</translation>
+    </message>
+    <message>
+        <source>%1 × %2 px/cm</source>
+        <translation>%1 × %2 px/cm</translation>
+    </message>
+    <message>
+        <source>%1 × %2 ppi</source>
+        <translation>%1 × %2 ppp</translation>
+    </message>
+    <message>
+        <source>Indexed</source>
+        <translation>Indexado</translation>
+    </message>
+    <message>
+        <source>CMYK Proof</source>
+        <translation>Prueba CMYK</translation>
+    </message>
+    <message>
+        <source>RGB</source>
+        <translation>RGB</translation>
+    </message>
+    <message>
+        <source>8-bit</source>
+        <translation>8 bits</translation>
+    </message>
+    <message>
+        <source>16-bit</source>
+        <translation>16 bits</translation>
+    </message>
+    <message>
+        <source>32-bit float</source>
+        <translation>32 bits de coma flotante</translation>
+    </message>
+    <message>
+        <source>%1 × %2 px</source>
+        <translation>%1 × %2 px</translation>
+    </message>
+    <message>
+        <source>%1 %2</source>
+        <comment>status bar: color mode, then bit depth</comment>
+        <translation>%1 %2</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <translation>Ninguno</translation>
+    </message>
+    <message>
+        <source>Color profile: %1</source>
+        <translation>Perfil de color: %1</translation>
+    </message>
+    <message>
+        <source>Memory: %1</source>
+        <translation>Memoria: %1</translation>
+    </message>
+</context>
+<context>
     <name>patchy::ui::StyleBrowserWidget</name>
     <message>
         <source>%1 (%2)</source>

@@ -1409,6 +1409,7 @@ void MainWindow::show_file_info_dialog() {
   if (edit->drop_color_profile) {
     doc.color_state().embedded_icc_profile.clear();
   }
+  refresh_status_document_info();  // the color readout names the kept profile
   statusBar()->showMessage(tr("File info updated; it is written the next time you save."));
 }
 
@@ -1423,6 +1424,7 @@ void MainWindow::strip_all_metadata() {
   }
   push_undo_snapshot(tr("Strip metadata"));
   metadata::strip_metadata(document(), *keep_profile);
+  refresh_status_document_info();
   statusBar()->showMessage(tr("Metadata removed; the file changes the next time you save."));
 }
 

@@ -15,6 +15,7 @@
 #include "ui/main_window.hpp"
 #include <QCheckBox>
 #include <QComboBox>
+#include <QLayout>
 #include <QMimeData>
 #include <QPushButton>
 #include <QScrollBar>
@@ -48,6 +49,7 @@
 #include "ui/warp_text_dialog.hpp"
 #include "ui/qt_geometry.hpp"
 #include "ui/update_checker.hpp"
+#include "ui/status_document_info.hpp"
 #include "ui/zoom_status_bar.hpp"
 #include "ui/theme_palette.hpp"
 #include "ui/theme_qss.hpp"
@@ -3835,6 +3837,33 @@ void MainWindow::refresh_layer_controls() {
   refresh_document_info();
 }
 
+void MainWindow::refresh_status_document_info() {
+  if (status_document_info_label_ == nullptr) {
+    return;
+  }
+  if (!has_active_document()) {
+    status_document_info_label_->set_info({});
+    return;
+  }
+  // None of this reads pixels: memory comes from buffer byte counts, the profile
+  // name from the kept ICC header and tags.
+  StatusDocumentInfoLabel::ColorContext color;
+  if (session().cmyk_proof) {
+    color.cmyk_proof = true;
+    color.cmyk_profile_name = QString::fromStdString(working_cmyk_space()->profile_description());
+  }
+  // The field may reach a third of the way across the bar. It follows the Fit button,
+  // whose place is known even while the field is still hidden.
+  auto field_left = 0;
+  if (const auto* fit = zoom_status_controls_->findChild<QWidget*>(QStringLiteral("statusZoomFitButton"),
+                                                                   Qt::FindDirectChildrenOnly);
+      fit != nullptr) {
+    field_left = zoom_status_controls_->x() + fit->geometry().right() + 1 + zoom_status_controls_->layout()->spacing();
+  }
+  status_document_info_label_->set_width_budget(std::max(1, zoom_status_bar_->width() / 3 - field_left));
+  status_document_info_label_->set_info(StatusDocumentInfoLabel::describe(std::as_const(document()), color));
+}
+
 void MainWindow::refresh_document_info() {
   const UiProfileScope profile_scope("refresh_document_info");
   refresh_ruler_unit_field_metrics();  // the PPI is per document
@@ -3854,6 +3883,7 @@ void MainWindow::refresh_document_info() {
       zoom_status_edit_->clear_display();
     }
   }
+  refresh_status_document_info();
   if (document_info_label_ == nullptr) {
     return;
   }

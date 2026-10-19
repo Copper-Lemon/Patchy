@@ -23787,6 +23787,70 @@ Patchy может скачать обновление, заменить этот
     </message>
 </context>
 <context>
+    <name>patchy::ui::StatusDocumentInfoLabel</name>
+    <message>
+        <source>%1 px/cm</source>
+        <translation>%1 пикс./см</translation>
+    </message>
+    <message>
+        <source>%1 ppi</source>
+        <translation>%1 PPI</translation>
+    </message>
+    <message>
+        <source>%1 × %2 px/cm</source>
+        <translation>%1 × %2 пикс./см</translation>
+    </message>
+    <message>
+        <source>%1 × %2 ppi</source>
+        <translation>%1 × %2 PPI</translation>
+    </message>
+    <message>
+        <source>Indexed</source>
+        <translation>Индексированный</translation>
+    </message>
+    <message>
+        <source>CMYK Proof</source>
+        <translation>CMYK-цветопроба</translation>
+    </message>
+    <message>
+        <source>RGB</source>
+        <translation>RGB</translation>
+    </message>
+    <message>
+        <source>8-bit</source>
+        <translation>8-битный</translation>
+    </message>
+    <message>
+        <source>16-bit</source>
+        <translation>16-битный</translation>
+    </message>
+    <message>
+        <source>32-bit float</source>
+        <translation>32-битное число с плавающей запятой</translation>
+    </message>
+    <message>
+        <source>%1 × %2 px</source>
+        <translation>%1 × %2 пикселей</translation>
+    </message>
+    <message>
+        <source>%1 %2</source>
+        <comment>status bar: color mode, then bit depth</comment>
+        <translation>%1 %2</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <translation>Нет</translation>
+    </message>
+    <message>
+        <source>Color profile: %1</source>
+        <translation>Цветовой профиль: %1</translation>
+    </message>
+    <message>
+        <source>Memory: %1</source>
+        <translation>Память: %1</translation>
+    </message>
+</context>
+<context>
     <name>patchy::ui::StyleBrowserWidget</name>
     <message>
         <source>%1 (%2)</source>

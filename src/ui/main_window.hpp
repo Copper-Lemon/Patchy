@@ -162,6 +162,7 @@ class GradientLibrary;
 class ScriptEngineHost;
 class ScriptEditorDialog;
 class StyleLibrary;
+class StatusDocumentInfoLabel;
 class ZoomPercentEdit;
 class ZoomStatusBar;
 
@@ -1866,6 +1867,9 @@ private:
                                                    std::optional<ChannelId> channel_id,
                                                    MaskDisplayMode display_mode);
   void refresh_document_info();
+  // The status-bar document info field (issues 202 and 206): cheap, called from
+  // refresh_document_info, the image mode and bit-depth refreshes and bar resizes.
+  void refresh_status_document_info();
   // Blocking refusals (the requested action did NOT happen) go through here so
   // the status bar flashes red and keeps a warning icon; plain
   // statusBar()->showMessage stays the path for informational text.
@@ -2627,7 +2631,8 @@ private:
   QAction* filter_convert_smart_filters_action_{nullptr};
   ZoomStatusBar* zoom_status_bar_{nullptr};
   ZoomPercentEdit* zoom_status_edit_{nullptr};
-  QWidget* zoom_status_controls_{nullptr};  // the zoom box and its 100% / Fit buttons
+  QWidget* zoom_status_controls_{nullptr};  // the zoom box, its Fit button and the document info field
+  StatusDocumentInfoLabel* status_document_info_label_{nullptr};
   QAction* move_tool_action_{nullptr};
   QAction* type_tool_action_{nullptr};
   QActionGroup* tool_action_group_{nullptr};
